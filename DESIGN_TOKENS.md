@@ -128,6 +128,27 @@ Font: **Manrope**, loaded via `next/font/google` in `app/layout.tsx`.
 
 Type sizes, line heights, tracking: all Tailwind v4 defaults are available. Use `text-xs` through `text-9xl`, `leading-3` through `leading-10`, `tracking-tighter` through `tracking-widest`. No overrides in `@theme`.
 
+## Shadows
+
+One custom shadow token, rest are Tailwind v4 defaults.
+
+| Token | Value | Tailwind utility | Used for |
+| ----- | ----- | ---------------- | -------- |
+| `--shadow-overlay` | 5-layer outer stack + inset bottom | `shadow-overlay` | Floating panels (Sheet, Dialog) |
+
+`--shadow-overlay` composition:
+
+```
+0 0 0 1px rgba(19,21,23,0.08)   hairline ring
+0 3px 3px 0 rgba(0,0,0,0.03)    close shadow
+0 8px 7px 0 rgba(0,0,0,0.04)    mid shadow
+0 17px 14px 0 rgba(0,0,0,0.05)  lift shadow
+0 35px 29px 0 rgba(0,0,0,0.06)  ambient shadow
+inset 0 -4px 4px 0 rgba(0,0,0,0.04)  subtle bottom depth
+```
+
+Use this one utility for overlay-style panels. Do not try to recreate the stack inline.
+
 ## Spacing, sizing, opacity, stroke-width
 
 All Tailwind v4 defaults. `p-4`, `gap-6`, `max-w-3xl`, `opacity-50`, `border-2`, etc. resolve without any override on our side.

@@ -150,13 +150,13 @@ export function PlaygroundShowcase() {
           </div>
         </Row>
         <Row label="Disabled">
-          <div className="grid w-full max-w-sm gap-2">
+          <div className="group grid w-full max-w-sm gap-2" data-disabled="true">
             <Label htmlFor="pg-email-disabled">Email</Label>
             <Input id="pg-email-disabled" type="email" placeholder="name@example.com" disabled />
           </div>
         </Row>
         <Row label="Error">
-          <div className="grid w-full max-w-sm gap-2">
+          <div className="group grid w-full max-w-sm gap-2" data-error="true">
             <Label htmlFor="pg-email-error">Email</Label>
             <Input id="pg-email-error" type="email" defaultValue="nope" aria-invalid />
             <p className="text-xs text-destructive">Enter a valid email.</p>
