@@ -30,7 +30,7 @@ function SheetOverlay({
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-sand-7/60 duration-100 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 z-50 bg-sand-7/60 duration-150 ease-out data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className,
       )}
       {...props}
@@ -63,16 +63,17 @@ function SheetContent({
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-50 flex flex-col overflow-hidden rounded-2xl bg-white-a11 text-foreground shadow-overlay transition duration-200 ease-in-out supports-backdrop-filter:backdrop-blur-[8px] dark:bg-sand-2/90",
+          "fixed z-50 flex flex-col overflow-hidden rounded-2xl bg-white-a11 text-foreground shadow-overlay supports-backdrop-filter:backdrop-blur-[8px] dark:bg-sand-2/90",
           "data-[side=right]:inset-y-2 data-[side=right]:right-2 data-[side=right]:w-[calc(100vw-16px)] data-[side=right]:max-w-[550px]",
           "data-[side=left]:inset-y-2 data-[side=left]:left-2 data-[side=left]:w-[calc(100vw-16px)] data-[side=left]:max-w-[550px]",
           "data-[side=top]:inset-x-2 data-[side=top]:top-2 data-[side=top]:h-auto data-[side=top]:max-h-[calc(100vh-16px)]",
           "data-[side=bottom]:inset-x-2 data-[side=bottom]:bottom-2 data-[side=bottom]:h-auto data-[side=bottom]:max-h-[calc(100vh-16px)]",
-          "data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
-          "data-[side=right]:data-open:slide-in-from-right-10 data-[side=right]:data-closed:slide-out-to-right-10",
-          "data-[side=left]:data-open:slide-in-from-left-10 data-[side=left]:data-closed:slide-out-to-left-10",
-          "data-[side=top]:data-open:slide-in-from-top-10 data-[side=top]:data-closed:slide-out-to-top-10",
-          "data-[side=bottom]:data-open:slide-in-from-bottom-10 data-[side=bottom]:data-closed:slide-out-to-bottom-10",
+          "data-open:animate-in data-open:duration-300 data-open:ease-[cubic-bezier(0.16,1,0.3,1)]",
+          "data-closed:animate-out data-closed:duration-200 data-closed:ease-[cubic-bezier(0.7,0,0.84,0)]",
+          "data-[side=right]:data-open:slide-in-from-right-full data-[side=right]:data-closed:slide-out-to-right-full",
+          "data-[side=left]:data-open:slide-in-from-left-full data-[side=left]:data-closed:slide-out-to-left-full",
+          "data-[side=top]:data-open:slide-in-from-top-full data-[side=top]:data-closed:slide-out-to-top-full",
+          "data-[side=bottom]:data-open:slide-in-from-bottom-full data-[side=bottom]:data-closed:slide-out-to-bottom-full",
           className,
         )}
         {...props}
