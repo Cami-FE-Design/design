@@ -1,0 +1,355 @@
+"use client"
+
+import {
+  BookOpenIcon,
+  CalendarIcon,
+  ChevronDownIcon,
+  ChevronsRightIcon,
+  ContactIcon,
+  HeadsetIcon,
+  HomeIcon,
+  type LucideIcon,
+  MessageSquareMoreIcon,
+  ReceiptIcon,
+  Settings2Icon,
+  SprayCanIcon,
+  UsersIcon,
+} from "lucide-react"
+import { forwardRef, useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
+
+type SubmenuItem = {
+  label: string
+}
+
+type MenuItem = {
+  icon: LucideIcon
+  label: string
+  hasUpdate?: boolean
+  notificationCount?: number
+  children?: SubmenuItem[]
+}
+
+const topMenu: MenuItem[] = [
+  { icon: HomeIcon, label: "Home" },
+  {
+    icon: CalendarIcon,
+    label: "Schedules",
+    children: [{ label: "Calendar" }, { label: "Availability" }],
+  },
+  {
+    icon: ContactIcon,
+    label: "Clients",
+    children: [{ label: "All clients" }, { label: "Groups" }],
+  },
+  {
+    icon: MessageSquareMoreIcon,
+    label: "Messages",
+    hasUpdate: true,
+    notificationCount: 8,
+    children: [{ label: "Inbox" }, { label: "Archived" }],
+  },
+  {
+    icon: ReceiptIcon,
+    label: "Sales",
+    children: [{ label: "Invoices" }, { label: "Reports" }],
+  },
+  {
+    icon: BookOpenIcon,
+    label: "Catalogs",
+    children: [{ label: "Services" }, { label: "Packages" }],
+  },
+  {
+    icon: SprayCanIcon,
+    label: "Products",
+    children: [{ label: "Inventory" }, { label: "Vendors" }],
+  },
+  {
+    icon: UsersIcon,
+    label: "Team",
+    children: [{ label: "Members" }, { label: "Roles" }],
+  },
+]
+
+const bottomMenu: MenuItem[] = [
+  { icon: HeadsetIcon, label: "Support" },
+  { icon: Settings2Icon, label: "Settings" },
+]
+
+const menuButtonClass =
+  "relative h-11 w-full justify-start rounded-xl px-4 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+
+const menuButtonTransition =
+  "background-color 150ms ease, color 150ms ease, gap 600ms cubic-bezier(0.65, 0, 0.35, 1)"
+
+type SidebarMenuButtonProps = React.ComponentProps<"button"> & {
+  item: MenuItem
+  expanded: boolean
+  isSubmenuOpen?: boolean
+  onToggleSubmenu?: () => void
+}
+
+const SidebarMenuButton = forwardRef<HTMLButtonElement, SidebarMenuButtonProps>(
+  function SidebarMenuButton(
+    { item, expanded, isSubmenuOpen = false, onToggleSubmenu, ...rest },
+    ref,
+  ) {
+    const Icon = item.icon
+    const hasChildren = !!item.children?.length
+    const notificationCount = item.notificationCount ?? 0
+    const showDot = !expanded && item.hasUpdate
+
+    return (
+      <Button
+        ref={ref}
+        variant="ghost"
+        className={cn(menuButtonClass, expanded ? "gap-3" : "gap-0")}
+        style={{ transition: menuButtonTransition }}
+        aria-expanded={hasChildren && expanded ? isSubmenuOpen : undefined}
+        aria-label={expanded ? undefined : item.label}
+        onClick={hasChildren && expanded ? onToggleSubmenu : undefined}
+        {...rest}
+      >
+        <Icon className="size-5 shrink-0" />
+        <span
+          className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left text-base font-medium leading-6 transition-[max-width,opacity] duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]"
+          style={{
+            maxWidth: expanded ? "12rem" : "0",
+            opacity: expanded ? 1 : 0,
+          }}
+        >
+          {item.label}
+        </span>
+        <span
+          className="pointer-events-none absolute top-1/2 right-0 flex -translate-y-1/2 items-center gap-1 pr-4 transition-opacity duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]"
+          style={{
+            opacity: expanded ? 1 : 0,
+          }}
+          aria-hidden={!expanded}
+        >
+          {notificationCount > 0 && (
+            <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-primary px-1 py-0.5 text-xs font-medium leading-4 text-primary-foreground">
+              {notificationCount}
+            </span>
+          )}
+          {hasChildren && (
+            <ChevronDownIcon
+              className={cn(
+                "size-5 transition-transform duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
+                isSubmenuOpen && "rotate-180",
+              )}
+            />
+          )}
+        </span>
+        {showDot && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute top-1/2 right-0 size-2 -translate-y-1/2 rounded-full bg-destructive"
+          />
+        )}
+      </Button>
+    )
+  },
+)
+
+function TreeConnector({ isLast }: { isLast: boolean }) {
+  if (isLast) {
+    return (
+      <svg
+        width="22.5"
+        height="36"
+        viewBox="0 0 22.5 36"
+        fill="none"
+        aria-hidden
+        className="shrink-0 text-border"
+      >
+        <title>Last submenu connector</title>
+        <path d="M11.25 0 V10 Q11.25 18 18.25 18 H22.5" stroke="currentColor" strokeWidth="1" />
+      </svg>
+    )
+  }
+  return (
+    <svg
+      width="22.5"
+      height="36"
+      viewBox="0 0 22.5 36"
+      fill="none"
+      aria-hidden
+      className="shrink-0 text-border"
+    >
+      <title>Submenu connector</title>
+      <path d="M11.25 0 V36" stroke="currentColor" strokeWidth="1" />
+      <path d="M11.25 18 H22.5" stroke="currentColor" strokeWidth="1" />
+    </svg>
+  )
+}
+
+function ChildMenuItem({ label, isLast }: { label: string; isLast: boolean }) {
+  return (
+    <div className="flex h-9 items-center pl-6">
+      <TreeConnector isLast={isLast} />
+      <Button
+        variant="ghost"
+        className="h-full flex-1 justify-start rounded-xl px-4 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+      >
+        <span className="truncate text-base font-medium leading-6">{label}</span>
+      </Button>
+    </div>
+  )
+}
+
+type SidebarItemProps = {
+  item: MenuItem
+  expanded: boolean
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+function SidebarItem({ item, expanded, isOpen, onOpenChange }: SidebarItemProps) {
+  const hasChildren = !!item.children?.length
+
+  if (!expanded && hasChildren) {
+    return (
+      <HoverCard open={isOpen} onOpenChange={onOpenChange}>
+        <HoverCardTrigger asChild>
+          <SidebarMenuButton item={item} expanded={false} />
+        </HoverCardTrigger>
+        <HoverCardContent side="right" align="start" sideOffset={8} className="w-[232px]">
+          <div className="flex flex-col gap-0.5">
+            <div className="px-4 pt-1 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {item.label}
+            </div>
+            {item.children?.map((child) => (
+              <Button
+                key={child.label}
+                variant="ghost"
+                className="h-10 justify-start rounded-xl px-4 text-base leading-6 font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              >
+                {child.label}
+              </Button>
+            ))}
+          </div>
+        </HoverCardContent>
+      </HoverCard>
+    )
+  }
+
+  if (!expanded) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <SidebarMenuButton item={item} expanded={false} />
+        </TooltipTrigger>
+        <TooltipContent side="right">{item.label}</TooltipContent>
+      </Tooltip>
+    )
+  }
+
+  const effectivelyOpen = hasChildren && isOpen
+
+  return (
+    <div className="flex w-full flex-col">
+      <SidebarMenuButton
+        item={item}
+        expanded
+        isSubmenuOpen={effectivelyOpen}
+        onToggleSubmenu={hasChildren ? () => onOpenChange(!isOpen) : undefined}
+      />
+      <div
+        className="grid overflow-hidden transition-[grid-template-rows] duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]"
+        style={{
+          gridTemplateRows: effectivelyOpen ? "1fr" : "0fr",
+        }}
+      >
+        <div className="min-h-0">
+          {hasChildren &&
+            item.children?.map((child, index) => (
+              <ChildMenuItem
+                key={child.label}
+                label={child.label}
+                isLast={index === (item.children?.length ?? 0) - 1}
+              />
+            ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+type AppSidebarProps = React.ComponentProps<"aside"> & {
+  defaultExpanded?: boolean
+}
+
+export function AppSidebar({ className, defaultExpanded = false, ...props }: AppSidebarProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded)
+  const [openMenuLabel, setOpenMenuLabel] = useState<string | null>(null)
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset open menu whenever expanded toggles
+  useEffect(() => {
+    setOpenMenuLabel(null)
+  }, [expanded])
+
+  const buildItemProps = (item: MenuItem) => ({
+    isOpen: openMenuLabel === item.label,
+    onOpenChange: (open: boolean) => {
+      setOpenMenuLabel(open ? item.label : null)
+    },
+  })
+
+  return (
+    <aside
+      data-slot="app-sidebar"
+      data-expanded={expanded}
+      className={cn(
+        "z-[2] flex h-full flex-col justify-between px-2 py-3 text-sidebar-foreground transition-[width] duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
+        expanded ? "w-[248px]" : "w-[68px]",
+        className,
+      )}
+      {...props}
+    >
+      <div className="flex flex-1 flex-col gap-6">
+        <div className="flex justify-end">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+                aria-expanded={expanded}
+                className="h-11 w-[52px] rounded-xl text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                onClick={() => setExpanded((v) => !v)}
+              >
+                <ChevronsRightIcon
+                  className={cn(
+                    "size-5 transition-transform duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
+                    expanded && "rotate-180",
+                  )}
+                />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {expanded ? "Collapse sidebar" : "Expand sidebar"}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <nav className="flex flex-1 flex-col gap-0.5" aria-label="Main">
+          {topMenu.map((item) => (
+            <SidebarItem
+              key={item.label}
+              item={item}
+              expanded={expanded}
+              {...buildItemProps(item)}
+            />
+          ))}
+        </nav>
+      </div>
+      <nav className="flex flex-col gap-0.5" aria-label="Secondary">
+        {bottomMenu.map((item) => (
+          <SidebarItem key={item.label} item={item} expanded={expanded} {...buildItemProps(item)} />
+        ))}
+      </nav>
+    </aside>
+  )
+}
