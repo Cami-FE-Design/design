@@ -26,13 +26,13 @@ export function AppShell({
       {sidebar}
       <div className="relative z-[1] flex h-full min-w-0 flex-1 flex-col">
         <div className="relative z-[2] w-full">{topbar}</div>
-        <div className="relative z-[1] flex w-full flex-1 flex-col overflow-hidden shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]">
-          <div className="flex w-full items-center justify-center overflow-clip rounded-tl-2xl bg-background px-3 py-6">
+        <div className="relative z-[1] flex w-full flex-1 flex-col overflow-hidden rounded-tl-2xl shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]">
+          <div className="flex w-full items-center justify-center bg-background px-3 py-6">
             {header ?? (
               <p className="text-base font-medium leading-6 text-muted-foreground">Page Header</p>
             )}
           </div>
-          <div className="flex min-h-0 w-full flex-1 flex-col overflow-clip bg-background px-3 pb-9">
+          <div className="flex min-h-0 w-full flex-1 flex-col bg-background px-3 pb-9">
             {children ?? (
               <div className="flex min-h-0 flex-1 flex-col items-center justify-center border-2 border-dashed border-border">
                 <p className="text-base font-normal leading-6 text-muted-foreground">
