@@ -80,10 +80,12 @@ const bottomMenu: MenuItem[] = [
 ]
 
 const menuButtonClass =
-  "relative h-11 w-full justify-start rounded-xl px-4 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+  "relative h-11 w-full justify-start rounded-xl pl-4 text-sidebar-foreground aria-expanded:bg-transparent aria-expanded:text-sidebar-foreground"
 
-const menuButtonTransition =
-  "background-color 150ms ease, color 150ms ease, gap 600ms cubic-bezier(0.65, 0, 0.35, 1)"
+const easeOutCubic = "cubic-bezier(0.33, 1, 0.68, 1)"
+const drawerDuration = "500ms"
+
+const menuButtonTransition = `background-color 150ms ease, color 150ms ease, gap ${drawerDuration} ${easeOutCubic}, padding-right ${drawerDuration} ${easeOutCubic}`
 
 type SidebarMenuButtonProps = React.ComponentProps<"button"> & {
   item: MenuItem
@@ -100,14 +102,17 @@ const SidebarMenuButton = forwardRef<HTMLButtonElement, SidebarMenuButtonProps>(
     const Icon = item.icon
     const hasChildren = !!item.children?.length
     const notificationCount = item.notificationCount ?? 0
-    const showDot = !expanded && item.hasUpdate
+    const showBadge = item.hasUpdate || notificationCount > 0
 
     return (
       <Button
         ref={ref}
         variant="ghost"
         className={cn(menuButtonClass, expanded ? "gap-3" : "gap-0")}
-        style={{ transition: menuButtonTransition }}
+        style={{
+          transition: menuButtonTransition,
+          paddingRight: expanded ? "60px" : "16px",
+        }}
         aria-expanded={hasChildren && expanded ? isSubmenuOpen : undefined}
         aria-label={expanded ? undefined : item.label}
         onClick={hasChildren && expanded ? onToggleSubmenu : undefined}
@@ -115,41 +120,55 @@ const SidebarMenuButton = forwardRef<HTMLButtonElement, SidebarMenuButtonProps>(
       >
         <Icon className="size-5 shrink-0" />
         <span
-          className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left text-base font-medium leading-6 transition-[max-width,opacity] duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]"
+          className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left text-base font-medium leading-6"
           style={{
             maxWidth: expanded ? "12rem" : "0",
             opacity: expanded ? 1 : 0,
+            transition: `max-width ${drawerDuration} ${easeOutCubic}, opacity ${drawerDuration} ${easeOutCubic}`,
           }}
         >
           {item.label}
         </span>
         <span
-          className="pointer-events-none absolute top-1/2 right-0 flex -translate-y-1/2 items-center gap-1 pr-4 transition-opacity duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]"
+          className={cn(
+            "pointer-events-none absolute top-1/2 right-0 flex -translate-y-1/2 items-center",
+            expanded ? "gap-1 pr-4" : "gap-0 pr-0",
+          )}
           style={{
-            opacity: expanded ? 1 : 0,
+            transition: `padding ${drawerDuration} ${easeOutCubic}, gap ${drawerDuration} ${easeOutCubic}`,
           }}
           aria-hidden={!expanded}
         >
-          {notificationCount > 0 && (
-            <span className="flex h-5 min-w-5 items-center justify-center rounded-md bg-primary px-1 py-0.5 text-xs font-medium leading-4 text-primary-foreground">
-              {notificationCount}
+          {showBadge && (
+            <span
+              className={cn(
+                "flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-primary text-primary-foreground transition-all",
+                expanded ? "h-5 min-w-5 px-1 py-0.5" : "size-2 px-0 py-0",
+              )}
+              style={{
+                transitionDuration: drawerDuration,
+                transitionTimingFunction: easeOutCubic,
+              }}
+            >
+              <span
+                className="text-xs font-medium leading-4 transition-opacity duration-[250ms] ease-out"
+                style={{ opacity: expanded ? 1 : 0 }}
+              >
+                {notificationCount > 0 ? notificationCount : null}
+              </span>
             </span>
           )}
           {hasChildren && (
             <ChevronDownIcon
-              className={cn(
-                "size-5 transition-transform duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
-                isSubmenuOpen && "rotate-180",
-              )}
+              className={cn("h-5 shrink-0", isSubmenuOpen && "rotate-180")}
+              style={{
+                opacity: expanded ? 1 : 0,
+                width: expanded ? "1.25rem" : "0",
+                transition: `opacity ${drawerDuration} ${easeOutCubic}, width ${drawerDuration} ${easeOutCubic}, transform 200ms ease-out`,
+              }}
             />
           )}
         </span>
-        {showDot && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 right-0 size-2 -translate-y-1/2 rounded-full bg-destructive"
-          />
-        )}
       </Button>
     )
   },
@@ -193,7 +212,7 @@ function ChildMenuItem({ label, isLast }: { label: string; isLast: boolean }) {
       <TreeConnector isLast={isLast} />
       <Button
         variant="ghost"
-        className="h-full flex-1 justify-start rounded-xl px-4 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        className="h-full flex-1 justify-start rounded-xl px-4 text-sidebar-foreground"
       >
         <span className="truncate text-base font-medium leading-6">{label}</span>
       </Button>
@@ -226,7 +245,7 @@ function SidebarItem({ item, expanded, isOpen, onOpenChange }: SidebarItemProps)
               <Button
                 key={child.label}
                 variant="ghost"
-                className="h-10 justify-start rounded-xl px-4 text-base leading-6 font-medium text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                className="h-10 justify-start rounded-xl px-4 text-base leading-6 font-medium text-sidebar-foreground"
               >
                 {child.label}
               </Button>
@@ -304,10 +323,11 @@ export function AppSidebar({ className, defaultExpanded = false, ...props }: App
       data-slot="app-sidebar"
       data-expanded={expanded}
       className={cn(
-        "z-[2] flex h-full flex-col justify-between px-2 py-3 text-sidebar-foreground transition-[width] duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
+        "z-[2] flex h-full flex-col justify-between px-2 py-3 text-sidebar-foreground",
         expanded ? "w-[248px]" : "w-[68px]",
         className,
       )}
+      style={{ transition: `width ${drawerDuration} ${easeOutCubic}` }}
       {...props}
     >
       <div className="flex flex-1 flex-col gap-6">
@@ -318,12 +338,12 @@ export function AppSidebar({ className, defaultExpanded = false, ...props }: App
                 variant="ghost"
                 aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
                 aria-expanded={expanded}
-                className="h-11 w-[52px] rounded-xl text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                className="h-11 w-[52px] rounded-xl text-sidebar-foreground"
                 onClick={() => setExpanded((v) => !v)}
               >
                 <ChevronsRightIcon
                   className={cn(
-                    "size-5 transition-transform duration-[600ms] ease-[cubic-bezier(0.65,0,0.35,1)]",
+                    "size-5 transition-transform duration-200 ease-out",
                     expanded && "rotate-180",
                   )}
                 />

@@ -19,8 +19,7 @@ function initialOf(name?: string) {
   return name.trim().charAt(0).toUpperCase()
 }
 
-const iconButtonClass =
-  "size-11 rounded-full text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+const iconButtonClass = "size-11 rounded-full text-sidebar-foreground"
 
 type TopbarIconButtonProps = {
   label: string
