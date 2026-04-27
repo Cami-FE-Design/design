@@ -1,83 +1,12 @@
 "use client"
 
-import {
-  BookOpenIcon,
-  CalendarIcon,
-  ChevronDownIcon,
-  ChevronsRightIcon,
-  ContactIcon,
-  HeadsetIcon,
-  HomeIcon,
-  type LucideIcon,
-  MessageSquareMoreIcon,
-  ReceiptIcon,
-  Settings2Icon,
-  SprayCanIcon,
-  UsersIcon,
-} from "lucide-react"
+import { ChevronDownIcon, ChevronsRightIcon } from "lucide-react"
 import { forwardRef, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { bottomMenu, type MenuItem, topMenu } from "@/lib/app-menu"
 import { cn } from "@/lib/utils"
-
-type SubmenuItem = {
-  label: string
-}
-
-type MenuItem = {
-  icon: LucideIcon
-  label: string
-  hasUpdate?: boolean
-  notificationCount?: number
-  children?: SubmenuItem[]
-}
-
-const topMenu: MenuItem[] = [
-  { icon: HomeIcon, label: "Home" },
-  {
-    icon: CalendarIcon,
-    label: "Schedules",
-    children: [{ label: "Calendar" }, { label: "Availability" }],
-  },
-  {
-    icon: ContactIcon,
-    label: "Clients",
-    children: [{ label: "All clients" }, { label: "Groups" }],
-  },
-  {
-    icon: MessageSquareMoreIcon,
-    label: "Messages",
-    hasUpdate: true,
-    notificationCount: 8,
-    children: [{ label: "Inbox" }, { label: "Archived" }],
-  },
-  {
-    icon: ReceiptIcon,
-    label: "Sales",
-    children: [{ label: "Invoices" }, { label: "Reports" }],
-  },
-  {
-    icon: BookOpenIcon,
-    label: "Catalogs",
-    children: [{ label: "Services" }, { label: "Packages" }],
-  },
-  {
-    icon: SprayCanIcon,
-    label: "Products",
-    children: [{ label: "Inventory" }, { label: "Vendors" }],
-  },
-  {
-    icon: UsersIcon,
-    label: "Team",
-    children: [{ label: "Members" }, { label: "Roles" }],
-  },
-]
-
-const bottomMenu: MenuItem[] = [
-  { icon: HeadsetIcon, label: "Support" },
-  { icon: Settings2Icon, label: "Settings" },
-]
 
 const menuButtonClass =
   "relative h-11 w-full justify-start rounded-xl pl-4 text-sidebar-foreground aria-expanded:bg-transparent aria-expanded:text-sidebar-foreground"

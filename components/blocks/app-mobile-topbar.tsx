@@ -1,8 +1,9 @@
 "use client"
 
-import { BellIcon, CirclePlusIcon, SearchIcon } from "lucide-react"
+import { BellIcon, CirclePlusIcon, MenuIcon, SearchIcon } from "lucide-react"
 import type * as React from "react"
 import { Button } from "@/components/ui/button"
+import { SheetTrigger } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
 type AppMobileTopbarProps = React.ComponentProps<"div"> & {
@@ -35,15 +36,20 @@ export function AppMobileTopbar({
   return (
     <div
       data-slot="app-mobile-topbar"
-      className={cn("flex w-full items-center justify-between px-2 py-2", className)}
+      className={cn("flex h-[72px] w-full items-center justify-between px-3", className)}
       {...props}
     >
-      <Button variant="ghost" size="icon" aria-label="New" className={iconButtonClass}>
-        <CirclePlusIcon className="size-8" />
-      </Button>
-      <div className="flex items-center gap-1">
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label="Open menu" className={iconButtonClass}>
+          <MenuIcon className="size-7" />
+        </Button>
+      </SheetTrigger>
+      <div className="flex items-center gap-0.5">
+        <Button variant="ghost" size="icon" aria-label="New" className={iconButtonClass}>
+          <CirclePlusIcon className="size-5" />
+        </Button>
         <Button variant="ghost" size="icon" aria-label="Search" className={iconButtonClass}>
-          <SearchIcon className="size-8" />
+          <SearchIcon className="size-5" />
         </Button>
         <Button
           variant="ghost"
@@ -51,7 +57,7 @@ export function AppMobileTopbar({
           aria-label={notificationsAriaLabel}
           className={iconButtonClass}
         >
-          <BellIcon className="size-8" />
+          <BellIcon className="size-5" />
         </Button>
         <Button
           variant="ghost"
@@ -59,7 +65,7 @@ export function AppMobileTopbar({
           aria-label={`${accountLabel} account`}
           className="size-11 rounded-full"
         >
-          <span className="flex size-8 items-center justify-center overflow-hidden rounded-full border-[1.21px] border-pink-8 bg-pink-9">
+          <span className="flex size-8 items-center justify-center overflow-hidden rounded-full border-[1.21px] border-cami-violet-7 bg-cami-violet-8">
             {avatarSrc ? (
               // biome-ignore lint/performance/noImgElement: avatar URL may be cross-origin and is small
               <img src={avatarSrc} alt={accountLabel} className="size-full object-cover" />

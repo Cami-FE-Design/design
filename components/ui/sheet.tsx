@@ -24,13 +24,15 @@ function SheetPortal({ ...props }: React.ComponentProps<typeof SheetPrimitive.Po
 
 function SheetOverlay({
   className,
+  inline = false,
   ...props
-}: React.ComponentProps<typeof SheetPrimitive.Overlay>) {
+}: React.ComponentProps<typeof SheetPrimitive.Overlay> & { inline?: boolean }) {
   return (
     <SheetPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-50 bg-sand-7/60 duration-150 ease-out data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        inline ? "absolute" : "fixed",
+        "inset-0 z-50 bg-sand-7/60 duration-150 ease-out data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className,
       )}
       {...props}
@@ -50,24 +52,31 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  inline = false,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
+  inline?: boolean
 }) {
   const CloseIcon = closeIconBySide[side]
-  return (
-    <SheetPortal>
-      <SheetOverlay />
+  const sizingClasses = inline
+    ? "data-[side=right]:w-[calc(100%-16px)] data-[side=left]:w-[calc(100%-16px)] data-[side=top]:max-h-[calc(100%-16px)] data-[side=bottom]:max-h-[calc(100%-16px)]"
+    : "data-[side=right]:w-[calc(100vw-16px)] data-[side=left]:w-[calc(100vw-16px)] data-[side=top]:max-h-[calc(100vh-16px)] data-[side=bottom]:max-h-[calc(100vh-16px)]"
+  const body = (
+    <>
+      <SheetOverlay inline={inline} />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         data-side={side}
         className={cn(
-          "fixed z-50 flex flex-col overflow-hidden rounded-2xl bg-white-a11 text-foreground shadow-overlay supports-backdrop-filter:backdrop-blur-[8px] dark:bg-sand-2/90",
-          "data-[side=right]:inset-y-2 data-[side=right]:right-2 data-[side=right]:w-[calc(100vw-16px)] data-[side=right]:max-w-[550px]",
-          "data-[side=left]:inset-y-2 data-[side=left]:left-2 data-[side=left]:w-[calc(100vw-16px)] data-[side=left]:max-w-[550px]",
-          "data-[side=top]:inset-x-2 data-[side=top]:top-2 data-[side=top]:h-auto data-[side=top]:max-h-[calc(100vh-16px)]",
-          "data-[side=bottom]:inset-x-2 data-[side=bottom]:bottom-2 data-[side=bottom]:h-auto data-[side=bottom]:max-h-[calc(100vh-16px)]",
+          inline ? "absolute" : "fixed",
+          "z-50 flex flex-col overflow-hidden rounded-2xl bg-white-a11 text-foreground shadow-overlay supports-backdrop-filter:backdrop-blur-[8px] dark:bg-sand-2/90",
+          "data-[side=right]:inset-y-2 data-[side=right]:right-2 data-[side=right]:max-w-[550px]",
+          "data-[side=left]:inset-y-2 data-[side=left]:left-2 data-[side=left]:max-w-[550px]",
+          "data-[side=top]:inset-x-2 data-[side=top]:top-2 data-[side=top]:h-auto",
+          "data-[side=bottom]:inset-x-2 data-[side=bottom]:bottom-2 data-[side=bottom]:h-auto",
+          sizingClasses,
           "data-open:animate-in data-open:duration-300 data-open:ease-[cubic-bezier(0.16,1,0.3,1)]",
           "data-closed:animate-out data-closed:duration-200 data-closed:ease-[cubic-bezier(0.7,0,0.84,0)]",
           "data-[side=right]:data-open:slide-in-from-right-full data-[side=right]:data-closed:slide-out-to-right-full",
@@ -78,19 +87,20 @@ function SheetContent({
         )}
         {...props}
       >
-        <div className="flex min-h-12 items-center gap-3 border-b border-black-a2 px-3 dark:border-white-a2">
-          {showCloseButton && (
+        {showCloseButton && (
+          <div className="flex min-h-12 items-center gap-3 border-b border-black-a2 px-3 dark:border-white-a2">
             <SheetPrimitive.Close asChild>
               <Button variant="ghost" size="icon-sm" aria-label="Close">
                 <CloseIcon />
               </Button>
             </SheetPrimitive.Close>
-          )}
-        </div>
+          </div>
+        )}
         <div className="flex flex-1 flex-col overflow-y-auto">{children}</div>
       </SheetPrimitive.Content>
-    </SheetPortal>
+    </>
   )
+  return inline ? body : <SheetPortal>{body}</SheetPortal>
 }
 
 function SheetHeader({ className, ...props }: React.ComponentProps<"div">) {
