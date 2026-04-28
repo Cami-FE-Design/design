@@ -25,7 +25,7 @@ type SignInValues = z.infer<typeof signInSchema>
 
 export default function SignInPage() {
   const form = useForm<SignInValues>({
-    // @ts-expect-error -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
+    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(signInSchema),
     defaultValues: { email: "" },
   })
