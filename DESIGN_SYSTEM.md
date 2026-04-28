@@ -44,15 +44,22 @@ Numbering: **1 to 12 is Radix or Cami. 50 to 950 is Tailwind.**
 
 Full token tables in [DESIGN_TOKENS.md](./DESIGN_TOKENS.md).
 
-## Components (19 primitives)
+## Components (24 primitives)
 
 In `components/ui/`, installed via shadcn and editable:
 
-`badge`, `button`, `card`, `checkbox`, `dialog`, `dropdown-menu`, `form`, `input`, `label`, `popover`, `radio-group`, `select`, `separator`, `sheet`, `sonner` (toast), `switch`, `tabs`, `textarea`, `tooltip`.
+`badge`, `button`, `card`, `checkbox`, `dialog`, `dropdown-menu`, `form`, `hover-card`, `input`, `label`, `otp-input`, `password-input`, `popover`, `radio-group`, `search-input`, `select`, `separator`, `sheet`, `sonner` (toast), `switch`, `table`, `tabs`, `textarea`, `tooltip`.
 
 Each is project-owned code, not a vendored npm dependency. Edit freely.
 
 Live preview of every primitive and its states at `/playground` when the dev server is running.
+
+The primitives that started life on a specific page but are reusable enough to live in `ui/`:
+
+- `password-input` — wraps `input` with an Eye/EyeOff toggle on the right.
+- `otp-input` — fixed-length code box (default 6) with auto-advance, paste-fill, arrow-key navigation, and `disabled` / `invalid` states for in-flight verification.
+- `search-input` — pill-shaped input with a leading `SearchIcon` and a `CircleX` clear button that appears once the field has a value. Hides the native `[type=search]` clear button.
+- `table` — `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`. Header band uses `border-y border-border/60` (top + bottom), rows use `border-b border-border/60` with `hover:bg-muted/50` and `data-[state=selected]:bg-muted`.
 
 ## Patterns
 
@@ -148,19 +155,58 @@ Sheet and Dialog share one overlay aesthetic:
 - **Backdrop**: flat `bg-sand-7/60`, no blur. The backdrop color comes from the neutral scale so it works in both light and dark modes.
 - **Panel**: floating with 8px margin from the viewport edge (not flush), `rounded-2xl`, frosted glass via `bg-white-a11` in light mode and `dark:bg-sand-2/90` in dark mode, with `backdrop-blur-[8px]`.
 - **Shadow**: the `shadow-overlay` token (5 outer layers plus an inset bottom shadow). Do not reinvent the shadow stack per component.
-- **Topbar**: 48px strip inside the panel with a `border-b border-black-a2` divider (`dark:border-white-a2`). Close button on the left, icon depends on the side the sheet docks from (chevrons-right for right, chevrons-left for left, etc).
+- **Topbar**: 48px strip inside the panel, only rendered when `showCloseButton` is `true`. Close button on the left, icon depends on the side the sheet docks from (chevrons-right for right, chevrons-left for left, etc).
+
+#### Sheet `inline` mode
+
+`SheetContent` accepts `inline` (default `false`). When `true`, it skips the body Portal and uses `absolute` positioning sized in `%` (instead of portaling + `fixed` sized in `vw`/`vh`). The sheet then scopes to the nearest positioned ancestor — useful when the sheet should be contained inside a card or device frame (e.g., the mobile shell demo at 390x844). In production where AppShell fills the viewport, this still behaves like a full-screen sheet because the wrapper IS the viewport.
+
+### Tables
+
+Use the `Table` primitives plus the `TableToolbar` block.
+
+- **Toolbar above the table**: `<TableToolbar tabs={…} actions={…} />` — flex `justify-between` row with tabs on the left, search + filter + CTA on the right.
+- **Tabs**: `TabsList variant="ghost"` for the Notion-style transparent list with each tab as a pill. Active tab gets a `bg-muted` fill, count appended in `text-sm font-normal text-muted-foreground` so it sits on the same baseline as the label.
+- **Search field**: `<SearchInput>` is the canonical pattern, sized `h-8 w-56` to match the toolbar height.
+- **Filter button**: `<Button variant="outline" className="size-8 rounded-full"><SlidersHorizontalIcon /></Button>` — outlined circle, same height as the search and CTA.
+- **Header row**: lowercase + `text-sm font-normal text-muted-foreground`, no uppercase tracking. `h-9` for a tight band. Top + bottom border (`border-y`), softened to `border-border/60`.
+- **Bulk select**: when adding row checkboxes, the leftmost column is `w-10 pr-0`; the header gets a `Checkbox` that toggles the visible page's IDs, the row gets one bound to a `Set<string>` in parent state.
+
+### Animated link
+
+The `.link` utility class in `app/globals.css` produces an underline that draws in from the left on hover and retracts toward the right on un-hover. Width follows the text, color follows `currentColor`. Apply with `className="link"` on any `<a>` or `<Link>` for secondary nav like "Back to sign in" or "Forgot your password?".
+
+```tsx
+<Link href="/sign-in" className="link self-center text-sm font-medium text-muted-foreground">
+  Back to sign in
+</Link>
+```
+
+### Auth pages
+
+All `/sign-in/*` routes render through `AuthLayout` + `AuthCard` from `components/blocks/`.
+
+- **Layout**: `<AuthLayout splitPane={true|false}>`. Split-pane shows the form pane on the left (max-w 640px) and `AuthMarketingPanel` on the right. `splitPane={false}` hides the marketing panel and widens the form pane to the combined width (max-w 1292px) — used for verify, where the experience should feel focused.
+- **Card**: `<AuthCard title description? icon? backHref? backLabel?>`. When `backHref` is set, an xl ghost icon button with `ArrowLeftIcon` and a tooltip is absolutely positioned at the top-left of the pane. The pane is `relative` already so the corner buttons (back-left, cancel-right) anchor to it.
+- **Sign-in flow**: email (`/sign-in`) → password (`/sign-in/password`) → optional 2FA verify (`/sign-in/verify`). Sibling routes for password reset (`/sign-in/forgot-password`, `/sign-in/reset-password`), first-login (`/sign-in/welcome`), and invite acceptance (`/sign-in/accept-invite`) share the same layout and card.
+- **OTP verify** (`/sign-in/verify`): auto-submits the moment the code is the configured length. Inputs lock + dim during verifying, shake + clear + return-focus on error, swap to a check on success. Uses `splitPane={false}`.
 
 ## Folder layout
 
 ```
 app/                 Next.js App Router entries
+                       (auth)/sign-in/{,password,verify,forgot-password,reset-password,welcome,accept-invite}
+                       admin/businesses/new
+                       settings/team
 components/
-  ui/                shadcn primitives (19 files)
+  ui/                shadcn primitives (24 files)
   blocks/            composed product patterns
                        app-shell, app-sidebar, app-topbar
                        app-mobile-topbar, app-mobile-drawer
+                       auth-layout, auth-card, auth-marketing-panel, social-icons
                        workspace-switcher, profile-menu, quick-add-menu
-                       notification-sheet, theme-toggle, playground-showcase
+                       notification-sheet, table-toolbar
+                       theme-toggle, playground-showcase
   theme-provider.tsx ThemeProvider wrapper for next-themes
 hooks/               empty, add shared hooks here
 lib/                 utils.ts (cn helper), app-menu.ts (sidebar nav data)
