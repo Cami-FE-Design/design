@@ -24,7 +24,7 @@ function TreeConnector({ isLast }: { isLast: boolean }) {
         className="shrink-0 text-border"
       >
         <title>Last submenu connector</title>
-        <path d="M11.25 0 V10 Q11.25 18 18.25 18 H22.5" stroke="currentColor" strokeWidth="1" />
+        <path d="M10 0 V10 Q10 18 17 18 H22.5" stroke="currentColor" strokeWidth="1" />
       </svg>
     )
   }
@@ -38,15 +38,15 @@ function TreeConnector({ isLast }: { isLast: boolean }) {
       className="shrink-0 text-border"
     >
       <title>Submenu connector</title>
-      <path d="M11.25 0 V36" stroke="currentColor" strokeWidth="1" />
-      <path d="M11.25 18 H22.5" stroke="currentColor" strokeWidth="1" />
+      <path d="M10 0 V36" stroke="currentColor" strokeWidth="1" />
+      <path d="M10 18 H22.5" stroke="currentColor" strokeWidth="1" />
     </svg>
   )
 }
 
 function ChildMenuItem({ label, isLast }: { label: string; isLast: boolean }) {
   return (
-    <div className="flex h-9 items-center pl-6">
+    <div className="flex h-9 items-center pl-4">
       <TreeConnector isLast={isLast} />
       <Button
         variant="ghost"

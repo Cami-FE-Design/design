@@ -88,7 +88,7 @@ function SheetContent({
         {...props}
       >
         {showCloseButton && (
-          <div className="flex min-h-12 items-center gap-3 border-b border-black-a2 px-3 dark:border-white-a2">
+          <div className="flex min-h-12 items-center gap-3 px-3">
             <SheetPrimitive.Close asChild>
               <Button variant="ghost" size="icon-sm" aria-label="Close">
                 <CloseIcon />

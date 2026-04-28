@@ -115,7 +115,7 @@ function TreeConnector({ isLast }: { isLast: boolean }) {
         className="shrink-0 text-border"
       >
         <title>Last submenu connector</title>
-        <path d="M11.25 0 V10 Q11.25 18 18.25 18 H22.5" stroke="currentColor" strokeWidth="1" />
+        <path d="M10 0 V10 Q10 18 17 18 H22.5" stroke="currentColor" strokeWidth="1" />
       </svg>
     )
   }
@@ -129,15 +129,15 @@ function TreeConnector({ isLast }: { isLast: boolean }) {
       className="shrink-0 text-border"
     >
       <title>Submenu connector</title>
-      <path d="M11.25 0 V36" stroke="currentColor" strokeWidth="1" />
-      <path d="M11.25 18 H22.5" stroke="currentColor" strokeWidth="1" />
+      <path d="M10 0 V36" stroke="currentColor" strokeWidth="1" />
+      <path d="M10 18 H22.5" stroke="currentColor" strokeWidth="1" />
     </svg>
   )
 }
 
 function ChildMenuItem({ label, isLast }: { label: string; isLast: boolean }) {
   return (
-    <div className="flex h-9 items-center pl-6">
+    <div className="flex h-9 items-center pl-4">
       <TreeConnector isLast={isLast} />
       <Button
         variant="ghost"
@@ -165,16 +165,19 @@ function SidebarItem({ item, expanded, isOpen, onOpenChange }: SidebarItemProps)
         <HoverCardTrigger asChild>
           <SidebarMenuButton item={item} expanded={false} />
         </HoverCardTrigger>
-        <HoverCardContent side="right" align="start" sideOffset={8} className="w-[232px]">
-          <div className="flex flex-col gap-0.5">
-            <div className="px-4 pt-1 pb-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {item.label}
-            </div>
+        <HoverCardContent
+          side="right"
+          align="start"
+          sideOffset={8}
+          alignOffset={-4}
+          className="w-60 rounded-xl p-0"
+        >
+          <div className="flex flex-col p-2">
             {item.children?.map((child) => (
               <Button
                 key={child.label}
                 variant="ghost"
-                className="h-10 justify-start rounded-xl px-4 text-base leading-6 font-medium text-sidebar-foreground"
+                className="h-9 justify-start rounded-xl px-3 text-sm leading-5 font-medium"
               >
                 {child.label}
               </Button>
@@ -261,13 +264,13 @@ export function AppSidebar({ className, defaultExpanded = false, ...props }: App
     >
       <div className="flex flex-1 flex-col gap-6">
         <div className="flex justify-end">
-          <Tooltip>
+          <Tooltip delayDuration={1500}>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
+                aria-label={expanded ? "Close sidebar" : "Open sidebar"}
                 aria-expanded={expanded}
-                className="h-11 w-[52px] rounded-xl text-sidebar-foreground"
+                className="h-11 w-[52px] rounded-xl text-sidebar-foreground aria-expanded:bg-transparent aria-expanded:text-sidebar-foreground"
                 onClick={() => setExpanded((v) => !v)}
               >
                 <ChevronsRightIcon
@@ -279,7 +282,7 @@ export function AppSidebar({ className, defaultExpanded = false, ...props }: App
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">
-              {expanded ? "Collapse sidebar" : "Expand sidebar"}
+              {expanded ? "Close sidebar" : "Open sidebar"}
             </TooltipContent>
           </Tooltip>
         </div>

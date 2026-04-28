@@ -107,6 +107,40 @@ Inputs and textareas use the same visual language:
 - Error state is a 2px inset `--destructive` ring, applied via `aria-invalid` on the input. Paired label turns `text-destructive` via the `data-error="true"` wrapper pattern described above.
 - Disabled state uses `opacity-50` plus a `data-disabled="true"` wrapper so the label can also go muted.
 
+### Application shell
+
+`AppShell` composes a sidebar (or mobile drawer) with a topbar and a content area. Use the `breakpoint` prop to switch between `desktop` and `mobile` layouts. The mobile branch wraps content in a 311px `Sheet` for the drawer.
+
+Stacking inside the shell uses two z-layers so the content's upward shadow does not paint over the topbar:
+
+- Topbar wrapper: `relative z-[2]`.
+- Content wrapper: `relative z-[1]`, with `shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]` (the upward "ambient" shadow).
+
+The topbar nav data (`topMenu`, `bottomMenu`) lives in `lib/app-menu.ts`. Edit there, not in the components.
+
+#### Icon button shape rule
+
+Icon buttons in the topbar belong to one of two visual systems:
+
+| Family | Shape | Examples |
+| ------ | ----- | -------- |
+| Menu / drawer controls | `rounded-xl` | mobile hamburger, sidebar items |
+| Quick actions | `rounded-full` | plus, search, bell, avatar |
+
+The hamburger opens the drawer, so it inherits the drawer's language, not the right-side icons'. Pick the family by what the control triggers, not by where it sits on the bar.
+
+#### Menu and control text weight
+
+Menu items, dropdown items, sidebar items, and pill-button labels all use `font-medium` (500). Reserve `font-normal` (400) for muted metadata under a primary line (joined date under workspace name, email under user name, demo placeholder text).
+
+### Floating menus
+
+Three patterns to know:
+
+- `<DropdownMenu>` from `components/ui/dropdown-menu.tsx`. Auto-sizes inline `<svg>` to `size-4` and applies `gap-2.5 px-3 py-2 text-sm font-medium` to items. Use raw `<DropdownMenuItem>` (no className override) to inherit the standard spacing — applies to `WorkspaceSwitcher`, `ProfileMenu`, `QuickAddMenu`.
+- `<HoverCard>` is used for collapsed-sidebar submenu popovers. When you put `<Button>` items inside one, match the dropdown weight (`font-medium`).
+- `align="center"` is the default for the topbar Quick Add menu so the dropdown stays centered under the trigger and avoids viewport edges on mobile. Override per-instance only when needed.
+
 ### Overlays and floating panels
 
 Sheet and Dialog share one overlay aesthetic:
@@ -122,10 +156,14 @@ Sheet and Dialog share one overlay aesthetic:
 app/                 Next.js App Router entries
 components/
   ui/                shadcn primitives (19 files)
-  blocks/            composed patterns (theme-toggle, playground-showcase)
+  blocks/            composed product patterns
+                       app-shell, app-sidebar, app-topbar
+                       app-mobile-topbar, app-mobile-drawer
+                       workspace-switcher, profile-menu, quick-add-menu
+                       notification-sheet, theme-toggle, playground-showcase
   theme-provider.tsx ThemeProvider wrapper for next-themes
 hooks/               empty, add shared hooks here
-lib/                 utils.ts (cn helper)
+lib/                 utils.ts (cn helper), app-menu.ts (sidebar nav data)
 styles/              empty, add CSS splits here if needed
 ```
 

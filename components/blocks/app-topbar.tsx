@@ -1,18 +1,34 @@
 "use client"
 
 import { BellIcon, ChevronDownIcon, CirclePlusIcon, SearchIcon } from "lucide-react"
-import type * as React from "react"
+import { useState } from "react"
+import { NotificationSheet } from "@/components/blocks/notification-sheet"
+import { ProfileMenu } from "@/components/blocks/profile-menu"
+import { QuickAddMenu } from "@/components/blocks/quick-add-menu"
+import {
+  type Workspace,
+  WorkspaceSwitcher,
+  WorkspaceThumb,
+} from "@/components/blocks/workspace-switcher"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 type AppTopbarProps = React.ComponentProps<"div"> & {
-  businessName?: string
   avatarSrc?: string
   firstName?: string
   lastName?: string
+  email?: string
   notificationCount?: number
+  workspaces?: Workspace[]
+  defaultWorkspaceId?: string
+  workspaceJoinedDate?: string
 }
+
+const defaultWorkspaces: Workspace[] = [
+  { id: "jvc", name: "Shampooch JVC" },
+  { id: "jumeirah", name: "Shampooch Jumeirah" },
+]
 
 function initialOf(name?: string) {
   if (!name) return ""
@@ -47,13 +63,18 @@ function TopbarIconButton({ label, ariaLabel, children }: TopbarIconButtonProps)
 
 export function AppTopbar({
   className,
-  businessName = "Business Name",
   avatarSrc,
   firstName = "Michelle",
   lastName = "You",
+  email = "michelle.h.you@gmail.com",
   notificationCount = 0,
+  workspaces = defaultWorkspaces,
+  defaultWorkspaceId = "jvc",
+  workspaceJoinedDate = "Apr 14, 2025",
   ...props
 }: AppTopbarProps) {
+  const [selectedId, setSelectedId] = useState(defaultWorkspaceId)
+  const selected = workspaces.find((w) => w.id === selectedId) ?? workspaces[0]
   const notificationsAriaLabel =
     notificationCount > 0 ? `Notifications, ${notificationCount} unread` : "Notifications"
   const initials = `${initialOf(firstName)}${initialOf(lastName)}`
@@ -65,24 +86,53 @@ export function AppTopbar({
       className={cn("flex h-[72px] w-full items-center justify-between pr-3", className)}
       {...props}
     >
-      <Button
-        variant="secondary"
-        className="h-11 gap-2 rounded-full border border-border bg-background px-4 text-sm font-normal text-foreground shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)] hover:bg-background/90"
-      >
-        {businessName}
-        <ChevronDownIcon className="size-4" />
-      </Button>
+      <WorkspaceSwitcher
+        trigger={
+          <Button
+            variant="secondary"
+            className="h-11 w-[240px] min-w-0 justify-start gap-2 bg-background px-3 text-sm font-medium text-foreground shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)] hover:bg-background/90"
+          >
+            <WorkspaceThumb
+              src={selected?.imageSrc}
+              size="sm"
+              alt={selected?.name ?? "Workspace"}
+            />
+            <span className="min-w-0 flex-1 truncate text-left">
+              {selected?.name ?? "Workspace"}
+            </span>
+            <ChevronDownIcon className="size-4 shrink-0" />
+          </Button>
+        }
+        currentWorkspace={{ ...selected, joinedDate: workspaceJoinedDate }}
+        workspaces={workspaces}
+        selectedWorkspaceId={selectedId}
+        user={{ firstName, lastName, avatarSrc }}
+        onSelectWorkspace={setSelectedId}
+      />
       <div className="flex items-center">
-        <TopbarIconButton label="New">
-          <CirclePlusIcon className="size-5" />
-        </TopbarIconButton>
+        <QuickAddMenu
+          trigger={
+            <Button variant="ghost" size="icon" aria-label="Quick add" className={iconButtonClass}>
+              <CirclePlusIcon className="size-5" />
+            </Button>
+          }
+        />
         <TopbarIconButton label="Search">
           <SearchIcon className="size-5" />
         </TopbarIconButton>
         <div className="relative size-11">
-          <TopbarIconButton label="Notifications" ariaLabel={notificationsAriaLabel}>
-            <BellIcon className="size-5" />
-          </TopbarIconButton>
+          <NotificationSheet
+            trigger={
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={notificationsAriaLabel}
+                className={iconButtonClass}
+              >
+                <BellIcon className="size-5" />
+              </Button>
+            }
+          />
           {notificationCount > 0 && (
             <span
               aria-hidden
@@ -92,15 +142,26 @@ export function AppTopbar({
             </span>
           )}
         </div>
-        <TopbarIconButton label={accountLabel} ariaLabel={`${accountLabel} account`}>
-          <span className="flex size-8 items-center justify-center overflow-hidden rounded-full border-[1.21px] border-pink-8 bg-muted">
-            {avatarSrc ? (
-              <img src={avatarSrc} alt={accountLabel} className="size-full object-cover" />
-            ) : (
-              <span className="text-xs font-medium text-muted-foreground">{initials}</span>
-            )}
-          </span>
-        </TopbarIconButton>
+        <ProfileMenu
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`${accountLabel} account`}
+              className="size-11 rounded-full"
+            >
+              <span className="flex size-8 items-center justify-center overflow-hidden rounded-full border-[1.21px] border-cami-violet-7 bg-cami-violet-8">
+                {avatarSrc ? (
+                  // biome-ignore lint/performance/noImgElement: avatar URL may be cross-origin and is small
+                  <img src={avatarSrc} alt={accountLabel} className="size-full object-cover" />
+                ) : (
+                  <span className="text-xs font-medium text-white">{initials}</span>
+                )}
+              </span>
+            </Button>
+          }
+          user={{ firstName, lastName, email, avatarSrc }}
+        />
       </div>
     </div>
   )

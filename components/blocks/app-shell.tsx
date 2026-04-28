@@ -35,8 +35,8 @@ export function AppShell({
           className={cn("relative flex h-full w-full flex-col overflow-clip bg-sand-3", className)}
           {...props}
         >
-          {topbar ?? <AppMobileTopbar />}
-          <div className="relative flex w-full flex-1 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl bg-background shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]">
+          <div className="relative z-[2] w-full">{topbar ?? <AppMobileTopbar />}</div>
+          <div className="relative z-[1] flex w-full flex-1 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl bg-background shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]">
             <div className="flex w-full items-center justify-center px-3 py-6">
               {header ?? (
                 <p className="text-base font-medium leading-6 text-muted-foreground">Page Header</p>

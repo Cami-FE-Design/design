@@ -7,7 +7,7 @@ import {
   type LucideIcon,
   MessageSquareMoreIcon,
   ReceiptIcon,
-  Settings2Icon,
+  SettingsIcon,
   SprayCanIcon,
   UsersIcon,
 } from "lucide-react"
@@ -29,12 +29,12 @@ export const topMenu: MenuItem[] = [
   {
     icon: CalendarIcon,
     label: "Schedules",
-    children: [{ label: "Calendar" }, { label: "Availability" }],
+    children: [{ label: "Appointments" }, { label: "Boarding" }, { label: "Day Care" }],
   },
   {
     icon: ContactIcon,
     label: "Clients",
-    children: [{ label: "All clients" }, { label: "Groups" }],
+    children: [{ label: "Pets" }, { label: "Pet Parents" }],
   },
   {
     icon: MessageSquareMoreIcon,
@@ -52,26 +52,31 @@ export const topMenu: MenuItem[] = [
   {
     icon: ReceiptIcon,
     label: "Sales",
-    children: [{ label: "Invoices" }, { label: "Reports" }],
+    children: [
+      { label: "Daily Summary" },
+      { label: "Appointments" },
+      { label: "Invoices" },
+      { label: "Payments" },
+    ],
   },
   {
     icon: BookOpenIcon,
     label: "Catalogs",
-    children: [{ label: "Services" }, { label: "Packages" }],
+    children: [{ label: "Service Menu" }, { label: "Categories" }, { label: "Packages" }],
   },
   {
     icon: SprayCanIcon,
     label: "Products",
-    children: [{ label: "Inventory" }, { label: "Vendors" }],
+    children: [{ label: "Products" }, { label: "Suppliers" }],
   },
   {
     icon: UsersIcon,
     label: "Team",
-    children: [{ label: "Members" }, { label: "Roles" }],
+    children: [{ label: "Team Members" }, { label: "Scheduled Shifts" }],
   },
 ]
 
 export const bottomMenu: MenuItem[] = [
   { icon: HeadsetIcon, label: "Support" },
-  { icon: Settings2Icon, label: "Settings" },
+  { icon: SettingsIcon, label: "Settings" },
 ]
