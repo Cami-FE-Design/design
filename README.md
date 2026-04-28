@@ -13,6 +13,10 @@ pnpm dev
 
 Open http://localhost:3000 for the app and http://localhost:3000/playground for the component showcase.
 
+## Live preview
+
+Deployed on [Vercel](https://vercel.com/michellehyou-8474s-projects/projects-cami) from the `main` branch. Every other branch and PR gets an auto-generated preview URL — find them in the Vercel dashboard or as an automatic comment on each PR.
+
 ## Scripts
 
 | Script             | Does what                                         |

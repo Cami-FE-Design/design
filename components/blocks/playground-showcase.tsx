@@ -110,7 +110,18 @@ export function PlaygroundShowcase() {
           <Button size="sm">Small</Button>
           <Button>Default</Button>
           <Button size="lg">Large</Button>
+          <Button size="xl">Extra large</Button>
           <Button size="icon" aria-label="Add">
+            <PlusIcon />
+          </Button>
+          <Button size="icon-xl" aria-label="Add">
+            <PlusIcon />
+          </Button>
+        </Row>
+        <Row label="Radius">
+          <Button>Default (rounded-xl)</Button>
+          <Button radius="full">Full (rounded-full)</Button>
+          <Button variant="outline" size="icon-lg" radius="full" aria-label="Add">
             <PlusIcon />
           </Button>
         </Row>
@@ -133,12 +144,12 @@ export function PlaygroundShowcase() {
         </Row>
       </Section>
 
-      <Section title="Badge" description="Inline status pills.">
+      <Section title="Badge" description="Compact inline labels for status, counts, and tags.">
         <Row label="Variant">
-          <Badge>Default</Badge>
-          <Badge variant="secondary">Secondary</Badge>
-          <Badge variant="outline">Outline</Badge>
-          <Badge variant="destructive">Destructive</Badge>
+          <Badge>New</Badge>
+          <Badge variant="secondary">3</Badge>
+          <Badge variant="outline">Beta</Badge>
+          <Badge variant="destructive">Error</Badge>
         </Row>
       </Section>
 
