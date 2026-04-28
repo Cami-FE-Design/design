@@ -28,7 +28,7 @@ const email = "maaz@getcami.io"
 
 export default function SignInPasswordPage() {
   const form = useForm<PasswordValues>({
-    // @ts-expect-error -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
+    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(passwordSchema),
     defaultValues: { password: "" },
   })
