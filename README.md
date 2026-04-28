@@ -15,6 +15,10 @@ Open http://localhost:3000 for the app and http://localhost:3000/playground for 
 
 ## Live preview
 
+[![Live](https://img.shields.io/website?label=preview&url=https%3A%2F%2Fprojects-cami.vercel.app)](https://projects-cami.vercel.app)
+
+Production: <https://projects-cami.vercel.app>
+
 Deployed on [Vercel](https://vercel.com/michellehyou-8474s-projects/projects-cami) from the `main` branch. Every other branch and PR gets an auto-generated preview URL — find them in the Vercel dashboard or as an automatic comment on each PR.
 
 ## Scripts
