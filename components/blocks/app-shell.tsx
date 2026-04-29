@@ -18,7 +18,7 @@ type AppShellProps = React.ComponentProps<"div"> & {
 
 export function AppShell({
   className,
-  breakpoint = "desktop",
+  breakpoint,
   children,
   sidebar,
   topbar,
@@ -26,73 +26,89 @@ export function AppShell({
   header,
   ...props
 }: AppShellProps) {
-  if (breakpoint === "mobile") {
-    return (
-      <Sheet>
-        <div
-          data-slot="app-shell"
-          data-breakpoint="mobile"
-          className={cn("relative flex h-full w-full flex-col overflow-clip bg-sand-3", className)}
-          {...props}
-        >
-          <div className="relative z-[2] w-full">{topbar ?? <AppMobileTopbar />}</div>
-          <div className="relative z-[1] flex w-full flex-1 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl bg-background shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]">
-            <div className="flex w-full items-center justify-center px-3 py-6">
-              {header ?? (
-                <p className="text-base font-medium leading-6 text-muted-foreground">Page Header</p>
-              )}
-            </div>
-            <div className="flex min-h-0 w-full flex-1 flex-col px-3 pb-9">
-              {children ?? (
-                <div className="flex min-h-0 flex-1 flex-col items-center justify-center border-2 border-dashed border-border">
-                  <p className="text-base font-normal leading-6 text-muted-foreground">
-                    Main Content
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-          <SheetContent
-            side="left"
-            showCloseButton={false}
-            inline
-            className="data-[side=left]:max-w-[311px]"
-          >
-            <SheetTitle className="sr-only">Menu</SheetTitle>
-            {drawer ?? <AppMobileDrawer />}
-          </SheetContent>
-        </div>
-      </Sheet>
-    )
-  }
+  const renderMobile = breakpoint === "mobile" || breakpoint === undefined
+  const renderDesktop = breakpoint === "desktop" || breakpoint === undefined
+  const responsive = breakpoint === undefined
+
+  const mobileRoot = responsive ? "flex lg:hidden" : "flex"
+  const desktopRoot = responsive ? "hidden lg:flex" : "flex"
+  const mobileHeight = responsive ? "h-dvh" : "h-full"
+
+  const headerFallback = (
+    <p className="text-base font-medium leading-6 text-muted-foreground">Page Header</p>
+  )
+  const contentFallback = (
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center border-2 border-dashed border-border">
+      <p className="text-base font-normal leading-6 text-muted-foreground">Main Content</p>
+    </div>
+  )
 
   return (
-    <div
-      data-slot="app-shell"
-      data-breakpoint="desktop"
-      className={cn("flex h-screen w-full items-start overflow-clip bg-sand-3", className)}
-      {...props}
-    >
-      {sidebar ?? <AppSidebar />}
-      <div className="relative z-[1] flex h-full min-w-0 flex-1 flex-col">
-        <div className="relative z-[2] w-full">{topbar ?? <AppTopbar />}</div>
-        <div className="relative z-[1] flex w-full flex-1 flex-col overflow-hidden rounded-tl-2xl shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]">
-          <div className="flex w-full items-center justify-center bg-background px-3 py-6">
-            {header ?? (
-              <p className="text-base font-medium leading-6 text-muted-foreground">Page Header</p>
+    <>
+      {renderMobile && (
+        <Sheet>
+          <div
+            data-slot="app-shell"
+            data-breakpoint={responsive ? "responsive" : "mobile"}
+            className={cn(
+              mobileRoot,
+              mobileHeight,
+              "relative w-full flex-col overflow-clip bg-sand-3",
+              className,
             )}
-          </div>
-          <div className="flex min-h-0 w-full flex-1 flex-col bg-background px-3 pb-9">
-            {children ?? (
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center border-2 border-dashed border-border">
-                <p className="text-base font-normal leading-6 text-muted-foreground">
-                  Main Content
-                </p>
+            {...(renderDesktop ? {} : props)}
+          >
+            <div className="relative z-[2] w-full">{topbar ?? <AppMobileTopbar />}</div>
+            <div className="relative z-[1] flex w-full flex-1 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl bg-background shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]">
+              {header !== null && (
+                <div className="flex w-full items-center justify-center px-3 py-6">
+                  {header ?? headerFallback}
+                </div>
+              )}
+              <div className="flex min-h-0 w-full flex-1 flex-col px-3 pb-9">
+                {children ?? contentFallback}
               </div>
-            )}
+            </div>
+            <SheetContent
+              side="left"
+              showCloseButton={false}
+              inline
+              className="data-[side=left]:max-w-[311px]"
+            >
+              <SheetTitle className="sr-only">Menu</SheetTitle>
+              {drawer ?? <AppMobileDrawer />}
+            </SheetContent>
+          </div>
+        </Sheet>
+      )}
+
+      {renderDesktop && (
+        <div
+          data-slot="app-shell"
+          data-breakpoint={responsive ? "responsive" : "desktop"}
+          className={cn(
+            desktopRoot,
+            "h-screen w-full items-start overflow-clip bg-sand-3",
+            className,
+          )}
+          {...props}
+        >
+          {sidebar ?? <AppSidebar />}
+          <div className="relative z-[1] flex h-full min-w-0 flex-1 flex-col">
+            <div className="relative z-[2] w-full">{topbar ?? <AppTopbar />}</div>
+            <div className="relative z-[1] flex w-full flex-1 flex-col overflow-hidden rounded-tl-2xl shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]">
+              {header !== null && (
+                <div className="flex w-full items-center justify-center bg-background px-3 py-6">
+                  {header ?? headerFallback}
+                </div>
+              )}
+              <div className="flex min-h-0 w-full flex-1 flex-col bg-background px-3 pb-9">
+                {children ?? contentFallback}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   )
 }
