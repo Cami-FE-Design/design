@@ -116,7 +116,7 @@ Inputs and textareas use the same visual language:
 
 ### Application shell
 
-`AppShell` composes a sidebar (or mobile drawer) with a topbar and a content area. Use the `breakpoint` prop to switch between `desktop` and `mobile` layouts. The mobile branch wraps content in a 311px `Sheet` for the drawer.
+`AppShell` composes a sidebar (or mobile drawer) with a topbar and a content area. By default it is responsive: below `lg` (1024px) it renders the mobile shell with a 311px `Sheet` drawer triggered by the hamburger; at `lg` and above it renders the desktop shell with the persistent sidebar. iPad portrait (768px) gets the mobile shell; iPad landscape (1024px) gets the desktop shell. The optional `breakpoint` prop (`"mobile" | "desktop"`) is an escape hatch that forces one variant, used for isolated previews.
 
 Stacking inside the shell uses two z-layers so the content's upward shadow does not paint over the topbar:
 
@@ -159,7 +159,7 @@ Sheet and Dialog share one overlay aesthetic:
 
 #### Sheet `inline` mode
 
-`SheetContent` accepts `inline` (default `false`). When `true`, it skips the body Portal and uses `absolute` positioning sized in `%` (instead of portaling + `fixed` sized in `vw`/`vh`). The sheet then scopes to the nearest positioned ancestor — useful when the sheet should be contained inside a card or device frame (e.g., the mobile shell demo at 390x844). In production where AppShell fills the viewport, this still behaves like a full-screen sheet because the wrapper IS the viewport.
+`SheetContent` accepts `inline` (default `false`). When `true`, it skips the body Portal and uses `absolute` positioning sized in `%` (instead of portaling + `fixed` sized in `vw`/`vh`). The sheet then scopes to the nearest positioned ancestor, useful when the sheet should be contained inside a card or device frame instead of the viewport. The mobile `AppShell` uses this so the drawer is scoped to the shell wrapper; in responsive mode the wrapper IS the viewport, so it still behaves like a full-screen sheet.
 
 ### Tables
 
