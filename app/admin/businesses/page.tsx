@@ -4,6 +4,8 @@ import {
   ArrowDownIcon,
   ArrowUpDownIcon,
   ArrowUpIcon,
+  CheckIcon,
+  ChevronDownIcon,
   ChevronRightIcon,
   PlusIcon,
   SlidersHorizontalIcon,
@@ -11,11 +13,17 @@ import {
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useCallback, useMemo } from "react"
+import { Suspense, useCallback, useMemo, useState } from "react"
+import { toast } from "sonner"
 import { AdminShell } from "@/components/blocks/admin-shell"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { SearchInput } from "@/components/ui/search-input"
 import {
   Table,
@@ -33,7 +41,6 @@ import {
   formatAed,
   formatDate,
   relativeTime,
-  stateBadge,
 } from "@/lib/admin-businesses"
 import { cn } from "@/lib/utils"
 
@@ -52,6 +59,27 @@ const tabs: { id: StateFilter; label: string }[] = [
 const SORT_KEYS: SortKey[] = ["name", "owner", "weekly", "createdAt", "lastActivity"]
 const DEFAULT_SORT: SortKey = "lastActivity"
 const DEFAULT_DIR: SortDir = "desc"
+
+const STATE_OPTIONS: { id: BusinessState; label: string }[] = [
+  { id: "onboarding", label: "Onboarding" },
+  { id: "live", label: "Live" },
+  { id: "suspended", label: "Suspended" },
+  { id: "archived", label: "Archived" },
+]
+
+const STATE_TRIGGER_TEXT: Record<BusinessState, string> = {
+  onboarding: "text-foreground",
+  live: "text-foreground",
+  suspended: "text-tomato-11",
+  archived: "text-muted-foreground",
+}
+
+const STATE_DOT: Record<BusinessState, string> = {
+  onboarding: "bg-cami-violet-9",
+  live: "bg-cami-green-9",
+  suspended: "bg-tomato-9",
+  archived: "bg-sand-9",
+}
 
 function isStateFilter(v: string | null): v is StateFilter {
   return v === "all" || v === "onboarding" || v === "live" || v === "suspended" || v === "archived"
@@ -190,10 +218,64 @@ function WeeklyCell({ weekly }: { weekly: AdminBusiness["weekly"] }) {
   )
 }
 
-function BusinessRow({ business }: { business: AdminBusiness }) {
+function StateDropdown({
+  state,
+  onChange,
+}: {
+  state: BusinessState
+  onChange: (next: BusinessState) => void
+}) {
+  const current = STATE_OPTIONS.find((s) => s.id === state)
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="xs"
+          radius="default"
+          className={cn("-mx-2 font-normal", STATE_TRIGGER_TEXT[state])}
+          data-icon="inline-end"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {current?.label}
+          <ChevronDownIcon />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()} className="w-44">
+        {STATE_OPTIONS.map((option) => {
+          const active = option.id === state
+          return (
+            <DropdownMenuItem
+              key={option.id}
+              onSelect={() => {
+                if (!active) onChange(option.id)
+              }}
+              className="gap-2"
+            >
+              <span
+                aria-hidden
+                className={cn("size-1.5 shrink-0 rounded-full", STATE_DOT[option.id])}
+              />
+              <span className="flex-1">{option.label}</span>
+              {active ? <CheckIcon className="size-3.5 text-muted-foreground" /> : null}
+            </DropdownMenuItem>
+          )
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+function BusinessRow({
+  business,
+  onStateChange,
+}: {
+  business: AdminBusiness
+  onStateChange: (next: BusinessState) => void
+}) {
   const router = useRouter()
   const href = `/admin/businesses/${business.slug}`
-  const state = stateBadge(business.state)
   return (
     <TableRow
       className="cursor-pointer"
@@ -230,7 +312,7 @@ function BusinessRow({ business }: { business: AdminBusiness }) {
         </div>
       </TableCell>
       <TableCell>
-        <Badge className={state.className}>{state.label}</Badge>
+        <StateDropdown state={business.state} onChange={onStateChange} />
       </TableCell>
       <TableCell>
         <WeeklyCell weekly={business.weekly} />
@@ -253,11 +335,13 @@ function BusinessesTable({
   sort,
   dir,
   onSortChange,
+  onStateChange,
 }: {
   businesses: AdminBusiness[]
   sort: SortKey
   dir: SortDir
   onSortChange: (key: SortKey) => void
+  onStateChange: (id: string, next: BusinessState) => void
 }) {
   if (businesses.length === 0) {
     return (
@@ -325,7 +409,11 @@ function BusinessesTable({
       </TableHeader>
       <TableBody>
         {businesses.map((business) => (
-          <BusinessRow key={business.id} business={business} />
+          <BusinessRow
+            key={business.id}
+            business={business}
+            onStateChange={(next) => onStateChange(business.id, next)}
+          />
         ))}
       </TableBody>
     </Table>
@@ -335,6 +423,24 @@ function BusinessesTable({
 function BusinessesIndex() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [stateOverrides, setStateOverrides] = useState<Record<string, BusinessState>>({})
+
+  const businesses = useMemo(
+    () =>
+      adminBusinesses.map((b) =>
+        stateOverrides[b.id] ? { ...b, state: stateOverrides[b.id] } : b,
+      ),
+    [stateOverrides],
+  )
+
+  function handleStateChange(id: string, next: BusinessState) {
+    setStateOverrides((prev) => ({ ...prev, [id]: next }))
+    const business = adminBusinesses.find((b) => b.id === id)
+    if (business) {
+      const label = STATE_OPTIONS.find((s) => s.id === next)?.label ?? next
+      toast.success(`${business.name}, ${label.toLowerCase()}`)
+    }
+  }
 
   const tabParam = searchParams.get("tab")
   const tab: StateFilter = isStateFilter(tabParam) ? tabParam : "all"
@@ -377,14 +483,14 @@ function BusinessesIndex() {
   }
 
   const counts = useMemo(() => {
-    const base = { all: adminBusinesses.length, onboarding: 0, live: 0, suspended: 0, archived: 0 }
-    for (const b of adminBusinesses) base[b.state] += 1
+    const base = { all: businesses.length, onboarding: 0, live: 0, suspended: 0, archived: 0 }
+    for (const b of businesses) base[b.state] += 1
     return base
-  }, [])
+  }, [businesses])
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const filtered = adminBusinesses.filter((b) => {
+    const filtered = businesses.filter((b) => {
       if (tab !== "all" && b.state !== tab) return false
       if (!q) return true
       return (
@@ -399,7 +505,7 @@ function BusinessesIndex() {
       return dir === "asc" ? cmp : -cmp
     })
     return sorted
-  }, [tab, query, sort, dir])
+  }, [businesses, tab, query, sort, dir])
 
   return (
     <AdminShell
@@ -461,6 +567,7 @@ function BusinessesIndex() {
                 sort={sort}
                 dir={dir}
                 onSortChange={handleSortChange}
+                onStateChange={handleStateChange}
               />
             </TabsContent>
           ))}
