@@ -120,7 +120,6 @@ function ProfileSheet({
   onSave: (values: ProfileValues) => void
 }) {
   const form = useForm<ProfileValues>({
-    // @ts-expect-error -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: business.name,
@@ -302,7 +301,6 @@ function ChangeSlugDialog({
   onSave: (newSlug: string) => void
 }) {
   const form = useForm<SlugValues>({
-    // @ts-expect-error -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(slugSchema),
     defaultValues: { slug: business.slug, acknowledged: false as unknown as true },
   })
@@ -438,7 +436,6 @@ function SuspendDialog({
   onConfirm: (reason: ReasonCodeId, note?: string) => void
 }) {
   const form = useForm<ReasonValues>({
-    // @ts-expect-error -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(reasonSchema),
     defaultValues: { note: "" },
   })
@@ -537,7 +534,6 @@ function ArchiveDialog({
   onConfirm: (reason: ReasonCodeId, note?: string) => void
 }) {
   const form = useForm<ReasonValues>({
-    // @ts-expect-error -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(reasonSchema),
     defaultValues: { note: "" },
   })

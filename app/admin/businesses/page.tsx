@@ -8,6 +8,7 @@ import {
   PlusIcon,
   SlidersHorizontalIcon,
 } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo } from "react"
@@ -78,7 +79,19 @@ function compareBy(a: AdminBusiness, b: AdminBusiness, key: SortKey): number {
   }
 }
 
-function BusinessAvatar({ name }: { name: string }) {
+function BusinessAvatar({ name, photoUrl }: { name: string; photoUrl?: string }) {
+  if (photoUrl) {
+    return (
+      <Image
+        src={photoUrl}
+        alt=""
+        width={72}
+        height={72}
+        className="size-9 shrink-0 rounded-xl object-cover"
+        unoptimized
+      />
+    )
+  }
   const initials = name
     .split(/\s+/)
     .map((p) => p.charAt(0).toUpperCase())
@@ -168,7 +181,7 @@ function BusinessRow({ business }: { business: AdminBusiness }) {
     >
       <TableCell className="py-3">
         <div className="flex items-center gap-3">
-          <BusinessAvatar name={business.name} />
+          <BusinessAvatar name={business.name} photoUrl={business.photoUrl} />
           <div className="flex min-w-0 flex-col">
             <Link
               href={href}
