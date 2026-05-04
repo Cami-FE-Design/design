@@ -60,11 +60,10 @@ import {
   findBusinessBySlug,
   formatDate,
   formatDateTime,
-  pilotBadge,
   REASON_CODES,
   type ReasonCodeId,
   relativeTime,
-  statusBadge,
+  stateBadge,
 } from "@/lib/admin-businesses"
 import { PermissionGate } from "@/lib/auth-mock"
 import { EMIRATES } from "@/lib/business-profile"
@@ -121,7 +120,7 @@ function ProfileSheet({
   onSave: (values: ProfileValues) => void
 }) {
   const form = useForm<ProfileValues>({
-    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
+    // @ts-expect-error -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: business.name,
@@ -303,7 +302,7 @@ function ChangeSlugDialog({
   onSave: (newSlug: string) => void
 }) {
   const form = useForm<SlugValues>({
-    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
+    // @ts-expect-error -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(slugSchema),
     defaultValues: { slug: business.slug, acknowledged: false as unknown as true },
   })
@@ -439,7 +438,7 @@ function SuspendDialog({
   onConfirm: (reason: ReasonCodeId, note?: string) => void
 }) {
   const form = useForm<ReasonValues>({
-    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
+    // @ts-expect-error -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(reasonSchema),
     defaultValues: { note: "" },
   })
@@ -538,7 +537,7 @@ function ArchiveDialog({
   onConfirm: (reason: ReasonCodeId, note?: string) => void
 }) {
   const form = useForm<ReasonValues>({
-    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
+    // @ts-expect-error -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(reasonSchema),
     defaultValues: { note: "" },
   })
@@ -634,12 +633,10 @@ function ArchiveDialog({
 }
 
 function StatusBadges({ business }: { business: AdminBusiness }) {
-  const status = statusBadge(business.status)
-  const pilot = pilotBadge(business.pilotStatus)
+  const state = stateBadge(business.state)
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <Badge className={status.className}>{status.label}</Badge>
-      <Badge className={pilot.className}>{pilot.label}</Badge>
+      <Badge className={state.className}>{state.label}</Badge>
     </div>
   )
 }
@@ -657,8 +654,8 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ slug:
   const [suspendOpen, setSuspendOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
 
-  const isSuspended = business.status === "suspended"
-  const isArchived = business.status === "archived"
+  const isSuspended = business.state === "suspended"
+  const isArchived = business.state === "archived"
 
   function handleProfileSave(values: ProfileValues) {
     setBusiness((prev) => ({ ...prev, ...values, vatNumber: values.vatNumber || undefined }))
@@ -676,25 +673,24 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ slug:
   }
 
   function handleSuspend(reason: ReasonCodeId, note?: string) {
-    setBusiness((prev) => ({ ...prev, status: "suspended", reasonCode: reason, reasonNote: note }))
+    setBusiness((prev) => ({ ...prev, state: "suspended", reasonCode: reason, reasonNote: note }))
     toast.success(`${business.name} is suspended`)
   }
 
   function handleUnsuspend() {
     setBusiness((prev) => ({
       ...prev,
-      status: "active",
+      state: "live",
       reasonCode: undefined,
       reasonNote: undefined,
     }))
-    toast.success(`${business.name} is active again`)
+    toast.success(`${business.name} is live again`)
   }
 
   function handleArchive(reason: ReasonCodeId, note?: string) {
     setBusiness((prev) => ({
       ...prev,
-      status: "archived",
-      pilotStatus: "ended",
+      state: "archived",
       reasonCode: reason,
       reasonNote: note,
     }))
@@ -704,8 +700,7 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ slug:
   function handleRestore() {
     setBusiness((prev) => ({
       ...prev,
-      status: "active",
-      pilotStatus: "active",
+      state: "live",
       reasonCode: undefined,
       reasonNote: undefined,
     }))
@@ -1038,7 +1033,7 @@ function ReasonBanner({
   onUnsuspend: () => void
   onRestore: () => void
 }) {
-  const isSuspended = business.status === "suspended"
+  const isSuspended = business.state === "suspended"
   const reasonLabel = REASON_CODES.find((r) => r.id === business.reasonCode)?.label ?? "Other"
   return (
     <div className="flex flex-col gap-2 rounded-2xl bg-tomato-3 p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
