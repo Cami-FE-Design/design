@@ -159,6 +159,25 @@ Font: **Manrope**, loaded via `next/font/google` in `app/layout.tsx`.
 
 Type sizes, line heights, tracking: all Tailwind v4 defaults are available. Use `text-xs` through `text-9xl`, `leading-3` through `leading-10`, `tracking-tighter` through `tracking-widest`. No overrides in `@theme`.
 
+## Gradients
+
+One named gradient token. Sourced from Figma `playground` node 328:3612.
+
+| Token | Tailwind utility | Used for |
+| ----- | ---------------- | -------- |
+| `--gradient-hq-aurora` | `bg-hq-aurora` | HQ auth screen page background ([HqAuthLayout](components/blocks/hq-auth-layout.tsx)) |
+
+`--gradient-hq-aurora` composition (top → bottom of the layer stack):
+
+```
+radial-gradient(ellipse at 21% 9%, ...yellow...)            yellow hotspot, top-left
+radial-gradient(ellipse at 53% 52%, ...soft green...)       muted green spot, mid-canvas
+linear-gradient(168.5deg, ...violet wash → solid violet)    violet wash to opaque, top→bottom-right
+linear-gradient(white, white)                                white base
+```
+
+The violet wash sits on top of the yellow radial, which is what produces the muddy green-yellow midtones in the upper canvas. Light-mode only.
+
 ## Shadows
 
 One custom shadow token, rest are Tailwind v4 defaults.

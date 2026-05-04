@@ -10,6 +10,7 @@ type AuthCardProps = {
   description?: React.ReactNode
   icon?: React.ReactNode
   backHref?: string
+  onBack?: () => void
   backLabel?: string
   children: React.ReactNode
   footer?: React.ReactNode
@@ -21,29 +22,44 @@ export function AuthCard({
   description,
   icon,
   backHref,
+  onBack,
   backLabel = "Back",
   children,
   footer,
   className,
 }: AuthCardProps) {
+  const backTrigger = backHref ? (
+    <Button
+      asChild
+      variant="ghost"
+      size="icon-xl"
+      radius="full"
+      aria-label={backLabel}
+      className="absolute top-6 left-6 lg:top-8 lg:left-8"
+    >
+      <Link href={backHref}>
+        <ArrowLeftIcon className="size-6" />
+      </Link>
+    </Button>
+  ) : onBack ? (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-xl"
+      radius="full"
+      aria-label={backLabel}
+      onClick={onBack}
+      className="absolute top-6 left-6 lg:top-8 lg:left-8"
+    >
+      <ArrowLeftIcon className="size-6" />
+    </Button>
+  ) : null
+
   return (
     <>
-      {backHref ? (
+      {backTrigger ? (
         <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              asChild
-              variant="ghost"
-              size="icon-xl"
-              radius="full"
-              aria-label={backLabel}
-              className="absolute top-6 left-6 lg:top-8 lg:left-8"
-            >
-              <Link href={backHref}>
-                <ArrowLeftIcon className="size-6" />
-              </Link>
-            </Button>
-          </TooltipTrigger>
+          <TooltipTrigger asChild>{backTrigger}</TooltipTrigger>
           <TooltipContent side="bottom">{backLabel}</TooltipContent>
         </Tooltip>
       ) : null}
