@@ -81,11 +81,23 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Cami HQ, RBAC (PRO-138)",
+    description:
+      "Permission-gated console screens. Use the bottom-right Demo controls to flip permissions, impersonation, and locale.",
+    screens: [
+      { path: "/admin", label: "Dashboard", note: "Sidebar, topbar, profile menu with role badge" },
+      {
+        path: "/admin?settings=roles",
+        label: "Roles & Permissions",
+        note: "Opens the settings panel with the role list",
+      },
+    ],
+  },
+  {
     title: "Demos & playground",
     description: "Internal references for shell layout and component states.",
     screens: [
       { path: "/shell-demo", label: "Business app shell" },
-      { path: "/shell-demo/mobile", label: "Mobile shell" },
       { path: "/playground", label: "Component states" },
     ],
   },
