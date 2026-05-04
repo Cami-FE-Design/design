@@ -71,6 +71,7 @@ function HqResetPasswordContent() {
   const [email, setEmail] = useState<string>("")
 
   const form = useForm<ResetValues>({
+    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
     resolver: zodResolver(resetSchema),
     defaultValues: { password: "", confirm: "" },
     mode: "onChange",
