@@ -231,6 +231,8 @@
   --shadow-overlay: 0 0 0 1px rgba(19, 21, 23, 0.08), 0 3px 3px 0 rgba(0, 0, 0, 0.03),
     0 8px 7px 0 rgba(0, 0, 0, 0.04), 0 17px 14px 0 rgba(0, 0, 0, 0.05),
     0 35px 29px 0 rgba(0, 0, 0, 0.06), inset 0 -4px 4px 0 rgba(0, 0, 0, 0.04);
+
+  --background-image-hq-aurora: var(--gradient-hq-aurora);
 }
 
 :root {
@@ -363,6 +365,10 @@
   --neutral-gray-35: #484848;
   --neutral-gray-25: #313131;
   --neutral-gray-18: #222222;
+
+  /* Cami HQ brand gradient. Yellow→violet aurora, sourced from Figma
+     `playground` node 328:3612. Used as the page background on HQ auth screens. */
+  --gradient-hq-aurora: radial-gradient(ellipse at 21% 9%, rgba(245, 247, 137, 1) 0%, rgba(245, 247, 137, 0.5) 45%, rgba(245, 247, 137, 0) 75%), radial-gradient(ellipse at 53% 52%, rgba(225, 250, 221, 0.335) 0%, rgba(225, 250, 221, 0) 100%), linear-gradient(168.5deg, rgba(181, 182, 255, 0.68) 22%, rgb(181, 182, 255) 64%), linear-gradient(90deg, rgb(255, 255, 255) 0%, rgb(255, 255, 255) 100%);
 }
 
 .dark {
