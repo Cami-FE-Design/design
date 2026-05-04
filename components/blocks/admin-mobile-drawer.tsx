@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronsLeftIcon } from "lucide-react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useMemo } from "react"
 import { CamiMark } from "@/components/brand/cami-mark"
 import { Button } from "@/components/ui/button"
@@ -64,11 +64,11 @@ function DrawerLeaf({ item, active }: DrawerLeafProps) {
 function DrawerSettingsItem({ item }: { item: AdminMenuItem }) {
   const router = useRouter()
   const pathname = usePathname() ?? "/"
-  const params = useSearchParams()
   const Icon = item.icon
 
   function openSettings() {
-    const next = new URLSearchParams(params.toString())
+    const search = typeof window !== "undefined" ? window.location.search : ""
+    const next = new URLSearchParams(search)
     next.set("settings", "roles")
     router.push(`${pathname}?${next.toString()}`)
   }

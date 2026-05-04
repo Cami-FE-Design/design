@@ -1,7 +1,7 @@
 "use client"
 
 import { ChevronDownIcon, ChevronsRightIcon } from "lucide-react"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
@@ -283,11 +283,11 @@ type SidebarSettingsItemProps = {
 function SidebarSettingsItem({ item, expanded }: SidebarSettingsItemProps) {
   const router = useRouter()
   const pathname = usePathname() ?? "/"
-  const params = useSearchParams()
   const Icon = item.icon
 
   function openSettings() {
-    const next = new URLSearchParams(params.toString())
+    const search = typeof window !== "undefined" ? window.location.search : ""
+    const next = new URLSearchParams(search)
     next.set("settings", "roles")
     router.push(`${pathname}?${next.toString()}`)
   }
