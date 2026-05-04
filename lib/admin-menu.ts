@@ -7,7 +7,6 @@ import {
   type LucideIcon,
   ScrollTextIcon,
   SettingsIcon,
-  ShieldCheckIcon,
   UsersIcon,
 } from "lucide-react"
 import type { PermissionKey } from "@/lib/auth-mock"
@@ -47,13 +46,6 @@ export const adminBottomMenu: AdminMenuItem[] = [
   {
     icon: SettingsIcon,
     label: "Settings",
-    children: [
-      {
-        icon: ShieldCheckIcon,
-        label: "Roles & Permissions",
-        href: "/admin/settings/roles",
-        permission: "roles.read",
-      },
-    ],
+    permission: "roles.read",
   },
 ]

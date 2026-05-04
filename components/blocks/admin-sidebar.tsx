@@ -3,6 +3,7 @@
 import { ChevronDownIcon, ChevronsRightIcon } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
+import { AdminSettingsDialog } from "@/components/blocks/admin-settings-dialog"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -64,7 +65,10 @@ function SidebarLeafButton({ item, expanded, active, size = "default" }: Sidebar
       <a href={item.href ?? "#"}>
         <Icon className={cn("shrink-0", size === "child" ? "size-4" : "size-5")} />
         <span
-          className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left font-medium leading-6"
+          className={cn(
+            "min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left font-medium leading-6",
+            size === "child" ? "text-sm" : "text-base",
+          )}
           style={{
             maxWidth: expanded ? "12rem" : "0",
             opacity: expanded ? 1 : 0,
@@ -249,19 +253,70 @@ export function AdminSidebar({ className, defaultExpanded = false, ...props }: A
         </nav>
       </div>
       <nav className="flex flex-col gap-0.5" aria-label="Secondary">
-        {bottomItems.map((item) =>
-          item.children ? (
-            <SidebarGroup key={item.label} item={item} expanded={expanded} pathname={pathname} />
-          ) : (
+        {bottomItems.map((item) => {
+          if (item.label === "Settings") {
+            return <SidebarSettingsItem key={item.label} item={item} expanded={expanded} />
+          }
+          if (item.children) {
+            return (
+              <SidebarGroup key={item.label} item={item} expanded={expanded} pathname={pathname} />
+            )
+          }
+          return (
             <SidebarLeafButton
               key={item.label}
               item={item}
               expanded={expanded}
               active={isItemActive(item, pathname)}
             />
-          ),
-        )}
+          )
+        })}
       </nav>
     </aside>
+  )
+}
+
+type SidebarSettingsItemProps = {
+  item: AdminMenuItem
+  expanded: boolean
+}
+
+function SidebarSettingsItem({ item, expanded }: SidebarSettingsItemProps) {
+  const [open, setOpen] = useState(false)
+  const Icon = item.icon
+  const button = (
+    <Button
+      variant="ghost"
+      type="button"
+      onClick={() => setOpen(true)}
+      className={cn(menuButtonClass, expanded ? "gap-3" : "gap-0")}
+      style={{ transition: `gap ${drawerDuration} ${easeOutCubic}` }}
+      aria-label={expanded ? undefined : item.label}
+    >
+      <Icon className="size-5 shrink-0" />
+      <span
+        className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left text-base font-medium leading-6"
+        style={{
+          maxWidth: expanded ? "12rem" : "0",
+          opacity: expanded ? 1 : 0,
+          transition: `max-width ${drawerDuration} ${easeOutCubic}, opacity ${drawerDuration} ${easeOutCubic}`,
+        }}
+      >
+        {item.label}
+      </span>
+    </Button>
+  )
+  return (
+    <>
+      {expanded ? (
+        button
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent side="right">{item.label}</TooltipContent>
+        </Tooltip>
+      )}
+      <AdminSettingsDialog open={open} onOpenChange={setOpen} />
+    </>
   )
 }
