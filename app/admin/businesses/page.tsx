@@ -79,6 +79,18 @@ function compareBy(a: AdminBusiness, b: AdminBusiness, key: SortKey): number {
   }
 }
 
+function OwnerAvatar({ name }: { name: string }) {
+  const initial = name.trim().charAt(0).toUpperCase()
+  return (
+    <span
+      aria-hidden
+      className="flex size-7 shrink-0 items-center justify-center rounded-full border-[1.21px] border-cami-violet-7 bg-cami-violet-8 text-xs font-medium text-white"
+    >
+      {initial}
+    </span>
+  )
+}
+
 function BusinessAvatar({ name, photoUrl }: { name: string; photoUrl?: string }) {
   if (photoUrl) {
     return (
@@ -197,9 +209,12 @@ function BusinessRow({ business }: { business: AdminBusiness }) {
         </div>
       </TableCell>
       <TableCell>
-        <div className="flex min-w-0 flex-col">
-          <span className="truncate text-sm text-foreground">{business.ownerName}</span>
-          <span className="truncate text-sm text-muted-foreground">{business.ownerEmail}</span>
+        <div className="flex min-w-0 items-center gap-2.5">
+          <OwnerAvatar name={business.ownerName} />
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-sm text-foreground">{business.ownerName}</span>
+            <span className="truncate text-sm text-muted-foreground">{business.ownerEmail}</span>
+          </div>
         </div>
       </TableCell>
       <TableCell>
