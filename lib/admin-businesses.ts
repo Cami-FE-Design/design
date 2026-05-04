@@ -43,6 +43,7 @@ export type AdminBusiness = {
   slug: string
   ownerName: string
   ownerEmail: string
+  ownerPhotoUrl?: string
   photoUrl?: string
   state: BusinessState
   createdAt: string
@@ -70,6 +71,7 @@ export const adminBusinesses: AdminBusiness[] = [
     slug: "shampooch-jvc",
     ownerName: "Maz Khan",
     ownerEmail: "maaz@getcami.io",
+    ownerPhotoUrl: "https://i.pravatar.cc/144?u=maz-khan",
     photoUrl: "https://picsum.photos/seed/shampooch-jvc/144/144",
     state: "live",
     createdAt: "2026-03-04T09:12:00Z",
@@ -139,6 +141,7 @@ export const adminBusinesses: AdminBusiness[] = [
     slug: "pawhaus",
     ownerName: "Layla Saeed",
     ownerEmail: "layla@pawhaus.ae",
+    ownerPhotoUrl: "https://i.pravatar.cc/144?u=layla-saeed",
     photoUrl: "https://picsum.photos/seed/pawhaus/144/144",
     state: "live",
     createdAt: "2026-03-18T10:00:00Z",
@@ -185,6 +188,7 @@ export const adminBusinesses: AdminBusiness[] = [
     slug: "velvet-paw",
     ownerName: "Noura Al Marzooqi",
     ownerEmail: "noura@velvetpaw.ae",
+    ownerPhotoUrl: "https://i.pravatar.cc/144?u=noura-al-marzooqi",
     photoUrl: "https://picsum.photos/seed/velvet-paw/144/144",
     state: "onboarding",
     createdAt: "2026-04-21T14:00:00Z",
@@ -222,6 +226,7 @@ export const adminBusinesses: AdminBusiness[] = [
     slug: "doggos",
     ownerName: "Faisal Rahman",
     ownerEmail: "faisal@doggos.ae",
+    ownerPhotoUrl: "https://i.pravatar.cc/144?u=faisal-rahman",
     photoUrl: "https://picsum.photos/seed/doggos/144/144",
     state: "suspended",
     createdAt: "2026-02-12T09:00:00Z",
@@ -262,6 +267,7 @@ export const adminBusinesses: AdminBusiness[] = [
     slug: "furry-tales",
     ownerName: "Priya Anand",
     ownerEmail: "priya@furrytales.ae",
+    ownerPhotoUrl: "https://i.pravatar.cc/144?u=priya-anand",
     photoUrl: "https://picsum.photos/seed/furry-tales/144/144",
     state: "archived",
     createdAt: "2026-01-08T08:00:00Z",

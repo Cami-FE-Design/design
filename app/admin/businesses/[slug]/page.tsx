@@ -10,6 +10,7 @@ import {
   LinkIcon,
   PencilIcon,
 } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { notFound, useRouter } from "next/navigation"
 import { use, useState } from "react"
@@ -850,16 +851,27 @@ export default function BusinessDetailPage({ params }: { params: Promise<{ slug:
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
-                <span
-                  aria-hidden
-                  className="flex size-11 shrink-0 items-center justify-center rounded-full border-[1.21px] border-cami-violet-7 bg-cami-violet-8 text-sm font-medium text-white"
-                >
-                  {business.ownerName
-                    .split(/\s+/)
-                    .map((p) => p.charAt(0).toUpperCase())
-                    .slice(0, 2)
-                    .join("")}
-                </span>
+                {business.ownerPhotoUrl ? (
+                  <Image
+                    src={business.ownerPhotoUrl}
+                    alt=""
+                    width={88}
+                    height={88}
+                    className="size-11 shrink-0 rounded-full object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <span
+                    aria-hidden
+                    className="flex size-11 shrink-0 items-center justify-center rounded-full border-[1.21px] border-cami-violet-7 bg-cami-violet-8 text-sm font-medium text-white"
+                  >
+                    {business.ownerName
+                      .split(/\s+/)
+                      .map((p) => p.charAt(0).toUpperCase())
+                      .slice(0, 2)
+                      .join("")}
+                  </span>
+                )}
                 <div className="flex min-w-0 flex-col">
                   <span className="truncate text-sm font-medium text-foreground">
                     {business.ownerName}
