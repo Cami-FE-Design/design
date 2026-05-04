@@ -81,35 +81,6 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    title: "Cami HQ, RBAC (PRO-138)",
-    description:
-      "Permission-gated console screens added in this PR. Use the bottom-right Demo controls to flip permissions, impersonation, and locale.",
-    screens: [
-      { path: "/admin", label: "Dashboard", note: "Sidebar, topbar, profile menu with role badge" },
-      {
-        path: "/admin/settings/roles",
-        label: "Roles & Permissions",
-        note: "Read-only table, search, click a permission code to filter",
-      },
-      {
-        path: "/admin/businesses/shampooch-jvc",
-        label: "Pet Business detail, Login as Owner",
-        note: "Confirmation dialog requires a 10-char reason",
-      },
-      {
-        path: "/admin/portal-impersonation-demo",
-        label: "Impersonation portal",
-        note: "Yellow banner + 4px frame + 30:00 countdown",
-      },
-      { path: "/admin/access-denied", label: "403, no intended URL" },
-      {
-        path: "/admin/access-denied?from=/admin/billing",
-        label: "403, with intended URL",
-        note: "Captured for deep-link return after permissions change",
-      },
-    ],
-  },
-  {
     title: "Demos & playground",
     description: "Internal references for shell layout and component states.",
     screens: [
