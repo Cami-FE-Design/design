@@ -1,211 +1,136 @@
 "use client"
 
-import { ChevronDownIcon, XIcon } from "lucide-react"
-import { useMemo, useState } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { SearchInput } from "@/components/ui/search-input"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { ROLES, type Role, type RolePermission } from "@/lib/roles-mock"
-import { cn } from "@/lib/utils"
+  CheckIcon,
+  CreditCardIcon,
+  HeadsetIcon,
+  LockIcon,
+  type LucideIcon,
+  ShieldCheckIcon,
+} from "lucide-react"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAuth } from "@/lib/auth-mock"
+import { ROLES, type Role } from "@/lib/roles-mock"
 
 type RolePermissionsTableProps = {
   roles?: Role[]
 }
 
-type GroupedPermissions = Record<string, RolePermission[]>
-
-function groupByModule(permissions: RolePermission[]): GroupedPermissions {
-  return permissions.reduce<GroupedPermissions>((acc, perm) => {
-    if (!acc[perm.module]) acc[perm.module] = []
-    acc[perm.module].push(perm)
-    return acc
-  }, {})
+const ROLE_ICONS: Record<string, LucideIcon> = {
+  hq_admin: ShieldCheckIcon,
+  hq_support: HeadsetIcon,
+  hq_billing: CreditCardIcon,
 }
 
-type PermissionPillsProps = {
-  permissions: RolePermission[]
-  pinnedCode?: string
-  onPillClick: (code: string) => void
-}
-
-function PermissionPills({ permissions, pinnedCode, onPillClick }: PermissionPillsProps) {
-  const grouped = useMemo(() => groupByModule(permissions), [permissions])
-  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
-
-  function toggleModule(module: string) {
-    setExpandedModules((prev) => {
-      const next = new Set(prev)
-      if (next.has(module)) next.delete(module)
-      else next.add(module)
-      return next
-    })
+function roleInitial(name: string): string {
+  const words = name.split(/\s+/).filter(Boolean)
+  if (words.length > 1 && words[0].toUpperCase() === "HQ") {
+    return words[1].charAt(0).toUpperCase()
   }
+  return words[0]?.charAt(0).toUpperCase() ?? "?"
+}
+
+type RoleCardProps = {
+  role: Role
+  isCurrent: boolean
+}
+
+function RoleCard({ role, isCurrent }: RoleCardProps) {
+  const Icon = ROLE_ICONS[role.roleCode]
 
   return (
-    <div className="flex flex-col gap-2">
-      {Object.entries(grouped).map(([module, perms]) => {
-        const expanded = expandedModules.has(module)
-        return (
-          <div key={module} className="flex flex-wrap items-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => toggleModule(module)}
-              aria-expanded={expanded}
-              className={cn(
-                "inline-flex h-6 items-center gap-1 rounded-md bg-muted px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted/70",
-              )}
-            >
-              {module}
-              <span className="text-muted-foreground">{perms.length}</span>
-              <ChevronDownIcon
-                className={cn(
-                  "size-3 text-muted-foreground transition-transform",
-                  expanded && "rotate-180",
-                )}
-              />
-            </button>
-            {expanded
-              ? perms.map((perm) => (
-                  <button
-                    key={perm.code}
-                    type="button"
-                    onClick={() => onPillClick(perm.code)}
-                    title={perm.description}
-                    className={cn(
-                      "inline-flex h-6 items-center rounded-md border border-border/60 bg-background px-2 font-mono text-xs font-medium text-foreground transition-colors hover:bg-muted",
-                      pinnedCode === perm.code && "border-foreground bg-foreground text-background",
-                    )}
-                  >
-                    {perm.code}
-                  </button>
-                ))
-              : null}
+    <AccordionItem value={role.roleCode}>
+      <AccordionTrigger>
+        <span className="relative shrink-0 lg:self-center">
+          <span
+            aria-hidden
+            className="flex size-8 items-center justify-center rounded-md bg-muted text-foreground"
+          >
+            {Icon ? (
+              <Icon className="size-4" />
+            ) : (
+              <span className="text-sm font-semibold">{roleInitial(role.name)}</span>
+            )}
+          </span>
+          {role.isSystemRole ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  role="img"
+                  aria-label="System role"
+                  className="absolute -right-0.5 -bottom-0.5 flex size-3 items-center justify-center rounded-full bg-foreground text-background"
+                >
+                  <LockIcon className="size-2" strokeWidth={2.5} />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>System role</TooltipContent>
+            </Tooltip>
+          ) : null}
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-base font-semibold leading-6 text-foreground">{role.name}</span>
+            {isCurrent ? (
+              <Badge
+                variant="secondary"
+                className="border-cami-yellow-5 bg-cami-yellow-3 font-normal text-cami-yellow-11 max-lg:hidden"
+              >
+                <CheckIcon data-icon="inline-start" strokeWidth={3} />
+                You
+              </Badge>
+            ) : null}
           </div>
-        )
-      })}
-    </div>
+          <p className="line-clamp-2 text-xs leading-4 text-muted-foreground lg:truncate">
+            {role.memberCount} {role.memberCount === 1 ? "member" : "members"}
+            <span aria-hidden className="mx-1.5 text-sm leading-none">
+              •
+            </span>
+            {role.description}
+          </p>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent>
+        <ul aria-label={`${role.name} permissions`} className="flex flex-col gap-px lg:pl-12">
+          {role.permissions.map((perm) => (
+            <li key={perm.code} className="flex gap-2.5 py-1 max-lg:items-start lg:items-center">
+              <Checkbox
+                checked
+                disabled
+                aria-label={perm.code}
+                className="shrink-0 max-lg:mt-0.5"
+                tabIndex={-1}
+              />
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5 lg:flex-row lg:items-center lg:gap-2.5">
+                <span className="shrink-0 font-mono text-xs text-foreground">{perm.code}</span>
+                <span className="min-w-0 flex-1 text-xs text-muted-foreground lg:truncate">
+                  {perm.description}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </AccordionContent>
+    </AccordionItem>
   )
 }
 
 export function RolePermissionsTable({ roles = ROLES }: RolePermissionsTableProps) {
-  const [query, setQuery] = useState("")
-  const [pinnedCode, setPinnedCode] = useState<string | undefined>()
-
-  const filteredRoles = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    return roles.filter((role) => {
-      if (pinnedCode && !role.permissions.some((p) => p.code === pinnedCode)) return false
-      if (!q) return true
-      if (role.roleCode.toLowerCase().includes(q)) return true
-      if (role.name.toLowerCase().includes(q)) return true
-      if (role.description.toLowerCase().includes(q)) return true
-      return role.permissions.some(
-        (p) =>
-          p.code.toLowerCase().includes(q) ||
-          p.module.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q),
-      )
-    })
-  }, [roles, query, pinnedCode])
-
-  const isEmpty = filteredRoles.length === 0
-  const pinnedPermission = pinnedCode
-    ? roles.flatMap((r) => r.permissions).find((p) => p.code === pinnedCode)
-    : undefined
-
-  function clearFilters() {
-    setQuery("")
-    setPinnedCode(undefined)
-  }
+  const auth = useAuth()
+  const currentRoleCode = auth.roleCodes[0]
 
   return (
-    <div data-slot="role-permissions-table" className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <SearchInput
-          placeholder="Search roles or permissions"
-          aria-label="Search roles or permissions"
-          defaultValue={query}
-          onValueChange={setQuery}
-          className="w-72"
-        />
-        {pinnedPermission ? (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            Filtering by:
-            <Badge variant="default" className="gap-1 font-mono" data-icon="inline-end">
-              {pinnedPermission.code}
-              <button
-                type="button"
-                onClick={() => setPinnedCode(undefined)}
-                aria-label="Clear permission filter"
-                className="-mr-0.5 rounded-sm p-0.5 hover:bg-foreground/10"
-              >
-                <XIcon className="size-3" />
-              </button>
-            </Badge>
-          </div>
-        ) : null}
-      </div>
-
-      {isEmpty ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-background py-16 text-center">
-          <p className="text-sm font-medium text-foreground">No roles match your search</p>
-          <Button variant="outline" size="sm" onClick={clearFilters}>
-            Clear filters
-          </Button>
-        </div>
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[220px]">Role</TableHead>
-              <TableHead className="w-[280px]">Description</TableHead>
-              <TableHead>Permissions</TableHead>
-              <TableHead className="w-[100px]">Type</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredRoles.map((role) => (
-              <TableRow key={role.roleCode} className="align-top">
-                <TableCell className="py-4">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm font-medium leading-5 text-foreground">
-                      {role.name}
-                    </span>
-                    <span className="font-mono text-xs leading-4 text-muted-foreground">
-                      {role.roleCode}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="py-4 text-sm leading-5 text-muted-foreground">
-                  {role.description}
-                </TableCell>
-                <TableCell className="py-4">
-                  <PermissionPills
-                    permissions={role.permissions}
-                    pinnedCode={pinnedCode}
-                    onPillClick={(code) => setPinnedCode(code === pinnedCode ? undefined : code)}
-                  />
-                </TableCell>
-                <TableCell className="py-4">
-                  {role.isSystemRole ? (
-                    <Badge variant="secondary">System</Badge>
-                  ) : (
-                    <Badge variant="outline">Custom</Badge>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </div>
+    <Accordion data-slot="role-permissions-list" type="multiple" className="flex flex-col gap-2">
+      {roles.map((role) => (
+        <RoleCard key={role.roleCode} role={role} isCurrent={role.roleCode === currentRoleCode} />
+      ))}
+    </Accordion>
   )
 }

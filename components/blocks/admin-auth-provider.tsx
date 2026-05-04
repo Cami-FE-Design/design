@@ -1,6 +1,8 @@
 "use client"
 
 import type * as React from "react"
+import { Suspense } from "react"
+import { AdminSettingsController } from "@/components/blocks/admin-settings-controller"
 import { AuthDebugBar } from "@/components/blocks/auth-debug-bar"
 import { AuthProvider, useAuth } from "@/lib/auth-mock"
 
@@ -23,6 +25,9 @@ export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <LocaleDir>
         {children}
+        <Suspense fallback={null}>
+          <AdminSettingsController />
+        </Suspense>
         <AuthDebugBar />
       </LocaleDir>
     </AuthProvider>
