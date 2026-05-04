@@ -104,12 +104,18 @@ export function AuthDebugBar() {
             <div className="flex flex-col gap-1.5">
               {ALL_HQ_PERMISSIONS.map((perm) => {
                 const checked = auth.permissions.has(perm)
+                const id = `debug-perm-${perm}`
                 return (
                   <label
                     key={perm}
+                    htmlFor={id}
                     className="flex cursor-pointer items-center gap-2.5 rounded-lg px-1.5 py-1 text-sm hover:bg-muted/40"
                   >
-                    <Checkbox checked={checked} onCheckedChange={(v) => toggle(perm, v === true)} />
+                    <Checkbox
+                      id={id}
+                      checked={checked}
+                      onCheckedChange={(v) => toggle(perm, v === true)}
+                    />
                     <span className="flex-1 text-sm text-foreground">
                       {PERMISSION_LABELS[perm]}
                     </span>

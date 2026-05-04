@@ -2,16 +2,11 @@
 
 import { GlobeIcon, type LucideIcon, ShieldCheckIcon, UserIcon, XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import { useState } from "react"
 import type * as React from "react"
+import { useState } from "react"
 import { RolePermissionsTable } from "@/components/blocks/role-permissions-table"
 import { Button } from "@/components/ui/button"
-import {
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { useAuth } from "@/lib/auth-mock"
 import { cn } from "@/lib/utils"
 
@@ -46,8 +41,7 @@ const GROUPS: SettingsGroup[] = [
       {
         id: "roles",
         label: "Roles & Permissions",
-        description:
-          "Cami uses fixed role definitions. To request a change, contact engineering.",
+        description: "Cami uses fixed role definitions. To request a change, contact engineering.",
         icon: ShieldCheckIcon,
       },
     ],
@@ -129,9 +123,7 @@ export function AdminSettingsDialog({
                         ) : Icon ? (
                           <Icon className="size-4 shrink-0 text-muted-foreground" />
                         ) : null}
-                        <span className="truncate">
-                          {isProfile ? auth.user.name : item.label}
-                        </span>
+                        <span className="truncate">{isProfile ? auth.user.name : item.label}</span>
                       </button>
                     </li>
                   )
@@ -198,9 +190,7 @@ function SettingRow({ label, description, control }: SettingRowProps) {
 }
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <h3 className="mb-3 mt-2 text-base font-semibold leading-6 text-foreground">{children}</h3>
-  )
+  return <h3 className="mb-3 mt-2 text-base font-semibold leading-6 text-foreground">{children}</h3>
 }
 
 function LanguagePanel() {

@@ -75,7 +75,9 @@ export function ImpersonationBanner({
       <div className="flex shrink-0 items-center gap-3">
         <div className="flex items-center gap-1.5 rounded-full bg-cami-yellow-12/15 px-2.5 py-1 text-xs font-medium tabular-nums">
           <TimerIcon className="size-3.5" aria-hidden />
-          <span aria-label="Time remaining">{formatRemaining(remaining)}</span>
+          <span role="timer" aria-label="Time remaining">
+            {formatRemaining(remaining)}
+          </span>
         </div>
         <Button
           variant="default"
