@@ -1,7 +1,6 @@
 import type { Emirate } from "@/lib/business-profile"
 
-export type BusinessStatus = "active" | "suspended" | "archived"
-export type PilotStatus = "onboarding" | "active" | "ended"
+export type BusinessState = "onboarding" | "live" | "suspended" | "archived"
 
 export const REASON_CODES = [
   { id: "owner_request", label: "Owner request" },
@@ -13,12 +12,42 @@ export const REASON_CODES = [
 
 export type ReasonCodeId = (typeof REASON_CODES)[number]["id"]
 
+export type AuditEventKind =
+  | "login"
+  | "impersonation"
+  | "edit"
+  | "create"
+  | "suspend"
+  | "archive"
+  | "restore"
+  | "system"
+
 export type AuditEvent = {
   id: string
   at: string
   actor: string
   action: string
   detail?: string
+  kind: AuditEventKind
+}
+
+export type WeeklyStats = {
+  bookings: number
+  invoices: number
+  markPaidAed: number
+}
+
+export type StaffRole = "manager" | "reception" | "staff"
+
+export type StaffMember = {
+  name: string
+  role: StaffRole
+}
+
+export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
+  manager: "Manager",
+  reception: "Reception",
+  staff: "Staff",
 }
 
 export type AdminBusiness = {
@@ -27,12 +56,14 @@ export type AdminBusiness = {
   slug: string
   ownerName: string
   ownerEmail: string
-  status: BusinessStatus
-  pilotStatus: PilotStatus
+  ownerPhotoUrl?: string
+  photoUrl?: string
+  state: BusinessState
   createdAt: string
   lastActivityAt: string | null
+  weekly: WeeklyStats
   staffCount: number
-  staffPreview: string[]
+  staffPreview: StaffMember[]
   servicesCount: number
   servicesPreview: string[]
   street: string
@@ -53,12 +84,18 @@ export const adminBusinesses: AdminBusiness[] = [
     slug: "shampooch-jvc",
     ownerName: "Maz Khan",
     ownerEmail: "maaz@getcami.io",
-    status: "active",
-    pilotStatus: "active",
+    ownerPhotoUrl: "https://i.pravatar.cc/144?u=maz-khan",
+    photoUrl: "https://picsum.photos/seed/shampooch-jvc/144/144",
+    state: "live",
     createdAt: "2026-03-04T09:12:00Z",
     lastActivityAt: "2026-05-03T07:48:00Z",
+    weekly: { bookings: 24, invoices: 18, markPaidAed: 6420 },
     staffCount: 4,
-    staffPreview: ["Maz Khan", "Sara Park", "Beth Carter", "Ahmed N."],
+    staffPreview: [
+      { name: "Sara Park", role: "manager" },
+      { name: "Beth Carter", role: "reception" },
+      { name: "Ahmed N.", role: "staff" },
+    ],
     servicesCount: 6,
     servicesPreview: ["Full groom", "Bath & brush", "Nail trim"],
     street: "Al Ghozlan 4, Jumeirah Village Circle",
@@ -68,27 +105,50 @@ export const adminBusinesses: AdminBusiness[] = [
     email: "hello@shampooch.ae",
     vatNumber: "100123456700003",
     audit: [
-      { id: "a1", at: "2026-05-03T07:48:00Z", actor: "Maz Khan", action: "Logged in" },
+      {
+        id: "a1",
+        at: "2026-05-03T07:48:00Z",
+        actor: "Maz Khan",
+        action: "Signed in",
+        kind: "login",
+      },
       {
         id: "a2",
         at: "2026-05-02T18:21:00Z",
         actor: "Sara Park",
         action: "Confirmed booking",
-        detail: "Mochi (toy poodle) — full groom",
+        detail: "Mochi (toy poodle), full groom",
+        kind: "edit",
+      },
+      {
+        id: "a-imp-1",
+        at: "2026-05-01T15:02:00Z",
+        actor: "Cami HQ (Michelle)",
+        action: "Impersonated Owner",
+        detail: "Reproducing a billing issue reported in ticket #4218",
+        kind: "impersonation",
       },
       {
         id: "a3",
         at: "2026-04-29T11:05:00Z",
         actor: "Maz Khan",
         action: "Edited service",
-        detail: "Full groom — price",
+        detail: "Full groom, price",
+        kind: "edit",
       },
-      { id: "a4", at: "2026-04-28T14:32:00Z", actor: "Sara Park", action: "Added staff member" },
+      {
+        id: "a4",
+        at: "2026-04-28T14:32:00Z",
+        actor: "Sara Park",
+        action: "Added staff member",
+        kind: "edit",
+      },
       {
         id: "a5",
         at: "2026-04-23T09:00:00Z",
         actor: "Cami HQ (Michelle)",
-        action: "Created Pet Business",
+        action: "Created partner",
+        kind: "create",
       },
     ],
   },
@@ -98,12 +158,17 @@ export const adminBusinesses: AdminBusiness[] = [
     slug: "pawhaus",
     ownerName: "Layla Saeed",
     ownerEmail: "layla@pawhaus.ae",
-    status: "active",
-    pilotStatus: "active",
+    ownerPhotoUrl: "https://i.pravatar.cc/144?u=layla-saeed",
+    photoUrl: "https://picsum.photos/seed/pawhaus/144/144",
+    state: "live",
     createdAt: "2026-03-18T10:00:00Z",
     lastActivityAt: "2026-05-02T17:14:00Z",
+    weekly: { bookings: 11, invoices: 9, markPaidAed: 3180 },
     staffCount: 3,
-    staffPreview: ["Layla Saeed", "Hamza Ali", "Riya Mehta"],
+    staffPreview: [
+      { name: "Hamza Ali", role: "reception" },
+      { name: "Riya Mehta", role: "staff" },
+    ],
     servicesCount: 4,
     servicesPreview: ["Overnight boarding", "Day care", "Pickup & drop"],
     street: "Warehouse 22, Al Quoz 3",
@@ -113,12 +178,27 @@ export const adminBusinesses: AdminBusiness[] = [
     email: "hello@pawhaus.ae",
     vatNumber: "100876543200003",
     audit: [
-      { id: "b1", at: "2026-05-02T17:14:00Z", actor: "Layla Saeed", action: "Logged in" },
+      {
+        id: "b1",
+        at: "2026-05-02T17:14:00Z",
+        actor: "Layla Saeed",
+        action: "Signed in",
+        kind: "login",
+      },
       {
         id: "b2",
         at: "2026-04-30T08:11:00Z",
         actor: "Layla Saeed",
         action: "Updated business hours",
+        kind: "edit",
+      },
+      {
+        id: "b-imp-1",
+        at: "2026-04-29T13:40:00Z",
+        actor: "Cami HQ (Hareem)",
+        action: "Impersonated Owner",
+        detail: "Walking owner through invoice export, ticket #4196",
+        kind: "impersonation",
       },
     ],
   },
@@ -128,12 +208,14 @@ export const adminBusinesses: AdminBusiness[] = [
     slug: "velvet-paw",
     ownerName: "Noura Al Marzooqi",
     ownerEmail: "noura@velvetpaw.ae",
-    status: "active",
-    pilotStatus: "onboarding",
+    ownerPhotoUrl: "https://i.pravatar.cc/144?u=noura-al-marzooqi",
+    photoUrl: "https://picsum.photos/seed/velvet-paw/144/144",
+    state: "onboarding",
     createdAt: "2026-04-21T14:00:00Z",
     lastActivityAt: "2026-04-22T09:42:00Z",
+    weekly: { bookings: 0, invoices: 0, markPaidAed: 0 },
     staffCount: 1,
-    staffPreview: ["Noura Al Marzooqi"],
+    staffPreview: [],
     servicesCount: 0,
     servicesPreview: [],
     street: "City Walk Block 8, Unit 12",
@@ -142,12 +224,19 @@ export const adminBusinesses: AdminBusiness[] = [
     phone: "+971 52 800 4400",
     email: "noura@velvetpaw.ae",
     audit: [
-      { id: "c1", at: "2026-04-22T09:42:00Z", actor: "Noura Al Marzooqi", action: "Logged in" },
+      {
+        id: "c1",
+        at: "2026-04-22T09:42:00Z",
+        actor: "Noura Al Marzooqi",
+        action: "Signed in",
+        kind: "login",
+      },
       {
         id: "c2",
         at: "2026-04-21T14:00:00Z",
         actor: "Cami HQ (Michelle)",
-        action: "Created Pet Business",
+        action: "Created partner",
+        kind: "create",
       },
     ],
   },
@@ -157,12 +246,14 @@ export const adminBusinesses: AdminBusiness[] = [
     slug: "doggos",
     ownerName: "Faisal Rahman",
     ownerEmail: "faisal@doggos.ae",
-    status: "suspended",
-    pilotStatus: "active",
+    ownerPhotoUrl: "https://i.pravatar.cc/144?u=faisal-rahman",
+    photoUrl: "https://picsum.photos/seed/doggos/144/144",
+    state: "suspended",
     createdAt: "2026-02-12T09:00:00Z",
     lastActivityAt: "2026-04-15T11:30:00Z",
+    weekly: { bookings: 0, invoices: 0, markPaidAed: 0 },
     staffCount: 2,
-    staffPreview: ["Faisal Rahman", "Mira Joseph"],
+    staffPreview: [{ name: "Mira Joseph", role: "staff" }],
     servicesCount: 3,
     servicesPreview: ["Day care", "Half-day", "Walks"],
     street: "Mirdif Hills Block C, Shop 4",
@@ -179,8 +270,15 @@ export const adminBusinesses: AdminBusiness[] = [
         actor: "Cami HQ (Michelle)",
         action: "Suspended account",
         detail: "Off-platform / paused",
+        kind: "suspend",
       },
-      { id: "d2", at: "2026-04-15T11:30:00Z", actor: "Faisal Rahman", action: "Logged in" },
+      {
+        id: "d2",
+        at: "2026-04-15T11:30:00Z",
+        actor: "Faisal Rahman",
+        action: "Signed in",
+        kind: "login",
+      },
     ],
   },
   {
@@ -189,12 +287,14 @@ export const adminBusinesses: AdminBusiness[] = [
     slug: "furry-tales",
     ownerName: "Priya Anand",
     ownerEmail: "priya@furrytales.ae",
-    status: "archived",
-    pilotStatus: "ended",
+    ownerPhotoUrl: "https://i.pravatar.cc/144?u=priya-anand",
+    photoUrl: "https://picsum.photos/seed/furry-tales/144/144",
+    state: "archived",
     createdAt: "2026-01-08T08:00:00Z",
     lastActivityAt: "2026-03-21T16:55:00Z",
+    weekly: { bookings: 0, invoices: 0, markPaidAed: 0 },
     staffCount: 2,
-    staffPreview: ["Priya Anand", "Kabir N."],
+    staffPreview: [{ name: "Kabir N.", role: "manager" }],
     servicesCount: 5,
     servicesPreview: ["Full groom", "De-shed", "Nail trim"],
     street: "Studio 3, Al Barsha 2",
@@ -211,6 +311,7 @@ export const adminBusinesses: AdminBusiness[] = [
         actor: "Cami HQ (Michelle)",
         action: "Archived account",
         detail: "Business closed",
+        kind: "archive",
       },
     ],
   },
@@ -220,36 +321,54 @@ export function findBusinessBySlug(slug: string): AdminBusiness | undefined {
   return adminBusinesses.find((b) => b.slug === slug)
 }
 
-const statusBadgeStyles: Record<BusinessStatus, string> = {
-  active: "bg-cami-green-3 text-cami-green-11",
+const stateBadgeStyles: Record<BusinessState, string> = {
+  onboarding: "bg-cami-violet-3 text-cami-violet-11",
+  live: "bg-cami-green-3 text-cami-green-11",
   suspended: "bg-tomato-3 text-tomato-11",
   archived: "bg-sand-3 text-sand-11",
 }
 
-const statusLabels: Record<BusinessStatus, string> = {
-  active: "Active",
+const stateLabels: Record<BusinessState, string> = {
+  onboarding: "Onboarding",
+  live: "Live",
   suspended: "Suspended",
   archived: "Archived",
 }
 
-export function statusBadge(status: BusinessStatus) {
-  return { className: statusBadgeStyles[status], label: statusLabels[status] }
+export const STATE_OPTIONS: { id: BusinessState; label: string }[] = [
+  { id: "onboarding", label: "Onboarding" },
+  { id: "live", label: "Live" },
+  { id: "suspended", label: "Suspended" },
+  { id: "archived", label: "Archived" },
+]
+
+export const STATE_TRIGGER_TEXT: Record<BusinessState, string> = {
+  onboarding: "text-foreground",
+  live: "text-foreground",
+  suspended: "text-tomato-11",
+  archived: "text-muted-foreground",
 }
 
-const pilotBadgeStyles: Record<PilotStatus, string> = {
-  onboarding: "bg-cami-violet-3 text-cami-violet-11",
-  active: "bg-cami-sage-3 text-cami-sage-11",
-  ended: "bg-sand-3 text-sand-11",
+export const STATE_DOT: Record<BusinessState, string> = {
+  onboarding: "bg-cami-violet-9",
+  live: "bg-cami-green-9",
+  suspended: "bg-tomato-9",
+  archived: "bg-sand-9",
 }
 
-const pilotLabels: Record<PilotStatus, string> = {
-  onboarding: "Onboarding",
-  active: "Active pilot",
-  ended: "Pilot ended",
+export const STATE_DESCRIPTION: Record<BusinessState, string> = {
+  onboarding: "Account exists, Owner has not gone live yet",
+  live: "Owner can sign in and accept bookings",
+  suspended: "Owner cannot sign in, public booking page is hidden",
+  archived: "Soft-deleted, data preserved for 90 days",
 }
 
-export function pilotBadge(pilot: PilotStatus) {
-  return { className: pilotBadgeStyles[pilot], label: pilotLabels[pilot] }
+export function stateLabel(state: BusinessState) {
+  return stateLabels[state]
+}
+
+export function stateBadge(state: BusinessState) {
+  return { className: stateBadgeStyles[state], label: stateLabels[state] }
 }
 
 export function relativeTime(iso: string | null): string {
@@ -286,4 +405,55 @@ export function formatDateTime(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   })
+}
+
+export function formatAed(value: number): string {
+  return new Intl.NumberFormat("en-AE", { maximumFractionDigits: 0 }).format(value)
+}
+
+export type GlobalAuditEvent = AuditEvent & {
+  businessId: string
+  businessName: string
+  businessSlug: string
+}
+
+export function getAllAuditEvents(): GlobalAuditEvent[] {
+  const flat: GlobalAuditEvent[] = []
+  for (const b of adminBusinesses) {
+    for (const event of b.audit) {
+      flat.push({
+        ...event,
+        businessId: b.id,
+        businessName: b.name,
+        businessSlug: b.slug,
+      })
+    }
+  }
+  return flat.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+}
+
+export const AUDIT_KIND_LABELS: Record<AuditEventKind, string> = {
+  login: "Sign-in",
+  impersonation: "Impersonation",
+  edit: "Edit",
+  create: "Create",
+  suspend: "Suspend",
+  archive: "Archive",
+  restore: "Restore",
+  system: "System",
+}
+
+const auditKindBadgeStyles: Record<AuditEventKind, string> = {
+  login: "bg-sand-3 text-sand-11",
+  impersonation: "bg-cami-yellow-3 text-cami-yellow-11",
+  edit: "bg-cami-violet-3 text-cami-violet-11",
+  create: "bg-cami-green-3 text-cami-green-11",
+  suspend: "bg-tomato-3 text-tomato-11",
+  archive: "bg-sand-3 text-sand-11",
+  restore: "bg-cami-green-3 text-cami-green-11",
+  system: "bg-sand-3 text-sand-11",
+}
+
+export function auditKindBadge(kind: AuditEventKind) {
+  return { className: auditKindBadgeStyles[kind], label: AUDIT_KIND_LABELS[kind] }
 }

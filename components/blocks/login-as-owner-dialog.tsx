@@ -69,12 +69,12 @@ export function LoginAsOwnerDialog({ business, onConfirm }: LoginAsOwnerDialogPr
       <DialogTrigger asChild>
         <Button variant="outline" data-icon="inline-start">
           <LogInIcon />
-          Login as Owner
+          Sign in as Owner
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-cami-yellow-3 text-cami-yellow-11">
+          <div className="mb-2 flex size-10 items-center justify-center rounded-full bg-sand-3 text-sand-11">
             <TriangleAlertIcon className="size-5" />
           </div>
           <DialogTitle>Sign in as {business.ownerName}?</DialogTitle>

@@ -26,7 +26,7 @@ export const adminTopMenu: AdminMenuItem[] = [
   { icon: HomeIcon, label: "Dashboard", href: "/admin", permission: "dashboard.view" },
   {
     icon: ContactRoundIcon,
-    label: "Pet Businesses",
+    label: "Partners",
     href: "/admin/businesses",
     permission: "merchants.view",
   },

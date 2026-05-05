@@ -81,15 +81,42 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    title: "Cami HQ, RBAC (PRO-138)",
+    title: "Cami HQ, partner roster (PRO-101)",
     description:
-      "Permission-gated console screens. Use the bottom-right Demo controls to flip permissions, impersonation, and locale.",
+      "E6-2 Partner roster + detail modal. Click a row in the roster to open the modal at ?business=<slug>.",
     screens: [
-      { path: "/admin", label: "Dashboard", note: "Sidebar, topbar, profile menu with role badge" },
+      { path: "/admin/businesses", label: "Partners roster" },
       {
-        path: "/admin?settings=roles",
-        label: "Roles & Permissions",
-        note: "Opens the settings panel with the role list",
+        path: "/admin/businesses?tab=onboarding",
+        label: "Roster, Onboarding tab",
+        note: "Filter tab + URL persistence",
+      },
+      {
+        path: "/admin/businesses?sort=weekly&dir=desc",
+        label: "Roster, sort by weekly AED",
+      },
+      {
+        path: "/admin/businesses?business=shampooch-jvc",
+        label: "Detail modal, Live state",
+        note: "Dark green Access row, Manage tab with Sign in / Suspend / Archive",
+      },
+      {
+        path: "/admin/businesses?business=velvet-paw",
+        label: "Detail modal, Onboarding state",
+      },
+      {
+        path: "/admin/businesses?business=doggos",
+        label: "Detail modal, Suspended state",
+        note: "Tomato reason banner with white-circle InfoIcon",
+      },
+      {
+        path: "/admin/businesses?business=furry-tales",
+        label: "Detail modal, Archived state",
+      },
+      { path: "/admin/audit", label: "Cross-business audit log" },
+      {
+        path: "/admin/audit?kind=impersonation",
+        label: "Audit log, Impersonation only",
       },
     ],
   },
