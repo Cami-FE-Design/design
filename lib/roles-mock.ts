@@ -10,6 +10,7 @@ export type Role = {
   name: string
   description: string
   isSystemRole: boolean
+  memberCount: number
   permissions: RolePermission[]
 }
 
@@ -90,6 +91,7 @@ export const ROLES: Role[] = [
     name: "HQ Admin",
     description: "Full access across the Cami HQ console.",
     isSystemRole: true,
+    memberCount: 12,
     permissions: [
       ...dashboard,
       ...merchants,
@@ -106,6 +108,7 @@ export const ROLES: Role[] = [
     name: "HQ Support",
     description: "Read-only access for the support team plus impersonation.",
     isSystemRole: true,
+    memberCount: 4,
     permissions: [
       ...dashboard,
       {
@@ -129,6 +132,7 @@ export const ROLES: Role[] = [
     name: "HQ Billing",
     description: "Billing operators. Sees merchants and full billing.",
     isSystemRole: true,
+    memberCount: 2,
     permissions: [
       ...dashboard,
       {

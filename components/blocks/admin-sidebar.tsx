@@ -1,9 +1,8 @@
 "use client"
 
 import { ChevronDownIcon, ChevronsRightIcon } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
-import { AdminSettingsDialog } from "@/components/blocks/admin-settings-dialog"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -282,13 +281,22 @@ type SidebarSettingsItemProps = {
 }
 
 function SidebarSettingsItem({ item, expanded }: SidebarSettingsItemProps) {
-  const [open, setOpen] = useState(false)
+  const router = useRouter()
+  const pathname = usePathname() ?? "/"
   const Icon = item.icon
+
+  function openSettings() {
+    const search = typeof window !== "undefined" ? window.location.search : ""
+    const next = new URLSearchParams(search)
+    next.set("settings", "roles")
+    router.push(`${pathname}?${next.toString()}`)
+  }
+
   const button = (
     <Button
       variant="ghost"
       type="button"
-      onClick={() => setOpen(true)}
+      onClick={openSettings}
       className={cn(menuButtonClass, expanded ? "gap-3" : "gap-0")}
       style={{ transition: `gap ${drawerDuration} ${easeOutCubic}` }}
       aria-label={expanded ? undefined : item.label}
@@ -316,7 +324,6 @@ function SidebarSettingsItem({ item, expanded }: SidebarSettingsItemProps) {
           <TooltipContent side="right">{item.label}</TooltipContent>
         </Tooltip>
       )}
-      <AdminSettingsDialog open={open} onOpenChange={setOpen} />
     </>
   )
 }

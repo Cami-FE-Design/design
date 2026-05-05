@@ -125,7 +125,6 @@ const SECTIONS: Section[] = [
     description: "Internal references for shell layout and component states.",
     screens: [
       { path: "/shell-demo", label: "Business app shell" },
-      { path: "/shell-demo/mobile", label: "Mobile shell" },
       { path: "/playground", label: "Component states" },
     ],
   },
