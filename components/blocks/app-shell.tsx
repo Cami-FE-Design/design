@@ -1,6 +1,8 @@
 import type * as React from "react"
+import { Suspense } from "react"
 import { AppMobileDrawer } from "@/components/blocks/app-mobile-drawer"
 import { AppMobileTopbar } from "@/components/blocks/app-mobile-topbar"
+import { AppSettingsController } from "@/components/blocks/app-settings-controller"
 import { AppSidebar } from "@/components/blocks/app-sidebar"
 import { AppTopbar } from "@/components/blocks/app-topbar"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
@@ -109,6 +111,9 @@ export function AppShell({
           </div>
         </div>
       )}
+      <Suspense fallback={null}>
+        <AppSettingsController />
+      </Suspense>
     </>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronDownIcon, ChevronsLeftIcon } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { SheetClose } from "@/components/ui/sheet"
@@ -144,10 +145,38 @@ export function AppMobileDrawer() {
         ))}
       </nav>
       <nav className="flex flex-col gap-0.5" aria-label="Secondary">
-        {bottomMenu.map((item) => (
-          <DrawerMenuItem key={item.label} item={item} {...buildItemProps(item)} />
-        ))}
+        {bottomMenu.map((item) =>
+          item.label === "Settings" ? (
+            <DrawerSettingsItem key={item.label} item={item} />
+          ) : (
+            <DrawerMenuItem key={item.label} item={item} {...buildItemProps(item)} />
+          ),
+        )}
       </nav>
     </div>
+  )
+}
+
+function DrawerSettingsItem({ item }: { item: MenuItem }) {
+  const router = useRouter()
+  const pathname = usePathname() ?? "/"
+  const Icon = item.icon
+
+  function openSettings() {
+    const search = typeof window !== "undefined" ? window.location.search : ""
+    const next = new URLSearchParams(search)
+    next.set("settings", "profile")
+    router.push(`${pathname}?${next.toString()}`)
+  }
+
+  return (
+    <SheetClose asChild>
+      <Button variant="ghost" type="button" onClick={openSettings} className={menuButtonClass}>
+        <Icon className="size-5 shrink-0" />
+        <span className="min-w-0 flex-1 truncate text-left text-base font-medium leading-6">
+          {item.label}
+        </span>
+      </Button>
+    </SheetClose>
   )
 }
