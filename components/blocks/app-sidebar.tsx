@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronDownIcon, ChevronsRightIcon } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
 import { forwardRef, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
@@ -298,10 +299,63 @@ export function AppSidebar({ className, defaultExpanded = false, ...props }: App
         </nav>
       </div>
       <nav className="flex flex-col gap-0.5" aria-label="Secondary">
-        {bottomMenu.map((item) => (
-          <SidebarItem key={item.label} item={item} expanded={expanded} {...buildItemProps(item)} />
-        ))}
+        {bottomMenu.map((item) =>
+          item.label === "Settings" ? (
+            <SidebarSettingsItem key={item.label} item={item} expanded={expanded} />
+          ) : (
+            <SidebarItem
+              key={item.label}
+              item={item}
+              expanded={expanded}
+              {...buildItemProps(item)}
+            />
+          ),
+        )}
       </nav>
     </aside>
+  )
+}
+
+function SidebarSettingsItem({ item, expanded }: { item: MenuItem; expanded: boolean }) {
+  const router = useRouter()
+  const pathname = usePathname() ?? "/"
+  const Icon = item.icon
+
+  function openSettings() {
+    const search = typeof window !== "undefined" ? window.location.search : ""
+    const next = new URLSearchParams(search)
+    next.set("settings", "profile")
+    router.push(`${pathname}?${next.toString()}`)
+  }
+
+  const button = (
+    <Button
+      variant="ghost"
+      type="button"
+      onClick={openSettings}
+      className={cn(menuButtonClass, expanded ? "gap-3" : "gap-0")}
+      style={{ transition: `gap ${drawerDuration} ${easeOutCubic}` }}
+      aria-label={expanded ? undefined : item.label}
+    >
+      <Icon className="size-5 shrink-0" />
+      <span
+        className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left text-base font-medium leading-6"
+        style={{
+          maxWidth: expanded ? "12rem" : "0",
+          opacity: expanded ? 1 : 0,
+          transition: `max-width ${drawerDuration} ${easeOutCubic}, opacity ${drawerDuration} ${easeOutCubic}`,
+        }}
+      >
+        {item.label}
+      </span>
+    </Button>
+  )
+
+  if (expanded) return button
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipContent side="right">{item.label}</TooltipContent>
+    </Tooltip>
   )
 }
