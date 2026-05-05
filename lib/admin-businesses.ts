@@ -37,6 +37,19 @@ export type WeeklyStats = {
   markPaidAed: number
 }
 
+export type StaffRole = "manager" | "reception" | "staff"
+
+export type StaffMember = {
+  name: string
+  role: StaffRole
+}
+
+export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
+  manager: "Manager",
+  reception: "Reception",
+  staff: "Staff",
+}
+
 export type AdminBusiness = {
   id: string
   name: string
@@ -50,7 +63,7 @@ export type AdminBusiness = {
   lastActivityAt: string | null
   weekly: WeeklyStats
   staffCount: number
-  staffPreview: string[]
+  staffPreview: StaffMember[]
   servicesCount: number
   servicesPreview: string[]
   street: string
@@ -78,7 +91,11 @@ export const adminBusinesses: AdminBusiness[] = [
     lastActivityAt: "2026-05-03T07:48:00Z",
     weekly: { bookings: 24, invoices: 18, markPaidAed: 6420 },
     staffCount: 4,
-    staffPreview: ["Maz Khan", "Sara Park", "Beth Carter", "Ahmed N."],
+    staffPreview: [
+      { name: "Sara Park", role: "manager" },
+      { name: "Beth Carter", role: "reception" },
+      { name: "Ahmed N.", role: "staff" },
+    ],
     servicesCount: 6,
     servicesPreview: ["Full groom", "Bath & brush", "Nail trim"],
     street: "Al Ghozlan 4, Jumeirah Village Circle",
@@ -92,7 +109,7 @@ export const adminBusinesses: AdminBusiness[] = [
         id: "a1",
         at: "2026-05-03T07:48:00Z",
         actor: "Maz Khan",
-        action: "Logged in",
+        action: "Signed in",
         kind: "login",
       },
       {
@@ -130,7 +147,7 @@ export const adminBusinesses: AdminBusiness[] = [
         id: "a5",
         at: "2026-04-23T09:00:00Z",
         actor: "Cami HQ (Michelle)",
-        action: "Created Pet Business",
+        action: "Created partner",
         kind: "create",
       },
     ],
@@ -148,7 +165,10 @@ export const adminBusinesses: AdminBusiness[] = [
     lastActivityAt: "2026-05-02T17:14:00Z",
     weekly: { bookings: 11, invoices: 9, markPaidAed: 3180 },
     staffCount: 3,
-    staffPreview: ["Layla Saeed", "Hamza Ali", "Riya Mehta"],
+    staffPreview: [
+      { name: "Hamza Ali", role: "reception" },
+      { name: "Riya Mehta", role: "staff" },
+    ],
     servicesCount: 4,
     servicesPreview: ["Overnight boarding", "Day care", "Pickup & drop"],
     street: "Warehouse 22, Al Quoz 3",
@@ -162,7 +182,7 @@ export const adminBusinesses: AdminBusiness[] = [
         id: "b1",
         at: "2026-05-02T17:14:00Z",
         actor: "Layla Saeed",
-        action: "Logged in",
+        action: "Signed in",
         kind: "login",
       },
       {
@@ -195,7 +215,7 @@ export const adminBusinesses: AdminBusiness[] = [
     lastActivityAt: "2026-04-22T09:42:00Z",
     weekly: { bookings: 0, invoices: 0, markPaidAed: 0 },
     staffCount: 1,
-    staffPreview: ["Noura Al Marzooqi"],
+    staffPreview: [],
     servicesCount: 0,
     servicesPreview: [],
     street: "City Walk Block 8, Unit 12",
@@ -208,14 +228,14 @@ export const adminBusinesses: AdminBusiness[] = [
         id: "c1",
         at: "2026-04-22T09:42:00Z",
         actor: "Noura Al Marzooqi",
-        action: "Logged in",
+        action: "Signed in",
         kind: "login",
       },
       {
         id: "c2",
         at: "2026-04-21T14:00:00Z",
         actor: "Cami HQ (Michelle)",
-        action: "Created Pet Business",
+        action: "Created partner",
         kind: "create",
       },
     ],
@@ -233,7 +253,7 @@ export const adminBusinesses: AdminBusiness[] = [
     lastActivityAt: "2026-04-15T11:30:00Z",
     weekly: { bookings: 0, invoices: 0, markPaidAed: 0 },
     staffCount: 2,
-    staffPreview: ["Faisal Rahman", "Mira Joseph"],
+    staffPreview: [{ name: "Mira Joseph", role: "staff" }],
     servicesCount: 3,
     servicesPreview: ["Day care", "Half-day", "Walks"],
     street: "Mirdif Hills Block C, Shop 4",
@@ -256,7 +276,7 @@ export const adminBusinesses: AdminBusiness[] = [
         id: "d2",
         at: "2026-04-15T11:30:00Z",
         actor: "Faisal Rahman",
-        action: "Logged in",
+        action: "Signed in",
         kind: "login",
       },
     ],
@@ -274,7 +294,7 @@ export const adminBusinesses: AdminBusiness[] = [
     lastActivityAt: "2026-03-21T16:55:00Z",
     weekly: { bookings: 0, invoices: 0, markPaidAed: 0 },
     staffCount: 2,
-    staffPreview: ["Priya Anand", "Kabir N."],
+    staffPreview: [{ name: "Kabir N.", role: "manager" }],
     servicesCount: 5,
     servicesPreview: ["Full groom", "De-shed", "Nail trim"],
     street: "Studio 3, Al Barsha 2",
@@ -313,6 +333,38 @@ const stateLabels: Record<BusinessState, string> = {
   live: "Live",
   suspended: "Suspended",
   archived: "Archived",
+}
+
+export const STATE_OPTIONS: { id: BusinessState; label: string }[] = [
+  { id: "onboarding", label: "Onboarding" },
+  { id: "live", label: "Live" },
+  { id: "suspended", label: "Suspended" },
+  { id: "archived", label: "Archived" },
+]
+
+export const STATE_TRIGGER_TEXT: Record<BusinessState, string> = {
+  onboarding: "text-foreground",
+  live: "text-foreground",
+  suspended: "text-tomato-11",
+  archived: "text-muted-foreground",
+}
+
+export const STATE_DOT: Record<BusinessState, string> = {
+  onboarding: "bg-cami-violet-9",
+  live: "bg-cami-green-9",
+  suspended: "bg-tomato-9",
+  archived: "bg-sand-9",
+}
+
+export const STATE_DESCRIPTION: Record<BusinessState, string> = {
+  onboarding: "Account exists, Owner has not gone live yet",
+  live: "Owner can sign in and accept bookings",
+  suspended: "Owner cannot sign in, public booking page is hidden",
+  archived: "Soft-deleted, data preserved for 90 days",
+}
+
+export function stateLabel(state: BusinessState) {
+  return stateLabels[state]
 }
 
 export function stateBadge(state: BusinessState) {
@@ -381,7 +433,7 @@ export function getAllAuditEvents(): GlobalAuditEvent[] {
 }
 
 export const AUDIT_KIND_LABELS: Record<AuditEventKind, string> = {
-  login: "Login",
+  login: "Sign-in",
   impersonation: "Impersonation",
   edit: "Edit",
   create: "Create",

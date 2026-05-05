@@ -4,26 +4,19 @@ import {
   ArrowDownIcon,
   ArrowUpDownIcon,
   ArrowUpIcon,
-  CheckIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
   PlusIcon,
   SlidersHorizontalIcon,
 } from "lucide-react"
 import Image from "next/image"
-import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { AdminShell } from "@/components/blocks/admin-shell"
+import { BusinessDetailDialog } from "@/components/blocks/business-detail-dialog"
+import { NewBusinessSheet } from "@/components/blocks/new-business-sheet"
+import { StateDropdown } from "@/components/blocks/state-dropdown"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { SearchInput } from "@/components/ui/search-input"
 import {
   Table,
@@ -41,6 +34,7 @@ import {
   formatAed,
   formatDate,
   relativeTime,
+  stateLabel,
 } from "@/lib/admin-businesses"
 import { cn } from "@/lib/utils"
 
@@ -59,27 +53,6 @@ const tabs: { id: StateFilter; label: string }[] = [
 const SORT_KEYS: SortKey[] = ["name", "owner", "weekly", "createdAt", "lastActivity"]
 const DEFAULT_SORT: SortKey = "lastActivity"
 const DEFAULT_DIR: SortDir = "desc"
-
-const STATE_OPTIONS: { id: BusinessState; label: string }[] = [
-  { id: "onboarding", label: "Onboarding" },
-  { id: "live", label: "Live" },
-  { id: "suspended", label: "Suspended" },
-  { id: "archived", label: "Archived" },
-]
-
-const STATE_TRIGGER_TEXT: Record<BusinessState, string> = {
-  onboarding: "text-foreground",
-  live: "text-foreground",
-  suspended: "text-tomato-11",
-  archived: "text-muted-foreground",
-}
-
-const STATE_DOT: Record<BusinessState, string> = {
-  onboarding: "bg-cami-violet-9",
-  live: "bg-cami-green-9",
-  suspended: "bg-tomato-9",
-  archived: "bg-sand-9",
-}
 
 function isStateFilter(v: string | null): v is StateFilter {
   return v === "all" || v === "onboarding" || v === "live" || v === "suspended" || v === "archived"
@@ -218,70 +191,21 @@ function WeeklyCell({ weekly }: { weekly: AdminBusiness["weekly"] }) {
   )
 }
 
-function StateDropdown({
-  state,
-  onChange,
-}: {
-  state: BusinessState
-  onChange: (next: BusinessState) => void
-}) {
-  const current = STATE_OPTIONS.find((s) => s.id === state)
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="xs"
-          radius="default"
-          className={cn("-mx-2 font-normal", STATE_TRIGGER_TEXT[state])}
-          data-icon="inline-end"
-          onClick={(e) => e.stopPropagation()}
-          onKeyDown={(e) => e.stopPropagation()}
-        >
-          {current?.label}
-          <ChevronDownIcon />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()} className="w-44">
-        {STATE_OPTIONS.map((option) => {
-          const active = option.id === state
-          return (
-            <DropdownMenuItem
-              key={option.id}
-              onSelect={() => {
-                if (!active) onChange(option.id)
-              }}
-              className="gap-2"
-            >
-              <span
-                aria-hidden
-                className={cn("size-1.5 shrink-0 rounded-full", STATE_DOT[option.id])}
-              />
-              <span className="flex-1">{option.label}</span>
-              {active ? <CheckIcon className="size-3.5 text-muted-foreground" /> : null}
-            </DropdownMenuItem>
-          )
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
 function BusinessRow({
   business,
+  onOpen,
   onStateChange,
 }: {
   business: AdminBusiness
+  onOpen: () => void
   onStateChange: (next: BusinessState) => void
 }) {
-  const router = useRouter()
-  const href = `/admin/businesses/${business.slug}`
   return (
     <TableRow
       className="cursor-pointer"
-      onClick={() => router.push(href)}
+      onClick={onOpen}
       onKeyDown={(e) => {
-        if (e.key === "Enter") router.push(href)
+        if (e.key === "Enter") onOpen()
       }}
       tabIndex={0}
     >
@@ -289,13 +213,7 @@ function BusinessRow({
         <div className="flex items-center gap-3">
           <BusinessAvatar name={business.name} photoUrl={business.photoUrl} />
           <div className="flex min-w-0 flex-col">
-            <Link
-              href={href}
-              onClick={(e) => e.stopPropagation()}
-              className="truncate text-sm font-medium text-foreground hover:underline"
-            >
-              {business.name}
-            </Link>
+            <span className="truncate text-sm font-medium text-foreground">{business.name}</span>
             <span className="truncate font-mono text-xs text-muted-foreground">
               cami.app/{business.slug}
             </span>
@@ -312,7 +230,7 @@ function BusinessRow({
         </div>
       </TableCell>
       <TableCell>
-        <StateDropdown state={business.state} onChange={onStateChange} />
+        <StateDropdown state={business.state} onChange={onStateChange} inset />
       </TableCell>
       <TableCell>
         <WeeklyCell weekly={business.weekly} />
@@ -323,9 +241,6 @@ function BusinessRow({
       <TableCell className="text-sm text-muted-foreground">
         {relativeTime(business.lastActivityAt)}
       </TableCell>
-      <TableCell className="w-12 pr-3 text-right text-muted-foreground">
-        <ChevronRightIcon className="ml-auto size-4" />
-      </TableCell>
     </TableRow>
   )
 }
@@ -335,18 +250,20 @@ function BusinessesTable({
   sort,
   dir,
   onSortChange,
+  onOpen,
   onStateChange,
 }: {
   businesses: AdminBusiness[]
   sort: SortKey
   dir: SortDir
   onSortChange: (key: SortKey) => void
+  onOpen: (slug: string) => void
   onStateChange: (id: string, next: BusinessState) => void
 }) {
   if (businesses.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-16 text-center">
-        <p className="text-sm font-medium text-foreground">No Pet Businesses match</p>
+        <p className="text-sm font-medium text-foreground">No partners match</p>
         <p className="mt-1 text-sm text-muted-foreground">
           Try a different tab or clear the search.
         </p>
@@ -388,7 +305,7 @@ function BusinessesTable({
           </TableHead>
           <TableHead>
             <SortableHeader
-              label="Pilot start"
+              label="Partner since"
               sortKey="createdAt"
               current={sort}
               dir={dir}
@@ -404,7 +321,6 @@ function BusinessesTable({
               onChange={onSortChange}
             />
           </TableHead>
-          <TableHead className="w-12 sr-only">Open</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -412,6 +328,7 @@ function BusinessesTable({
           <BusinessRow
             key={business.id}
             business={business}
+            onOpen={() => onOpen(business.slug)}
             onStateChange={(next) => onStateChange(business.id, next)}
           />
         ))}
@@ -423,22 +340,23 @@ function BusinessesTable({
 function BusinessesIndex() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [stateOverrides, setStateOverrides] = useState<Record<string, BusinessState>>({})
+  const [overrides, setOverrides] = useState<Record<string, Partial<AdminBusiness>>>({})
+  const [newBusinessOpen, setNewBusinessOpen] = useState(false)
 
   const businesses = useMemo(
-    () =>
-      adminBusinesses.map((b) =>
-        stateOverrides[b.id] ? { ...b, state: stateOverrides[b.id] } : b,
-      ),
-    [stateOverrides],
+    () => adminBusinesses.map((b) => (overrides[b.id] ? { ...b, ...overrides[b.id] } : b)),
+    [overrides],
   )
 
+  function patchBusiness(id: string, patch: Partial<AdminBusiness>) {
+    setOverrides((prev) => ({ ...prev, [id]: { ...prev[id], ...patch } }))
+  }
+
   function handleStateChange(id: string, next: BusinessState) {
-    setStateOverrides((prev) => ({ ...prev, [id]: next }))
+    patchBusiness(id, { state: next, reasonCode: undefined, reasonNote: undefined })
     const business = adminBusinesses.find((b) => b.id === id)
     if (business) {
-      const label = STATE_OPTIONS.find((s) => s.id === next)?.label ?? next
-      toast.success(`${business.name}, ${label.toLowerCase()}`)
+      toast.success(`${business.name}, ${stateLabel(next).toLowerCase()}`)
     }
   }
 
@@ -449,9 +367,10 @@ function BusinessesIndex() {
   const sort: SortKey = isSortKey(sortParam) ? sortParam : DEFAULT_SORT
   const dirParam = searchParams.get("dir")
   const dir: SortDir = dirParam === "asc" ? "asc" : DEFAULT_DIR
+  const openSlug = searchParams.get("business")
 
   const updateParams = useCallback(
-    (next: Partial<{ tab: string; q: string; sort: string; dir: string }>) => {
+    (next: Partial<{ tab: string; q: string; sort: string; dir: string; business: string }>) => {
       const params = new URLSearchParams(searchParams.toString())
       for (const [k, v] of Object.entries(next)) {
         if (v === "" || v === null || v === undefined) {
@@ -482,6 +401,14 @@ function BusinessesIndex() {
     }
   }
 
+  function handleOpen(slug: string) {
+    updateParams({ business: slug })
+  }
+
+  function handleClose() {
+    updateParams({ business: "" })
+  }
+
   const counts = useMemo(() => {
     const base = { all: businesses.length, onboarding: 0, live: 0, suspended: 0, archived: 0 }
     for (const b of businesses) base[b.state] += 1
@@ -507,21 +434,24 @@ function BusinessesIndex() {
     return sorted
   }, [businesses, tab, query, sort, dir])
 
+  const openBusiness = useMemo(
+    () => (openSlug ? (businesses.find((b) => b.slug === openSlug) ?? null) : null),
+    [openSlug, businesses],
+  )
+
   return (
     <AdminShell
       header={
         <div className="flex w-full max-w-6xl items-center justify-between gap-3">
           <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Pet Businesses</h1>
+            <h1 className="text-2xl font-medium leading-8 text-foreground">Partners</h1>
             <p className="text-sm text-muted-foreground">
-              {counts.all} pilot {counts.all === 1 ? "account" : "accounts"} on Cami
+              {counts.all} {counts.all === 1 ? "partner" : "partners"} on Cami
             </p>
           </div>
-          <Button asChild radius="full">
-            <Link href="/admin/businesses/new">
-              <PlusIcon />
-              New Pet Business
-            </Link>
+          <Button radius="full" onClick={() => setNewBusinessOpen(true)}>
+            <PlusIcon />
+            New Partner
           </Button>
         </div>
       }
@@ -549,8 +479,8 @@ function BusinessesIndex() {
             actions={
               <>
                 <SearchInput
-                  placeholder="Search by name, slug, owner"
-                  aria-label="Search Pet Businesses"
+                  placeholder="Search partners"
+                  aria-label="Search partners"
                   defaultValue={query}
                   onValueChange={handleQueryChange}
                 />
@@ -567,12 +497,27 @@ function BusinessesIndex() {
                 sort={sort}
                 dir={dir}
                 onSortChange={handleSortChange}
+                onOpen={handleOpen}
                 onStateChange={handleStateChange}
               />
             </TabsContent>
           ))}
         </Tabs>
       </div>
+
+      <BusinessDetailDialog
+        business={openBusiness}
+        open={Boolean(openBusiness)}
+        onOpenChange={(next) => {
+          if (!next) handleClose()
+        }}
+        onUpdate={(patch) => {
+          if (openBusiness) patchBusiness(openBusiness.id, patch)
+        }}
+        onSlugChange={(_oldSlug, newSlug) => updateParams({ business: newSlug })}
+      />
+
+      <NewBusinessSheet open={newBusinessOpen} onOpenChange={setNewBusinessOpen} />
     </AdminShell>
   )
 }

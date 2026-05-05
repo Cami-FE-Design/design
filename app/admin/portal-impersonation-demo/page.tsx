@@ -37,7 +37,7 @@ export default function PortalImpersonationDemoPage() {
                 <h1 className="font-heading text-base font-medium leading-6 text-foreground">
                   {BUSINESS.name} · Owner view
                 </h1>
-                <span className="text-xs text-muted-foreground">Pet Business portal</span>
+                <span className="text-xs text-muted-foreground">Partner portal</span>
               </div>
             }
           >

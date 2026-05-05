@@ -244,23 +244,59 @@ export function PlaygroundShowcase() {
         </Row>
       </Section>
 
-      <Section title="Tabs" description="Segmented content switcher.">
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview" className="pt-4 text-sm text-muted-foreground">
-            Overview content.
-          </TabsContent>
-          <TabsContent value="activity" className="pt-4 text-sm text-muted-foreground">
-            Activity content.
-          </TabsContent>
-          <TabsContent value="settings" className="pt-4 text-sm text-muted-foreground">
-            Settings content.
-          </TabsContent>
-        </Tabs>
+      <Section title="Tabs" description="Segmented content switcher with four variants.">
+        <div className="flex flex-col gap-6">
+          <Row label="default">
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+              </TabsList>
+              <TabsContent value="overview" className="pt-4 text-sm text-muted-foreground">
+                Filled segmented control. Use for top-level page tabs.
+              </TabsContent>
+            </Tabs>
+          </Row>
+          <Row label="ghost">
+            <Tabs defaultValue="all" className="w-full">
+              <TabsList variant="ghost">
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="active">Active</TabsTrigger>
+                <TabsTrigger value="archived">Archived</TabsTrigger>
+              </TabsList>
+              <TabsContent value="all" className="pt-4 text-sm text-muted-foreground">
+                Pill-shaped, transparent. Use for table toolbars (filter tabs).
+              </TabsContent>
+            </Tabs>
+          </Row>
+          <Row label="line">
+            <Tabs defaultValue="general" className="w-full">
+              <TabsList variant="line">
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="team">Team</TabsTrigger>
+                <TabsTrigger value="security">Security</TabsTrigger>
+              </TabsList>
+              <TabsContent value="general" className="pt-4 text-sm text-muted-foreground">
+                Underline floats 5px below the tab. Use when tabs sit above whitespace.
+              </TabsContent>
+            </Tabs>
+          </Row>
+          <Row label="underline">
+            <Tabs defaultValue="general" className="w-full">
+              <TabsList variant="underline">
+                <TabsTrigger value="general">General</TabsTrigger>
+                <TabsTrigger value="team">Team</TabsTrigger>
+                <TabsTrigger value="activity">Activity</TabsTrigger>
+                <TabsTrigger value="manage">Manage</TabsTrigger>
+              </TabsList>
+              <TabsContent value="general" className="pt-4 text-sm text-muted-foreground">
+                Underline sits at the tab's baseline. Use when the tab row marks a surface seam,
+                e.g. between a tinted header zone and a white content zone in a detail dialog.
+              </TabsContent>
+            </Tabs>
+          </Row>
+        </div>
       </Section>
 
       <Section title="Card">

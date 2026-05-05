@@ -172,6 +172,50 @@ Use the `Table` primitives plus the `TableToolbar` block.
 - **Header row**: lowercase + `text-sm font-normal text-muted-foreground`, no uppercase tracking. `h-9` for a tight band. Top + bottom border (`border-y`), softened to `border-border/60`.
 - **Bulk select**: when adding row checkboxes, the leftmost column is `w-10 pr-0`; the header gets a `Checkbox` that toggles the visible page's IDs, the row gets one bound to a `Set<string>` in parent state.
 
+### Tabs variants
+
+`TabsList` exposes four variants. Pick the one that matches the surface, not by personal preference.
+
+| Variant | Visual | Use when |
+| ------- | ------ | -------- |
+| `default` | Filled segmented pill, `bg-muted` panel with white-on-active triggers. | Top-level page tabs sitting alone on a page. |
+| `ghost` | Transparent list, each tab is a pill that gains `bg-muted` on active. | Filter tabs above a table (where they sit alongside search + CTAs). |
+| `line` | Tab text only; active tab gets a 2px underline floating 5px below the trigger. | Tabs above whitespace where the underline doesn't need to mark a surface boundary. |
+| `underline` | Tab text only; active tab gets a 2px underline at the tab's baseline (`bottom: 0`). Defaults to `gap-6` between triggers. | Detail dialogs and similar surfaces where the tab row sits at the seam between a tinted header zone and a white content zone — the underline becomes the seam marker. |
+
+The `underline` variant is the right choice for the `BusinessDetailDialog` pattern below. Don't reach for it elsewhere unless you have the same two-tone surface.
+
+### Detail dialogs (entity settings modal)
+
+The Notion teamspace settings is the reference. `BusinessDetailDialog` in `components/blocks/` is the implementation. Use this pattern when an entity row in a table needs a fast-edit surface that doesn't deserve a full route.
+
+- **Frame**: 630px wide, fixed `h-[640px]` capped by `max-h-[calc(100vh-100px)]`, `rounded-2xl`.
+- **Two surfaces**: header + tabs row sit on `bg-muted/40`; content scroller sits on the default white. The `underline` tab variant turns the gray→white seam into the active-tab indicator.
+- **Header padding**: `pt-9 px-9 pb-5` (34/36/20 to match Notion). Avatar `size-12`, title `text-[22px] font-semibold`, subtitle is just the entity's stable identifier (URL slug here). Joined date and other metadata move into the Activity tab, not the header.
+- **Close button**: `<Button variant="ghost" size="icon-sm" radius="full">` in the header's top-right. Always.
+- **Tab order**: General · entity-specific (Team) · Activity · Manage. Manage is always last and contains lifecycle actions.
+- **Reason banner**: when the entity is in a destructive state (suspended/archived), render a `bg-tomato-9` strip directly under the tabs. Icon is a small white circle (`size-5 rounded-full bg-white`) containing an `InfoIcon` in tomato-9. Title in white, secondary text in `text-white/80`. Action button stays on the next line, indented to align with the body text. The strip uses the same `px-9` as the rest of the modal content.
+- **Manage section**: heading `Manage Business Account` (or the entity equivalent), then rows. Each row has a title, a description below it explaining what the action does, and the action button on the right. State-aware: when suspended, the first row becomes Un-suspend; when archived, both rows collapse into Restore.
+- **URL params**: open the dialog by setting `?<entity>=<slug>` on the parent route so the surface is shareable in Slack and existing direct-page URLs can redirect to it.
+
+### Inline state-edit dropdown
+
+`StateDropdown` (in `components/blocks/`) is a ghost-button trigger that opens a list of mutually exclusive states. Trigger reads the current state's label in a state-tinted color, with a chevron. Items have a colored dot on the left and a checkmark on the current value.
+
+Use for any controlled state field that ops needs to edit at a glance (table rows, the AccessSection top row inside a detail dialog). Map the colors via `STATE_OPTIONS`, `STATE_DOT`, `STATE_TRIGGER_TEXT` exports from the data layer so the trigger and dot stay in sync.
+
+### Banners and callouts
+
+Three treatments for in-page messaging, picked by severity:
+
+- **Filled tomato strip**: the destructive-state banner (`ReasonBanner` in the modal). `bg-tomato-9` with white text, white-circle icon containing a tomato-colored InfoIcon, action button on a second line. Reserved for "this entity is in a problem state right now" surfaces.
+- **Tinted tomato card** (`bg-tomato-3 p-4 rounded-2xl`): the inline confirmation warning shown inside destructive dialogs (Archive). Use when the body of a Dialog needs to flag irreversibility before the user commits. Icon is wrapped in a `bg-sand-3` neutral chip — the destructive context comes from the surrounding tomato card, not from the icon itself.
+- **Neutral sand chip**: the icon at the top of a confirmation dialog (`bg-sand-3 text-sand-11` circle). Use for "stop and read" callouts that aren't destructive — e.g. impersonation, password reset, slug change. Keeps the dialog feeling clinical instead of alarming.
+
+### Destructive Button
+
+`Button variant="destructive"` is **solid tomato** (`bg-destructive` / `text-destructive-foreground`), not the tinted soft treatment. Use it as the primary CTA in confirmation dialogs (Archive, hard-delete) and as the destructive action in lifecycle managers. For lower-severity destructive surfaces (warning indicators, delete badges), keep `Badge variant="destructive"` which still uses the tinted style.
+
 ### Animated link
 
 The `.link` utility class in `app/globals.css` produces an underline that draws in from the left on hover and retracts toward the right on un-hover. Width follows the text, color follows `currentColor`. Apply with `className="link"` on any `<a>` or `<Link>` for secondary nav like "Back to sign in" or "Forgot your password?".

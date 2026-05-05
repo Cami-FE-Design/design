@@ -44,7 +44,7 @@ const tabs: { id: KindFilter; label: string }[] = [
   { id: "suspend", label: "Suspend" },
   { id: "archive", label: "Archive" },
   { id: "edit", label: "Edits" },
-  { id: "login", label: "Logins" },
+  { id: "login", label: "Sign-ins" },
 ]
 
 function isKindFilter(v: string | null): v is KindFilter {
@@ -131,7 +131,7 @@ function AuditTable({ events }: { events: GlobalAuditEvent[] }) {
           <TableHead className="w-44">When</TableHead>
           <TableHead className="w-56">Actor</TableHead>
           <TableHead className="w-32">Kind</TableHead>
-          <TableHead className="w-48">Pet Business</TableHead>
+          <TableHead className="w-48">Partner</TableHead>
           <TableHead>Detail</TableHead>
         </TableRow>
       </TableHeader>
@@ -224,7 +224,7 @@ function AuditLog() {
           <div className="flex flex-col">
             <h1 className="text-2xl font-medium leading-8 text-foreground">Audit log</h1>
             <p className="text-sm text-muted-foreground">
-              Every action by Cami HQ and Pet Business owners. Retained for 12 months.
+              Every action by Cami HQ and Partner owners. Retained for 12 months.
             </p>
           </div>
         </div>
@@ -275,7 +275,7 @@ function AuditLog() {
             actions={
               <>
                 <Select value={businessFilter} onValueChange={(v) => updateParams({ business: v })}>
-                  <SelectTrigger className="w-48" aria-label="Filter by Pet Business">
+                  <SelectTrigger className="w-48" aria-label="Filter by Partner">
                     <SelectValue placeholder="All businesses" />
                   </SelectTrigger>
                   <SelectContent>
@@ -288,7 +288,7 @@ function AuditLog() {
                   </SelectContent>
                 </Select>
                 <SearchInput
-                  placeholder="Search actor, action, detail"
+                  placeholder="Search log"
                   aria-label="Search audit log"
                   defaultValue={query}
                   onValueChange={(v: string) => updateParams({ q: v })}
