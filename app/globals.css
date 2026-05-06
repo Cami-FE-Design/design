@@ -423,9 +423,18 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    letter-spacing: -0.011em;
   }
   html {
     @apply font-sans;
+  }
+  /* Tighten tracking on headings — Manrope reads "wide" at display sizes
+     without it. Matches the tracking-tight utility (-0.025em). */
+  h1,
+  h2,
+  h3,
+  .font-heading {
+    letter-spacing: -0.025em;
   }
 }
 

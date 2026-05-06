@@ -138,7 +138,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=locations",
         label: "Locations, list",
-        note: "Click the location card to open the per-location detail modal with tabs (General / Hours / Billing / Manage)",
+        note: "Options dropdown on each row (Change photo / Suspend / See public booking page). Click the card body to drill into the per-location detail (inner-page nav, not a modal) with five tabs: General (Basic info, Business type) / Hours / Location (Map, Business location) / Invoicing (Details with sameAsLocation toggle, Tax defaults, Receipt sequencing, Tipping) / Manage (Suspend, Delete). Each card opens its own full-screen edit takeover.",
       },
       {
         path: "/shell-demo?settings=language",
@@ -164,7 +164,7 @@ export default function ScreensPage() {
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
       <header className="mb-12 flex items-start justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-medium tracking-tight text-foreground">Screens</h1>
+          <h1 className="text-2xl font-medium text-foreground">Screens</h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
             Every screen currently routed on this branch, grouped by flow. {TOTAL} total. Click a
             row to open the live page in a new tab.
