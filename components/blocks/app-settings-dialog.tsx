@@ -59,7 +59,6 @@ const GROUPS: SettingsGroup[] = [
         label: "Locations",
         description: "Where you operate. Each location has its own address, contact, and hours.",
         icon: MapPinIcon,
-        wip: true,
       },
       {
         id: "language",

@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  BedIcon,
   BellIcon,
   Building2Icon,
   CheckIcon,
@@ -8,10 +9,16 @@ import {
   CircleDollarSignIcon,
   FlagIcon,
   GlobeIcon,
+  HomeIcon,
+  LightbulbIcon,
   MailIcon,
   PercentIcon,
   PlusIcon,
+  ScissorsIcon,
   SettingsIcon,
+  SparklesIcon,
+  StethoscopeIcon,
+  SunIcon,
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -63,6 +70,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
 type SectionProps = {
   title: string
@@ -93,10 +101,31 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   )
 }
 
+const PICKABLE_TYPES = [
+  { id: "grooming", label: "Pet grooming", Icon: ScissorsIcon },
+  { id: "boarding", label: "Boarding", Icon: HomeIcon },
+  { id: "daycare", label: "Daycare", Icon: SunIcon },
+  { id: "veterinary", label: "Veterinary", Icon: StethoscopeIcon },
+  { id: "sitting", label: "Pet sitting", Icon: BedIcon },
+  { id: "wellness", label: "Wellness & spa", Icon: SparklesIcon },
+]
+
 export function PlaygroundShowcase() {
   const [checked, setChecked] = useState<boolean | "indeterminate">(true)
   const [switchOn, setSwitchOn] = useState(true)
   const [radio, setRadio] = useState("option-2")
+  const [pickedTypes, setPickedTypes] = useState<Set<string>>(
+    () => new Set(["grooming", "wellness"]),
+  )
+
+  const togglePick = (id: string) => {
+    setPickedTypes((curr) => {
+      const next = new Set(curr)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -447,6 +476,62 @@ export function PlaygroundShowcase() {
               onAdd={() => toast("Open editor focused on Instagram")}
             />
             <SettingsRow icon={GlobeIcon} label="Website" value="www.shampooch.ae" />
+          </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="Note callout"
+        description="Notion-style note pill. Lightbulb on a soft sand background. Used inside edit dialogs to flag side-effects ('Once saved...')."
+      >
+        <Row label="Default">
+          <div className="flex w-full max-w-xl items-start gap-3 rounded-2xl bg-sand-3 px-4 py-3">
+            <LightbulbIcon className="mt-0.5 size-4 shrink-0 fill-sand-9 text-sand-11" />
+            <p className="text-sm leading-5 text-foreground">
+              Once saved, changes will automatically apply to all products and services which are
+              already assigned to default taxes
+            </p>
+          </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="Pickable card grid"
+        description="Multi-select cards with icon, label, and a check indicator. Used for picking business types in the Edit business type dialog."
+      >
+        <Row label="Default">
+          <div className="grid w-full max-w-xl grid-cols-2 gap-3 sm:grid-cols-3">
+            {PICKABLE_TYPES.map(({ id, label, Icon }) => {
+              const isSelected = pickedTypes.has(id)
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => togglePick(id)}
+                  aria-pressed={isSelected}
+                  className={cn(
+                    "relative flex flex-col items-start gap-3 rounded-xl border bg-background p-4 text-left transition-colors",
+                    isSelected
+                      ? "border-transparent bg-cami-violet-3 outline-2 outline-cami-violet-8 -outline-offset-2"
+                      : "border-border/60 hover:bg-muted/30",
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "absolute top-2 right-2 inline-flex size-5 items-center justify-center rounded-full",
+                      isSelected
+                        ? "bg-cami-violet-8 text-white"
+                        : "border border-border text-transparent",
+                    )}
+                  >
+                    <CheckIcon className="size-3" />
+                  </span>
+                  <Icon className="size-6 text-foreground" />
+                  <span className="text-sm font-medium text-foreground">{label}</span>
+                </button>
+              )
+            })}
           </div>
         </Row>
       </Section>
