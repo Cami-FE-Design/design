@@ -121,6 +121,33 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Pet Business, settings (PRO-95)",
+    description:
+      "E2-2 Pet Business profile lives inside the AppShell settings dialog. Trigger via Settings in the sidebar, or jump straight to a category with `?settings=<id>`.",
+    screens: [
+      {
+        path: "/shell-demo?settings=profile",
+        label: "Settings dialog, My profile",
+        note: "Account category, placeholder until Auth0 wires up",
+      },
+      {
+        path: "/shell-demo?settings=business-details",
+        label: "Business details, summary",
+        note: "Combined Business info + External links card with one Edit button. Click Edit for the full-screen takeover.",
+      },
+      {
+        path: "/shell-demo?settings=locations",
+        label: "Locations, list",
+        note: "Click the location card to open the per-location detail modal with tabs (General / Hours / Billing / Manage)",
+      },
+      {
+        path: "/shell-demo?settings=language",
+        label: "Language & region",
+        note: "Workspace category, placeholder until i18n pass",
+      },
+    ],
+  },
+  {
     title: "Demos & playground",
     description: "Internal references for shell layout and component states.",
     screens: [
