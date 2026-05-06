@@ -1017,7 +1017,7 @@ function ProfileSheet({
   onSave: (values: ProfileValues) => void
 }) {
   const form = useForm<ProfileValues>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(profileSchema as never),
     defaultValues: {
       name: business.name,
       street: business.street,
@@ -1206,7 +1206,7 @@ function ChangeSlugDialog({
   onSave: (newSlug: string) => void
 }) {
   const form = useForm<SlugValues>({
-    resolver: zodResolver(slugSchema),
+    resolver: zodResolver(slugSchema as never),
     defaultValues: { slug: business.slug, acknowledged: false as unknown as true },
   })
   const slug = form.watch("slug")
@@ -1339,7 +1339,7 @@ function SuspendDialog({
   onConfirm: (reason: ReasonCodeId, note?: string) => void
 }) {
   const form = useForm<ReasonValues>({
-    resolver: zodResolver(reasonSchema),
+    resolver: zodResolver(reasonSchema as never),
     defaultValues: { note: "" },
   })
 
@@ -1434,7 +1434,7 @@ function ArchiveDialog({
   onConfirm: (reason: ReasonCodeId, note?: string) => void
 }) {
   const form = useForm<ReasonValues>({
-    resolver: zodResolver(reasonSchema),
+    resolver: zodResolver(reasonSchema as never),
     defaultValues: { note: "" },
   })
 

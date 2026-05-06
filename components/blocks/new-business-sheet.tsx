@@ -58,7 +58,7 @@ export function NewBusinessSheet({ open, onOpenChange, onCreated }: NewBusinessS
   const [slugTouched, setSlugTouched] = useState(false)
 
   const form = useForm<BusinessValues>({
-    resolver: zodResolver(businessSchema),
+    resolver: zodResolver(businessSchema as never),
     defaultValues: {
       name: "",
       slug: "",

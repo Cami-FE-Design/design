@@ -2,15 +2,22 @@
 
 import {
   BellIcon,
+  Building2Icon,
   CheckIcon,
   ChevronDownIcon,
+  CircleDollarSignIcon,
+  FlagIcon,
+  GlobeIcon,
   MailIcon,
+  PercentIcon,
   PlusIcon,
   SettingsIcon,
 } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { SettingsRow } from "@/components/blocks/settings-row"
+import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -401,6 +408,47 @@ export function PlaygroundShowcase() {
           <Separator className="my-4" />
           <p className="text-sm text-foreground">Below</p>
         </div>
+      </Section>
+
+      <Section
+        title="Settings row"
+        description="Icon + label/value stack used inside settings summary cards. When the value is null the row collapses into a subtle 'Add {label}' pill."
+      >
+        <Row label="Filled">
+          <div className="flex w-full max-w-md flex-col gap-5">
+            <SettingsRow icon={Building2Icon} label="Business name" value="Shampooch JVC" />
+            <SettingsRow icon={FlagIcon} label="Country" value="United Arab Emirates" />
+            <SettingsRow icon={CircleDollarSignIcon} label="Currency" value="AED" />
+            <SettingsRow
+              icon={PercentIcon}
+              label="Tax calculation"
+              value="Retail prices include tax"
+            />
+          </div>
+        </Row>
+        <Row label="Empty (Add)">
+          <div className="flex w-full max-w-md flex-col gap-5">
+            <SettingsRow
+              icon={FacebookGlyphIcon}
+              label="Facebook"
+              value={null}
+              onAdd={() => toast("Open editor focused on Facebook")}
+            />
+            <SettingsRow
+              icon={XGlyphIcon}
+              label="X (Twitter)"
+              value={null}
+              onAdd={() => toast("Open editor focused on X")}
+            />
+            <SettingsRow
+              icon={InstagramGlyphIcon}
+              label="Instagram"
+              value={null}
+              onAdd={() => toast("Open editor focused on Instagram")}
+            />
+            <SettingsRow icon={GlobeIcon} label="Website" value="www.shampooch.ae" />
+          </div>
+        </Row>
       </Section>
     </TooltipProvider>
   )

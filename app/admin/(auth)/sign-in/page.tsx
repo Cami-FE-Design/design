@@ -47,14 +47,12 @@ function HqSignInContent() {
   }, [params])
 
   const emailForm = useForm<EmailValues>({
-    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
-    resolver: zodResolver(emailSchema),
+    resolver: zodResolver(emailSchema as never),
     defaultValues: { email: initialEmail },
   })
 
   const passwordForm = useForm<PasswordValues>({
-    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
-    resolver: zodResolver(passwordSchema),
+    resolver: zodResolver(passwordSchema as never),
     defaultValues: { password: "" },
   })
 

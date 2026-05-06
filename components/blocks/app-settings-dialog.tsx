@@ -59,6 +59,7 @@ const GROUPS: SettingsGroup[] = [
         label: "Locations",
         description: "Where you operate. Each location has its own address, contact, and hours.",
         icon: MapPinIcon,
+        wip: true,
       },
       {
         id: "language",
@@ -181,15 +182,6 @@ export function AppSettingsDialog({
           </DialogClose>
 
           <div className="flex-1 overflow-y-auto px-6 py-9 max-lg:pt-14 lg:px-10">
-            <header className="mb-8 flex flex-col gap-2">
-              <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-                {active.label}
-              </h2>
-              {active.description ? (
-                <p className="text-sm leading-5 text-muted-foreground">{active.description}</p>
-              ) : null}
-            </header>
-
             {active.id === "profile" ? <ProfilePanel /> : null}
             {active.id === "business-details" ? <BusinessProfilePanel /> : null}
             {active.id === "locations" ? <LocationsPanel /> : null}
@@ -203,9 +195,19 @@ export function AppSettingsDialog({
 
 function ProfilePanel() {
   return (
-    <p className="text-sm leading-5 text-muted-foreground">
-      Profile editing for the Pet Business owner isn't built yet. Coming with E2-2 follow-on.
-    </p>
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+          My profile
+        </h2>
+        <p className="text-sm leading-5 text-muted-foreground">
+          Your Cami identity. Profile editing isn't in v0.
+        </p>
+      </header>
+      <p className="text-sm leading-5 text-muted-foreground">
+        Profile editing for the Pet Business owner isn't built yet. Coming with E2-2 follow-on.
+      </p>
+    </div>
   )
 }
 
@@ -215,9 +217,19 @@ function BusinessProfilePanel() {
 
 function LanguagePanel() {
   return (
-    <p className="text-sm leading-5 text-muted-foreground">
-      Locale switcher isn't wired for the Pet Business portal yet. Coming with the i18n pass.
-    </p>
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+          Language &amp; region
+        </h2>
+        <p className="text-sm leading-5 text-muted-foreground">
+          Switching locale flips the entire portal direction.
+        </p>
+      </header>
+      <p className="text-sm leading-5 text-muted-foreground">
+        Locale switcher isn't wired for the Pet Business portal yet. Coming with the i18n pass.
+      </p>
+    </div>
   )
 }
 
