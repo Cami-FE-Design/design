@@ -18,7 +18,7 @@ const buttonVariants = cva(
           "hover:bg-black-a2 hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-white-a2",
         destructive:
           "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+        link: "link text-primary",
       },
       size: {
         default:
@@ -38,6 +38,12 @@ const buttonVariants = cva(
         full: "rounded-full",
       },
     },
+    compoundVariants: [
+      {
+        variant: "link",
+        className: "h-auto p-0 leading-none rounded-none",
+      },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",

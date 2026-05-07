@@ -444,6 +444,8 @@
      Enters from the left on hover, retracts to the right on un-hover. */
   .link {
     position: relative;
+    display: inline-block;
+    line-height: 1;
   }
   .link::after {
     content: "";
