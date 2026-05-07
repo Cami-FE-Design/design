@@ -170,6 +170,28 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Pet Business, first-time setup wizard (PRO-97)",
+    description:
+      "E2-4 Owner first-time setup. 5-step flow with a separate Go-live page. Welcome step removed — `/setup` lands the Owner directly on About. Services, Staff, and Preview steps are deferred until those features ship.",
+    screens: [
+      { path: "/setup", label: "Wizard entry (redirects to About)" },
+      { path: "/setup/about", label: "Step 1 · About your business" },
+      { path: "/setup/type", label: "Step 2 · Business type" },
+      {
+        path: "/setup/location",
+        label: "Step 3 · Location",
+        note: "Map slot is a placeholder; engineers wire the picker when the map dependency lands.",
+      },
+      { path: "/setup/invoicing", label: "Step 4 · Invoicing" },
+      { path: "/setup/hours", label: "Step 5 · Business hours" },
+      {
+        path: "/setup/done",
+        label: "Go-live · Your business is set up",
+        note: "Minimal terminal beat (violet check + heading). Booking URL handoff + calendar CTA come back in once the calendar home + public page hooks are in.",
+      },
+    ],
+  },
+  {
     title: "Demos & playground",
     description: "Internal references for shell layout and component states.",
     screens: [
