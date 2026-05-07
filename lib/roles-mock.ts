@@ -1,159 +1,122 @@
-export type RolePermission = {
-  code: string
-  module: string
-  action: string
-  description: string
-}
+/**
+ * HQ role catalog (PRO-138, mock seed).
+ *
+ * The store in `lib/admin-roles-store.tsx` clones from these seeds and exposes
+ * mutation methods (add, edit, delete, rename, duplicate). Anything that just
+ * needs the seeded read-only catalog (e.g. server components, the auth provider)
+ * can keep importing `ROLES` directly.
+ */
+
+import { ALL_HQ_PERMISSION_CODES } from "@/lib/hq-permissions-catalog"
 
 export type Role = {
+  /** Stable id, used in URLs and store mutations. */
+  id: string
+  /** Legacy short code for the auth provider's roleCodes lookup. Custom roles get a slug. */
   roleCode: string
   name: string
   description: string
+  /**
+   * System roles are seeded by engineering and cannot be deleted or renamed.
+   * Their permissions can still be edited (Fresha pattern); back-end will enforce
+   * minimums on the last HQ Admin role.
+   */
   isSystemRole: boolean
-  memberCount: number
-  permissions: RolePermission[]
+  /** Set of permission codes granted by this role. */
+  permissionCodes: string[]
 }
 
-const merchants: RolePermission[] = [
-  {
-    code: "merchants.view",
-    module: "Merchants",
-    action: "view",
-    description: "View partners",
-  },
-  {
-    code: "merchants.edit",
-    module: "Merchants",
-    action: "edit",
-    description: "Edit partner details",
-  },
-  {
-    code: "merchants.impersonate",
-    module: "Merchants",
-    action: "impersonate",
-    description: "Sign in as a Partner Owner",
-  },
+const adminPermissions: string[] = ALL_HQ_PERMISSION_CODES
+
+const supportPermissions: string[] = [
+  "merchants.view",
+  "merchants.impersonate",
+  "support.read",
+  "support.reply",
+  "audit.read",
+  "hq_users.read",
+  "settings.read",
 ]
 
-const billing: RolePermission[] = [
-  { code: "billing.read", module: "Billing", action: "read", description: "View billing data" },
+const financePermissions: string[] = [
+  "merchants.view",
+  "billing.read",
+  "billing.subscriptions.edit",
+  "billing.refunds.issue",
+  "audit.read",
+  "analytics.read",
+  "analytics.export",
+  "hq_users.read",
+  "settings.read",
+]
+
+const managementPermissions: string[] = [
+  "merchants.view",
+  "merchants.edit",
+  "billing.read",
+  "support.read",
+  "audit.read",
+  "audit.export",
+  "analytics.read",
+  "analytics.export",
+  "hq_users.read",
+  "hq_users.invite",
+  "hq_users.disable",
+  "hq_users.role.change",
+  "roles.read",
+  "settings.read",
+  "settings.edit",
+]
+
+export const SEED_ROLES: Role[] = [
   {
-    code: "billing.edit",
-    module: "Billing",
-    action: "edit",
-    description: "Adjust subscriptions and credits",
-  },
-]
-
-const support: RolePermission[] = [
-  { code: "support.read", module: "Support", action: "read", description: "View support tickets" },
-]
-
-const audit: RolePermission[] = [
-  { code: "audit.read", module: "Audit", action: "read", description: "View HQ audit log" },
-]
-
-const analytics: RolePermission[] = [
-  { code: "analytics.read", module: "Analytics", action: "read", description: "View HQ analytics" },
-]
-
-const hqUsers: RolePermission[] = [
-  { code: "hq_users.read", module: "HQ Users", action: "read", description: "View HQ team" },
-  {
-    code: "hq_users.edit",
-    module: "HQ Users",
-    action: "edit",
-    description: "Invite and remove HQ team",
-  },
-]
-
-const roles: RolePermission[] = [
-  {
-    code: "roles.read",
-    module: "Roles",
-    action: "read",
-    description: "View roles and permissions",
-  },
-]
-
-const dashboard: RolePermission[] = [
-  {
-    code: "dashboard.view",
-    module: "Dashboard",
-    action: "view",
-    description: "Access HQ dashboard",
-  },
-]
-
-export const ROLES: Role[] = [
-  {
+    id: "role_hq_admin",
     roleCode: "hq_admin",
     name: "HQ Admin",
     description: "Full access across the Cami HQ console.",
     isSystemRole: true,
-    memberCount: 12,
-    permissions: [
-      ...dashboard,
-      ...merchants,
-      ...billing,
-      ...support,
-      ...audit,
-      ...analytics,
-      ...hqUsers,
-      ...roles,
-    ],
+    permissionCodes: adminPermissions,
   },
   {
+    id: "role_hq_support",
     roleCode: "hq_support",
     name: "HQ Support",
-    description: "Read-only access for the support team plus impersonation.",
-    isSystemRole: true,
-    memberCount: 4,
-    permissions: [
-      ...dashboard,
-      {
-        code: "merchants.view",
-        module: "Merchants",
-        action: "view",
-        description: "View partners",
-      },
-      {
-        code: "merchants.impersonate",
-        module: "Merchants",
-        action: "impersonate",
-        description: "Sign in as a Partner Owner",
-      },
-      ...support,
-      ...audit,
-    ],
+    description: "Read-only access plus impersonation for the support team.",
+    isSystemRole: false,
+    permissionCodes: supportPermissions,
   },
   {
-    roleCode: "hq_billing",
-    name: "HQ Billing",
-    description: "Billing operators. Sees merchants and full billing.",
-    isSystemRole: true,
-    memberCount: 2,
-    permissions: [
-      ...dashboard,
-      {
-        code: "merchants.view",
-        module: "Merchants",
-        action: "view",
-        description: "View partners",
-      },
-      ...billing,
-      ...audit,
-    ],
+    id: "role_hq_finance",
+    roleCode: "hq_finance",
+    name: "HQ Finance",
+    description:
+      "Billing operators. Can manage subscriptions, refunds, and view financial reports.",
+    isSystemRole: false,
+    permissionCodes: financePermissions,
+  },
+  {
+    id: "role_hq_management",
+    roleCode: "hq_management",
+    name: "HQ Management",
+    description: "Senior leadership. Full reports access and HQ team management.",
+    isSystemRole: false,
+    permissionCodes: managementPermissions,
   },
 ]
 
+/**
+ * Read-only seed view kept for compat with existing imports (auth-mock,
+ * other panes). Live mutations go through the AdminRolesProvider store.
+ */
+export const ROLES: Role[] = SEED_ROLES
+
 export const PERMISSION_MODULES = [
-  "Dashboard",
-  "Merchants",
+  "Partners",
   "Billing",
   "Support",
   "Audit",
   "Analytics",
   "HQ Users",
   "Roles",
+  "Settings",
 ]

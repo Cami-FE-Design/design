@@ -314,16 +314,11 @@ function SidebarSettingsItem({ item, expanded }: SidebarSettingsItemProps) {
       </span>
     </Button>
   )
+  if (expanded) return button
   return (
-    <>
-      {expanded ? (
-        button
-      ) : (
-        <Tooltip>
-          <TooltipTrigger asChild>{button}</TooltipTrigger>
-          <TooltipContent side="right">{item.label}</TooltipContent>
-        </Tooltip>
-      )}
-    </>
+    <Tooltip>
+      <TooltipTrigger asChild>{button}</TooltipTrigger>
+      <TooltipContent side="right">{item.label}</TooltipContent>
+    </Tooltip>
   )
 }

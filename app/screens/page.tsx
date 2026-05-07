@@ -148,6 +148,28 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Cami HQ, roles & permissions (PRO-138)",
+    description:
+      "E1-6.2 HQ-side role catalog. Lives inside the Settings dialog at ?settings=roles, no standalone routes. Edit and Add open as full-screen dialogs on top.",
+    screens: [
+      {
+        path: "/admin/businesses?settings=roles",
+        label: "Roles & Permissions list",
+        note: "Add a new role (WIP) at the bottom of the list. HQ Admin is system-protected.",
+      },
+      {
+        path: "/admin/businesses?settings=roles",
+        label: "Edit role takeover",
+        note: "Open list, click Options → Edit permissions on any role to launch the takeover.",
+      },
+      {
+        path: "/admin/businesses?settings=roles",
+        label: "Rename role dialog",
+        note: "Open list, click Options → Rename on a non-system role.",
+      },
+    ],
+  },
+  {
     title: "Demos & playground",
     description: "Internal references for shell layout and component states.",
     screens: [

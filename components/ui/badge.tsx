@@ -11,6 +11,11 @@ const badgeVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
         secondary: "bg-sand-5 text-secondary-foreground [a]:hover:bg-sand-6",
+        // Soft brand-accent treatment — for "Active" / brand-tinted status indicators.
+        // Uses the cami-violet scale rather than --primary (which is dark sand).
+        "primary-soft": "bg-cami-violet-3 text-cami-violet-11",
+        // Subtle muted treatment — for "Off" / inactive status indicators.
+        muted: "bg-muted text-muted-foreground",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
         outline: "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",

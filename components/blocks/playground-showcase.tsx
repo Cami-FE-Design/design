@@ -50,6 +50,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { SearchInput } from "@/components/ui/search-input"
+import { SegmentedToggle } from "@/components/ui/segmented-toggle"
 import {
   Select,
   SelectContent,
@@ -117,6 +119,8 @@ export function PlaygroundShowcase() {
   const [pickedTypes, setPickedTypes] = useState<Set<string>>(
     () => new Set(["grooming", "wellness"]),
   )
+  const [segmentedNeutral, setSegmentedNeutral] = useState<"web" | "ios">("web")
+  const [segmentedPrimary, setSegmentedPrimary] = useState<"on" | "off">("on")
 
   const togglePick = (id: string) => {
     setPickedTypes((curr) => {
@@ -186,6 +190,15 @@ export function PlaygroundShowcase() {
           <Badge variant="secondary">3</Badge>
           <Badge variant="outline">Beta</Badge>
           <Badge variant="destructive">Error</Badge>
+          <Badge variant="primary-soft">Active</Badge>
+          <Badge variant="muted">Off</Badge>
+        </Row>
+        <Row label="Size">
+          <Badge size="sm">Small</Badge>
+          <Badge size="default">Default</Badge>
+          <Badge size="default" variant="primary-soft">
+            Default · soft
+          </Badge>
         </Row>
       </Section>
 
@@ -229,6 +242,20 @@ export function PlaygroundShowcase() {
             <Label htmlFor="pg-cb-3">Unchecked, disabled</Label>
           </div>
         </Row>
+        <Row label="Checkbox · lg">
+          <div className="flex items-center gap-3">
+            <Checkbox id="pg-cb-lg-1" size="lg" defaultChecked />
+            <Label htmlFor="pg-cb-lg-1" className="text-base font-medium">
+              Can view billing data
+            </Label>
+          </div>
+          <div className="flex items-center gap-3">
+            <Checkbox id="pg-cb-lg-2" size="lg" />
+            <Label htmlFor="pg-cb-lg-2" className="text-base font-medium">
+              Can issue refunds
+            </Label>
+          </div>
+        </Row>
         <Row label="Radio">
           <RadioGroup value={radio} onValueChange={setRadio} className="flex gap-4">
             {["option-1", "option-2", "option-3"].map((id) => (
@@ -252,6 +279,69 @@ export function PlaygroundShowcase() {
             <Switch id="pg-sw-3" disabled />
             <Label htmlFor="pg-sw-3">Off, disabled</Label>
           </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="Search input"
+        description="Search field with clearable value. Three sizes for different surfaces."
+      >
+        <Row label="Default">
+          <SearchInput placeholder="Search…" aria-label="Search" />
+        </Row>
+        <Row label="Large">
+          <div className="w-full max-w-md">
+            <SearchInput size="lg" placeholder="Search settings…" aria-label="Search settings" />
+          </div>
+        </Row>
+        <Row label="Hero (xl)">
+          <div className="w-full max-w-2xl">
+            <SearchInput
+              size="xl"
+              placeholder="Search permissions"
+              aria-label="Search permissions"
+            />
+          </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="Segmented toggle"
+        description="Pill toggle with sliding active capsule. Neutral default + primary tone (cami-violet pill on dark track) for switch-style on/off."
+      >
+        <Row label="Neutral">
+          <SegmentedToggle
+            value={segmentedNeutral}
+            onValueChange={setSegmentedNeutral}
+            options={[
+              { value: "ios", label: "iOS" },
+              { value: "web", label: "Web" },
+            ]}
+            ariaLabel="Platform"
+          />
+        </Row>
+        <Row label="Primary on/off">
+          <SegmentedToggle
+            value={segmentedPrimary}
+            onValueChange={setSegmentedPrimary}
+            options={[
+              { value: "off", label: "Off" },
+              { value: "on", label: "On", activeTone: "primary" },
+            ]}
+            ariaLabel="Permission area state"
+          />
+        </Row>
+        <Row label="Disabled">
+          <SegmentedToggle
+            value="off"
+            onValueChange={() => {}}
+            disabled
+            options={[
+              { value: "off", label: "Off" },
+              { value: "on", label: "On", activeTone: "primary" },
+            ]}
+            ariaLabel="Disabled toggle"
+          />
         </Row>
       </Section>
 

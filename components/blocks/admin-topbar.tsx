@@ -17,7 +17,8 @@ type AdminTopbarProps = React.ComponentProps<"div"> & {
 const ROLE_LABELS: Record<string, string> = {
   hq_admin: "HQ Admin",
   hq_support: "HQ Support",
-  hq_billing: "HQ Billing",
+  hq_finance: "HQ Finance",
+  hq_management: "HQ Management",
 }
 
 function initialOf(name?: string) {

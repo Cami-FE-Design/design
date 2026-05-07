@@ -11,7 +11,7 @@ import {
 import { Dialog as DialogPrimitive } from "radix-ui"
 import type * as React from "react"
 import { useEffect, useState } from "react"
-import { RolePermissionsTable } from "@/components/blocks/role-permissions-table"
+import { PermissionRolesPane } from "@/components/blocks/permission-roles-pane"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -217,7 +217,7 @@ export function AdminSettingsDialog({
 }
 
 function RolesPanel() {
-  return <RolePermissionsTable />
+  return <PermissionRolesPane />
 }
 
 type SettingRowProps = {
