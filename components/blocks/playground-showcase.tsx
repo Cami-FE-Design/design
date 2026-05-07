@@ -23,6 +23,7 @@ import {
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
 import { Badge } from "@/components/ui/badge"
@@ -622,6 +623,52 @@ export function PlaygroundShowcase() {
                 </button>
               )
             })}
+          </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="Impersonation banner"
+        description="Bottom-anchored pill on the Partner portal during a Cami HQ impersonation session. Yellow active state, tomato expiring/expired states, plus a collapsed toggle that doubles as a re-open affordance."
+      >
+        <Row label="Active">
+          <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
+            <ImpersonationBanner
+              ownerName="Maz Khan"
+              businessName="Shampooch JVC"
+              onExit={() => toast.success("Impersonation stopped")}
+            />
+          </div>
+        </Row>
+        <Row label="Expiring (5 min)">
+          <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
+            <ImpersonationBanner
+              ownerName="Maz Khan"
+              businessName="Shampooch JVC"
+              durationSeconds={4 * 60}
+              expiringThresholdSeconds={5 * 60}
+              onExit={() => toast.success("Impersonation stopped")}
+            />
+          </div>
+        </Row>
+        <Row label="Expired (terminal)">
+          <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
+            <ImpersonationBanner
+              ownerName="Maz Khan"
+              businessName="Shampooch JVC"
+              durationSeconds={0}
+              onExit={() => toast.success("Window closed")}
+            />
+          </div>
+        </Row>
+        <Row label="Collapsed">
+          <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
+            <ImpersonationBanner
+              ownerName="Maz Khan"
+              businessName="Shampooch JVC"
+              defaultCollapsed
+              onExit={() => toast.success("Impersonation stopped")}
+            />
           </div>
         </Row>
       </Section>

@@ -1,36 +1,41 @@
 "use client"
 
-import { LogOutIcon, TimerIcon, UserCogIcon } from "lucide-react"
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/lib/auth-mock"
+import { Maximize2Icon, Minimize2Icon, TriangleAlertIcon } from "lucide-react"
+import { useContext, useEffect, useState } from "react"
+import { AuthContext } from "@/lib/auth-mock"
 import { cn } from "@/lib/utils"
 
 type ImpersonationBannerProps = {
   /** The business owner being impersonated. */
   ownerName: string
+  /** Optional partner name shown after the owner: "as Maz Khan within Shampooch JVC". */
+  businessName?: string
   /** Total length of the impersonation session in seconds. Default 30 min. */
   durationSeconds?: number
-  /** Called when "Exit impersonation" is clicked. Default closes the window. */
+  /** Threshold (in seconds) below which the banner enters its expiring-soon state. */
+  expiringThresholdSeconds?: number
+  /** Called when "Stop" is clicked. Default closes the window. */
   onExit?: () => void
+  /** Render the banner in its collapsed state. Useful for showcases. */
+  defaultCollapsed?: boolean
   className?: string
-}
-
-function formatRemaining(seconds: number) {
-  const m = Math.max(0, Math.floor(seconds / 60))
-  const s = Math.max(0, seconds % 60)
-  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`
 }
 
 export function ImpersonationBanner({
   ownerName,
+  businessName,
   durationSeconds = 30 * 60,
+  expiringThresholdSeconds = 5 * 60,
   onExit,
+  defaultCollapsed = false,
   className,
 }: ImpersonationBannerProps) {
-  const auth = useAuth()
-  const impersonator = auth.impersonatedBy
+  const auth = useContext(AuthContext)
   const [remaining, setRemaining] = useState(durationSeconds)
+  const [collapsed, setCollapsed] = useState(defaultCollapsed)
+  const expiring = remaining > 0 && remaining <= expiringThresholdSeconds
+  const expired = remaining <= 0
+  const alarm = expiring || expired
 
   useEffect(() => {
     if (remaining <= 0) return
@@ -43,53 +48,92 @@ export function ImpersonationBanner({
       onExit()
       return
     }
-    auth.setImpersonating(false)
+    auth?.setImpersonating(false)
     window.close()
+  }
+
+  const surface = alarm ? "bg-tomato-9 text-white" : "bg-cami-yellow-9 text-cami-yellow-12"
+  const accent = alarm
+    ? "bg-white text-tomato-11 hover:bg-white/90"
+    : "bg-cami-yellow-12 text-cami-yellow-3 hover:bg-cami-yellow-12/90"
+
+  if (collapsed) {
+    return (
+      <button
+        type="button"
+        aria-label="Expand impersonation banner"
+        onClick={() => setCollapsed(false)}
+        data-slot="impersonation-banner-collapsed"
+        data-state={expired ? "expired" : expiring ? "expiring" : "active"}
+        className={cn("flex rounded-t-md p-1.5 transition-colors", surface, className)}
+      >
+        <span
+          className={cn(
+            "flex size-6 items-center justify-center rounded-md transition-colors",
+            accent,
+          )}
+        >
+          {alarm ? (
+            <TriangleAlertIcon className="size-4" />
+          ) : (
+            <Maximize2Icon className="size-3.5" />
+          )}
+        </span>
+      </button>
+    )
   }
 
   return (
     <div
       role="alert"
       data-slot="impersonation-banner"
+      data-state={expired ? "expired" : expiring ? "expiring" : "active"}
       className={cn(
-        "flex w-full items-center justify-between gap-4 bg-cami-yellow-9 px-4 py-2 text-cami-yellow-12",
+        "flex max-w-full flex-col gap-1.5 rounded-t-md px-3 py-1.5 text-sm transition-colors",
+        "sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2",
+        surface,
         className,
       )}
     >
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-cami-yellow-12 text-cami-yellow-3">
-          <UserCogIcon className="size-4" />
-        </div>
-        <div className="flex min-w-0 flex-col leading-tight">
-          <span className="truncate text-sm font-semibold">
-            You&apos;re signed in as {ownerName}
-          </span>
-          {impersonator ? (
-            <span className="truncate text-xs font-normal opacity-80">
-              Impersonated by {impersonator.name} · {impersonator.email}
-            </span>
-          ) : null}
-        </div>
-      </div>
+      <span className="flex min-w-0 items-center gap-2 sm:flex-1">
+        {alarm ? <TriangleAlertIcon className="size-3.5 shrink-0" /> : null}
+        <span className="min-w-0">
+          {expired ? (
+            <>Session expired, close this window</>
+          ) : (
+            <>
+              You are impersonating <strong className="font-semibold">{ownerName}</strong>
+              {businessName ? (
+                <>
+                  {" within "}
+                  <strong className="font-semibold">{businessName}</strong>
+                </>
+              ) : null}
+            </>
+          )}
+        </span>
+      </span>
 
-      <div className="flex shrink-0 items-center gap-3">
-        <div className="flex items-center gap-1.5 rounded-full bg-cami-yellow-12/15 px-2.5 py-1 text-xs font-medium tabular-nums">
-          <TimerIcon className="size-3.5" aria-hidden />
-          <span role="timer" aria-label="Time remaining">
-            {formatRemaining(remaining)}
-          </span>
-        </div>
-        <Button
-          variant="default"
-          size="sm"
-          className="bg-cami-yellow-12 text-cami-yellow-3 hover:bg-cami-yellow-12/90"
+      <span className="flex shrink-0 items-center gap-1.5 self-end sm:self-auto">
+        <button
+          type="button"
           onClick={handleExit}
-          data-icon="inline-start"
+          className={cn("rounded-md px-2.5 py-1 text-xs font-medium transition-colors", accent)}
         >
-          <LogOutIcon />
-          Exit impersonation
-        </Button>
-      </div>
+          {expired ? "Close" : "Stop"}
+        </button>
+        <button
+          type="button"
+          aria-label="Collapse impersonation banner"
+          onClick={() => setCollapsed(true)}
+          className={cn(
+            "flex size-6 items-center justify-center rounded-md transition-colors",
+            accent,
+          )}
+        >
+          <Minimize2Icon className="size-3.5" />
+        </button>
+      </span>
     </div>
   )
 }

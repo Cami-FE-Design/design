@@ -121,6 +121,28 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Cami HQ, Impersonation (PRO-155)",
+    description:
+      "E6-2.1 single pane of glass for ops impersonation: standalone events log, scoped session banner, PII reveal flow on the Partner portal.",
+    screens: [
+      {
+        path: "/admin/impersonation",
+        label: "Impersonation log",
+        note: "Filterable table with detail sheet, CSV export, and per-Partner owner-summary clipboard copy. Complements the audit-log filter at /admin/audit?kind=impersonation.",
+      },
+      {
+        path: "/admin/portal-impersonation-demo",
+        label: "Partner portal under impersonation",
+        note: "4px yellow viewport frame, bottom-anchored banner pill, mock invoice with reason-gated PII reveal. Click the minimize chip to collapse the banner.",
+      },
+      {
+        path: "/playground",
+        label: "Banner states (playground)",
+        note: "Active, expiring (5 min), expired terminal, and collapsed states side-by-side near the bottom of the playground.",
+      },
+    ],
+  },
+  {
     title: "Pet Business, settings (PRO-95)",
     description:
       "E2-2 Pet Business profile lives inside the AppShell settings dialog. Trigger via Settings in the sidebar, or jump straight to a category with `?settings=<id>`.",
@@ -172,7 +194,7 @@ const SECTIONS: Section[] = [
   {
     title: "Pet Business, first-time setup wizard (PRO-97)",
     description:
-      "E2-4 Owner first-time setup. 5-step flow with a separate Go-live page. Welcome step removed — `/setup` lands the Owner directly on About. Services, Staff, and Preview steps are deferred until those features ship.",
+      "E2-4 Owner first-time setup. 5-step flow with a separate Go-live page. Welcome step removed, `/setup` lands the Owner directly on About. Services, Staff, and Preview steps are deferred until those features ship.",
     screens: [
       { path: "/setup", label: "Wizard entry (redirects to About)" },
       { path: "/setup/about", label: "Step 1 · About your business" },

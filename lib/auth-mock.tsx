@@ -61,7 +61,7 @@ const defaultUser: AuthUser = {
   email: "michelle@cami.app",
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null)
+export const AuthContext = createContext<AuthContextValue | null>(null)
 
 type AuthProviderProps = {
   children: React.ReactNode

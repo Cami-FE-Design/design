@@ -7,6 +7,7 @@ import {
   type LucideIcon,
   ScrollTextIcon,
   SettingsIcon,
+  UserCogIcon,
   UsersIcon,
 } from "lucide-react"
 import type { PermissionKey } from "@/lib/auth-mock"
@@ -32,6 +33,12 @@ export const adminTopMenu: AdminMenuItem[] = [
   },
   { icon: CreditCardIcon, label: "Billing", href: "/admin/billing", permission: "billing.read" },
   { icon: HeadsetIcon, label: "Support", href: "/admin/support", permission: "support.read" },
+  {
+    icon: UserCogIcon,
+    label: "Impersonation",
+    href: "/admin/impersonation",
+    permission: "merchants.impersonate",
+  },
   { icon: ScrollTextIcon, label: "Audit Log", href: "/admin/audit", permission: "audit.read" },
   {
     icon: BarChart3Icon,
