@@ -26,6 +26,32 @@ const SECTIONS: Section[] = [
     screens: [{ path: "/", label: "Root", note: "Next.js boilerplate, not yet replaced" }],
   },
   {
+    title: "Pet parent, public business page (PRO-96)",
+    description:
+      "E2-3 Cami-hosted public booking landing at cami.app/[slug]. Two-column on desktop with sticky booking card, single column on mobile. 404 returned for unknown slugs and not-yet-live businesses.",
+    screens: [
+      {
+        path: "/shampooch-jvc",
+        label: "Live business · grooming",
+        note: "Cover photo, open status, location with directions, full hours, services list, Google Maps embed",
+      },
+      {
+        path: "/purr-palace",
+        label: "Live business · cats only",
+        note: "Second mock to confirm the page is data-driven, not hardcoded",
+      },
+      {
+        path: "/no-such-business",
+        label: "404, slug not found",
+      },
+      {
+        path: "/draft-business",
+        label: "404, business not yet live",
+        note: "Slug exists but isLive is false, hidden behind the same not-found page",
+      },
+    ],
+  },
+  {
     title: "Auth, business",
     description: "Business owner and team member sign-in flow.",
     screens: [
