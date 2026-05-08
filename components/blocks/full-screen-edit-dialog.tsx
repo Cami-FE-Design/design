@@ -3,10 +3,10 @@
 import { XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import type * as React from "react"
-import { useEffect, useRef, useState } from "react"
+import { useContext, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { useAuth } from "@/lib/auth-mock"
+import { AuthContext } from "@/lib/auth-mock"
 import { cn } from "@/lib/utils"
 
 const COPY = {
@@ -63,8 +63,10 @@ export function FullScreenEditDialog({
   contentClassName,
   children,
 }: FullScreenEditDialogProps) {
-  const { locale } = useAuth()
-  const t = COPY[locale]
+  // Read locale from AuthContext directly so the dialog is usable outside
+  // <AuthProvider> (e.g. /settings/team, where there's no admin auth scope).
+  const auth = useContext(AuthContext)
+  const t = COPY[auth?.locale ?? "en"]
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const titleRef = useRef<HTMLHeadingElement | null>(null)
   const [showHeaderTitle, setShowHeaderTitle] = useState(false)

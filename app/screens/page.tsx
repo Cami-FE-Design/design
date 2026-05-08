@@ -196,6 +196,23 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Pet Business, team",
+    description:
+      "Team-member roster lives at /settings/team. Add opens a full-screen takeover with a sidebar nav (Personal: Profile, Addresses, Emergency contacts; Workspace: Services, Locations, Settings). First name, last name, and email are required to add.",
+    screens: [
+      {
+        path: "/settings/team",
+        label: "Team members, list",
+        note: "Active and Pending tabs, Action dropdown per row (Edit Roles & Permissions, Edit Services, Edit Schedule, Resend invitation for pending, Remove). Click Add to open the takeover.",
+      },
+      {
+        path: "/settings/team",
+        label: "Add team member takeover",
+        note: "Click Add. Sidebar nav with 6 sections; Profile is the default and includes name, email, phone, country, birthday, calendar color (Cami palette), and job title. Settings has the permission role select (High/Medium/Low).",
+      },
+    ],
+  },
+  {
     title: "Cami HQ, roles & permissions (PRO-138)",
     description:
       "E1-6.2 HQ-side role catalog. Lives inside the Settings dialog at ?settings=roles, no standalone routes. Edit and Add open as full-screen dialogs on top.",

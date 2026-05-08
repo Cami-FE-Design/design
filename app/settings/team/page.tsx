@@ -1,10 +1,11 @@
 "use client"
 
-import { zodResolver } from "@hookform/resolvers/zod"
 import { ChevronDownIcon, SlidersHorizontalIcon } from "lucide-react"
 import { useState } from "react"
-import { useForm } from "react-hook-form"
-import * as z from "zod"
+import {
+  AddTeamMemberDialog,
+  type AddTeamMemberValues,
+} from "@/components/blocks/add-team-member-dialog"
 import { AppShell } from "@/components/blocks/app-shell"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Badge } from "@/components/ui/badge"
@@ -16,24 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
 import { SearchInput } from "@/components/ui/search-input"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
 import {
   Table,
   TableBody,
@@ -101,12 +85,6 @@ const initialMembers: Member[] = [
     initials: "A",
   },
 ]
-
-const inviteSchema = z.object({
-  email: z.string().email({ message: "Enter a valid email." }),
-})
-
-type InviteValues = z.infer<typeof inviteSchema>
 
 function MemberAvatar({ initials, status }: { initials: string; status: MemberStatus }) {
   return (
@@ -219,74 +197,6 @@ function MemberTableRow({
   )
 }
 
-function InviteSheet({
-  open,
-  onOpenChange,
-  onInvite,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onInvite: (email: string) => void
-}) {
-  const form = useForm<InviteValues>({
-    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
-    resolver: zodResolver(inviteSchema),
-    defaultValues: { email: "" },
-  })
-
-  function onSubmit(values: InviteValues) {
-    onInvite(values.email)
-    form.reset()
-    onOpenChange(false)
-  }
-
-  return (
-    <Sheet
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) form.reset()
-        onOpenChange(next)
-      }}
-    >
-      <SheetContent side="right" className="data-[side=right]:max-w-md">
-        <SheetHeader>
-          <SheetTitle>Invite a Reception user</SheetTitle>
-          <SheetDescription>
-            They'll get an email to set their password and join {businessName}.
-          </SheetDescription>
-        </SheetHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col gap-4 px-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="teammate@example.com"
-                      autoComplete="email"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <SheetFooter className="px-0 pt-2">
-              <Button type="submit" size="xl" radius="full" className="w-full">
-                Send invite
-              </Button>
-            </SheetFooter>
-          </form>
-        </Form>
-      </SheetContent>
-    </Sheet>
-  )
-}
-
 function MemberTable({
   members,
   selectedIds,
@@ -359,7 +269,7 @@ function MemberTable({
 
 export default function TeamSettingsPage() {
   const [members, setMembers] = useState<Member[]>(initialMembers)
-  const [inviteOpen, setInviteOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const activeMembers = members.filter((m) => m.status === "active")
@@ -385,15 +295,18 @@ export default function TeamSettingsPage() {
     })
   }
 
-  function handleInvite(email: string) {
-    const initials = email.charAt(0).toUpperCase()
+  function handleAddMember(values: AddTeamMemberValues) {
+    const fullName = `${values.firstName} ${values.lastName}`.trim()
+    const initials = `${values.firstName.charAt(0)}${values.lastName.charAt(0)}`.toUpperCase()
     setMembers((prev) => [
       ...prev,
       {
         id: `m_${Date.now()}`,
-        name: null,
-        email,
-        permission: "Low",
+        name: fullName || null,
+        title: values.jobTitle || undefined,
+        email: values.email,
+        phone: values.phone ? `${values.phoneCode} ${values.phone}` : undefined,
+        permission: values.permission,
         status: "pending",
         initials,
       },
@@ -461,7 +374,7 @@ export default function TeamSettingsPage() {
                   <SlidersHorizontalIcon className="size-4" />
                 </Button>
                 <Button
-                  onClick={() => setInviteOpen(true)}
+                  onClick={() => setAddOpen(true)}
                   size="sm"
                   radius="full"
                   className="h-8 px-3"
@@ -512,7 +425,12 @@ export default function TeamSettingsPage() {
           </TabsContent>
         </Tabs>
       </div>
-      <InviteSheet open={inviteOpen} onOpenChange={setInviteOpen} onInvite={handleInvite} />
+      <AddTeamMemberDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        onAdd={handleAddMember}
+        businessName={businessName}
+      />
     </AppShell>
   )
 }
