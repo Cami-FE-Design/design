@@ -24,13 +24,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SearchInput } from "@/components/ui/search-input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import {
   Table,
@@ -56,19 +49,11 @@ import {
   statusBadgeClass,
   statusLabel,
   uniqueBusinesses,
-  uniqueHqUsers,
 } from "@/lib/admin-impersonation"
 import { useAuth } from "@/lib/auth-mock"
 import { cn } from "@/lib/utils"
 
-type RangeFilter = "7d" | "30d" | "all"
 type StatusFilter = ImpersonationStatus | "all"
-
-const RANGE_LABEL: Record<RangeFilter, string> = {
-  "7d": "Last 7 days",
-  "30d": "Last 30 days",
-  all: "All time",
-}
 
 const STATUS_TABS: { id: StatusFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -259,7 +244,7 @@ function ExportMenu({ events }: { events: ImpersonationEvent[] }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" data-icon="inline-start">
+        <Button variant="outline" radius="full" data-icon="inline-start">
           <DownloadIcon />
           Export
         </Button>
@@ -425,9 +410,6 @@ export default function ImpersonationLogPage() {
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [tab, setTab] = useState<StatusFilter>("all")
   const [query, setQuery] = useState("")
-  const [businessId, setBusinessId] = useState<string | "all">("all")
-  const [hqUserId, setHqUserId] = useState<string | "all">("all")
-  const [range, setRange] = useState<RangeFilter>("30d")
   const [selected, setSelected] = useState<ImpersonationEvent | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
@@ -435,9 +417,6 @@ export default function ImpersonationLogPage() {
     const id = window.setInterval(() => setNowMs(Date.now()), 30_000)
     return () => window.clearInterval(id)
   }, [])
-
-  const allBusinesses = useMemo(() => uniqueBusinesses(impersonationEvents), [])
-  const allHqUsers = useMemo(() => uniqueHqUsers(impersonationEvents), [])
 
   const counts = useMemo(() => {
     const base = { all: 0, active: 0, ended: 0, expired: 0 } as Record<StatusFilter, number>
@@ -449,15 +428,8 @@ export default function ImpersonationLogPage() {
   }, [])
 
   const visible = useMemo(
-    () =>
-      filterEvents(impersonationEvents, {
-        query,
-        businessId,
-        hqUserId,
-        status: tab,
-        range,
-      }),
-    [query, businessId, hqUserId, tab, range],
+    () => filterEvents(impersonationEvents, { query, status: tab }),
+    [query, tab],
   )
 
   if (!allowed) {
@@ -489,13 +461,6 @@ export default function ImpersonationLogPage() {
             </div>
             <ExportMenu events={visible} />
           </div>
-          <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-cami-yellow-3 px-4 py-3 text-sm text-cami-yellow-12">
-            <ShieldAlertIcon className="size-4 shrink-0 text-cami-yellow-11" />
-            <span className="text-sm">
-              Pet Businesses can request a copy of these events at any time. Filter to one business
-              and copy the owner summary.
-            </span>
-          </div>
         </div>
       }
     >
@@ -525,53 +490,10 @@ export default function ImpersonationLogPage() {
                 aria-label="Search impersonation events"
                 defaultValue={query}
                 onValueChange={(v: string) => setQuery(v)}
-                className="w-72"
+                className="w-96"
               />
             }
           />
-          <div className="flex flex-wrap items-center gap-2 pt-1">
-            <Select value={businessId} onValueChange={(v) => setBusinessId(v)}>
-              <SelectTrigger className="h-9 w-[220px]">
-                <SelectValue placeholder="All Pet Businesses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Pet Businesses</SelectItem>
-                {allBusinesses.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={hqUserId} onValueChange={(v) => setHqUserId(v)}>
-              <SelectTrigger className="h-9 w-[200px]">
-                <SelectValue placeholder="All HQ users" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All HQ users</SelectItem>
-                {allHqUsers.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={range} onValueChange={(v) => setRange(v as RangeFilter)}>
-              <SelectTrigger className="h-9 w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(RANGE_LABEL) as RangeFilter[]).map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {RANGE_LABEL[r]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="ml-auto text-xs text-muted-foreground">
-              Showing {visible.length} of {impersonationEvents.length} events
-            </span>
-          </div>
           <EventsTable events={visible} nowMs={nowMs} onSelect={handleSelect} />
         </Tabs>
       </div>
