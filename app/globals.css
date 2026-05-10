@@ -233,6 +233,10 @@
     0 35px 29px 0 rgba(0, 0, 0, 0.06), inset 0 -4px 4px 0 rgba(0, 0, 0, 0.04);
 
   --background-image-hq-aurora: var(--gradient-hq-aurora);
+
+  --container-page-compact: 64rem;
+  --container-page-default: 72rem;
+  --container-page-wide: none;
 }
 
 :root {
