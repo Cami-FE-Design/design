@@ -26,11 +26,7 @@ export function PublicHours({ business }: { business: PublicBusiness }) {
   const todaySchedule = today ? business.hours[today] : null
 
   return (
-    <section
-      id="hours"
-      aria-labelledby="hours-heading"
-      className="flex flex-col gap-3"
-    >
+    <section id="hours" aria-labelledby="hours-heading" className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between gap-3">
         <h2 id="hours-heading" className="text-base font-semibold text-foreground">
           Hours
@@ -38,10 +34,7 @@ export function PublicHours({ business }: { business: PublicBusiness }) {
         {open !== null && todaySchedule && (
           <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
             <span
-              className={cn(
-                "size-1.5 rounded-full",
-                open ? "bg-cami-green-9" : "bg-sand-9",
-              )}
+              className={cn("size-1.5 rounded-full", open ? "bg-cami-green-9" : "bg-sand-9")}
               aria-hidden
             />
             {open && !todaySchedule.closed
@@ -63,9 +56,7 @@ export function PublicHours({ business }: { business: PublicBusiness }) {
               className="flex items-center justify-between gap-4 py-2 text-sm first:pt-0 last:pb-0"
             >
               <span
-                className={cn(
-                  isToday ? "font-medium text-foreground" : "text-muted-foreground",
-                )}
+                className={cn(isToday ? "font-medium text-foreground" : "text-muted-foreground")}
               >
                 {day.long}
               </span>

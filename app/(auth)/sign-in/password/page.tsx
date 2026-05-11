@@ -32,8 +32,7 @@ export default function SignInPasswordPage() {
   const [rememberMe, setRememberMe] = useState(true)
 
   const form = useForm<PasswordValues>({
-    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
-    resolver: zodResolver(passwordSchema),
+    resolver: zodResolver(passwordSchema as never),
     defaultValues: { password: "" },
   })
 

@@ -36,8 +36,7 @@ export default function SignInResetPasswordPage() {
   const [done, setDone] = useState(false)
 
   const form = useForm<ResetValues>({
-    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
-    resolver: zodResolver(resetSchema),
+    resolver: zodResolver(resetSchema as never),
     defaultValues: { password: "", confirm: "" },
   })
 

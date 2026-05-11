@@ -14,6 +14,7 @@ import {
 
 export type SubmenuItem = {
   label: string
+  href?: string
 }
 
 export type MenuItem = {
@@ -34,7 +35,10 @@ export const topMenu: MenuItem[] = [
   {
     icon: ContactIcon,
     label: "Clients",
-    children: [{ label: "Pets" }, { label: "Pet Parents" }],
+    children: [
+      { label: "Pets", href: "/pets" },
+      { label: "Pet Parents", href: "/clients" },
+    ],
   },
   {
     icon: MessageSquareMoreIcon,

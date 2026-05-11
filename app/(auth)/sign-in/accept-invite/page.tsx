@@ -40,8 +40,7 @@ export default function SignInAcceptInvitePage() {
   const [done, setDone] = useState(false)
 
   const form = useForm<InviteValues>({
-    // @ts-ignore -- @hookform/resolvers 5.2 bundles zod 4.0 types; we have 4.3, version-tag mismatch only
-    resolver: zodResolver(inviteSchema),
+    resolver: zodResolver(inviteSchema as never),
     defaultValues: { password: "", confirm: "" },
   })
 

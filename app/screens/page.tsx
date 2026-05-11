@@ -257,6 +257,55 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Business app, clients directory (PRO-85)",
+    description:
+      "E2-7 Pet Parent & Pet Directory. Operator-facing clients list with search, sort, and a detail dialog. Mode toggle switches between with-pets (Pets column visible) and without-pets businesses.",
+    screens: [
+      { path: "/clients", label: "Clients directory (with pets)" },
+      { path: "/clients?mode=without-pets", label: "Clients directory (without pets)" },
+      {
+        path: "/clients?client=millie-cassidy",
+        label: "Client detail · multi-pet owner",
+        note: "Opens the detail dialog over the directory. Pets tab shows Bobo, Mochi, Kiwi.",
+      },
+      {
+        path: "/clients?client=charmaine-hayes",
+        label: "Client detail · no pets",
+        note: "Client with zero pets in pet mode — Pets tab still renders, empty state visible.",
+      },
+      {
+        path: "/clients?add=1",
+        label: "Add client takeover",
+        note: "Full-screen sectioned takeover. Quick-create: only First name required, everything else optional. Pets section appears only in with-pets mode.",
+      },
+      {
+        path: "/clients?client=millie-cassidy",
+        label: "Add pet takeover (stacked)",
+        note: "Open the Pets tab on the client detail and click Add pet. The pet takeover stacks over the client dialog with the current client pre-populated as an owner.",
+      },
+      {
+        path: "/clients?client=millie-cassidy",
+        label: "Edit pet takeover (stacked)",
+        note: "Open a pet from the client's Pets tab, then Actions → Edit pet. Same takeover, pre-populated with that pet's data.",
+      },
+      {
+        path: "/pets",
+        label: "Pets directory",
+        note: "Operator-facing pet list, parallel to /clients but for pets. Multi-owner aware: owners render as family-colored chips. Only relevant in with-pets businesses.",
+      },
+      {
+        path: "/pets?pet=bobo",
+        label: "Pet detail · multi-owner",
+        note: "Bobo is shared between Millie and Tom Cassidy, owners render as a family chip row in the header.",
+      },
+      {
+        path: "/pets?add=1",
+        label: "Add pet takeover (from directory)",
+        note: "Pet takeover opened directly from the directory level. No client pre-populated; user adds owners via the Family section.",
+      },
+    ],
+  },
+  {
     title: "Demos & playground",
     description: "Internal references for shell layout and component states.",
     screens: [

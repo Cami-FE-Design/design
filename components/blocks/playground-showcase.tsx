@@ -4,15 +4,21 @@ import {
   BedIcon,
   BellIcon,
   Building2Icon,
+  CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   CircleDollarSignIcon,
+  CircleUserIcon,
   FlagIcon,
+  FolderIcon,
   GlobeIcon,
   HomeIcon,
   LightbulbIcon,
   MailIcon,
+  MapPinIcon,
+  PencilIcon,
   PercentIcon,
+  PhoneIcon,
   PlusIcon,
   ScissorsIcon,
   SettingsIcon,
@@ -23,9 +29,21 @@ import {
 import { useState } from "react"
 import { toast } from "sonner"
 
+import { AvatarStack } from "@/components/blocks/avatar-stack"
+import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
+import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
+import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
+import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
+import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
+import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
+import { SectionCard } from "@/components/blocks/section-card"
+import { SectionedSheetShell, type SectionGroup } from "@/components/blocks/sectioned-sheet-shell"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
+import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
+import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -51,6 +69,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { RecencyBadge } from "@/components/ui/recency-badge"
 import { SearchInput } from "@/components/ui/search-input"
 import { SegmentedToggle } from "@/components/ui/segmented-toggle"
 import {
@@ -122,6 +141,13 @@ export function PlaygroundShowcase() {
   )
   const [segmentedNeutral, setSegmentedNeutral] = useState<"web" | "ios">("web")
   const [segmentedPrimary, setSegmentedPrimary] = useState<"on" | "off">("on")
+  const [shellMode, setShellMode] = useState<"add" | "detail">("detail")
+  const [shellSection, setShellSection] = useState<string>("overview")
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailHasPets, setDetailHasPets] = useState(true)
+  const [petDetailOpen, setPetDetailOpen] = useState(false)
+  const [clientEditOpen, setClientEditOpen] = useState(false)
+  const [petEditOpen, setPetEditOpen] = useState(false)
 
   const togglePick = (id: string) => {
     setPickedTypes((curr) => {
@@ -200,6 +226,81 @@ export function PlaygroundShowcase() {
           <Badge size="default" variant="primary-soft">
             Default · soft
           </Badge>
+        </Row>
+      </Section>
+
+      <Section
+        title="Avatar"
+        description="Person, pet, and business avatars. Photo wins when present; otherwise renders a deterministic fallback (initials, character face, or species icon) on a hashed pastel background."
+      >
+        <Row label="Size">
+          <Avatar size="xs" name="Sarah Johnson" />
+          <Avatar size="sm" name="Sarah Johnson" />
+          <Avatar size="md" name="Sarah Johnson" />
+          <Avatar size="lg" name="Sarah Johnson" />
+          <Avatar size="xl" name="Sarah Johnson" />
+        </Row>
+        <Row label="Initials · hash">
+          <Avatar name="Sarah Johnson" />
+          <Avatar name="Luke Williams" />
+          <Avatar name="Amy Chen" />
+          <Avatar name="Maeve Madden" />
+          <Avatar name="Violetta Pérez" />
+          <Avatar name="Kiren Matharu" />
+        </Row>
+        <Row label="Character · all faces">
+          <Avatar fallback="character" hashSeed="0" />
+          <Avatar fallback="character" hashSeed="1" />
+          <Avatar fallback="character" hashSeed="2" />
+          <Avatar fallback="character" hashSeed="3" />
+          <Avatar fallback="character" hashSeed="4" />
+          <Avatar fallback="character" hashSeed="5" />
+        </Row>
+        <Row label="Character · directory">
+          <Avatar fallback="character" name="Sarah Johnson" />
+          <Avatar fallback="character" name="Luke Williams" />
+          <Avatar fallback="character" name="Amy Chen" />
+          <Avatar fallback="character" name="Maeve Madden" />
+          <Avatar fallback="character" name="Violetta Pérez" />
+          <Avatar fallback="character" name="Kiren Matharu" />
+        </Row>
+        <Row label="Species · pets">
+          <Avatar fallback="species" species="dog" hashSeed="bobo" />
+          <Avatar fallback="species" species="cat" hashSeed="mochi" />
+          <Avatar fallback="species" species="bird" hashSeed="kiwi" />
+          <Avatar fallback="species" species="rabbit" hashSeed="pip" />
+          <Avatar fallback="species" species="other" hashSeed="nemo" />
+        </Row>
+        <Row label="Shape · business">
+          <Avatar shape="square" name="Sota Salon" />
+          <Avatar shape="square" size="lg" name="Sota Salon" />
+          <Avatar shape="square" size="xl" name="Sota Salon" />
+        </Row>
+        <Row label="Photo">
+          <Avatar
+            size="lg"
+            name="Aaliyah Hazari"
+            src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=128&h=128&fit=crop&crop=faces"
+            alt="Aaliyah Hazari"
+          />
+          <Avatar
+            size="lg"
+            shape="square"
+            name="Sota Salon"
+            src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=128&h=128&fit=crop"
+            alt="Sota Salon"
+          />
+        </Row>
+        <Row label="With overlay">
+          <Avatar size="xl" fallback="character" name="Millie Cassidy">
+            <button
+              type="button"
+              aria-label="Edit avatar"
+              className="absolute right-0 bottom-0 inline-flex size-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground"
+            >
+              <PencilIcon className="size-3" />
+            </button>
+          </Avatar>
         </Row>
       </Section>
 
@@ -436,6 +537,400 @@ export function PlaygroundShowcase() {
             42 events, 12 contacts added, 3 pending follow-ups.
           </CardContent>
         </Card>
+      </Section>
+
+      <Section
+        title="Sectioned sheet shell"
+        description="Two-column layout for sectioned add/edit takeovers (FullScreenEditDialog). Vertical sidenav left, scrollable content right. Optional leading slot above the nav for cases where you want identity context (e.g. Edit). Detail surfaces use a different pattern — see the next section."
+      >
+        <Row label="Leading slot">
+          <SegmentedToggle
+            value={shellMode}
+            onValueChange={(v) => {
+              const next = v as "add" | "detail"
+              setShellMode(next)
+              setShellSection(next === "add" ? "profile" : "profile")
+            }}
+            options={[
+              { value: "add", label: "None (Add)" },
+              { value: "detail", label: "Identity (Edit)" },
+            ]}
+            ariaLabel="Leading slot variant"
+          />
+        </Row>
+        <div className="mt-4 rounded-2xl border border-border/60 bg-muted/30 p-6">
+          <SectionedSheetShell
+            groups={
+              [
+                {
+                  label: "Personal",
+                  items: [
+                    { id: "profile", label: "Profile", icon: CircleUserIcon },
+                    { id: "addresses", label: "Addresses", icon: MapPinIcon },
+                    { id: "emergency", label: "Emergency contacts", icon: PhoneIcon },
+                  ],
+                },
+                {
+                  label: "Settings",
+                  items: [{ id: "settings", label: "Notifications", icon: SettingsIcon }],
+                },
+              ] satisfies SectionGroup[]
+            }
+            activeId={shellSection}
+            onActiveChange={setShellSection}
+            leading={
+              shellMode === "detail" ? (
+                <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-background p-5 text-center">
+                  <Avatar size="xl" fallback="character" name="Millie Cassidy" />
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-base font-semibold">Millie Cassidy</span>
+                    <span className="text-sm text-muted-foreground">+971 58 509 9313</span>
+                  </div>
+                  <div className="flex w-full gap-2">
+                    <Button variant="outline" size="sm" radius="full" className="flex-1">
+                      Actions
+                    </Button>
+                    <Button size="sm" radius="full" className="flex-1">
+                      Book now
+                    </Button>
+                  </div>
+                </div>
+              ) : null
+            }
+          >
+            <div className="flex min-h-[260px] flex-col gap-3 rounded-2xl border border-border/60 bg-background p-6">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Section content
+              </span>
+              <h3 className="font-heading text-2xl font-semibold capitalize">
+                {shellSection.replace(/-/g, " ")}
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Form fields for this section render here. Save persists; Close discards.
+              </p>
+            </div>
+          </SectionedSheetShell>
+        </div>
+      </Section>
+
+      <Section
+        title="Recency badge"
+        description="Recency indicator next to client / pet names. Common labels: 'New' (≤14d since first visit), relative time like '4 weeks' (between), '90+ days' (>90d since last visit)."
+      >
+        <Row label="Labels">
+          <RecencyBadge>New</RecencyBadge>
+          <RecencyBadge>4 weeks</RecencyBadge>
+          <RecencyBadge>90+ days</RecencyBadge>
+        </Row>
+        <Row label="Inline with name">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Sarah Johnson</span>
+            <RecencyBadge>New</RecencyBadge>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Luke Williams</span>
+            <RecencyBadge>4 weeks</RecencyBadge>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Aamena Fatta</span>
+            <RecencyBadge>90+ days</RecencyBadge>
+          </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="KPI card and grid"
+        description="Static metric tiles for Overview-style headers. KpiGrid is 2-col by default; override className to change."
+      >
+        <div className="max-w-md">
+          <KpiGrid>
+            <KpiCard
+              label="Upcoming"
+              value="0"
+              info="Count of bookings in the future for this client."
+            />
+            <KpiCard
+              label="Total appts"
+              value="4"
+              info="Lifetime appointment count, including no-shows and cancellations."
+            />
+            <KpiCard label="Total sales" value="AED 0" info="Lifetime revenue from this client." />
+            <KpiCard label="No-shows" value="0" info="Lifetime count of no-shows." />
+          </KpiGrid>
+        </div>
+      </Section>
+
+      <Section
+        title="Section card"
+        description="Section panel used inside detail surfaces. Title + optional right-aligned action + body."
+      >
+        <div className="flex max-w-md flex-col gap-3">
+          <SectionCard
+            title="Profile"
+            action={
+              <Button variant="secondary" size="sm" radius="full">
+                Edit
+              </Button>
+            }
+          >
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs uppercase text-muted-foreground">Full name</span>
+                <span>Millie Cassidy</span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs uppercase text-muted-foreground">Phone</span>
+                <span>+971 58 509 9313</span>
+              </div>
+            </div>
+          </SectionCard>
+          <SectionCard
+            title="Notes"
+            action={
+              <Button variant="secondary" size="sm" radius="full">
+                <PlusIcon />
+                Add note
+              </Button>
+            }
+          >
+            <p className="text-sm text-muted-foreground">No notes yet.</p>
+          </SectionCard>
+        </div>
+      </Section>
+
+      <Section
+        title="Avatar stack"
+        description="Stacked avatars with overlap + an overflow indicator. Hover any avatar to see the name; the +N chip lists the rest. Used for family / staff / contributor lists where vertical space is tight."
+      >
+        <Row label="Few (2)">
+          <AvatarStack
+            items={[
+              { id: "millie", name: "Millie Cassidy", fallback: "character", hashSeed: "millie" },
+              { id: "tom", name: "Tom Cassidy", fallback: "character", hashSeed: "tom" },
+            ]}
+          />
+        </Row>
+        <Row label="At max (3)">
+          <AvatarStack
+            items={[
+              { id: "millie", name: "Millie Cassidy", fallback: "character", hashSeed: "millie" },
+              { id: "tom", name: "Tom Cassidy", fallback: "character", hashSeed: "tom" },
+              { id: "sarah", name: "Sarah Johnson", fallback: "character", hashSeed: "sarah" },
+            ]}
+          />
+        </Row>
+        <Row label="Overflow (12)">
+          <AvatarStack
+            items={Array.from({ length: 12 }, (_, i) => ({
+              id: `person-${i}`,
+              name:
+                [
+                  "Brent J",
+                  "Sarah I",
+                  "Tara T",
+                  "Luke W",
+                  "Amy C",
+                  "Maeve M",
+                  "Violetta P",
+                  "Kiren M",
+                  "Aaesha A",
+                  "Aaishah V",
+                  "Aaliyah H",
+                  "Aaliyah P",
+                ][i] ?? `Person ${i}`,
+              fallback: "character",
+              hashSeed: `person-${i}`,
+            }))}
+          />
+        </Row>
+        <Row label="Sizes">
+          <AvatarStack
+            size="xs"
+            items={[
+              { id: "1", name: "Millie", fallback: "character", hashSeed: "1" },
+              { id: "2", name: "Tom", fallback: "character", hashSeed: "2" },
+              { id: "3", name: "Sarah", fallback: "character", hashSeed: "3" },
+              { id: "4", name: "Luke", fallback: "character", hashSeed: "4" },
+              { id: "5", name: "Amy", fallback: "character", hashSeed: "5" },
+            ]}
+          />
+          <AvatarStack
+            size="sm"
+            items={[
+              { id: "1", name: "Millie", fallback: "character", hashSeed: "1" },
+              { id: "2", name: "Tom", fallback: "character", hashSeed: "2" },
+              { id: "3", name: "Sarah", fallback: "character", hashSeed: "3" },
+              { id: "4", name: "Luke", fallback: "character", hashSeed: "4" },
+              { id: "5", name: "Amy", fallback: "character", hashSeed: "5" },
+            ]}
+          />
+          <AvatarStack
+            size="md"
+            items={[
+              { id: "1", name: "Millie", fallback: "character", hashSeed: "1" },
+              { id: "2", name: "Tom", fallback: "character", hashSeed: "2" },
+              { id: "3", name: "Sarah", fallback: "character", hashSeed: "3" },
+              { id: "4", name: "Luke", fallback: "character", hashSeed: "4" },
+              { id: "5", name: "Amy", fallback: "character", hashSeed: "5" },
+            ]}
+          />
+        </Row>
+      </Section>
+
+      <Section
+        title="Linked entity chip"
+        description="Small avatar + name pill, clickable. Used for Owners list on Pet detail and similar navigation chips."
+      >
+        <Row label="Person">
+          <LinkedEntityChip
+            name="Millie Cassidy"
+            avatar={{ fallback: "character", hashSeed: "millie" }}
+          />
+          <LinkedEntityChip
+            name="Tom Cassidy"
+            avatar={{ fallback: "character", hashSeed: "tom" }}
+          />
+          <LinkedEntityChip
+            name="Sarah Johnson"
+            avatar={{ fallback: "character", hashSeed: "sarah" }}
+          />
+        </Row>
+        <Row label="Pet">
+          <LinkedEntityChip
+            name="Bobo"
+            avatar={{ fallback: "species", species: "dog", hashSeed: "bobo" }}
+          />
+          <LinkedEntityChip
+            name="Mochi"
+            avatar={{ fallback: "species", species: "cat", hashSeed: "mochi" }}
+          />
+        </Row>
+      </Section>
+
+      <Section
+        title="Empty state"
+        description="Centered placeholder for sections with no data yet. Light line-icon, short title, optional description, optional action."
+      >
+        <div className="grid max-w-3xl gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-border/60 bg-card">
+            <EmptyState icon={FolderIcon} title="Create a new folder to get started organizing." />
+          </div>
+          <div className="rounded-2xl border border-border/60 bg-card">
+            <EmptyState
+              icon={CalendarIcon}
+              title="No appointments yet."
+              description="Bookings will appear here once they're created."
+              action={
+                <Button variant="secondary" size="sm" radius="full">
+                  <PlusIcon />
+                  Book appointment
+                </Button>
+              }
+            />
+          </div>
+        </div>
+      </Section>
+
+      <Section
+        title="Timeline row"
+        description="Vertical timeline used by Appointments / Visit history. Date / leading slot on the left, thin connector with a small dot, card on the right. Layout inspired by Luma's event list."
+      >
+        <div className="max-w-lg">
+          <ul className="flex flex-col">
+            <TimelineRow leading={<TimelineDate dayMonth="May 22" weekday="Friday" />}>
+              <div className="rounded-2xl border border-border/60 bg-card p-4">
+                <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
+                  <span className="font-semibold text-foreground">10:00am</span>
+                  <span className="truncate text-muted-foreground">· Shampooch JVC</span>
+                </div>
+              </div>
+            </TimelineRow>
+            <TimelineRow leading={<TimelineDate dayMonth="Apr 8" weekday="Wednesday" />}>
+              <div className="rounded-2xl border border-border/60 bg-card p-4">
+                <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
+                  <span className="font-semibold text-foreground">2:30pm</span>
+                  <span className="truncate text-muted-foreground">· Shampooch JVC</span>
+                </div>
+              </div>
+            </TimelineRow>
+            <TimelineRow isLast leading={<TimelineDate dayMonth="Mar 4" weekday="Monday" />}>
+              <div className="rounded-2xl border border-border/60 bg-card p-4">
+                <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
+                  <span className="font-semibold text-foreground">11:00am</span>
+                  <span className="truncate text-muted-foreground">· Shampooch JVC</span>
+                </div>
+              </div>
+            </TimelineRow>
+          </ul>
+        </div>
+      </Section>
+
+      <Section
+        title="Client detail dialog"
+        description="Centered Dialog modeled on <BusinessDetailDialog>. ~630px wide; sticky header with avatar + name + meta + Book now + Actions + Close; horizontal underline tabs with a 'More' overflow dropdown for less-used sections (Documents, Settings). Skeleton — each tab renders a placeholder; real content arrives per section."
+      >
+        <Row label="Pets">
+          <SegmentedToggle
+            value={detailHasPets ? "yes" : "no"}
+            onValueChange={(v) => setDetailHasPets(v === "yes")}
+            options={[
+              { value: "yes", label: "With pets" },
+              { value: "no", label: "Without pets" },
+            ]}
+            ariaLabel="Whether the partner manages pets"
+          />
+        </Row>
+        <Row label="Open">
+          <Button onClick={() => setDetailOpen(true)}>Open client detail</Button>
+        </Row>
+        <ClientDetailDialog
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          client={{
+            id: "millie-cassidy-1",
+            name: "Millie Cassidy",
+            phone: "+971 58 509 9313",
+            recencyLabel: "First visit",
+          }}
+          hasPets={detailHasPets}
+          isOwner
+          onBookNow={() => toast("Book (stubbed)")}
+          onMerge={() => toast("Merge profiles (stubbed)")}
+          onDelete={() => toast.error("Delete client (stubbed)")}
+        />
+      </Section>
+
+      <Section
+        title="Pet detail dialog"
+        description="Same shell as Client detail. Stacks over the client dialog when opened from inside it. Tabs: Overview · Family · Visit history · Pet details · Documents. Multi-owner aware — chip row in the header. Actions menu has Edit pet details + Delete pet."
+      >
+        <Row label="Open">
+          <Button onClick={() => setPetDetailOpen(true)}>Open pet detail</Button>
+        </Row>
+        <PetDetailDialog
+          open={petDetailOpen}
+          onOpenChange={setPetDetailOpen}
+          pet={{ id: "bobo", name: "Bobo", species: "dog", breed: "French Bulldog" }}
+          owners={[
+            { id: "millie-cassidy", name: "Millie Cassidy", phone: "+971 58 509 9313" },
+            { id: "tom-cassidy", name: "Tom Cassidy", phone: "+971 50 222 1133" },
+          ]}
+          isOwner
+        />
+      </Section>
+
+      <Section
+        title="Add / Edit takeovers"
+        description="<FullScreenEditDialog> + sectioned sidenav. Quick-create rule: only the first name (client) or name + species (pet) are required. Edit mode pre-populates fields and deep-links to the relevant section."
+      >
+        <Row label="Add client">
+          <Button onClick={() => setClientEditOpen(true)}>Open Add client</Button>
+        </Row>
+        <Row label="Add pet">
+          <Button onClick={() => setPetEditOpen(true)}>Open Add pet</Button>
+        </Row>
+        <ClientEditSheet open={clientEditOpen} onOpenChange={setClientEditOpen} mode="add" />
+        <PetEditSheet open={petEditOpen} onOpenChange={setPetEditOpen} mode="add" />
       </Section>
 
       <Section title="Dialog, Sheet, Popover, Dropdown, Tooltip">

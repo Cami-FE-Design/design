@@ -59,9 +59,7 @@ export default async function PublicBusinessPage({ params }: { params: Params })
     <main className="relative flex flex-1 justify-center bg-background px-5 py-8 sm:py-12">
       <PublicTopGradient />
       <div className="relative w-full max-w-[560px] lg:max-w-[960px]">
-        <div
-          className="grid grid-cols-1 gap-8 [grid-template-areas:'cover'_'card'_'about'_'services'_'location'_'hours'] lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-x-12 lg:[grid-template-areas:'cover_card'_'about_card'_'services_card'_'location_card'_'hours_card']"
-        >
+        <div className="grid grid-cols-1 gap-8 [grid-template-areas:'cover'_'card'_'about'_'services'_'location'_'hours'] lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-x-12 lg:[grid-template-areas:'cover_card'_'about_card'_'services_card'_'location_card'_'hours_card']">
           <div className="[grid-area:cover]">
             <PublicCover business={business} />
           </div>

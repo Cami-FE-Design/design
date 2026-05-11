@@ -10,6 +10,12 @@
 @import "@radix-ui/colors/blue-dark.css";
 @import "@radix-ui/colors/pink.css";
 @import "@radix-ui/colors/pink-dark.css";
+@import "@radix-ui/colors/lime.css";
+@import "@radix-ui/colors/lime-dark.css";
+@import "@radix-ui/colors/olive.css";
+@import "@radix-ui/colors/olive-dark.css";
+@import "@radix-ui/colors/gray.css";
+@import "@radix-ui/colors/gray-dark.css";
 @import "@radix-ui/colors/black-alpha.css";
 @import "@radix-ui/colors/white-alpha.css";
 
@@ -104,6 +110,45 @@
   --color-pink-10: var(--pink-10);
   --color-pink-11: var(--pink-11);
   --color-pink-12: var(--pink-12);
+
+  --color-lime-1: var(--lime-1);
+  --color-lime-2: var(--lime-2);
+  --color-lime-3: var(--lime-3);
+  --color-lime-4: var(--lime-4);
+  --color-lime-5: var(--lime-5);
+  --color-lime-6: var(--lime-6);
+  --color-lime-7: var(--lime-7);
+  --color-lime-8: var(--lime-8);
+  --color-lime-9: var(--lime-9);
+  --color-lime-10: var(--lime-10);
+  --color-lime-11: var(--lime-11);
+  --color-lime-12: var(--lime-12);
+
+  --color-olive-1: var(--olive-1);
+  --color-olive-2: var(--olive-2);
+  --color-olive-3: var(--olive-3);
+  --color-olive-4: var(--olive-4);
+  --color-olive-5: var(--olive-5);
+  --color-olive-6: var(--olive-6);
+  --color-olive-7: var(--olive-7);
+  --color-olive-8: var(--olive-8);
+  --color-olive-9: var(--olive-9);
+  --color-olive-10: var(--olive-10);
+  --color-olive-11: var(--olive-11);
+  --color-olive-12: var(--olive-12);
+
+  --color-gray-1: var(--gray-1);
+  --color-gray-2: var(--gray-2);
+  --color-gray-3: var(--gray-3);
+  --color-gray-4: var(--gray-4);
+  --color-gray-5: var(--gray-5);
+  --color-gray-6: var(--gray-6);
+  --color-gray-7: var(--gray-7);
+  --color-gray-8: var(--gray-8);
+  --color-gray-9: var(--gray-9);
+  --color-gray-10: var(--gray-10);
+  --color-gray-11: var(--gray-11);
+  --color-gray-12: var(--gray-12);
 
   --color-black-a1: var(--black-a1);
   --color-black-a2: var(--black-a2);

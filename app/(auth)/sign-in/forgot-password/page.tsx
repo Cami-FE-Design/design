@@ -52,13 +52,7 @@ export default function SignInForgotPasswordPage() {
         }
       >
         <div className="flex flex-col gap-4">
-          <Button
-            type="button"
-            size="xl"
-            radius="full"
-            className="w-full"
-            onClick={handleReset}
-          >
+          <Button type="button" size="xl" radius="full" className="w-full" onClick={handleReset}>
             Reset password
           </Button>
           <Link

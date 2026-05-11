@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronDownIcon, ChevronsRightIcon } from "lucide-react"
+import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { forwardRef, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -136,15 +137,22 @@ function TreeConnector({ isLast }: { isLast: boolean }) {
   )
 }
 
-function ChildMenuItem({ label, isLast }: { label: string; isLast: boolean }) {
+function ChildMenuItem({ label, href, isLast }: { label: string; href?: string; isLast: boolean }) {
   return (
     <div className="flex h-9 items-center pl-4">
       <TreeConnector isLast={isLast} />
       <Button
         variant="ghost"
+        asChild={Boolean(href)}
         className="h-full flex-1 justify-start rounded-xl px-4 text-sidebar-foreground"
       >
-        <span className="truncate text-base font-medium leading-6">{label}</span>
+        {href ? (
+          <Link href={href}>
+            <span className="truncate text-base font-medium leading-6">{label}</span>
+          </Link>
+        ) : (
+          <span className="truncate text-base font-medium leading-6">{label}</span>
+        )}
       </Button>
     </div>
   )
@@ -178,9 +186,14 @@ function SidebarItem({ item, expanded, isOpen, onOpenChange }: SidebarItemProps)
               <Button
                 key={child.label}
                 variant="ghost"
+                asChild={Boolean(child.href)}
                 className="h-9 justify-start rounded-xl px-3 text-sm leading-5 font-medium"
               >
-                {child.label}
+                {child.href ? (
+                  <Link href={child.href}>{child.label}</Link>
+                ) : (
+                  <span>{child.label}</span>
+                )}
               </Button>
             ))}
           </div>
@@ -222,6 +235,7 @@ function SidebarItem({ item, expanded, isOpen, onOpenChange }: SidebarItemProps)
               <ChildMenuItem
                 key={child.label}
                 label={child.label}
+                href={child.href}
                 isLast={index === (item.children?.length ?? 0) - 1}
               />
             ))}

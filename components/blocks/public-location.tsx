@@ -6,11 +6,7 @@ export function PublicLocation({ business }: { business: PublicBusiness }) {
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
 
   return (
-    <section
-      id="location"
-      aria-labelledby="location-heading"
-      className="flex flex-col gap-3"
-    >
+    <section id="location" aria-labelledby="location-heading" className="flex flex-col gap-3">
       <h2 id="location-heading" className="text-base font-semibold text-foreground">
         Location
       </h2>
