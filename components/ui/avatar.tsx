@@ -268,7 +268,9 @@ function Avatar({
           className="flex size-full items-center justify-center"
         >
           {fallback === "initials" ? (
-            <span className="font-bold leading-none">{getInitials(name ?? "")}</span>
+            <span className="font-bold leading-none -translate-y-px">
+              {getInitials(name ?? "")}
+            </span>
           ) : fallback === "character" ? (
             <CharacterFace seed={seed} className={characterSizeClass[size]} />
           ) : (
