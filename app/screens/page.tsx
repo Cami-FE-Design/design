@@ -235,7 +235,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    title: "Pet Business, first-time setup wizard (PRO-97)-",
+    title: "Pet Business, first-time setup wizard (PRO-97)",
     description:
       "E2-4 Owner first-time setup. 5-step flow with a separate Go-live page. Welcome step removed, `/setup` lands the Owner directly on About. Services, Staff, and Preview steps are deferred until those features ship.",
     screens: [
