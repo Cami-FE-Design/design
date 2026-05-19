@@ -71,7 +71,7 @@ export const topMenu: MenuItem[] = [
   {
     icon: SprayCanIcon,
     label: "Products",
-    children: [{ label: "Products" }, { label: "Suppliers" }],
+    children: [{ label: "Products", href: "/products" }, { label: "Suppliers" }],
   },
   {
     icon: UsersIcon,

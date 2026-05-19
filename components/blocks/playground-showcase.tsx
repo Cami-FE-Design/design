@@ -16,6 +16,7 @@ import {
   LightbulbIcon,
   MailIcon,
   MapPinIcon,
+  PackageIcon,
   PencilIcon,
   PercentIcon,
   PhoneIcon,
@@ -1163,6 +1164,25 @@ export function PlaygroundShowcase() {
               businessName="Shampooch JVC"
               defaultCollapsed
               onExit={() => toast.success("Impersonation stopped")}
+            />
+          </div>
+        </Row>
+      </Section>
+
+      {/* ── Products ─────────────────────────────────────────────────────── */}
+      <Section title="Products — empty state">
+        <Row label="No products yet">
+          <div className="w-full max-w-lg rounded-2xl border border-dashed border-border bg-card">
+            <EmptyState
+              icon={PackageIcon}
+              title="No products yet"
+              description="Add your first product to get started"
+              action={
+                <Button radius="full" className="h-9 px-4">
+                  Add product
+                </Button>
+              }
+              className="py-16"
             />
           </div>
         </Row>
