@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -48,6 +49,9 @@ export function AddSupplierDialog({
       <DialogContent className="max-w-lg gap-0 p-0">
         <DialogHeader className="flex flex-row items-center justify-between px-6 pt-7 pb-6">
           <DialogTitle>Add a supplier</DialogTitle>
+          <DialogDescription className="sr-only">
+            Create a new supplier to associate with your products.
+          </DialogDescription>
           <DialogClose asChild>
             <Button variant="ghost" size="icon-sm" radius="full" aria-label="Close">
               <XIcon />

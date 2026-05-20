@@ -1,6 +1,8 @@
 "use client"
 
-import { PackageIcon } from "lucide-react"
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react"
+import { useState } from "react"
+import { ProductImagePlaceholder } from "@/components/blocks/product-image-placeholder"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -28,7 +30,7 @@ export const MOCK_PRODUCTS: Product[] = [
   {
     id: "p1",
     name: "Wahl Professional Shampoo",
-    barcode: "8901234567890",
+    barcode: "WHL-SH-001A",
     brand: "Wahl",
     category: "Shampoos",
     sku: "WHL-001",
@@ -51,7 +53,7 @@ export const MOCK_PRODUCTS: Product[] = [
   {
     id: "p3",
     name: "Burt's Bees Hypoallergenic Shampoo",
-    barcode: "7501234567890",
+    barcode: "BB-HYPO",
     brand: "Burt's Bees",
     category: "Shampoos",
     sku: "BB-003",
@@ -87,13 +89,53 @@ function formatPrice(amount: number) {
   return `AED ${amount.toLocaleString()}`
 }
 
+type SortField = "name" | "retailPrice"
+type SortDir = "asc" | "desc"
+
+function SortIcon({
+  field,
+  sortField,
+  sortDir,
+}: {
+  field: SortField
+  sortField: SortField | null
+  sortDir: SortDir
+}) {
+  if (sortField !== field) return <ArrowUpDownIcon className="size-3.5 text-muted-foreground/50" />
+  return sortDir === "asc" ? (
+    <ArrowUpIcon className="size-3.5 text-foreground" />
+  ) : (
+    <ArrowDownIcon className="size-3.5 text-foreground" />
+  )
+}
+
 type ProductsTableProps = {
   products: Product[]
   onRowClick: (productId: string) => void
 }
 
 export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
-  if (products.length === 0) {
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>("asc")
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortField(field)
+      setSortDir("asc")
+    }
+  }
+
+  const sorted = sortField
+    ? [...products].sort((a, b) => {
+        const mul = sortDir === "asc" ? 1 : -1
+        if (sortField === "name") return mul * a.name.localeCompare(b.name)
+        return mul * (a.retailPrice - b.retailPrice)
+      })
+    : products
+
+  if (sorted.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-12 text-center text-sm text-muted-foreground">
         No products match this filter.
@@ -105,15 +147,33 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Product</TableHead>
+          <TableHead>
+            <button
+              type="button"
+              onClick={() => toggleSort("name")}
+              className="flex items-center gap-1.5 font-medium hover:text-foreground"
+            >
+              Product
+              <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
+            </button>
+          </TableHead>
           <TableHead>Category</TableHead>
           <TableHead>Supplier</TableHead>
-          <TableHead>Retail price</TableHead>
+          <TableHead>
+            <button
+              type="button"
+              onClick={() => toggleSort("retailPrice")}
+              className="flex items-center gap-1.5 font-medium hover:text-foreground"
+            >
+              Retail price
+              <SortIcon field="retailPrice" sortField={sortField} sortDir={sortDir} />
+            </button>
+          </TableHead>
           <TableHead>Status</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {products.map((product) => (
+        {sorted.map((product) => (
           <TableRow
             key={product.id}
             className="cursor-pointer"
@@ -121,14 +181,12 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
           >
             <TableCell>
               <div className="flex items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted">
-                  <PackageIcon className="size-4 text-muted-foreground" />
-                </span>
+                <ProductImagePlaceholder seed={product.id} className="size-21.5" />
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm font-medium text-foreground">{product.name}</span>
                   {product.barcode && (
                     <span className="font-mono text-xs text-muted-foreground">
-                      {product.barcode}
+                      Barcode: {product.barcode}
                     </span>
                   )}
                 </div>

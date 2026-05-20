@@ -9,6 +9,7 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -74,6 +75,9 @@ export function SelectCategoryDialog({
         <DialogContent className="max-w-lg gap-0 p-0">
           <DialogHeader className="flex flex-row items-center justify-between px-6 pt-7 pb-5">
             <DialogTitle>Select a category</DialogTitle>
+            <DialogDescription className="sr-only">
+              Pick a category to assign to this product, or create a new one.
+            </DialogDescription>
             <DialogClose asChild>
               <Button variant="ghost" size="icon-sm" radius="full" aria-label="Close">
                 <XIcon />

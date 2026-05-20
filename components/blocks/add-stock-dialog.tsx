@@ -8,6 +8,7 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -51,6 +52,9 @@ export function AddStockDialog({
       <DialogContent className="max-w-lg gap-0 p-0">
         <DialogHeader className="flex flex-row items-center justify-between px-6 pt-7 pb-0">
           <DialogTitle>Add stock</DialogTitle>
+          <DialogDescription className="sr-only">
+            Record incoming stock for this product, including supply price and a reason.
+          </DialogDescription>
           <DialogClose asChild>
             <Button variant="ghost" size="icon-sm" radius="full" aria-label="Close">
               <XIcon />
@@ -131,7 +135,10 @@ export function AddStockDialog({
           <div className="grid gap-2">
             <Label htmlFor="add-stock-reason">Reason</Label>
             <Select value={reason} onValueChange={setReason}>
-              <SelectTrigger id="add-stock-reason" className="h-12 w-full rounded-2xl">
+              <SelectTrigger
+                id="add-stock-reason"
+                className="data-[size=default]:h-12 w-full rounded-2xl"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -1,16 +1,46 @@
 "use client"
 
 import { CameraIcon, PencilIcon, RefreshCwIcon, Trash2Icon, XIcon } from "lucide-react"
-import { useRef, useState } from "react"
+import NextImage from "next/image"
+import { useCallback, useRef, useState } from "react"
+import type { Area } from "react-easy-crop"
+import Cropper from "react-easy-crop"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
+
+async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<string> {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = "anonymous"
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = imageSrc
+  })
+  const canvas = document.createElement("canvas")
+  canvas.width = pixelCrop.width
+  canvas.height = pixelCrop.height
+  const ctx = canvas.getContext("2d")!
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height,
+  )
+  return canvas.toDataURL("image/jpeg", 0.92)
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -67,29 +97,38 @@ function PhotoTile({
   }
 
   return (
-    <button
-      type="button"
+    <div
       className={cn(
-        "group relative w-full overflow-hidden rounded-xl cursor-pointer",
+        "group relative w-full overflow-hidden rounded-xl",
         isSelected && "ring-2 ring-primary ring-offset-2",
         !isSelected && isSwapping && "hover:ring-2 hover:ring-primary/40 hover:ring-offset-1",
       )}
-      onClick={() => onPhotoClick(photo.id)}
     >
-      <img
-        src={photo.url}
-        alt={isMain ? "Main product photo" : "Product photo"}
-        className="aspect-square w-full object-cover"
-      />
+      <button
+        type="button"
+        onClick={() => onPhotoClick(photo.id)}
+        aria-label={isMain ? "Reorder main product photo" : "Reorder product photo"}
+        className="block w-full cursor-pointer"
+      >
+        <div className="relative aspect-square w-full">
+          <NextImage
+            src={photo.url}
+            alt={isMain ? "Main product photo" : "Product photo"}
+            fill
+            unoptimized
+            className="object-cover"
+          />
+        </div>
+      </button>
 
       {isMain && !isSwapping && (
-        <span className="absolute top-2 left-2 rounded-full bg-background/90 px-2.5 py-0.5 text-xs font-medium text-foreground shadow-sm">
+        <span className="pointer-events-none absolute top-2 left-2 rounded-full bg-background/90 px-2.5 py-0.5 text-xs font-medium text-foreground shadow-sm">
           Main photo
         </span>
       )}
 
       {isSelected && (
-        <span className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground shadow-sm">
+        <span className="pointer-events-none absolute top-2 left-2 flex items-center gap-1 rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground shadow-sm">
           <RefreshCwIcon className="size-3" />
           Select another
         </span>
@@ -104,10 +143,7 @@ function PhotoTile({
         >
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onEdit(photo)
-            }}
+            onClick={() => onEdit(photo)}
             className={cn(
               "flex items-center justify-center rounded-full bg-background/90 shadow-sm transition-colors hover:bg-background",
               isMain ? "size-7" : "size-6",
@@ -118,10 +154,7 @@ function PhotoTile({
           </button>
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete(photo.id)
-            }}
+            onClick={() => onDelete(photo.id)}
             className={cn(
               "flex items-center justify-center rounded-full bg-background/90 shadow-sm transition-colors hover:bg-background",
               isMain ? "size-7" : "size-6",
@@ -132,7 +165,7 @@ function PhotoTile({
           </button>
         </div>
       )}
-    </button>
+    </div>
   )
 }
 
@@ -144,6 +177,9 @@ export function ProductPhotosCard() {
   const [cropOpen, setCropOpen] = useState(false)
   const [cropUrl, setCropUrl] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const croppedAreaPixelsRef = useRef<Area | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [swapSourceId, setSwapSourceId] = useState<string | null>(null)
   const fileQueueRef = useRef<File[]>([])
@@ -186,12 +222,20 @@ export function ProductPhotosCard() {
   function handleEdit(photo: Photo) {
     setEditingId(photo.id)
     setCropUrl(photo.url)
+    setCrop({ x: 0, y: 0 })
+    setZoom(1)
+    croppedAreaPixelsRef.current = null
     setCropOpen(true)
   }
 
-  function handleCropApply() {
-    if (!editingId || !cropUrl) return
-    setPhotos((prev) => prev.map((p) => (p.id === editingId ? { ...p, url: cropUrl } : p)))
+  const handleCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
+    croppedAreaPixelsRef.current = croppedAreaPixels
+  }, [])
+
+  async function handleCropApply() {
+    if (!editingId || !cropUrl || !croppedAreaPixelsRef.current) return
+    const cropped = await getCroppedImg(cropUrl, croppedAreaPixelsRef.current)
+    setPhotos((prev) => prev.map((p) => (p.id === editingId ? { ...p, url: cropped } : p)))
     setCropOpen(false)
     setCropUrl(null)
     setEditingId(null)
@@ -356,6 +400,9 @@ export function ProductPhotosCard() {
         <DialogContent className="max-w-xl gap-0 p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader className="flex flex-row items-center justify-between px-6 pt-7 pb-0">
             <DialogTitle>Crop photo</DialogTitle>
+            <DialogDescription className="sr-only">
+              Drag to reposition and pinch to zoom the photo into a square crop.
+            </DialogDescription>
             <Button
               type="button"
               variant="ghost"
@@ -369,19 +416,16 @@ export function ProductPhotosCard() {
           </DialogHeader>
 
           {cropUrl && (
-            <div className="mx-6 my-6 overflow-hidden rounded-2xl bg-[#2c2c2c]">
-              {/* Crop UI: image with dashed crop-box overlay */}
-              <div className="relative">
-                <img src={cropUrl} alt="Crop preview" className="max-h-72 w-full object-contain" />
-                {/* Simulated crop selection */}
-                <div className="pointer-events-none absolute inset-4 border border-dashed border-white/70">
-                  {/* Corner handles */}
-                  <div className="absolute -top-px -left-px h-4 w-4 border-t-2 border-l-2 border-white" />
-                  <div className="absolute -top-px -right-px h-4 w-4 border-t-2 border-r-2 border-white" />
-                  <div className="absolute -bottom-px -left-px h-4 w-4 border-b-2 border-l-2 border-white" />
-                  <div className="absolute -bottom-px -right-px h-4 w-4 border-b-2 border-r-2 border-white" />
-                </div>
-              </div>
+            <div className="relative mx-6 my-6 h-72 overflow-hidden rounded-2xl bg-[#2c2c2c]">
+              <Cropper
+                image={cropUrl}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={handleCropComplete}
+              />
             </div>
           )}
 
@@ -406,6 +450,9 @@ export function ProductPhotosCard() {
         <DialogContent className="max-w-md gap-0 p-0">
           <DialogHeader className="flex flex-row items-center justify-between px-6 pt-7 pb-0">
             <DialogTitle>Delete photo?</DialogTitle>
+            <DialogDescription className="sr-only">
+              Permanently remove this photo from the product. This action cannot be undone.
+            </DialogDescription>
             <DialogClose asChild>
               <Button variant="ghost" size="icon-sm" radius="full" aria-label="Close">
                 <XIcon />

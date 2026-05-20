@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -39,6 +40,9 @@ export function AddBrandDialog({ open, onOpenChange, onGoBack, onSave }: AddBran
       <DialogContent className="max-w-lg gap-0 p-0">
         <DialogHeader className="flex flex-row items-center justify-between px-6 pt-7 pb-6">
           <DialogTitle>Add a brand</DialogTitle>
+          <DialogDescription className="sr-only">
+            Create a new brand to assign to your products.
+          </DialogDescription>
           <DialogClose asChild>
             <Button variant="ghost" size="icon-sm" radius="full" aria-label="Close">
               <XIcon />

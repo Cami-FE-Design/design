@@ -13,10 +13,10 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { toast } from "sonner"
 import { AddStockDialog } from "@/components/blocks/add-stock-dialog"
 import { DeleteProductDialog } from "@/components/blocks/delete-product-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { ProductImagePlaceholder } from "@/components/blocks/product-image-placeholder"
 import type { Product } from "@/components/blocks/products-table"
 import { RemoveStockDialog } from "@/components/blocks/remove-stock-dialog"
 import { SectionCard } from "@/components/blocks/section-card"
@@ -39,19 +39,23 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-// ─── Detail row ───────────────────────────────────────────────────────────────
+// ─── Field ────────────────────────────────────────────────────────────────────
 
-function DetailRow({ label, value }: { label: string; value?: string | null }) {
+function Field({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-2 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium text-foreground">{value ?? "–"}</span>
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-sm text-foreground">{value ?? "–"}</span>
     </div>
   )
 }
 
-function DetailRows({ children }: { children: React.ReactNode }) {
-  return <div className="divide-y divide-border/60">{children}</div>
+function FieldGrid({ children }: { children: React.ReactNode }) {
+  return <div className="grid grid-cols-2 gap-x-6 gap-y-4">{children}</div>
+}
+
+function SectionDivider() {
+  return <div className="border-t border-border/60" />
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -97,7 +101,7 @@ export function ProductDetailDialog({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className="!max-w-[630px] flex h-[800px] max-h-[calc(100vh-100px)] flex-col gap-0 p-0 sm:!max-w-[630px]"
+          className="flex h-200 max-h-[calc(100vh-100px)] max-w-157.5! flex-col gap-0 p-0 sm:max-w-157.5!"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <Tabs
@@ -105,15 +109,13 @@ export function ProductDetailDialog({
             onValueChange={(v) => setTab(v as TabId)}
             className="flex min-h-0 flex-1 flex-col"
           >
-            {/* ── Header (tinted, mirrors PetDetailDialog) ─────────────── */}
+            {/* ── Header ───────────────────────────────────────────────── */}
             <div className="flex flex-col gap-0 bg-muted/40">
-              <DialogHeader className="flex flex-row items-center gap-3 px-9 pt-[34px] pb-5">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-muted">
-                  <PackageIcon className="size-6 text-muted-foreground" strokeWidth={1.5} />
-                </span>
+              <DialogHeader className="flex flex-row items-center gap-4 px-6 pt-6 pb-5">
+                <ProductImagePlaceholder seed={product.id} className="size-14" />
 
-                <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <DialogTitle className="truncate text-xl font-semibold">
                     {product.name}
                   </DialogTitle>
                   <DialogDescription asChild>
@@ -128,18 +130,18 @@ export function ProductDetailDialog({
                   </DialogDescription>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-1.5">
                   {/* Actions dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         type="button"
                         variant="outline"
-                        size="sm"
+                        size="icon-sm"
                         radius="full"
-                        className="gap-1.5"
+                        aria-label="More actions"
                       >
-                        Actions
+                        <MoreHorizontalIcon className="size-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-44">
@@ -150,14 +152,6 @@ export function ProductDetailDialog({
                       <DropdownMenuItem onSelect={() => setRemoveStockOpen(true)}>
                         <CircleMinusIcon className="size-4" />
                         Remove stock
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => toast.info("Coming soon")}>
-                        <ShoppingCartIcon className="size-4" />
-                        Order stock
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => toast.info("Coming soon")}>
-                        <ShoppingBagIcon className="size-4" />
-                        Sell product
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onSelect={handleEdit}>
@@ -186,8 +180,8 @@ export function ProductDetailDialog({
                 </div>
               </DialogHeader>
 
-              {/* Tab strip — underline variant, seam between muted and white */}
-              <TabsList variant="underline" className="px-9">
+              {/* Tab strip */}
+              <TabsList variant="underline" className="px-6">
                 <TabsTrigger value="details">Product details</TabsTrigger>
                 <TabsTrigger value="stock-orders">Stock orders</TabsTrigger>
                 <TabsTrigger value="sales">Sales</TabsTrigger>
@@ -203,61 +197,54 @@ export function ProductDetailDialog({
                 <SectionCard
                   title="Basic info"
                   action={
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-primary hover:text-primary"
-                      onClick={handleEdit}
-                    >
+                    <Button variant="secondary" size="sm" radius="full" onClick={handleEdit}>
                       Edit
                     </Button>
                   }
                 >
-                  <DetailRows>
-                    <DetailRow label="Product barcode" value={null} />
-                    <DetailRow label="Brand" value={product.brand} />
-                    <DetailRow label="Product category" value={product.category} />
-                    <DetailRow label="Supplier" value={null} />
-                    <DetailRow label="Amount" value={null} />
-                  </DetailRows>
-                  <div className="mt-1 border-t border-border/60 pt-3">
-                    <DetailRows>
-                      <DetailRow label="Short description" value={null} />
-                      <DetailRow label="Product description" value={null} />
-                    </DetailRows>
-                  </div>
+                  <FieldGrid>
+                    <Field label="Barcode" value={product.barcode} />
+                    <Field label="Brand" value={product.brand} />
+                    <Field label="Category" value={product.category} />
+                    <Field label="Supplier" value={product.supplier} />
+                  </FieldGrid>
+                  <SectionDivider />
+                  <p className="text-base font-semibold text-foreground">Additional info</p>
+                  <FieldGrid>
+                    <div className="col-span-2">
+                      <Field label="Short description" value={null} />
+                    </div>
+                    <div className="col-span-2">
+                      <Field label="Product description" value={null} />
+                    </div>
+                  </FieldGrid>
                 </SectionCard>
 
                 {/* Stock info */}
                 <SectionCard
                   title="Stock info"
                   action={
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-primary hover:text-primary"
-                      onClick={handleEdit}
-                    >
+                    <Button variant="secondary" size="sm" radius="full" onClick={handleEdit}>
                       Edit
                     </Button>
                   }
                 >
-                  <DetailRows>
-                    <DetailRow label="Primary SKU" value={product.sku} />
-                    <DetailRow label="Stock on hand" value={String(stockOnHand)} />
-                    <DetailRow
+                  <FieldGrid>
+                    <Field label="Primary SKU" value={product.sku} />
+                    <Field label="Stock on hand" value={String(stockOnHand)} />
+                    <Field
                       label="Retail price"
                       value={`AED ${product.retailPrice.toLocaleString()}`}
                     />
-                    <DetailRow label="Total retail value" value="AED 0" />
-                    <DetailRow
+                    <Field label="Total retail value" value="AED 0" />
+                    <Field
                       label="Supply price"
                       value={`AED ${product.supplyPrice.toLocaleString()}`}
                     />
-                    <DetailRow label="Total supply value" value="AED 0" />
-                    <DetailRow label="Average cost" value="AED 0" />
-                    <DetailRow label="Total cost" value="AED 0" />
-                  </DetailRows>
+                    <Field label="Total supply value" value="AED 0" />
+                    <Field label="Average cost" value="AED 0" />
+                    <Field label="Total cost" value="AED 0" />
+                  </FieldGrid>
                 </SectionCard>
               </TabsContent>
 

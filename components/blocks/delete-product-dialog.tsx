@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -28,6 +29,9 @@ export function DeleteProductDialog({
       <DialogContent className="max-w-md gap-0 p-0">
         <DialogHeader className="flex flex-row items-center justify-between px-6 pt-7 pb-0">
           <DialogTitle>Delete product?</DialogTitle>
+          <DialogDescription className="sr-only">
+            Permanently delete this product and all associated data.
+          </DialogDescription>
           <DialogClose asChild>
             <Button variant="ghost" size="icon-sm" radius="full" aria-label="Close">
               <XIcon />

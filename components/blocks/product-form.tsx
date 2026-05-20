@@ -1,11 +1,10 @@
 "use client"
 
-import { PencilIcon, PlusIcon, Trash2Icon } from "lucide-react"
+import { Trash2Icon } from "lucide-react"
 import { useState } from "react"
 import { SelectBrandDialog } from "@/components/blocks/select-brand-dialog"
 import { SelectCategoryDialog } from "@/components/blocks/select-category-dialog"
 import { SelectSupplierDialog } from "@/components/blocks/select-supplier-dialog"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -62,12 +61,14 @@ function PrefixInput({ prefix, ...props }: React.ComponentProps<"input"> & { pre
 
 function EntityField({
   label,
+  placeholder,
   selected,
   onSelectClick,
   onEditClick,
   onClear,
 }: {
   label: string
+  placeholder?: string
   selected: { id: string; name: string } | null
   onSelectClick: () => void
   onEditClick: () => void
@@ -77,20 +78,24 @@ function EntityField({
     <FieldRow>
       <Label>{label}</Label>
       {selected ? (
-        <div className="flex h-12 items-center gap-2 overflow-hidden rounded-2xl bg-input px-4">
-          <span className="flex-1 text-sm font-medium text-foreground">{selected.name}</span>
-          <button
-            type="button"
-            onClick={onEditClick}
-            className="cursor-pointer text-sm font-medium text-primary hover:underline"
-          >
-            Edit
-          </button>
+        <div className="flex items-center gap-2">
+          <div className="flex h-12 min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-2xl bg-input px-4">
+            <span className="flex-1 truncate text-sm font-medium text-foreground">
+              {selected.name}
+            </span>
+            <button
+              type="button"
+              onClick={onEditClick}
+              className="shrink-0 text-sm font-medium text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
+            >
+              Edit
+            </button>
+          </div>
           <button
             type="button"
             onClick={onClear}
             aria-label={`Remove ${label.toLowerCase()}`}
-            className="text-destructive hover:opacity-70 transition-opacity"
+            className="shrink-0 text-destructive hover:opacity-70 transition-opacity"
           >
             <Trash2Icon className="size-4" />
           </button>
@@ -99,9 +104,9 @@ function EntityField({
         <button
           type="button"
           onClick={onSelectClick}
-          className="w-fit text-sm font-medium text-primary hover:underline"
+          className="w-fit text-sm font-medium text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
         >
-          Select a {label.toLowerCase()}
+          {placeholder ?? `Select a ${label.toLowerCase()}`}
         </button>
       )}
     </FieldRow>
@@ -122,14 +127,14 @@ function SwitchRow({
   onCheckedChange: (v: boolean) => void
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex items-center gap-3">
+      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
       <div className="flex flex-col gap-0.5">
         <Label htmlFor={id} className="cursor-pointer">
           {label}
         </Label>
         {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       </div>
-      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
     </div>
   )
 }
@@ -279,6 +284,7 @@ export function ProductForm({ initialValues }: { initialValues?: ProductFormInit
 
         <EntityField
           label="Product brand"
+          placeholder="Select a brand"
           selected={brand}
           onSelectClick={() => setBrandDialogOpen(true)}
           onEditClick={() => setBrandDialogOpen(true)}
@@ -289,7 +295,10 @@ export function ProductForm({ initialValues }: { initialValues?: ProductFormInit
           <FieldRow>
             <Label htmlFor="product-measure">Measure</Label>
             <Select value={measure} onValueChange={setMeasure}>
-              <SelectTrigger id="product-measure" className="h-12 w-full rounded-2xl">
+              <SelectTrigger
+                id="product-measure"
+                className="data-[size=default]:h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium"
+              >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -345,6 +354,7 @@ export function ProductForm({ initialValues }: { initialValues?: ProductFormInit
 
         <EntityField
           label="Product category"
+          placeholder="Select a category"
           selected={category}
           onSelectClick={() => setCategoryDialogOpen(true)}
           onEditClick={() => setCategoryDialogOpen(true)}
@@ -367,6 +377,8 @@ export function ProductForm({ initialValues }: { initialValues?: ProductFormInit
             onChange={(e) => setSupplyPrice(e.target.value)}
           />
         </FieldRow>
+
+        <Separator />
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
@@ -416,7 +428,10 @@ export function ProductForm({ initialValues }: { initialValues?: ProductFormInit
               <FieldRow>
                 <Label htmlFor="tax">Tax</Label>
                 <Select value={tax} onValueChange={setTax}>
-                  <SelectTrigger id="tax" className="h-12 w-full rounded-2xl">
+                  <SelectTrigger
+                    id="tax"
+                    className="data-[size=default]:h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium"
+                  >
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -431,22 +446,26 @@ export function ProductForm({ initialValues }: { initialValues?: ProductFormInit
           )}
         </div>
 
-        <Separator />
+        {retailEnabled && (
+          <>
+            <Separator />
 
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-foreground">Team member commission</p>
-            <p className="text-sm text-muted-foreground">
-              Calculate team member commission when the product is sold.
-            </p>
-          </div>
-          <SwitchRow
-            id="commission-enabled"
-            label="Enable team member commission"
-            checked={commissionEnabled}
-            onCheckedChange={setCommissionEnabled}
-          />
-        </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-semibold text-foreground">Team member commission</p>
+                <p className="text-sm text-muted-foreground">
+                  Calculate team member commission when the product is sold.
+                </p>
+              </div>
+              <SwitchRow
+                id="commission-enabled"
+                label="Enable team member commission"
+                checked={commissionEnabled}
+                onCheckedChange={setCommissionEnabled}
+              />
+            </div>
+          </>
+        )}
       </FormSection>
 
       {/* ── Inventory ──────────────────────────────────────────────────── */}
@@ -465,24 +484,25 @@ export function ProductForm({ initialValues }: { initialValues?: ProductFormInit
                   id={`sku-${index}`}
                   value={sku}
                   onChange={(e) => handleSkuChange(index, e.target.value)}
-                  className="flex-1"
+                  className="min-w-0 flex-1"
                 />
-                {showSkuTrash(index) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (skus.length === 1) {
-                        handleSkuChange(0, "")
-                      } else {
-                        handleRemoveSku(index)
-                      }
-                    }}
-                    aria-label="Remove SKU"
-                    className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
-                  >
-                    <Trash2Icon className="size-5" />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (skus.length === 1) {
+                      handleSkuChange(0, "")
+                    } else {
+                      handleRemoveSku(index)
+                    }
+                  }}
+                  aria-label="Remove SKU"
+                  className={cn(
+                    "shrink-0 text-destructive transition-opacity hover:opacity-70",
+                    !showSkuTrash(index) && "invisible",
+                  )}
+                >
+                  <Trash2Icon className="size-4" />
+                </button>
               </div>
             </FieldRow>
           ))}
@@ -492,14 +512,14 @@ export function ProductForm({ initialValues }: { initialValues?: ProductFormInit
           <button
             type="button"
             onClick={handleGenerateSku}
-            className="w-fit text-sm font-medium text-primary hover:underline"
+            className="w-fit text-sm font-medium text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
           >
             Generate SKU automatically
           </button>
           <button
             type="button"
             onClick={handleAddSku}
-            className="w-fit text-sm font-medium text-primary hover:underline"
+            className="w-fit text-sm font-medium text-primary underline underline-offset-2 hover:opacity-70 transition-opacity"
           >
             Add another SKU code
           </button>
@@ -545,53 +565,59 @@ export function ProductForm({ initialValues }: { initialValues?: ProductFormInit
           )}
         </div>
 
-        <Separator />
+        {trackStock && (
+          <>
+            <Separator />
 
-        {/* Low stock */}
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1">
-            <p className="text-sm font-semibold text-foreground">Low stock and reordering</p>
-            <p className="text-sm text-muted-foreground">
-              Cami will automatically notify you and pre-fill the reorder quantity set for future
-              stock orders.
-            </p>
-          </div>
+            {/* Low stock */}
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <p className="text-sm font-semibold text-foreground">Low stock and reordering</p>
+                <p className="text-sm text-muted-foreground">
+                  Cami will automatically notify you and pre-fill the reorder quantity set for
+                  future stock orders.
+                </p>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <FieldRow>
-              <Label htmlFor="low-stock-level">Low stock level</Label>
-              <Input
-                id="low-stock-level"
-                type="number"
-                min="0"
-                placeholder="0"
-                value={lowStockLevel}
-                onChange={(e) => setLowStockLevel(e.target.value)}
+              <div className="grid grid-cols-2 gap-4">
+                <FieldRow>
+                  <Label htmlFor="low-stock-level">Low stock level</Label>
+                  <Input
+                    id="low-stock-level"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={lowStockLevel}
+                    onChange={(e) => setLowStockLevel(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The level to get notified to reorder
+                  </p>
+                </FieldRow>
+
+                <FieldRow>
+                  <Label htmlFor="reorder-qty">Reorder quantity</Label>
+                  <Input
+                    id="reorder-qty"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={reorderQty}
+                    onChange={(e) => setReorderQty(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">The default amount to order</p>
+                </FieldRow>
+              </div>
+
+              <SwitchRow
+                id="low-stock-notif"
+                label="Receive low stock notifications."
+                checked={lowStockNotif}
+                onCheckedChange={setLowStockNotif}
               />
-              <p className="text-xs text-muted-foreground">The level to get notified to reorder</p>
-            </FieldRow>
-
-            <FieldRow>
-              <Label htmlFor="reorder-qty">Reorder quantity</Label>
-              <Input
-                id="reorder-qty"
-                type="number"
-                min="0"
-                placeholder="0"
-                value={reorderQty}
-                onChange={(e) => setReorderQty(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">The default amount to order</p>
-            </FieldRow>
-          </div>
-
-          <SwitchRow
-            id="low-stock-notif"
-            label="Receive low stock notifications."
-            checked={lowStockNotif}
-            onCheckedChange={setLowStockNotif}
-          />
-        </div>
+            </div>
+          </>
+        )}
       </FormSection>
 
       {/* ── Pickers ────────────────────────────────────────────────────── */}

@@ -8,15 +8,19 @@ import {
   ImportIcon,
   PackageIcon,
   PencilIcon,
+  PlusIcon,
   SlidersHorizontalIcon,
   TagIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import { AppShell } from "@/components/blocks/app-shell"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { ProductDetailDialog } from "@/components/blocks/product-detail-dialog"
 import { MOCK_PRODUCTS, type Product, ProductsTable } from "@/components/blocks/products-table"
+import { SelectBrandDialog } from "@/components/blocks/select-brand-dialog"
+import { SelectCategoryDialog } from "@/components/blocks/select-category-dialog"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Button } from "@/components/ui/button"
 import {
@@ -93,7 +97,6 @@ function ProductsSkeleton() {
     <div className="overflow-hidden rounded-2xl border border-border/60">
       {/* Header row */}
       <div className="flex h-9 items-center gap-4 border-b border-border/60 bg-muted/30 px-4">
-        <div className="size-4 animate-pulse rounded bg-muted" />
         <div className="h-3 w-28 animate-pulse rounded bg-muted" />
         <div className="ml-auto h-3 w-16 animate-pulse rounded bg-muted" />
         <div className="h-3 w-16 animate-pulse rounded bg-muted" />
@@ -108,8 +111,7 @@ function ProductsSkeleton() {
           className="flex items-center gap-4 border-b border-border/60 px-4 py-3.5 last:border-b-0"
           style={{ opacity: 1 - i * 0.15 }}
         >
-          <div className="size-4 animate-pulse rounded bg-muted" />
-          <div className="size-9 animate-pulse rounded-xl bg-muted" />
+          <div className="size-21.5 animate-pulse rounded-xl bg-muted" />
           <div className="h-3 w-48 animate-pulse rounded bg-muted" />
           <div className="ml-auto h-3 w-16 animate-pulse rounded bg-muted" />
           <div className="h-3 w-20 animate-pulse rounded bg-muted" />
@@ -127,12 +129,31 @@ function ProductsSkeleton() {
 
 type Tab = "all" | "active" | "archived"
 
-export default function ProductsPage() {
+function ProductsIndex() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const selectedProductId = searchParams.get("product")
+
+  const setSelectedProductId = useCallback(
+    (id: string | null) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (id) {
+        params.set("product", id)
+      } else {
+        params.delete("product")
+      }
+      const qs = params.toString()
+      router.replace(qs ? `?${qs}` : "?", { scroll: false })
+    },
+    [router, searchParams],
+  )
+
   const [tab, setTab] = useState<Tab>("all")
   const [query, setQuery] = useState("")
   const [sort, setSort] = useState<SortKey>("updated-desc")
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
+  const [brandDialogOpen, setBrandDialogOpen] = useState(false)
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
   // Prototype toggle: switch between empty and populated state
   const [showEmpty, setShowEmpty] = useState(false)
 
@@ -184,11 +205,11 @@ export default function ProductsPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setBrandDialogOpen(true)}>
                   <PencilIcon className="size-4" />
                   Manage my brands
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setCategoryDialogOpen(true)}>
                   <TagIcon className="size-4" />
                   Manage my categories
                 </DropdownMenuItem>
@@ -210,8 +231,11 @@ export default function ProductsPage() {
             </DropdownMenu>
 
             {/* Add product */}
-            <Button asChild radius="full" className="h-9 px-4">
-              <Link href="/products/new">Add product</Link>
+            <Button asChild radius="full" className="h-9 gap-1.5 px-4">
+              <Link href="/products/new">
+                <PlusIcon className="size-4" />
+                Add product
+              </Link>
             </Button>
           </div>
         </div>
@@ -356,6 +380,26 @@ export default function ProductsPage() {
           setSelectedProductId(null)
         }}
       />
+
+      <SelectBrandDialog
+        open={brandDialogOpen}
+        onOpenChange={setBrandDialogOpen}
+        onSelect={() => setBrandDialogOpen(false)}
+      />
+
+      <SelectCategoryDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        onSelect={() => setCategoryDialogOpen(false)}
+      />
     </AppShell>
+  )
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProductsIndex />
+    </Suspense>
   )
 }
