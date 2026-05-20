@@ -57,8 +57,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* ── Sticky header — same as /products/new ─────────────────────── */}
-      <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+      <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <span
             className={cn(
               "min-w-0 truncate font-heading text-base font-semibold leading-6 text-foreground transition-opacity duration-200",
@@ -104,10 +104,10 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         className="flex-1 overflow-y-auto px-6 py-12 lg:px-10"
         onScroll={handleScroll}
       >
-        <div className="mx-auto w-full max-w-5xl">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-10">
           <h1
             ref={titleRef}
-            className="font-heading mb-10 text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
+            className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
           >
             Edit product
           </h1>

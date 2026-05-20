@@ -147,7 +147,7 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>
+          <TableHead className="sticky left-0 z-10 bg-background md:static md:bg-transparent">
             <button
               type="button"
               onClick={() => toggleSort("name")}
@@ -157,9 +157,9 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
               <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
             </button>
           </TableHead>
-          <TableHead>Category</TableHead>
-          <TableHead>Supplier</TableHead>
-          <TableHead>
+          <TableHead className="min-w-36">Category</TableHead>
+          <TableHead className="min-w-40">Supplier</TableHead>
+          <TableHead className="min-w-32">
             <button
               type="button"
               onClick={() => toggleSort("retailPrice")}
@@ -169,17 +169,17 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
               <SortIcon field="retailPrice" sortField={sortField} sortDir={sortDir} />
             </button>
           </TableHead>
-          <TableHead>Status</TableHead>
+          <TableHead className="min-w-24">Status</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {sorted.map((product) => (
           <TableRow
             key={product.id}
-            className="cursor-pointer"
+            className="group cursor-pointer"
             onClick={() => onRowClick(product.id)}
           >
-            <TableCell>
+            <TableCell className="sticky left-0 z-10 bg-background group-hover:bg-muted/50 md:static md:bg-transparent md:group-hover:bg-transparent">
               <div className="flex items-center gap-3">
                 <ProductImagePlaceholder seed={product.id} className="size-21.5" />
                 <div className="flex flex-col gap-0.5">
@@ -196,7 +196,7 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
             <TableCell className="text-sm text-muted-foreground">
               {product.supplier ?? "–"}
             </TableCell>
-            <TableCell className="text-sm text-foreground">
+            <TableCell className="text-sm whitespace-nowrap text-foreground">
               {formatPrice(product.retailPrice)}
             </TableCell>
             <TableCell>

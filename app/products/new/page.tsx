@@ -25,8 +25,8 @@ export default function NewProductPage() {
   return (
     <div className="flex h-screen flex-col bg-background">
       {/* ── Sticky header — mirrors FullScreenEditDialog ─────────────── */}
-      <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
+      <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           {/* Fading title (appears once big h1 scrolls out of view) */}
           <span
             className={cn(
@@ -76,11 +76,11 @@ export default function NewProductPage() {
         className="flex-1 overflow-y-auto px-6 py-12 lg:px-10"
         onScroll={handleScroll}
       >
-        <div className="mx-auto w-full max-w-5xl">
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-10">
           {/* Big page title (fades out of view on scroll → header title fades in) */}
           <h1
             ref={titleRef}
-            className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl mb-10"
+            className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
           >
             Add new product
           </h1>
