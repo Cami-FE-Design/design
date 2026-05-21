@@ -38,7 +38,7 @@ function FormSection({
   children: React.ReactNode
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+    <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
       <div className="flex flex-col gap-1 px-6 py-5">
         <h2 className="font-heading text-2xl font-semibold leading-9 text-foreground">{title}</h2>
         {description ? (

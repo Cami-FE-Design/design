@@ -64,9 +64,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const initialValues = toInitialValues(product)
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-white-all">
       {/* ── Sticky header — same as /products/new ─────────────────────── */}
-      <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
+      <header className="sticky top-0 z-10 border-b border-border/40 bg-white-all px-6 py-3 lg:px-10">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           <span
             className={cn(

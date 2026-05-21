@@ -31,9 +31,9 @@ export default function NewProductPage() {
   }
 
   return (
-    <div className="flex h-screen flex-col bg-background">
+    <div className="flex h-screen flex-col bg-white-a11">
       {/* ── Sticky header — mirrors FullScreenEditDialog ─────────────── */}
-      <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
+      <header className="sticky top-0 z-10 border-b border-border/40 bg-white-a11 px-6 py-3 lg:px-10">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
           {/* Fading title (appears once big h1 scrolls out of view) */}
           <span

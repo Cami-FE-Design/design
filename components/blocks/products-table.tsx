@@ -24,6 +24,8 @@ export type Product = {
   supplyPrice: number
   retailPrice: number
   status: "active" | "archived"
+  /** Seed strings for placeholder tiles in the detail dialog. Empty/undefined hides the photos card. */
+  photos?: string[]
 }
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -38,6 +40,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 450,
     retailPrice: 750,
     status: "active",
+    photos: ["a", "b", "c", "d", "e"],
   },
   {
     id: "p2",
@@ -49,6 +52,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 1200,
     retailPrice: 1800,
     status: "active",
+    photos: ["a", "b"],
   },
   {
     id: "p3",
@@ -71,6 +75,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 3500,
     retailPrice: 5200,
     status: "archived",
+    photos: ["a", "b", "c"],
   },
   {
     id: "p5",
@@ -82,6 +87,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 280,
     retailPrice: 450,
     status: "archived",
+    photos: ["a"],
   },
 ]
 

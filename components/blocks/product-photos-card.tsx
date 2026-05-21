@@ -288,7 +288,7 @@ export function ProductPhotosCard() {
 
   return (
     <>
-      <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+      <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
         <div className="flex items-start justify-between gap-3 px-6 py-5">
           <div className="flex min-w-0 flex-col gap-1">
             <h2 className="font-heading text-2xl font-semibold leading-9 text-foreground">

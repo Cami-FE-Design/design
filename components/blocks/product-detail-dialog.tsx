@@ -111,11 +111,11 @@ export function ProductDetailDialog({
           >
             {/* ── Header ───────────────────────────────────────────────── */}
             <div className="flex flex-col gap-0 bg-muted/40">
-              <DialogHeader className="flex flex-row items-center gap-4 px-6 pt-6 pb-5">
-                <ProductImagePlaceholder seed={product.id} className="size-14" />
+              <DialogHeader className="flex flex-row items-center gap-3 px-9 pt-8.5 pb-5">
+                <ProductImagePlaceholder seed={product.id} className="size-12" />
 
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <DialogTitle className="truncate text-xl font-semibold">
+                  <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
                     {product.name}
                   </DialogTitle>
                   <DialogDescription asChild>
@@ -130,7 +130,7 @@ export function ProductDetailDialog({
                   </DialogDescription>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-1.5">
+                <div className="flex shrink-0 items-center gap-2">
                   {/* Actions dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -181,18 +181,20 @@ export function ProductDetailDialog({
               </DialogHeader>
 
               {/* Tab strip */}
-              <TabsList variant="underline" className="px-6">
-                <TabsTrigger value="details">Product details</TabsTrigger>
-                <TabsTrigger value="stock-orders">Stock orders</TabsTrigger>
-                <TabsTrigger value="sales">Sales</TabsTrigger>
-                <TabsTrigger value="stock-history">Stock history</TabsTrigger>
-              </TabsList>
+              <div className="flex items-center gap-6 px-9">
+                <TabsList variant="underline">
+                  <TabsTrigger value="details">Product details</TabsTrigger>
+                  <TabsTrigger value="stock-orders">Stock orders</TabsTrigger>
+                  <TabsTrigger value="sales">Sales</TabsTrigger>
+                  <TabsTrigger value="stock-history">Stock history</TabsTrigger>
+                </TabsList>
+              </div>
             </div>
 
             {/* ── Scrollable content ────────────────────────────────────── */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto px-9 pt-5 pb-5">
               {/* Product details */}
-              <TabsContent value="details" className="flex flex-col gap-4 p-6">
+              <TabsContent value="details" className="flex flex-col gap-3">
                 {/* Basic info */}
                 <SectionCard
                   title="Basic info"
@@ -219,6 +221,28 @@ export function ProductDetailDialog({
                     </div>
                   </FieldGrid>
                 </SectionCard>
+
+                {/* Photos — only when the product has photos */}
+                {product.photos && product.photos.length > 0 ? (
+                  <SectionCard
+                    title="Photos"
+                    action={
+                      <Button variant="secondary" size="sm" radius="full" onClick={handleEdit}>
+                        Edit
+                      </Button>
+                    }
+                  >
+                    <div className="grid grid-cols-5 gap-2">
+                      {product.photos.map((s) => (
+                        <ProductImagePlaceholder
+                          key={s}
+                          seed={`${product.id}-${s}`}
+                          className="aspect-square w-full"
+                        />
+                      ))}
+                    </div>
+                  </SectionCard>
+                ) : null}
 
                 {/* Stock info */}
                 <SectionCard
@@ -249,7 +273,7 @@ export function ProductDetailDialog({
               </TabsContent>
 
               {/* Placeholder tabs */}
-              <TabsContent value="stock-orders" className="p-6">
+              <TabsContent value="stock-orders">
                 <EmptyState
                   icon={ShoppingCartIcon}
                   title="No stock orders yet"
@@ -257,7 +281,7 @@ export function ProductDetailDialog({
                   className="py-16"
                 />
               </TabsContent>
-              <TabsContent value="sales" className="p-6">
+              <TabsContent value="sales">
                 <EmptyState
                   icon={ShoppingBagIcon}
                   title="No sales yet"
@@ -265,7 +289,7 @@ export function ProductDetailDialog({
                   className="py-16"
                 />
               </TabsContent>
-              <TabsContent value="stock-history" className="p-6">
+              <TabsContent value="stock-history">
                 <EmptyState
                   icon={PackageIcon}
                   title="No stock history yet"
