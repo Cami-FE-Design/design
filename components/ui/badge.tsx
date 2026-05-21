@@ -16,6 +16,10 @@ const badgeVariants = cva(
         "primary-soft": "bg-cami-violet-3 text-cami-violet-11",
         // Subtle muted treatment — for "Off" / inactive status indicators.
         muted: "bg-muted text-muted-foreground",
+        // Soft amber treatment — for non-blocking warnings (e.g. "Team member
+        // doesn't provide this service"). Mirrors primary-soft's tone-on-tone
+        // pattern using the cami-yellow scale, with a faint border.
+        warning: "border-cami-yellow-5 bg-cami-yellow-3 text-cami-yellow-11",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
         outline: "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
@@ -25,6 +29,7 @@ const badgeVariants = cva(
       size: {
         default: "h-5 min-w-5 px-1.5 pt-0 pb-px text-[11px] leading-none [&>svg]:size-3!",
         sm: "h-4 min-w-4 rounded-[4px] px-1 pt-0 pb-px text-[10px] leading-none [&>svg]:size-2.5!",
+        md: "h-6 min-w-6 px-2 pt-0 pb-px text-xs leading-none [&>svg]:size-3.5!",
       },
     },
     defaultVariants: {

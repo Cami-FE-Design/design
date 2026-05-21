@@ -16,6 +16,8 @@ type AppShellProps = React.ComponentProps<"div"> & {
   topbar?: React.ReactNode
   drawer?: React.ReactNode
   header?: React.ReactNode
+  /** Override the default header wrapper classes (min-h, padding). Pass "" for none. */
+  headerClassName?: string
 }
 
 export function AppShell({
@@ -26,6 +28,7 @@ export function AppShell({
   topbar,
   drawer,
   header,
+  headerClassName,
   ...props
 }: AppShellProps) {
   const renderMobile = breakpoint === "mobile" || breakpoint === undefined
@@ -63,7 +66,12 @@ export function AppShell({
             <div className="relative z-[2] w-full">{topbar ?? <AppMobileTopbar />}</div>
             <div className="relative z-[1] flex w-full flex-1 flex-col overflow-hidden rounded-tl-2xl rounded-tr-2xl bg-background shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]">
               {header !== null && (
-                <div className="flex min-h-[100px] w-full items-center justify-center px-3 py-6">
+                <div
+                  className={cn(
+                    "flex min-h-[100px] w-full items-center justify-center px-3 py-6",
+                    headerClassName,
+                  )}
+                >
                   {header ?? headerFallback}
                 </div>
               )}
@@ -100,7 +108,12 @@ export function AppShell({
             <div className="relative z-[2] w-full">{topbar ?? <AppTopbar />}</div>
             <div className="relative z-[1] flex w-full flex-1 flex-col overflow-hidden rounded-tl-2xl shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]">
               {header !== null && (
-                <div className="flex min-h-[100px] w-full items-center justify-center bg-background px-3 py-6">
+                <div
+                  className={cn(
+                    "flex min-h-[100px] w-full items-center justify-center bg-background px-3 py-6",
+                    headerClassName,
+                  )}
+                >
                   {header ?? headerFallback}
                 </div>
               )}

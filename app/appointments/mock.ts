@@ -1,0 +1,826 @@
+import type { AvatarSpecies } from "@/components/ui/avatar"
+
+export type MockBookingStatus =
+  | "booked"
+  | "confirmed"
+  | "checked-in"
+  | "ready-for-pickup"
+  | "completed"
+  | "cancelled"
+  | "no-show"
+
+export type MockServiceCategory =
+  | "grooming"
+  | "vet"
+  | "daycare"
+  | "boarding"
+  | "details"
+  | "welcome"
+
+export type MockStaff = {
+  id: string
+  name: string
+  role: string
+  photoUrl?: string
+}
+
+export type MockBooking = {
+  id: string
+  staffId: string
+  start: string
+  durationMin: number
+  status: MockBookingStatus
+  serviceCategory: MockServiceCategory
+  serviceName: string
+  clientName: string
+  petName?: string
+  petSpecies?: AvatarSpecies
+  priceMinor: number
+  isRecurring?: boolean
+  linkCount?: number
+  hasDeposit?: boolean
+  hasSafetyFlag?: boolean
+  // Popover-context fields. Optional so existing data stays valid.
+  bookingRef?: string
+  clientPhone?: string
+  notes?: string
+  tags?: string[]
+  relationshipPills?: string[]
+  agreementSigned?: boolean
+  intakeFormSubmitted?: boolean
+  groomingFrequency?: string
+  petBreed?: string
+  petWeight?: string
+  petCoat?: string
+  petSpayed?: boolean
+  depositAmountMinor?: number
+}
+
+export const MOCK_STAFF: MockStaff[] = [
+  { id: "aya-hassan", name: "Aya Hassan", role: "Senior Groomer" },
+  { id: "lena-petrov", name: "Lena Petrov", role: "Groomer" },
+  { id: "priya-nair", name: "Priya Nair", role: "Groomer" },
+  { id: "marco-rossi", name: "Marco Rossi", role: "Senior Groomer" },
+  { id: "joel-batumbya", name: "Joel Batumbya", role: "Junior Groomer" },
+  { id: "sarah-khoury", name: "Dr. Sarah Khoury", role: "Veterinarian" },
+  { id: "fatima-ali", name: "Fatima Ali", role: "Daycare Lead" },
+  { id: "hassan-kareem", name: "Hassan Kareem", role: "Boarding Attendant" },
+  { id: "olivia-park", name: "Olivia Park", role: "Trainer" },
+  { id: "diego-santos", name: "Diego Santos", role: "Vet Tech" },
+  { id: "mei-tanaka", name: "Mei Tanaka", role: "Groomer" },
+]
+
+export const DAY_START_HOUR = 7
+export const DAY_END_HOUR = 19
+export const PX_PER_MIN = 95 / 60
+export const COLUMN_HEADER_HEIGHT = 86
+export const TIME_AXIS_WIDTH = 48
+export const MIN_COLUMN_WIDTH = 120
+
+export function minutesFromDayStart(time: string): number {
+  const [h, m] = time.split(":").map(Number)
+  return (h! - DAY_START_HOUR) * 60 + (m ?? 0)
+}
+
+export function formatTimeRange(start: string, durationMin: number): string {
+  const [h, m] = start.split(":").map(Number)
+  const startTotal = h! * 60 + (m ?? 0)
+  const endTotal = startTotal + durationMin
+  const fmt = (total: number) => {
+    const hh = Math.floor(total / 60)
+    const mm = total % 60
+    return `${hh}:${mm.toString().padStart(2, "0")}`
+  }
+  return `${fmt(startTotal)} – ${fmt(endTotal)}`
+}
+
+export function formatAed(minor: number): string {
+  if (minor === 0) return "AED 0"
+  const aed = Math.round(minor / 100)
+  return `AED ${aed.toLocaleString("en-US")}`
+}
+
+export const MOCK_BOOKINGS: MockBooking[] = [
+  // Aya Hassan — column 1
+  {
+    id: "b-001",
+    staffId: "aya-hassan",
+    start: "9:00",
+    durationMin: 60,
+    status: "completed",
+    serviceCategory: "grooming",
+    serviceName: "Full Grooming SM",
+    clientName: "Millie Cassidy",
+    petName: "Bobo",
+    petSpecies: "dog",
+    priceMinor: 21000,
+  },
+  {
+    id: "b-002",
+    staffId: "aya-hassan",
+    start: "10:15",
+    durationMin: 60,
+    status: "ready-for-pickup",
+    serviceCategory: "grooming",
+    serviceName: "Wash & Blow Dry MD",
+    clientName: "Tom Cassidy",
+    clientPhone: "+971 50 374 5511",
+    petName: "Luna",
+    petSpecies: "cat",
+    petBreed: "British Shorthair",
+    petWeight: "4.2 kg",
+    petCoat: "Short",
+    petSpayed: true,
+    priceMinor: 14000,
+    hasDeposit: true,
+    depositAmountMinor: 5000,
+    bookingRef: "B-77342",
+    relationshipPills: ["Regular", "4 weeks"],
+    tags: ["Sensitive ears"],
+    notes: "Owner asked for extra paw moisturizer last visit.",
+    agreementSigned: true,
+    intakeFormSubmitted: true,
+    groomingFrequency: "4 weeks",
+  },
+  {
+    id: "b-003",
+    staffId: "aya-hassan",
+    start: "11:30",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Full Grooming MD",
+    clientName: "Karen Dougall",
+    clientPhone: "+971 50 491 2202",
+    petName: "Willow",
+    petSpecies: "dog",
+    petBreed: "Golden Retriever",
+    petWeight: "28 kg",
+    petCoat: "Long",
+    petSpayed: true,
+    priceMinor: 26000,
+    isRecurring: true,
+    bookingRef: "B-77351",
+    relationshipPills: ["VIP", "8 weeks"],
+    tags: ["Anxious"],
+    notes: "Prefers female groomers. Treat-motivated.",
+    agreementSigned: false,
+    intakeFormSubmitted: true,
+    groomingFrequency: "8 weeks",
+  },
+  {
+    id: "b-004",
+    staffId: "aya-hassan",
+    start: "13:00",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Deshedding LG",
+    clientName: "Luke Tan",
+    petName: "Rocky",
+    petSpecies: "dog",
+    priceMinor: 25000,
+    hasSafetyFlag: true,
+  },
+
+  // Lena Petrov — column 2
+  {
+    id: "b-005",
+    staffId: "lena-petrov",
+    start: "9:30",
+    durationMin: 60,
+    status: "completed",
+    serviceCategory: "grooming",
+    serviceName: "Full Grooming SM",
+    clientName: "Millie Cassidy",
+    petName: "Mochi",
+    petSpecies: "cat",
+    priceMinor: 18000,
+    linkCount: 1,
+  },
+  {
+    id: "b-006",
+    staffId: "lena-petrov",
+    start: "10:45",
+    durationMin: 15,
+    status: "confirmed",
+    serviceCategory: "details",
+    serviceName: "Nails Clip",
+    clientName: "Frances",
+    petName: "Duke",
+    petSpecies: "dog",
+    priceMinor: 3000,
+  },
+  {
+    id: "b-007",
+    staffId: "lena-petrov",
+    start: "11:15",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Wash & Blow Dry SM",
+    clientName: "Grace Kent",
+    petName: "Pepper",
+    petSpecies: "rabbit",
+    priceMinor: 10000,
+  },
+
+  // Priya Nair — column 3
+  {
+    id: "b-008",
+    staffId: "priya-nair",
+    start: "9:15",
+    durationMin: 60,
+    status: "completed",
+    serviceCategory: "grooming",
+    serviceName: "Wash & Blow Dry SM",
+    clientName: "Lisa Lyons Wilson",
+    petName: "Ralph",
+    petSpecies: "dog",
+    priceMinor: 10000,
+  },
+  {
+    id: "b-009",
+    staffId: "priya-nair",
+    start: "10:30",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Full Grooming SM",
+    clientName: "Amy",
+    petName: "Tofu",
+    petSpecies: "cat",
+    priceMinor: 18000,
+    linkCount: 1,
+  },
+  {
+    id: "b-010",
+    staffId: "priya-nair",
+    start: "12:00",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Full Grooming SM",
+    clientName: "Amy",
+    petName: "Muffin",
+    petSpecies: "cat",
+    priceMinor: 18000,
+    linkCount: 1,
+  },
+
+  // Marco Rossi — column 4
+  {
+    id: "b-011",
+    staffId: "marco-rossi",
+    start: "9:00",
+    durationMin: 60,
+    status: "completed",
+    serviceCategory: "grooming",
+    serviceName: "Deshedding LG",
+    clientName: "Luke Tan",
+    petName: "Shadow",
+    petSpecies: "dog",
+    priceMinor: 25000,
+  },
+  {
+    id: "b-012",
+    staffId: "marco-rossi",
+    start: "10:15",
+    durationMin: 15,
+    status: "completed",
+    serviceCategory: "details",
+    serviceName: "Ear Clean",
+    clientName: "Karen Dougall",
+    petName: "Pickle",
+    petSpecies: "cat",
+    priceMinor: 4000,
+  },
+  {
+    id: "b-013",
+    staffId: "marco-rossi",
+    start: "10:45",
+    durationMin: 60,
+    status: "checked-in",
+    serviceCategory: "grooming",
+    serviceName: "Full Grooming MD",
+    clientName: "Karen Dougall",
+    petName: "Pickle",
+    petSpecies: "cat",
+    priceMinor: 22000,
+    hasDeposit: true,
+  },
+  {
+    id: "b-014",
+    staffId: "marco-rossi",
+    start: "12:15",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Full Grooming LG",
+    clientName: "Evie Lelliott",
+    petName: "Olive",
+    petSpecies: "rabbit",
+    priceMinor: 30000,
+  },
+
+  // Joel Batumbya — column 5
+  {
+    id: "b-015",
+    staffId: "joel-batumbya",
+    start: "9:30",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Wash & Blow Dry SM",
+    clientName: "Kirsty Dingomal",
+    petName: "Biscuit",
+    petSpecies: "dog",
+    priceMinor: 10000,
+  },
+  {
+    id: "b-016",
+    staffId: "joel-batumbya",
+    start: "10:45",
+    durationMin: 45,
+    status: "booked",
+    serviceCategory: "grooming",
+    serviceName: "Wash Only SM",
+    clientName: "Nadia Martinez",
+    petName: "Coco",
+    petSpecies: "dog",
+    priceMinor: 8000,
+  },
+  {
+    id: "b-017",
+    staffId: "joel-batumbya",
+    start: "13:00",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "welcome",
+    serviceName: "Meet & Greet",
+    clientName: "Jamielee Haggerty",
+    petName: "Beans",
+    petSpecies: "dog",
+    priceMinor: 0,
+  },
+
+  // Dr. Sarah Khoury — column 6 (vet)
+  {
+    id: "b-018",
+    staffId: "sarah-khoury",
+    start: "10:00",
+    durationMin: 30,
+    status: "completed",
+    serviceCategory: "vet",
+    serviceName: "General Consultation",
+    clientName: "Lisa Lyons Wilson",
+    petName: "Ralph",
+    petSpecies: "dog",
+    priceMinor: 15000,
+  },
+  {
+    id: "b-019",
+    staffId: "sarah-khoury",
+    start: "11:00",
+    durationMin: 30,
+    status: "checked-in",
+    serviceCategory: "vet",
+    serviceName: "Annual Vaccination",
+    clientName: "Frances",
+    petName: "Duke",
+    petSpecies: "dog",
+    priceMinor: 18000,
+    hasSafetyFlag: true,
+  },
+
+  // Fatima Ali — column 7 (daycare)
+  {
+    id: "b-020",
+    staffId: "fatima-ali",
+    start: "8:00",
+    durationMin: 540,
+    status: "checked-in",
+    serviceCategory: "daycare",
+    serviceName: "Day Care · 12 pets",
+    clientName: "Daycare session",
+    priceMinor: 0,
+  },
+
+  // Hassan Kareem — column 8 (boarding desk, idle morning)
+  {
+    id: "b-021",
+    staffId: "hassan-kareem",
+    start: "11:30",
+    durationMin: 30,
+    status: "confirmed",
+    serviceCategory: "welcome",
+    serviceName: "Boarding Intake",
+    clientName: "Charmaine Hayes",
+    petName: "Snickers",
+    petSpecies: "dog",
+    priceMinor: 0,
+  },
+
+  // Olivia Park — column 9 (trainer)
+  {
+    id: "b-022",
+    staffId: "olivia-park",
+    start: "9:00",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "welcome",
+    serviceName: "Behavior Assessment",
+    clientName: "Violetta",
+    petName: "Marlow",
+    petSpecies: "dog",
+    priceMinor: 12000,
+  },
+
+  // Diego Santos — column 10 (vet tech)
+  {
+    id: "b-023",
+    staffId: "diego-santos",
+    start: "9:00",
+    durationMin: 30,
+    status: "confirmed",
+    serviceCategory: "vet",
+    serviceName: "Nail Trim",
+    clientName: "Karen Dougall",
+    petName: "Willow",
+    petSpecies: "dog",
+    priceMinor: 4000,
+  },
+  {
+    id: "b-024",
+    staffId: "diego-santos",
+    start: "10:00",
+    durationMin: 30,
+    status: "cancelled",
+    serviceCategory: "vet",
+    serviceName: "Microchip",
+    clientName: "Tom Cassidy",
+    petName: "Bobo",
+    petSpecies: "dog",
+    priceMinor: 8000,
+  },
+
+  // Mei Tanaka — column 11
+  {
+    id: "b-025",
+    staffId: "mei-tanaka",
+    start: "9:45",
+    durationMin: 45,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Wash Only MD",
+    clientName: "Frances",
+    petName: "Duke",
+    petSpecies: "dog",
+    priceMinor: 9000,
+  },
+  {
+    id: "b-026",
+    staffId: "mei-tanaka",
+    start: "11:00",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Full Grooming SM",
+    clientName: "Luke Tan",
+    petName: "Mango",
+    petSpecies: "bird",
+    priceMinor: 14000,
+  },
+  {
+    id: "b-027",
+    staffId: "mei-tanaka",
+    start: "12:30",
+    durationMin: 45,
+    status: "no-show",
+    serviceCategory: "grooming",
+    serviceName: "Wash & Blow Dry SM",
+    clientName: "test michelle",
+    petName: "Ginger",
+    petSpecies: "cat",
+    priceMinor: 10000,
+  },
+]
+
+// Without-pets demo dataset. Generic salon / wellness services to show how
+// the calendar reads when hasPets is false: client name is primary, no pet
+// chips, no grooming-report affordances, no agreement banner, etc.
+export const MOCK_BOOKINGS_WITHOUT_PETS: MockBooking[] = [
+  {
+    id: "wp-001",
+    staffId: "aya-hassan",
+    start: "9:00",
+    durationMin: 45,
+    status: "completed",
+    serviceCategory: "grooming",
+    serviceName: "Haircut",
+    clientName: "Megan O'Connor",
+    clientPhone: "+971 50 217 8804",
+    priceMinor: 18000,
+    bookingRef: "B-22101",
+    relationshipPills: ["Regular"],
+  },
+  {
+    id: "wp-002",
+    staffId: "aya-hassan",
+    start: "10:00",
+    durationMin: 60,
+    status: "ready-for-pickup",
+    serviceCategory: "grooming",
+    serviceName: "Color + Toner",
+    clientName: "Priya Suresh",
+    clientPhone: "+971 50 311 4501",
+    priceMinor: 32000,
+    hasDeposit: true,
+    depositAmountMinor: 10000,
+    bookingRef: "B-22118",
+    relationshipPills: ["VIP"],
+    tags: ["Sensitive scalp"],
+    notes: "Allergic to ammonia products.",
+  },
+  {
+    id: "wp-003",
+    staffId: "aya-hassan",
+    start: "11:30",
+    durationMin: 90,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Balayage",
+    clientName: "Aishling Mc Mahon",
+    clientPhone: "+971 50 998 3322",
+    priceMinor: 56000,
+    isRecurring: true,
+    bookingRef: "B-22134",
+    relationshipPills: ["VIP"],
+  },
+  {
+    id: "wp-004",
+    staffId: "lena-petrov",
+    start: "9:15",
+    durationMin: 30,
+    status: "completed",
+    serviceCategory: "details",
+    serviceName: "Blow Dry",
+    clientName: "Frances Lyon",
+    priceMinor: 9000,
+  },
+  {
+    id: "wp-005",
+    staffId: "lena-petrov",
+    start: "10:00",
+    durationMin: 60,
+    status: "checked-in",
+    serviceCategory: "grooming",
+    serviceName: "Cut & Blow Dry",
+    clientName: "Grace Kent",
+    clientPhone: "+971 50 871 6620",
+    priceMinor: 22000,
+    bookingRef: "B-22155",
+    relationshipPills: ["Regular"],
+    tags: ["No fragrance"],
+  },
+  {
+    id: "wp-006",
+    staffId: "lena-petrov",
+    start: "11:30",
+    durationMin: 45,
+    status: "booked",
+    serviceCategory: "details",
+    serviceName: "Root Tint",
+    clientName: "Nadia Martinez",
+    priceMinor: 16000,
+  },
+  {
+    id: "wp-007",
+    staffId: "priya-nair",
+    start: "9:00",
+    durationMin: 60,
+    status: "checked-in",
+    serviceCategory: "details",
+    serviceName: "Gel Manicure",
+    clientName: "Lisa Lyons Wilson",
+    priceMinor: 12000,
+  },
+  {
+    id: "wp-008",
+    staffId: "priya-nair",
+    start: "10:30",
+    durationMin: 75,
+    status: "confirmed",
+    serviceCategory: "details",
+    serviceName: "Mani + Pedi",
+    clientName: "Amy Patel",
+    priceMinor: 26000,
+  },
+  {
+    id: "wp-009",
+    staffId: "marco-rossi",
+    start: "9:00",
+    durationMin: 60,
+    status: "completed",
+    serviceCategory: "grooming",
+    serviceName: "Beard Trim + Hot Towel",
+    clientName: "Luke Tan",
+    priceMinor: 12000,
+  },
+  {
+    id: "wp-010",
+    staffId: "marco-rossi",
+    start: "10:30",
+    durationMin: 30,
+    status: "confirmed",
+    serviceCategory: "details",
+    serviceName: "Quick Trim",
+    clientName: "Diego Santos",
+    priceMinor: 8000,
+  },
+  {
+    id: "wp-011",
+    staffId: "marco-rossi",
+    start: "11:15",
+    durationMin: 60,
+    status: "booked",
+    serviceCategory: "grooming",
+    serviceName: "Skin Fade",
+    clientName: "Marco Vidal",
+    priceMinor: 15000,
+  },
+  {
+    id: "wp-012",
+    staffId: "sarah-khoury",
+    start: "10:00",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "welcome",
+    serviceName: "Consultation",
+    clientName: "Sara Vincente",
+    clientPhone: "+971 50 220 4488",
+    priceMinor: 0,
+    relationshipPills: ["First visit"],
+  },
+  {
+    id: "wp-013",
+    staffId: "olivia-park",
+    start: "9:00",
+    durationMin: 90,
+    status: "checked-in",
+    serviceCategory: "grooming",
+    serviceName: "Deep Tissue Massage",
+    clientName: "Violetta Romano",
+    priceMinor: 28000,
+  },
+  {
+    id: "wp-014",
+    staffId: "mei-tanaka",
+    start: "9:45",
+    durationMin: 60,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Hot Stone Massage",
+    clientName: "Frances Lyon",
+    priceMinor: 26000,
+  },
+  {
+    id: "wp-015",
+    staffId: "mei-tanaka",
+    start: "11:30",
+    durationMin: 45,
+    status: "no-show",
+    serviceCategory: "details",
+    serviceName: "Eyebrow Threading",
+    clientName: "Test Michelle",
+    priceMinor: 6000,
+  },
+]
+
+// ─────────────────────────────────────────────────────────────────────────
+// Service catalog mock — used by the create-booking flow (service picker).
+// ─────────────────────────────────────────────────────────────────────────
+
+export type MockServiceCatalogItem = {
+  id: string
+  category: MockServiceCategory
+  name: string
+  durationMin: number
+  priceMinor: number
+  /** Soft warnings rendered as amber pills under the row in the picker.
+   *  Used to surface eligibility issues (e.g. selected team member doesn't
+   *  provide this service, service not available on this day). */
+  warnings?: string[]
+}
+
+export const MOCK_SERVICE_CATALOG: MockServiceCatalogItem[] = [
+  {
+    id: "full-grooming-sm",
+    category: "grooming",
+    name: "Full Grooming SM",
+    durationMin: 90,
+    priceMinor: 21000,
+  },
+  {
+    id: "full-grooming-md",
+    category: "grooming",
+    name: "Full Grooming MD",
+    durationMin: 90,
+    priceMinor: 22000,
+  },
+  {
+    id: "full-grooming-lg",
+    category: "grooming",
+    name: "Full Grooming LG",
+    durationMin: 120,
+    priceMinor: 26000,
+    warnings: ["Team member doesn't provide this service"],
+  },
+  {
+    id: "deshedding-lg",
+    category: "grooming",
+    name: "Deshedding LG",
+    durationMin: 90,
+    priceMinor: 25000,
+  },
+  {
+    id: "puppy-first",
+    category: "grooming",
+    name: "Puppy First Groom",
+    durationMin: 60,
+    priceMinor: 18000,
+  },
+  {
+    id: "wash-blow-sm",
+    category: "grooming",
+    name: "Wash & Blow Dry SM",
+    durationMin: 45,
+    priceMinor: 18000,
+  },
+  {
+    id: "wash-blow-md",
+    category: "grooming",
+    name: "Wash & Blow Dry MD",
+    durationMin: 60,
+    priceMinor: 20000,
+  },
+  {
+    id: "wash-only-sm",
+    category: "grooming",
+    name: "Wash Only SM",
+    durationMin: 30,
+    priceMinor: 8000,
+  },
+  { id: "nails-clip", category: "details", name: "Nails Clip", durationMin: 15, priceMinor: 4000 },
+  { id: "ear-clean", category: "details", name: "Ear Clean", durationMin: 15, priceMinor: 4000 },
+  {
+    id: "teeth-clean",
+    category: "details",
+    name: "Teeth Clean",
+    durationMin: 30,
+    priceMinor: 8000,
+  },
+  { id: "daycare-day", category: "daycare", name: "Day Care", durationMin: 540, priceMinor: 15000 },
+  {
+    id: "boarding-night",
+    category: "boarding",
+    name: "Boarding (per night)",
+    durationMin: 1440,
+    priceMinor: 20000,
+  },
+  {
+    id: "vet-checkup",
+    category: "vet",
+    name: "Vet Checkup",
+    durationMin: 30,
+    priceMinor: 15000,
+    warnings: ["Team member doesn't provide this service"],
+  },
+  { id: "meet-greet", category: "welcome", name: "Meet & Greet", durationMin: 30, priceMinor: 0 },
+]
+
+export const SERVICE_CATEGORY_LABEL: Record<MockServiceCategory, string> = {
+  grooming: "Grooming",
+  vet: "Vet",
+  daycare: "Daycare",
+  boarding: "Boarding",
+  details: "Details",
+  welcome: "Welcome",
+}
+
+// Left-bar accent color per service category in the picker list.
+export const SERVICE_CATEGORY_ACCENT: Record<MockServiceCategory, string> = {
+  grooming: "bg-cami-violet-9",
+  vet: "bg-tomato-9",
+  daycare: "bg-cami-yellow-9",
+  boarding: "bg-cami-sage-9",
+  details: "bg-cami-pink-9",
+  welcome: "bg-lime-9",
+}
+
+export function formatDuration(durationMin: number): string {
+  if (durationMin < 60) return `${durationMin}min`
+  const h = Math.floor(durationMin / 60)
+  const m = durationMin % 60
+  return m === 0 ? `${h}h` : `${h}h ${m}min`
+}

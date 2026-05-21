@@ -32,7 +32,12 @@ function pickPalette(seed: string) {
 }
 
 function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
+  // Skip honorifics like "Dr.", "Mr.", "Prof." (anything ending in a period)
+  // so "Dr. Sarah Khoury" → SK not DK.
+  const parts = name
+    .trim()
+    .split(/\s+/)
+    .filter((p) => p && !p.endsWith("."))
   if (parts.length === 0) return "?"
   if (parts.length === 1) return parts[0]![0]!.toUpperCase()
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase()

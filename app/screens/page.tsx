@@ -306,6 +306,18 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Business app, appointments (PRO-68)",
+    description:
+      "E4 Appointment management. Slice 2 of 5 (foundations spec → people grid → today agenda + popover → create-sheet → daycare/boarding). Front-desk scheduling on the People grid: 11 staff columns × time rows, booking blocks color-coded by service category, current-time line, header date controls.",
+    screens: [
+      {
+        path: "/appointments",
+        label: "People grid · Day view",
+        note: "11 staff, ~25 fixture bookings, mid-day now-line. Click a block logs to console; popover ships in slice 3.",
+      },
+    ],
+  },
+  {
     title: "Demos & playground",
     description: "Internal references for shell layout and component states.",
     screens: [
