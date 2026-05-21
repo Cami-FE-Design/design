@@ -3,8 +3,14 @@
 import { XIcon } from "lucide-react"
 import Link from "next/link"
 import { useRef, useState } from "react"
-import { ProductForm } from "@/components/blocks/product-form"
+import {
+  PRODUCT_SECTIONS,
+  ProductForm,
+  type ProductFormSectionId,
+  type ProductSectionId,
+} from "@/components/blocks/product-form"
 import { ProductPhotosCard } from "@/components/blocks/product-photos-card"
+import { SectionNav } from "@/components/blocks/section-nav"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -12,6 +18,8 @@ export default function NewProductPage() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const [showHeaderTitle, setShowHeaderTitle] = useState(false)
+  const [section, setSection] = useState<ProductSectionId>("basics")
+  const formSection: ProductFormSectionId = section === "photos" ? "basics" : section
 
   function handleScroll() {
     const el = scrollRef.current
@@ -64,7 +72,7 @@ export default function NewProductPage() {
             </Button>
             {/* Save */}
             <Button size="lg" radius="full" className="hidden lg:inline-flex">
-              Save
+              Add product
             </Button>
           </div>
         </div>
@@ -78,22 +86,27 @@ export default function NewProductPage() {
       >
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-10">
           {/* Big page title (fades out of view on scroll → header title fades in) */}
-          <h1
-            ref={titleRef}
-            className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
-          >
-            Add new product
-          </h1>
+          <div className="flex flex-col gap-3">
+            <h1
+              ref={titleRef}
+              className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
+            >
+              Add new product
+            </h1>
+            <p className="max-w-2xl text-base leading-6 text-muted-foreground">
+              Only the product name is required. Everything else can be filled later from the
+              product page.
+            </p>
+          </div>
 
-          <div className="flex gap-8">
-            {/* Left: form sections */}
-            <div className="flex min-w-0 flex-1 flex-col gap-6">
-              <ProductForm />
-            </div>
+          <div className="grid min-w-0 grid-cols-1 gap-8 md:grid-cols-[260px_minmax(0,1fr)]">
+            <SectionNav sections={PRODUCT_SECTIONS} active={section} onChange={setSection} />
 
-            {/* Right: product photos (sticky relative to scroll container) */}
-            <div className="w-72 shrink-0">
-              <div className="sticky top-0">
+            <div className="min-w-0">
+              <div hidden={section === "photos"}>
+                <ProductForm section={formSection} />
+              </div>
+              <div hidden={section !== "photos"}>
                 <ProductPhotosCard />
               </div>
             </div>

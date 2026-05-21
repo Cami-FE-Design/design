@@ -3,9 +3,16 @@
 import { XIcon } from "lucide-react"
 import Link from "next/link"
 import { use, useRef, useState } from "react"
-import { ProductForm, type ProductFormInitialValues } from "@/components/blocks/product-form"
+import {
+  PRODUCT_SECTIONS,
+  ProductForm,
+  type ProductFormInitialValues,
+  type ProductFormSectionId,
+  type ProductSectionId,
+} from "@/components/blocks/product-form"
 import { ProductPhotosCard } from "@/components/blocks/product-photos-card"
 import { MOCK_PRODUCTS } from "@/components/blocks/products-table"
+import { SectionNav } from "@/components/blocks/section-nav"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -33,6 +40,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const scrollRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const [showHeaderTitle, setShowHeaderTitle] = useState(false)
+  const [section, setSection] = useState<ProductSectionId>("basics")
+  const formSection: ProductFormSectionId = section === "photos" ? "basics" : section
 
   function handleScroll() {
     const el = scrollRef.current
@@ -112,13 +121,14 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             Edit product
           </h1>
 
-          <div className="flex gap-8">
-            <div className="flex min-w-0 flex-1 flex-col gap-6">
-              <ProductForm initialValues={initialValues} />
-            </div>
+          <div className="grid min-w-0 grid-cols-1 gap-8 md:grid-cols-[260px_minmax(0,1fr)]">
+            <SectionNav sections={PRODUCT_SECTIONS} active={section} onChange={setSection} />
 
-            <div className="w-72 shrink-0">
-              <div className="sticky top-0">
+            <div className="min-w-0">
+              <div hidden={section === "photos"}>
+                <ProductForm initialValues={initialValues} section={formSection} />
+              </div>
+              <div hidden={section !== "photos"}>
                 <ProductPhotosCard />
               </div>
             </div>

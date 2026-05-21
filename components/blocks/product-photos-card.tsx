@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
 async function getCroppedImg(imageSrc: string, pixelCrop: Area): Promise<string> {
@@ -288,10 +289,12 @@ export function ProductPhotosCard() {
   return (
     <>
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
-        <div className="flex items-start justify-between px-5 py-4">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Product photos</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+        <div className="flex items-start justify-between gap-3 px-6 py-5">
+          <div className="flex min-w-0 flex-col gap-1">
+            <h2 className="font-heading text-2xl font-semibold leading-9 text-foreground">
+              Product photos
+            </h2>
+            <p className="text-sm leading-5 text-muted-foreground">
               {isSwapping
                 ? "Click another photo to swap positions."
                 : "Click a photo to reorder, or add more below."}
@@ -301,14 +304,15 @@ export function ProductPhotosCard() {
             <button
               type="button"
               onClick={() => setSwapSourceId(null)}
-              className="mt-0.5 shrink-0 text-xs text-muted-foreground hover:text-foreground"
+              className="shrink-0 text-xs text-muted-foreground hover:text-foreground"
             >
               Cancel
             </button>
           )}
         </div>
+        <Separator />
 
-        <div className="flex flex-col gap-2 px-4 pb-4">
+        <div className="flex flex-col gap-2 px-6 py-5">
           {/* ── No photos yet ─────────────────────────────────────────────── */}
           {photos.length === 0 &&
             (uploading ? (
