@@ -16,6 +16,7 @@ import {
   LightbulbIcon,
   MailIcon,
   MapPinIcon,
+  PackageIcon,
   PencilIcon,
   PercentIcon,
   PhoneIcon,
@@ -1370,11 +1371,30 @@ export function PlaygroundShowcase() {
           </div>
         </Row>
         <Row label="People grid (clipped to 600px)">
-          <div className="h-[600px] w-full">
+          <div className="h-150 w-full">
             <PeopleGrid
               staff={MOCK_STAFF}
               bookings={MOCK_BOOKINGS}
               nowMinutes={(11 - 7) * 60 + 30}
+            />
+          </div>
+        </Row>
+      </Section>
+
+      {/* ── Products ─────────────────────────────────────────────────────── */}
+      <Section title="Products — empty state">
+        <Row label="No products yet">
+          <div className="w-full max-w-lg rounded-2xl border border-dashed border-border bg-card">
+            <EmptyState
+              icon={PackageIcon}
+              title="No products yet"
+              description="Add your first product to get started"
+              action={
+                <Button radius="full" className="h-9 px-4">
+                  Add product
+                </Button>
+              }
+              className="py-16"
             />
           </div>
         </Row>

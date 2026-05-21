@@ -455,7 +455,7 @@ function AccessSection({
 }) {
   const StateIcon = STATE_ICON[business.state]
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+    <section className="overflow-hidden rounded-2xl border border-border/60 bg-background">
       <DropdownMenu>
         <DropdownMenuTrigger asChild disabled={disabled}>
           <button

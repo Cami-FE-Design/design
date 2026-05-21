@@ -318,6 +318,38 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Pet Business, products (PRO-product)",
+    description:
+      "Product catalog prototype. Listing page with empty/populated toggle, full-screen add-product takeover with brand, category, and supplier pickers.",
+    screens: [
+      {
+        path: "/products",
+        label: "Products listing, populated",
+        note: "Table with 5 mock products, tabs (All/Active/Archived), search. Click the small toggle at the bottom-right to switch to empty state.",
+      },
+      {
+        path: "/products",
+        label: "Products listing, empty state",
+        note: "Click 'Show empty state' toggle at the bottom-right of the populated listing.",
+      },
+      {
+        path: "/products?product=p1",
+        label: "Product detail dialog",
+        note: "Opens the detail dialog over the listing via ?product=<id>. Tabs: Product details, Stock orders, Sales, Stock history. More-actions menu has Add stock, Remove stock, Edit, Delete. Try p1–p5.",
+      },
+      {
+        path: "/products/new",
+        label: "Add product, full-screen takeover",
+        note: "Basic info (brand/category pickers), Pricing (retail sales + commission toggles), Inventory (SKU list, supplier picker, stock tracking). X closes back to /products.",
+      },
+      {
+        path: "/products/p1/edit",
+        label: "Edit product, full-screen takeover",
+        note: "Same layout as /products/new, pre-populated from a MOCK_PRODUCTS row. Try p1–p5 for different products; unknown ids render a 'Product not found' fallback.",
+      },
+    ],
+  },
+  {
     title: "Demos & playground",
     description: "Internal references for shell layout and component states.",
     screens: [
