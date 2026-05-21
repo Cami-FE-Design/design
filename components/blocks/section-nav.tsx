@@ -7,6 +7,8 @@ export type SectionItem<TId extends string> = {
   id: TId
   label: string
   icon: LucideIcon
+  /** Optional short tag rendered after the label (e.g. "WIP", "Beta"). */
+  badge?: string
 }
 
 type SectionNavProps<TId extends string> = {
@@ -42,6 +44,11 @@ export function SectionNav<TId extends string>({
               >
                 <Icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
                 <span className="flex-1 truncate font-medium">{item.label}</span>
+                {item.badge ? (
+                  <span className="shrink-0 rounded-full bg-yellow-3 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-11">
+                    {item.badge}
+                  </span>
+                ) : null}
               </button>
             </li>
           )

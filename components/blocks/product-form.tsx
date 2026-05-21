@@ -174,10 +174,11 @@ export const PRODUCT_SECTIONS: Array<{
   id: ProductSectionId
   label: string
   icon: LucideIcon
+  badge?: string
 }> = [
   { id: "basics", label: "Basic info", icon: InfoIcon },
   { id: "pricing", label: "Pricing", icon: BadgeDollarSignIcon },
-  { id: "inventory", label: "Inventory", icon: BoxesIcon },
+  { id: "inventory", label: "Inventory", icon: BoxesIcon, badge: "WIP" },
   { id: "photos", label: "Photos", icon: ImageIcon },
 ]
 
