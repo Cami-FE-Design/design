@@ -30,7 +30,11 @@ export const topMenu: MenuItem[] = [
   {
     icon: CalendarIcon,
     label: "Schedules",
-    children: [{ label: "Appointments" }, { label: "Boarding" }, { label: "Day Care" }],
+    children: [
+      { label: "Appointments", href: "/appointments" },
+      { label: "Boarding" },
+      { label: "Day Care" },
+    ],
   },
   {
     icon: ContactIcon,
@@ -71,7 +75,7 @@ export const topMenu: MenuItem[] = [
   {
     icon: SprayCanIcon,
     label: "Products",
-    children: [{ label: "Products" }, { label: "Suppliers" }],
+    children: [{ label: "Products", href: "/products" }, { label: "Suppliers" }],
   },
   {
     icon: UsersIcon,

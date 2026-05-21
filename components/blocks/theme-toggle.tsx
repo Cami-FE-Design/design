@@ -2,22 +2,31 @@
 
 import { MonitorIcon, MoonIcon, SunIcon } from "lucide-react"
 import { useTheme } from "next-themes"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+
+const OPTIONS = [
+  { value: "light", label: "Light", icon: SunIcon },
+  { value: "dark", label: "Dark", icon: MoonIcon },
+  { value: "system", label: "System", icon: MonitorIcon },
+] as const
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
-  const options = [
-    { value: "light", label: "Light", icon: SunIcon },
-    { value: "dark", label: "Dark", icon: MoonIcon },
-    { value: "system", label: "System", icon: MonitorIcon },
-  ] as const
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  // Until mount, theme is unknown on the server. Render all buttons as ghost
+  // so server and first-client HTML match, then activate the right one.
+  const activeTheme = mounted ? theme : undefined
+
   return (
     <div className="inline-flex items-center gap-1 rounded-full border border-border bg-card p-1">
-      {options.map(({ value, label, icon: Icon }) => (
+      {OPTIONS.map(({ value, label, icon: Icon }) => (
         <Button
           key={value}
           size="sm"
-          variant={theme === value ? "default" : "ghost"}
+          variant={activeTheme === value ? "default" : "ghost"}
           onClick={() => setTheme(value)}
           aria-label={`Switch to ${label} theme`}
         >

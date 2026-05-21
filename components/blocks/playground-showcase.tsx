@@ -16,6 +16,7 @@ import {
   LightbulbIcon,
   MailIcon,
   MapPinIcon,
+  PackageIcon,
   PencilIcon,
   PercentIcon,
   PhoneIcon,
@@ -29,6 +30,14 @@ import {
 import { useState } from "react"
 import { toast } from "sonner"
 
+import {
+  MOCK_BOOKINGS,
+  MOCK_STAFF,
+  type MockBookingStatus,
+  type MockServiceCategory,
+} from "@/app/appointments/mock"
+import { AppointmentBlock } from "@/components/blocks/appointment-block"
+import { AppointmentsToolbar } from "@/components/blocks/appointments-toolbar"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
@@ -36,6 +45,7 @@ import { EmptyState } from "@/components/blocks/empty-state"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
+import { PeopleGrid } from "@/components/blocks/people-grid"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
 import { SectionCard } from "@/components/blocks/section-card"
@@ -50,6 +60,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -933,8 +944,11 @@ export function PlaygroundShowcase() {
         <PetEditSheet open={petEditOpen} onOpenChange={setPetEditOpen} mode="add" />
       </Section>
 
-      <Section title="Dialog, Sheet, Popover, Dropdown, Tooltip">
-        <Row label="Dialog">
+      <Section
+        title="Dialog"
+        description="Centered modal. Per cami terminology, Detail surfaces use this; Add / Edit use the full-screen takeover instead."
+      >
+        <Row label="Basic">
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline">Open dialog</Button>
@@ -947,12 +961,86 @@ export function PlaygroundShowcase() {
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="ghost">Cancel</Button>
+                <DialogClose asChild>
+                  <Button variant="ghost">Cancel</Button>
+                </DialogClose>
                 <Button>Confirm</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
         </Row>
+        <Row label="Destructive confirm">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">Delete client</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Delete this client?</DialogTitle>
+                <DialogDescription>
+                  Millie Cassidy and her 2 pets will be removed. This cannot be undone.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="ghost">Cancel</Button>
+                </DialogClose>
+                <Button variant="destructive">Delete</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </Row>
+        <Row label="With form body">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">Add note</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add a note</DialogTitle>
+                <DialogDescription>
+                  Private to your business. Visible to all staff.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-3 py-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="dialog-note-title">Title</Label>
+                  <Input id="dialog-note-title" placeholder="e.g. Prefers morning slots" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="dialog-note-body">Note</Label>
+                  <Textarea id="dialog-note-body" placeholder="Add details…" rows={3} />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="ghost">Cancel</Button>
+                </DialogClose>
+                <Button>Save note</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </Row>
+        <Row label="Title only">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">Minimal dialog</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Heads up</DialogTitle>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button>Got it</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </Row>
+      </Section>
+
+      <Section title="Sheet, Popover, Dropdown, Tooltip">
         <Row label="Sheet">
           <Sheet>
             <SheetTrigger asChild>
@@ -1163,6 +1251,150 @@ export function PlaygroundShowcase() {
               businessName="Shampooch JVC"
               defaultCollapsed
               onExit={() => toast.success("Impersonation stopped")}
+            />
+          </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="Appointments — booking block"
+        description="Booking card rendered on the People grid. Color carries service category, fill saturation and border style overlay status. All content elements (time, price, name, service, icons) render at every size; truncation handles the squeeze."
+      >
+        <Row label="Sizes (15/30/60/180 min)">
+          {[15, 30, 60, 180].map((min) => (
+            <div
+              key={min}
+              className="relative w-[148px] border border-border/40 bg-muted/20"
+              style={{ height: Math.max(28, min * (95 / 60)) }}
+            >
+              <AppointmentBlock
+                booking={{
+                  id: `demo-${min}`,
+                  staffId: "demo",
+                  start: "10:00",
+                  durationMin: min,
+                  status: "confirmed",
+                  serviceCategory: "grooming",
+                  serviceName: min < 30 ? "Nails Clip" : "Wash & Blow Dry SM",
+                  clientName: "Tom Cassidy",
+                  petName: "Luna",
+                  petSpecies: "cat",
+                  priceMinor: min < 30 ? 3000 : 14000,
+                  hasDeposit: min >= 60,
+                }}
+                top={0}
+                height={Math.max(24, min * (95 / 60))}
+              />
+            </div>
+          ))}
+        </Row>
+        <Row label="Status variants">
+          {(
+            [
+              "booked",
+              "confirmed",
+              "checked-in",
+              "ready-for-pickup",
+              "completed",
+              "cancelled",
+              "no-show",
+            ] as MockBookingStatus[]
+          ).map((status) => (
+            <div
+              key={status}
+              className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20"
+            >
+              <AppointmentBlock
+                booking={{
+                  id: `demo-${status}`,
+                  staffId: "demo",
+                  start: "10:00",
+                  durationMin: 60,
+                  status,
+                  serviceCategory: "grooming",
+                  serviceName: "Full Grooming SM",
+                  clientName: "Karen Dougall",
+                  petName: "Willow",
+                  petSpecies: "dog",
+                  priceMinor: 21000,
+                }}
+                top={0}
+                height={95}
+              />
+            </div>
+          ))}
+        </Row>
+        <Row label="Service categories">
+          {(
+            [
+              { cat: "grooming", svc: "Wash & Blow Dry" },
+              { cat: "vet", svc: "Vaccination" },
+              { cat: "daycare", svc: "Day Care · 12 pets" },
+              { cat: "boarding", svc: "Boarding Stay" },
+              { cat: "details", svc: "Nails Clip" },
+              { cat: "welcome", svc: "Meet & Greet" },
+            ] as Array<{ cat: MockServiceCategory; svc: string }>
+          ).map(({ cat, svc }) => (
+            <div
+              key={cat}
+              className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20"
+            >
+              <AppointmentBlock
+                booking={{
+                  id: `demo-${cat}`,
+                  staffId: "demo",
+                  start: "10:00",
+                  durationMin: 60,
+                  status: "confirmed",
+                  serviceCategory: cat,
+                  serviceName: svc,
+                  clientName: "Frances",
+                  petName: "Duke",
+                  petSpecies: "dog",
+                  priceMinor: 14000,
+                }}
+                top={0}
+                height={95}
+              />
+            </div>
+          ))}
+        </Row>
+      </Section>
+
+      <Section
+        title="Appointments — toolbar and people grid"
+        description="Calendar toolbar (Today, date, view mode, filters, new) above an 11-column staff × time grid. Right-side filters are placeholders pending tighter Figma reference."
+      >
+        <Row label="Toolbar">
+          <div className="w-full max-w-5xl rounded-2xl border border-border/60 bg-card">
+            <AppointmentsToolbar date="2026-05-11" viewMode="day" />
+          </div>
+        </Row>
+        <Row label="People grid (clipped to 600px)">
+          <div className="h-150 w-full">
+            <PeopleGrid
+              staff={MOCK_STAFF}
+              bookings={MOCK_BOOKINGS}
+              nowMinutes={(11 - 7) * 60 + 30}
+            />
+          </div>
+        </Row>
+      </Section>
+
+      {/* ── Products ─────────────────────────────────────────────────────── */}
+      <Section title="Products — empty state">
+        <Row label="No products yet">
+          <div className="w-full max-w-lg rounded-2xl border border-dashed border-border bg-card">
+            <EmptyState
+              icon={PackageIcon}
+              title="No products yet"
+              description="Add your first product to get started"
+              action={
+                <Button radius="full" className="h-9 px-4">
+                  Add product
+                </Button>
+              }
+              className="py-16"
             />
           </div>
         </Row>
