@@ -266,6 +266,15 @@ type NewAppointmentSheetProps = {
   startTime?: string
   /** Pet-business mode: shows client + pet picker. Without-pets is the generic shell. */
   hasPets?: boolean
+  /**
+   * `create` (default): brand-new appointment. Status is fixed to `booked`, the
+   * status pill is hidden, and the primary CTA is "Save".
+   * `edit`: existing appointment. Status pill is interactive, primary CTA is
+   * "Update", and the post-save lifecycle transitions are available.
+   */
+  flow?: "create" | "edit"
+  /** Initial status for edit mode (defaults to "confirmed"). Ignored in create. */
+  initialStatus?: MockBookingStatus
 }
 
 export function NewAppointmentSheet({
@@ -274,8 +283,11 @@ export function NewAppointmentSheet({
   date,
   startTime = "10:00",
   hasPets = true,
+  flow = "create",
+  initialStatus = "confirmed",
 }: NewAppointmentSheetProps) {
-  const [status, setStatus] = useState<MockBookingStatus>("booked")
+  const isEdit = flow === "edit"
+  const [status, setStatus] = useState<MockBookingStatus>(isEdit ? initialStatus : "booked")
   const [selectedClient, setSelectedClient] = useState<SelectedClient | null>(null)
   const [pets, setPets] = useState<SelectedPet[]>(() => defaultPets(startTime))
   const availablePets = computeAvailablePets(selectedClient, pets)
@@ -501,7 +513,7 @@ export function NewAppointmentSheet({
       // with the demo seed pet + services re-applied.
       setPets(defaultPets(startTime))
       setActivePetUid(null)
-      setStatus("booked")
+      setStatus(isEdit ? initialStatus : "booked")
       setMode("appointment")
     }
     onOpenChange(next)
@@ -564,7 +576,13 @@ export function NewAppointmentSheet({
             </header>
             <header
               data-slot="appointment-sheet-header"
-              className="flex items-center gap-3 bg-sand-2 px-6 py-7 text-foreground"
+              data-status={status}
+              data-flow={flow}
+              className={cn(
+                "flex items-center gap-3 px-6 py-7 transition-colors",
+                isEdit ? theme.fill : "bg-sand-2",
+                isEdit ? theme.text : "text-foreground",
+              )}
             >
               <DateAvatarCard date={date} />
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -575,7 +593,12 @@ export function NewAppointmentSheet({
                 >
                   {dateLabel}
                 </button>
-                <div className="text-xs leading-4 text-muted-foreground">
+                <div
+                  className={cn(
+                    "text-xs leading-4",
+                    isEdit ? theme.subText : "text-muted-foreground",
+                  )}
+                >
                   <button type="button" className="font-medium hover:underline">
                     {timeLabel}
                   </button>
@@ -590,11 +613,43 @@ export function NewAppointmentSheet({
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
+                {isEdit ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+                        aria-label={`Status: ${statusLabel}. Change status.`}
+                      >
+                        {statusLabel}
+                        <ChevronDownIcon className="size-4" aria-hidden />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                      {STATUS_OPTIONS.map((option) => (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onSelect={() => setStatus(option.value)}
+                          variant={option.destructive ? "destructive" : "default"}
+                        >
+                          <option.Icon className="size-4" aria-hidden />
+                          {option.label}
+                          {option.value === status ? (
+                            <CheckIcon className="ml-auto size-4" aria-hidden />
+                          ) : null}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="inline-flex size-10 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-muted"
+                      className={cn(
+                        "inline-flex size-10 items-center justify-center rounded-full border border-current/20 bg-transparent transition-opacity hover:opacity-80",
+                        isEdit ? theme.text : "text-foreground",
+                      )}
                       aria-label="Quick actions"
                     >
                       <MoreHorizontalIcon className="size-5" aria-hidden />
@@ -679,7 +734,7 @@ export function NewAppointmentSheet({
               {note !== null ? (
                 <section data-slot="notes-section" className="flex flex-col gap-3">
                   <h2 className="text-lg font-semibold leading-7 text-foreground">Notes</h2>
-                  <div className="group/note relative rounded-2xl border border-border/60 bg-card p-4 transition-colors hover:bg-muted/30">
+                  <div className="group/note relative min-h-24 rounded-2xl border border-border/60 bg-card p-4 transition-colors hover:bg-muted/30">
                     <button
                       type="button"
                       onClick={() => setNoteDialogOpen(true)}
@@ -747,7 +802,7 @@ export function NewAppointmentSheet({
             >
               {hasPets ? (
                 <Button radius="full" disabled={!canSave} className="w-full">
-                  Save
+                  {isEdit ? "Checkout" : "Save"}
                 </Button>
               ) : (
                 <div className="flex items-center justify-between gap-3">
@@ -766,7 +821,7 @@ export function NewAppointmentSheet({
                       Checkout
                     </Button>
                     <Button radius="full" disabled={!canSave}>
-                      Save
+                      {isEdit ? "Checkout" : "Save"}
                     </Button>
                   </div>
                 </div>
