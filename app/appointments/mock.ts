@@ -54,6 +54,10 @@ export type MockBooking = {
   petCoat?: string
   petSpayed?: boolean
   depositAmountMinor?: number
+  /** True for the client's very first booking (used by the "First visit" pill in the detail sheet). */
+  isFirstVisit?: boolean
+  /** Recurrence label shown in the sheet header below the date, e.g. "Doesn't repeat" / "Every 4 weeks". */
+  recurrence?: string
 }
 
 export const MOCK_STAFF: MockStaff[] = [

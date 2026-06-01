@@ -70,7 +70,7 @@ const STATUS_META: Record<MockBookingStatus, StatusMeta> = {
   },
   // intent: teal/5 + teal/12 + teal/11
   "checked-in": {
-    label: "Checked in",
+    label: "Arrived",
     Icon: ArrowRightToLineIcon,
     fill: "bg-cami-sage-3",
     foreground: "text-cami-sage-12",
@@ -78,7 +78,7 @@ const STATUS_META: Record<MockBookingStatus, StatusMeta> = {
   },
   // intent: amber/5 + amber/12 + amber/11
   "ready-for-pickup": {
-    label: "Ready for pickup",
+    label: "Started",
     Icon: BellRingIcon,
     fill: "bg-cami-yellow-3",
     foreground: "text-cami-yellow-12",
@@ -93,7 +93,7 @@ const STATUS_META: Record<MockBookingStatus, StatusMeta> = {
   },
   // intent: olive/5 + olive/12 + olive/11
   cancelled: {
-    label: "Cancelled",
+    label: "Canceled",
     Icon: XIcon,
     fill: "bg-cami-gray-3",
     foreground: "text-cami-gray-11",

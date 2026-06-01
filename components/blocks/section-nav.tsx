@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils"
 export type SectionItem<TId extends string> = {
   id: TId
   label: string
-  icon: LucideIcon
+  /** Optional leading icon. When omitted, the label sits flush-left. */
+  icon?: LucideIcon
   /** Optional short tag rendered after the label (e.g. "WIP", "Beta"). */
   badge?: string
 }
@@ -42,10 +43,12 @@ export function SectionNav<TId extends string>({
                     : "text-foreground hover:bg-muted/50",
                 )}
               >
-                <Icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+                {Icon ? (
+                  <Icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
+                ) : null}
                 <span className="flex-1 truncate font-medium">{item.label}</span>
                 {item.badge ? (
-                  <span className="shrink-0 rounded-full bg-yellow-3 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-11">
+                  <span className="shrink-0 rounded-full bg-cami-yellow-3 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cami-yellow-11">
                     {item.badge}
                   </span>
                 ) : null}

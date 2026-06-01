@@ -239,7 +239,7 @@ const STATUS_OPTIONS: StatusOption[] = [
   { value: "checked-in", label: "Arrived", Icon: MapPinIcon },
   { value: "ready-for-pickup", label: "Started", Icon: PlayIcon },
   { value: "no-show", label: "No-show", Icon: EyeOffIcon, destructive: true },
-  { value: "cancelled", label: "Cancel", Icon: CalendarXIcon, destructive: true },
+  { value: "cancelled", label: "Canceled", Icon: CalendarXIcon, destructive: true },
 ]
 
 // Hero-header palette. Passive/done states use pastel fill tokens (step 5/6)
@@ -1413,6 +1413,6 @@ const STATUS_FALLBACK_LABEL: Record<MockBookingStatus, string> = {
   "checked-in": "Arrived",
   "ready-for-pickup": "Started",
   completed: "Completed",
-  cancelled: "Cancelled",
+  cancelled: "Canceled",
   "no-show": "No-show",
 }

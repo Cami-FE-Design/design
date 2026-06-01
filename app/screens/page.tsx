@@ -350,6 +350,38 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Pet Business, sales (PRO-sales)",
+    description:
+      "Sales reporting hub. Daily Summary is the first page; sibling pages (Appointments, Invoices, Payments) are reached from the Sales group in the app sidebar.",
+    screens: [
+      {
+        path: "/sales/daily-summary",
+        label: "Daily Summary",
+        note: "Date stepper at the top (prev/Today/next + calendar popover), then side-by-side Transaction summary and Cash movement summary tables matching the figma values. Negative amounts render in tomato-11.",
+      },
+      {
+        path: "/sales/appointments-list",
+        label: "Appointments list",
+        note: "Tabular view of all bookings (anchored on 18 May 2026 to match the figma). Toolbar: search by ref/client, Month-to-date pill, Filters pill, sort dropdown (Created/Scheduled/Duration · asc/desc). Status badges: Booked (blue), Confirmed (violet), No-show (tomato), Completed (green), etc. Footer count.",
+      },
+      {
+        path: "/sales/appointments-list?ref=b-002",
+        label: "Appointment detail sheet",
+        note: "Opens the right-side sheet over the listing via ?ref=<id>. Try b-001…b-024 for different states (b-002 is ready-for-pickup, b-003 confirmed, etc.). Status-colored header band (blue=booked, gray=completed, tomato=no-show), Services list, sale total with inline-expand breakdown, Quick actions popover. Status pill behavior: terminal statuses (completed/cancelled) are static, no-show only offers Undo, others get the full dropdown — pill + band update live.",
+      },
+      {
+        path: "/sales/sales-list",
+        label: "Sales list (invoices)",
+        note: "Tabbed (Sales / Drafts) listing of invoices, header layout matches /products (title, Options + Add sale, tabs with counts, search + date-range + filter + sort in one row). Status badges: Completed (green), Part Paid (gold), Unpaid (gray), Refunded (gray), Voided (tomato). Demo today is 2026-05-25 — five 'today' rows guarantee one of every status is visible by default; switch the range to Last 7 days to see the full 16-row fixture.",
+      },
+      {
+        path: "/sales/sales-list?sale=7",
+        label: "Sale detail dialog",
+        note: "Opens the centered dialog over the listing via ?sale=<id>. Status-driven header action (Pay now / Share invoice filled or outline / nothing for voided) and Quick-actions kebab (different items per status). Receipt body shows Subtotal/Total, Payment line, and Balance or Change depending on what was paid; refunded sales add a Refund #N card above the original Sale card. Try 7 (completed), 6 (part-paid), 3 (refunded), 1 (voided) — see also 12–16 for the new today-dated rows.",
+      },
+    ],
+  },
+  {
     title: "Demos & playground",
     description: "Internal references for shell layout and component states.",
     screens: [

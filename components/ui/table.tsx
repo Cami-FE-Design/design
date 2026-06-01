@@ -1,9 +1,23 @@
 import type * as React from "react"
 import { cn } from "@/lib/utils"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+type TableProps = React.ComponentProps<"table"> & {
+  /**
+   * Classes applied to the scrollable wrapper around the table. Pages that
+   * need a sticky `<thead>` should pass `flex-1 min-h-0` (or similar) so the
+   * wrapper becomes a real scroll context with a constrained height — sticky
+   * positioning resolves against the nearest scroll ancestor, and the default
+   * `overflow-x-auto` here already turns on the sticky context for both axes.
+   */
+  containerClassName?: string
+}
+
+function Table({ className, containerClassName, ...props }: TableProps) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div
+      data-slot="table-container"
+      className={cn("relative w-full overflow-x-auto", containerClassName)}
+    >
       <table
         data-slot="table"
         className={cn("w-full caption-bottom text-sm", className)}
@@ -17,7 +31,19 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-y [&_tr]:border-border/60", className)}
+      className={cn(
+        // Sticky by default — inert when the parent isn't a scroll context, so
+        // adding it here doesn't affect tables that don't opt in. Pages enable
+        // it by giving the Table a `containerClassName="flex-1 min-h-0"` so
+        // the table-container becomes a real scroll ancestor.
+        "[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-background",
+        // Top + bottom borders rendered via inset box-shadow so they stick
+        // with the cell. A regular `<tr>` border under border-collapse:collapse
+        // is owned by the adjacent body row and scrolls away with it, leaving
+        // the sticky thead borderless and the body bleeding into the top edge.
+        "[&_th]:shadow-[inset_0_1px_0_var(--color-border),inset_0_-1px_0_var(--color-border)]",
+        className,
+      )}
       {...props}
     />
   )

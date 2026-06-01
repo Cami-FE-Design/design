@@ -61,9 +61,9 @@ export const topMenu: MenuItem[] = [
     icon: ReceiptIcon,
     label: "Sales",
     children: [
-      { label: "Daily Summary" },
-      { label: "Appointments" },
-      { label: "Invoices" },
+      { label: "Daily Summary", href: "/sales/daily-summary" },
+      { label: "Appointments", href: "/sales/appointments-list" },
+      { label: "Invoices", href: "/sales/sales-list" },
       { label: "Payments" },
     ],
   },

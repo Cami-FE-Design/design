@@ -7,6 +7,7 @@ import {
   MoreHorizontalIcon,
   PawPrintIcon,
   PlusIcon,
+  ReceiptIcon,
   UserIcon,
   XIcon,
 } from "lucide-react"
@@ -41,13 +42,25 @@ import { RecencyBadge } from "@/components/ui/recency-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
+export type ClientTag = {
+  id: string
+  label: string
+}
+
 export type ClientDetailClient = {
   name: string
   phone?: string
+  email?: string
   /** Optional recency label rendered inline with the meta line, e.g. "First visit" or "4 weeks". */
   recencyLabel?: string
   /** Stable identifier used as the avatar hash seed. Falls back to name. */
   id?: string
+  /** Lifetime no-show count. When > 0, renders a tomato status pill in the meta line. */
+  noShowCount?: number
+  /** Outstanding unpaid amount in minor units (AED). When > 0, renders a gold pill in the meta line. */
+  unpaidMinor?: number
+  /** Operator-set tags rendered in a chip row below the header, always visible across tabs. */
+  tags?: ClientTag[]
 }
 
 type ClientDetailDialogProps = {
@@ -172,6 +185,87 @@ const MOCK_PETS: MockPet[] = [
   },
 ]
 
+// ─── Sales ────────────────────────────────────────────────────────────────────
+
+type SaleStatus = "all" | "paid" | "draft" | "part-paid" | "unpaid" | "refunded"
+type ConcreteSaleStatus = Exclude<SaleStatus, "all">
+
+const SALES_STATUS_PRIMARY: Array<{ value: SaleStatus; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "paid", label: "Paid" },
+  { value: "draft", label: "Drafts" },
+]
+
+const SALES_STATUS_MORE: Array<{ value: SaleStatus; label: string }> = [
+  { value: "part-paid", label: "Part paid" },
+  { value: "unpaid", label: "Unpaid" },
+  { value: "refunded", label: "Refunded" },
+]
+
+type MockSaleItem = { name: string; priceMinor: number }
+
+type MockSale = {
+  id: string
+  status: ConcreteSaleStatus
+  /** Day + month for the timeline leading (e.g. "May 24"). Matches MockAppointment. */
+  dayMonth: string
+  weekday: string
+  items: MockSaleItem[]
+  /** Amount already paid (only meaningful for part-paid). Minor units. */
+  paidMinor?: number
+}
+
+const SALE_STATUS_LABEL: Record<ConcreteSaleStatus, string> = {
+  paid: "Paid",
+  "part-paid": "Part paid",
+  unpaid: "Unpaid",
+  draft: "Draft",
+  refunded: "Refunded",
+}
+
+// Soft-pill set, one tone per status so they're visually distinct at a glance.
+// Unpaid = cami-yellow (matches the "AED N Unpaid" pill in the header meta
+// line). Part paid = gold (orange-tan, between paid and unpaid). Paid = lime.
+const SALE_BADGE_CLASS: Record<ConcreteSaleStatus, string> = {
+  paid: "bg-lime-3 text-lime-11",
+  "part-paid": "bg-gold-3 text-gold-11",
+  unpaid: "bg-cami-yellow-3 text-cami-yellow-11",
+  draft: "bg-cami-gray-3 text-cami-gray-11",
+  refunded: "bg-olive-3 text-olive-11",
+}
+
+function formatAed(minor: number) {
+  if (minor < 0) return `- AED ${Math.abs(Math.round(minor / 100)).toLocaleString()}`
+  return `AED ${Math.round(minor / 100).toLocaleString()}`
+}
+
+const MOCK_SALES: MockSale[] = [
+  {
+    id: "s-1",
+    status: "paid",
+    dayMonth: "May 24",
+    weekday: "Sunday",
+    items: [{ name: "Blow Dry", priceMinor: 2500 }],
+  },
+  {
+    id: "s-2",
+    status: "part-paid",
+    dayMonth: "May 24",
+    weekday: "Sunday",
+    items: [{ name: "Haircut", priceMinor: 2500 }],
+    paidMinor: 2000,
+  },
+  {
+    id: "s-3",
+    status: "unpaid",
+    dayMonth: "May 22",
+    weekday: "Friday",
+    items: [{ name: "Blow Dry", priceMinor: 2500 }],
+  },
+]
+
+// ─── Appointments mock (kept here as it lives next to the sales mock) ─────────
+
 const MOCK_APPOINTMENTS: MockAppointment[] = [
   {
     id: "1",
@@ -198,6 +292,19 @@ const MOCK_APPOINTMENTS: MockAppointment[] = [
     location: "Shampooch JVC",
     services: [{ name: "Bath & tidy", staff: "Aisha", duration: "45min", price: "AED 130" }],
   },
+  {
+    id: "3",
+    status: "no-show",
+    statusLabel: "No-show",
+    pet: { id: "bobo", name: "Bobo", breed: "French Bulldog · 10 lbs", species: "dog" },
+    dayMonth: "May 18",
+    weekday: "Monday",
+    time: "12:00pm",
+    location: "Shampooch JVC",
+    services: [
+      { name: "Blow Dry", staff: "Hussain Shabbir", duration: "1h 30min", price: "AED 25" },
+    ],
+  },
 ]
 
 /**
@@ -220,6 +327,9 @@ export function ClientDetailDialog({
 }: ClientDetailDialogProps) {
   const [tab, setTab] = useState<TabId>("overview")
   const [apptStatus, setApptStatus] = useState<ApptStatus>("all")
+  const [saleStatus, setSaleStatus] = useState<SaleStatus>("all")
+  const [noShowDialogOpen, setNoShowDialogOpen] = useState(false)
+  const noShowAppointments = MOCK_APPOINTMENTS.filter((a) => a.status === "no-show")
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null)
   const selectedPet = MOCK_PETS.find((p) => p.id === selectedPetId) ?? null
   const [addPetOpen, setAddPetOpen] = useState(false)
@@ -250,6 +360,18 @@ export function ClientDetailDialog({
     "no-show": MOCK_APPOINTMENTS.filter((a) => a.status === "no-show").length,
   } satisfies Record<ApptStatus, number>
 
+  const isSaleStatusInMore = SALES_STATUS_MORE.some((s) => s.value === saleStatus)
+  const filteredSales =
+    saleStatus === "all" ? MOCK_SALES : MOCK_SALES.filter((s) => s.status === saleStatus)
+  const saleCounts = {
+    all: MOCK_SALES.length,
+    paid: MOCK_SALES.filter((s) => s.status === "paid").length,
+    draft: MOCK_SALES.filter((s) => s.status === "draft").length,
+    "part-paid": MOCK_SALES.filter((s) => s.status === "part-paid").length,
+    unpaid: MOCK_SALES.filter((s) => s.status === "unpaid").length,
+    refunded: MOCK_SALES.filter((s) => s.status === "refunded").length,
+  } satisfies Record<SaleStatus, number>
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -270,12 +392,47 @@ export function ClientDetailDialog({
                     {client.name}
                   </DialogTitle>
                   <DialogDescription asChild>
-                    <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted-foreground">
                       {client.phone ? <span className="truncate">{client.phone}</span> : null}
+                      {client.email ? (
+                        <span className="truncate">
+                          {client.phone ? "· " : null}
+                          {client.email}
+                        </span>
+                      ) : null}
                       {client.recencyLabel ? (
                         <RecencyBadge>{client.recencyLabel}</RecencyBadge>
                       ) : null}
-                      {!client.phone && !client.recencyLabel ? <span>—</span> : null}
+                      {client.noShowCount && client.noShowCount > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => setNoShowDialogOpen(true)}
+                          className="inline-flex items-center rounded-full bg-tomato-3 px-2.5 py-0.5 text-xs font-medium text-tomato-11 transition-colors hover:bg-tomato-4"
+                          aria-label={`Show ${client.noShowCount} no-show appointment${client.noShowCount === 1 ? "" : "s"}`}
+                        >
+                          {client.noShowCount} no-show{client.noShowCount === 1 ? "" : "s"}
+                        </button>
+                      ) : null}
+                      {client.unpaidMinor && client.unpaidMinor > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTab("sales")
+                            setSaleStatus("unpaid")
+                          }}
+                          className="inline-flex items-center rounded-full bg-cami-yellow-3 px-2.5 py-0.5 text-xs font-medium text-cami-yellow-11 transition-colors hover:bg-cami-yellow-4"
+                          aria-label={`Show unpaid sales — ${formatAed(client.unpaidMinor)}`}
+                        >
+                          {formatAed(client.unpaidMinor)} Unpaid
+                        </button>
+                      ) : null}
+                      {!client.phone &&
+                      !client.email &&
+                      !client.recencyLabel &&
+                      !client.noShowCount &&
+                      !client.unpaidMinor ? (
+                        <span>—</span>
+                      ) : null}
                     </div>
                   </DialogDescription>
                 </div>
@@ -331,6 +488,24 @@ export function ClientDetailDialog({
                   </DialogClose>
                 </div>
               </DialogHeader>
+
+              {/* Tags chip row — always visible across tabs. Matches the
+                  Details tab tag style: soft violet pill + user icon prefix. */}
+              <div className="flex flex-wrap items-center gap-1.5 px-9 pb-4">
+                {client.tags?.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-cami-violet-3 px-2.5 py-1 text-sm font-medium text-cami-violet-11"
+                  >
+                    <UserIcon className="size-3.5" strokeWidth={1.75} />
+                    {tag.label}
+                  </span>
+                ))}
+                <Button type="button" variant="outline" size="xs" radius="full" className="gap-1">
+                  <PlusIcon className="size-3.5" />
+                  Add tag
+                </Button>
+              </div>
 
               <div className="flex items-center gap-6 px-9">
                 <TabsList variant="underline">
@@ -390,7 +565,12 @@ export function ClientDetailDialog({
                     value="AED 0"
                     info="Lifetime revenue from this client."
                   />
-                  <KpiCard label="No-shows" value="0" info="Lifetime count of no-shows." />
+                  <KpiCard
+                    label="No-shows"
+                    value={noShowAppointments.length}
+                    info="Lifetime count of no-shows. Click to see them."
+                    onClick={() => setNoShowDialogOpen(true)}
+                  />
                 </KpiGrid>
                 <SectionCard title="Upcoming appointment">
                   <p className="text-sm text-muted-foreground">No upcoming appointment yet.</p>
@@ -489,11 +669,88 @@ export function ClientDetailDialog({
                   </ul>
                 )}
               </TabsContent>
-              <TabsContent value="sales">
-                <SectionPlaceholder
-                  title="Sales"
-                  body="All / Paid / Drafts / Unpaid filter pills. Table layout. Sell CTA on header."
-                />
+              <TabsContent value="sales" className="flex flex-col gap-4">
+                <Tabs
+                  value={saleStatus}
+                  onValueChange={(v) => setSaleStatus(v as SaleStatus)}
+                  className="w-full"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1">
+                      <TabsList variant="ghost">
+                        {SALES_STATUS_PRIMARY.map((opt) => (
+                          <TabsTrigger key={opt.value} value={opt.value}>
+                            {opt.label}
+                            <span
+                              className={cn(
+                                "text-sm font-normal text-muted-foreground",
+                                saleStatus === opt.value && "text-foreground/70",
+                              )}
+                            >
+                              {saleCounts[opt.value]}
+                            </span>
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          data-active={isSaleStatusInMore ? "true" : undefined}
+                          className={cn(
+                            "inline-flex h-8 items-center gap-2 rounded-full px-3 text-sm font-semibold whitespace-nowrap text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground",
+                            "data-active:bg-muted data-active:text-foreground",
+                          )}
+                        >
+                          {isSaleStatusInMore ? (
+                            <>
+                              {SALES_STATUS_MORE.find((s) => s.value === saleStatus)?.label}
+                              <span className="text-sm font-normal text-foreground/70">
+                                {saleCounts[saleStatus]}
+                              </span>
+                            </>
+                          ) : (
+                            "More"
+                          )}
+                          <ChevronDownIcon className="size-3.5" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          {SALES_STATUS_MORE.map((opt) => (
+                            <DropdownMenuItem
+                              key={opt.value}
+                              onSelect={() => setSaleStatus(opt.value)}
+                            >
+                              {opt.label}
+                              <span className="ml-auto text-muted-foreground">
+                                {saleCounts[opt.value]}
+                              </span>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    <Button type="button" variant="outline" size="sm" radius="full">
+                      <PlusIcon />
+                      Sell
+                    </Button>
+                  </div>
+                </Tabs>
+                {filteredSales.length === 0 ? (
+                  <EmptyState
+                    icon={ReceiptIcon}
+                    title={saleStatus === "all" ? "No sales yet." : "No sales match this filter."}
+                  />
+                ) : (
+                  <ul className="flex flex-col">
+                    {filteredSales.map((sale, i) => (
+                      <TimelineRow
+                        key={sale.id}
+                        isLast={i === filteredSales.length - 1}
+                        leading={<TimelineDate dayMonth={sale.dayMonth} weekday={sale.weekday} />}
+                      >
+                        <SaleCard sale={sale} />
+                      </TimelineRow>
+                    ))}
+                  </ul>
+                )}
               </TabsContent>
               <TabsContent value="details">
                 <div className="rounded-2xl border border-border/60 bg-card">
@@ -525,14 +782,19 @@ export function ClientDetailDialog({
                         <div className="col-span-2 flex flex-col">
                           <span className="text-xs text-muted-foreground">Tags</span>
                           <div className="mt-1 flex flex-wrap gap-1.5">
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-cami-violet-3 px-2.5 py-1 text-sm font-medium text-cami-violet-11">
-                              <UserIcon className="size-3.5" strokeWidth={1.75} />
-                              VIP
-                            </span>
-                            <span className="inline-flex items-center gap-1.5 rounded-full bg-cami-violet-3 px-2.5 py-1 text-sm font-medium text-cami-violet-11">
-                              <UserIcon className="size-3.5" strokeWidth={1.75} />
-                              Loyal
-                            </span>
+                            {client.tags && client.tags.length > 0 ? (
+                              client.tags.map((tag) => (
+                                <span
+                                  key={tag.id}
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-cami-violet-3 px-2.5 py-1 text-sm font-medium text-cami-violet-11"
+                                >
+                                  <UserIcon className="size-3.5" strokeWidth={1.75} />
+                                  {tag.label}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-sm text-muted-foreground">No tags yet</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -733,6 +995,34 @@ export function ClientDetailDialog({
           phone: client.phone ?? "",
         }}
       />
+
+      {/* No-show appointments — small dialog stacked over the client modal,
+          triggered by the no-show pill in the header meta line or the
+          "No-shows" KPI card on the Overview tab. */}
+      <Dialog open={noShowDialogOpen} onOpenChange={setNoShowDialogOpen}>
+        <DialogContent className="max-w-140 gap-0 p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+          <DialogHeader className="flex flex-row items-center justify-between gap-3 px-6 py-5">
+            <DialogTitle className="text-base font-semibold">No-show appointments</DialogTitle>
+            <DialogClose asChild>
+              <Button type="button" variant="ghost" size="icon-sm" radius="full" aria-label="Close">
+                <XIcon className="size-4" />
+              </Button>
+            </DialogClose>
+          </DialogHeader>
+          <DialogDescription className="sr-only">
+            No-show appointments for {client.name}
+          </DialogDescription>
+          <div className="flex flex-col gap-3 px-6 pb-6">
+            {noShowAppointments.length === 0 ? (
+              <EmptyState icon={CalendarIcon} title="No no-show appointments." />
+            ) : (
+              noShowAppointments.map((appt) => (
+                <AppointmentCard key={appt.id} appt={appt} hasPets={hasPets} />
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
@@ -811,15 +1101,6 @@ function NotificationDisplay({ label, channels }: { label: string; channels: str
   )
 }
 
-function SectionPlaceholder({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-background p-6">
-      <h3 className="font-heading text-base font-semibold">{title}</h3>
-      <p className="text-sm text-muted-foreground">{body}</p>
-    </div>
-  )
-}
-
 const OVERVIEW_PETS = [
   { id: "bobo", name: "Bobo", breed: "French Bulldog · 10 lbs", species: "dog" as const },
   { id: "mochi", name: "Mochi", breed: "Domestic Shorthair · 8 lbs", species: "cat" as const },
@@ -836,7 +1117,9 @@ const STATUS_BADGE_CLASS: Record<Exclude<ApptStatus, "all">, string> = {
   started: "bg-lime-5 text-lime-12",
   completed: "bg-gray-6 text-gray-12",
   canceled: "bg-olive-5 text-olive-12",
-  "no-show": "bg-tomato-8 text-tomato-12",
+  // Matches the no-show pill in the header meta line (bg-tomato-3 + text-tomato-11)
+  // so the same status reads identically wherever it appears.
+  "no-show": "bg-tomato-3 text-tomato-11",
 }
 
 function AppointmentCard({ appt, hasPets }: { appt: MockAppointment; hasPets: boolean }) {
@@ -887,6 +1170,54 @@ function AppointmentCard({ appt, hasPets }: { appt: MockAppointment; hasPets: bo
         ))}
       </ul>
       <AppointmentActions status={appt.status} />
+    </div>
+  )
+}
+
+function SaleCard({ sale }: { sale: MockSale }) {
+  const totalMinor = sale.items.reduce((sum, item) => sum + item.priceMinor, 0)
+  const showViewSale =
+    sale.status === "part-paid" || sale.status === "unpaid" || sale.status === "draft"
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
+            <span className="font-semibold text-foreground">Sale</span>
+          </div>
+        </div>
+        <Badge className={cn("border-transparent", SALE_BADGE_CLASS[sale.status])}>
+          {SALE_STATUS_LABEL[sale.status]}
+        </Badge>
+      </div>
+      <ul className="flex flex-col gap-2">
+        {sale.items.map((item) => (
+          <li
+            key={`${sale.id}-${item.name}`}
+            className="flex items-baseline justify-between gap-2 text-sm"
+          >
+            <span className="min-w-0 flex-1 truncate">{item.name}</span>
+            <span className="font-medium">{formatAed(item.priceMinor)}</span>
+          </li>
+        ))}
+        {sale.status === "part-paid" && typeof sale.paidMinor === "number" ? (
+          <li className="flex items-baseline justify-between gap-2 text-sm text-muted-foreground">
+            <span>Paid part</span>
+            <span>{formatAed(-sale.paidMinor)}</span>
+          </li>
+        ) : null}
+        <li className="flex items-baseline justify-between gap-2 text-sm">
+          <span className="font-semibold">Total</span>
+          <span className="font-semibold">{formatAed(totalMinor)}</span>
+        </li>
+      </ul>
+      {showViewSale ? (
+        <div className="flex">
+          <Button variant="outline" size="sm" radius="full">
+            View sale
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }
