@@ -5,7 +5,6 @@ import {
   ArrowLeftIcon,
   CalendarClockIcon,
   CalendarXIcon,
-  CheckIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   ChevronsRightIcon,
@@ -67,7 +66,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Separator } from "@/components/ui/separator"
 import {
   Sheet,
   SheetClose,
@@ -303,8 +301,8 @@ export function NewAppointmentSheet({
   // activePetUid; "swap" replaces the catalog on the editing service.
   const [pickerIntent, setPickerIntent] = useState<"add" | "swap">("add")
 
-  const theme = STATUS_THEME[status]
-  const statusLabel =
+  const _theme = STATUS_THEME[status]
+  const _statusLabel =
     STATUS_OPTIONS.find((s) => s.value === status)?.label ?? STATUS_FALLBACK_LABEL[status]
   const dateLabel = formatHeaderDate(date)
   const timeLabel = formatTime(startTime)
