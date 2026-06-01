@@ -224,14 +224,16 @@ const SALE_STATUS_LABEL: Record<ConcreteSaleStatus, string> = {
 }
 
 // Soft-pill set, one tone per status so they're visually distinct at a glance.
-// Unpaid = cami-yellow (matches the "AED N Unpaid" pill in the header meta
-// line). Part paid = gold (orange-tan, between paid and unpaid). Paid = lime.
+// Step-5/-12 to match the visual weight of the appointment status badges
+// (which use the same step pattern). Unpaid = cami-yellow (matches the
+// "AED N Unpaid" pill in the header meta line). Part paid = gold (orange-tan,
+// between paid and unpaid). Paid = lime.
 const SALE_BADGE_CLASS: Record<ConcreteSaleStatus, string> = {
-  paid: "bg-lime-3 text-lime-11",
-  "part-paid": "bg-gold-3 text-gold-11",
-  unpaid: "bg-cami-yellow-3 text-cami-yellow-11",
-  draft: "bg-cami-gray-3 text-cami-gray-11",
-  refunded: "bg-olive-3 text-olive-11",
+  paid: "bg-lime-5 text-lime-12",
+  "part-paid": "bg-gold-5 text-gold-12",
+  unpaid: "bg-cami-yellow-5 text-cami-yellow-12",
+  draft: "bg-cami-gray-5 text-cami-gray-12",
+  refunded: "bg-olive-5 text-olive-12",
 }
 
 function formatAed(minor: number) {
@@ -407,7 +409,7 @@ export function ClientDetailDialog({
                         <button
                           type="button"
                           onClick={() => setNoShowDialogOpen(true)}
-                          className="inline-flex items-center rounded-full bg-tomato-3 px-2.5 py-0.5 text-xs font-medium text-tomato-11 transition-colors hover:bg-tomato-4"
+                          className="inline-flex cursor-pointer items-center rounded-full bg-tomato-8 px-2.5 py-0.5 text-xs font-medium text-tomato-12 transition-colors hover:bg-tomato-9"
                           aria-label={`Show ${client.noShowCount} no-show appointment${client.noShowCount === 1 ? "" : "s"}`}
                         >
                           {client.noShowCount} no-show{client.noShowCount === 1 ? "" : "s"}
@@ -420,7 +422,7 @@ export function ClientDetailDialog({
                             setTab("sales")
                             setSaleStatus("unpaid")
                           }}
-                          className="inline-flex items-center rounded-full bg-cami-yellow-3 px-2.5 py-0.5 text-xs font-medium text-cami-yellow-11 transition-colors hover:bg-cami-yellow-4"
+                          className="inline-flex cursor-pointer items-center rounded-full bg-cami-yellow-5 px-2.5 py-0.5 text-xs font-medium text-cami-yellow-12 transition-colors hover:bg-cami-yellow-6"
                           aria-label={`Show unpaid sales — ${formatAed(client.unpaidMinor)}`}
                         >
                           {formatAed(client.unpaidMinor)} Unpaid
@@ -1106,20 +1108,20 @@ const OVERVIEW_PETS = [
   { id: "mochi", name: "Mochi", breed: "Domestic Shorthair · 8 lbs", species: "cat" as const },
 ]
 
-// Figma-aligned status colors (per the design tokens shared 2026-05-10).
-// arrived / started don't have explicit Figma tones yet — using lime (same
-// as confirmed) since they're "going through the flow" states; revisit when
-// the design tokens add specific colors for them.
+// Literal match for the NewAppointmentSheet / AppointmentDetailSheet hero-band
+// palette (pale step-5/6 fills with dark text) so the same status reads
+// identically in the list row badge and in the open edit/detail sheet's
+// hero band. Status keys here use the list-friendly aliases
+// (arrived/started/canceled) mapped from the underlying booking statuses
+// (checked-in/ready-for-pickup/cancelled).
 const STATUS_BADGE_CLASS: Record<Exclude<ApptStatus, "all">, string> = {
   booked: "bg-blue-5 text-blue-12",
   confirmed: "bg-lime-5 text-lime-12",
-  arrived: "bg-lime-5 text-lime-12",
-  started: "bg-lime-5 text-lime-12",
-  completed: "bg-gray-6 text-gray-12",
+  arrived: "bg-lime-3 text-lime-12",
+  started: "bg-lime-9 text-lime-12",
+  completed: "bg-cami-gray-6 text-cami-gray-12",
   canceled: "bg-olive-5 text-olive-12",
-  // Matches the no-show pill in the header meta line (bg-tomato-3 + text-tomato-11)
-  // so the same status reads identically wherever it appears.
-  "no-show": "bg-tomato-3 text-tomato-11",
+  "no-show": "bg-tomato-8 text-tomato-12",
 }
 
 function AppointmentCard({ appt, hasPets }: { appt: MockAppointment; hasPets: boolean }) {
@@ -1267,7 +1269,7 @@ function PetCard({ pet, onClick }: { pet: MockPet; onClick?: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors hover:bg-muted/30"
+      className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors hover:bg-muted/30"
     >
       <Avatar size="lg" fallback="species" species={pet.species} hashSeed={pet.id} />
       <div className="flex min-w-0 flex-1 flex-col gap-1">

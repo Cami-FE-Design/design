@@ -5,6 +5,7 @@ import {
   ArrowLeftIcon,
   CalendarClockIcon,
   CalendarXIcon,
+  CheckIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   ChevronsRightIcon,
@@ -313,8 +314,8 @@ export function NewAppointmentSheet({
   // activePetUid; "swap" replaces the catalog on the editing service.
   const [pickerIntent, setPickerIntent] = useState<"add" | "swap">("add")
 
-  const _theme = STATUS_THEME[status]
-  const _statusLabel =
+  const theme = STATUS_THEME[status]
+  const statusLabel =
     STATUS_OPTIONS.find((s) => s.value === status)?.label ?? STATUS_FALLBACK_LABEL[status]
   const dateLabel = formatHeaderDate(date)
   const timeLabel = formatTime(startTime)

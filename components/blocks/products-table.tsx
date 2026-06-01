@@ -153,7 +153,7 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="sticky left-0 z-10 bg-background md:static md:bg-transparent">
+          <TableHead className="sticky left-0 z-20! bg-background md:static md:bg-transparent">
             <button
               type="button"
               onClick={() => toggleSort("name")}

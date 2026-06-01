@@ -91,59 +91,62 @@ type StatusTheme = {
   pillText: string
 }
 
-// Hero band palette keyed off the figma. Saturated step-9 fills for active
-// states and destructive states, pale step-6 for completed (passive). Pill
-// styling within the band is a transparent rounded chip with a colored border
-// so it reads against either dark fills (white text) or pale fills (dark text).
+// Hero band palette — mirrors NewAppointmentSheet STATUS_THEME so the detail
+// sheet at /sales/appointments-list reads identically to the edit modal at
+// /appointments for the same status. Pastel step-5/6 fills with dark text on
+// passive/active states; lime/9 for "Started" with lime-12 text; tomato/8 for
+// no-show destructive weight. The status pill inside the band uses solid
+// bg-foreground (matching the NewAppointmentSheet trigger) for consistent
+// pill styling across both modals.
 const STATUS_THEME: Record<MockBookingStatus, StatusTheme> = {
   booked: {
-    fill: "bg-blue-9",
-    text: "text-white",
-    subText: "text-white/70",
-    pillBg: "bg-transparent border border-white/50",
-    pillText: "text-white",
+    fill: "bg-blue-5",
+    text: "text-blue-12",
+    subText: "text-blue-12/70",
+    pillBg: "bg-foreground",
+    pillText: "text-background",
   },
   confirmed: {
-    fill: "bg-cami-violet-9",
-    text: "text-white",
-    subText: "text-white/70",
-    pillBg: "bg-transparent border border-white/50",
-    pillText: "text-white",
+    fill: "bg-lime-5",
+    text: "text-lime-12",
+    subText: "text-lime-12/70",
+    pillBg: "bg-foreground",
+    pillText: "text-background",
   },
   "checked-in": {
-    fill: "bg-gold-9",
-    text: "text-foreground",
-    subText: "text-foreground/70",
-    pillBg: "bg-transparent border border-foreground/30",
-    pillText: "text-foreground",
+    fill: "bg-lime-3",
+    text: "text-lime-12",
+    subText: "text-lime-12/70",
+    pillBg: "bg-foreground",
+    pillText: "text-background",
   },
   "ready-for-pickup": {
-    fill: "bg-cami-green-9",
-    text: "text-white",
-    subText: "text-white/70",
-    pillBg: "bg-transparent border border-white/50",
-    pillText: "text-white",
+    fill: "bg-lime-9",
+    text: "text-lime-12",
+    subText: "text-lime-12/70",
+    pillBg: "bg-foreground",
+    pillText: "text-background",
   },
   completed: {
     fill: "bg-cami-gray-6",
     text: "text-cami-gray-12",
     subText: "text-cami-gray-12/70",
-    pillBg: "bg-transparent border border-foreground/30",
-    pillText: "text-foreground",
+    pillBg: "bg-foreground",
+    pillText: "text-background",
   },
   cancelled: {
-    fill: "bg-tomato-9",
-    text: "text-white",
-    subText: "text-white/70",
-    pillBg: "bg-transparent border border-white/50",
-    pillText: "text-white",
+    fill: "bg-olive-5",
+    text: "text-olive-12",
+    subText: "text-olive-12/70",
+    pillBg: "bg-foreground",
+    pillText: "text-background",
   },
   "no-show": {
-    fill: "bg-tomato-9",
-    text: "text-white",
-    subText: "text-white/70",
-    pillBg: "bg-transparent border border-white/50",
-    pillText: "text-white",
+    fill: "bg-tomato-8",
+    text: "text-tomato-12",
+    subText: "text-tomato-12/70",
+    pillBg: "bg-foreground",
+    pillText: "text-background",
   },
 }
 

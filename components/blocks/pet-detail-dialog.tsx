@@ -104,12 +104,15 @@ const VISIT_STATUS_MORE: Array<{ value: PetVisitStatus; label: string }> = [
   { value: "no-show", label: "No-show" },
 ]
 
+// Literal match for the NewAppointmentSheet / AppointmentDetailSheet hero-band
+// palette (pale step-5/6 fills with dark text) so a visit reads identically in
+// this badge and in the open edit/detail sheet's hero band.
 const VISIT_STATUS_BADGE_CLASS: Record<Exclude<PetVisitStatus, "all">, string> = {
   booked: "bg-blue-5 text-blue-12",
   confirmed: "bg-lime-5 text-lime-12",
-  arrived: "bg-lime-5 text-lime-12",
-  started: "bg-lime-5 text-lime-12",
-  completed: "bg-gray-6 text-gray-12",
+  arrived: "bg-lime-3 text-lime-12",
+  started: "bg-lime-9 text-lime-12",
+  completed: "bg-cami-gray-6 text-cami-gray-12",
   canceled: "bg-olive-5 text-olive-12",
   "no-show": "bg-tomato-8 text-tomato-12",
 }

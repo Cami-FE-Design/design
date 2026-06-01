@@ -144,14 +144,17 @@ function clientIdOf(name: string) {
 
 // ─── Status meta ──────────────────────────────────────────────────────────────
 
+// Mirrors the NewAppointmentSheet / AppointmentDetailSheet hero-band palette
+// (pale step-5/6 fills with dark text) so the same status reads identically
+// in this row badge and in the open detail sheet's hero band.
 const STATUS_META: Record<MockBookingStatus, { label: string; className: string }> = {
-  booked: { label: "Booked", className: "bg-blue-3 text-blue-11" },
-  confirmed: { label: "Confirmed", className: "bg-cami-violet-3 text-cami-violet-11" },
-  "checked-in": { label: "Arrived", className: "bg-cami-sage-3 text-cami-sage-12" },
-  "ready-for-pickup": { label: "Started", className: "bg-gold-3 text-gold-11" },
-  completed: { label: "Completed", className: "bg-cami-green-3 text-cami-green-12" },
-  cancelled: { label: "Canceled", className: "bg-cami-gray-3 text-cami-gray-12" },
-  "no-show": { label: "No-show", className: "bg-tomato-3 text-tomato-11" },
+  booked: { label: "Booked", className: "bg-blue-5 text-blue-12" },
+  confirmed: { label: "Confirmed", className: "bg-lime-5 text-lime-12" },
+  "checked-in": { label: "Arrived", className: "bg-lime-3 text-lime-12" },
+  "ready-for-pickup": { label: "Started", className: "bg-lime-9 text-lime-12" },
+  completed: { label: "Completed", className: "bg-cami-gray-6 text-cami-gray-12" },
+  cancelled: { label: "Canceled", className: "bg-olive-5 text-olive-12" },
+  "no-show": { label: "No-show", className: "bg-tomato-8 text-tomato-12" },
 }
 
 // ─── Sort ─────────────────────────────────────────────────────────────────────
@@ -352,7 +355,7 @@ function AppointmentsListPageInner() {
           <Table containerClassName="min-h-0 flex-1">
             <TableHeader>
               <TableRow>
-                <TableHead className="sticky left-0 z-20">Ref #</TableHead>
+                <TableHead className="sticky left-0 z-20!">Ref #</TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Service</TableHead>
                 <TableHead>Created by</TableHead>
@@ -369,11 +372,11 @@ function AppointmentsListPageInner() {
                 const status = STATUS_META[b.status]
                 return (
                   <TableRow key={b.id}>
-                    <TableCell className="sticky left-0 z-10 bg-background font-mono text-xs">
+                    <TableCell className="sticky left-0 z-10 bg-background font-mono text-xs transition-colors [tr:hover_&]:bg-muted">
                       <button
                         type="button"
                         onClick={() => setSelectedRef(b.id)}
-                        className="text-start text-cami-violet-11 hover:underline"
+                        className="cursor-pointer text-start text-cami-violet-11 hover:underline"
                       >
                         {refOf(b)}
                       </button>
@@ -399,7 +402,7 @@ function AppointmentsListPageInner() {
                             ],
                           })
                         }}
-                        className="text-start text-xs text-cami-violet-11 hover:underline"
+                        className="cursor-pointer text-start text-xs text-cami-violet-11 hover:underline"
                       >
                         {b.clientName}
                       </button>

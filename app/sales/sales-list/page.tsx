@@ -519,23 +519,30 @@ const MOCK_SALES: Sale[] = [
   },
 ]
 
+// Mirrors the SALE_BADGE_CLASS in client-detail-dialog (step-5 + step-12) so
+// the same sale status reads identically in the listing row, the detail
+// dialog header pill, and the Sales tab badges in the client modal. Hue map:
+// completed = lime (paid), part-paid = gold, unpaid = cami-yellow, refunded
+// = olive, voided = tomato. Voided uses step-8/-12 to match the destructive
+// No-show badge weight in the appointments list — both are terminal "bad"
+// states and read with the same visual emphasis.
 const STATUS_META: Record<SaleStatus, { label: string; className: string }> = {
-  completed: { label: "Completed", className: "bg-cami-green-3 text-cami-green-12" },
-  "part-paid": { label: "Part Paid", className: "bg-gold-3 text-gold-11" },
-  unpaid: { label: "Unpaid", className: "bg-cami-gray-3 text-cami-gray-12" },
-  refunded: { label: "Refunded", className: "bg-cami-gray-3 text-cami-gray-12" },
-  voided: { label: "Voided", className: "bg-tomato-3 text-tomato-11" },
+  completed: { label: "Completed", className: "bg-lime-5 text-lime-12" },
+  "part-paid": { label: "Part Paid", className: "bg-gold-5 text-gold-12" },
+  unpaid: { label: "Unpaid", className: "bg-cami-yellow-5 text-cami-yellow-12" },
+  refunded: { label: "Refunded", className: "bg-olive-5 text-olive-12" },
+  voided: { label: "Voided", className: "bg-tomato-8 text-tomato-12" },
 }
 
-// Filled status pill used at the top of the centered sale-detail dialog header.
-// Saturated step-9 fills with white text for the strong states, lighter pale
-// fills for the neutral/passive ones.
+// Status pill used at the top of the centered sale-detail dialog header.
+// Same palette as the listing row badge for visual continuity between the
+// row and the open detail dialog.
 const STATUS_DIALOG_PILL: Record<SaleStatus, string> = {
-  completed: "bg-cami-green-9 text-white",
-  "part-paid": "bg-gold-9 text-foreground",
-  unpaid: "bg-cami-gray-6 text-cami-gray-12",
-  refunded: "bg-cami-gray-6 text-cami-gray-12",
-  voided: "bg-tomato-9 text-white",
+  completed: "bg-lime-5 text-lime-12",
+  "part-paid": "bg-gold-5 text-gold-12",
+  unpaid: "bg-cami-yellow-5 text-cami-yellow-12",
+  refunded: "bg-olive-5 text-olive-12",
+  voided: "bg-tomato-8 text-tomato-12",
 }
 
 // ─── Sort ─────────────────────────────────────────────────────────────────────
@@ -756,7 +763,7 @@ function SalesListPageInner() {
             <Table containerClassName="min-h-0 flex-1">
               <TableHeader>
                 <TableRow>
-                  <SortableHead label="Sale #" className="sticky left-0 z-20" />
+                  <SortableHead label="Sale #" className="sticky left-0 z-20!" />
                   <SortableHead label="Client" />
                   <TableHead>Status</TableHead>
                   <SortableHead label="Sale date" />
@@ -769,11 +776,11 @@ function SalesListPageInner() {
                   const status = STATUS_META[s.status]
                   return (
                     <TableRow key={s.id}>
-                      <TableCell className="sticky left-0 z-10 bg-background">
+                      <TableCell className="sticky left-0 z-10 bg-background transition-colors [tr:hover_&]:bg-muted">
                         <button
                           type="button"
                           onClick={() => setSelectedSaleId(s.id)}
-                          className="text-start text-sm font-medium text-cami-violet-11 hover:underline"
+                          className="cursor-pointer text-start text-sm font-medium text-cami-violet-11 hover:underline"
                         >
                           {s.id}
                         </button>
@@ -782,7 +789,7 @@ function SalesListPageInner() {
                         <button
                           type="button"
                           onClick={() => openClientFor(s.client)}
-                          className="text-start text-sm text-cami-violet-11 hover:underline"
+                          className="cursor-pointer text-start text-sm text-cami-violet-11 hover:underline"
                         >
                           {s.client}
                         </button>
@@ -1063,7 +1070,7 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
               <button
                 type="button"
                 onClick={onViewProfile}
-                className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors hover:bg-muted/30"
+                className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors hover:bg-muted/30"
               >
                 <div className="flex min-w-0 flex-1 flex-col leading-tight">
                   <span className="truncate font-semibold text-foreground">{data.client}</span>

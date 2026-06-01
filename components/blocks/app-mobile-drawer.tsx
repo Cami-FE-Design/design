@@ -1,6 +1,7 @@
 "use client"
 
 import { ChevronDownIcon, ChevronsLeftIcon } from "lucide-react"
+import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -45,16 +46,26 @@ function TreeConnector({ isLast }: { isLast: boolean }) {
   )
 }
 
-function ChildMenuItem({ label, isLast }: { label: string; isLast: boolean }) {
+function ChildMenuItem({ label, href, isLast }: { label: string; href?: string; isLast: boolean }) {
+  const button = (
+    <Button
+      variant="ghost"
+      asChild={Boolean(href)}
+      className="h-full flex-1 justify-start rounded-xl px-4 text-sidebar-foreground"
+    >
+      {href ? (
+        <Link href={href}>
+          <span className="truncate text-base font-medium leading-6">{label}</span>
+        </Link>
+      ) : (
+        <span className="truncate text-base font-medium leading-6">{label}</span>
+      )}
+    </Button>
+  )
   return (
     <div className="flex h-9 items-center pl-4">
       <TreeConnector isLast={isLast} />
-      <Button
-        variant="ghost"
-        className="h-full flex-1 justify-start rounded-xl px-4 text-sidebar-foreground"
-      >
-        <span className="truncate text-base font-medium leading-6">{label}</span>
-      </Button>
+      {href ? <SheetClose asChild>{button}</SheetClose> : button}
     </div>
   )
 }
@@ -106,6 +117,7 @@ function DrawerMenuItem({ item, isOpen, onOpenChange }: DrawerMenuItemProps) {
               <ChildMenuItem
                 key={child.label}
                 label={child.label}
+                href={child.href}
                 isLast={i === (item.children?.length ?? 0) - 1}
               />
             ))}
