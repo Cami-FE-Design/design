@@ -13,6 +13,15 @@ type EmptyStateProps = {
   /** Optional action — typically a primary button. */
   action?: React.ReactNode
   className?: string
+  /**
+   * Visual treatment:
+   * - "plain" (default): borderless, muted icon — for inline section empties.
+   * - "card": dashed-border card with a tilted brand-accent icon and a bolder
+   *   title. This is the full-page listing treatment used across the sales,
+   *   clients, pets, products, and appointments tables when a search/filter
+   *   returns nothing (or the list is genuinely empty).
+   */
+  variant?: "plain" | "card"
 }
 
 /**
@@ -20,7 +29,36 @@ type EmptyStateProps = {
  * Use inside any section content (notes, files, pets, appointments, etc.)
  * when there's no data to render.
  */
-export function EmptyState({ icon: Icon, title, description, action, className }: EmptyStateProps) {
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+  className,
+  variant = "plain",
+}: EmptyStateProps) {
+  if (variant === "card") {
+    return (
+      <div
+        data-slot="empty-state"
+        className={cn(
+          "flex min-h-105 flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center",
+          className,
+        )}
+      >
+        <Icon
+          className="size-10 rotate-[-20deg] stroke-[1.25] text-cami-violet-9"
+          aria-hidden="true"
+        />
+        <p className="mt-3 text-base font-semibold text-foreground">{title}</p>
+        {description ? (
+          <p className="mt-1 max-w-xs text-balance text-sm text-muted-foreground">{description}</p>
+        ) : null}
+        {action ? <div className="mt-4">{action}</div> : null}
+      </div>
+    )
+  }
+
   return (
     <div
       data-slot="empty-state"

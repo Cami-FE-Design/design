@@ -57,9 +57,9 @@ export type ClientDetailClient = {
   id?: string
   /** Lifetime no-show count. When > 0, renders a tomato status pill in the meta line. */
   noShowCount?: number
-  /** Outstanding unpaid amount in minor units (AED). When > 0, renders a gold pill in the meta line. */
+  /** Outstanding unpaid amount in minor units (AED). When > 0, renders a cami-yellow pill in the meta line. */
   unpaidMinor?: number
-  /** Operator-set tags rendered in a chip row below the header, always visible across tabs. */
+  /** Operator-set tags rendered in the Details tab's Additional info section. */
   tags?: ClientTag[]
 }
 
@@ -225,13 +225,13 @@ const SALE_STATUS_LABEL: Record<ConcreteSaleStatus, string> = {
 
 // Soft-pill set, one tone per status so they're visually distinct at a glance.
 // Step-5/-12 to match the visual weight of the appointment status badges
-// (which use the same step pattern). Unpaid = cami-yellow (matches the
-// "AED N Unpaid" pill in the header meta line). Part paid = gold (orange-tan,
-// between paid and unpaid). Paid = lime.
+// (which use the same step pattern). Unpaid = cami-yellow step-3/-11 to match
+// the "AED N Unpaid" pill in the appointment detail sheet. Part paid = gold
+// (orange-tan, between paid and unpaid). Paid = lime.
 const SALE_BADGE_CLASS: Record<ConcreteSaleStatus, string> = {
   paid: "bg-lime-5 text-lime-12",
   "part-paid": "bg-gold-5 text-gold-12",
-  unpaid: "bg-cami-yellow-5 text-cami-yellow-12",
+  unpaid: "bg-cami-yellow-3 text-cami-yellow-11",
   draft: "bg-cami-gray-5 text-cami-gray-12",
   refunded: "bg-olive-5 text-olive-12",
 }
@@ -409,10 +409,10 @@ export function ClientDetailDialog({
                         <button
                           type="button"
                           onClick={() => setNoShowDialogOpen(true)}
-                          className="inline-flex cursor-pointer items-center rounded-full bg-tomato-8 px-2.5 py-0.5 text-xs font-medium text-tomato-12 transition-colors hover:bg-tomato-9"
+                          className="inline-flex size-5 cursor-pointer items-center justify-center rounded-full bg-tomato-8 text-xs font-medium text-tomato-12 transition-colors hover:bg-tomato-9"
                           aria-label={`Show ${client.noShowCount} no-show appointment${client.noShowCount === 1 ? "" : "s"}`}
                         >
-                          {client.noShowCount} no-show{client.noShowCount === 1 ? "" : "s"}
+                          {client.noShowCount}
                         </button>
                       ) : null}
                       {client.unpaidMinor && client.unpaidMinor > 0 ? (
@@ -422,10 +422,10 @@ export function ClientDetailDialog({
                             setTab("sales")
                             setSaleStatus("unpaid")
                           }}
-                          className="inline-flex cursor-pointer items-center rounded-full bg-cami-yellow-5 px-2.5 py-0.5 text-xs font-medium text-cami-yellow-12 transition-colors hover:bg-cami-yellow-6"
+                          className="inline-flex cursor-pointer items-center rounded-full bg-cami-yellow-3 px-2.5 py-0.5 text-xs font-medium text-cami-yellow-11 transition-colors hover:bg-cami-yellow-4"
                           aria-label={`Show unpaid sales — ${formatAed(client.unpaidMinor)}`}
                         >
-                          {formatAed(client.unpaidMinor)} Unpaid
+                          {formatAed(client.unpaidMinor)}
                         </button>
                       ) : null}
                       {!client.phone &&
@@ -490,24 +490,6 @@ export function ClientDetailDialog({
                   </DialogClose>
                 </div>
               </DialogHeader>
-
-              {/* Tags chip row — always visible across tabs. Matches the
-                  Details tab tag style: soft violet pill + user icon prefix. */}
-              <div className="flex flex-wrap items-center gap-1.5 px-9 pb-4">
-                {client.tags?.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-cami-violet-3 px-2.5 py-1 text-sm font-medium text-cami-violet-11"
-                  >
-                    <UserIcon className="size-3.5" strokeWidth={1.75} />
-                    {tag.label}
-                  </span>
-                ))}
-                <Button type="button" variant="outline" size="xs" radius="full" className="gap-1">
-                  <PlusIcon className="size-3.5" />
-                  Add tag
-                </Button>
-              </div>
 
               <div className="flex items-center gap-6 px-9">
                 <TabsList variant="underline">
@@ -783,20 +765,26 @@ export function ClientDetailDialog({
                         <DetailField label="Country" value="United Arab Emirates" />
                         <div className="col-span-2 flex flex-col">
                           <span className="text-xs text-muted-foreground">Tags</span>
-                          <div className="mt-1 flex flex-wrap gap-1.5">
-                            {client.tags && client.tags.length > 0 ? (
-                              client.tags.map((tag) => (
-                                <span
-                                  key={tag.id}
-                                  className="inline-flex items-center gap-1.5 rounded-full bg-cami-violet-3 px-2.5 py-1 text-sm font-medium text-cami-violet-11"
-                                >
-                                  <UserIcon className="size-3.5" strokeWidth={1.75} />
-                                  {tag.label}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-sm text-muted-foreground">No tags yet</span>
-                            )}
+                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                            {client.tags?.map((tag) => (
+                              <span
+                                key={tag.id}
+                                className="inline-flex items-center gap-1.5 rounded-full bg-cami-violet-3 px-2.5 py-1 text-sm font-medium text-cami-violet-11"
+                              >
+                                <UserIcon className="size-3.5" strokeWidth={1.75} />
+                                {tag.label}
+                              </span>
+                            ))}
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="xs"
+                              radius="full"
+                              className="gap-1"
+                            >
+                              <PlusIcon className="size-3.5" />
+                              Add tag
+                            </Button>
                           </div>
                         </div>
                       </div>

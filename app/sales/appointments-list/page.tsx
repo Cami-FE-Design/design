@@ -23,6 +23,7 @@ import {
   type ClientDetailClient,
   ClientDetailDialog,
 } from "@/components/blocks/client-detail-dialog"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -43,14 +44,32 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-// Set high enough that the demo mock (27 rows) paints in a single page so
-// every status badge color is visible without scrolling. Infinite scroll still
-// kicks in once real data exceeds this window.
+// Set high enough that the curated demo subset (10 rows) paints in a single
+// page so every status badge color is visible without scrolling. Infinite
+// scroll still kicks in once real data exceeds this window.
 const PAGE_SIZE = 30
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const STAFF_BY_ID = Object.fromEntries(MOCK_STAFF.map((s) => [s.id, s]))
+
+// Curated 10-row listing subset covering all seven statuses (booked, confirmed,
+// checked-in, ready-for-pickup, completed, cancelled, no-show) so every badge
+// color is visible without scrolling. The detail sheet still resolves
+// `?ref=<id>` against the full MOCK_BOOKINGS, so b-001…b-027 deep-links keep
+// opening even when a row isn't in this subset.
+const LISTING_BOOKING_IDS = new Set([
+  "b-001", // completed
+  "b-002", // ready-for-pickup
+  "b-003", // confirmed
+  "b-013", // checked-in
+  "b-016", // booked
+  "b-024", // cancelled
+  "b-027", // no-show
+  "b-011", // completed
+  "b-014", // confirmed
+  "b-018", // completed
+])
 
 // Anchor demo dates on 18 May 2026 so the listing reads like the figma.
 const ANCHOR_DATE = new Date(2026, 4, 18)
@@ -101,14 +120,6 @@ const MONTH_SHORT = [
 
 function formatDateOnly(d: Date) {
   return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
-}
-
-function formatTimeOnly(d: Date) {
-  let h = d.getHours()
-  const m = d.getMinutes()
-  const meridiem = h >= 12 ? "pm" : "am"
-  h = h % 12 || 12
-  return `${h}:${m.toString().padStart(2, "0")}${meridiem}`
 }
 
 function formatDuration(min: number) {
@@ -221,19 +232,22 @@ function AppointmentsListPageInner() {
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   const augmented: Augmented[] = MOCK_BOOKINGS.map(augment)
-  const total = augmented.length
   // URL is the source of truth — find the booking that matches `?ref=<id>`.
+  // Resolved against the full dataset so any b-id deep-link still opens.
   const selectedBooking = selectedRef ? (augmented.find((b) => b.id === selectedRef) ?? null) : null
+  // The table renders a curated 10-row subset covering every status.
+  const listing = augmented.filter((b) => LISTING_BOOKING_IDS.has(b.id))
+  const total = listing.length
 
   const q = query.trim().toLowerCase()
   const filtered = q
-    ? augmented.filter(
+    ? listing.filter(
         (b) =>
           b.clientName.toLowerCase().includes(q) ||
           refOf(b).toLowerCase().includes(q) ||
           (b.bookingRef ?? "").toLowerCase().includes(q),
       )
-    : augmented
+    : listing
 
   const sorted = [...filtered].sort((a, b) => compare(a, b, sort))
   const shown = sorted.slice(0, shownCount)
@@ -267,8 +281,8 @@ function AppointmentsListPageInner() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-5xl items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
+        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
+          <div className="flex flex-col">
             <h1 className="text-2xl leading-8 font-medium text-foreground">Appointments</h1>
             <p className="text-sm text-muted-foreground">
               View, filter and export appointments booked by your clients.
@@ -277,9 +291,9 @@ function AppointmentsListPageInner() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" radius="full" className="h-9 gap-1.5 px-4">
+              <Button variant="outline" radius="full" size="sm">
                 Export
-                <ChevronDownIcon className="size-4" />
+                <ChevronDownIcon className="size-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-40">
@@ -300,7 +314,7 @@ function AppointmentsListPageInner() {
         </div>
       }
     >
-      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-4">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4">
         {/* Toolbar — same shape as /products: left tabs/filters, right sort */}
         <TableToolbar
           tabs={
@@ -311,20 +325,19 @@ function AppointmentsListPageInner() {
                 aria-label="Search appointments"
                 onValueChange={setQuery}
               />
-              <Button variant="outline" radius="full" size="sm" className="h-8 gap-1.5">
+              <Button variant="outline" radius="full" size="sm" className="gap-1.5">
                 Month to date
                 <CalendarIcon className="size-3.5" />
               </Button>
-              <Button variant="outline" radius="full" size="sm" className="h-8 gap-1.5">
-                Filters
-                <SlidersHorizontalIcon className="size-3.5" />
+              <Button variant="outline" size="icon-sm" radius="full" aria-label="Filters">
+                <SlidersHorizontalIcon className="size-4" />
               </Button>
             </div>
           }
           actions={
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full" size="sm" className="h-8 gap-1.5">
+                <Button variant="outline" radius="full" size="sm" className="gap-1.5">
                   {sortLabel}
                   <ArrowDownUpIcon className="size-3.5" />
                 </Button>
@@ -347,12 +360,14 @@ function AppointmentsListPageInner() {
 
         {/* Table */}
         {sorted.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-16 text-center">
-            <p className="text-sm font-medium text-foreground">No appointments match</p>
-            <p className="mt-1 text-sm text-muted-foreground">Try a different search.</p>
-          </div>
+          <EmptyState
+            variant="card"
+            icon={CalendarIcon}
+            title="No appointments match"
+            description="Try a different search."
+          />
         ) : (
-          <Table containerClassName="min-h-0 flex-1">
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="sticky left-0 z-20! shadow-[1px_0_0_0_var(--border)]">
@@ -412,16 +427,10 @@ function AppointmentsListPageInner() {
                     <TableCell className="text-xs text-foreground">{b.serviceName}</TableCell>
                     <TableCell className="text-xs text-foreground">{b.createdBy}</TableCell>
                     <TableCell className="text-xs text-foreground">
-                      <div className="flex flex-col leading-tight">
-                        <span>{formatDateOnly(b.createdAt)},</span>
-                        <span>{formatTimeOnly(b.createdAt)}</span>
-                      </div>
+                      {formatDateOnly(b.createdAt)}
                     </TableCell>
                     <TableCell className="text-xs text-foreground">
-                      <div className="flex flex-col leading-tight">
-                        <span>{formatDateOnly(b.scheduledAt)},</span>
-                        <span>{formatTimeOnly(b.scheduledAt)}</span>
-                      </div>
+                      {formatDateOnly(b.scheduledAt)}
                     </TableCell>
                     <TableCell className="text-xs text-foreground tabular-nums">
                       {formatDuration(b.durationMin)}

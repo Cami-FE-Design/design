@@ -66,24 +66,24 @@ export function DateSelector({ value, onChange, className }: DateSelectorProps) 
   return (
     <div
       className={cn(
-        "flex items-center gap-2 rounded-2xl border border-border/60 bg-card p-2",
+        "flex w-fit items-center gap-1 rounded-full border border-border bg-background p-1",
         className,
       )}
     >
       <Button
         type="button"
         variant="ghost"
-        size="icon-sm"
+        size="icon-xs"
         radius="full"
         aria-label="Previous day"
         onClick={() => shift(-1)}
       >
-        <ChevronLeftIcon className="size-4" />
+        <ChevronLeftIcon className="size-3.5" />
       </Button>
       <Button
         type="button"
         variant={isToday ? "secondary" : "ghost"}
-        size="sm"
+        size="xs"
         radius="full"
         onClick={() => onChange(today)}
         disabled={isToday}
@@ -120,12 +120,12 @@ export function DateSelector({ value, onChange, className }: DateSelectorProps) 
       <Button
         type="button"
         variant="ghost"
-        size="icon-sm"
+        size="icon-xs"
         radius="full"
         aria-label="Next day"
         onClick={() => shift(1)}
       >
-        <ChevronRightIcon className="size-4" />
+        <ChevronRightIcon className="size-3.5" />
       </Button>
     </div>
   )

@@ -184,11 +184,28 @@ function ProductsIndex() {
     return sortProducts(result, sort)
   }
 
+  // A tab shows the card empty-state when the search/filter leaves it with no
+  // rows — mirrors the sales/clients/pets listings.
+  function renderTab(list: Product[]) {
+    const visible = getVisible(list)
+    if (visible.length === 0) {
+      return (
+        <EmptyState
+          variant="card"
+          icon={PackageIcon}
+          title="No products match"
+          description="Try a different search."
+        />
+      )
+    }
+    return <ProductsTable products={visible} onRowClick={setSelectedProductId} />
+  }
+
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-5xl items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
+        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
+          <div className="flex flex-col">
             <h1 className="text-2xl leading-8 font-medium text-foreground">Products</h1>
             <p className="text-sm text-muted-foreground">
               Manage your product catalog and inventory
@@ -199,9 +216,9 @@ function ProductsIndex() {
             {/* Options dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full" className="h-9 gap-1.5 px-4">
+                <Button variant="outline" radius="full" size="sm">
                   Options
-                  <ChevronDownIcon className="size-4" />
+                  <ChevronDownIcon className="size-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
@@ -231,7 +248,7 @@ function ProductsIndex() {
             </DropdownMenu>
 
             {/* Add product */}
-            <Button asChild radius="full" className="h-9 gap-1.5 px-4">
+            <Button asChild radius="full">
               <Link href="/products/new">
                 <PlusIcon className="size-4" />
                 Add product
@@ -241,7 +258,7 @@ function ProductsIndex() {
         </div>
       }
     >
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
         {isLoading ? (
           <>
             {/* Skeleton toolbar */}
@@ -299,23 +316,19 @@ function ProductsIndex() {
               actions={
                 <>
                   <SearchInput
+                    className="h-9! w-72"
                     placeholder="Search products"
                     aria-label="Search products"
                     onValueChange={setQuery}
                   />
-                  <Button variant="outline" aria-label="Filter" className="size-8 rounded-full">
+                  <Button variant="outline" size="icon-sm" radius="full" aria-label="Filter">
                     <SlidersHorizontalIcon className="size-4" />
                   </Button>
 
                   {/* Sort by */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        radius="full"
-                        className="h-8 gap-1.5 px-3"
-                      >
+                      <Button variant="outline" size="sm" radius="full" className="gap-1.5">
                         <ArrowDownUpIcon className="size-3.5" />
                         {SORT_LABELS[sort]}
                       </Button>
@@ -337,21 +350,9 @@ function ProductsIndex() {
               }
             />
 
-            <TabsContent value="all">
-              <ProductsTable products={getVisible(products)} onRowClick={setSelectedProductId} />
-            </TabsContent>
-            <TabsContent value="active">
-              <ProductsTable
-                products={getVisible(activeProducts)}
-                onRowClick={setSelectedProductId}
-              />
-            </TabsContent>
-            <TabsContent value="archived">
-              <ProductsTable
-                products={getVisible(archivedProducts)}
-                onRowClick={setSelectedProductId}
-              />
-            </TabsContent>
+            <TabsContent value="all">{renderTab(products)}</TabsContent>
+            <TabsContent value="active">{renderTab(activeProducts)}</TabsContent>
+            <TabsContent value="archived">{renderTab(archivedProducts)}</TabsContent>
           </Tabs>
         )}
 

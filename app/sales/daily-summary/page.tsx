@@ -74,7 +74,7 @@ const CASH_ROWS: CashRow[] = [
 
 function SummaryCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+    <div className="overflow-hidden bg-card">
       <div className="px-5 py-4">
         <h2 className="font-heading text-base font-semibold text-foreground">{title}</h2>
       </div>
@@ -187,8 +187,8 @@ export default function DailySummaryPage() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-5xl items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
+        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
+          <div className="flex flex-col">
             <h1 className="text-2xl leading-8 font-medium text-foreground">Daily sales</h1>
             <p className="text-sm text-muted-foreground">
               View, filter and export the transactions and cash movement for the day.
@@ -198,9 +198,9 @@ export default function DailySummaryPage() {
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full" className="h-9 gap-1.5 px-4">
+                <Button variant="outline" radius="full" size="sm">
                   Export
-                  <ChevronDownIcon className="size-4" />
+                  <ChevronDownIcon className="size-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
@@ -219,7 +219,7 @@ export default function DailySummaryPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button radius="full" className="h-9 gap-1.5 px-4">
+            <Button radius="full">
               <PlusIcon className="size-4" />
               Add new
             </Button>
@@ -227,7 +227,7 @@ export default function DailySummaryPage() {
         </div>
       }
     >
-      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col gap-4 overflow-y-auto">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">
         <DateSelector value={date} onChange={setDate} />
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

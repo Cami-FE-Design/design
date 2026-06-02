@@ -7,6 +7,7 @@ import {
   ChevronDownIcon,
   PlusIcon,
   SlidersHorizontalIcon,
+  UsersIcon,
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo, useState } from "react"
@@ -14,6 +15,7 @@ import { Suspense, useCallback, useMemo, useState } from "react"
 import { AppShell } from "@/components/blocks/app-shell"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Avatar } from "@/components/ui/avatar"
@@ -355,10 +357,12 @@ function ClientsIndex() {
           }
         />
         {visible.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-16 text-center">
-            <p className="text-sm font-medium text-foreground">No clients match</p>
-            <p className="mt-1 text-sm text-muted-foreground">Try a different search.</p>
-          </div>
+          <EmptyState
+            variant="card"
+            icon={UsersIcon}
+            title="No clients match"
+            description="Try a different search."
+          />
         ) : (
           <Table className="min-w-[860px]">
             <TableHeader>

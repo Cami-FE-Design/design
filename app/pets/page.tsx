@@ -5,6 +5,7 @@ import {
   ArrowUpDownIcon,
   ArrowUpIcon,
   ChevronDownIcon,
+  PawPrintIcon,
   PlusIcon,
   SlidersHorizontalIcon,
 } from "lucide-react"
@@ -13,6 +14,7 @@ import { Suspense, useCallback, useMemo, useState } from "react"
 
 import { AppShell } from "@/components/blocks/app-shell"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
@@ -330,10 +332,12 @@ function PetsIndex() {
           }
         />
         {visible.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-16 text-center">
-            <p className="text-sm font-medium text-foreground">No pets match</p>
-            <p className="mt-1 text-sm text-muted-foreground">Try a different search.</p>
-          </div>
+          <EmptyState
+            variant="card"
+            icon={PawPrintIcon}
+            title="No pets match"
+            description="Try a different search."
+          />
         ) : (
           <Table className="min-w-[860px]">
             <TableHeader>

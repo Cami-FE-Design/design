@@ -41,7 +41,14 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
         // with the cell. A regular `<tr>` border under border-collapse:collapse
         // is owned by the adjacent body row and scrolls away with it, leaving
         // the sticky thead borderless and the body bleeding into the top edge.
-        "[&_th]:shadow-[inset_0_1px_0_var(--color-border),inset_0_-1px_0_var(--color-border)]",
+        // Color matches `border-border/60` (the body-row separators) — using
+        // the solid --color-border here makes the header line read darker than
+        // the rest of the table.
+        "[&_th]:shadow-[inset_0_1px_0_color-mix(in_oklab,var(--color-border)_60%,transparent),inset_0_-1px_0_color-mix(in_oklab,var(--color-border)_60%,transparent)]",
+        // Drop the header row's own `border-b` (from TableRow) — the th shadow
+        // above already draws the bottom divider, so keeping both stacks two
+        // lines into a doubled border.
+        "[&_tr]:border-b-0",
         className,
       )}
       {...props}

@@ -820,7 +820,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Empty state"
-        description="Centered placeholder for sections with no data yet. Light line-icon, short title, optional description, optional action."
+        description="Centered placeholder for sections with no data. variant='plain' (default) is the borderless, muted in-section treatment. variant='card' is the full-page listing treatment used by the sales / clients / pets / products / appointments tables when a search or filter returns nothing — dashed card, tilted brand-accent icon, bolder title."
       >
         <div className="grid max-w-3xl gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-border/60 bg-card">
@@ -839,6 +839,16 @@ export function PlaygroundShowcase() {
               }
             />
           </div>
+        </div>
+
+        {/* card variant — self-framed, so it isn't wrapped in another card */}
+        <div className="mt-3 max-w-3xl">
+          <EmptyState
+            variant="card"
+            icon={PackageIcon}
+            title="No products match"
+            description="Try a different search."
+          />
         </div>
       </Section>
 

@@ -12,6 +12,7 @@ import {
   MoreVerticalIcon,
   NotebookPenIcon,
   PencilIcon,
+  PersonStandingIcon,
   PlusIcon,
   PrinterIcon,
   RotateCcwIcon,
@@ -28,6 +29,8 @@ import {
   type ClientDetailClient,
   ClientDetailDialog,
 } from "@/components/blocks/client-detail-dialog"
+import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -98,6 +101,14 @@ const MONTH_SHORT = [
 
 function formatDateOnly(d: Date) {
   return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
+}
+
+const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+// Weekday-led format used in the draft detail dialog header and receipt card
+// ("Tue, Jun 2"), matching the figma. The listing rows use formatDateOnly.
+function formatWeekdayShort(d: Date) {
+  return `${WEEKDAY_SHORT[d.getDay()]}, ${MONTH_SHORT[d.getMonth()]} ${d.getDate()}`
 }
 
 function formatTimeOnly(d: Date) {
@@ -278,7 +289,7 @@ function DateRangePopover({ value, onChange, today }: DateRangePopoverProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" radius="full" size="sm" className="h-8 gap-1.5">
+        <Button variant="outline" radius="full" size="sm" className="gap-1.5">
           {label}
           <CalendarIcon className="size-3.5" />
         </Button>
@@ -288,7 +299,7 @@ function DateRangePopover({ value, onChange, today }: DateRangePopoverProps) {
           <div className="flex flex-col gap-1.5">
             <span className="text-sm font-medium text-foreground">Date range</span>
             <Select value={preset} onValueChange={(v) => handlePreset(v as PresetKey)}>
-              <SelectTrigger className="h-10 w-full rounded-xl border border-input bg-input/40">
+              <SelectTrigger className="data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -316,7 +327,6 @@ function DateRangePopover({ value, onChange, today }: DateRangePopoverProps) {
                     setPreset("custom")
                   }
                 }}
-                className="h-10 rounded-xl"
                 aria-label="Starting date"
               />
             </div>
@@ -333,7 +343,6 @@ function DateRangePopover({ value, onChange, today }: DateRangePopoverProps) {
                     setPreset("custom")
                   }
                 }}
-                className="h-10 rounded-xl"
                 aria-label="Ending date"
               />
             </div>
@@ -380,11 +389,12 @@ type Sale = {
   grossMinor: number
 }
 
-// Demo today is 2026-05-25. Five "today" rows (one per status) guarantee every
-// state is visible the moment the page opens; the rest are anchored on 22–24
-// May so the Last-7/30/90 ranges also fill out. Ids 1–7 are preserved so
-// existing deep-links (/sales/sales-list?sale=N referenced from /screens) keep
-// working.
+// Demo today is 2026-05-25. Trimmed to 10 rows: five "today" rows (one per
+// status) guarantee every state is visible the moment the page opens, plus
+// five older rows anchored on 22–24 May so the Last-7/30/90 ranges also fill
+// out. The kept ids (1, 2, 3, 6, 7, 12–16) are exactly the ones deep-linked
+// from /screens and the appointments "View sale" (?sale=2), so no existing
+// link breaks.
 const MOCK_SALES: Sale[] = [
   // 25 May — today. One per status so the default Today view shows every state.
   {
@@ -427,40 +437,7 @@ const MOCK_SALES: Sale[] = [
     tipsMinor: 0,
     grossMinor: 4200,
   },
-  // 24 May — extra variety alongside the originals.
-  {
-    id: 11,
-    client: "Tom Cassidy",
-    status: "completed",
-    saleAt: new Date(2026, 4, 24, 16, 0),
-    tipsMinor: 500,
-    grossMinor: 6800,
-  },
-  {
-    id: 10,
-    client: "Karen Dougall",
-    status: "unpaid",
-    saleAt: new Date(2026, 4, 24, 13, 15),
-    tipsMinor: 0,
-    grossMinor: 1500,
-  },
-  {
-    id: 9,
-    client: "Aya Hassan",
-    status: "part-paid",
-    saleAt: new Date(2026, 4, 24, 11, 40),
-    tipsMinor: 0,
-    grossMinor: 3000,
-  },
-  {
-    id: 8,
-    client: "Millie Cassidy",
-    status: "refunded",
-    saleAt: new Date(2026, 4, 24, 9, 25),
-    tipsMinor: 0,
-    grossMinor: -2100,
-  },
-  // Original 7 — preserved so /screens?sale=N deep-links don't break.
+  // Older rows — preserved so /screens?sale=N deep-links don't break.
   {
     id: 7,
     client: "Jane Doe",
@@ -474,22 +451,6 @@ const MOCK_SALES: Sale[] = [
     client: "Jane Doe",
     status: "part-paid",
     saleAt: new Date(2026, 4, 24, 10, 15),
-    tipsMinor: 0,
-    grossMinor: 2500,
-  },
-  {
-    id: 5,
-    client: "Jane Doe",
-    status: "unpaid",
-    saleAt: new Date(2026, 4, 22, 11, 34),
-    tipsMinor: 0,
-    grossMinor: 2500,
-  },
-  {
-    id: 4,
-    client: "John Doe",
-    status: "unpaid",
-    saleAt: new Date(2026, 4, 22, 10, 52),
     tipsMinor: 0,
     grossMinor: 2500,
   },
@@ -529,10 +490,56 @@ const MOCK_SALES: Sale[] = [
 const STATUS_META: Record<SaleStatus, { label: string; className: string }> = {
   completed: { label: "Completed", className: "bg-lime-5 text-lime-12" },
   "part-paid": { label: "Part Paid", className: "bg-gold-5 text-gold-12" },
-  unpaid: { label: "Unpaid", className: "bg-cami-yellow-5 text-cami-yellow-12" },
+  unpaid: { label: "Unpaid", className: "bg-cami-yellow-3 text-cami-yellow-11" },
   refunded: { label: "Refunded", className: "bg-olive-5 text-olive-12" },
   voided: { label: "Voided", className: "bg-tomato-8 text-tomato-12" },
 }
+
+// ─── Draft mock data ──────────────────────────────────────────────────────────
+//
+// Drafts are unsubmitted sales — no sale number yet, just a short hex reference
+// (#31A06EA3). They're always "Unpaid" until checked out, so unlike sales they
+// carry no status variants. The first row mirrors the figma exactly (Walk-In,
+// 2 Jun 2026 5:22pm, AED 25) and is deep-linked from /screens as ?draft=31A06EA3.
+
+type Draft = {
+  id: string
+  client: string
+  createdAt: Date
+  tipsMinor: number
+  grossMinor: number
+}
+
+const MOCK_DRAFTS: Draft[] = [
+  {
+    id: "31A06EA3",
+    client: "Walk-In",
+    createdAt: new Date(2026, 5, 2, 17, 22),
+    tipsMinor: 0,
+    grossMinor: 2500,
+  },
+  {
+    id: "7F2B19C4",
+    client: "Karen Dougall",
+    createdAt: new Date(2026, 5, 2, 14, 10),
+    tipsMinor: 0,
+    grossMinor: 6400,
+  },
+  {
+    id: "A4D8E0F1",
+    client: "Tom Cassidy",
+    createdAt: new Date(2026, 5, 1, 16, 45),
+    tipsMinor: 0,
+    grossMinor: 3800,
+  },
+  {
+    id: "C9B3A77D",
+    client: "Walk-In",
+    createdAt: new Date(2026, 4, 30, 11, 5),
+    tipsMinor: 0,
+    grossMinor: 1200,
+  },
+]
 
 // Status pill used at the top of the centered sale-detail dialog header.
 // Same palette as the listing row badge for visual continuity between the
@@ -540,7 +547,7 @@ const STATUS_META: Record<SaleStatus, { label: string; className: string }> = {
 const STATUS_DIALOG_PILL: Record<SaleStatus, string> = {
   completed: "bg-lime-5 text-lime-12",
   "part-paid": "bg-gold-5 text-gold-12",
-  unpaid: "bg-cami-yellow-5 text-cami-yellow-12",
+  unpaid: "bg-cami-yellow-3 text-cami-yellow-11",
   refunded: "bg-olive-5 text-olive-12",
   voided: "bg-tomato-8 text-tomato-12",
 }
@@ -575,12 +582,32 @@ function compareSales(a: Sale, b: Sale, key: SortKey): number {
   }
 }
 
+// Drafts reuse the same SortKey — "Sale #" maps to the hex reference (sorted
+// lexicographically), the date keys to createdAt, gross to the total.
+function compareDrafts(a: Draft, b: Draft, key: SortKey): number {
+  switch (key) {
+    case "sale-asc":
+      return a.id.localeCompare(b.id)
+    case "sale-desc":
+      return b.id.localeCompare(a.id)
+    case "date-asc":
+      return a.createdAt.getTime() - b.createdAt.getTime()
+    case "date-desc":
+      return b.createdAt.getTime() - a.createdAt.getTime()
+    case "gross-asc":
+      return a.grossMinor - b.grossMinor
+    case "gross-desc":
+      return b.grossMinor - a.grossMinor
+  }
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 function SalesListPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const selectedSaleId = searchParams.get("sale")
+  const selectedDraftId = searchParams.get("draft")
 
   const setSelectedSaleId = useCallback(
     (id: number | null) => {
@@ -596,10 +623,42 @@ function SalesListPageInner() {
     [router, searchParams],
   )
 
+  const setSelectedDraftId = useCallback(
+    (id: string | null) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (id !== null) {
+        params.set("draft", id)
+      } else {
+        params.delete("draft")
+      }
+      const qs = params.toString()
+      router.replace(qs ? `?${qs}` : "?", { scroll: false })
+    },
+    [router, searchParams],
+  )
+
   // Anchor "today" in the demo so the empty state is reproducible against the
   // hard-coded fixture dates (May 2026).
   const today = useMemo(() => startOfDay(new Date(2026, 4, 25)), [])
-  const [tab, setTab] = useState<"sales" | "drafts">("sales")
+  // Tab is URL-backed so /screens can deep-link the Drafts tab; an open
+  // `?draft=` also implies the Drafts tab.
+  const [tab, setTab] = useState<"sales" | "drafts">(() =>
+    searchParams.get("tab") === "drafts" || selectedDraftId ? "drafts" : "sales",
+  )
+  const setTabAndUrl = useCallback(
+    (next: "sales" | "drafts") => {
+      setTab(next)
+      const params = new URLSearchParams(searchParams.toString())
+      if (next === "drafts") {
+        params.set("tab", "drafts")
+      } else {
+        params.delete("tab")
+      }
+      const qs = params.toString()
+      router.replace(qs ? `?${qs}` : "?", { scroll: false })
+    },
+    [router, searchParams],
+  )
   const [query, setQuery] = useState("")
   const [sort, setSort] = useState<SortKey>("sale-desc")
   const [range, setRange] = useState<DateRange>(() => rangeForPreset("today", today))
@@ -608,6 +667,10 @@ function SalesListPageInner() {
   // URL is the source of truth — match the `?sale=<id>` param to a row.
   const selectedSale = selectedSaleId
     ? (MOCK_SALES.find((s) => String(s.id) === selectedSaleId) ?? null)
+    : null
+  // …and `?draft=<ref>` to a draft row.
+  const selectedDraft = selectedDraftId
+    ? (MOCK_DRAFTS.find((d) => d.id === selectedDraftId) ?? null)
     : null
 
   function openClientFor(name: string) {
@@ -636,6 +699,21 @@ function SalesListPageInner() {
     () => [...filtered].sort((a, b) => compareSales(a, b, sort)),
     [filtered, sort],
   )
+
+  // Drafts are filtered by search only — the date-range pill scopes completed
+  // sales, but drafts are unfinished work the user always wants to see in full
+  // regardless of when they were started.
+  const filteredDrafts = useMemo(() => {
+    if (!q) return MOCK_DRAFTS
+    return MOCK_DRAFTS.filter(
+      (d) => d.client.toLowerCase().includes(q) || d.id.toLowerCase().includes(q),
+    )
+  }, [q])
+  const sortedDrafts = useMemo(
+    () => [...filteredDrafts].sort((a, b) => compareDrafts(a, b, sort)),
+    [filteredDrafts, sort],
+  )
+
   const sortLabel = SORT_OPTIONS.find((o) => o.key === sort)?.label ?? "Sort"
 
   // Tab counts — Sales is the in-range fixture rows (independent of search),
@@ -648,13 +726,13 @@ function SalesListPageInner() {
       return t >= from && t <= to
     }).length
   }, [range])
-  const draftsCount = 0
+  const draftsCount = MOCK_DRAFTS.length
 
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-5xl items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
+        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
+          <div className="flex flex-col">
             <h1 className="text-2xl leading-8 font-medium text-foreground">Sales</h1>
             <p className="text-sm text-muted-foreground">Manage your sales history and invoices</p>
           </div>
@@ -662,9 +740,9 @@ function SalesListPageInner() {
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full" className="h-9 gap-1.5 px-4">
+                <Button variant="outline" radius="full" size="sm">
                   Options
-                  <ChevronDownIcon className="size-4" />
+                  <ChevronDownIcon className="size-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-44">
@@ -683,7 +761,7 @@ function SalesListPageInner() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button radius="full" className="h-9 gap-1.5 px-4">
+            <Button radius="full">
               <PlusIcon className="size-4" />
               Add new
             </Button>
@@ -691,11 +769,11 @@ function SalesListPageInner() {
         </div>
       }
     >
-      <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col">
         <Tabs
           className="flex min-h-0 flex-1 flex-col gap-4"
           value={tab}
-          onValueChange={(v) => setTab(v as "sales" | "drafts")}
+          onValueChange={(v) => setTabAndUrl(v as "sales" | "drafts")}
         >
           <TableToolbar
             tabs={
@@ -713,18 +791,19 @@ function SalesListPageInner() {
             actions={
               <>
                 <SearchInput
-                  placeholder="Search by Sale or Client"
-                  aria-label="Search sales"
+                  className="h-9! w-72"
+                  placeholder={tab === "drafts" ? "Search by Draft ID" : "Search by Sale or Client"}
+                  aria-label={tab === "drafts" ? "Search drafts" : "Search sales"}
                   onValueChange={setQuery}
                 />
                 <DateRangePopover value={range} onChange={setRange} today={today} />
-                <Button variant="outline" aria-label="Filter" className="size-8 rounded-full">
+                <Button variant="outline" size="icon-sm" radius="full" aria-label="Filter">
                   <SlidersHorizontalIcon className="size-4" />
                 </Button>
 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" radius="full" className="h-8 gap-1.5 px-3">
+                    <Button variant="outline" size="sm" radius="full" className="gap-1.5">
                       <ArrowUpDownIcon className="size-3.5" />
                       {sortLabel}
                     </Button>
@@ -746,21 +825,76 @@ function SalesListPageInner() {
             }
           />
 
-          {sorted.length === 0 ? (
-            <div className="flex min-h-[420px] flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card px-6 py-16">
-              <TagIcon
-                className="size-10 -rotate-[20deg] stroke-[1.25] text-cami-violet-9"
-                aria-hidden="true"
-              />
-              <p className="mt-3 text-base font-semibold text-foreground">
-                {tab === "drafts" ? "No drafts yet" : "No sales yet"}
-              </p>
-              <Button variant="outline" radius="full" size="sm" className="mt-4 h-8 gap-1.5">
-                {tab === "drafts" ? "Create new draft" : "Create new sale"}
-              </Button>
-            </div>
+          {(tab === "drafts" ? sortedDrafts.length : sorted.length) === 0 ? (
+            <EmptyState
+              variant="card"
+              icon={tab === "drafts" ? FileTextIcon : TagIcon}
+              title={tab === "drafts" ? "No drafts match" : "No sales match"}
+              description="Try a different search."
+            />
+          ) : tab === "drafts" ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <SortableHead
+                    label="Draft #"
+                    className="sticky left-0 z-20! shadow-[1px_0_0_0_var(--border)]"
+                  />
+                  <SortableHead label="Client" />
+                  <TableHead>Status</TableHead>
+                  <SortableHead label="Created" />
+                  <SortableHead label="Tips" className="text-right" />
+                  <SortableHead label="Gross total" className="text-right" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedDrafts.map((d) => {
+                  const isWalkIn = d.client === "Walk-In"
+                  return (
+                    <TableRow key={d.id}>
+                      <TableCell className="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] transition-colors [tr:hover_&]:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))]">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDraftId(d.id)}
+                          className="cursor-pointer text-start text-sm font-medium text-cami-violet-11 hover:underline"
+                        >
+                          #{d.id}
+                        </button>
+                      </TableCell>
+                      <TableCell>
+                        {isWalkIn ? (
+                          <span className="text-sm text-foreground">Walk-In</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openClientFor(d.client)}
+                            className="cursor-pointer text-start text-sm text-cami-violet-11 hover:underline"
+                          >
+                            {d.client}
+                          </button>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="rounded-full border-transparent bg-olive-5 text-xs text-olive-12">
+                          Draft
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDateOnly(d.createdAt)}
+                      </TableCell>
+                      <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
+                        {money(Math.round(d.tipsMinor / 100))}
+                      </TableCell>
+                      <TableCell className="text-right text-sm whitespace-nowrap text-foreground tabular-nums">
+                        {money(Math.round(d.grossMinor / 100))}
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
           ) : (
-            <Table containerClassName="min-h-0 flex-1">
+            <Table>
               <TableHeader>
                 <TableRow>
                   <SortableHead
@@ -808,7 +942,7 @@ function SalesListPageInner() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {formatDateOnly(s.saleAt)}, {formatTimeOnly(s.saleAt)}
+                        {formatDateOnly(s.saleAt)}
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
                         {money(Math.round(s.tipsMinor / 100))}
@@ -828,9 +962,10 @@ function SalesListPageInner() {
             </Table>
           )}
 
-          {sorted.length > 0 ? (
+          {(tab === "drafts" ? sortedDrafts.length : sorted.length) > 0 ? (
             <div className="py-2 text-center text-xs text-muted-foreground">
-              Showing {sorted.length} of {sorted.length} results
+              Showing {tab === "drafts" ? sortedDrafts.length : sorted.length} of{" "}
+              {tab === "drafts" ? sortedDrafts.length : sorted.length} results
             </div>
           ) : null}
         </Tabs>
@@ -853,6 +988,16 @@ function SalesListPageInner() {
         }}
         onViewProfile={() => {
           if (selectedSale) openClientFor(selectedSale.client)
+        }}
+      />
+
+      <DraftDetailDialog
+        draft={selectedDraft}
+        onOpenChange={(next) => {
+          if (!next) setSelectedDraftId(null)
+        }}
+        onViewProfile={() => {
+          if (selectedDraft) openClientFor(selectedDraft.client)
         }}
       />
     </AppShell>
@@ -1269,6 +1414,247 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
         </Tabs>
       </DialogContent>
     </Dialog>
+  )
+}
+
+// ─── Draft detail dialog ──────────────────────────────────────────────────────
+//
+// Same shell as SaleDetailDialog (centered ~630px dialog, sticky header, Details
+// / Activity underline tabs, scroll body) so the draft and sale surfaces read as
+// one family. Drafts have no status variants — they're always "Unpaid" with the
+// full total still owed, so the primary action is "Checkout" rather than Pay
+// now / Share invoice. Walk-In drafts show a violet walk-in card instead of the
+// clickable client row.
+
+type DraftDetailDialogProps = {
+  draft: Draft | null
+  onOpenChange: (open: boolean) => void
+  onViewProfile: () => void
+}
+
+function DraftDetailDialog({ draft, onOpenChange, onViewProfile }: DraftDetailDialogProps) {
+  const open = draft !== null
+  // Hold the last draft so the dialog can animate out after `draft` is cleared.
+  const [last, setLast] = useState<Draft | null>(draft)
+  const [tab, setTab] = useState<"details" | "activity">("details")
+  useEffect(() => {
+    if (draft) {
+      setLast(draft)
+      setTab("details")
+    }
+  }, [draft])
+
+  const [confirmCancel, setConfirmCancel] = useState(false)
+
+  const data = draft ?? last
+  if (!data) return null
+
+  const total = Math.round(data.grossMinor / 100)
+  // Nothing has been tendered on a draft, so the whole total is still owed.
+  const balance = total
+  const isWalkIn = data.client === "Walk-In"
+  const clientEmail = `${data.client.toLowerCase().replace(/\s+/g, ".")}@example.com`
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent
+          className="!max-w-[630px] flex h-[800px] max-h-[calc(100vh-100px)] flex-col gap-0 p-0 sm:!max-w-[630px]"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <DialogDescription className="sr-only">
+            Draft sale #{data.id} for {data.client}
+          </DialogDescription>
+
+          <Tabs
+            value={tab}
+            onValueChange={(v) => setTab(v as "details" | "activity")}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <div className="flex flex-col gap-0 bg-muted/40">
+              <DialogHeader className="flex flex-col gap-3 px-9 pt-[28px] pb-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium",
+                      STATUS_DIALOG_PILL.unpaid,
+                    )}
+                  >
+                    Unpaid
+                  </span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button type="button" size="sm" radius="full">
+                      Checkout
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon-sm"
+                          radius="full"
+                          aria-label="Quick actions"
+                        >
+                          <MoreVerticalIcon className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onSelect={() => setConfirmCancel(true)}
+                        >
+                          Cancel draft
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <DialogClose asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        radius="full"
+                        aria-label="Close"
+                      >
+                        <XIcon className="size-4" />
+                      </Button>
+                    </DialogClose>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <DialogTitle className="text-[28px] leading-8 font-semibold">
+                    Draft sale
+                  </DialogTitle>
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                    <span>{formatWeekdayShort(data.createdAt)}</span>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="flex items-center gap-6 px-9">
+                <TabsList variant="underline">
+                  <TabsTrigger value="details">Details</TabsTrigger>
+                  <TabsTrigger value="activity">Activity</TabsTrigger>
+                </TabsList>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-9 pt-5 pb-6">
+              <TabsContent value="details" className="flex flex-col gap-3">
+                {isWalkIn ? (
+                  <div className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card p-4">
+                    <span className="min-w-0 flex-1 truncate font-semibold text-foreground">
+                      Walk-In
+                    </span>
+                    <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-cami-violet-3 text-cami-violet-11">
+                      <PersonStandingIcon className="size-6" />
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onViewProfile}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors hover:bg-muted/30"
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                      <span className="truncate font-semibold text-foreground">{data.client}</span>
+                      <span className="truncate text-sm text-muted-foreground">{clientEmail}</span>
+                    </div>
+                    <Avatar
+                      size="md"
+                      fallback="character"
+                      name={data.client}
+                      hashSeed={data.client.toLowerCase().replace(/\s+/g, "-")}
+                    />
+                  </button>
+                )}
+
+                <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-lg font-semibold text-foreground">#{data.id}</span>
+                    <span className="text-sm text-muted-foreground">
+                      {formatWeekdayShort(data.createdAt)}
+                    </span>
+                  </div>
+
+                  <ul className="flex flex-col gap-2">
+                    <li className="flex items-baseline justify-between gap-3 text-sm">
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <span className="font-medium text-foreground">Haircut</span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          1h 30min · Hussain Shabbir
+                        </span>
+                      </div>
+                      <span className="shrink-0 font-medium text-foreground tabular-nums">
+                        {money(total)}
+                      </span>
+                    </li>
+                  </ul>
+
+                  <div className="h-px bg-border/60" />
+
+                  <div className="flex flex-col gap-1.5 text-sm">
+                    <div className="flex items-baseline justify-between gap-2 text-muted-foreground">
+                      <span>Subtotal</span>
+                      <span className="tabular-nums">{money(total)}</span>
+                    </div>
+                    <div className="flex items-baseline justify-between gap-2 font-semibold text-foreground">
+                      <span>Total</span>
+                      <span className="tabular-nums">{money(total)}</span>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-border/60" />
+
+                  <div className="flex items-baseline justify-between gap-2 text-sm font-semibold text-foreground">
+                    <span>Balance</span>
+                    <span className="tabular-nums">{money(balance)}</span>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="activity" className="flex flex-col gap-4">
+                <span className="text-sm font-medium text-foreground">
+                  {MONTH_SHORT[data.createdAt.getMonth()]}
+                </span>
+                <ol className="flex flex-col">
+                  <ActivityRow
+                    title={`Draft #${data.id} created`}
+                    timestamp={`${formatWeekdayShort(data.createdAt)} at ${formatTimeOnly(data.createdAt)}`}
+                    body="Created by Hussain Shabbir"
+                    trailing={
+                      <Avatar
+                        size="md"
+                        fallback="character"
+                        name="Hussain Shabbir"
+                        hashSeed="hussain-shabbir"
+                      />
+                    }
+                    isLast
+                  />
+                </ol>
+                <p className="text-xs text-muted-foreground">
+                  Activity for this draft in the last 90 days
+                </p>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={confirmCancel}
+        onOpenChange={setConfirmCancel}
+        title="Cancel draft sale?"
+        description="Canceling will remove this sale from the sales list."
+        cancelLabel="Go back"
+        confirmLabel="Confirm"
+        onConfirm={() => {
+          // Mock data — closing the detail dialog stands in for removing the
+          // draft from the list.
+          onOpenChange(false)
+        }}
+      />
+    </>
   )
 }
 
