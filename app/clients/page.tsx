@@ -140,14 +140,14 @@ function ClientRow({
 }) {
   return (
     <TableRow
-      className="cursor-pointer bg-background hover:bg-muted/40"
+      className="cursor-pointer bg-background"
       onClick={onOpen}
       onKeyDown={(e) => {
         if (e.key === "Enter") onOpen()
       }}
       tabIndex={0}
     >
-      <TableCell className="sticky left-0 z-10 w-[260px] bg-inherit py-3 shadow-[1px_0_0_0_var(--border)]">
+      <TableCell className="sticky left-0 z-10 w-[260px] bg-background py-3 shadow-[1px_0_0_0_var(--border)] transition-colors [tr:hover_&]:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))]">
         <div className="flex items-center gap-3">
           <Avatar size="md" fallback="character" name={client.name} hashSeed={client.id} />
           <div className="flex min-w-0 flex-col">

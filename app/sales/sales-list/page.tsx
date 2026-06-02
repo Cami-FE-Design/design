@@ -763,7 +763,10 @@ function SalesListPageInner() {
             <Table containerClassName="min-h-0 flex-1">
               <TableHeader>
                 <TableRow>
-                  <SortableHead label="Sale #" className="sticky left-0 z-20!" />
+                  <SortableHead
+                    label="Sale #"
+                    className="sticky left-0 z-20! shadow-[1px_0_0_0_var(--border)]"
+                  />
                   <SortableHead label="Client" />
                   <TableHead>Status</TableHead>
                   <SortableHead label="Sale date" />
@@ -776,7 +779,7 @@ function SalesListPageInner() {
                   const status = STATUS_META[s.status]
                   return (
                     <TableRow key={s.id}>
-                      <TableCell className="sticky left-0 z-10 bg-background transition-colors [tr:hover_&]:bg-muted">
+                      <TableCell className="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] transition-colors [tr:hover_&]:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))]">
                         <button
                           type="button"
                           onClick={() => setSelectedSaleId(s.id)}

@@ -355,7 +355,9 @@ function AppointmentsListPageInner() {
           <Table containerClassName="min-h-0 flex-1">
             <TableHeader>
               <TableRow>
-                <TableHead className="sticky left-0 z-20!">Ref #</TableHead>
+                <TableHead className="sticky left-0 z-20! shadow-[1px_0_0_0_var(--border)]">
+                  Ref #
+                </TableHead>
                 <TableHead>Client</TableHead>
                 <TableHead>Service</TableHead>
                 <TableHead>Created by</TableHead>
@@ -372,7 +374,7 @@ function AppointmentsListPageInner() {
                 const status = STATUS_META[b.status]
                 return (
                   <TableRow key={b.id}>
-                    <TableCell className="sticky left-0 z-10 bg-background font-mono text-xs transition-colors [tr:hover_&]:bg-muted">
+                    <TableCell className="sticky left-0 z-10 bg-background font-mono text-xs shadow-[1px_0_0_0_var(--border)] transition-colors [tr:hover_&]:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))]">
                       <button
                         type="button"
                         onClick={() => setSelectedRef(b.id)}

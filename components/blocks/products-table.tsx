@@ -153,7 +153,7 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="sticky left-0 z-20! bg-background md:static md:bg-transparent">
+          <TableHead className="sticky left-0 z-20! bg-background shadow-[1px_0_0_0_var(--border)] md:static md:bg-transparent md:shadow-none">
             <button
               type="button"
               onClick={() => toggleSort("name")}
@@ -185,7 +185,7 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
             className="group cursor-pointer"
             onClick={() => onRowClick(product.id)}
           >
-            <TableCell className="sticky left-0 z-10 bg-background group-hover:bg-muted/50 md:static md:bg-transparent md:group-hover:bg-transparent">
+            <TableCell className="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] transition-colors group-hover:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))] md:static md:bg-transparent md:shadow-none md:group-hover:bg-transparent">
               <div className="flex items-center gap-3">
                 <ProductImagePlaceholder seed={product.id} className="size-21.5" />
                 <div className="flex flex-col gap-0.5">
