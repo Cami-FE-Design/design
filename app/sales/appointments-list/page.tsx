@@ -378,7 +378,7 @@ function AppointmentsListPageInner() {
                 <TableHead>Created by</TableHead>
                 <TableHead>Created Date</TableHead>
                 <TableHead>Scheduled Date</TableHead>
-                <TableHead>Duration</TableHead>
+                {/* Duration column hidden for now */}
                 <TableHead>Team member</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Status</TableHead>
@@ -389,7 +389,7 @@ function AppointmentsListPageInner() {
                 const status = STATUS_META[b.status]
                 return (
                   <TableRow key={b.id}>
-                    <TableCell className="sticky left-0 z-10 bg-background font-mono text-xs shadow-[1px_0_0_0_var(--border)] transition-colors [tr:hover_&]:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))]">
+                    <TableCell className="sticky left-0 z-10 bg-background font-mono text-sm shadow-[1px_0_0_0_var(--border)] transition-colors [tr:hover_&]:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))]">
                       <button
                         type="button"
                         onClick={() => setSelectedRef(b.id)}
@@ -419,26 +419,24 @@ function AppointmentsListPageInner() {
                             ],
                           })
                         }}
-                        className="cursor-pointer text-start text-xs text-cami-violet-11 hover:underline"
+                        className="cursor-pointer text-start text-sm text-cami-violet-11 hover:underline"
                       >
                         {b.clientName}
                       </button>
                     </TableCell>
-                    <TableCell className="text-xs text-foreground">{b.serviceName}</TableCell>
-                    <TableCell className="text-xs text-foreground">{b.createdBy}</TableCell>
-                    <TableCell className="text-xs text-foreground">
+                    <TableCell className="text-sm text-foreground">{b.serviceName}</TableCell>
+                    <TableCell className="text-sm text-foreground">{b.createdBy}</TableCell>
+                    <TableCell className="text-sm text-foreground">
                       {formatDateOnly(b.createdAt)}
                     </TableCell>
-                    <TableCell className="text-xs text-foreground">
+                    <TableCell className="text-sm text-foreground">
                       {formatDateOnly(b.scheduledAt)}
                     </TableCell>
-                    <TableCell className="text-xs text-foreground tabular-nums">
-                      {formatDuration(b.durationMin)}
-                    </TableCell>
-                    <TableCell className="text-xs text-foreground">
+                    {/* Duration column hidden for now */}
+                    <TableCell className="text-sm text-foreground">
                       {STAFF_BY_ID[b.staffId]?.name ?? "—"}
                     </TableCell>
-                    <TableCell className="text-xs text-foreground tabular-nums">
+                    <TableCell className="text-sm text-foreground tabular-nums">
                       {formatPrice(b.priceMinor)}
                     </TableCell>
                     <TableCell>
