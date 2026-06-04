@@ -1,14 +1,15 @@
 "use client"
 
-import { ChevronRightIcon, ChevronsRightIcon } from "lucide-react"
+import { ChevronRightIcon, ChevronsRightIcon, XIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { CartContent, CartFooter } from "./cart-summary"
 import { ClientPanel } from "./client-panel"
+import { EditLineDialog, type LinePatch } from "./edit-line-dialog"
 import { ItemPicker } from "./item-picker"
 import { CLIENT_REQUIRED, CLIENTS, SERVICES } from "./mock"
 import type {
@@ -45,8 +46,10 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
   const [lines, setLines] = useState<CartLine[]>([])
   const [draftModalOpen, setDraftModalOpen] = useState(false)
   const [clientSearching, setClientSearching] = useState(false)
+  const [editingUid, setEditingUid] = useState<string | null>(null)
 
   const hasClient = attachment.type !== "none"
+  const editingLine = lines.find((l) => l.uid === editingUid) ?? null
 
   function leave() {
     // Clear the cart so a re-open starts fresh.
@@ -151,6 +154,21 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
     setLines((prev) => prev.map((l) => (l.uid === uid ? { ...l, qty: Math.max(1, qty) } : l)))
   }
 
+  function applyLineEdit(uid: string, patch: LinePatch) {
+    setLines((prev) =>
+      prev.map((l) =>
+        l.uid === uid
+          ? {
+              ...l,
+              priceMinor: patch.priceMinor,
+              qty: Math.max(1, patch.qty),
+              staffName: patch.staffName,
+            }
+          : l,
+      ),
+    )
+  }
+
   // ─── Exit / draft ────────────────────────────────────────────────────────
 
   function requestClose() {
@@ -243,7 +261,7 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
                   hasClient={hasClient}
                   onRemove={removeLine}
                   onSetQty={setQty}
-                  onEditLine={() => {}}
+                  onEditLine={setEditingUid}
                 />
               )}
             </div>
@@ -253,30 +271,34 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
         </div>
       </SheetContent>
 
-      {/* Draft persistence modal */}
+      {/* Draft persistence modal — shown on close attempt with items in the cart */}
       <Dialog open={draftModalOpen} onOpenChange={setDraftModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogTitle>Discard draft sale?</DialogTitle>
-          <p className="text-sm leading-5 text-muted-foreground">
-            Your cart won’t be saved. To keep your changes, save this sale as a draft.
-          </p>
-          <div className="flex items-center justify-end gap-3 pt-2">
+        <DialogContent className="flex flex-col gap-4 sm:max-w-md">
+          <DialogClose asChild>
             <Button
               type="button"
-              variant="destructive"
+              variant="ghost"
+              size="icon-sm"
               radius="full"
-              className="px-6"
-              onClick={() => {
-                setDraftModalOpen(false)
-                leave()
-              }}
+              aria-label="Close"
+              className="absolute top-4 right-4 text-muted-foreground"
             >
-              Discard
+              <XIcon className="size-5" />
             </Button>
+          </DialogClose>
+          <DialogTitle className="font-heading font-semibold text-2xl">
+            Discard draft sale?
+          </DialogTitle>
+          <p className="text-base text-muted-foreground leading-6">
+            Your cart won’t be saved. To keep your changes, save this sale as a draft
+          </p>
+          <div className="flex items-center gap-3 pt-2">
             <Button
               type="button"
+              variant="outline"
+              size="lg"
               radius="full"
-              className="px-6"
+              className="flex-1"
               onClick={() => {
                 // Saving to Drafts is handled by a sibling ticket; close the flow.
                 setDraftModalOpen(false)
@@ -285,9 +307,35 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
             >
               Save as draft
             </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              radius="full"
+              className="flex-1"
+              onClick={() => {
+                setDraftModalOpen(false)
+                leave()
+              }}
+            >
+              Discard
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {editingLine ? (
+        <EditLineDialog
+          key={editingLine.uid}
+          line={editingLine}
+          open
+          onOpenChange={(next) => {
+            if (!next) setEditingUid(null)
+          }}
+          onApply={applyLineEdit}
+          onDelete={removeLine}
+        />
+      ) : null}
     </Sheet>
   )
 }

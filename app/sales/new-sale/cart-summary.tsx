@@ -12,7 +12,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
-import { APPOINTMENTS, HAS_PETS, money, totals, VAT_RATE } from "./mock"
+import { APPOINTMENTS, formatDuration, HAS_PETS, money, totals, VAT_RATE } from "./mock"
 import type { CartLine } from "./types"
 
 /**
@@ -86,9 +86,9 @@ export function CartContent({
   )
 }
 
-// Service line — deep-violet accent bar, bold name, and the subject (pet/client)
-// as meta. Cart building shows no staff/time info; an edit + remove control set
-// reveals on hover (Figma 2686-24022).
+// Service line — deep-violet accent bar, bold name, and "duration · subject"
+// meta (no staff while building the cart); an edit + remove control set reveals
+// on hover (Figma 2686-24022).
 function ServiceLineRow({
   line,
   subject,
@@ -100,6 +100,10 @@ function ServiceLineRow({
   onRemove: () => void
   onEdit?: () => void
 }) {
+  const meta = [line.durationMin != null ? formatDuration(line.durationMin) : null, subject]
+    .filter(Boolean)
+    .join(" · ")
+
   return (
     <li className="group/service flex gap-3 rounded-2xl px-3 py-2 transition-colors hover:bg-muted/50">
       <span aria-hidden className="w-1 shrink-0 self-stretch rounded-full bg-cami-violet-12" />
@@ -112,8 +116,8 @@ function ServiceLineRow({
             >
               {line.name}
             </span>
-            {subject ? (
-              <span className="truncate text-muted-foreground text-sm leading-5">{subject}</span>
+            {meta ? (
+              <span className="truncate text-muted-foreground text-sm leading-5">{meta}</span>
             ) : null}
           </div>
           <RowActions
