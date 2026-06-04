@@ -23,7 +23,7 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
-
+import { CartFlow } from "@/app/sales/new-sale/cart-flow"
 import { AppShell } from "@/components/blocks/app-shell"
 import {
   type ClientDetailClient,
@@ -663,6 +663,7 @@ function SalesListPageInner() {
   const [sort, setSort] = useState<SortKey>("sale-desc")
   const [range, setRange] = useState<DateRange>(() => rangeForPreset("today", today))
   const [selectedClient, setSelectedClient] = useState<ClientDetailClient | null>(null)
+  const [cartOpen, setCartOpen] = useState(false)
 
   // URL is the source of truth — match the `?sale=<id>` param to a row.
   const selectedSale = selectedSaleId
@@ -761,7 +762,7 @@ function SalesListPageInner() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button radius="full">
+            <Button radius="full" onClick={() => setCartOpen(true)}>
               <PlusIcon className="size-4" />
               Add new
             </Button>
@@ -1000,6 +1001,8 @@ function SalesListPageInner() {
           if (selectedDraft) openClientFor(selectedDraft.client)
         }}
       />
+
+      <CartFlow open={cartOpen} onOpenChange={setCartOpen} />
     </AppShell>
   )
 }
