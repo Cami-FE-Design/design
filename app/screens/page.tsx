@@ -355,6 +355,11 @@ const SECTIONS: Section[] = [
       "Sales reporting hub. Daily Summary is the first page; sibling pages (Appointments, Invoices, Payments) are reached from the Sales group in the app sidebar.",
     screens: [
       {
+        path: "/sales/new-sale",
+        label: "New sale · Add to cart (PRO-395)",
+        note: "Right-side POS drawer (wide, like the appointment sheet) with two panes: left item picker (global search + Appointments / Services / Products drilldowns, Memberships + Gift cards disabled), right cart pane in the appointment-sheet aesthetic — Add client card, Services section, pinned dark Continue-to-payment CTA with expandable VAT breakdown. Client attach: search 2+ chars, Add new client, Walk-In, selected card with Actions. Add services (staff dropdown, stack duplicates), products (qty +/-), or snapshot an appointment (auto-attaches client, replace-confirm if another client is attached). Footer back-calculates tax-inclusive Subtotal/Tax from Total. Closing with items prompts Save as draft / Discard.",
+      },
+      {
         path: "/sales/daily-summary",
         label: "Daily Summary",
         note: "Date stepper at the top (prev/Today/next + calendar popover), then side-by-side Transaction summary and Cash movement summary tables matching the figma values. Negative amounts render in tomato-11.",
