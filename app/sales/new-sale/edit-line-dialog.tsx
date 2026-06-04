@@ -127,7 +127,7 @@ export function EditLineDialog({
         <Field label="Discounts">
           {/* Read-only scaffolding — discounts are applied by the backend (PRO-395). */}
           <Select disabled>
-            <SelectTrigger className="h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium text-sm">
+            <SelectTrigger className="h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium text-sm data-[size=default]:h-12">
               <SelectValue placeholder="None selected" />
             </SelectTrigger>
             <SelectContent />
@@ -137,7 +137,7 @@ export function EditLineDialog({
         <Field label="Team member">
           <Select value={staff} onValueChange={setStaff}>
             <SelectTrigger
-              className="h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium text-sm"
+              className="h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium text-sm data-[size=default]:h-12"
               aria-label="Team member"
             >
               <SelectValue />
