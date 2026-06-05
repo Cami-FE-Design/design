@@ -119,11 +119,11 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
   }
 
   // Auto-close the drawer a moment after the confirmation shows.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when `confirmed` flips
   useEffect(() => {
     if (!confirmed) return
     const t = setTimeout(() => leave(), 2200)
     return () => clearTimeout(t)
-    // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when confirmed flips
   }, [confirmed])
 
   // ─── Cart mutations ──────────────────────────────────────────────────────
