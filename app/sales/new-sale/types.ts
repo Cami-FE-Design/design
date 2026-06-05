@@ -13,6 +13,8 @@ export type CatalogClient = {
   email?: string
   /** Photo wins over the character-avatar fallback when present. */
   photoUrl?: string
+  /** Relationship tags shown on the Tip-step client card, e.g. "High spender". */
+  tags?: string[]
 }
 
 export type ServiceCategory = {

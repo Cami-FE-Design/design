@@ -38,6 +38,15 @@ export function money(minor: number): string {
   return `${CURRENCY} ${aed.toLocaleString("en-US")}`
 }
 
+/** Format fils as "AED 118.80" — always 2 decimals (tips, payment totals). */
+export function formatAedDecimal(minor: number): string {
+  const aed = minor / 100
+  return `${CURRENCY} ${aed.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
+
 export function formatDuration(durationMin: number): string {
   if (durationMin < 60) return `${durationMin}min`
   const h = Math.floor(durationMin / 60)
@@ -102,6 +111,7 @@ export const CLIENTS: CatalogClient[] = [
     name: "Adriana Martino",
     phone: "+971 50 113 2280",
     email: "adrianamartino1998@gmail.com",
+    tags: ["High spender"],
   },
   { id: "bilal-haddad", name: "Bilal Haddad", phone: "+971 52 901 7733" },
   { id: "carla-mendez", name: "Carla Mendez", phone: "+971 55 220 8841" },
