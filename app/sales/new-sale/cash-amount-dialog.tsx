@@ -162,7 +162,7 @@ function CashBody({
         </DialogClose>
       </div>
 
-      <div className="border-border border-b pb-2 text-center">
+      <div className="mx-auto w-fit border-border border-b pb-2 text-center">
         <span className="font-heading font-semibold text-4xl text-foreground tabular-nums">
           <span className="text-muted-foreground">AED </span>
           {entry || "0"}

@@ -18,6 +18,7 @@ import { EditLineDialog, type LinePatch } from "./edit-line-dialog"
 import { ItemPicker } from "./item-picker"
 import { CLIENT_REQUIRED, CLIENTS, formatAedDecimal, SERVICES, totals } from "./mock"
 import { PaymentView } from "./payment-view"
+import { SaleNoteDialog } from "./sale-note-dialog"
 import { SelectPaymentModal } from "./select-payment-modal"
 import { SplitPaymentView } from "./split-payment-view"
 import { TipView, tipForPreset } from "./tip-view"
@@ -67,6 +68,8 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
   const [customTipOpen, setCustomTipOpen] = useState(false)
   const [cartDiscountOpen, setCartDiscountOpen] = useState(false)
   const [discountMinor, setDiscountMinor] = useState(0)
+  const [saleNoteOpen, setSaleNoteOpen] = useState(false)
+  const [saleNote, setSaleNote] = useState("")
   const [payments, setPayments] = useState<Payment[]>([])
   const [cashDialogOpen, setCashDialogOpen] = useState(false)
   const [cardDialogOpen, setCardDialogOpen] = useState(false)
@@ -81,7 +84,7 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
 
   // Base = cart total less any cart discount; tip and checkout totals build on it.
   const baseMinor = Math.max(0, totals(lines).totalMinor - discountMinor)
-  const tipMinor = tipId === "custom" ? customTipMinor : tipForPreset(tipId, baseMinor)
+  const tipMinor = tipId === "custom" ? customTipMinor : tipForPreset(tipId)
   const toPayMinor = baseMinor + tipMinor
   const paidMinor = payments.reduce((sum, p) => sum + p.amountMinor, 0)
   const leftToPayMinor = Math.max(0, toPayMinor - paidMinor)
@@ -99,6 +102,7 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
     setCustomTipMinor(0)
     setPaymentMode("select")
     setDiscountMinor(0)
+    setSaleNote("")
     setPayments([])
     setClientEditing(false)
     setConfirmed(false)
@@ -115,11 +119,11 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
   }
 
   // Auto-close the drawer a moment after the confirmation shows.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when `confirmed` flips
   useEffect(() => {
     if (!confirmed) return
     const t = setTimeout(() => leave(), 2200)
     return () => clearTimeout(t)
-    // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when confirmed flips
   }, [confirmed])
 
   // ─── Cart mutations ──────────────────────────────────────────────────────
@@ -335,7 +339,6 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
                     />
                   ) : step === "tip" ? (
                     <TipView
-                      baseMinor={baseMinor}
                       firstName={firstName}
                       selectedId={tipId}
                       onSelect={setTipId}
@@ -451,6 +454,7 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
                       onContinue={() => setStep("tip")}
                       onAddTip={() => setStep("tip")}
                       onAddCartDiscount={() => setCartDiscountOpen(true)}
+                      onAddSaleNote={() => setSaleNoteOpen(true)}
                       onSaveDraft={() => setDraftModalOpen(true)}
                       onCancelSale={leave}
                     />
@@ -477,6 +481,9 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
                           ? () => setConfirmed(true)
                           : leave
                     }
+                    onAddTip={() => setStep("tip")}
+                    onAddCartDiscount={() => setCartDiscountOpen(true)}
+                    onAddSaleNote={() => setSaleNoteOpen(true)}
                     onSaveDraft={() => setDraftModalOpen(true)}
                     onCancelSale={leave}
                   />
@@ -597,6 +604,10 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
         onOpenChange={setMethodPickerOpen}
         onSelect={selectPayment}
       />
+
+      {saleNoteOpen ? (
+        <SaleNoteDialog open note={saleNote} onOpenChange={setSaleNoteOpen} onSave={setSaleNote} />
+      ) : null}
     </Sheet>
   )
 }
