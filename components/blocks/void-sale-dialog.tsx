@@ -61,26 +61,26 @@ export function VoidSaleDialog({ open, onOpenChange, payments }: VoidSaleDialogP
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="flex flex-col gap-5 px-6 pt-6 pb-6 sm:max-w-md"
+        className="flex flex-col gap-4 sm:max-w-md"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogClose asChild>
           <Button
+            type="button"
             variant="ghost"
             size="icon-sm"
+            radius="full"
             aria-label="Close"
-            className="absolute right-4 top-4 z-10 rounded-full text-muted-foreground"
+            className="absolute right-4 top-4 z-10 text-muted-foreground"
           >
-            <XIcon className="size-5" strokeWidth={2} />
+            <XIcon className="size-5" />
           </Button>
         </DialogClose>
 
-        <div className="flex flex-col gap-1.5 pr-8">
-          <DialogTitle>Void sale?</DialogTitle>
-          <p className="text-sm leading-5 text-muted-foreground">
-            This action is permanent and cannot be undone.
-          </p>
-        </div>
+        <DialogTitle className="font-heading font-semibold text-2xl">Void sale?</DialogTitle>
+        <p className="text-base leading-6 text-muted-foreground">
+          This action is permanent and cannot be undone.
+        </p>
 
         {/* Warning callout — uses the design-system warning palette (cami-yellow)
             to flag the payments that will be removed alongside the sale. */}
@@ -102,17 +102,25 @@ export function VoidSaleDialog({ open, onOpenChange, payments }: VoidSaleDialogP
           </div>
         ) : null}
 
-        <div className="grid grid-cols-2 gap-3 pt-1">
+        <div className="flex items-center gap-3 pt-2">
           <Button
             type="button"
             variant="outline"
             radius="full"
             size="lg"
+            className="flex-1"
             onClick={() => onOpenChange(false)}
           >
             Cancel
           </Button>
-          <Button type="button" variant="destructive" radius="full" size="lg" onClick={handleVoid}>
+          <Button
+            type="button"
+            variant="destructive"
+            radius="full"
+            size="lg"
+            className="flex-1"
+            onClick={handleVoid}
+          >
             Void
           </Button>
         </div>

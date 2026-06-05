@@ -1,11 +1,11 @@
 "use client"
 
-import { ArrowRightIcon, BanknoteIcon, PackageIcon } from "lucide-react"
+import { ArrowRightIcon, BanknoteIcon, CheckIcon, PackageIcon } from "lucide-react"
 import { useEffect, useState } from "react"
-import { toast } from "sonner"
 
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
 import { type SectionItem, SectionNav } from "@/components/blocks/section-nav"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -99,6 +99,10 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
   const [amount, setAmount] = useState("")
   const [givenBy, setGivenBy] = useState(REFUND_STAFF[0])
   const [reason, setReason] = useState("")
+  // Once a refund is issued we swap the form for a centred "Refund complete"
+  // confirmation, mirroring the "Payment complete" screen in the sale flow.
+  const [done, setDone] = useState(false)
+  const [refundedMinor, setRefundedMinor] = useState(0)
 
   // Reset the form each time the dialog opens for a sale.
   useEffect(() => {
@@ -107,8 +111,18 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
       setAmount("")
       setGivenBy(REFUND_STAFF[0])
       setReason("")
+      setDone(false)
+      setRefundedMinor(0)
     }
   }, [open])
+
+  // Auto-close a moment after the confirmation shows — matches the sale flow.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when `done` flips
+  useEffect(() => {
+    if (!done) return
+    const t = setTimeout(() => onOpenChange(false), 2200)
+    return () => clearTimeout(t)
+  }, [done])
 
   if (!sale) return null
 
@@ -123,8 +137,14 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
 
   function handleSubmit() {
     if (tab !== "amount" || !amountValid || reason === "") return
-    toast.success(`Refund of ${money(amountMinor)} issued`)
-    onOpenChange(false)
+    setRefundedMinor(amountMinor)
+    setDone(true)
+  }
+
+  if (done) {
+    return (
+      <RefundCompleteScreen open={open} onOpenChange={onOpenChange} amountMinor={refundedMinor} />
+    )
   }
 
   return (
@@ -255,6 +275,41 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
         </div>
       </div>
     </FullScreenEditDialog>
+  )
+}
+
+// Full-screen "Refund complete" confirmation — mirrors the "Payment complete"
+// screen in the sale flow (centred green check, headline, amount line). Reuses
+// the same opaque full-screen sizing as <FullScreenEditDialog> so it reads as
+// the same takeover and cleanly covers any dialog stacked beneath it.
+const fullScreenSuccessClass =
+  "fixed! inset-0! top-0! left-0! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! bg-background! p-0"
+
+function RefundCompleteScreen({
+  open,
+  onOpenChange,
+  amountMinor,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  amountMinor: number
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={fullScreenSuccessClass}>
+        <DialogTitle className="sr-only">Refund complete</DialogTitle>
+        <DialogDescription className="sr-only">{money(amountMinor)} refunded</DialogDescription>
+        <div className="flex h-full flex-1 flex-col items-center justify-center gap-5 px-6 py-12 text-center">
+          <span className="flex size-20 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11">
+            <CheckIcon className="size-10" strokeWidth={2.5} />
+          </span>
+          <div className="flex flex-col gap-1">
+            <h1 className="font-heading text-2xl font-semibold text-foreground">Refund complete</h1>
+            <p className="text-muted-foreground">{money(amountMinor)} refunded</p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDownIcon, PersonStandingIcon } from "lucide-react"
+import { ChevronDownIcon, PersonStandingIcon, UserIcon } from "lucide-react"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -56,10 +56,13 @@ export function ClientSummaryCard({
       {tags.length > 0 ? (
         <div className="flex flex-wrap items-center gap-1.5">
           {tags.map((tag) => (
+            // Matches the client-tag pill in the client detail modal's
+            // Additional info section (violet pill + user icon).
             <span
               key={tag}
-              className="rounded-full bg-blue-9 px-2.5 py-0.5 font-medium text-white text-xs"
+              className="inline-flex items-center gap-1.5 rounded-full bg-cami-violet-3 px-2.5 py-1 font-medium text-cami-violet-11 text-sm"
             >
+              <UserIcon className="size-3.5" strokeWidth={1.75} />
               {tag}
             </span>
           ))}
