@@ -31,7 +31,9 @@ import {
 } from "@/components/blocks/client-detail-dialog"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { RefundSaleDialog } from "@/components/blocks/refund-sale-dialog"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { VoidSaleDialog } from "@/components/blocks/void-sale-dialog"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -1039,6 +1041,8 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
   // rendered after `sale` is cleared.
   const [last, setLast] = useState<Sale | null>(sale)
   const [tab, setTab] = useState<"details" | "activity">("details")
+  const [refundOpen, setRefundOpen] = useState(false)
+  const [voidOpen, setVoidOpen] = useState(false)
   useEffect(() => {
     if (sale) {
       setLast(sale)
@@ -1076,6 +1080,25 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
   const balance = totalAbs - paid
 
   const clientEmail = `${data.client.toLowerCase().replace(/\s+/g, ".")}@example.com`
+
+  // Payments that voiding will delete — the actual amount paid (capped at the
+  // sale total so a completed sale's tendered change doesn't inflate it). The
+  // completed demo sale is paid by split tender (Cash + Other) to exercise the
+  // multi-payment layout; everything else is a single cash payment. Real sales
+  // arrive with their own payment records.
+  const collectedMinor = Math.min(paidMinor, grossAbsMinor)
+  const voidPayments =
+    collectedMinor <= 0
+      ? []
+      : data.status === "completed"
+        ? (() => {
+            const other = Math.round(collectedMinor * 0.4)
+            return [
+              { amountMinor: collectedMinor - other, method: "Cash", at: data.saleAt },
+              { amountMinor: other, method: "Other", at: data.saleAt },
+            ]
+          })()
+        : [{ amountMinor: collectedMinor, method: "Cash", at: data.saleAt }]
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -1144,7 +1167,7 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
                     <DropdownMenuContent align="end" className="w-52">
                       <DropdownMenuLabel>Quick actions</DropdownMenuLabel>
                       {data.status !== "voided" && data.status !== "unpaid" ? (
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setRefundOpen(true)}>
                           <RotateCcwIcon className="size-4" />
                           Refund sale
                         </DropdownMenuItem>
@@ -1180,7 +1203,12 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
                       {data.status !== "voided" && data.status !== "refunded" ? (
                         <>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive">Void sale</DropdownMenuItem>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onSelect={() => setVoidOpen(true)}
+                          >
+                            Void sale
+                          </DropdownMenuItem>
                         </>
                       ) : null}
                     </DropdownMenuContent>
@@ -1416,6 +1444,23 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
           </div>
         </Tabs>
       </DialogContent>
+
+      <RefundSaleDialog
+        open={refundOpen}
+        onOpenChange={setRefundOpen}
+        sale={{
+          id: data.id,
+          saleAt: data.saleAt,
+          subjectLabel: "Pet",
+          // Refundable = what was collected, capped at the sale total (a
+          // completed sale's `paidMinor` includes change tendered back).
+          availableMinor: Math.min(paidMinor, grossAbsMinor),
+          paymentMethod: "Cash",
+          alreadyRefunded: data.status === "refunded",
+        }}
+      />
+
+      <VoidSaleDialog open={voidOpen} onOpenChange={setVoidOpen} payments={voidPayments} />
     </Dialog>
   )
 }

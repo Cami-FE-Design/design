@@ -29,6 +29,8 @@ type ClientPanelProps = {
   onClear: () => void
   /** Reports whether the client search list is open, so the parent can hide the cart placeholder. */
   onSearchingChange?: (searching: boolean) => void
+  /** Open straight into the search list (used when changing the client mid-checkout). */
+  initialSearching?: boolean
 }
 
 export function ClientPanel({
@@ -38,8 +40,9 @@ export function ClientPanel({
   onAddNew,
   onClear,
   onSearchingChange,
+  initialSearching = false,
 }: ClientPanelProps) {
-  const [searching, setSearching] = useState(false)
+  const [searching, setSearching] = useState(initialSearching)
   const [query, setQuery] = useState("")
 
   // Searching only applies in the unattached state; report the effective flag up.

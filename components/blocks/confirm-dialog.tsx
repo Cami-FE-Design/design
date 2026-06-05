@@ -1,6 +1,7 @@
 "use client"
 
 import { XIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
@@ -8,7 +9,7 @@ type ConfirmDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
-  description?: string
+  description?: ReactNode
   confirmLabel?: string
   cancelLabel?: string
   onConfirm: () => void
@@ -28,30 +29,35 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent
+        className="flex flex-col gap-4 sm:max-w-md"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogClose asChild>
           <Button
+            type="button"
             variant="ghost"
             size="icon-sm"
+            radius="full"
             aria-label="Close"
-            className="absolute right-4 top-4 z-10 rounded-full text-muted-foreground"
+            className="absolute right-4 top-4 z-10 text-muted-foreground"
           >
-            <XIcon className="size-5" strokeWidth={2} />
+            <XIcon className="size-5" />
           </Button>
         </DialogClose>
 
-        <DialogTitle>{title}</DialogTitle>
-
+        <DialogTitle className="font-heading font-semibold text-2xl">{title}</DialogTitle>
         {description ? (
-          <p className="text-sm leading-5 text-muted-foreground">{description}</p>
+          <p className="text-base leading-6 text-muted-foreground">{description}</p>
         ) : null}
 
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-2">
           <Button
             type="button"
             variant="outline"
             radius="full"
-            className="px-6"
+            size="lg"
+            className="flex-1"
             onClick={() => onOpenChange(false)}
           >
             {cancelLabel}
@@ -60,7 +66,8 @@ export function ConfirmDialog({
             type="button"
             variant={destructive ? "destructive" : "default"}
             radius="full"
-            className="px-8"
+            size="lg"
+            className="flex-1"
             onClick={() => {
               onConfirm()
               onOpenChange(false)
