@@ -4,6 +4,7 @@ import {
   ChevronDownIcon,
   CoinsIcon,
   MinusIcon,
+  NotebookPenIcon,
   PencilIcon,
   PlusIcon,
   ShoppingCartIcon,
@@ -303,6 +304,7 @@ type CartFooterProps = {
   onContinue: () => void
   onAddTip: () => void
   onAddCartDiscount: () => void
+  onAddSaleNote: () => void
   onSaveDraft: () => void
   onCancelSale: () => void
 }
@@ -314,6 +316,7 @@ export function CartFooter({
   onContinue,
   onAddTip,
   onAddCartDiscount,
+  onAddSaleNote,
   onSaveDraft,
   onCancelSale,
 }: CartFooterProps) {
@@ -351,6 +354,10 @@ export function CartFooter({
             <DropdownMenuItem onSelect={onAddCartDiscount}>
               <TagIcon className="size-4" />
               Add cart discount
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onAddSaleNote}>
+              <NotebookPenIcon className="size-4" />
+              Add sale note
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={onSaveDraft}>Save as draft</DropdownMenuItem>
@@ -392,6 +399,9 @@ type CheckoutFooterProps = {
   tipMinor: number
   ctaLabel: string
   onCta: () => void
+  onAddTip: () => void
+  onAddCartDiscount: () => void
+  onAddSaleNote: () => void
   onSaveDraft: () => void
   onCancelSale: () => void
   /** Recorded payments (Payment step). When present, shows the paid breakdown. */
@@ -404,6 +414,9 @@ export function CheckoutFooter({
   tipMinor,
   ctaLabel,
   onCta,
+  onAddTip,
+  onAddCartDiscount,
+  onAddSaleNote,
   onSaveDraft,
   onCancelSale,
   payments = [],
@@ -512,6 +525,19 @@ export function CheckoutFooter({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" side="top" className="w-56">
+            <DropdownMenuItem onSelect={onAddTip}>
+              <CoinsIcon className="size-4" />
+              Add tip
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onAddCartDiscount}>
+              <TagIcon className="size-4" />
+              Add cart discount
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onAddSaleNote}>
+              <NotebookPenIcon className="size-4" />
+              Add sale note
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={onSaveDraft}>Save as draft</DropdownMenuItem>
             <DropdownMenuItem variant="destructive" onSelect={onCancelSale}>
               Cancel sale

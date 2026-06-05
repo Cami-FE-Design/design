@@ -18,24 +18,22 @@ type SelectPaymentModalProps = {
 export function SelectPaymentModal({ open, onOpenChange, onSelect }: SelectPaymentModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex flex-col gap-5 sm:max-w-lg">
-        <div className="flex items-center justify-between gap-3">
-          <DialogTitle className="font-heading font-semibold text-xl">Select payment</DialogTitle>
-          <DialogClose asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              radius="full"
-              aria-label="Close"
-              className="text-muted-foreground"
-            >
-              <XIcon className="size-5" />
-            </Button>
-          </DialogClose>
-        </div>
+      <DialogContent className="flex flex-col gap-5 sm:max-w-sm">
+        <DialogClose asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            radius="full"
+            aria-label="Close"
+            className="absolute top-4 right-4 text-muted-foreground"
+          >
+            <XIcon className="size-5" />
+          </Button>
+        </DialogClose>
+        <DialogTitle className="font-heading font-semibold text-xl">Select payment</DialogTitle>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {METHODS.map((method) => (
             <button
               key={method.id}
