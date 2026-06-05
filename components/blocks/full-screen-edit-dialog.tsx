@@ -19,21 +19,28 @@ const COPY = {
  * viewport. Mirrors `fullScreenDialogClass` in cami-design's
  * `business-profile-form.tsx`. The `!` suffix wins over the primitive's
  * `sm:max-w-md` defaults.
+ *
+ * `bg-background!` forces a solid surface — the primitive's default
+ * `bg-white-a11` is translucent, which is fine for a small centered dialog but
+ * lets content bleed through when a takeover is stacked over another dialog
+ * (e.g. Refund opened on top of the sale detail). A full-screen takeover should
+ * always read as an opaque page.
  */
 const fullScreenDialogClass =
-  "fixed! inset-0! top-0! left-0! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! flex-col p-0"
+  "fixed! inset-0! top-0! left-0! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! flex-col bg-background! p-0"
 
 type FullScreenEditDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   /** Page title — also rendered (small, fading in) inside the sticky header on scroll. */
   title: string
-  /** One-line subtitle below the big title. */
-  subtitle?: string
+  /** Subtitle below the big title. A node so callers can add a "Learn more" link, etc. */
+  subtitle?: React.ReactNode
   /** Optional Save handler. Omit to render only the Close button. */
   onSave?: () => void
   saveDisabled?: boolean
-  saveLabel?: string
+  /** Save button label. A node so callers can add a trailing icon (e.g. "Continue →"). */
+  saveLabel?: React.ReactNode
   closeLabel?: string
   /**
    * Max-width Tailwind utility for the centered content column. Header inner
