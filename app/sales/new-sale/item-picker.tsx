@@ -140,14 +140,19 @@ function CategoryTile({
 
 // ─── Drilldown header ─────────────────────────────────────────────────────────
 
-function DrilldownHeader({ title, onBack }: { title: string; onBack: () => void }) {
+function DrilldownHeader({ onBack }: { onBack: () => void }) {
   return (
-    <div className="flex items-center gap-2">
-      <Button variant="ghost" size="icon-sm" radius="full" aria-label="Back" onClick={onBack}>
-        <ArrowLeftIcon className="size-5" />
-      </Button>
-      <h1 className="font-heading text-xl font-semibold leading-7 text-foreground">{title}</h1>
-    </div>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      radius="full"
+      className="w-fit gap-1.5"
+      onClick={onBack}
+    >
+      <ArrowLeftIcon className="size-4" />
+      Back
+    </Button>
   )
 }
 
@@ -165,7 +170,7 @@ function ServicesView({
 
   return (
     <div className="flex flex-col gap-5">
-      <DrilldownHeader title="Services" onBack={onBack} />
+      <DrilldownHeader onBack={onBack} />
       <SearchInput size="lg" placeholder="Search services" onValueChange={setQuery} autoFocus />
       {filtered.length === 0 ? (
         <NoResults query={query} />
@@ -219,7 +224,7 @@ function ProductsView({
 
   return (
     <div className="flex flex-col gap-5">
-      <DrilldownHeader title="Products" onBack={onBack} />
+      <DrilldownHeader onBack={onBack} />
       <SearchInput size="lg" placeholder="Search products" onValueChange={setQuery} autoFocus />
       {filtered.length === 0 ? (
         <NoResults query={query} />
@@ -268,17 +273,17 @@ function AppointmentsView({
   const [query, setQuery] = useState("")
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return APPOINTMENTS
-    return APPOINTMENTS.filter((a) => a.clientName.toLowerCase().includes(q))
+    const matched = q
+      ? APPOINTMENTS.filter((a) => a.clientName.toLowerCase().includes(q))
+      : APPOINTMENTS
+    // Chronological by start time, earliest first.
+    return [...matched].sort((a, b) => startMinutes(a.start) - startMinutes(b.start))
   }, [query])
 
   return (
     <div className="flex flex-col gap-5">
-      <DrilldownHeader title="Appointments" onBack={onBack} />
+      <DrilldownHeader onBack={onBack} />
       <SearchInput size="lg" placeholder="Search appointments" onValueChange={setQuery} autoFocus />
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        Upcoming today
-      </p>
       {filtered.length === 0 ? (
         <NoResults query={query} />
       ) : (
@@ -433,6 +438,15 @@ function NoResults({ query }: { query: string }) {
 }
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
+
+/** Parse a "9:00am" / "2:00pm" label into minutes-since-midnight for sorting. */
+function startMinutes(start: string): number {
+  const m = start.match(/(\d+):(\d+)\s*(am|pm)/i)
+  if (!m) return 0
+  let hour = Number(m[1]) % 12
+  if (m[3].toLowerCase() === "pm") hour += 12
+  return hour * 60 + Number(m[2])
+}
 
 function filterServices(query: string): ServiceItem[] {
   const q = query.trim().toLowerCase()

@@ -255,7 +255,7 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
                 onSearchingChange={setClientSearching}
               />
 
-              {lines.length === 0 && clientSearching ? null : (
+              {clientSearching ? null : (
                 <CartContent
                   lines={lines}
                   hasClient={hasClient}
@@ -266,7 +266,15 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
               )}
             </div>
 
-            <CartFooter lines={lines} blockedReason={blockedReason} onContinue={() => {}} />
+            {clientSearching ? null : (
+              <CartFooter
+                lines={lines}
+                blockedReason={blockedReason}
+                onContinue={() => {}}
+                onSaveDraft={() => setDraftModalOpen(true)}
+                onCancelSale={leave}
+              />
+            )}
           </div>
         </div>
       </SheetContent>

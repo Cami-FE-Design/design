@@ -1,15 +1,26 @@
 "use client"
 
 import {
+  ChevronDownIcon,
   ChevronUpIcon,
+  CoinsIcon,
   MinusIcon,
   PencilIcon,
   PlusIcon,
   ShoppingCartIcon,
+  TagIcon,
   Trash2Icon,
 } from "lucide-react"
 import { useState } from "react"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { APPOINTMENTS, formatDuration, HAS_PETS, money, totals, VAT_RATE } from "./mock"
@@ -47,15 +58,16 @@ export function CartContent({
 }: CartContentProps) {
   if (lines.length === 0) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
-        <ShoppingCartIcon className="size-12 stroke-[1.25] text-cami-violet-9" aria-hidden />
-        <p className="mt-4 text-base font-semibold text-foreground">Your cart is empty</p>
-        <p className="mt-1 max-w-xs text-balance text-sm text-muted-foreground">
-          {hasClient
+      <EmptyState
+        className="flex-1"
+        icon={ShoppingCartIcon}
+        title="Your cart is empty"
+        description={
+          hasClient
             ? "Tap an item to add to cart"
-            : "Tap an item to add to cart or add an existing client for smart recommendations"}
-        </p>
-      </div>
+            : "Tap an item to add to cart or add an existing client for smart recommendations"
+        }
+      />
     )
   }
 
@@ -257,9 +269,17 @@ type CartFooterProps = {
   lines: CartLine[]
   blockedReason?: string
   onContinue: () => void
+  onSaveDraft: () => void
+  onCancelSale: () => void
 }
 
-export function CartFooter({ lines, blockedReason, onContinue }: CartFooterProps) {
+export function CartFooter({
+  lines,
+  blockedReason,
+  onContinue,
+  onSaveDraft,
+  onCancelSale,
+}: CartFooterProps) {
   const [expanded, setExpanded] = useState(false)
   const { totalMinor, subtotalMinor, taxMinor } = totals(lines)
 
@@ -302,17 +322,45 @@ export function CartFooter({ lines, blockedReason, onContinue }: CartFooterProps
             />
           </span>
         </button>
-        <div className="flex flex-col items-end gap-1">
-          <Button
-            type="button"
-            radius="full"
-            className="px-7"
-            disabled={Boolean(blockedReason)}
-            onClick={onContinue}
-          >
-            Continue to payment
-          </Button>
-          {blockedReason ? <span className="text-xs text-destructive">{blockedReason}</span> : null}
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="outline" radius="full" className="gap-1">
+                Action
+                <ChevronDownIcon className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" side="top" className="w-56">
+              <DropdownMenuItem>
+                <CoinsIcon className="size-4" />
+                Add tip
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <TagIcon className="size-4" />
+                Add cart discount
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={onSaveDraft}>Save as draft</DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onSelect={onCancelSale}>
+                Cancel sale
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              type="button"
+              radius="full"
+              className="px-7"
+              disabled={Boolean(blockedReason)}
+              onClick={onContinue}
+            >
+              Continue to payment
+            </Button>
+            {blockedReason ? (
+              <span className="text-xs text-destructive">{blockedReason}</span>
+            ) : null}
+          </div>
         </div>
       </div>
     </footer>

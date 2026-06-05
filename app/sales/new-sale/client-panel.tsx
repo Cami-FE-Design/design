@@ -1,6 +1,12 @@
 "use client"
 
-import { ChevronDownIcon, PersonStandingIcon, PlusIcon, UserPlusIcon } from "lucide-react"
+import {
+  ArrowLeftIcon,
+  ChevronDownIcon,
+  PersonStandingIcon,
+  PlusIcon,
+  UserPlusIcon,
+} from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -100,6 +106,17 @@ export function ClientPanel({
   if (searching) {
     return (
       <div className="flex flex-col gap-1">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          radius="full"
+          className="mb-3 w-fit gap-1.5"
+          onClick={() => setSearching(false)}
+        >
+          <ArrowLeftIcon className="size-4" />
+          Back
+        </Button>
         <SearchInput
           size="lg"
           autoFocus
