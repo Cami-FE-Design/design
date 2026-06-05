@@ -2,6 +2,7 @@
 
 import { ChevronDownIcon, FileSpreadsheetIcon, FileTextIcon, PlusIcon } from "lucide-react"
 import { useState } from "react"
+import { CartFlow } from "@/app/sales/new-sale/cart-flow"
 import { AppShell } from "@/components/blocks/app-shell"
 import { DateSelector } from "@/components/blocks/date-selector"
 import { Button } from "@/components/ui/button"
@@ -183,6 +184,7 @@ export default function DailySummaryPage() {
     d.setHours(0, 0, 0, 0)
     return d
   })
+  const [cartOpen, setCartOpen] = useState(false)
 
   return (
     <AppShell
@@ -219,7 +221,7 @@ export default function DailySummaryPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button radius="full">
+            <Button radius="full" onClick={() => setCartOpen(true)}>
               <PlusIcon className="size-4" />
               Add new
             </Button>
@@ -235,6 +237,8 @@ export default function DailySummaryPage() {
           <CashMovementSummary />
         </div>
       </div>
+
+      <CartFlow open={cartOpen} onOpenChange={setCartOpen} />
     </AppShell>
   )
 }
