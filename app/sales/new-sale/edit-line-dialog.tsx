@@ -24,7 +24,8 @@ type EditLineDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onApply: (uid: string, patch: LinePatch) => void
-  onDelete: (uid: string) => void
+  /** Omit on read-only steps (Tip / Payment) to hide the delete control. */
+  onDelete?: (uid: string) => void
 }
 
 export function EditLineDialog({
@@ -160,20 +161,22 @@ export function EditLineDialog({
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon-lg"
-              radius="full"
-              aria-label={`Delete ${line.name}`}
-              className="text-destructive"
-              onClick={() => {
-                onDelete(line.uid)
-                onOpenChange(false)
-              }}
-            >
-              <Trash2Icon className="size-5" />
-            </Button>
+            {onDelete ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-lg"
+                radius="full"
+                aria-label={`Delete ${line.name}`}
+                className="text-destructive"
+                onClick={() => {
+                  onDelete(line.uid)
+                  onOpenChange(false)
+                }}
+              >
+                <Trash2Icon className="size-5" />
+              </Button>
+            ) : null}
             <Button type="button" radius="full" className="px-8" onClick={apply}>
               Apply
             </Button>
