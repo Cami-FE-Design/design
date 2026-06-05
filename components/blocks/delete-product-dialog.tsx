@@ -1,15 +1,6 @@
 "use client"
 
-import { XIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 
 type DeleteProductDialogProps = {
   open: boolean
@@ -18,6 +9,10 @@ type DeleteProductDialogProps = {
   onDelete: () => void
 }
 
+// Thin wrapper over the shared ConfirmDialog so product deletion matches every
+// other destructive confirmation in the app (Cancel draft, Void sale, …) —
+// same top-right close, muted description, right-aligned Cancel + destructive
+// action. Keeps the product name emphasised in the body copy.
 export function DeleteProductDialog({
   open,
   onOpenChange,
@@ -25,44 +20,21 @@ export function DeleteProductDialog({
   onDelete,
 }: DeleteProductDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md gap-0 p-0">
-        <DialogHeader className="flex flex-row items-center justify-between px-6 pt-7 pb-0">
-          <DialogTitle>Delete product?</DialogTitle>
-          <DialogDescription className="sr-only">
-            Permanently delete this product and all associated data.
-          </DialogDescription>
-          <DialogClose asChild>
-            <Button variant="ghost" size="icon-sm" radius="full" aria-label="Close">
-              <XIcon />
-            </Button>
-          </DialogClose>
-        </DialogHeader>
-
-        <div className="px-6 py-6">
-          <p className="text-sm text-muted-foreground">
-            All data associated with{" "}
-            <span className="font-medium text-foreground">{productName}</span> will be permanently
-            deleted.
-          </p>
-        </div>
-
-        <div className="flex justify-end gap-2 border-t border-border/60 px-6 py-4">
-          <Button variant="outline" radius="full" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button
-            variant="destructive"
-            radius="full"
-            onClick={() => {
-              onDelete()
-              onOpenChange(false)
-            }}
-          >
-            Delete
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <ConfirmDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Delete product?"
+      description={
+        <>
+          All data associated with{" "}
+          <span className="font-medium text-foreground">{productName}</span> will be permanently
+          deleted.
+        </>
+      }
+      cancelLabel="Cancel"
+      confirmLabel="Delete"
+      destructive
+      onConfirm={onDelete}
+    />
   )
 }

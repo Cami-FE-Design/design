@@ -1,6 +1,7 @@
 "use client"
 
 import { XIcon } from "lucide-react"
+import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
@@ -8,7 +9,7 @@ type ConfirmDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
-  description?: string
+  description?: ReactNode
   confirmLabel?: string
   cancelLabel?: string
   onConfirm: () => void
@@ -28,7 +29,10 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
+      <DialogContent
+        className="flex flex-col gap-5 px-6 pt-6 pb-6 sm:max-w-md"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogClose asChild>
           <Button
             variant="ghost"
@@ -40,18 +44,19 @@ export function ConfirmDialog({
           </Button>
         </DialogClose>
 
-        <DialogTitle>{title}</DialogTitle>
+        <div className="flex flex-col gap-1.5 pr-8">
+          <DialogTitle>{title}</DialogTitle>
+          {description ? (
+            <p className="text-sm leading-5 text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
 
-        {description ? (
-          <p className="text-sm leading-5 text-muted-foreground">{description}</p>
-        ) : null}
-
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="grid grid-cols-2 gap-3 pt-1">
           <Button
             type="button"
             variant="outline"
             radius="full"
-            className="px-6"
+            size="lg"
             onClick={() => onOpenChange(false)}
           >
             {cancelLabel}
@@ -60,7 +65,7 @@ export function ConfirmDialog({
             type="button"
             variant={destructive ? "destructive" : "default"}
             radius="full"
-            className="px-8"
+            size="lg"
             onClick={() => {
               onConfirm()
               onOpenChange(false)
