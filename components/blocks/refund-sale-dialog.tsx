@@ -1,10 +1,16 @@
 "use client"
 
-import { ArrowRightIcon, BanknoteIcon, CheckIcon, PackageIcon } from "lucide-react"
+import {
+  ArrowRightIcon,
+  BanknoteIcon,
+  CheckIcon,
+  CircleDollarSignIcon,
+  CreditCardIcon,
+} from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
-import { type SectionItem, SectionNav } from "@/components/blocks/section-nav"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 // Matches the trigger sizing used across the add-pet / add-product forms so the
@@ -29,6 +36,12 @@ function money(minor: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`
+}
+
+// UAE VAT is 5% and prices are tax-inclusive, so the tax shown on a refund is
+// the VAT component already baked into the gross total: gross × 5/105.
+function taxOf(grossMinor: number) {
+  return Math.round((grossMinor * 5) / 105)
 }
 
 const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -52,6 +65,20 @@ function formatLongDate(d: Date) {
   return `${WEEKDAY_LONG[d.getDay()]}, ${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
 }
 
+// "4 Jun 2026" — used in the per-item meta line under each refundable item.
+function formatShortDate(d: Date) {
+  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
+}
+
+// "11:55am" — matches the per-item meta line in the figma.
+function formatTime(d: Date) {
+  let h = d.getHours()
+  const m = d.getMinutes()
+  const meridiem = h >= 12 ? "pm" : "am"
+  h = h % 12 || 12
+  return `${h}:${m.toString().padStart(2, "0")}${meridiem}`
+}
+
 const REFUND_REASONS = [
   "Accidental charge",
   "Incorrect amount",
@@ -62,8 +89,89 @@ const REFUND_REASONS = [
   "Other",
 ]
 
-// Staff who can hand over a cash refund — defaults to the signed-in user.
-const REFUND_STAFF = ["Hussain Shabbir", "Sarah Lee", "Aya Hassan"]
+// Payment-method icon kinds — drive the leading glyph in the method dropdown.
+type MethodKind = "visa" | "card" | "cash"
+
+function MethodIcon({ kind }: { kind: MethodKind }) {
+  if (kind === "cash") return <BanknoteIcon className="size-4 text-cami-green-11" />
+  if (kind === "visa") return <CreditCardIcon className="size-4 text-cami-violet-11" />
+  return <CircleDollarSignIcon className="size-4 text-cami-violet-11" />
+}
+
+export type RefundItem = {
+  id: string
+  name: string
+  /** When the item was sold — drives the "11:55am, 4 Jun 2026 with Yuna" line. */
+  at: Date
+  /** Team member who delivered the item. */
+  staff: string
+  /** Gross (tax-inclusive) line amount in minor units (fils). */
+  amountMinor: number
+}
+
+export type RefundPayment = {
+  id: string
+  /** Display label, e.g. "Visa *7697" or "Card". */
+  method: string
+  kind: MethodKind
+  /** Amount that can still be refunded against this payment, in minor units. */
+  availableMinor: number
+}
+
+// Demo line items — mirrors the figma fixture (Sale #22710). Used when a caller
+// doesn't pass its own `items`, which is every caller today since the sale list
+// only carries summary numbers.
+const DEMO_ITEMS: RefundItem[] = [
+  {
+    id: "i1",
+    name: "Nail Art PER nail",
+    at: new Date(2026, 5, 4, 11, 55),
+    staff: "Yuna",
+    amountMinor: 2000,
+  },
+  {
+    id: "i2",
+    name: "Nail Art PER nail",
+    at: new Date(2026, 5, 4, 11, 45),
+    staff: "Yuna",
+    amountMinor: 2000,
+  },
+  {
+    id: "i3",
+    name: "Cut & Blow Dry",
+    at: new Date(2026, 5, 4, 12, 0),
+    staff: "Beth R",
+    amountMinor: 40500,
+  },
+  {
+    id: "i4",
+    name: "Half Head Foils",
+    at: new Date(2026, 5, 4, 10, 15),
+    staff: "Beth R",
+    amountMinor: 67500,
+  },
+  {
+    id: "i5",
+    name: "Toner",
+    at: new Date(2026, 5, 4, 11, 40),
+    staff: "Beth R",
+    amountMinor: 18000,
+  },
+  {
+    id: "i6",
+    name: "Gel Color",
+    at: new Date(2026, 5, 4, 10, 15),
+    staff: "Yuna",
+    amountMinor: 19800,
+  },
+]
+
+// Demo split-tender payments — the sale was paid across a Visa card and a
+// generic Card terminal, so a refund can be apportioned across both.
+const DEMO_PAYMENTS: RefundPayment[] = [
+  { id: "p1", method: "Visa *7697", kind: "visa", availableMinor: 41500 },
+  { id: "p2", method: "Card", kind: "card", availableMinor: 108300 },
+]
 
 export type RefundSale = {
   id: number
@@ -76,17 +184,13 @@ export type RefundSale = {
   paymentMethod: string
   /** True once a refund has already been issued for this sale. */
   alreadyRefunded: boolean
+  /** Refundable line items. Falls back to the demo fixture when omitted. */
+  items?: RefundItem[]
+  /** Original payments a refund can be apportioned across. Falls back to demo. */
+  payments?: RefundPayment[]
 }
 
 type RefundTab = "item" | "amount"
-
-// Left-hand section nav — mirrors the Add product / Add client full-screen
-// forms (vertical SectionNav + bordered content card) so the refund takeover
-// reads as the same family rather than a one-off segmented toggle.
-const REFUND_SECTIONS: SectionItem<RefundTab>[] = [
-  { id: "item", label: "Refund item", icon: PackageIcon },
-  { id: "amount", label: "Refund amount", icon: BanknoteIcon },
-]
 
 type RefundSaleDialogProps = {
   open: boolean
@@ -95,26 +199,34 @@ type RefundSaleDialogProps = {
 }
 
 export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogProps) {
-  const [tab, setTab] = useState<RefundTab>("amount")
-  const [amount, setAmount] = useState("")
-  const [givenBy, setGivenBy] = useState(REFUND_STAFF[0])
+  const [tab, setTab] = useState<RefundTab>("item")
+  // Refund-item tab: which line items are selected.
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  // Refund-amount tab: chosen method + entered amount per original payment.
+  const [methodById, setMethodById] = useState<Record<string, string>>({})
+  const [amountById, setAmountById] = useState<Record<string, string>>({})
   const [reason, setReason] = useState("")
   // Once a refund is issued we swap the form for a centred "Refund complete"
   // confirmation, mirroring the "Payment complete" screen in the sale flow.
   const [done, setDone] = useState(false)
   const [refundedMinor, setRefundedMinor] = useState(0)
 
+  const items = sale?.items ?? DEMO_ITEMS
+  const payments = sale?.payments ?? DEMO_PAYMENTS
+
   // Reset the form each time the dialog opens for a sale.
   useEffect(() => {
-    if (open) {
-      setTab("amount")
-      setAmount("")
-      setGivenBy(REFUND_STAFF[0])
-      setReason("")
-      setDone(false)
-      setRefundedMinor(0)
-    }
-  }, [open])
+    if (!open) return
+    setTab("item")
+    setSelected(new Set())
+    setMethodById(
+      Object.fromEntries((sale?.payments ?? DEMO_PAYMENTS).map((p) => [p.id, p.method])),
+    )
+    setAmountById({})
+    setReason("")
+    setDone(false)
+    setRefundedMinor(0)
+  }, [open, sale])
 
   // Auto-close a moment after the confirmation shows — matches the sale flow.
   // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when `done` flips
@@ -126,18 +238,46 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
 
   if (!sale) return null
 
-  const amountNum = Number.parseFloat(amount)
-  const amountMinor = Number.isFinite(amountNum) ? Math.round(amountNum * 100) : 0
-  const amountValid = amountMinor > 0 && amountMinor <= sale.availableMinor
+  // ─── Refund-item tab totals ───────────────────────────────────────────────
+  const selectedTotalMinor = items
+    .filter((it) => selected.has(it.id))
+    .reduce((sum, it) => sum + it.amountMinor, 0)
+  const itemTaxMinor = taxOf(selectedTotalMinor)
+  const allChecked: boolean | "indeterminate" =
+    selected.size === 0 ? false : selected.size === items.length ? true : "indeterminate"
 
-  // The item tab is "notice only" for now, so it never has a valid action — the
-  // user is steered to the amount tab. The amount tab needs a valid amount and a
-  // reason before a refund can be issued.
-  const saveDisabled = tab === "item" ? true : !amountValid || reason === ""
+  function toggleItem(id: string, next: boolean) {
+    setSelected((prev) => {
+      const out = new Set(prev)
+      if (next) out.add(id)
+      else out.delete(id)
+      return out
+    })
+  }
+
+  function toggleAll(next: boolean) {
+    setSelected(next ? new Set(items.map((it) => it.id)) : new Set())
+  }
+
+  // ─── Refund-amount tab totals ─────────────────────────────────────────────
+  function amountMinorOf(id: string) {
+    const n = Number.parseFloat(amountById[id] ?? "")
+    return Number.isFinite(n) ? Math.round(n * 100) : 0
+  }
+  const amountTotalMinor = payments.reduce((sum, p) => sum + amountMinorOf(p.id), 0)
+  const amountWithinLimits = payments.every((p) => amountMinorOf(p.id) <= p.availableMinor)
+  const amountTabValid = amountTotalMinor > 0 && amountWithinLimits && reason !== ""
+
+  const saveDisabled = tab === "item" ? selectedTotalMinor <= 0 : !amountTabValid
 
   function handleSubmit() {
-    if (tab !== "amount" || !amountValid || reason === "") return
-    setRefundedMinor(amountMinor)
+    if (tab === "item") {
+      if (selectedTotalMinor <= 0) return
+      setRefundedMinor(selectedTotalMinor)
+    } else {
+      if (!amountTabValid) return
+      setRefundedMinor(amountTotalMinor)
+    }
     setDone(true)
   }
 
@@ -147,11 +287,23 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
     )
   }
 
+  // Method options per payment — the original method plus Cash (a refund can
+  // always be handed back as cash). Skip the duplicate when the original method
+  // was already cash.
+  function methodOptions(
+    p: RefundPayment,
+  ): Array<{ value: string; label: string; kind: MethodKind }> {
+    const original = { value: p.method, label: p.method, kind: p.kind }
+    if (p.kind === "cash") return [original]
+    return [original, { value: "Cash", label: "Cash", kind: "cash" }]
+  }
+
   return (
     <FullScreenEditDialog
       open={open}
       onOpenChange={onOpenChange}
       title="Refund sale"
+      contentClassName="max-w-3xl"
       subtitle={
         <span className="flex flex-col gap-1">
           <span className="text-muted-foreground">
@@ -179,101 +331,150 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
         )
       }
     >
-      {/* Same two-column layout as the Add product / Add client takeovers:
-          vertical SectionNav on the left, a single bordered content card on
-          the right. */}
-      <div className="grid min-w-0 grid-cols-1 gap-8 md:grid-cols-[260px_minmax(0,1fr)]">
-        <SectionNav
-          sections={REFUND_SECTIONS}
-          active={tab}
-          onChange={setTab}
-          ariaLabel="Refund type"
-        />
+      <Tabs className="gap-8" value={tab} onValueChange={(v) => setTab(v as RefundTab)}>
+        {/* Segmented toggle — full-width two-up control replacing the old
+            left-hand section nav. Reuses the default Tabs pill track (gray
+            track, white active capsule) sized up to read as a primary toggle. */}
+        <TabsList className="h-12 w-full rounded-2xl p-1">
+          <TabsTrigger value="item" className="rounded-xl text-base">
+            Refund item
+          </TabsTrigger>
+          <TabsTrigger value="amount" className="rounded-xl text-base">
+            Refund amount
+          </TabsTrigger>
+        </TabsList>
 
-        <div className="min-w-0">
-          {tab === "item" ? (
-            <FormCard title="Refund item" description="Refund whole items back from this sale.">
-              {/* Notice only for now — item-level refund selection comes later. */}
-              <div className="rounded-2xl bg-cami-violet-3 px-5 py-4 text-sm leading-6 text-foreground">
-                You have already processed a refund for this sale. If you would like to give another
-                refund, please use refund amount option instead.
-              </div>
-            </FormCard>
-          ) : (
-            <FormCard
-              title="Refund amount"
-              description="Refund a custom amount back to the client."
-            >
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <FieldRow label="Refund method" description="Original payment method">
-                  <Select value="cash" disabled>
-                    <SelectTrigger className={cn(triggerOverride, "w-full")}>
-                      <span className="flex items-center gap-2">
-                        <BanknoteIcon className="size-4 text-muted-foreground" />
-                        <SelectValue />
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">{sale.paymentMethod}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FieldRow>
+        {/* ─── Refund item ─────────────────────────────────────────────── */}
+        <TabsContent value="item" className="flex flex-col">
+          {sale.alreadyRefunded ? (
+            <div className="mb-5 rounded-2xl bg-cami-violet-3 px-5 py-4 text-sm leading-6 text-foreground">
+              You have already processed a refund for this sale. Refunding more items here will
+              create an additional refund.
+            </div>
+          ) : null}
 
-                <FieldRow
-                  label="Refund amount"
-                  htmlFor="refund-amount"
-                  description={`${money(sale.availableMinor)} available to refund`}
-                >
-                  <div className="relative">
-                    <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm font-medium text-muted-foreground">
-                      {CURRENCY}
-                    </span>
-                    <Input
-                      id="refund-amount"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.00"
-                      inputMode="decimal"
-                      className="pl-14"
-                      aria-invalid={amount !== "" && !amountValid}
+          <div className="flex items-center gap-3 pb-3">
+            <Checkbox
+              checked={allChecked}
+              onCheckedChange={(c) => toggleAll(c === true)}
+              aria-label="Select all items"
+            />
+            <span className="flex-1 font-semibold text-foreground">All items</span>
+            <span className="font-semibold text-foreground">Amount</span>
+          </div>
+          <Separator />
+
+          <ul className="flex flex-col">
+            {items.map((it) => {
+              const checked = selected.has(it.id)
+              return (
+                <li key={it.id}>
+                  <label
+                    htmlFor={`refund-item-${it.id}`}
+                    className="flex cursor-pointer items-center gap-3 py-4"
+                  >
+                    <Checkbox
+                      id={`refund-item-${it.id}`}
+                      checked={checked}
+                      onCheckedChange={(c) => toggleItem(it.id, c === true)}
                     />
-                  </div>
-                </FieldRow>
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="font-medium text-foreground">{it.name}</span>
+                      <span className="truncate text-sm text-muted-foreground">
+                        {formatTime(it.at)}, {formatShortDate(it.at)} with {it.staff}
+                      </span>
+                    </span>
+                    <span className="shrink-0 font-medium text-foreground tabular-nums">
+                      {money(it.amountMinor)}
+                    </span>
+                  </label>
+                  <Separator />
+                </li>
+              )
+            })}
+          </ul>
+
+          <div className="flex items-center justify-between py-3 text-sm">
+            <span className="text-muted-foreground">Tax</span>
+            <span className="text-muted-foreground tabular-nums">{money(itemTaxMinor)}</span>
+          </div>
+          <div className="flex items-center justify-between text-base font-semibold text-foreground">
+            <span>Total to refund</span>
+            <span className="tabular-nums">{money(selectedTotalMinor)}</span>
+          </div>
+        </TabsContent>
+
+        {/* ─── Refund amount ───────────────────────────────────────────── */}
+        <TabsContent value="amount" className="flex flex-col gap-8">
+          {payments.map((p, i) => {
+            const options = methodOptions(p)
+            const overLimit = amountMinorOf(p.id) > p.availableMinor
+            return (
+              <div key={p.id} className="flex flex-col gap-4">
+                <h3 className="font-heading text-lg font-semibold text-foreground">
+                  Payment {i + 1}
+                </h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FieldRow label="Refund method" description="Original payment method">
+                    <Select
+                      value={methodById[p.id] ?? p.method}
+                      onValueChange={(v) => setMethodById((m) => ({ ...m, [p.id]: v }))}
+                    >
+                      <SelectTrigger className={cn(triggerOverride, "w-full")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {options.map((opt) => (
+                          <SelectItem key={opt.value} value={opt.value}>
+                            <MethodIcon kind={opt.kind} />
+                            {opt.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FieldRow>
+
+                  <FieldRow
+                    label="Refund amount"
+                    htmlFor={`refund-amount-${p.id}`}
+                    description={`${money(p.availableMinor)} available to refund`}
+                  >
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm font-medium text-muted-foreground">
+                        {CURRENCY}
+                      </span>
+                      <Input
+                        id={`refund-amount-${p.id}`}
+                        value={amountById[p.id] ?? ""}
+                        onChange={(e) => setAmountById((a) => ({ ...a, [p.id]: e.target.value }))}
+                        placeholder="0.00"
+                        inputMode="decimal"
+                        className="pl-14"
+                        aria-invalid={overLimit}
+                      />
+                    </div>
+                  </FieldRow>
+                </div>
               </div>
+            )
+          })}
 
-              <FieldRow label="Cash refund given by" htmlFor="refund-given-by">
-                <Select value={givenBy} onValueChange={setGivenBy}>
-                  <SelectTrigger id="refund-given-by" className={cn(triggerOverride, "w-full")}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {REFUND_STAFF.map((name) => (
-                      <SelectItem key={name} value={name}>
-                        {name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FieldRow>
-
-              <FieldRow label="Reason for refund" htmlFor="refund-reason">
-                <Select value={reason} onValueChange={setReason}>
-                  <SelectTrigger id="refund-reason" className={cn(triggerOverride, "w-full")}>
-                    <SelectValue placeholder="Choose a reason for refund" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {REFUND_REASONS.map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FieldRow>
-            </FormCard>
-          )}
-        </div>
-      </div>
+          <FieldRow label="Reason for refund" htmlFor="refund-reason">
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger id="refund-reason" className={cn(triggerOverride, "w-full")}>
+                <SelectValue placeholder="Choose a reason for refund" />
+              </SelectTrigger>
+              <SelectContent>
+                {REFUND_REASONS.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FieldRow>
+        </TabsContent>
+      </Tabs>
     </FullScreenEditDialog>
   )
 }
@@ -310,31 +511,6 @@ function RefundCompleteScreen({
         </div>
       </DialogContent>
     </Dialog>
-  )
-}
-
-// Bordered content card — mirrors the `FormSection` used in the add-product
-// form (heading + description, separator, then a gap-5 field stack).
-function FormCard({
-  title,
-  description,
-  children,
-}: {
-  title: string
-  description?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border/60 bg-background">
-      <div className="flex flex-col gap-1 px-6 py-5">
-        <h2 className="font-heading text-2xl font-semibold leading-9 text-foreground">{title}</h2>
-        {description ? (
-          <p className="text-sm leading-5 text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-      <Separator />
-      <div className="flex flex-col gap-5 px-6 py-5">{children}</div>
-    </div>
   )
 }
 
