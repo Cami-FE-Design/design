@@ -11,11 +11,14 @@ import {
   PlusIcon,
   SlidersHorizontalIcon,
   TagIcon,
+  Trash2Icon,
+  XIcon,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useState } from "react"
 import { AppShell } from "@/components/blocks/app-shell"
+import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { ProductDetailDialog } from "@/components/blocks/product-detail-dialog"
 import { MOCK_PRODUCTS, type Product, ProductsTable } from "@/components/blocks/products-table"
@@ -154,8 +157,35 @@ function ProductsIndex() {
   const [isLoading, setIsLoading] = useState(true)
   const [brandDialogOpen, setBrandDialogOpen] = useState(false)
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false)
+  // Bulk selection — ids of rows ticked via the row/select-all checkboxes.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   // Prototype toggle: switch between empty and populated state
   const [showEmpty, setShowEmpty] = useState(false)
+
+  function toggleSelect(id: string, next: boolean) {
+    setSelectedIds((prev) => {
+      const out = new Set(prev)
+      if (next) out.add(id)
+      else out.delete(id)
+      return out
+    })
+  }
+
+  function toggleSelectAll(ids: string[], next: boolean) {
+    setSelectedIds((prev) => {
+      const out = new Set(prev)
+      for (const id of ids) {
+        if (next) out.add(id)
+        else out.delete(id)
+      }
+      return out
+    })
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set())
+  }
 
   // Simulate a brief load on mount
   useEffect(() => {
@@ -198,7 +228,15 @@ function ProductsIndex() {
         />
       )
     }
-    return <ProductsTable products={visible} onRowClick={setSelectedProductId} />
+    return (
+      <ProductsTable
+        products={visible}
+        onRowClick={setSelectedProductId}
+        selectedIds={selectedIds}
+        onToggleSelect={toggleSelect}
+        onToggleSelectAll={toggleSelectAll}
+      />
+    )
   }
 
   return (
@@ -289,7 +327,13 @@ function ProductsIndex() {
             className="py-24"
           />
         ) : (
-          <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+          <Tabs
+            value={tab}
+            onValueChange={(v) => {
+              setTab(v as Tab)
+              clearSelection()
+            }}
+          >
             <TableToolbar
               tabs={
                 <TabsList variant="ghost">
@@ -319,33 +363,63 @@ function ProductsIndex() {
                     className="h-9! w-72"
                     placeholder="Search products"
                     aria-label="Search products"
-                    onValueChange={setQuery}
+                    onValueChange={(v) => {
+                      setQuery(v)
+                      clearSelection()
+                    }}
                   />
                   <Button variant="outline" size="icon-sm" radius="full" aria-label="Filter">
                     <SlidersHorizontalIcon className="size-4" />
                   </Button>
 
-                  {/* Sort by */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" radius="full" className="gap-1.5">
-                        <ArrowDownUpIcon className="size-3.5" />
-                        {SORT_LABELS[sort]}
+                  {selectedIds.size > 0 ? (
+                    // Selection active — replace the sort control with a count
+                    // pill + Delete action, mirroring the bulk-edit toolbar.
+                    <>
+                      <button
+                        type="button"
+                        onClick={clearSelection}
+                        className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-foreground hover:bg-muted"
+                      >
+                        {selectedIds.size} product{selectedIds.size > 1 ? "s" : ""} selected
+                        <XIcon className="size-3.5 text-muted-foreground" />
+                      </button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        radius="full"
+                        className="gap-1.5 text-destructive hover:text-destructive"
+                        onClick={() => setBulkDeleteOpen(true)}
+                      >
+                        <Trash2Icon className="size-3.5" />
+                        Delete
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-52">
-                      {(Object.entries(SORT_LABELS) as [SortKey, string][]).map(([key, label]) => (
-                        <DropdownMenuItem
-                          key={key}
-                          onSelect={() => setSort(key)}
-                          data-active={sort === key}
-                          className="data-[active=true]:font-semibold"
-                        >
-                          {label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                    </>
+                  ) : (
+                    /* Sort by */
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" radius="full" className="gap-1.5">
+                          <ArrowDownUpIcon className="size-3.5" />
+                          {SORT_LABELS[sort]}
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        {(Object.entries(SORT_LABELS) as [SortKey, string][]).map(
+                          ([key, label]) => (
+                            <DropdownMenuItem
+                              key={key}
+                              onSelect={() => setSort(key)}
+                              data-active={sort === key}
+                              className="data-[active=true]:font-semibold"
+                            >
+                              {label}
+                            </DropdownMenuItem>
+                          ),
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </>
               }
             />
@@ -379,6 +453,24 @@ function ProductsIndex() {
         onDelete={(id) => {
           setMockProducts((prev) => prev.filter((p) => p.id !== id))
           setSelectedProductId(null)
+        }}
+      />
+
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title={`Delete ${selectedIds.size} product${selectedIds.size > 1 ? "s" : ""}?`}
+        description={
+          selectedIds.size > 1
+            ? "All data associated with these products will be permanently deleted."
+            : "All data associated with this product will be permanently deleted."
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          setMockProducts((prev) => prev.filter((p) => !selectedIds.has(p.id)))
+          clearSelection()
         }}
       />
 

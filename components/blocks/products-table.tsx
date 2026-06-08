@@ -4,6 +4,7 @@ import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react"
 import { useState } from "react"
 import { ProductImagePlaceholder } from "@/components/blocks/product-image-placeholder"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Table,
   TableBody,
@@ -118,9 +119,23 @@ function SortIcon({
 type ProductsTableProps = {
   products: Product[]
   onRowClick: (productId: string) => void
+  /**
+   * When provided, a checkbox column is rendered (select-all in the header,
+   * one per row). Omit to render the table without selection.
+   */
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string, next: boolean) => void
+  /** Toggle every currently-visible row. `ids` are the rows shown in this table. */
+  onToggleSelectAll?: (ids: string[], next: boolean) => void
 }
 
-export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
+export function ProductsTable({
+  products,
+  onRowClick,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
+}: ProductsTableProps) {
   const [sortField, setSortField] = useState<SortField | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>("asc")
 
@@ -141,6 +156,13 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
       })
     : products
 
+  // Selection is enabled only when the page passes a `selectedIds` set.
+  const selectable = selectedIds !== undefined
+  const visibleIds = sorted.map((p) => p.id)
+  const selectedVisible = visibleIds.filter((id) => selectedIds?.has(id)).length
+  const allChecked: boolean | "indeterminate" =
+    selectedVisible === 0 ? false : selectedVisible === visibleIds.length ? true : "indeterminate"
+
   if (sorted.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-12 text-center text-sm text-muted-foreground">
@@ -154,14 +176,23 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
       <TableHeader>
         <TableRow>
           <TableHead className="sticky left-0 z-20! bg-background shadow-[1px_0_0_0_var(--border)] md:static md:bg-transparent md:shadow-none">
-            <button
-              type="button"
-              onClick={() => toggleSort("name")}
-              className="flex items-center gap-1.5 font-medium hover:text-foreground"
-            >
-              Product
-              <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
-            </button>
+            <div className="flex items-center gap-3">
+              {selectable ? (
+                <Checkbox
+                  checked={allChecked}
+                  onCheckedChange={(c) => onToggleSelectAll?.(visibleIds, c === true)}
+                  aria-label="Select all products"
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={() => toggleSort("name")}
+                className="flex items-center gap-1.5 font-medium hover:text-foreground"
+              >
+                Product
+                <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
+              </button>
+            </div>
           </TableHead>
           <TableHead className="min-w-36">Category</TableHead>
           <TableHead className="min-w-40">Supplier</TableHead>
@@ -187,6 +218,16 @@ export function ProductsTable({ products, onRowClick }: ProductsTableProps) {
           >
             <TableCell className="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] transition-colors group-hover:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))] md:static md:bg-transparent md:shadow-none md:group-hover:bg-transparent">
               <div className="flex items-center gap-3">
+                {selectable ? (
+                  <Checkbox
+                    checked={selectedIds?.has(product.id) ?? false}
+                    // Stop the click bubbling to the row (which opens the detail
+                    // dialog) so the checkbox only toggles selection.
+                    onClick={(e) => e.stopPropagation()}
+                    onCheckedChange={(c) => onToggleSelect?.(product.id, c === true)}
+                    aria-label={`Select ${product.name}`}
+                  />
+                ) : null}
                 <ProductImagePlaceholder seed={product.id} className="size-21.5" />
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm font-medium text-foreground">{product.name}</span>
