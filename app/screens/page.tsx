@@ -407,14 +407,19 @@ const SECTIONS: Section[] = [
         note: "Category sidebar + grouped service list. Drag service rows to reorder within a category or move them between categories. 'Add' menu creates a single service (full-screen takeover) or a category (dialog); 'Order' / Options → 'Set menu order' opens the reorder sheet. Search filters by service name. Per-card and per-category kebabs offer Edit / Archive / Delete. All mutations update local state live.",
       },
       {
-        path: "/catalogs/service-menu",
-        label: "New / Edit service takeover",
-        note: "Click Add → Single service (or a service card's Edit). Full-screen takeover with Team members, pricing (Fixed/From/Free in AED), duration, variants (Add variant dialog), and extra-time settings. Save adds/updates the service in the list.",
+        path: "/catalogs/service-menu?new=1",
+        label: "New service takeover",
+        note: "Deep-links straight into the add-service full-screen takeover (?new=1). Team members, pricing (Fixed/From/Free in AED), duration, variants (Add variant dialog), and extra-time settings. Save adds the service to the list. (Editing an existing service opens the same takeover from a service card's kebab → Edit.)",
       },
       {
         path: "/catalogs/categories",
         label: "Categories",
         note: "Sortable table of merchant categories (Name / Color / Description / Total services). Add category dialog, row kebab with Edit (detail dialog) / Archive / Delete (with confirm). Service counts stay in sync with the Service menu screen. Load-more pagination at 10 rows.",
+      },
+      {
+        path: "/catalogs/categories?add=1",
+        label: "Add category dialog",
+        note: "Deep-links straight into the add-category dialog (?add=1). Name, color swatch, and description; Save adds the category to the table and the Service menu sidebar.",
       },
     ],
   },

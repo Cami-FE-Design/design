@@ -51,9 +51,15 @@ import { SetMenuOrderSheet } from "./SetMenuOrderSheet"
 type ServiceMenuPageProps = {
   initialCategories?: import("@/lib/service-catalog/types").ServiceCategory[]
   initialServices?: import("@/lib/service-catalog/types").Service[]
+  /** Open the add-service takeover on mount (used for deep links like ?new=1). */
+  initialNewService?: boolean
 }
 
-export function ServiceMenuPage({ initialCategories, initialServices }: ServiceMenuPageProps) {
+export function ServiceMenuPage({
+  initialCategories,
+  initialServices,
+  initialNewService = false,
+}: ServiceMenuPageProps) {
   // Permissions are intentionally omitted in this prototype repo — all
   // management actions are always available.
   const canManage = true
@@ -100,7 +106,7 @@ export function ServiceMenuPage({ initialCategories, initialServices }: ServiceM
   const [searchQuery, setSearchQuery] = useState("")
   const [addCategoryOpen, setAddCategoryOpen] = useState(false)
   const [editCategoryTarget, setEditCategoryTarget] = useState<ServiceCategory | null>(null)
-  const [newServiceOpen, setNewServiceOpen] = useState(false)
+  const [newServiceOpen, setNewServiceOpen] = useState(initialNewService)
   const [menuOrderOpen, setMenuOrderOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [defaultNewCategoryId, setDefaultNewCategoryId] = useState<string | undefined>()

@@ -37,15 +37,17 @@ import { CategoryDetailDialog } from "./CategoryDetailDialog"
 
 type CategoriesPageProps = {
   initialCategories?: ServiceCategory[]
+  /** Open the add-category dialog on mount (used for deep links like ?add=1). */
+  initialAddOpen?: boolean
 }
 
-export function CategoriesPage({ initialCategories }: CategoriesPageProps) {
+export function CategoriesPage({ initialCategories, initialAddOpen = false }: CategoriesPageProps) {
   const { data: allCategories = [], isLoading: catsLoading } = useServiceCategories({
     initialData: initialCategories,
   })
   const mutations = useServiceCatalogMutations()
 
-  const [addOpen, setAddOpen] = useState(false)
+  const [addOpen, setAddOpen] = useState(initialAddOpen)
   const [editing, setEditing] = useState<ServiceCategory | null>(null)
   const [confirming, setConfirming] = useState<{
     category: ServiceCategory
