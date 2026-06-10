@@ -20,6 +20,7 @@ import {
   SettingsIcon,
   SlidersHorizontalIcon,
 } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   Button,
@@ -63,6 +64,8 @@ export function ServiceMenuPage({
   // Permissions are intentionally omitted in this prototype repo — all
   // management actions are always available.
   const canManage = true
+
+  const router = useRouter()
 
   const { data: rawCategories } = useServiceCategories({
     initialData: initialCategories,
@@ -456,6 +459,12 @@ export function ServiceMenuPage({
                   </DropdownMenuItem>
                   <DropdownMenuItem className="py-2.5" onClick={() => setAddCategoryOpen(true)}>
                     Category
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="py-2.5"
+                    onClick={() => router.push("/catalogs/service-menu/combos/new")}
+                  >
+                    Combo
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
