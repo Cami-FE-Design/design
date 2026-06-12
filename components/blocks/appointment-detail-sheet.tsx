@@ -33,6 +33,7 @@ import {
   type MockStaff,
   SERVICE_CATEGORY_ACCENT,
 } from "@/app/appointments/mock"
+import { CancelAppointmentDialog } from "@/components/blocks/cancel-appointment-dialog"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -655,6 +656,9 @@ export function AppointmentDetailSheet({
 }: AppointmentDetailSheetProps) {
   const [status, setStatus] = useState<MockBookingStatus>(booking?.status ?? "booked")
   const [mode, setMode] = useState<SheetMode>("detail")
+  // Selecting "Canceled" opens a full-screen confirmation flow rather than
+  // flipping the status outright; the status only changes once confirmed.
+  const [cancelOpen, setCancelOpen] = useState(false)
 
   // Re-sync local status when a new booking is opened. Reset mode so the next
   // open lands on the detail view rather than the activity slide-in.
@@ -722,83 +726,101 @@ export function AppointmentDetailSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        showCloseButton={false}
-        className="flex w-120 max-w-120 flex-col gap-0 overflow-hidden p-0 sm:max-w-120"
-      >
-        <SheetTitle className="sr-only">Appointment for {client.name}</SheetTitle>
-        <SheetDescription className="sr-only">
-          {dateLabel} at {timeLabel} — {booking.serviceName}
-        </SheetDescription>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="right"
+          showCloseButton={false}
+          className="flex w-120 max-w-120 flex-col gap-0 overflow-hidden p-0 sm:max-w-120"
+        >
+          <SheetTitle className="sr-only">Appointment for {client.name}</SheetTitle>
+          <SheetDescription className="sr-only">
+            {dateLabel} at {timeLabel} — {booking.serviceName}
+          </SheetDescription>
 
-        {mode === "activity" ? (
-          <ActivityPanel events={activityEvents} onBack={() => setMode("detail")} />
-        ) : (
-          <>
-            {/* Close row (only the close button — quick actions live in the footer to match the figma) */}
-            <header className="flex min-h-12 items-center gap-3 border-b border-border/60 px-1.5">
-              <SheetClose asChild>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label="Close">
-                  <ChevronsRightIcon />
-                </Button>
-              </SheetClose>
-            </header>
+          {mode === "activity" ? (
+            <ActivityPanel events={activityEvents} onBack={() => setMode("detail")} />
+          ) : (
+            <>
+              {/* Close row (only the close button — quick actions live in the footer to match the figma) */}
+              <header className="flex min-h-12 items-center gap-3 border-b border-border/60 px-1.5">
+                <SheetClose asChild>
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label="Close">
+                    <ChevronsRightIcon />
+                  </Button>
+                </SheetClose>
+              </header>
 
-            {/* Status-colored hero header (matches new-appointment-sheet padding: px-6 py-7) */}
-            <header
-              data-slot="appointment-sheet-header"
-              className={cn("flex items-center gap-3 px-6 py-7", theme.fill, theme.text)}
-            >
-              <DateAvatarCard date={iso} />
-              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <span className="self-start truncate text-[22px] leading-7 font-semibold tracking-tight">
-                  {dateLabel}
-                </span>
-                <div className={cn("text-xs leading-4", theme.subText)}>
-                  <span className="font-medium">{timeLabel}</span>
-                  <span aria-hidden>, </span>
-                  <span>{recurrence}</span>
+              {/* Status-colored hero header (matches new-appointment-sheet padding: px-6 py-7) */}
+              <header
+                data-slot="appointment-sheet-header"
+                className={cn("flex items-center gap-3 px-6 py-7", theme.fill, theme.text)}
+              >
+                <DateAvatarCard date={iso} />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="self-start truncate text-[22px] leading-7 font-semibold tracking-tight">
+                    {dateLabel}
+                  </span>
+                  <div className={cn("text-xs leading-4", theme.subText)}>
+                    <span className="font-medium">{timeLabel}</span>
+                    <span aria-hidden>, </span>
+                    <span>{recurrence}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <StatusPill status={status} onChange={setStatus} />
-              </div>
-            </header>
+                <div className="flex shrink-0 items-center gap-2">
+                  <StatusPill
+                    status={status}
+                    onChange={(next) => {
+                      if (next === "cancelled") {
+                        setCancelOpen(true)
+                        return
+                      }
+                      setStatus(next)
+                    }}
+                  />
+                </div>
+              </header>
 
-            {/* Scrollable body — same bg-sand-2, padding (gap-6 px-6 py-5), and section h2 style as new-appointment-sheet */}
-            <div className="flex flex-1 flex-col gap-6 overflow-y-auto bg-sand-2 px-6 py-5">
-              <ClientCard client={client} onViewProfile={onViewProfile} />
-              <ServicesSection booking={booking} staffName={staffName} />
-              <SaleTotalSection totals={totals} label={totalLabel} />
-            </div>
+              {/* Scrollable body — same bg-sand-2, padding (gap-6 px-6 py-5), and section h2 style as new-appointment-sheet */}
+              <div className="flex flex-1 flex-col gap-6 overflow-y-auto bg-sand-2 px-6 py-5">
+                <ClientCard client={client} onViewProfile={onViewProfile} />
+                <ServicesSection booking={booking} staffName={staffName} />
+                <SaleTotalSection totals={totals} label={totalLabel} />
+              </div>
 
-            {/* Footer — vertical dots on the left, status-keyed actions on the right
+              {/* Footer — vertical dots on the left, status-keyed actions on the right
                 (mirrors new-appointment-sheet footer dimensions: border-t border-border bg-card px-6 py-4) */}
-            <footer className="flex items-center justify-between gap-3 border-t border-border bg-card px-6 py-4">
-              <QuickActionsMenu
-                onViewActivity={() => setMode("activity")}
-                onViewSale={onViewSale}
-              />
-              {isTerminal ? (
-                <Button type="button" variant="outline" radius="full" className="flex-1">
-                  Done
-                </Button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Button type="button" variant="outline" radius="full">
-                    Pay now
+              <footer className="flex items-center justify-between gap-3 border-t border-border bg-card px-6 py-4">
+                <QuickActionsMenu
+                  onViewActivity={() => setMode("activity")}
+                  onViewSale={onViewSale}
+                />
+                {isTerminal ? (
+                  <Button type="button" variant="outline" radius="full" className="flex-1">
+                    Done
                   </Button>
-                  <Button type="button" radius="full">
-                    Complete now
-                  </Button>
-                </div>
-              )}
-            </footer>
-          </>
-        )}
-      </SheetContent>
-    </Sheet>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Button type="button" variant="outline" radius="full">
+                      Pay now
+                    </Button>
+                    <Button type="button" radius="full">
+                      Complete now
+                    </Button>
+                  </div>
+                )}
+              </footer>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <CancelAppointmentDialog
+        open={cancelOpen}
+        onOpenChange={setCancelOpen}
+        totalMinor={booking.priceMinor}
+        onConfirm={() => setStatus("cancelled")}
+      />
+    </>
   )
 }
