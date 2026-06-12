@@ -32,23 +32,14 @@ const SidebarMenuButton = forwardRef<HTMLButtonElement, SidebarMenuButtonProps>(
   ) {
     const Icon = item.icon
     const hasChildren = !!item.children?.length
+    const isLink = !hasChildren && !!item.href
+    const pathname = usePathname()
+    const isActive = isLink && pathname === item.href
     const notificationCount = item.notificationCount ?? 0
     const showBadge = item.hasUpdate || notificationCount > 0
 
-    return (
-      <Button
-        ref={ref}
-        variant="ghost"
-        className={cn(menuButtonClass, expanded ? "gap-3" : "gap-0")}
-        style={{
-          transition: menuButtonTransition,
-          paddingRight: expanded ? "60px" : "16px",
-        }}
-        aria-expanded={hasChildren && expanded ? isSubmenuOpen : undefined}
-        aria-label={expanded ? undefined : item.label}
-        onClick={hasChildren && expanded ? onToggleSubmenu : undefined}
-        {...rest}
-      >
+    const inner = (
+      <>
         <Icon className="size-5 shrink-0" />
         <span
           className="min-w-0 flex-1 overflow-hidden whitespace-nowrap text-left text-base font-medium leading-6"
@@ -100,6 +91,30 @@ const SidebarMenuButton = forwardRef<HTMLButtonElement, SidebarMenuButtonProps>(
             />
           )}
         </span>
+      </>
+    )
+
+    return (
+      <Button
+        ref={ref}
+        variant="ghost"
+        asChild={isLink}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          menuButtonClass,
+          expanded ? "gap-3" : "gap-0",
+          isActive && "bg-sidebar-accent text-sidebar-foreground",
+        )}
+        style={{
+          transition: menuButtonTransition,
+          paddingRight: expanded ? "60px" : "16px",
+        }}
+        aria-expanded={hasChildren && expanded ? isSubmenuOpen : undefined}
+        aria-label={expanded ? undefined : item.label}
+        onClick={hasChildren && expanded ? onToggleSubmenu : undefined}
+        {...rest}
+      >
+        {isLink ? <Link href={item.href as string}>{inner}</Link> : inner}
       </Button>
     )
   },

@@ -20,13 +20,15 @@ export type SubmenuItem = {
 export type MenuItem = {
   icon: LucideIcon
   label: string
+  /** Destination for leaf items (no children). Renders the row as a link. */
+  href?: string
   hasUpdate?: boolean
   notificationCount?: number
   children?: SubmenuItem[]
 }
 
 export const topMenu: MenuItem[] = [
-  { icon: HomeIcon, label: "Home" },
+  { icon: HomeIcon, label: "Home", href: "/dashboard" },
   {
     icon: CalendarIcon,
     label: "Schedules",

@@ -26,6 +26,18 @@ const SECTIONS: Section[] = [
     screens: [{ path: "/", label: "Root", note: "Next.js boilerplate, not yet replaced" }],
   },
   {
+    title: "Business app, Home dashboard",
+    description:
+      "Operator landing screen wired to the Home sidebar item. Front-desk focus: today's takings + appointment KPIs, today's agenda, quick actions, and a needs-attention list. All widgets deep-link into existing screens and read off the shared appointments fixture (prices in AED).",
+    screens: [
+      {
+        path: "/dashboard",
+        label: "Home dashboard",
+        note: "4 KPI cards (appointments today, takings, awaiting checkout, unread messages) → schedule/sales/clients; today's agenda list (time, pet · parent, service · staff, status badge) → /appointments; quick actions (New sale, New appointment, Add client, Add pet); needs-attention rows (no-shows, ready-for-checkout, unpaid drafts, low stock) deep-linking to filtered screens.",
+      },
+    ],
+  },
+  {
     title: "Pet parent, public business page (PRO-96)",
     description:
       "E2-3 Cami-hosted public booking landing at cami.app/[slug]. Two-column on desktop with sticky booking card, single column on mobile. 404 returned for unknown slugs and not-yet-live businesses.",

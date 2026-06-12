@@ -79,31 +79,43 @@ type DrawerMenuItemProps = {
 function DrawerMenuItem({ item, isOpen, onOpenChange }: DrawerMenuItemProps) {
   const Icon = item.icon
   const hasChildren = !!item.children?.length
+  const isLink = !hasChildren && !!item.href
   const notificationCount = item.notificationCount ?? 0
   const showBadge = item.hasUpdate || notificationCount > 0
   const expanded = hasChildren && isOpen
 
+  const inner = (
+    <>
+      <Icon className="size-5 shrink-0" />
+      <span className="min-w-0 flex-1 truncate text-left text-base font-medium leading-6">
+        {item.label}
+      </span>
+      {showBadge && (
+        <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-primary px-1 py-0.5 text-xs font-medium leading-4 text-primary-foreground">
+          {notificationCount > 0 ? notificationCount : null}
+        </span>
+      )}
+      {hasChildren && (
+        <ChevronDownIcon className={cn("size-5 shrink-0", expanded && "rotate-180")} />
+      )}
+    </>
+  )
+
+  const trigger = (
+    <Button
+      variant="ghost"
+      asChild={isLink}
+      className={menuButtonClass}
+      aria-expanded={hasChildren ? isOpen : undefined}
+      onClick={hasChildren ? () => onOpenChange(!isOpen) : undefined}
+    >
+      {isLink ? <Link href={item.href as string}>{inner}</Link> : inner}
+    </Button>
+  )
+
   return (
     <div className="flex w-full flex-col">
-      <Button
-        variant="ghost"
-        className={menuButtonClass}
-        aria-expanded={hasChildren ? isOpen : undefined}
-        onClick={hasChildren ? () => onOpenChange(!isOpen) : undefined}
-      >
-        <Icon className="size-5 shrink-0" />
-        <span className="min-w-0 flex-1 truncate text-left text-base font-medium leading-6">
-          {item.label}
-        </span>
-        {showBadge && (
-          <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md bg-primary px-1 py-0.5 text-xs font-medium leading-4 text-primary-foreground">
-            {notificationCount > 0 ? notificationCount : null}
-          </span>
-        )}
-        {hasChildren && (
-          <ChevronDownIcon className={cn("size-5 shrink-0", expanded && "rotate-180")} />
-        )}
-      </Button>
+      {isLink ? <SheetClose asChild>{trigger}</SheetClose> : trigger}
       {hasChildren && (
         <div
           className="grid overflow-hidden"
