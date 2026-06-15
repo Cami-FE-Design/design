@@ -16,7 +16,15 @@ import { ClientSummaryCard } from "./client-summary-card"
 import { CustomTipDialog } from "./custom-tip-dialog"
 import { EditLineDialog, type LinePatch } from "./edit-line-dialog"
 import { ItemPicker } from "./item-picker"
-import { CLIENT_REQUIRED, CLIENTS, formatAedDecimal, SERVICES, totals } from "./mock"
+import {
+  CLIENT_REQUIRED,
+  CLIENTS,
+  formatAedDecimal,
+  membershipMeta,
+  money,
+  SERVICES,
+  totals,
+} from "./mock"
 import { PaymentView } from "./payment-view"
 import { SaleNoteDialog } from "./sale-note-dialog"
 import { SelectPaymentModal } from "./select-payment-modal"
@@ -27,6 +35,7 @@ import type {
   CartLine,
   CatalogClient,
   ClientAttachment,
+  MembershipPickItem,
   ProductItem,
   ServiceItem,
 } from "./types"
@@ -59,6 +68,8 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
   const [attachment, setAttachment] = useState<ClientAttachment>({ type: "none" })
   const [lines, setLines] = useState<CartLine[]>([])
   const [draftModalOpen, setDraftModalOpen] = useState(false)
+  // Shown when a membership is tapped without a real client attached.
+  const [membershipClientPromptOpen, setMembershipClientPromptOpen] = useState(false)
   const [clientSearching, setClientSearching] = useState(false)
   const [editingUid, setEditingUid] = useState<string | null>(null)
   const [step, setStep] = useState<Step>("cart")
@@ -164,6 +175,49 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
         },
       ]
     })
+  }
+
+  // Memberships add freely to the cart; the "sold to a named client only" rule
+  // is enforced at checkout (see continueToTip), mirroring Fresha — the gate
+  // appears when you try to continue, not when you add the item.
+  function addMembership(membership: MembershipPickItem) {
+    setLines((prev) => [
+      ...prev,
+      {
+        uid: nextUid("mem"),
+        kind: "membership",
+        name: membership.name,
+        priceMinor: membership.priceMinor,
+        qty: 1,
+        sourceId: membership.id,
+        accent: membership.accent,
+        subtitle: `${membershipMeta(membership)} · ${money(membership.priceMinor)} value`,
+      },
+    ])
+  }
+
+  const hasMembership = lines.some((l) => l.kind === "membership")
+
+  // Walk-ins can't buy memberships: when the cart holds one, selecting Walk-In
+  // is blocked and prompts to add a real client instead. Non-membership carts
+  // attach the walk-in as normal.
+  function attachWalkIn(closeEditing = false) {
+    if (hasMembership) {
+      setMembershipClientPromptOpen(true)
+      return
+    }
+    setAttachment({ type: "walk-in" })
+    if (closeEditing) setClientEditing(false)
+  }
+
+  // Cart has a membership line but no named client → block checkout and prompt
+  // to add one. Walk-ins can't buy memberships, so they're treated as "no client".
+  function continueToTip() {
+    if (hasMembership && attachment.type !== "client") {
+      setMembershipClientPromptOpen(true)
+      return
+    }
+    setStep("tip")
   }
 
   // An appointment can only sit in the cart once — no double-paying.
@@ -335,6 +389,7 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
                       onAddService={(s) => addService(s)}
                       onAddProduct={addProduct}
                       onAddAppointment={addAppointment}
+                      onAddMembership={addMembership}
                       addedApptIds={addedApptIds}
                     />
                   ) : step === "tip" ? (
@@ -367,7 +422,7 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
                         onAttachClient={(client: CatalogClient) =>
                           setAttachment({ type: "client", client })
                         }
-                        onWalkIn={() => setAttachment({ type: "walk-in" })}
+                        onWalkIn={() => attachWalkIn()}
                         // Real quick-create flow is a sibling ticket; attach a placeholder
                         // so the selected-client state is demonstrable.
                         onAddNew={() =>
@@ -400,10 +455,7 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
                             setAttachment({ type: "client", client })
                             setClientEditing(false)
                           }}
-                          onWalkIn={() => {
-                            setAttachment({ type: "walk-in" })
-                            setClientEditing(false)
-                          }}
+                          onWalkIn={() => attachWalkIn(true)}
                           onAddNew={() => {
                             setAttachment({
                               type: "client",
@@ -451,7 +503,7 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
                       lines={lines}
                       discountMinor={discountMinor}
                       blockedReason={blockedReason}
-                      onContinue={() => setStep("tip")}
+                      onContinue={continueToTip}
                       onAddTip={() => setStep("tip")}
                       onAddCartDiscount={() => setCartDiscountOpen(true)}
                       onAddSaleNote={() => setSaleNoteOpen(true)}
@@ -542,6 +594,41 @@ export function CartFlow({ open: openProp, onOpenChange }: CartFlowProps = {}) {
               }}
             >
               Discard
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Membership requires a client — gate shown when none is attached */}
+      <Dialog open={membershipClientPromptOpen} onOpenChange={setMembershipClientPromptOpen}>
+        <DialogContent className="flex flex-col gap-4 text-center sm:max-w-md">
+          <DialogClose asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              radius="full"
+              aria-label="Close"
+              className="absolute top-4 right-4 text-muted-foreground"
+            >
+              <XIcon className="size-5" />
+            </Button>
+          </DialogClose>
+          <DialogTitle className="font-heading font-semibold text-2xl">
+            Add a client to sell membership
+          </DialogTitle>
+          <p className="text-base text-muted-foreground leading-6">
+            In order to sell a membership please make sure you've selected a client first.
+          </p>
+          <div className="pt-2">
+            <Button
+              type="button"
+              size="lg"
+              radius="full"
+              className="w-full"
+              onClick={() => setMembershipClientPromptOpen(false)}
+            >
+              Return to check out
             </Button>
           </div>
         </DialogContent>

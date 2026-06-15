@@ -29,6 +29,7 @@ import {
   formatDuration,
   HAS_PETS,
   money,
+  SERVICE_CATEGORIES,
   totals,
   VAT_RATE,
 } from "./mock"
@@ -97,6 +98,12 @@ export function CartContent({
               // Read-only summaries (Tip / Payment) are editable but not deletable.
               onRemove={readOnly ? undefined : () => onRemove(line.uid)}
             />
+          ) : line.kind === "membership" ? (
+            <MembershipLineRow
+              key={line.uid}
+              line={line}
+              onRemove={readOnly ? undefined : () => onRemove(line.uid)}
+            />
           ) : (
             <ProductLineRow
               key={line.uid}
@@ -131,9 +138,13 @@ function ServiceLineRow({
     .filter(Boolean)
     .join(" · ")
 
+  // Match the picker: the bar carries the service's category colour.
+  const accent =
+    SERVICE_CATEGORIES.find((c) => c.id === line.categoryId)?.accent ?? "bg-cami-violet-12"
+
   return (
     <li className="group/service flex gap-3 rounded-2xl px-3 py-2 transition-colors hover:bg-muted/50">
-      <span aria-hidden className="w-1 shrink-0 self-stretch rounded-full bg-cami-violet-12" />
+      <span aria-hidden className={cn("w-1 shrink-0 self-stretch rounded-full", accent)} />
       <div className="flex min-w-0 flex-1 py-1.5">
         <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col">
@@ -153,6 +164,37 @@ function ServiceLineRow({
             onEdit={onEdit}
             onRemove={onRemove}
           />
+        </div>
+      </div>
+    </li>
+  )
+}
+
+// Membership line — bold name with a "N sessions · N services · AED X value"
+// subtitle. No qty (one membership per line); remove control reveals on hover.
+function MembershipLineRow({ line, onRemove }: { line: CartLine; onRemove?: () => void }) {
+  return (
+    <li className="group/service flex gap-3 rounded-2xl px-3 py-2 transition-colors hover:bg-muted/50">
+      <span
+        aria-hidden
+        className={cn("w-1 shrink-0 self-stretch rounded-full", line.accent ?? "bg-cami-violet-12")}
+      />
+      <div className="flex min-w-0 flex-1 py-1.5">
+        <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-col">
+            <span
+              className="truncate font-semibold text-base text-foreground leading-6"
+              title={line.name}
+            >
+              {line.name}
+            </span>
+            {line.subtitle ? (
+              <span className="truncate text-muted-foreground text-sm leading-5">
+                {line.subtitle}
+              </span>
+            ) : null}
+          </div>
+          <RowActions value={money(line.priceMinor)} name={line.name} onRemove={onRemove} />
         </div>
       </div>
     </li>

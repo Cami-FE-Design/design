@@ -4,10 +4,12 @@
 // back-calculated so Subtotal + Tax always equals Total exactly (ticket edge
 // case: "Rounding under tax-inclusive math").
 
+import { MEMBERSHIP_COLORS, MOCK_MEMBERSHIPS } from "@/components/blocks/memberships-table"
 import type {
   AppointmentItem,
   CartLine,
   CatalogClient,
+  MembershipPickItem,
   ProductCategory,
   ProductItem,
   ServiceCategory,
@@ -254,6 +256,25 @@ export const PRODUCTS: ProductItem[] = [
 
 export function productCountLabel(categoryId: string): number {
   return PRODUCTS.filter((p) => p.categoryId === categoryId).length
+}
+
+// ─── Memberships (mapped from the catalog) ────────────────────────────────────
+// The sellable membership catalog. Prices are whole AED in the catalog; convert
+// to fils here so the cart math (all minor units) stays consistent.
+
+export const MEMBERSHIPS: MembershipPickItem[] = MOCK_MEMBERSHIPS.map((m) => ({
+  id: m.id,
+  name: m.name,
+  sessions: m.sessions,
+  serviceCount: m.serviceCount,
+  priceMinor: m.price * 100,
+  accent: MEMBERSHIP_COLORS.find((c) => c.id === m.color)?.className ?? "bg-cami-violet-7",
+}))
+
+/** "5 sessions · 2 services" / "Unlimited sessions · 1 service". */
+export function membershipMeta(m: MembershipPickItem): string {
+  const sessions = m.sessions === "unlimited" ? "Unlimited sessions" : `${m.sessions} sessions`
+  return `${sessions} · ${m.serviceCount} service${m.serviceCount === 1 ? "" : "s"}`
 }
 
 // ─── Appointments (Upcoming today) ────────────────────────────────────────────

@@ -64,6 +64,7 @@ export const topMenu: MenuItem[] = [
       { label: "Daily Summary", href: "/sales/daily-summary" },
       { label: "Appointments", href: "/sales/appointments-list" },
       { label: "Invoices", href: "/sales/sales-list" },
+      { label: "Memberships sold", href: "/sales/memberships-sold" },
       { label: "Payments" },
     ],
   },
@@ -73,7 +74,7 @@ export const topMenu: MenuItem[] = [
     children: [
       { label: "Service Menu", href: "/catalogs/service-menu" },
       { label: "Categories", href: "/catalogs/categories" },
-      { label: "Packages" },
+      { label: "Memberships", href: "/catalogs/memberships" },
     ],
   },
   {

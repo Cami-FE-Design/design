@@ -100,7 +100,7 @@ export type AppointmentItem = {
 export type CartLine = {
   /** Unique per line instance — never the source id. */
   uid: string
-  kind: "service" | "product"
+  kind: "service" | "product" | "membership"
   name: string
   /** Tax-inclusive unit price in fils. */
   priceMinor: number
@@ -113,10 +113,27 @@ export type CartLine = {
   sourceId: string
   /** Service category id — drives the left accent colour. */
   categoryId?: string
+  /** Memberships only — left-accent colour class matching the membership card. */
+  accent?: string
+  /** Memberships only — "5 sessions · 2 services · AED 100 value" subtitle. */
+  subtitle?: string
   /** Non-blocking warnings shown as pills under the line. */
   warnings?: string[]
   /** Set when this line was snapshotted from an appointment — one appointment per cart. */
   apptId?: string
+}
+
+/** A membership offered in the picker (mapped from the catalog). */
+export type MembershipPickItem = {
+  id: string
+  name: string
+  /** Sessions allowance — a number (limited) or "unlimited". */
+  sessions: number | "unlimited"
+  serviceCount: number
+  /** Tax-inclusive price in fils. */
+  priceMinor: number
+  /** Left-accent colour class, e.g. `bg-cami-green-7`. */
+  accent: string
 }
 
 /** Who the cart is for. */
@@ -126,4 +143,10 @@ export type ClientAttachment =
   | { type: "client"; client: CatalogClient }
 
 /** Which drilldown the left picker is showing. "root" = the category grid. */
-export type PickerView = "root" | "appointments" | "services" | "products" | "search"
+export type PickerView =
+  | "root"
+  | "appointments"
+  | "services"
+  | "products"
+  | "memberships"
+  | "search"

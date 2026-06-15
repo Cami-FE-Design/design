@@ -357,7 +357,17 @@ const SECTIONS: Section[] = [
       {
         path: "/sales/new-sale",
         label: "New sale · Add to cart (PRO-395)",
-        note: "Right-side POS drawer (wide, like the appointment sheet) with two panes: left item picker (global search + Appointments / Services / Products drilldowns, Memberships + Gift cards disabled), right cart pane in the appointment-sheet aesthetic — Add client card, Services section, pinned dark Continue-to-payment CTA with expandable VAT breakdown. Client attach: search 2+ chars, Add new client, Walk-In, selected card with Actions. Add services (staff dropdown, stack duplicates), products (qty +/-), or snapshot an appointment (auto-attaches client, replace-confirm if another client is attached). Footer back-calculates tax-inclusive Subtotal/Tax from Total. Closing with items prompts Save as draft / Discard.",
+        note: "Right-side POS drawer (wide, like the appointment sheet) with two panes: left item picker (global search + Appointments / Services / Products / Memberships drilldowns, Gift cards disabled), right cart pane in the appointment-sheet aesthetic — Add client card, Services section, pinned dark Continue-to-payment CTA with expandable VAT breakdown. Memberships drilldown lists the catalog as colour-accented cards (sessions · services · price); tapping one with no client attached opens the 'Add a client to sell membership' gate, otherwise adds a membership line. Client attach: search 2+ chars, Add new client, Walk-In, selected card with Actions. Add services (staff dropdown, stack duplicates), products (qty +/-), or snapshot an appointment (auto-attaches client, replace-confirm if another client is attached). Footer back-calculates tax-inclusive Subtotal/Tax from Total. Closing with items prompts Save as draft / Discard.",
+      },
+      {
+        path: "/sales/memberships-sold",
+        label: "Memberships sold",
+        note: "Listing of memberships purchased by clients (Name · Client · Type · Start/End date · Status · Total charged), AED. Left search + Filters pill, Options → Manage memberships (jumps to /catalogs/memberships). Toggle the bottom-right link for the 'No membership sales yet' empty state (Create new sale → /sales/new-sale). Row click opens the detail modal.",
+      },
+      {
+        path: "/sales/memberships-sold?sold=s1",
+        label: "Membership sold · detail modal",
+        note: "Centered modal over the listing via ?sold=<id>. Membership details card (sessions remaining, type, client, redemption, services → Redeemable services sub-modal, expiry, T&C → sub-modal) + Activity log card with filter pills (All / Status change / Upcoming / Past). Options → Pause membership (note sub-modal) / Resume membership toggles the status badge and prepends an activity entry live. Try s1 (Active) and s2 (Paused).",
       },
       {
         path: "/sales/daily-summary",
@@ -420,6 +430,28 @@ const SECTIONS: Section[] = [
         path: "/catalogs/categories?add=1",
         label: "Add category dialog",
         note: "Deep-links straight into the add-category dialog (?add=1). Name, color swatch, and description; Save adds the category to the table and the Service menu sidebar.",
+      },
+    ],
+  },
+  {
+    title: "Pet Business, catalogs — Memberships (PRO-catalog)",
+    description:
+      "Membership catalog prototype. Sell recurring service packages. Listing mirrors the products listing (tabs, search, sort, bulk-select); add/edit use the sectioned full-screen takeover like the combo form. Prices in AED.",
+    screens: [
+      {
+        path: "/catalogs/memberships",
+        label: "Memberships listing, populated",
+        note: "Table with 5 mock memberships (colored calendar-clock tile + service count, Valid for, Sessions, Price). All/Active/Archived tabs, search, sort, bulk-select + delete. Options dropdown (Reorder / View sold memberships / Upsell settings). Click the toggle at the bottom-right for the empty state. Row click opens the edit takeover.",
+      },
+      {
+        path: "/catalogs/memberships/new",
+        label: "Create membership, full-screen takeover",
+        note: "Sidebar nav with 6 sections: Basic info (name, description) / Services & sessions (Select services dialog + Limited/Unlimited sessions) / Pricing & payment (Valid for, AED price, Tax rate) / Appearance (4-colour picker) / Online sales (sales + redemption toggles) / Terms & conditions. Close returns to the listing.",
+      },
+      {
+        path: "/catalogs/memberships/m1/edit",
+        label: "Edit membership, full-screen takeover",
+        note: "Same layout as /new, pre-populated from a MOCK_MEMBERSHIPS row. Try m1–m5; unknown ids render a 'Membership not found' fallback.",
       },
     ],
   },

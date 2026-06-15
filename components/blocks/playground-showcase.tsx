@@ -45,6 +45,11 @@ import { EmptyState } from "@/components/blocks/empty-state"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
+import {
+  MEMBERSHIP_COLORS,
+  MembershipsTable,
+  MOCK_MEMBERSHIPS,
+} from "@/components/blocks/memberships-table"
 import { PeopleGrid } from "@/components/blocks/people-grid"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
@@ -54,6 +59,11 @@ import { CategorySidebar } from "@/components/blocks/service-menu/CategorySideba
 import { ServiceCardInner } from "@/components/blocks/service-menu/ServiceCard"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
+import {
+  MOCK_SOLD_MEMBERSHIPS,
+  SoldMembershipsTable,
+  SoldStatusBadge,
+} from "@/components/blocks/sold-memberships"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -1409,6 +1419,47 @@ export function PlaygroundShowcase() {
               }
               className="py-16"
             />
+          </div>
+        </Row>
+      </Section>
+
+      {/* ── Memberships ──────────────────────────────────────────────────── */}
+      <Section
+        title="Memberships — table & colour picker"
+        description="Building blocks for the membership catalog. The full interactive listing + add/edit takeover live at /catalogs/memberships. Prices render in AED."
+      >
+        <Row label="Listing table">
+          <div className="w-full max-w-4xl">
+            <MembershipsTable memberships={MOCK_MEMBERSHIPS} onRowClick={() => {}} />
+          </div>
+        </Row>
+        <Row label="Colour customisation">
+          {MEMBERSHIP_COLORS.map((c, i) => (
+            <button
+              key={c.id}
+              type="button"
+              aria-label={c.id}
+              className={cn(
+                "flex size-9 items-center justify-center rounded-full transition-transform",
+                i === 0
+                  ? "ring-2 ring-foreground ring-offset-2 ring-offset-background"
+                  : "hover:scale-110",
+              )}
+            >
+              <span
+                aria-hidden
+                className={cn("size-8 rounded-full ring-1 ring-inset ring-border/40", c.className)}
+              />
+            </button>
+          ))}
+        </Row>
+        <Row label="Sold status">
+          <SoldStatusBadge status="active" />
+          <SoldStatusBadge status="paused" />
+        </Row>
+        <Row label="Memberships sold table">
+          <div className="w-full max-w-4xl">
+            <SoldMembershipsTable rows={MOCK_SOLD_MEMBERSHIPS} onRowClick={() => {}} />
           </div>
         </Row>
       </Section>

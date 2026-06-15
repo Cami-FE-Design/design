@@ -15,13 +15,29 @@ import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { cn } from "@/lib/utils"
 import { AppointmentSubject } from "./appointment-subject"
-import { APPOINTMENTS, formatDuration, money, PRODUCTS, SERVICE_CATEGORIES, SERVICES } from "./mock"
-import type { AppointmentItem, PickerView, ProductItem, ServiceItem } from "./types"
+import {
+  APPOINTMENTS,
+  formatDuration,
+  MEMBERSHIPS,
+  membershipMeta,
+  money,
+  PRODUCTS,
+  SERVICE_CATEGORIES,
+  SERVICES,
+} from "./mock"
+import type {
+  AppointmentItem,
+  MembershipPickItem,
+  PickerView,
+  ProductItem,
+  ServiceItem,
+} from "./types"
 
 type ItemPickerProps = {
   onAddService: (service: ServiceItem) => void
   onAddProduct: (product: ProductItem) => void
   onAddAppointment: (appt: AppointmentItem) => void
+  onAddMembership: (membership: MembershipPickItem) => void
   /** Appointment ids already in the cart — shown as "Added", not re-addable. */
   addedApptIds: Set<string>
 }
@@ -35,7 +51,7 @@ const ROOT_TILES: {
   { view: "appointments", label: "Appointments", icon: CalendarClockIcon },
   { view: "services", label: "Services", icon: ClipboardCheckIcon },
   { view: "products", label: "Products", icon: PackageIcon },
-  { view: null, label: "Memberships", icon: CreditCardIcon, disabled: true },
+  { view: "memberships", label: "Memberships", icon: CreditCardIcon },
   { view: null, label: "Gift cards", icon: GiftIcon, disabled: true },
 ]
 
@@ -43,6 +59,7 @@ export function ItemPicker({
   onAddService,
   onAddProduct,
   onAddAppointment,
+  onAddMembership,
   addedApptIds,
 }: ItemPickerProps) {
   const [view, setView] = useState<PickerView>("root")
@@ -55,6 +72,9 @@ export function ItemPicker({
   }
   if (view === "products") {
     return <ProductsView onBack={() => setView("root")} onAdd={onAddProduct} />
+  }
+  if (view === "memberships") {
+    return <MembershipsView onBack={() => setView("root")} onAdd={onAddMembership} />
   }
   if (view === "appointments") {
     return (
@@ -259,6 +279,62 @@ function ProductRow({ product, onAdd }: { product: ProductItem; onAdd: () => voi
   )
 }
 
+// ─── Memberships drilldown ────────────────────────────────────────────────────
+
+function MembershipsView({
+  onBack,
+  onAdd,
+}: {
+  onBack: () => void
+  onAdd: (membership: MembershipPickItem) => void
+}) {
+  const [query, setQuery] = useState("")
+  const filtered = useMemo(() => filterMemberships(query), [query])
+
+  return (
+    <div className="flex flex-col gap-5">
+      <DrilldownHeader onBack={onBack} />
+      <SearchInput size="lg" placeholder="Search memberships" onValueChange={setQuery} autoFocus />
+      {filtered.length === 0 ? (
+        <NoResults query={query} />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {filtered.map((membership) => (
+            <MembershipRow
+              key={membership.id}
+              membership={membership}
+              onAdd={() => onAdd(membership)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MembershipRow({
+  membership,
+  onAdd,
+}: {
+  membership: MembershipPickItem
+  onAdd: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      className="flex items-stretch gap-3 overflow-hidden rounded-2xl border border-border bg-card text-left transition-colors hover:bg-muted/40"
+    >
+      <span className={cn("w-1 shrink-0 self-stretch", membership.accent)} />
+      <div className="flex min-w-0 flex-1 flex-col gap-1 py-3 pr-4">
+        <span className="truncate text-sm font-medium text-foreground">{membership.name}</span>
+        <span className="text-xs text-muted-foreground">{membershipMeta(membership)}</span>
+        <span className="text-sm font-medium text-foreground">{money(membership.priceMinor)}</span>
+      </div>
+    </button>
+  )
+}
+
 // ─── Appointments drilldown ───────────────────────────────────────────────────
 
 function AppointmentsView({
@@ -458,4 +534,10 @@ function filterProducts(query: string): ProductItem[] {
   const q = query.trim().toLowerCase()
   if (!q) return PRODUCTS
   return PRODUCTS.filter((p) => p.name.toLowerCase().includes(q))
+}
+
+function filterMemberships(query: string): MembershipPickItem[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return MEMBERSHIPS
+  return MEMBERSHIPS.filter((m) => m.name.toLowerCase().includes(q))
 }
