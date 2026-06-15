@@ -73,7 +73,7 @@ export const topMenu: MenuItem[] = [
     children: [
       { label: "Service Menu", href: "/catalogs/service-menu" },
       { label: "Categories", href: "/catalogs/categories" },
-      { label: "Packages" },
+      { label: "Packages", href: "/catalogs/packages" },
     ],
   },
   {
