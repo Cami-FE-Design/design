@@ -42,6 +42,9 @@ type FullScreenEditDialogProps = {
   /** Save button label. A node so callers can add a trailing icon (e.g. "Continue →"). */
   saveLabel?: React.ReactNode
   closeLabel?: string
+  /** Optional destructive action (e.g. Edit screens). Renders a red Delete button in the header. */
+  onDelete?: () => void
+  deleteLabel?: string
   /**
    * Max-width Tailwind utility for the centered content column. Header inner
    * + body inner share this width so action buttons align with body content.
@@ -67,6 +70,8 @@ export function FullScreenEditDialog({
   saveDisabled,
   saveLabel,
   closeLabel,
+  onDelete,
+  deleteLabel,
   contentClassName,
   children,
 }: FullScreenEditDialogProps) {
@@ -138,6 +143,17 @@ export function FullScreenEditDialog({
               >
                 <XIcon className="size-5" />
               </Button>
+              {onDelete ? (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="lg"
+                  radius="full"
+                  onClick={onDelete}
+                >
+                  {deleteLabel ?? "Delete"}
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="outline"

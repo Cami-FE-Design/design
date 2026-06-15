@@ -70,7 +70,11 @@ export const topMenu: MenuItem[] = [
   {
     icon: BookOpenIcon,
     label: "Catalogs",
-    children: [{ label: "Service Menu" }, { label: "Categories" }, { label: "Packages" }],
+    children: [
+      { label: "Service Menu" },
+      { label: "Categories" },
+      { label: "Packages", href: "/catalogs/packages" },
+    ],
   },
   {
     icon: SprayCanIcon,
