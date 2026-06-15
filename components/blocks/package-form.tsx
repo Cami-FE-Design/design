@@ -2,7 +2,7 @@
 
 import { CheckIcon, FileTextIcon, GlobeIcon, type LucideIcon, PaletteIcon } from "lucide-react"
 import { useState } from "react"
-import { SelectServicesDialog } from "@/components/blocks/select-services-dialog"
+import { SelectPackageServicesDialog } from "@/components/blocks/select-package-services-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -443,7 +443,7 @@ export function PackageForm({
         </SubSection>
       )}
 
-      <SelectServicesDialog
+      <SelectPackageServicesDialog
         open={servicesOpen}
         onOpenChange={setServicesOpen}
         value={services}

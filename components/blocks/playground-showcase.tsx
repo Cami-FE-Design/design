@@ -50,6 +50,8 @@ import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
 import { SectionCard } from "@/components/blocks/section-card"
 import { SectionedSheetShell, type SectionGroup } from "@/components/blocks/sectioned-sheet-shell"
+import { CategorySidebar } from "@/components/blocks/service-menu/CategorySidebar"
+import { ServiceCardInner } from "@/components/blocks/service-menu/ServiceCard"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
@@ -103,6 +105,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import { cn } from "@/lib/utils"
 
 type SectionProps = {
@@ -1407,6 +1410,69 @@ export function PlaygroundShowcase() {
               className="py-16"
             />
           </div>
+        </Row>
+      </Section>
+
+      {/* ── Service catalog ──────────────────────────────────────────────── */}
+      <Section
+        title="Service menu — cards & sidebar"
+        description="Presentational building blocks for the catalog screens. Full interactive screens (drag-reorder, add/edit, archive) live at /catalogs/service-menu and /catalogs/categories. Prices render in AED."
+      >
+        <Row label="Service card, default">
+          <div className="w-full max-w-xl">
+            <ServiceCardInner
+              service={seedServices[0]}
+              category={seedCategories.find((c) => c.id === seedServices[0].categoryId)!}
+              canManage
+              withHandle={false}
+              onDelete={() => {}}
+              onEdit={() => {}}
+            />
+          </div>
+        </Row>
+        <Row label="Service card, archived">
+          <div className="w-full max-w-xl">
+            <ServiceCardInner
+              service={{ ...seedServices[1], isActive: false }}
+              category={seedCategories.find((c) => c.id === seedServices[1].categoryId)!}
+              canManage
+              withHandle={false}
+              onDelete={() => {}}
+              onUnarchive={() => {}}
+            />
+          </div>
+        </Row>
+        <Row label="Service card, dragging">
+          <div className="w-full max-w-xl">
+            <ServiceCardInner
+              service={seedServices[2]}
+              category={seedCategories.find((c) => c.id === seedServices[2].categoryId)!}
+              dragging
+              withHandle={false}
+              onDelete={() => {}}
+            />
+          </div>
+        </Row>
+        <Row label="Category sidebar">
+          <CategorySidebar
+            categories={seedCategories.filter((c) => !c.isSystemManaged)}
+            selectedId={null}
+            counts={seedCategories
+              .filter((c) => !c.isSystemManaged)
+              .reduce<Record<string, number>>((acc, c) => {
+                acc[c.id] = seedServices.filter((s) => s.categoryId === c.id).length
+                return acc
+              }, {})}
+            totalCount={
+              seedServices.filter((s) =>
+                seedCategories.some((c) => !c.isSystemManaged && c.id === s.categoryId),
+              ).length
+            }
+            onSelect={() => {}}
+            onAddCategory={() => {}}
+            onAddService={() => {}}
+            onDeleteCategory={() => {}}
+          />
         </Row>
       </Section>
     </TooltipProvider>

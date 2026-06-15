@@ -18,6 +18,8 @@ type AppShellProps = React.ComponentProps<"div"> & {
   header?: React.ReactNode
   /** Override the default header wrapper classes (min-h, padding). Pass "" for none. */
   headerClassName?: string
+  /** Extra classes for the content wrapper (e.g. "pb-0" to drop the default bottom padding). */
+  contentClassName?: string
 }
 
 export function AppShell({
@@ -29,6 +31,7 @@ export function AppShell({
   drawer,
   header,
   headerClassName,
+  contentClassName,
   ...props
 }: AppShellProps) {
   const renderMobile = breakpoint === "mobile" || breakpoint === undefined
@@ -75,7 +78,9 @@ export function AppShell({
                   {header ?? headerFallback}
                 </div>
               )}
-              <div className="flex min-h-0 w-full flex-1 flex-col px-3 pb-9">
+              <div
+                className={cn("flex min-h-0 w-full flex-1 flex-col px-3 pb-9", contentClassName)}
+              >
                 {children ?? contentFallback}
               </div>
             </div>
@@ -117,7 +122,12 @@ export function AppShell({
                   {header ?? headerFallback}
                 </div>
               )}
-              <div className="flex min-h-0 w-full flex-1 flex-col bg-background px-3 pb-9">
+              <div
+                className={cn(
+                  "flex min-h-0 w-full flex-1 flex-col bg-background px-3 pb-9",
+                  contentClassName,
+                )}
+              >
                 {children ?? contentFallback}
               </div>
             </div>
