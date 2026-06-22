@@ -315,6 +315,11 @@ const SECTIONS: Section[] = [
         label: "People grid · Day view",
         note: "11 staff, ~25 fixture bookings, mid-day now-line. Click a block logs to console; popover ships in slice 3.",
       },
+      {
+        path: "/appointments",
+        label: "New / edit sheet · Quick message",
+        note: "Open the create sheet via 'New booking' (or 'Edit existing appointment (demo)'). Select a client to reveal the Quick message dropdown in the client action row — lists the business's WhatsApp templates with a resolved-text preview, plus a Message center link to the inbox. Picking a template opens the send dialog: edit the resolved body → Send → sending → 'Message sent' confirmation.",
+      },
     ],
   },
   {

@@ -828,3 +828,62 @@ export function formatDuration(durationMin: number): string {
   const m = durationMin % 60
   return m === 0 ? `${h}h` : `${h}h ${m}min`
 }
+
+// ─── WhatsApp message templates ───────────────────────────────────────────────
+// Businesses store a handful of WhatsApp templates. The appointment Messages
+// section surfaces them as quick-send buttons. Bodies carry {{tokens}} resolved
+// from the booking before preview. Real impl reads from business settings.
+
+export type WhatsAppTemplate = {
+  id: string
+  name: string
+  /** Body with {{client}} {{service}} {{date}} {{time}} {{business}} tokens. */
+  body: string
+}
+
+export const MOCK_WHATSAPP_TEMPLATES: WhatsAppTemplate[] = [
+  {
+    id: "booking-confirmation",
+    name: "Booking confirmation",
+    body: "Hi {{client}}, your {{service}} at {{business}} is confirmed for {{date}} at {{time}}. See you then!",
+  },
+  {
+    id: "appointment-reminder",
+    name: "Appointment reminder",
+    body: "Reminder: {{client}}, you have {{service}} booked at {{business}} on {{date}} at {{time}}. Reply to reschedule.",
+  },
+  {
+    id: "running-late",
+    name: "Running late",
+    body: "Hi {{client}}, we're running a little behind for your {{time}} appointment. Thanks for your patience — we'll be ready shortly.",
+  },
+  {
+    id: "ready-for-pickup",
+    name: "Ready for pickup",
+    body: "Hi {{client}}, {{service}} is all done and ready for pickup at {{business}}. See you soon!",
+  },
+]
+
+export type TemplateTokens = {
+  client?: string
+  service?: string
+  date?: string
+  time?: string
+  business?: string
+}
+
+const TEMPLATE_FALLBACK: Record<keyof TemplateTokens, string> = {
+  client: "there",
+  service: "your appointment",
+  date: "the scheduled date",
+  time: "the scheduled time",
+  business: "our salon",
+}
+
+/** Replace {{token}} placeholders with booking values; missing values fall back. */
+export function resolveTemplate(body: string, tokens: TemplateTokens): string {
+  return body.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
+    const k = key as keyof TemplateTokens
+    return tokens[k] ?? TEMPLATE_FALLBACK[k] ?? `{{${key}}}`
+  })
+}
