@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useDemoBusiness } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
 const triggerOverride = "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
@@ -74,6 +75,7 @@ const EXTERNAL_LINKS_SUMMARY: SummaryItem[] = [
  * absent during design iteration.
  */
 export function BusinessProfileForm() {
+  const { name: businessName } = useDemoBusiness()
   const [editing, setEditing] = useState(false)
   const [focusField, setFocusField] = useState<FocusField | null>(null)
 
@@ -115,7 +117,7 @@ export function BusinessProfileForm() {
                 key={row.label}
                 icon={row.icon}
                 label={row.label}
-                value={row.value}
+                value={row.field === "businessName" ? businessName : row.value}
                 onAdd={() => openEdit(row.field)}
               />
             ))}
@@ -132,7 +134,7 @@ export function BusinessProfileForm() {
                 key={row.label}
                 icon={row.icon}
                 label={row.label}
-                value={row.value}
+                value={row.field === "businessName" ? businessName : row.value}
                 onAdd={() => openEdit(row.field)}
               />
             ))}
@@ -161,6 +163,7 @@ function BusinessDetailsEditDialog({
   onOpenChange: (open: boolean) => void
   focusField: FocusField | null
 }) {
+  const { name: businessName } = useDemoBusiness()
   const scrollRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const [showHeaderTitle, setShowHeaderTitle] = useState(false)
@@ -285,7 +288,11 @@ function BusinessDetailsEditDialog({
               </div>
               <div className="flex flex-col gap-6">
                 <Field label="Business name">
-                  <Input ref={setFieldRef("businessName")} defaultValue="Shampooch JVC" />
+                  <Input
+                    ref={setFieldRef("businessName")}
+                    key={businessName}
+                    defaultValue={businessName}
+                  />
                 </Field>
                 <Field label="Country">
                   <Select defaultValue="ae">

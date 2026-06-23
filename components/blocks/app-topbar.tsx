@@ -2,6 +2,7 @@
 
 import { BellIcon, ChevronDownIcon, CirclePlusIcon, SearchIcon } from "lucide-react"
 import { useState } from "react"
+import { DemoBusinessRename } from "@/components/blocks/demo-business-rename"
 import { NotificationSheet } from "@/components/blocks/notification-sheet"
 import { ProfileMenu } from "@/components/blocks/profile-menu"
 import { QuickAddMenu } from "@/components/blocks/quick-add-menu"
@@ -12,6 +13,7 @@ import {
 } from "@/components/blocks/workspace-switcher"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useDemoBusiness } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
 type AppTopbarProps = React.ComponentProps<"div"> & {
@@ -24,11 +26,6 @@ type AppTopbarProps = React.ComponentProps<"div"> & {
   defaultWorkspaceId?: string
   workspaceJoinedDate?: string
 }
-
-const defaultWorkspaces: Workspace[] = [
-  { id: "jvc", name: "Shampooch JVC" },
-  { id: "jumeirah", name: "Shampooch Jumeirah" },
-]
 
 function initialOf(name?: string) {
   if (!name) return ""
@@ -68,13 +65,20 @@ export function AppTopbar({
   lastName = "You",
   email = "michelle.h.you@gmail.com",
   notificationCount = 0,
-  workspaces = defaultWorkspaces,
+  workspaces,
   defaultWorkspaceId = "jvc",
   workspaceJoinedDate = "Apr 14, 2025",
   ...props
 }: AppTopbarProps) {
+  const { name: businessName } = useDemoBusiness()
+  // Derive the workspace list from the demo business name so a rename in the
+  // switcher rebrands the topbar (and its second location) live.
+  const resolvedWorkspaces = workspaces ?? [
+    { id: "jvc", name: businessName },
+    { id: "jumeirah", name: `${businessName} · Jumeirah` },
+  ]
   const [selectedId, setSelectedId] = useState(defaultWorkspaceId)
-  const selected = workspaces.find((w) => w.id === selectedId) ?? workspaces[0]
+  const selected = resolvedWorkspaces.find((w) => w.id === selectedId) ?? resolvedWorkspaces[0]
   const notificationsAriaLabel =
     notificationCount > 0 ? `Notifications, ${notificationCount} unread` : "Notifications"
   const initials = `${initialOf(firstName)}${initialOf(lastName)}`
@@ -104,12 +108,13 @@ export function AppTopbar({
           </Button>
         }
         currentWorkspace={{ ...selected, joinedDate: workspaceJoinedDate }}
-        workspaces={workspaces}
+        workspaces={resolvedWorkspaces}
         selectedWorkspaceId={selectedId}
         user={{ firstName, lastName, avatarSrc }}
         onSelectWorkspace={setSelectedId}
       />
       <div className="flex items-center">
+        <DemoBusinessRename />
         <QuickAddMenu
           trigger={
             <Button variant="ghost" size="icon" aria-label="Quick add" className={iconButtonClass}>

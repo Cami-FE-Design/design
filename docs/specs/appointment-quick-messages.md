@@ -36,9 +36,31 @@ Body = card (`rounded-2xl border border-border/60 bg-card p-4`) holding the temp
 
 - One row per template. Each row: template **name** (e.g. "Booking confirmation") + one-line **preview** of resolved body (muted, truncated).
 - Trailing **Send** affordance per row — a `Button variant="outline" size="sm" radius="full"` labelled "Quick message" (or a paper-plane icon button). Tapping opens the send dialog pre-loaded with that template.
-- If business has zero templates: centered light line-icon empty state (per empty-state rule), copy "No message templates yet", no card-in-card wrapper.
+- Always-present last row: **Write custom message** — opens the send dialog with a **blank** editable textarea (no template). Not gated by status.
+- If no template matches the current status (and no zero-template case): show only the **Write custom message** row.
 
-Templates render in the business's stored order. No category grouping in v0.
+### Status-gated list (manual sends only)
+
+This surface is **manual sends only**. Automated trigger timing (6h-after-booking ladders, auto-cancel) is **out of scope here** — it lives in a future Settings spec. The operator just picks the right template for the booking's current status.
+
+Each template declares which statuses it's relevant to. The list **filters to the current booking's status**:
+
+```ts
+statuses: BookingStatus[]   // template shows only when booking.status ∈ this set
+```
+
+Gating axis is **status + deposit**, not status alone — deposit is orthogonal to lifecycle (`PRO-68`: `depositStatus: 'none' | 'required' | 'paid' | 'waived'`). The deposit ladder only applies to a `booked` appointment that actually owes a deposit.
+
+| Booking state | Templates shown |
+|---|---|
+| `booked` + `depositStatus: required` (unpaid) | Deposit Reminder · Final Confirmation · Deposit Not Received |
+| `confirmed` + `depositStatus: paid` | Deposit Confirmation |
+| `cancelled` | Appointment Cancelled |
+| `checked-in`, `ready-for-pickup`, `completed`, `no-show`, or no match | (no templates → **Write custom message** only) |
+
+These five are the SOTA-approved set (source CSV). The `[Payment Link]` token in Deposit Reminder / Final Confirmation resolves to the **CamiPay deposit checkout** (`PRO-396`, deposit mode); the `[Booking Link]` in Deposit Not Received / Appointment Cancelled resolves to the public rebook URL.
+
+Templates render in stored order within the matched set. No category grouping in v0.
 
 ### Template data (mock)
 
@@ -48,13 +70,17 @@ No template store exists yet. Add a mock:
 // app/appointments/mock.ts
 export type WhatsAppTemplate = {
   id: string
-  name: string        // "Booking confirmation"
-  body: string        // with {{tokens}}: "Hi {{client}}, your {{service}} on {{date}} is confirmed."
+  name: string             // "Deposit reminder"
+  body: string             // with {{tokens}}: "Hi {{client}}, your {{service}} on {{date}} is confirmed."
+  statuses: BookingStatus[] // which booking statuses this template shows for
+  requiresDeposit?: boolean // extra gate: only show when depositStatus owes/has a deposit
 }
 export const MOCK_WHATSAPP_TEMPLATES: WhatsAppTemplate[] = [ ... ]
 ```
 
-Tokens (`{{client}}`, `{{service}}`, `{{date}}`, `{{time}}`, `{{business}}`) get resolved from the current `MockBooking` before preview. Resolution is a pure helper, not stored.
+Tokens (`{{client}}`, `{{service}}`, `{{date}}`, `{{time}}`, `{{business}}`, `{{paymentLink}}`, `{{bookingLink}}`) get resolved from the current `MockBooking` before preview. Resolution is a pure helper, not stored. `{{paymentLink}}` → CamiPay deposit checkout; `{{bookingLink}}` → public rebook URL.
+
+Filter helper: `templatesForBooking(booking)` returns templates whose `statuses` includes `booking.status` and (if `requiresDeposit`) whose deposit gate matches. Empty result → render the **Write custom message** row only.
 
 ---
 
@@ -64,8 +90,8 @@ A `Dialog` opened from a template row, layered over the drawer (drawer stays mou
 
 ### State: edit (default on open)
 
-- **Header**: template name as title, recipient line below — client name + masked phone (e.g. "Millie Cassidy · +971 50 ••• 1234").
-- **Body**: a `Textarea` pre-filled with the resolved template text. Fully editable. This is the message that sends.
+- **Header**: template name as title (or "Custom message" when opened from the Write-custom row), recipient line below — client name + masked phone (e.g. "Millie Cassidy · +971 50 ••• 1234").
+- **Body**: a `Textarea` pre-filled with the resolved template text — **blank** when custom. Fully editable. This is the message that sends.
 - **Channel chip**: small WhatsApp pill, non-interactive in v0 (no channel switch).
 - **Footer**: `Cancel` (outline) + `Send` (primary, paper-plane icon). Send disabled if textarea empty.
 
@@ -100,10 +126,11 @@ Drawer › Messages section
 - Email channel for this surface (WhatsApp only).
 - Persisting a sent record / appointment activity-log entry. Hook point noted; wire when activity log lands (PRO-83 sub-view).
 - Template management (create/edit templates) — lives in business settings, separate work.
-- Free-form (non-template) messages.
+- **Automated trigger timing / send scheduling** (6h ladders, auto-cancel, immediate-on-event) — Settings spec, later. This surface is manual-send only.
 - Two-way thread / replies.
 
 ## Open questions
 
 - Phone masking format for UAE numbers — confirm with directory pattern.
 - Should `Send` also bump appointment status (e.g. booked → confirmed) when a confirmation template fires? Default: no, sending ≠ status change. Flag for product.
+- Missing-state templates (`checked-in`, `ready-for-pickup`, `completed`, `no-show`) — SOTA CSV only covers the deposit ladder. Custom-message fallback covers the gap for now; author proper templates as those surfaces mature.

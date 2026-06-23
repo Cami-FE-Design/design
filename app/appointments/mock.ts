@@ -834,50 +834,217 @@ export function formatDuration(durationMin: number): string {
 // section surfaces them as quick-send buttons. Bodies carry {{tokens}} resolved
 // from the booking before preview. Real impl reads from business settings.
 
+/**
+ * Deposit is orthogonal to lifecycle status (PRO-68): a booking can be
+ * `booked + required` or `confirmed + paid`. The message dropdown gates on
+ * status AND this axis, never status alone.
+ */
+export type DepositState = "none" | "required" | "paid" | "waived"
+
+/**
+ * How a template is sent. The appointments drawer shows manually-sendable
+ * templates only (`manual` + `both`); `automated`-only templates fire on a
+ * trigger and are configured in Settings, never hand-sent from the drawer.
+ */
+export type TemplateAutomation = "manual" | "automated" | "both"
+
 export type WhatsAppTemplate = {
   id: string
   name: string
-  /** Body with {{client}} {{service}} {{date}} {{time}} {{business}} tokens. */
+  /** Body with {{client}} {{service}} {{date}} {{time}} {{business}} {{paymentLink}} {{bookingLink}} tokens. */
   body: string
+  /** Statuses this template is offered for. Dropdown filters to the booking's status. */
+  statuses: MockBookingStatus[]
+  /** Send mode (CSV "Automated / Manual" column). Drawer keeps manual + both. */
+  automation: TemplateAutomation
+  /** Extra deposit gate. When set, only show if the booking's deposit matches. */
+  deposit?: Extract<DepositState, "required" | "paid">
 }
 
 export const MOCK_WHATSAPP_TEMPLATES: WhatsAppTemplate[] = [
+  // ── Deposit ladder (SOTA) — booked + deposit owed ──────────────────────────
   {
-    id: "booking-confirmation",
-    name: "Booking confirmation",
-    body: "Hi {{client}}, your {{service}} at {{business}} is confirmed for {{date}} at {{time}}. See you then!",
+    id: "appointment-created",
+    name: "Appointment created",
+    // Fires immediately on booking (CSV: Automated). Never hand-sent → hidden
+    // from the drawer, configured in Settings.
+    body: `Hi {{client}}! 🤍
+
+Your appointment is booked — we can't wait to see you!
+
+📅 {{date}} at {{time}}
+🐾 {{service}} with {{staff}}
+
+Team {{business}} x`,
+    statuses: ["booked"],
+    automation: "automated",
+    deposit: "required",
   },
+  {
+    id: "deposit-reminder",
+    name: "Deposit reminder",
+    body: `Hi {{client}},
+
+Just a heads-up — your deposit hasn't been received yet, but your spot is still held for you! 🤍
+
+Please complete your 25% deposit to fully confirm your booking:
+👉 {{paymentLink}}
+
+Your slot may be released if payment isn't received soon.
+
+Team {{business}} x`,
+    statuses: ["booked"],
+    automation: "both",
+    deposit: "required",
+  },
+  {
+    id: "final-confirmation",
+    name: "Final confirmation",
+    body: `Hi {{client}},
+
+This is your final reminder — your deposit is due now to keep your appointment. ⏰
+
+📅 {{date}} at {{time}}
+
+Without payment, we'll need to release your slot to clients on our waitlist.
+👉 {{paymentLink}}
+
+We'd love to hold this spot for you — please act now!
+
+Team {{business}} x`,
+    statuses: ["booked"],
+    automation: "both",
+    deposit: "required",
+  },
+  {
+    id: "deposit-not-received",
+    name: "Deposit not received",
+    body: `Hi {{client}},
+
+As we haven't received your deposit, we've had to release your appointment and offer the slot to other clients. 🤍
+
+We completely understand — and we'd love to welcome you another time! Whenever you're ready, you can rebook here:
+👉 {{bookingLink}}
+
+Thank you for your understanding,
+Team {{business}} x`,
+    statuses: ["booked", "cancelled"],
+    automation: "manual",
+  },
+  // ── Confirmed + deposit paid ───────────────────────────────────────────────
+  {
+    id: "deposit-confirmation",
+    name: "Deposit confirmation",
+    body: `Hi {{client}}! 🤍
+
+Your deposit is confirmed and your appointment is all set!
+
+📅 {{date}} at {{time}}
+🐾 {{service}} with {{staff}}
+
+We're so excited to see you. If you have any questions before your visit, just reply to this message.
+
+See you soon,
+Team {{business}} x`,
+    statuses: ["confirmed"],
+    automation: "manual",
+    deposit: "paid",
+  },
+  // ── Cancelled ──────────────────────────────────────────────────────────────
+  {
+    id: "appointment-cancelled",
+    name: "Appointment cancelled",
+    body: `Hi {{client}},
+
+Your appointment on {{date}} at {{time}} has been cancelled. 🤍
+
+If a deposit was paid, please allow up to 14 business days for the refund to appear in your account.
+
+We'd love to welcome you back whenever you're ready:
+👉 {{bookingLink}}
+
+Thank you,
+Team {{business}} x`,
+    statuses: ["cancelled"],
+    automation: "both",
+  },
+  // ── Generic lifecycle templates ────────────────────────────────────────────
   {
     id: "appointment-reminder",
     name: "Appointment reminder",
-    body: "Reminder: {{client}}, you have {{service}} booked at {{business}} on {{date}} at {{time}}. Reply to reschedule.",
+    body: `Hi {{client}}! 🤍
+
+You're almost here — your appointment is today at {{time}}.
+
+📍 {{location}}
+
+We can't wait to see you! If anything's come up, please let us know right away.
+
+Team {{business}} x`,
+    statuses: ["confirmed"],
+    automation: "both",
   },
   {
     id: "running-late",
     name: "Running late",
     body: "Hi {{client}}, we're running a little behind for your {{time}} appointment. Thanks for your patience — we'll be ready shortly.",
+    statuses: ["checked-in"],
+    automation: "manual",
   },
   {
     id: "ready-for-pickup",
     name: "Ready for pickup",
     body: "Hi {{client}}, {{service}} is all done and ready for pickup at {{business}}. See you soon!",
+    statuses: ["ready-for-pickup"],
+    automation: "both",
   },
 ]
+
+/**
+ * Templates offered in the appointments drawer for a booking's current state.
+ * Only manually-sendable templates appear (`manual` + `both`); `automated`-only
+ * templates fire on a trigger and live in Settings. Gates on status, then on the
+ * deposit axis when a template declares one. Empty result → caller shows the
+ * "Write custom message" fallback only.
+ */
+export function templatesForBooking(
+  status: MockBookingStatus,
+  depositState: DepositState = "none",
+  all: WhatsAppTemplate[] = MOCK_WHATSAPP_TEMPLATES,
+): WhatsAppTemplate[] {
+  return all.filter((t) => {
+    if (t.automation === "automated") return false
+    if (!t.statuses.includes(status)) return false
+    if (t.deposit && t.deposit !== depositState) return false
+    return true
+  })
+}
 
 export type TemplateTokens = {
   client?: string
   service?: string
+  staff?: string
   date?: string
   time?: string
   business?: string
+  /** Salon location / address line. */
+  location?: string
+  /** CamiPay deposit checkout URL (PRO-396). */
+  paymentLink?: string
+  /** Public rebook URL. */
+  bookingLink?: string
 }
 
 const TEMPLATE_FALLBACK: Record<keyof TemplateTokens, string> = {
   client: "there",
   service: "your appointment",
+  staff: "our team",
   date: "the scheduled date",
   time: "the scheduled time",
   business: "our salon",
+  location: "our salon",
+  paymentLink: "the payment link",
+  bookingLink: "our booking page",
 }
 
 /** Replace {{token}} placeholders with booking values; missing values fall back. */

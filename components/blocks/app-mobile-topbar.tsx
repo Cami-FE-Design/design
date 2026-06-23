@@ -3,6 +3,7 @@
 import { BellIcon, ChevronDownIcon, CirclePlusIcon, MenuIcon, SearchIcon } from "lucide-react"
 import type * as React from "react"
 import { useState } from "react"
+import { DemoBusinessRename } from "@/components/blocks/demo-business-rename"
 import { NotificationSheet } from "@/components/blocks/notification-sheet"
 import { ProfileMenu } from "@/components/blocks/profile-menu"
 import { QuickAddMenu } from "@/components/blocks/quick-add-menu"
@@ -13,6 +14,7 @@ import {
 } from "@/components/blocks/workspace-switcher"
 import { Button } from "@/components/ui/button"
 import { SheetTrigger } from "@/components/ui/sheet"
+import { useDemoBusiness } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
 type AppMobileTopbarProps = React.ComponentProps<"div"> & {
@@ -25,11 +27,6 @@ type AppMobileTopbarProps = React.ComponentProps<"div"> & {
   defaultWorkspaceId?: string
   workspaceJoinedDate?: string
 }
-
-const defaultWorkspaces: Workspace[] = [
-  { id: "jvc", name: "Shampooch JVC" },
-  { id: "jumeirah", name: "Shampooch Jumeirah" },
-]
 
 function initialOf(name?: string) {
   if (!name) return ""
@@ -45,13 +42,18 @@ export function AppMobileTopbar({
   email = "michelle.h.you@gmail.com",
   avatarSrc,
   notificationCount = 0,
-  workspaces = defaultWorkspaces,
+  workspaces,
   defaultWorkspaceId = "jvc",
   workspaceJoinedDate = "Apr 14, 2025",
   ...props
 }: AppMobileTopbarProps) {
+  const { name: businessName } = useDemoBusiness()
+  const resolvedWorkspaces = workspaces ?? [
+    { id: "jvc", name: businessName },
+    { id: "jumeirah", name: `${businessName} · Jumeirah` },
+  ]
   const [selectedId, setSelectedId] = useState(defaultWorkspaceId)
-  const selected = workspaces.find((w) => w.id === selectedId) ?? workspaces[0]
+  const selected = resolvedWorkspaces.find((w) => w.id === selectedId) ?? resolvedWorkspaces[0]
   const accountLabel = `${firstName} ${lastName}`.trim() || "Account"
   const initials = `${initialOf(firstName)}${initialOf(lastName)}`
   const notificationsAriaLabel =
@@ -92,13 +94,14 @@ export function AppMobileTopbar({
             </Button>
           }
           currentWorkspace={{ ...selected, joinedDate: workspaceJoinedDate }}
-          workspaces={workspaces}
+          workspaces={resolvedWorkspaces}
           selectedWorkspaceId={selectedId}
           user={{ firstName, lastName, avatarSrc }}
           onSelectWorkspace={setSelectedId}
         />
       </div>
       <div className="flex items-center gap-0.5">
+        <DemoBusinessRename />
         <QuickAddMenu
           trigger={
             <Button variant="ghost" size="icon" aria-label="Quick add" className={iconButtonClass}>

@@ -3,6 +3,7 @@ import { Manrope } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { DemoBusinessProvider } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
@@ -33,8 +34,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider delayDuration={150}>
-            {children}
-            <Toaster />
+            <DemoBusinessProvider>
+              {children}
+              <Toaster />
+            </DemoBusinessProvider>
           </TooltipProvider>
         </ThemeProvider>
       </body>

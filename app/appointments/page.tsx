@@ -55,7 +55,7 @@ export default function AppointmentsPage() {
         date={TODAY}
         hasPets={hasPets}
         flow="edit"
-        initialStatus="confirmed"
+        initialStatus="booked"
       />
     </>
   )

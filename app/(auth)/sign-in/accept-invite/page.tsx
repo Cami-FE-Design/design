@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { PasswordInput } from "@/components/ui/password-input"
+import { useDemoBusiness } from "@/lib/demo-business"
 
 const inviteSchema = z
   .object({
@@ -32,11 +33,11 @@ type InviteValues = z.infer<typeof inviteSchema>
 
 const firstName = "Sara"
 const inviterName = "Maz"
-const businessName = "Shampooch JVC"
 const role = "Reception"
 const email = "sara@getcami.io"
 
 export default function SignInAcceptInvitePage() {
+  const { name: businessName } = useDemoBusiness()
   const [done, setDone] = useState(false)
 
   const form = useForm<InviteValues>({

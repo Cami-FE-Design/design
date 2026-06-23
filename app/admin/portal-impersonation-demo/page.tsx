@@ -7,9 +7,9 @@ import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { PIIReveal } from "@/components/blocks/pii-reveal"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-mock"
+import { useDemoBusiness } from "@/lib/demo-business"
 
 const BUSINESS = {
-  name: "Shampooch JVC",
   ownerName: "Maz Khan",
   ownerEmail: "maaz@getcami.io",
 }
@@ -28,6 +28,7 @@ const INVOICE = {
 
 export default function PortalImpersonationDemoPage() {
   const auth = useAuth()
+  const { name: businessName } = useDemoBusiness()
   const [reveals, setReveals] = useState<
     { id: string; field: string; reason: string; at: string }[]
   >([])
@@ -49,7 +50,7 @@ export default function PortalImpersonationDemoPage() {
             header={
               <div className="flex w-full items-center justify-between gap-4">
                 <h1 className="font-heading text-base font-medium leading-6 text-foreground">
-                  {BUSINESS.name}, Owner view
+                  {businessName}, Owner view
                 </h1>
                 <span className="text-xs text-muted-foreground">Partner portal</span>
               </div>
@@ -123,7 +124,7 @@ export default function PortalImpersonationDemoPage() {
                 </p>
                 <div className="flex flex-col gap-2">
                   <SessionStat label="HQ user" value={auth.user.name} />
-                  <SessionStat label="Pet Business" value={BUSINESS.name} />
+                  <SessionStat label="Pet Business" value={businessName} />
                   <SessionStat
                     label="Sensitive reveals"
                     value={reveals.length === 0 ? "None yet" : `${reveals.length} this session`}
@@ -160,7 +161,7 @@ export default function PortalImpersonationDemoPage() {
           <div className="pointer-events-auto">
             <ImpersonationBanner
               ownerName={BUSINESS.ownerName}
-              businessName={BUSINESS.name}
+              businessName={businessName}
               onExit={() => {
                 auth.setImpersonating(false)
                 window.close()
