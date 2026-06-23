@@ -50,7 +50,7 @@ export const topMenu: MenuItem[] = [
     hasUpdate: true,
     notificationCount: 8,
     children: [
-      { label: "Inbox" },
+      { label: "Inbox", href: "/messages/inbox" },
       { label: "Outbound" },
       { label: "Reminder Log" },
       { label: "Photos" },
