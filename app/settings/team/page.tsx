@@ -27,9 +27,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useDemoBusiness } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
-
-const businessName = "Shampooch JVC"
 
 type Permission = "High" | "Medium" | "Low"
 type MemberStatus = "active" | "pending"
@@ -268,6 +267,7 @@ function MemberTable({
 }
 
 export default function TeamSettingsPage() {
+  const { name: businessName } = useDemoBusiness()
   const [members, setMembers] = useState<Member[]>(initialMembers)
   const [addOpen, setAddOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())

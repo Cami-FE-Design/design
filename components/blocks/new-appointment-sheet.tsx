@@ -10,6 +10,7 @@ import {
   ChevronRightIcon,
   ChevronsRightIcon,
   CirclePlusIcon,
+  CreditCardIcon,
   EyeOffIcon,
   FileTextIcon,
   FlagIcon,
@@ -30,6 +31,7 @@ import Link from "next/link"
 import { useState } from "react"
 
 import {
+  type DepositState,
   formatAed,
   formatDuration,
   MOCK_SERVICE_CATALOG,
@@ -38,6 +40,7 @@ import {
   type MockServiceCatalogItem,
   resolveTemplate,
   SERVICE_CATEGORY_ACCENT,
+  templatesForBooking,
   type WhatsAppTemplate,
 } from "@/app/appointments/mock"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
@@ -81,6 +84,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useDemoBusiness } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
 type SelectedPet = {
@@ -332,14 +336,28 @@ export function NewAppointmentSheet({
   )
   const totalServices = pets.reduce((n, pet) => n + pet.services.length, 0)
   const canSave = totalServices > 0
+  const { name: businessName } = useDemoBusiness()
   // Token values for resolving WhatsApp templates in the Messages section.
-  const firstServiceName = pets.flatMap((p) => p.services)[0]?.catalog.name
+  const firstService = pets.flatMap((p) => p.services)[0]
   const messageTokens = {
     client: selectedClient?.name,
-    service: firstServiceName,
+    service: firstService?.catalog.name,
+    staff: firstService?.staffName,
     date: dateLabel,
     time: timeLabel,
+    business: businessName,
+    location: businessName,
+    paymentLink: "cami.app/pay",
+    bookingLink: "cami.app/book",
   }
+  // Deposit axis is orthogonal to status (PRO-68). Real value comes from the
+  // booking entity; here we derive a sensible default so the status-gated
+  // dropdown is demonstrable: booked owes a deposit, confirmed has paid it.
+  const depositState: DepositState =
+    status === "booked" ? "required" : status === "confirmed" ? "paid" : "none"
+  const messageTemplates = templatesForBooking(status, depositState)
+  // 25% deposit, matching the deposit-ladder template copy.
+  const depositMinor = Math.round(totalMinor * 0.25)
   const editingPet = pets.find((p) => p.uid === editingPetUid) ?? null
   const editingService = editingPet?.services.find((s) => s.uid === editingServiceUid) ?? null
 
@@ -682,16 +700,25 @@ export function NewAppointmentSheet({
             </header>
 
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto bg-sand-2 px-6 py-5">
-              {hasPets ? (
-                <ClientPicker
-                  selected={selectedClient}
-                  onSelect={setSelectedClient}
-                  onClear={() => setSelectedClient(null)}
-                  templates={MOCK_WHATSAPP_TEMPLATES}
-                  onMessage={setMessageTemplate}
-                  previewFor={(t) => resolveTemplate(t.body, messageTokens)}
-                />
-              ) : null}
+              {/* Client + quick message render in both modes. Pet attachment is
+                  the only pets-only affordance; it lives in the services section. */}
+              <ClientPicker
+                selected={selectedClient}
+                onSelect={setSelectedClient}
+                onClear={() => setSelectedClient(null)}
+                templates={messageTemplates}
+                onMessage={setMessageTemplate}
+                onCustom={() =>
+                  setMessageTemplate({
+                    id: "custom",
+                    name: "Custom message",
+                    body: "",
+                    statuses: [],
+                    automation: "manual",
+                  })
+                }
+                previewFor={(t) => resolveTemplate(t.body, messageTokens)}
+              />
 
               <section data-slot="services-section" className="flex flex-col gap-3">
                 <h2 className="text-lg font-semibold leading-7 text-foreground">Services</h2>
@@ -800,17 +827,57 @@ export function NewAppointmentSheet({
               <section data-slot="payment-policy-section" className="flex flex-col gap-3">
                 <h2 className="text-lg font-semibold leading-7 text-foreground">Payment policy</h2>
                 <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-4">
-                  <div className="flex min-w-0 flex-col">
-                    <span className="text-sm font-semibold text-foreground">
-                      Requires confirmation
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      No upcoming appointment yet.
-                    </span>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <CreditCardIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="text-sm font-semibold text-foreground">
+                        Requires confirmation
+                      </span>
+                      {depositState === "required" ? (
+                        <span className="text-xs font-medium text-gold-11">
+                          {formatAed(depositMinor)} deposit requested
+                        </span>
+                      ) : depositState === "paid" ? (
+                        <span className="text-xs font-medium text-cami-green-11">
+                          {formatAed(depositMinor)} deposit paid
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No deposit required</span>
+                      )}
+                    </div>
                   </div>
-                  <Button variant="outline" size="icon-sm" radius="full" aria-label="Edit policy">
-                    <MoreHorizontalIcon className="size-4" aria-hidden />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        radius="full"
+                        aria-label="Payment policy options"
+                      >
+                        <MoreHorizontalIcon className="size-4" aria-hidden />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      {depositState === "required" ? (
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            const reminder = MOCK_WHATSAPP_TEMPLATES.find(
+                              (t) => t.id === "deposit-reminder",
+                            )
+                            if (reminder) setMessageTemplate(reminder)
+                          }}
+                        >
+                          <MessageCircleIcon className="size-4" aria-hidden />
+                          Send reminder
+                        </DropdownMenuItem>
+                      ) : null}
+                      <DropdownMenuItem>Show policy</DropdownMenuItem>
+                      <DropdownMenuItem>Edit policy</DropdownMenuItem>
+                      <DropdownMenuItem className="text-tomato-11 focus:bg-tomato-3 focus:text-tomato-11 data-highlighted:bg-tomato-3 data-highlighted:text-tomato-11">
+                        Remove policy
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </section>
             </div>
@@ -1355,13 +1422,17 @@ function ClientPicker({
   onClear,
   templates,
   onMessage,
+  onCustom,
   previewFor,
 }: {
   selected: SelectedClient | null
   onSelect: (client: SelectedClient) => void
   onClear: () => void
+  /** Status-filtered templates for the current booking. May be empty. */
   templates?: WhatsAppTemplate[]
   onMessage?: (template: WhatsAppTemplate) => void
+  /** Open the send dialog with a blank message (no template). */
+  onCustom?: () => void
   /** Resolves a template into its preview text (tokens filled from the booking). */
   previewFor?: (template: WhatsAppTemplate) => string
 }) {
@@ -1473,7 +1544,7 @@ function ClientPicker({
           </ul>
         </PopoverContent>
       </Popover>
-      {selected && onMessage && templates && templates.length > 0 ? (
+      {selected && onMessage ? (
         <div className="flex items-center gap-2 pt-1">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1484,18 +1555,30 @@ function ClientPicker({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-72">
-              {templates.map((template) => (
-                <DropdownMenuItem
-                  key={template.id}
-                  onSelect={() => onMessage(template)}
-                  className="flex-col items-start gap-0.5"
-                >
-                  <span className="text-sm font-medium text-foreground">{template.name}</span>
-                  <span className="w-full truncate text-xs text-muted-foreground">
-                    {previewFor ? previewFor(template) : template.body}
-                  </span>
+              {templates && templates.length > 0 ? (
+                templates.map((template) => (
+                  <DropdownMenuItem
+                    key={template.id}
+                    onSelect={() => onMessage(template)}
+                    className="flex-col items-start gap-0.5"
+                  >
+                    <span className="text-sm font-medium text-foreground">{template.name}</span>
+                    <span className="w-full truncate text-xs text-muted-foreground">
+                      {previewFor ? previewFor(template) : template.body}
+                    </span>
+                  </DropdownMenuItem>
+                ))
+              ) : (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                  No templates for this status.
+                </div>
+              )}
+              {onCustom ? (
+                <DropdownMenuItem onSelect={onCustom} className="gap-2">
+                  <PencilIcon className="size-4" aria-hidden />
+                  <span className="text-sm font-medium text-foreground">Write custom message</span>
                 </DropdownMenuItem>
-              ))}
+              ) : null}
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/messages/inbox" className="font-medium">
