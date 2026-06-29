@@ -52,6 +52,28 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "CamiPay, payment link landing (PRO-594)",
+    description:
+      "Customer-facing pay page at cami.app/[slug]/pay/[token]. Opens from a WhatsApp/email payment link or counter QR, no login. De-compartmentalized single column (Luma) with qlub tip + payment-method patterns: flat money ledger, hero total, fixed tip presets, method radio list + one contextual CTA.",
+    screens: [
+      {
+        path: "/shampooch-jvc/pay/demo-token",
+        label: "Unpaid · full flow",
+        note: "Bill (pet-aware lines) → fixed tip presets (No tip / 5 / 10 / 15, 'Most common' on 10, live readout) → flat ledger + hero total → payment method radio (Apple Pay / saved card) → single contextual CTA. Membership upsell as inline ledger link.",
+      },
+      {
+        path: "/shampooch-jvc/pay/demo-paid",
+        label: "Paid · terminal",
+        note: "Link re-opened after payment: green confirmation, no payment UI",
+      },
+      {
+        path: "/shampooch-jvc/pay/demo-expired",
+        label: "Expired · terminal",
+        note: "Token dead / sale voided: neutral message, no payment UI. Token suffix (-paid / -expired) drives the mock state.",
+      },
+    ],
+  },
+  {
     title: "Auth, business",
     description: "Business owner and team member sign-in flow.",
     screens: [
