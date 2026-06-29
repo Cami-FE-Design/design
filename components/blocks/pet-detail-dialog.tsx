@@ -35,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useDemoBusiness } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
 export type PetDetailPet = {
@@ -723,12 +724,13 @@ function VaccineRow({ vaccine }: { vaccine: MockVaccine }) {
 }
 
 function VisitCard({ visit }: { visit: MockPetVisit }) {
+  const { name: businessName } = useDemoBusiness()
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
           <span className="font-semibold text-foreground">{visit.time}</span>
-          <span className="truncate text-muted-foreground">· {visit.location}</span>
+          <span className="truncate text-muted-foreground">· {businessName}</span>
         </div>
         <Badge className={cn("border-transparent", VISIT_STATUS_BADGE_CLASS[visit.status])}>
           {visit.statusLabel}

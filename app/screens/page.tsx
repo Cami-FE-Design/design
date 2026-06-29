@@ -315,6 +315,23 @@ const SECTIONS: Section[] = [
         label: "People grid · Day view",
         note: "11 staff, ~25 fixture bookings, mid-day now-line. Click a block logs to console; popover ships in slice 3.",
       },
+      {
+        path: "/appointments",
+        label: "New / edit sheet · Quick message",
+        note: "Open the create sheet via 'New booking' (or 'Edit existing appointment (demo)'). Select a client to reveal the Quick message dropdown in the client action row — lists the business's WhatsApp templates with a resolved-text preview, plus a Message center link to the inbox. Picking a template opens the send dialog: edit the resolved body → Send → sending → 'Message sent' confirmation.",
+      },
+    ],
+  },
+  {
+    title: "Business app, Messages — Inbox",
+    description:
+      "WhatsApp conversations inbox (WhatsApp-only in v0). Three panes: conversation list (funnel / SLA-window / routing pills, unread dots, search), thread (date separators, inbound/outbound bubbles, AI-parsed booking-request card, system lines, composer), and a client panel (funnel status, lifetime activity, pets with care notes, tags, internal notes). AI / automation surfaces (AI draft reply, Auto-confirm, Escalate, SLA timers) are visual stubs.",
+    screens: [
+      {
+        path: "/messages/inbox",
+        label: "Inbox · conversation selected",
+        note: "Sarah Mansour's thread is selected by default — shows date groups (Fri Jun 19 → Today), a pending booking-request card (Confirm opens the new-appointment sheet; Reject marks rejected), and a reminder system line. Type + Send appends an outbound bubble. Templates fills the composer from the WhatsApp template set; AI draft reply fills a canned suggestion. Toggle the right client panel with Details. Funnel status (client panel) updates the list + header pills; remove tags inline.",
+      },
     ],
   },
   {

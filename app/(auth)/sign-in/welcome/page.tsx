@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { PasswordInput } from "@/components/ui/password-input"
+import { useDemoBusiness } from "@/lib/demo-business"
 
 const welcomeSchema = z
   .object({
@@ -31,10 +32,10 @@ const welcomeSchema = z
 type WelcomeValues = z.infer<typeof welcomeSchema>
 
 const firstName = "Maz"
-const businessName = "Shampooch JVC"
 const email = "maaz@getcami.io"
 
 export default function SignInWelcomePage() {
+  const { name: businessName } = useDemoBusiness()
   const [done, setDone] = useState(false)
 
   const form = useForm<WelcomeValues>({

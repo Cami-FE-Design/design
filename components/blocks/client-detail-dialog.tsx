@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { RecencyBadge } from "@/components/ui/recency-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useDemoBusiness } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
 export type ClientTag = {
@@ -1113,13 +1114,14 @@ const STATUS_BADGE_CLASS: Record<Exclude<ApptStatus, "all">, string> = {
 }
 
 function AppointmentCard({ appt, hasPets }: { appt: MockAppointment; hasPets: boolean }) {
+  const { name: businessName } = useDemoBusiness()
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
             <span className="font-semibold text-foreground">{appt.time}</span>
-            <span className="truncate text-muted-foreground">· {appt.location}</span>
+            <span className="truncate text-muted-foreground">· {businessName}</span>
           </div>
           {hasPets && appt.pet ? (
             <div className="flex items-center gap-2">

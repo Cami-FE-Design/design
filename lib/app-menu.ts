@@ -50,7 +50,7 @@ export const topMenu: MenuItem[] = [
     hasUpdate: true,
     notificationCount: 8,
     children: [
-      { label: "Inbox" },
+      { label: "Inbox", href: "/messages/inbox" },
       { label: "Outbound" },
       { label: "Reminder Log" },
       { label: "Photos" },
@@ -73,7 +73,7 @@ export const topMenu: MenuItem[] = [
     children: [
       { label: "Service Menu", href: "/catalogs/service-menu" },
       { label: "Categories", href: "/catalogs/categories" },
-      { label: "Packages" },
+      { label: "Packages", href: "/catalogs/packages" },
     ],
   },
   {
