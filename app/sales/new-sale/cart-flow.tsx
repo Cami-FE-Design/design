@@ -9,7 +9,7 @@ import {
   XIcon,
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
@@ -86,7 +86,19 @@ type CartFlowProps = {
   initialStep?: Step
 }
 
-export function CartFlow({
+// useSearchParams() bails out of static prerendering unless it runs inside a
+// Suspense boundary; CartFlow is rendered on several statically-rendered pages
+// (new-sale, daily-summary, sales-list, appointments), so the boundary lives
+// here in the wrapper rather than at every call site.
+export function CartFlow(props: CartFlowProps = {}) {
+  return (
+    <Suspense fallback={null}>
+      <CartFlowInner {...props} />
+    </Suspense>
+  )
+}
+
+function CartFlowInner({
   open: openProp,
   onOpenChange,
   initialLines,
