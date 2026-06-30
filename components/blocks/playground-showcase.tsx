@@ -11,6 +11,7 @@ import {
   CircleUserIcon,
   FlagIcon,
   FolderIcon,
+  GiftIcon,
   GlobeIcon,
   HomeIcon,
   LightbulbIcon,
@@ -36,6 +37,9 @@ import {
   type MockBookingStatus,
   type MockServiceCategory,
 } from "@/app/appointments/mock"
+import { GiftCardDialog, newGiftCardDraft } from "@/app/sales/new-sale/gift-card-dialog"
+import { PaymentView } from "@/app/sales/new-sale/payment-view"
+import { RedeemGiftCardDialog } from "@/app/sales/new-sale/redeem-gift-card-dialog"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
 import { AppointmentsToolbar } from "@/components/blocks/appointments-toolbar"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
@@ -1475,6 +1479,87 @@ export function PlaygroundShowcase() {
           />
         </Row>
       </Section>
+
+      <Section
+        title="Sales settings — Gift cards"
+        description="Sales → Gift cards sub-screen. Set up / Edit open a full-screen Gift card settings takeover (enable toggle, preset AED values, expiration). Unlike payment methods, a gift-card program has NO delete: once set up it can only be edited (or toggled off) — there's deliberately no Delete affordance anywhere in this flow."
+      >
+        <Row label="Inactive">
+          <div className="w-full max-w-2xl">
+            <EmptyState
+              variant="card"
+              icon={GiftIcon}
+              title="Gift cards inactive"
+              description="Let your clients buy personalized gift cards and send to friends & family for your business."
+              action={
+                <Button radius="full" onClick={() => toast("Open Gift card settings (stubbed)")}>
+                  Set up
+                </Button>
+              }
+            />
+          </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="New sale — Gift cards in checkout"
+        description="Selling a gift card from the POS drawer (/sales/new-sale → Gift cards). The Add/Edit gift card dialog sets value, price, expiration, an optional custom code, the is-a-gift + confirmation-email toggles, and the attributed team member. On the payment step a notice blocks paying for a gift card with another gift card; the Gift card method otherwise opens a redeem-by-code dialog."
+      >
+        <Row label="Add gift card dialog">
+          <GiftCardDialogDemo />
+        </Row>
+        <Row label="Payment step — gift card in cart">
+          <div className="w-full max-w-xl">
+            {/* Real PaymentView with a gift card present: notice shown, Gift card tile disabled. */}
+            <PaymentView onSelect={(id) => toast(`Selected ${id}`)} hasGiftCard />
+          </div>
+        </Row>
+        <Row label="Redeem gift card dialog">
+          <RedeemGiftCardDialogDemo />
+        </Row>
+      </Section>
     </TooltipProvider>
+  )
+}
+
+/** Opens the checkout Add gift card dialog, seeded to an AED 1,800 preset. */
+function GiftCardDialogDemo() {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Button variant="outline" radius="full" onClick={() => setOpen(true)}>
+        Open Add gift card
+      </Button>
+      {open ? (
+        <GiftCardDialog
+          mode="add"
+          initial={newGiftCardDraft(180000)}
+          open
+          onOpenChange={setOpen}
+          onApply={(draft) => toast(`Gift card added · ${draft.priceMinor / 100} AED`)}
+        />
+      ) : null}
+    </>
+  )
+}
+
+/**
+ * Opens the redeem-at-checkout dialog with AED 57 owed. Try QM4KTRZA / ZTP3RG84
+ * (active), YYOSNPHO (not active), or any other code (typo error).
+ */
+function RedeemGiftCardDialogDemo() {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Button variant="outline" radius="full" onClick={() => setOpen(true)}>
+        Open Redeem gift card
+      </Button>
+      <RedeemGiftCardDialog
+        open={open}
+        onOpenChange={setOpen}
+        leftToPayMinor={5700}
+        onApply={(amount) => toast(`Redeemed ${(amount / 100).toFixed(2)} AED`)}
+      />
+    </>
   )
 }

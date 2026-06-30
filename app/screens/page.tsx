@@ -193,6 +193,46 @@ const SECTIONS: Section[] = [
         label: "Language & region",
         note: "Workspace category, placeholder until i18n pass",
       },
+      {
+        path: "/shell-demo?settings=sales",
+        label: "Sales, landing",
+        note: "Sales category. Two cards (Payment methods, Gift cards); click to drill into each sub-screen (Back + breadcrumb returns). The sub-screens and their takeovers are each deep-linked below via ?sub / ?pm / ?gc.",
+      },
+      {
+        path: "/shell-demo?settings=sales&sub=payment-methods",
+        label: "Payment methods, list",
+        note: "Locked Cash row + custom methods. Header has Add and Options (Change order, hidden when only Cash); non-Cash rows have an Actions menu (Edit / Delete / Move up / Move down).",
+      },
+      {
+        path: "/shell-demo?settings=sales&sub=payment-methods&pm=add",
+        label: "Payment methods · Add takeover",
+        note: "Full-screen add takeover with a single Name field (e.g. Mastercard).",
+      },
+      {
+        path: "/shell-demo?settings=sales&sub=payment-methods&pm=edit",
+        label: "Payment methods · Edit takeover",
+        note: "Editing the sample 'Other' method; Options → Delete lives in the header.",
+      },
+      {
+        path: "/shell-demo?settings=sales&sub=payment-methods&pm=order",
+        label: "Payment methods · Change order",
+        note: "Full-screen drag-and-drop reorder takeover (Save order).",
+      },
+      {
+        path: "/shell-demo?settings=sales&sub=gift-cards",
+        label: "Gift cards, populated",
+        note: "Active program — Availability and values summary card with Edit. Options → Gift cards sold. A bottom-right demo toggle previews the empty state.",
+      },
+      {
+        path: "/shell-demo?settings=sales&sub=gift-cards&gc=empty",
+        label: "Gift cards · inactive empty state",
+        note: "Inactive empty state with a Set up CTA (no program configured yet).",
+      },
+      {
+        path: "/shell-demo?settings=sales&sub=gift-cards&gc=setup",
+        label: "Gift cards · settings takeover",
+        note: "Full-screen Gift card settings: enable toggle, preset AED values (add/delete), default expiration select. No delete — a program can only be edited or toggled off.",
+      },
     ],
   },
   {
@@ -374,7 +414,27 @@ const SECTIONS: Section[] = [
       {
         path: "/sales/new-sale",
         label: "New sale · Add to cart (PRO-395)",
-        note: "Right-side POS drawer (wide, like the appointment sheet) with two panes: left item picker (global search + Appointments / Services / Products drilldowns, Memberships + Gift cards disabled), right cart pane in the appointment-sheet aesthetic — Add client card, Services section, pinned dark Continue-to-payment CTA with expandable VAT breakdown. Client attach: search 2+ chars, Add new client, Walk-In, selected card with Actions. Add services (staff dropdown, stack duplicates), products (qty +/-), or snapshot an appointment (auto-attaches client, replace-confirm if another client is attached). Footer back-calculates tax-inclusive Subtotal/Tax from Total. Closing with items prompts Save as draft / Discard.",
+        note: "Right-side POS drawer (wide, like the appointment sheet) with two panes: left item picker (global search + Appointments / Services / Products / Gift cards drilldowns, Memberships disabled), right cart pane in the appointment-sheet aesthetic — Add client card, Services section, pinned dark Continue-to-payment CTA with expandable VAT breakdown. Client attach: search 2+ chars, Add new client, Walk-In, selected card with Actions. Add services (staff dropdown, stack duplicates), products (qty +/-), or snapshot an appointment (auto-attaches client, replace-confirm if another client is attached). Gift cards: preset-value + custom-amount grid opens an Add gift card dialog (value, price, disabled discounts, expiration, custom code, This-is-a-gift, confirmation email, team member); the cart line shows 'AED value · valid for … · team member' and re-opens the dialog to edit. Payment step shows a 'Gift cards can't be used to purchase another gift card' notice + a disabled Gift card method when a gift card is in the cart; finishing without full payment opens an 'Unpaid sale' confirm (gift cards stay inactive until fully paid). Redeem at checkout: on a non-gift-card sale, the Gift card payment method opens a 'Redeem gift card' dialog — find by code (try YYOSNPHO = not active, QM4KTRZA / ZTP3RG84 = active with balance, anything else = typo error), then apply the balance as a Gift card payment line (capped at the lesser of card balance and amount owed; surplus stays on the card). Footer back-calculates tax-inclusive Subtotal/Tax from Total. Closing with items prompts Save as draft / Discard.",
+      },
+      {
+        path: "/sales/new-sale?dialog=gift-card",
+        label: "New sale · Add gift card dialog",
+        note: "Deep-links straight into the Add gift card dialog over an empty cart (value, price, disabled discounts, expiration, custom code, This-is-a-gift, confirmation email, team member). Apply drops the line into the cart.",
+      },
+      {
+        path: "/sales/new-sale?step=tip",
+        label: "New sale · Tip step",
+        note: "Seeds a demo cart (one service + a client) and opens on the Tip step — tip presets + custom-tip dialog. Back through the breadcrumb returns to Cart.",
+      },
+      {
+        path: "/sales/new-sale?step=payment",
+        label: "New sale · Payment step",
+        note: "Seeds a demo cart and opens on the Payment step — method grid, Split, and the cash/card amount dialogs. Footer back-calculates tax-inclusive Subtotal/Tax.",
+      },
+      {
+        path: "/sales/new-sale?dialog=redeem",
+        label: "New sale · Redeem gift card at checkout",
+        note: "Seeds a demo (non-gift-card) cart on the Payment step with the Redeem gift card dialog open: find by code (QM4KTRZA / ZTP3RG84 = active with balance, YYOSNPHO = not active, anything else = typo error), then apply the balance as a Gift card payment line.",
       },
       {
         path: "/sales/daily-summary",
@@ -410,6 +470,16 @@ const SECTIONS: Section[] = [
         path: "/sales/sales-list?sale=7",
         label: "Sale detail dialog",
         note: "Opens the centered dialog over the listing via ?sale=<id>. Status-driven header action (Pay now / Share invoice filled or outline / nothing for voided) and Quick-actions kebab (different items per status). Receipt body shows Subtotal/Total, Payment line, and Balance or Change depending on what was paid; refunded sales add a Refund #N card above the original Sale card. Try 7 (completed), 6 (part-paid), 3 (refunded), 1 (voided) — see also 12–16 for the new today-dated rows.",
+      },
+      {
+        path: "/sales/gift-cards-sold",
+        label: "Gift cards sold",
+        note: "Listing of gift cards purchased by clients (Sales sidebar group). Columns: Gift card code (sticky, clickable), Issue date, Expiry date, Status, Sale #, Purchaser, Owner, Total, Redeemed, Remaining. Status badges: Unpaid (cami-yellow), Active (lime), Redeemed (olive), Expired (gray). Toolbar: search by code/purchaser/owner + Filters. Header Options dropdown: Gift cards settings + Export (PDF/CSV/Excel). Amounts in AED.",
+      },
+      {
+        path: "/sales/gift-cards-sold?card=gc-1",
+        label: "Gift card detail",
+        note: "Centered modal (same shell as the sale detail dialog) opened via ?card=<id> (gc-1…gc-5): muted header with status pill + close, 'Gift card' title + issue date/code, underline Details / Activity tabs. Details: Original amount, Redeemed, Remaining, Code (copy), Sale #, Purchaser, Owner, Expires, Issue date. Activity: the gradient gift-card visual (current balance) above a month-grouped event timeline (purchased / redeemed / fully redeemed / claimed) with icons + status indicators. Sale # (table + Details) and 'View sale' (Activity) open the real SaleDetailDialog in place, stacked over this screen.",
       },
     ],
   },

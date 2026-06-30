@@ -8,6 +8,7 @@ import {
   GiftIcon,
   type LucideIcon,
   PackageIcon,
+  PlusIcon,
   SearchXIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
@@ -15,13 +16,23 @@ import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { cn } from "@/lib/utils"
 import { AppointmentSubject } from "./appointment-subject"
-import { APPOINTMENTS, formatDuration, money, PRODUCTS, SERVICE_CATEGORIES, SERVICES } from "./mock"
-import type { AppointmentItem, PickerView, ProductItem, ServiceItem } from "./types"
+import { GiftCardDialog, newGiftCardDraft } from "./gift-card-dialog"
+import {
+  APPOINTMENTS,
+  formatDuration,
+  GIFT_CARD_PRESETS_MINOR,
+  money,
+  PRODUCTS,
+  SERVICE_CATEGORIES,
+  SERVICES,
+} from "./mock"
+import type { AppointmentItem, GiftCardDraft, PickerView, ProductItem, ServiceItem } from "./types"
 
 type ItemPickerProps = {
   onAddService: (service: ServiceItem) => void
   onAddProduct: (product: ProductItem) => void
   onAddAppointment: (appt: AppointmentItem) => void
+  onAddGiftCard: (draft: GiftCardDraft) => void
   /** Appointment ids already in the cart — shown as "Added", not re-addable. */
   addedApptIds: Set<string>
 }
@@ -36,13 +47,14 @@ const ROOT_TILES: {
   { view: "services", label: "Services", icon: ClipboardCheckIcon },
   { view: "products", label: "Products", icon: PackageIcon },
   { view: null, label: "Memberships", icon: CreditCardIcon, disabled: true },
-  { view: null, label: "Gift cards", icon: GiftIcon, disabled: true },
+  { view: "gift-cards", label: "Gift cards", icon: GiftIcon },
 ]
 
 export function ItemPicker({
   onAddService,
   onAddProduct,
   onAddAppointment,
+  onAddGiftCard,
   addedApptIds,
 }: ItemPickerProps) {
   const [view, setView] = useState<PickerView>("root")
@@ -55,6 +67,9 @@ export function ItemPicker({
   }
   if (view === "products") {
     return <ProductsView onBack={() => setView("root")} onAdd={onAddProduct} />
+  }
+  if (view === "gift-cards") {
+    return <GiftCardsView onBack={() => setView("root")} onAdd={onAddGiftCard} />
   }
   if (view === "appointments") {
     return (
@@ -129,7 +144,7 @@ function CategoryTile({
       onClick={onClick}
       className={cn(
         "flex flex-col gap-6 rounded-2xl border border-border bg-card p-4 text-left transition-colors",
-        disabled ? "cursor-not-allowed opacity-50" : "hover:bg-muted/40",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/40",
       )}
     >
       <Icon className="size-5 stroke-[1.5] text-foreground" />
@@ -192,7 +207,7 @@ function ServiceRow({ service, onAdd }: { service: ServiceItem; onAdd: () => voi
     <button
       type="button"
       onClick={onAdd}
-      className="flex items-center justify-between gap-3 overflow-hidden rounded-2xl border border-border bg-card pr-4 text-left transition-colors hover:bg-muted/40"
+      className="flex cursor-pointer items-center justify-between gap-3 overflow-hidden rounded-2xl border border-border bg-card pr-4 text-left transition-colors hover:bg-muted/40"
     >
       <div className="flex min-w-0 items-stretch gap-3">
         <span className={cn("w-1 shrink-0 self-stretch", accent)} />
@@ -244,7 +259,7 @@ function ProductRow({ product, onAdd }: { product: ProductItem; onAdd: () => voi
     <button
       type="button"
       onClick={onAdd}
-      className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/40"
+      className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/40"
     >
       <div className="flex min-w-0 flex-col">
         <span className="truncate text-sm font-medium text-foreground">{product.name}</span>
@@ -254,6 +269,86 @@ function ProductRow({ product, onAdd }: { product: ProductItem; onAdd: () => voi
       </div>
       <span className="shrink-0 text-sm font-medium text-foreground">
         {money(product.priceMinor)}
+      </span>
+    </button>
+  )
+}
+
+// ─── Gift cards drilldown ─────────────────────────────────────────────────────
+
+function GiftCardsView({
+  onBack,
+  onAdd,
+}: {
+  onBack: () => void
+  onAdd: (draft: GiftCardDraft) => void
+}) {
+  // The draft being configured in the dialog; null when the dialog is closed.
+  const [draft, setDraft] = useState<GiftCardDraft | null>(null)
+
+  return (
+    <div className="flex flex-col gap-5">
+      <DrilldownHeader onBack={onBack} />
+      <h1 className="font-heading text-2xl font-semibold leading-8 text-foreground">Gift cards</h1>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {GIFT_CARD_PRESETS_MINOR.map((valueMinor) => (
+          <GiftCardTile
+            key={valueMinor}
+            title="Gift card"
+            subtitle={money(valueMinor)}
+            onClick={() => setDraft(newGiftCardDraft(valueMinor))}
+          />
+        ))}
+        <GiftCardTile
+          title="Gift card"
+          subtitle="Custom amount"
+          custom
+          onClick={() => setDraft(newGiftCardDraft(0))}
+        />
+      </div>
+
+      {draft ? (
+        <GiftCardDialog
+          mode="add"
+          initial={draft}
+          open
+          onOpenChange={(next) => {
+            if (!next) setDraft(null)
+          }}
+          onApply={onAdd}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function GiftCardTile({
+  title,
+  subtitle,
+  custom,
+  onClick,
+}: {
+  title: string
+  subtitle: string
+  custom?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex cursor-pointer items-stretch gap-4 overflow-hidden rounded-2xl border border-border bg-card text-left transition-colors hover:bg-muted/40"
+    >
+      <span className="flex w-16 shrink-0 items-center justify-center self-stretch bg-muted/50 text-cami-violet-9">
+        {custom ? (
+          <PlusIcon className="size-6 stroke-[1.5]" />
+        ) : (
+          <GiftIcon className="size-6 stroke-[1.5]" />
+        )}
+      </span>
+      <span className="flex min-w-0 flex-col justify-center py-4">
+        <span className="text-base font-medium text-foreground">{title}</span>
+        <span className="text-sm text-muted-foreground">{subtitle}</span>
       </span>
     </button>
   )
@@ -318,7 +413,9 @@ function AppointmentCard({
       disabled={added}
       className={cn(
         "flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors",
-        added ? "cursor-not-allowed opacity-70 ring-1 ring-cami-violet-7" : "hover:bg-muted/40",
+        added
+          ? "cursor-not-allowed opacity-70 ring-1 ring-cami-violet-7"
+          : "cursor-pointer hover:bg-muted/40",
       )}
     >
       {/* Header — time · location, subject row, and status badge */}

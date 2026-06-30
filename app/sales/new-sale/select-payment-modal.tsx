@@ -42,7 +42,7 @@ export function SelectPaymentModal({ open, onOpenChange, onSelect }: SelectPayme
                 onSelect(method.id)
                 onOpenChange(false)
               }}
-              className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card px-4 py-8 text-center transition-colors hover:bg-muted/40"
+              className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card px-4 py-8 text-center transition-colors hover:bg-muted/40"
             >
               <method.icon className="size-6 stroke-[1.5] text-foreground" />
               <span className="font-medium text-base text-foreground">{method.label}</span>

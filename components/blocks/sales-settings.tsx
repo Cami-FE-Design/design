@@ -1,0 +1,1080 @@
+"use client"
+
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core"
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
+import type { LucideIcon } from "lucide-react"
+import {
+  BanknoteIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  CircleDollarSignIcon,
+  CreditCardIcon,
+  GiftIcon,
+  LockIcon,
+  PencilIcon,
+  PlusIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react"
+import { useSearchParams } from "next/navigation"
+import { Dialog as DialogPrimitive } from "radix-ui"
+import { useEffect, useRef, useState } from "react"
+import { EmptyState } from "@/components/blocks/empty-state"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/utils"
+
+// Full-window dialog overrides. The important suffix beats the base sm:max-w-md
+// from the Dialog primitive. `bg-background!` replaces the dialog's translucent
+// `bg-white-a11` so the full-screen takeover stays opaque over the settings
+// modal's dim overlay (otherwise the backdrop bleeds through as a grey haze).
+const fullScreenDialogClass =
+  "fixed! inset-0! top-0! left-0! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! flex-col bg-background! p-0"
+
+const selectTriggerOverride =
+  "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
+
+const EXPIRATION_OPTIONS = [
+  "14 days",
+  "1 month",
+  "2 months",
+  "3 months",
+  "4 months",
+  "6 months",
+  "1 year",
+  "2 years",
+  "3 years",
+  "5 years",
+  "Never",
+]
+
+type GiftCardConfig = {
+  enabled: boolean
+  values: string[]
+  expiration: string
+}
+
+// Defaults to an already-set-up program so the populated state shows first; the
+// bottom "Show empty state" demo toggle flips to the inactive empty state.
+const DEFAULT_GIFT_CARD_CONFIG: GiftCardConfig = {
+  enabled: true,
+  values: ["1800", "3500", "5300", "7000", "10500"],
+  expiration: "1 year",
+}
+
+function formatAed(value: string) {
+  const n = Number(value)
+  return Number.isFinite(n) ? `AED ${n.toLocaleString("en-US")}` : `AED ${value}`
+}
+
+/**
+ * Full-screen edit/add takeover with the shared scroll-reveal header title:
+ * the header shows the title only once the large body title scrolls out of
+ * view (matches the business-details edit dialog). `actions` is the right-side
+ * button cluster (Close / Save / Options …).
+ */
+function FullScreenTakeover({
+  title,
+  ariaDescription,
+  subtitle,
+  actions,
+  onClose,
+  children,
+}: {
+  title: string
+  ariaDescription: string
+  subtitle?: string
+  actions: React.ReactNode
+  onClose: () => void
+  children: React.ReactNode
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const [showHeaderTitle, setShowHeaderTitle] = useState(false)
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined
+    const setup = () => {
+      const el = scrollRef.current
+      const title = titleRef.current
+      if (!el || !title) {
+        const id = window.requestAnimationFrame(setup)
+        cleanup = () => window.cancelAnimationFrame(id)
+        return
+      }
+      const update = () => {
+        const titleRect = title.getBoundingClientRect()
+        const containerRect = el.getBoundingClientRect()
+        setShowHeaderTitle(titleRect.bottom < containerRect.top)
+      }
+      update()
+      el.addEventListener("scroll", update, { passive: true })
+      cleanup = () => el.removeEventListener("scroll", update)
+    }
+    setup()
+    return () => cleanup?.()
+  }, [])
+
+  return (
+    <DialogPrimitive.Root open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className={fullScreenDialogClass}>
+        <DialogTitle className="sr-only">{title}</DialogTitle>
+        <DialogDescription className="sr-only">{ariaDescription}</DialogDescription>
+
+        <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+            <span
+              className={cn(
+                "min-w-0 truncate font-heading text-base font-semibold leading-6 text-foreground transition-opacity duration-200",
+                showHeaderTitle ? "opacity-100" : "opacity-0",
+              )}
+              aria-hidden={!showHeaderTitle}
+            >
+              {title}
+            </span>
+            <div className="ms-auto flex items-center gap-2">{actions}</div>
+          </div>
+        </header>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-12 lg:px-10">
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-10">
+            <div className="flex flex-col gap-3">
+              <h2
+                ref={titleRef}
+                className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
+              >
+                {title}
+              </h2>
+              {subtitle ? (
+                <p className="max-w-2xl text-base leading-6 text-muted-foreground">{subtitle}</p>
+              ) : null}
+            </div>
+            {children}
+          </div>
+        </div>
+      </DialogContent>
+    </DialogPrimitive.Root>
+  )
+}
+
+type SalesView = "home" | "payment-methods" | "gift-cards"
+
+type SalesCard = {
+  id: Exclude<SalesView, "home">
+  label: string
+  description: string
+  icon: LucideIcon
+}
+
+const SALES_CARDS: SalesCard[] = [
+  {
+    id: "payment-methods",
+    label: "Payment methods",
+    description: "Customize the payment methods displayed at checkout for your team members.",
+    icon: CreditCardIcon,
+  },
+  {
+    id: "gift-cards",
+    label: "Gift cards",
+    description: "Let your clients buy personalized gift cards for your business.",
+    icon: GiftIcon,
+  },
+]
+
+type PaymentMethod = {
+  id: string
+  name: string
+  icon: LucideIcon
+  iconClassName?: string
+  /** Soft tinted icon-tile background, paired with iconClassName. */
+  tileClassName?: string
+  /** Built-in method (Cash) — can't be edited or deleted (still reorderable). */
+  locked?: boolean
+}
+
+// Cash is always present and locked. Other is a sample custom method. Tiles use
+// soft semantic tints (cash = green, card/custom = violet), matching the Sales
+// landing icon tiles.
+const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
+  {
+    id: "cash",
+    name: "Cash",
+    icon: BanknoteIcon,
+    iconClassName: "text-cami-green-11",
+    tileClassName: "bg-cami-green-3",
+    locked: true,
+  },
+  {
+    id: "other",
+    name: "Other",
+    icon: CircleDollarSignIcon,
+    iconClassName: "text-cami-violet-9",
+    tileClassName: "bg-cami-violet-3",
+  },
+]
+
+export function SalesSettings() {
+  // Deep-links from /screens: ?sub=payment-methods|gift-cards opens straight into
+  // a sub-screen; the per-panel ?pm / ?gc params open a specific takeover/state.
+  const searchParams = useSearchParams()
+  const sub = searchParams.get("sub")
+  const [view, setView] = useState<SalesView>(
+    sub === "payment-methods" ? "payment-methods" : sub === "gift-cards" ? "gift-cards" : "home",
+  )
+
+  if (view === "payment-methods") {
+    return (
+      <PaymentMethodsPanel onBack={() => setView("home")} initialAction={searchParams.get("pm")} />
+    )
+  }
+  if (view === "gift-cards") {
+    return <GiftCardsPanel onBack={() => setView("home")} initialGift={searchParams.get("gc")} />
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">Sales</h2>
+        <p className="text-sm leading-5 text-muted-foreground">
+          Manage how you take payments and sell gift cards at checkout.
+        </p>
+      </header>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {SALES_CARDS.map((card) => {
+          const Icon = card.icon
+          return (
+            <button
+              key={card.id}
+              type="button"
+              onClick={() => setView(card.id)}
+              className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 text-left transition-colors hover:bg-foreground/3"
+            >
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-9">
+                <Icon className="size-5" />
+              </span>
+              <span className="flex min-w-0 flex-col gap-1">
+                <span className="text-base font-semibold text-foreground">{card.label}</span>
+                <span className="text-sm leading-5 text-muted-foreground">{card.description}</span>
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/** Back affordance + breadcrumb + title row for a Sales sub-screen. */
+function SubScreenHeader({
+  onBack,
+  title,
+  description,
+  actions,
+}: {
+  onBack: () => void
+  title: string
+  description?: string
+  actions?: React.ReactNode
+}) {
+  return (
+    <div className="flex shrink-0 flex-col gap-4">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          radius="full"
+          onClick={onBack}
+          className="gap-1.5"
+        >
+          <ChevronLeftIcon className="size-4" />
+          Back
+        </Button>
+        <span>Sales</span>
+        <span aria-hidden>•</span>
+        <span className="text-foreground">{title}</span>
+      </div>
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">{title}</h2>
+          {description ? (
+            <p className="text-sm leading-5 text-muted-foreground">
+              {description}{" "}
+              <button type="button" className="font-medium text-cami-violet-9 hover:underline">
+                Learn more.
+              </button>
+            </p>
+          ) : null}
+        </div>
+        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      </header>
+    </div>
+  )
+}
+
+type FormState = { mode: "add" } | { mode: "edit"; method: PaymentMethod } | null
+
+function PaymentMethodsPanel({
+  onBack,
+  initialAction,
+}: {
+  onBack: () => void
+  /** Deep-link: "add" | "edit" | "order" opens the matching takeover on mount. */
+  initialAction?: string | null
+}) {
+  const [methods, setMethods] = useState<PaymentMethod[]>(DEFAULT_PAYMENT_METHODS)
+  const [form, setForm] = useState<FormState>(() => {
+    if (initialAction === "add") return { mode: "add" }
+    if (initialAction === "edit") {
+      // Edit the first non-locked sample method so the takeover has real data.
+      const editable = DEFAULT_PAYMENT_METHODS.find((m) => !m.locked)
+      return editable ? { mode: "edit", method: editable } : null
+    }
+    return null
+  })
+  const [ordering, setOrdering] = useState(initialAction === "order")
+  const [deleteTarget, setDeleteTarget] = useState<PaymentMethod | null>(null)
+  const nextId = useRef(0)
+
+  const move = (id: string, direction: -1 | 1) => {
+    setMethods((prev) => {
+      const index = prev.findIndex((m) => m.id === id)
+      const target = index + direction
+      if (index === -1 || target < 0 || target >= prev.length) return prev
+      return arrayMove(prev, index, target)
+    })
+  }
+
+  const handleSubmit = (name: string) => {
+    if (form?.mode === "edit") {
+      const id = form.method.id
+      setMethods((prev) => prev.map((m) => (m.id === id ? { ...m, name } : m)))
+    } else {
+      nextId.current += 1
+      setMethods((prev) => [
+        ...prev,
+        {
+          id: `pm-${nextId.current}`,
+          name,
+          icon: CreditCardIcon,
+          iconClassName: "text-cami-violet-9",
+          tileClassName: "bg-cami-violet-3",
+        },
+      ])
+    }
+    setForm(null)
+  }
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return
+    const id = deleteTarget.id
+    setMethods((prev) => prev.filter((m) => m.id !== id))
+    setDeleteTarget(null)
+  }
+
+  return (
+    <div className="flex h-full flex-col gap-6">
+      <SubScreenHeader
+        onBack={onBack}
+        title="Payment methods"
+        description="View and customize payment methods displayed at checkout for your team members."
+        actions={
+          <>
+            {methods.length > 1 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    radius="full"
+                    className="gap-1.5"
+                  >
+                    Options
+                    <ChevronDownIcon className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onSelect={() => setOrdering(true)}>
+                    Change order
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              radius="full"
+              className="gap-1.5"
+              onClick={() => setForm({ mode: "add" })}
+            >
+              <PlusIcon className="size-4" />
+              Add
+            </Button>
+          </>
+        }
+      />
+      <ul className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
+        {methods.map((method, index) => (
+          <PaymentMethodRow
+            key={method.id}
+            method={method}
+            canMoveUp={index > 0}
+            canMoveDown={index < methods.length - 1}
+            onEdit={() => setForm({ mode: "edit", method })}
+            onDelete={() => setDeleteTarget(method)}
+            onMoveUp={() => move(method.id, -1)}
+            onMoveDown={() => move(method.id, 1)}
+          />
+        ))}
+      </ul>
+
+      {form ? (
+        <PaymentMethodFormDialog
+          mode={form.mode}
+          initialName={form.mode === "edit" ? form.method.name : ""}
+          onClose={() => setForm(null)}
+          onSubmit={handleSubmit}
+          onDelete={
+            form.mode === "edit" && !form.method.locked
+              ? () => {
+                  const method = form.method
+                  setForm(null)
+                  setDeleteTarget(method)
+                }
+              : undefined
+          }
+        />
+      ) : null}
+
+      {ordering ? (
+        <PaymentMethodsOrderDialog
+          methods={methods}
+          onClose={() => setOrdering(false)}
+          onSave={(ordered) => {
+            setMethods(ordered)
+            setOrdering(false)
+          }}
+        />
+      ) : null}
+
+      <DeleteConfirmDialog
+        open={deleteTarget !== null}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
+    </div>
+  )
+}
+
+function PaymentMethodRow({
+  method,
+  canMoveUp,
+  canMoveDown,
+  onEdit,
+  onDelete,
+  onMoveUp,
+  onMoveDown,
+}: {
+  method: PaymentMethod
+  canMoveUp: boolean
+  canMoveDown: boolean
+  onEdit: () => void
+  onDelete: () => void
+  onMoveUp: () => void
+  onMoveDown: () => void
+}) {
+  const Icon = method.icon
+  return (
+    <li className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
+      <span
+        className={cn(
+          "flex size-12 shrink-0 items-center justify-center rounded-xl",
+          method.tileClassName ?? "bg-muted",
+        )}
+      >
+        <Icon className={cn("size-5", method.iconClassName)} />
+      </span>
+      <span className="text-base font-semibold text-foreground">{method.name}</span>
+      <div className="ml-auto flex items-center">
+        {method.locked ? (
+          <LockIcon className="size-4 text-muted-foreground" aria-label="Locked" />
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="outline" size="sm" radius="full" className="gap-1.5">
+                Actions
+                <ChevronDownIcon className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-44">
+              <DropdownMenuItem onSelect={onEdit}>
+                <PencilIcon className="size-4" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+                <Trash2Icon className="size-4" />
+                Delete
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled={!canMoveUp} onSelect={onMoveUp}>
+                Move up
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!canMoveDown} onSelect={onMoveDown}>
+                Move down
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+    </li>
+  )
+}
+
+/** Full-screen add/edit takeover with a single Name field. */
+function PaymentMethodFormDialog({
+  mode,
+  initialName,
+  onClose,
+  onSubmit,
+  onDelete,
+}: {
+  mode: "add" | "edit"
+  initialName: string
+  onClose: () => void
+  onSubmit: (name: string) => void
+  onDelete?: () => void
+}) {
+  const [name, setName] = useState(initialName)
+  const title = mode === "add" ? "Add payment method" : "Edit payment method"
+  const submitLabel = mode === "add" ? "Add" : "Save"
+  const canSubmit = name.trim().length > 0
+
+  return (
+    <FullScreenTakeover
+      title={title}
+      ariaDescription={mode === "add" ? "Add a new payment method." : "Edit this payment method."}
+      onClose={onClose}
+      actions={
+        <>
+          {mode === "edit" && onDelete ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="lg" radius="full">
+                  Options
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+                  <Trash2Icon className="size-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+          <Button type="button" variant="outline" size="lg" radius="full" onClick={onClose}>
+            Close
+          </Button>
+          <Button
+            type="button"
+            size="lg"
+            radius="full"
+            disabled={!canSubmit}
+            onClick={() => canSubmit && onSubmit(name.trim())}
+          >
+            {submitLabel}
+          </Button>
+        </>
+      }
+    >
+      {/* biome-ignore lint/a11y/noLabelWithoutControl: control is the Input child */}
+      <label className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium leading-5 text-foreground">Name</span>
+        <Input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g Mastercard"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && canSubmit) onSubmit(name.trim())
+          }}
+        />
+      </label>
+    </FullScreenTakeover>
+  )
+}
+
+/** Full-screen drag-and-drop ordering takeover. */
+function PaymentMethodsOrderDialog({
+  methods,
+  onClose,
+  onSave,
+}: {
+  methods: PaymentMethod[]
+  onClose: () => void
+  onSave: (ordered: PaymentMethod[]) => void
+}) {
+  const [ordered, setOrdered] = useState<PaymentMethod[]>(methods)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.id === over.id) return
+    setOrdered((prev) => {
+      const oldIndex = prev.findIndex((m) => m.id === active.id)
+      const newIndex = prev.findIndex((m) => m.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return prev
+      return arrayMove(prev, oldIndex, newIndex)
+    })
+  }
+
+  return (
+    <FullScreenTakeover
+      title="Payment methods order"
+      ariaDescription="Drag and drop to reorder payment methods."
+      subtitle="Drag and drop the order of items, these will be reflected in all lists."
+      onClose={onClose}
+      actions={
+        <>
+          <Button type="button" variant="outline" size="lg" radius="full" onClick={onClose}>
+            Close
+          </Button>
+          <Button type="button" size="lg" radius="full" onClick={() => onSave(ordered)}>
+            Save order
+          </Button>
+        </>
+      }
+    >
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={ordered.map((m) => m.id)} strategy={verticalListSortingStrategy}>
+          <ul className="flex flex-col gap-3">
+            {ordered.map((method) => (
+              <SortablePaymentRow key={method.id} method={method} />
+            ))}
+          </ul>
+        </SortableContext>
+      </DndContext>
+    </FullScreenTakeover>
+  )
+}
+
+function SortablePaymentRow({ method }: { method: PaymentMethod }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: method.id,
+  })
+  const Icon = method.icon
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className={cn(
+        "flex items-center gap-4 rounded-2xl border border-border bg-card p-4",
+        isDragging && "opacity-50",
+      )}
+    >
+      <span
+        className={cn(
+          "flex size-12 shrink-0 items-center justify-center rounded-xl",
+          method.tileClassName ?? "bg-muted",
+        )}
+      >
+        <Icon className={cn("size-5", method.iconClassName)} />
+      </span>
+      <span className="text-base font-semibold text-foreground">{method.name}</span>
+      <button
+        type="button"
+        className="ml-auto cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+        aria-label={`Drag ${method.name}`}
+        {...attributes}
+        {...listeners}
+      >
+        <DotsGrid />
+      </button>
+    </li>
+  )
+}
+
+function DotsGrid() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <circle cx="5" cy="4" r="1.2" fill="currentColor" />
+      <circle cx="5" cy="8" r="1.2" fill="currentColor" />
+      <circle cx="5" cy="12" r="1.2" fill="currentColor" />
+      <circle cx="11" cy="4" r="1.2" fill="currentColor" />
+      <circle cx="11" cy="8" r="1.2" fill="currentColor" />
+      <circle cx="11" cy="12" r="1.2" fill="currentColor" />
+    </svg>
+  )
+}
+
+/** Centered confirmation modal for deleting a payment method. */
+function DeleteConfirmDialog({
+  open,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={(o) => !o && onCancel()}>
+      <DialogContent className="max-w-md gap-0 p-6">
+        <div className="flex items-start justify-between gap-4">
+          <DialogTitle className="font-heading text-2xl font-semibold text-foreground">
+            Delete payment method
+          </DialogTitle>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            radius="full"
+            aria-label="Close"
+            onClick={onCancel}
+            className="-mr-2 -mt-1 text-muted-foreground"
+          >
+            <XIcon className="size-5" />
+          </Button>
+        </div>
+        <DialogDescription className="mt-4 text-sm leading-5 text-foreground">
+          Are you sure you want to delete this payment method?
+        </DialogDescription>
+        <div className="mt-8 flex items-center justify-end gap-3">
+          <Button type="button" variant="outline" size="lg" radius="full" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button type="button" variant="destructive" size="lg" radius="full" onClick={onConfirm}>
+            Delete
+          </Button>
+        </div>
+      </DialogContent>
+    </DialogPrimitive.Root>
+  )
+}
+
+// Unlike payment methods, a gift-card program has no delete: once set up it can
+// only be edited (or toggled off via the settings takeover). There is
+// deliberately no Delete affordance anywhere in this flow.
+function GiftCardsPanel({
+  onBack,
+  initialGift,
+}: {
+  onBack: () => void
+  /** Deep-link: "empty" shows the inactive state, "setup" opens the settings takeover. */
+  initialGift?: string | null
+}) {
+  const [config, setConfig] = useState<GiftCardConfig>(DEFAULT_GIFT_CARD_CONFIG)
+  const [settingsOpen, setSettingsOpen] = useState(initialGift === "setup")
+  const [showEmpty, setShowEmpty] = useState(initialGift === "empty")
+  const active = config.enabled && !showEmpty
+
+  return (
+    <div className="flex h-full flex-col gap-6">
+      <SubScreenHeader
+        onBack={onBack}
+        title="Gift cards"
+        description="Choose how you would like to sell your gift cards, and customize their settings."
+        actions={
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="outline" size="sm" radius="full" className="gap-1.5">
+                Options
+                <ChevronDownIcon className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => {}}>Gift cards sold</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        }
+      />
+
+      {active ? (
+        <GiftCardSummary config={config} onEdit={() => setSettingsOpen(true)} />
+      ) : (
+        <EmptyState
+          variant="card"
+          icon={GiftIcon}
+          title="Gift cards inactive"
+          description="Let your clients buy personalized gift cards and send to friends & family for your business."
+          action={
+            <Button type="button" radius="full" onClick={() => setSettingsOpen(true)}>
+              Set up
+            </Button>
+          }
+        />
+      )}
+
+      {/* Prototype demo toggle — preview either state without going through setup. */}
+      <div className="mt-auto flex justify-end pt-2">
+        <button
+          type="button"
+          onClick={() => setShowEmpty((v) => !v)}
+          className="text-xs text-muted-foreground/40 transition-colors hover:text-muted-foreground"
+        >
+          {showEmpty ? "Show populated state" : "Show empty state"}
+        </button>
+      </div>
+
+      {settingsOpen ? (
+        <GiftCardSettingsDialog
+          initial={config}
+          onClose={() => setSettingsOpen(false)}
+          onSave={(next) => {
+            setConfig(next)
+            setSettingsOpen(false)
+            setShowEmpty(false)
+          }}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function GiftCardSummary({ config, onEdit }: { config: GiftCardConfig; onEdit: () => void }) {
+  const valuesLabel = config.values.filter(Boolean).map(formatAed).join(", ")
+  return (
+    <section className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-6">
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+            Availability and values
+          </h3>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Choose where you would like to sell your gift cards, set expiration and values.
+          </p>
+        </div>
+        <Button type="button" variant="secondary" size="sm" radius="full" onClick={onEdit}>
+          Edit
+        </Button>
+      </header>
+      <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
+        <SummaryField label="Available for sale" value="In-store only" />
+        <SummaryField label="Default expiration period" value={config.expiration} />
+        <SummaryField label="Gift card values" value={valuesLabel || "—"} />
+      </div>
+    </section>
+  )
+}
+
+function SummaryField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
+      <span className="text-sm leading-5 text-muted-foreground">{value}</span>
+    </div>
+  )
+}
+
+/** Full-screen takeover: toggle gift cards, edit preset values, set expiration. */
+function GiftCardSettingsDialog({
+  initial,
+  onClose,
+  onSave,
+}: {
+  initial: GiftCardConfig
+  onClose: () => void
+  onSave: (config: GiftCardConfig) => void
+}) {
+  const [enabled, setEnabled] = useState(initial.enabled)
+  const [values, setValues] = useState<string[]>(initial.values)
+  const [expiration, setExpiration] = useState(initial.expiration)
+
+  const updateValue = (index: number, raw: string) => {
+    const digits = raw.replace(/[^0-9]/g, "")
+    setValues((prev) => prev.map((v, i) => (i === index ? digits : v)))
+  }
+  const removeValue = (index: number) => {
+    setValues((prev) => prev.filter((_, i) => i !== index))
+  }
+  const addValue = () => setValues((prev) => [...prev, ""])
+
+  const handleSave = () => {
+    onSave({ enabled, values: values.filter(Boolean), expiration })
+  }
+
+  return (
+    <FullScreenTakeover
+      title="Gift card settings"
+      ariaDescription="Toggle gift cards, set preset values and the default expiration period."
+      onClose={onClose}
+      actions={
+        <>
+          <Button type="button" variant="outline" size="lg" radius="full" onClick={onClose}>
+            Close
+          </Button>
+          <Button type="button" size="lg" radius="full" onClick={handleSave}>
+            Save
+          </Button>
+        </>
+      }
+    >
+      <section className="flex items-start justify-between gap-6">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+              Gift cards
+            </h3>
+            <Badge variant="secondary" className="font-normal">
+              {enabled ? "On" : "Off"}
+            </Badge>
+          </div>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Sell and redeem gift cards at your business.
+          </p>
+        </div>
+        <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Enable gift cards" />
+      </section>
+
+      <hr className="border-border/40" />
+
+      <section className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">Values</h3>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Choose preset values that allow clients to quickly select an amount, and enable custom
+            values within minimum and maximum.
+          </p>
+        </div>
+        <div className="flex flex-col gap-3">
+          {values.map((value, index) => (
+            <GiftCardValueRow
+              // biome-ignore lint/suspicious/noArrayIndexKey: rows are positional and editable in place
+              key={index}
+              value={value}
+              onChange={(raw) => updateValue(index, raw)}
+              onDelete={() => removeValue(index)}
+            />
+          ))}
+        </div>
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            radius="full"
+            className="gap-1.5"
+            onClick={addValue}
+          >
+            <PlusIcon className="size-4" />
+            Add value
+          </Button>
+        </div>
+      </section>
+
+      <hr className="border-border/40" />
+
+      <section className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+            Expiration
+          </h3>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Choose your default expiration period for all sold gift cards. Changing this only
+            affects newly sold gift cards.
+          </p>
+        </div>
+        {/* biome-ignore lint/a11y/noLabelWithoutControl: control is the Select child */}
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium leading-5 text-foreground">
+            Default expiration period
+          </span>
+          <Select value={expiration} onValueChange={setExpiration}>
+            <SelectTrigger className={selectTriggerOverride}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EXPIRATION_OPTIONS.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-sm leading-5 text-muted-foreground">
+            Expiration period starts from the date of purchase
+          </span>
+        </label>
+      </section>
+    </FullScreenTakeover>
+  )
+}
+
+function GiftCardValueRow({
+  value,
+  onChange,
+  onDelete,
+}: {
+  value: string
+  onChange: (raw: string) => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-12 flex-1 items-center gap-2 rounded-2xl bg-input px-4 ring-inset focus-within:ring-2 focus-within:ring-foreground">
+        <span className="text-sm font-medium text-muted-foreground">AED</span>
+        <input
+          inputMode="numeric"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent text-sm font-medium text-foreground outline-none"
+          aria-label="Gift card value"
+        />
+      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        radius="full"
+        aria-label="Delete value"
+        onClick={onDelete}
+        className="text-muted-foreground"
+      >
+        <Trash2Icon className="size-5" />
+      </Button>
+    </div>
+  )
+}

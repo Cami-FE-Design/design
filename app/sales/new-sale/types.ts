@@ -94,15 +94,39 @@ export type AppointmentItem = {
 }
 
 /**
+ * A gift card being sold in the cart. `valueMinor` is the face value loaded onto
+ * the card; `priceMinor` is what the client pays (they can differ via a
+ * discount). Sold gift cards stay inactive until the sale is fully paid.
+ */
+export type GiftCardDraft = {
+  /** Face value loaded onto the card, in fils. */
+  valueMinor: number
+  /** What the client pays for the card, in fils. */
+  priceMinor: number
+  /** Expiration period label, e.g. "1 year" or "Never". */
+  expiration: string
+  /** Issue a specific code rather than an auto-generated one. */
+  useCustomCode: boolean
+  /** Custom code, used only when `useCustomCode` is set. */
+  customCode: string
+  /** Not added to the purchasing client's wallet, so it can be gifted on. */
+  isGift: boolean
+  /** Email the purchasing client their code + redemption instructions. */
+  sendEmail: boolean
+  /** Team member the sale is attributed to. */
+  staffName: string
+}
+
+/**
  * A line in the cart. Duplicates of the same source stack as separate lines so
  * each can carry its own staff / quantity (ticket: "Duplicate items").
  */
 export type CartLine = {
   /** Unique per line instance — never the source id. */
   uid: string
-  kind: "service" | "product"
+  kind: "service" | "product" | "gift-card"
   name: string
-  /** Tax-inclusive unit price in fils. */
+  /** Tax-inclusive unit price in fils. For gift cards, the price paid. */
   priceMinor: number
   /** Services only. */
   durationMin?: number
@@ -117,6 +141,8 @@ export type CartLine = {
   warnings?: string[]
   /** Set when this line was snapshotted from an appointment — one appointment per cart. */
   apptId?: string
+  /** Gift-card payload — present only when `kind === "gift-card"`. */
+  giftCard?: GiftCardDraft
 }
 
 /** Who the cart is for. */
@@ -126,4 +152,4 @@ export type ClientAttachment =
   | { type: "client"; client: CatalogClient }
 
 /** Which drilldown the left picker is showing. "root" = the category grid. */
-export type PickerView = "root" | "appointments" | "services" | "products" | "search"
+export type PickerView = "root" | "appointments" | "services" | "products" | "gift-cards" | "search"

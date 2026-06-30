@@ -88,7 +88,14 @@ export function CartContent({
     <div className="rounded-2xl border border-border/60 bg-card p-2">
       <ul className="flex flex-col gap-1">
         {lines.map((line) =>
-          line.kind === "service" ? (
+          line.kind === "gift-card" ? (
+            <GiftCardLineRow
+              key={line.uid}
+              line={line}
+              onEdit={onEditLine ? () => onEditLine(line.uid) : undefined}
+              onRemove={readOnly ? undefined : () => onRemove(line.uid)}
+            />
+          ) : line.kind === "service" ? (
             <ServiceLineRow
               key={line.uid}
               line={line}
@@ -193,6 +200,53 @@ function ProductLineRow({
           </div>
           <RowActions
             value={money(line.priceMinor * line.qty)}
+            name={line.name}
+            onEdit={onEdit}
+            onRemove={onRemove}
+          />
+        </div>
+      </div>
+    </li>
+  )
+}
+
+// Gift-card line — same violet-accent invoice row, with a "value · validity ·
+// team member" meta line built from the gift-card payload.
+function GiftCardLineRow({
+  line,
+  onEdit,
+  onRemove,
+}: {
+  line: CartLine
+  onEdit?: () => void
+  onRemove?: () => void
+}) {
+  const gc = line.giftCard
+  const meta = gc
+    ? [
+        `${money(gc.valueMinor)} value`,
+        gc.expiration === "Never" ? "no expiry" : `valid for ${gc.expiration}`,
+        gc.staffName,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : undefined
+
+  return (
+    <li className="group/service flex gap-3 rounded-2xl px-3 py-2 transition-colors hover:bg-muted/50">
+      <span aria-hidden className="w-1 shrink-0 self-stretch rounded-full bg-cami-violet-12" />
+      <div className="flex min-w-0 flex-1 py-1.5">
+        <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate font-semibold text-base text-foreground leading-6">
+              {line.name}
+            </span>
+            {meta ? (
+              <span className="truncate text-muted-foreground text-sm leading-5">{meta}</span>
+            ) : null}
+          </div>
+          <RowActions
+            value={money(line.priceMinor)}
             name={line.name}
             onEdit={onEdit}
             onRemove={onRemove}
@@ -387,12 +441,16 @@ export function CartFooter({
 
 export type Payment = {
   id: number
-  method: "cash" | "card"
+  method: "cash" | "card" | "gift-card"
   amountMinor: number
   receivedBy?: string
 }
 
-const METHOD_LABEL: Record<Payment["method"], string> = { cash: "Cash", card: "Card" }
+const METHOD_LABEL: Record<Payment["method"], string> = {
+  cash: "Cash",
+  card: "Card",
+  "gift-card": "Gift card",
+}
 
 type CheckoutFooterProps = {
   baseMinor: number

@@ -46,7 +46,7 @@ export function TipView({ firstName, selectedId, onSelect, onOpenCustom }: TipVi
               type="button"
               onClick={() => onSelect(preset.id)}
               className={cn(
-                "flex h-28 flex-col items-center justify-center gap-1 rounded-2xl border bg-card px-4 text-center transition-colors",
+                "flex h-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border bg-card px-4 text-center transition-colors",
                 active
                   ? "-outline-offset-2 border-transparent bg-cami-violet-3 outline-2 outline-cami-violet-8"
                   : "border-border hover:bg-muted/40",

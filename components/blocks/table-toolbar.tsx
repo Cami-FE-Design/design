@@ -20,9 +20,14 @@ export function TableToolbar({ tabs, actions, className }: TableToolbarProps) {
   return (
     <div
       data-slot="table-toolbar"
-      className={cn("flex items-center justify-between gap-3", className)}
+      className={cn(
+        "flex items-center gap-3",
+        // With tabs: tabs left, actions right. Without tabs: actions sit on the left.
+        tabs ? "justify-between" : "justify-start",
+        className,
+      )}
     >
-      {tabs ? <div className="flex items-center">{tabs}</div> : <div />}
+      {tabs ? <div className="flex items-center">{tabs}</div> : null}
       {actions ? <div className="flex items-center gap-2">{actions}</div> : null}
     </div>
   )
