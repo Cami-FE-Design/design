@@ -72,6 +72,9 @@ export function totals(lines: CartLine[]): CartTotals {
 
 // ─── Staff ──────────────────────────────────────────────────────────────────
 
+/** The signed-in team member — sales default to being attributed to them. */
+export const CURRENT_USER = "Husain NGI"
+
 export const STAFF: Staff[] = [
   { id: "any", name: "Any" },
   { id: "maz", name: "Maz" },
@@ -79,6 +82,69 @@ export const STAFF: Staff[] = [
   { id: "priya", name: "Priya" },
   { id: "sara", name: "Sara" },
 ]
+
+/**
+ * Team members a sale can be attributed to. Unlike service lines (which allow
+ * "Any"), a gift-card sale is always credited to a specific person — so the
+ * current user leads and "Any" is excluded.
+ */
+export const TEAM_MEMBERS: string[] = [
+  CURRENT_USER,
+  ...STAFF.filter((s) => s.id !== "any").map((s) => s.name),
+]
+
+// ─── Gift cards ───────────────────────────────────────────────────────────────
+//
+// Preset face values + default expiration come from Sales → Gift cards settings
+// in production; mirrored here so the checkout picker matches that config.
+
+export const GIFT_CARD_PRESETS_MINOR = [180000, 350000, 530000, 700000, 1050000]
+
+export const GIFT_CARD_EXPIRATION_OPTIONS = [
+  "14 days",
+  "1 month",
+  "2 months",
+  "3 months",
+  "4 months",
+  "6 months",
+  "1 year",
+  "2 years",
+  "3 years",
+  "5 years",
+  "Never",
+]
+
+export const GIFT_CARD_DEFAULT_EXPIRATION = "1 year"
+
+/**
+ * Gift cards that can be redeemed at checkout. Mirrors the fixtures on
+ * /sales/gift-cards-sold so the redeem flow demos consistently:
+ *  - active with balance  → redeemable
+ *  - inactive (unpaid / expired / fully redeemed) → "not active" error
+ *  - any other code       → "typo" error
+ */
+export type RedeemableGiftCard = {
+  code: string
+  active: boolean
+  /** Remaining balance in fils. */
+  balanceMinor: number
+  /** Preformatted expiry label shown on the card visual, e.g. "12 May 2027". */
+  expires: string
+}
+
+export const REDEEMABLE_GIFT_CARDS: RedeemableGiftCard[] = [
+  { code: "YYOSNPHO", active: false, balanceMinor: 180000, expires: "29 Jun 2027" }, // unpaid
+  { code: "QM4KTRZA", active: true, balanceMinor: 230000, expires: "12 May 2027" }, // 2,300 left
+  { code: "BX9PLND2", active: false, balanceMinor: 0, expires: "3 Apr 2027" }, // fully redeemed
+  { code: "HK7VWQ1M", active: false, balanceMinor: 0, expires: "20 Feb 2026" }, // expired
+  { code: "ZTP3RG84", active: true, balanceMinor: 600000, expires: "1 Jun 2027" }, // 6,000 left
+]
+
+/** Look up a gift card by code (case-insensitive, trimmed). */
+export function findRedeemableGiftCard(code: string): RedeemableGiftCard | undefined {
+  const normalized = code.trim().toUpperCase()
+  return REDEEMABLE_GIFT_CARDS.find((c) => c.code === normalized)
+}
 
 // ─── Clients ──────────────────────────────────────────────────────────────────
 

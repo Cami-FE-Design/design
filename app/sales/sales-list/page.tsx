@@ -9,6 +9,7 @@ import {
   DownloadIcon,
   FileSpreadsheetIcon,
   FileTextIcon,
+  GiftIcon,
   MoreVerticalIcon,
   NotebookPenIcon,
   PencilIcon,
@@ -32,6 +33,7 @@ import {
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { RefundSaleDialog } from "@/components/blocks/refund-sale-dialog"
+import { ShareGiftCardDialog } from "@/components/blocks/share-gift-card-dialog"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { VoidSaleDialog } from "@/components/blocks/void-sale-dialog"
 import { Avatar } from "@/components/ui/avatar"
@@ -382,13 +384,25 @@ function DateRangePopover({ value, onChange, today }: DateRangePopoverProps) {
 
 type SaleStatus = "completed" | "part-paid" | "unpaid" | "refunded" | "voided"
 
-type Sale = {
+/** Gift-card purchase reference — present on sales that sold a gift card. */
+export type SaleGiftCard = {
+  /** Gift card id on /sales/gift-cards-sold, for the "View gift card" link. */
+  cardId: string
+  code: string
+  /** Display status label, e.g. "Active". */
+  status: string
+  valueAed: number
+}
+
+export type Sale = {
   id: number
   client: string
   status: SaleStatus
   saleAt: Date
   tipsMinor: number
   grossMinor: number
+  /** Set when this sale is a gift-card purchase (drives the gift-card item UI). */
+  giftCard?: SaleGiftCard
 }
 
 // Demo today is 2026-05-25. Trimmed to 10 rows: five "today" rows (one per
@@ -397,7 +411,7 @@ type Sale = {
 // out. The kept ids (1, 2, 3, 6, 7, 12–16) are exactly the ones deep-linked
 // from /screens and the appointments "View sale" (?sale=2), so no existing
 // link breaks.
-const MOCK_SALES: Sale[] = [
+export const MOCK_SALES: Sale[] = [
   // 25 May — today. One per status so the default Today view shows every state.
   {
     id: 16,
@@ -479,6 +493,55 @@ const MOCK_SALES: Sale[] = [
     saleAt: new Date(2026, 4, 22, 10, 2),
     tipsMinor: 0,
     grossMinor: 2500,
+  },
+  // Gift-card-purchase sales (ids 20–24). These back the rows on
+  // /sales/gift-cards-sold — each gift card references one of these by id, so
+  // the gift card's "View sale" opens the matching sale and they appear here in
+  // the listing too (single source of truth, no duplicated sale data).
+  {
+    id: 24,
+    client: "Aamena Fatta",
+    status: "completed",
+    saleAt: new Date(2026, 5, 1, 15, 33),
+    tipsMinor: 0,
+    grossMinor: 1050000,
+    giftCard: { cardId: "gc-5", code: "ZTP3RG84", status: "Active", valueAed: 10500 },
+  },
+  {
+    id: 23,
+    client: "Luke Williams",
+    status: "completed",
+    saleAt: new Date(2025, 1, 20, 12, 10),
+    tipsMinor: 0,
+    grossMinor: 700000,
+    giftCard: { cardId: "gc-4", code: "HK7VWQ1M", status: "Expired", valueAed: 7000 },
+  },
+  {
+    id: 22,
+    client: "Tom Cassidy",
+    status: "completed",
+    saleAt: new Date(2026, 3, 3, 16, 45),
+    tipsMinor: 0,
+    grossMinor: 530000,
+    giftCard: { cardId: "gc-3", code: "BX9PLND2", status: "Redeemed", valueAed: 5300 },
+  },
+  {
+    id: 21,
+    client: "Millie Cassidy",
+    status: "completed",
+    saleAt: new Date(2026, 4, 12, 9, 5),
+    tipsMinor: 0,
+    grossMinor: 350000,
+    giftCard: { cardId: "gc-2", code: "QM4KTRZA", status: "Active", valueAed: 3500 },
+  },
+  {
+    id: 20,
+    client: "Walk-In",
+    status: "unpaid",
+    saleAt: new Date(2026, 5, 29, 11, 20),
+    tipsMinor: 0,
+    grossMinor: 180000,
+    giftCard: { cardId: "gc-1", code: "YYOSNPHO", status: "Unpaid", valueAed: 1800 },
   },
 ]
 
@@ -1035,7 +1098,8 @@ type SaleDetailDialogProps = {
   onViewProfile: () => void
 }
 
-function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialogProps) {
+export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialogProps) {
+  const router = useRouter()
   const open = sale !== null
   // Hold the last sale so the dialog animates out with its content still
   // rendered after `sale` is cleared.
@@ -1043,6 +1107,7 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
   const [tab, setTab] = useState<"details" | "activity">("details")
   const [refundOpen, setRefundOpen] = useState(false)
   const [voidOpen, setVoidOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   useEffect(() => {
     if (sale) {
       setLast(sale)
@@ -1053,6 +1118,7 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
   const data = sale ?? last
   if (!data) return null
 
+  const giftCard = data.giftCard
   const status = STATUS_META[data.status]
   const pill = STATUS_DIALOG_PILL[data.status]
   const gross = Math.round(data.grossMinor / 100)
@@ -1263,6 +1329,57 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
                 />
               </button>
 
+              {/* Gift-card item — present when this sale sold a gift card. Mirrors
+                  the line in the receipt below and links back to the card. */}
+              {giftCard ? (
+                <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-4">
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-semibold text-foreground">
+                        {money(giftCard.valueAed)} - Gift Card
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        {giftCard.code} <span aria-hidden>•</span>{" "}
+                        <span
+                          className={cn(
+                            giftCard.status === "Active" && "text-cami-green-11",
+                            giftCard.status === "Expired" && "text-muted-foreground",
+                          )}
+                        >
+                          {giftCard.status}
+                        </span>
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        radius="full"
+                        onClick={() => {
+                          onOpenChange(false)
+                          router.push(`/sales/gift-cards-sold?card=${giftCard.cardId}`)
+                        }}
+                      >
+                        View gift card
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        radius="full"
+                        onClick={() => setShareOpen(true)}
+                      >
+                        Share
+                      </Button>
+                    </div>
+                  </div>
+                  <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-11">
+                    <GiftIcon className="size-5" />
+                  </span>
+                </div>
+              ) : null}
+
               {/* Refund card — only for refunded sales. Sits ABOVE the original
                   sale card so the user sees what was refunded, then the sale
                   it came from. */}
@@ -1333,10 +1450,13 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
                 <ul className="flex flex-col gap-2">
                   <li className="flex items-baseline justify-between gap-3 text-sm">
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="font-medium text-foreground">Haircut</span>
+                      <span className="font-medium text-foreground">
+                        {giftCard ? `${money(giftCard.valueAed)} - Gift Card` : "Haircut"}
+                      </span>
                       <span className="truncate text-xs text-muted-foreground">
-                        {formatTimeOnly(data.saleAt)}, {formatDateOnly(data.saleAt)} · 1h 30min ·
-                        Hussain S…
+                        {giftCard
+                          ? `${giftCard.code} · Husain NGI`
+                          : `${formatTimeOnly(data.saleAt)}, ${formatDateOnly(data.saleAt)} · 1h 30min · Hussain S…`}
                       </span>
                     </div>
                     <span className="shrink-0 font-medium text-foreground tabular-nums">
@@ -1461,6 +1581,8 @@ function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialo
       />
 
       <VoidSaleDialog open={voidOpen} onOpenChange={setVoidOpen} payments={voidPayments} />
+
+      <ShareGiftCardDialog open={shareOpen} onOpenChange={setShareOpen} />
     </Dialog>
   )
 }

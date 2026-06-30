@@ -43,6 +43,7 @@ import {
   templatesForBooking,
   type WhatsAppTemplate,
 } from "@/app/appointments/mock"
+import type { CartLine, CatalogClient } from "@/app/sales/new-sale/types"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { DatePicker } from "@/components/blocks/date-picker"
 import { EditServicePanel } from "@/components/blocks/edit-service-panel"
@@ -286,6 +287,12 @@ type NewAppointmentSheetProps = {
   flow?: "create" | "edit"
   /** Initial status for edit mode (defaults to "confirmed"). Ignored in create. */
   initialStatus?: MockBookingStatus
+  /**
+   * Fired when the operator hits Checkout (edit flow). Hands the appointment's
+   * services as cart lines + the attached client so the host can launch the
+   * checkout flow (CartFlow) at the Tip step.
+   */
+  onCheckout?: (lines: CartLine[], client: CatalogClient | null) => void
 }
 
 export function NewAppointmentSheet({
@@ -296,6 +303,7 @@ export function NewAppointmentSheet({
   hasPets = true,
   flow = "create",
   initialStatus = "confirmed",
+  onCheckout,
 }: NewAppointmentSheetProps) {
   const isEdit = flow === "edit"
   const [status, setStatus] = useState<MockBookingStatus>(isEdit ? initialStatus : "booked")
@@ -337,6 +345,34 @@ export function NewAppointmentSheet({
   const totalServices = pets.reduce((n, pet) => n + pet.services.length, 0)
   const canSave = totalServices > 0
   const { name: businessName } = useDemoBusiness()
+
+  // Hand the appointment's services to the checkout flow as cart lines. Each
+  // pet's services flatten into individual service lines (the cart shows names
+  // + prices; pet grouping isn't carried over for the prototype).
+  function handleCheckout() {
+    if (!onCheckout) return
+    let seq = 0
+    const lines: CartLine[] = pets.flatMap((pet) =>
+      pet.services.map((svc) => {
+        seq += 1
+        return {
+          uid: `appt-${seq}`,
+          kind: "service" as const,
+          name: svc.catalog.name,
+          priceMinor: svc.catalog.priceMinor,
+          durationMin: svc.catalog.durationMin,
+          staffName: svc.staffName ?? "Any",
+          qty: 1,
+          sourceId: svc.catalog.id,
+          warnings: svc.warnings,
+        }
+      }),
+    )
+    const client: CatalogClient | null = selectedClient
+      ? { id: selectedClient.id, name: selectedClient.name, phone: selectedClient.phone }
+      : null
+    onCheckout(lines, client)
+  }
   // Token values for resolving WhatsApp templates in the Messages section.
   const firstService = pets.flatMap((p) => p.services)[0]
   const messageTokens = {
@@ -887,7 +923,12 @@ export function NewAppointmentSheet({
               className="border-t border-border bg-card px-6 py-4"
             >
               {hasPets ? (
-                <Button radius="full" disabled={!canSave} className="w-full">
+                <Button
+                  radius="full"
+                  disabled={!canSave}
+                  className="w-full"
+                  onClick={isEdit ? handleCheckout : undefined}
+                >
                   {isEdit ? "Checkout" : "Save"}
                 </Button>
               ) : (
@@ -903,10 +944,19 @@ export function NewAppointmentSheet({
                     </button>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" radius="full">
+                    <Button
+                      variant="outline"
+                      radius="full"
+                      disabled={!canSave}
+                      onClick={handleCheckout}
+                    >
                       Checkout
                     </Button>
-                    <Button radius="full" disabled={!canSave}>
+                    <Button
+                      radius="full"
+                      disabled={!canSave}
+                      onClick={isEdit ? handleCheckout : undefined}
+                    >
                       {isEdit ? "Checkout" : "Save"}
                     </Button>
                   </div>

@@ -64,6 +64,7 @@ export const topMenu: MenuItem[] = [
       { label: "Daily Summary", href: "/sales/daily-summary" },
       { label: "Appointments", href: "/sales/appointments-list" },
       { label: "Invoices", href: "/sales/sales-list" },
+      { label: "Gift cards sold", href: "/sales/gift-cards-sold" },
       { label: "Payments" },
     ],
   },

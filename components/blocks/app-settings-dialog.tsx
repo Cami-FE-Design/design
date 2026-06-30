@@ -6,6 +6,7 @@ import {
   GlobeIcon,
   type LucideIcon,
   MapPinIcon,
+  TagIcon,
   UserIcon,
   XIcon,
 } from "lucide-react"
@@ -13,6 +14,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useState } from "react"
 import { BusinessProfileForm } from "@/components/blocks/business-profile-form"
 import { LocationForm } from "@/components/blocks/location-form"
+import { SalesSettings } from "@/components/blocks/sales-settings"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -66,6 +68,17 @@ const GROUPS: SettingsGroup[] = [
         description: "Switching locale flips the entire portal direction.",
         icon: GlobeIcon,
         wip: true,
+      },
+    ],
+  },
+  {
+    label: "Sales",
+    items: [
+      {
+        id: "sales",
+        label: "Sales",
+        description: "Payment methods and gift cards for checkout.",
+        icon: TagIcon,
       },
     ],
   },
@@ -185,6 +198,7 @@ export function AppSettingsDialog({
             {active.id === "business-details" ? <BusinessProfilePanel /> : null}
             {active.id === "locations" ? <LocationsPanel /> : null}
             {active.id === "language" ? <LanguagePanel /> : null}
+            {active.id === "sales" ? <SalesSettings /> : null}
           </div>
         </div>
       </DialogContent>
