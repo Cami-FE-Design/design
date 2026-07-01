@@ -839,7 +839,12 @@ function GiftCardsPanel({
             title="Gift cards inactive"
             description="Let your clients buy personalized gift cards and send to friends & family for your business."
             action={
-              <Button type="button" radius="full" onClick={() => setSettingsOpen(true)}>
+              <Button
+                type="button"
+                variant="secondary"
+                radius="full"
+                onClick={() => setSettingsOpen(true)}
+              >
                 Set up
               </Button>
             }
