@@ -891,6 +891,21 @@ export function PlaygroundShowcase() {
             </TimelineRow>
           </ul>
         </div>
+
+        {/* Leading-less variant: no date gutter (grouped under a month header
+            instead), used by the gift-card activity timeline. A lone row still
+            shows the connector so it reads as a timeline. */}
+        <div className="max-w-lg">
+          <p className="mb-2 text-sm text-muted-foreground">May</p>
+          <ul className="flex flex-col">
+            <TimelineRow isLast>
+              <div className="rounded-2xl border border-border/60 bg-card p-4">
+                <span className="font-semibold text-foreground">Gift card purchased</span>
+                <p className="text-xs text-muted-foreground">Yesterday at 3:33pm by Husain NGI</p>
+              </div>
+            </TimelineRow>
+          </ul>
+        </div>
       </Section>
 
       <Section

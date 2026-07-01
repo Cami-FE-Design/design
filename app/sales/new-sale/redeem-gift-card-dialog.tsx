@@ -2,6 +2,7 @@
 
 import { ChevronLeftIcon, InfoIcon, XIcon } from "lucide-react"
 import { useState } from "react"
+import { GiftCardVisual } from "@/components/blocks/gift-card-visual"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -131,22 +132,13 @@ export function RedeemGiftCardDialog({
         {card ? (
           // ─── Found: card visual + redeem amount ──────────────────────────────
           <>
-            <div className="flex flex-col gap-8 rounded-2xl bg-linear-to-br from-blue-600 to-indigo-600 p-6 text-white shadow-sm">
-              <div className="flex flex-col gap-0.5">
-                <span className="font-semibold text-3xl">{money(card.balanceMinor)}</span>
-                <span className="text-sm text-white/80">{BUSINESS_NAME}</span>
-              </div>
-              <div className="flex items-end justify-between gap-4">
-                <div className="flex flex-col gap-1">
-                  <span className="text-white/70 text-xs">Code</span>
-                  <span className="font-medium">{card.code}</span>
-                </div>
-                <div className="flex flex-col gap-1 text-right">
-                  <span className="text-white/70 text-xs">Expires</span>
-                  <span className="font-medium">{card.expires}</span>
-                </div>
-              </div>
-            </div>
+            <GiftCardVisual
+              className="mx-auto"
+              amount={money(card.balanceMinor)}
+              subtitle={BUSINESS_NAME}
+              code={card.code}
+              expires={card.expires}
+            />
 
             {/* biome-ignore lint/a11y/noLabelWithoutControl: control is the Input child */}
             <label className="flex flex-col gap-1.5">

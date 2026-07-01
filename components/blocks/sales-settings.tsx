@@ -20,21 +20,25 @@ import { CSS } from "@dnd-kit/utilities"
 import type { LucideIcon } from "lucide-react"
 import {
   BanknoteIcon,
+  CalendarClockIcon,
   ChevronDownIcon,
-  ChevronLeftIcon,
   CircleDollarSignIcon,
   CreditCardIcon,
   GiftIcon,
   LockIcon,
   PencilIcon,
   PlusIcon,
+  StoreIcon,
+  TagIcon,
   Trash2Icon,
   XIcon,
 } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import { useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
+import { SettingsRow } from "@/components/blocks/settings-row"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -224,9 +228,17 @@ type PaymentMethod = {
   locked?: boolean
 }
 
-// Cash is always present and locked. Other is a sample custom method. Tiles use
-// soft semantic tints (cash = green, card/custom = violet), matching the Sales
-// landing icon tiles.
+// Every custom payment method (the seed "Other" and any the user adds) shares
+// this icon + tile so the list stays visually uniform. Defined once so the seed
+// and the add handler can't drift apart. Only the locked built-in Cash carries
+// its own semantic green tint.
+const CUSTOM_PAYMENT_METHOD_STYLE = {
+  icon: CircleDollarSignIcon,
+  iconClassName: "text-cami-violet-9",
+  tileClassName: "bg-cami-violet-3",
+} satisfies Pick<PaymentMethod, "icon" | "iconClassName" | "tileClassName">
+
+// Cash is always present and locked, and keeps the soft green cash tint.
 const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
   {
     id: "cash",
@@ -239,9 +251,7 @@ const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
   {
     id: "other",
     name: "Other",
-    icon: CircleDollarSignIcon,
-    iconClassName: "text-cami-violet-9",
-    tileClassName: "bg-cami-violet-3",
+    ...CUSTOM_PAYMENT_METHOD_STYLE,
   },
 ]
 
@@ -272,7 +282,10 @@ export function SalesSettings() {
         </p>
       </header>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* Width matches the Business details "Business info" card: its inner
+          16rem+16rem grid + gap-x-8 (34rem) + the card's p-5 padding (2.5rem)
+          = 36.5rem (w-146). The two Sales cards fill that same footprint. */}
+      <div className="grid gap-3 sm:w-146 sm:grid-cols-2">
         {SALES_CARDS.map((card) => {
           const Icon = card.icon
           return (
@@ -280,9 +293,9 @@ export function SalesSettings() {
               key={card.id}
               type="button"
               onClick={() => setView(card.id)}
-              className="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 text-left transition-colors hover:bg-foreground/3"
+              className="group flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5 text-left transition-colors hover:bg-foreground/3"
             >
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-9">
+              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background text-muted-foreground">
                 <Icon className="size-5" />
               </span>
               <span className="flex min-w-0 flex-col gap-1">
@@ -297,50 +310,58 @@ export function SalesSettings() {
   )
 }
 
-/** Back affordance + breadcrumb + title row for a Sales sub-screen. */
+/**
+ * Notion-style breadcrumb + title row for a Sales sub-screen. Mirrors the
+ * Business details header: clean h2 + plain description, no inline actions.
+ */
 function SubScreenHeader({
   onBack,
   title,
   description,
-  actions,
 }: {
   onBack: () => void
   title: string
   description?: string
-  actions?: React.ReactNode
 }) {
   return (
     <div className="flex shrink-0 flex-col gap-4">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          radius="full"
-          onClick={onBack}
-          className="gap-1.5"
-        >
-          <ChevronLeftIcon className="size-4" />
-          Back
-        </Button>
-        <span>Sales</span>
-        <span aria-hidden>•</span>
-        <span className="text-foreground">{title}</span>
-      </div>
-      <header className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">{title}</h2>
-          {description ? (
-            <p className="text-sm leading-5 text-muted-foreground">
-              {description}{" "}
-              <button type="button" className="font-medium text-cami-violet-9 hover:underline">
-                Learn more.
-              </button>
-            </p>
-          ) : null}
-        </div>
-        {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      <NotionBreadcrumb
+        segments={[{ label: "Sales", icon: TagIcon, onClick: onBack }, { label: title }]}
+      />
+      <header className="flex flex-col gap-2">
+        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">{title}</h2>
+        {description ? (
+          <p className="text-sm leading-5 text-muted-foreground">{description}</p>
+        ) : null}
       </header>
+    </div>
+  )
+}
+
+/**
+ * Action row shown below a Sales sub-screen's content card, mirroring the
+ * "Add pet" affordance on the client detail. `onAdd` renders the primary
+ * secondary-pill button; children render extra controls (e.g. an Options
+ * dropdown) to its left.
+ */
+function SubScreenActions({
+  addLabel,
+  onAdd,
+  children,
+}: {
+  addLabel?: string
+  onAdd?: () => void
+  children?: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {children}
+      {onAdd && addLabel ? (
+        <Button type="button" variant="secondary" size="sm" radius="full" onClick={onAdd}>
+          <PlusIcon />
+          {addLabel}
+        </Button>
+      ) : null}
     </div>
   )
 }
@@ -389,9 +410,7 @@ function PaymentMethodsPanel({
         {
           id: `pm-${nextId.current}`,
           name,
-          icon: CreditCardIcon,
-          iconClassName: "text-cami-violet-9",
-          tileClassName: "bg-cami-violet-3",
+          ...CUSTOM_PAYMENT_METHOD_STYLE,
         },
       ])
     }
@@ -410,57 +429,41 @@ function PaymentMethodsPanel({
       <SubScreenHeader
         onBack={onBack}
         title="Payment methods"
-        description="View and customize payment methods displayed at checkout for your team members."
-        actions={
-          <>
-            {methods.length > 1 ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    radius="full"
-                    className="gap-1.5"
-                  >
-                    Options
-                    <ChevronDownIcon className="size-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onSelect={() => setOrdering(true)}>
-                    Change order
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : null}
-            <Button
-              type="button"
-              size="sm"
-              radius="full"
-              className="gap-1.5"
-              onClick={() => setForm({ mode: "add" })}
-            >
-              <PlusIcon className="size-4" />
-              Add
-            </Button>
-          </>
-        }
+        description="View and customize the payment methods displayed at checkout for your team members."
       />
-      <ul className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1">
-        {methods.map((method, index) => (
-          <PaymentMethodRow
-            key={method.id}
-            method={method}
-            canMoveUp={index > 0}
-            canMoveDown={index < methods.length - 1}
-            onEdit={() => setForm({ mode: "edit", method })}
-            onDelete={() => setDeleteTarget(method)}
-            onMoveUp={() => move(method.id, -1)}
-            onMoveDown={() => move(method.id, 1)}
-          />
-        ))}
-      </ul>
+      <div className="flex flex-col gap-4">
+        <ul className="flex max-h-105 w-full flex-col gap-4 overflow-y-auto rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146">
+          {methods.map((method, index) => (
+            <Fragment key={method.id}>
+              {index > 0 ? <li aria-hidden className="h-px shrink-0 bg-border/60" /> : null}
+              <PaymentMethodRow
+                method={method}
+                canMoveUp={index > 0}
+                canMoveDown={index < methods.length - 1}
+                onEdit={() => setForm({ mode: "edit", method })}
+                onDelete={() => setDeleteTarget(method)}
+                onMoveUp={() => move(method.id, -1)}
+                onMoveDown={() => move(method.id, 1)}
+              />
+            </Fragment>
+          ))}
+        </ul>
+        <SubScreenActions addLabel="Add payment method" onAdd={() => setForm({ mode: "add" })}>
+          {methods.length > 1 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="secondary" size="sm" radius="full">
+                  Options
+                  <ChevronDownIcon className="size-4" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onSelect={() => setOrdering(true)}>Change order</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+        </SubScreenActions>
+      </div>
 
       {form ? (
         <PaymentMethodFormDialog
@@ -519,7 +522,7 @@ function PaymentMethodRow({
 }) {
   const Icon = method.icon
   return (
-    <li className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4">
+    <li className="flex shrink-0 items-center gap-4">
       <span
         className={cn(
           "flex size-12 shrink-0 items-center justify-center rounded-xl",
@@ -703,7 +706,7 @@ function SortablePaymentRow({ method }: { method: PaymentMethod }) {
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "flex items-center gap-4 rounded-2xl border border-border bg-card p-4",
+        "flex items-center gap-4 rounded-2xl border border-border/60 bg-card p-4",
         isDragging && "opacity-50",
       )}
     >
@@ -806,10 +809,14 @@ function GiftCardsPanel({
   /** Deep-link: "empty" shows the inactive state, "setup" opens the settings takeover. */
   initialGift?: string | null
 }) {
-  const [config, setConfig] = useState<GiftCardConfig>(DEFAULT_GIFT_CARD_CONFIG)
+  const [config, setConfig] = useState<GiftCardConfig>(
+    initialGift === "empty"
+      ? { ...DEFAULT_GIFT_CARD_CONFIG, enabled: false }
+      : DEFAULT_GIFT_CARD_CONFIG,
+  )
   const [settingsOpen, setSettingsOpen] = useState(initialGift === "setup")
-  const [showEmpty, setShowEmpty] = useState(initialGift === "empty")
-  const active = config.enabled && !showEmpty
+  // The Gift cards enable toggle is the single source of truth: off => empty state.
+  const active = config.enabled
 
   return (
     <div className="flex h-full flex-col gap-6">
@@ -817,45 +824,38 @@ function GiftCardsPanel({
         onBack={onBack}
         title="Gift cards"
         description="Choose how you would like to sell your gift cards, and customize their settings."
-        actions={
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="outline" size="sm" radius="full" className="gap-1.5">
-                Options
-                <ChevronDownIcon className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => {}}>Gift cards sold</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        }
       />
 
       {active ? (
-        <GiftCardSummary config={config} onEdit={() => setSettingsOpen(true)} />
-      ) : (
-        <EmptyState
-          variant="card"
-          icon={GiftIcon}
-          title="Gift cards inactive"
-          description="Let your clients buy personalized gift cards and send to friends & family for your business."
-          action={
-            <Button type="button" radius="full" onClick={() => setSettingsOpen(true)}>
-              Set up
-            </Button>
-          }
+        <GiftCardSummary
+          config={config}
+          onEdit={() => setSettingsOpen(true)}
+          onViewSold={() => {}}
         />
+      ) : (
+        <section className="flex w-full flex-col rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146">
+          <EmptyState
+            icon={GiftIcon}
+            title="Gift cards inactive"
+            description="Let your clients buy personalized gift cards and send to friends & family for your business."
+            action={
+              <Button type="button" radius="full" onClick={() => setSettingsOpen(true)}>
+                Set up
+              </Button>
+            }
+          />
+        </section>
       )}
 
-      {/* Prototype demo toggle — preview either state without going through setup. */}
+      {/* Prototype demo toggle — flips the real enabled flag so the empty state
+          mirrors what turning the Gift cards toggle off in settings does. */}
       <div className="mt-auto flex justify-end pt-2">
         <button
           type="button"
-          onClick={() => setShowEmpty((v) => !v)}
+          onClick={() => setConfig((c) => ({ ...c, enabled: !c.enabled }))}
           className="text-xs text-muted-foreground/40 transition-colors hover:text-muted-foreground"
         >
-          {showEmpty ? "Show populated state" : "Show empty state"}
+          {active ? "Show empty state" : "Show populated state"}
         </button>
       </div>
 
@@ -866,7 +866,6 @@ function GiftCardsPanel({
           onSave={(next) => {
             setConfig(next)
             setSettingsOpen(false)
-            setShowEmpty(false)
           }}
         />
       ) : null}
@@ -874,38 +873,55 @@ function GiftCardsPanel({
   )
 }
 
-function GiftCardSummary({ config, onEdit }: { config: GiftCardConfig; onEdit: () => void }) {
+function GiftCardSummary({
+  config,
+  onEdit,
+  onViewSold,
+}: {
+  config: GiftCardConfig
+  onEdit: () => void
+  onViewSold?: () => void
+}) {
   const valuesLabel = config.values.filter(Boolean).map(formatAed).join(", ")
   return (
-    <section className="flex flex-col gap-6 rounded-2xl border border-border bg-card p-6">
-      <header className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
-            Availability and values
-          </h3>
-          <p className="text-sm leading-5 text-muted-foreground">
-            Choose where you would like to sell your gift cards, set expiration and values.
-          </p>
+    <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit">
+      <header className="flex items-start justify-between gap-2">
+        <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+          Availability and values
+        </h3>
+        <div className="flex shrink-0 items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="outline" size="sm" radius="full" className="gap-1.5">
+                Options
+                <ChevronDownIcon className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => onViewSold?.()}>Gift cards sold</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button type="button" variant="secondary" size="sm" radius="full" onClick={onEdit}>
+            Edit
+          </Button>
         </div>
-        <Button type="button" variant="secondary" size="sm" radius="full" onClick={onEdit}>
-          Edit
-        </Button>
       </header>
-      <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-        <SummaryField label="Available for sale" value="In-store only" />
-        <SummaryField label="Default expiration period" value={config.expiration} />
-        <SummaryField label="Gift card values" value={valuesLabel || "—"} />
+      <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-[16rem_16rem]">
+        <SettingsRow icon={StoreIcon} label="Available for sale" value="In-store only" />
+        <SettingsRow
+          icon={CalendarClockIcon}
+          label="Default expiration period"
+          value={config.expiration}
+        />
+        <div className="sm:col-span-2">
+          <SettingsRow
+            icon={CircleDollarSignIcon}
+            label="Gift card values"
+            value={valuesLabel || "—"}
+          />
+        </div>
       </div>
     </section>
-  )
-}
-
-function SummaryField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
-      <span className="text-sm leading-5 text-muted-foreground">{value}</span>
-    </div>
   )
 }
 

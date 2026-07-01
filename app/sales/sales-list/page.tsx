@@ -35,6 +35,7 @@ import { EmptyState } from "@/components/blocks/empty-state"
 import { RefundSaleDialog } from "@/components/blocks/refund-sale-dialog"
 import { ShareGiftCardDialog } from "@/components/blocks/share-gift-card-dialog"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { TimelineRow } from "@/components/blocks/timeline-row"
 import { VoidSaleDialog } from "@/components/blocks/void-sale-dialog"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -1332,7 +1333,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
               {/* Gift-card item — present when this sale sold a gift card. Mirrors
                   the line in the receipt below and links back to the card. */}
               {giftCard ? (
-                <div className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-4">
+                <div className="flex items-start gap-3 rounded-2xl border border-border/60 bg-card p-4">
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <div className="flex flex-col gap-0.5">
                       <span className="font-semibold text-foreground">
@@ -1374,8 +1375,8 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                       </Button>
                     </div>
                   </div>
-                  <span className="inline-flex size-12 shrink-0 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-11">
-                    <GiftIcon className="size-5" />
+                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-cami-violet-3 text-cami-violet-11">
+                    <GiftIcon className="size-4" />
                   </span>
                 </div>
               ) : null}
@@ -1525,6 +1526,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   trailing={
                     <Avatar
                       size="md"
+                      className="size-8"
                       fallback="character"
                       name="Hussain Shabbir"
                       hashSeed="hussain-shabbir"
@@ -1536,8 +1538,8 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   timestamp={`Yesterday at ${formatTimeOnly(data.saleAt)}`}
                   body="Payment taken by Hussain Shabbir"
                   trailing={
-                    <span className="inline-flex size-10 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11">
-                      <BanknoteIcon className="size-5" />
+                    <span className="inline-flex size-8 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11 ring-2 ring-background">
+                      <BanknoteIcon className="size-4" />
                     </span>
                   }
                   footer={
@@ -1844,14 +1846,8 @@ function ActivityRow({
   isLast?: boolean
 }) {
   return (
-    <li className="grid grid-cols-[16px_minmax(0,1fr)] gap-3">
-      <div className="relative flex justify-center">
-        {!isLast ? (
-          <div className="absolute inset-y-0 top-3 border-l border-dashed border-border" />
-        ) : null}
-        <div className="relative mt-3 size-2 shrink-0 rounded-full bg-foreground/40" />
-      </div>
-      <div className={cn("rounded-2xl border border-border/60 bg-card p-4", !isLast && "mb-4")}>
+    <TimelineRow isLast={isLast}>
+      <div className="rounded-2xl border border-border/60 bg-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="font-semibold text-foreground">{title}</span>
@@ -1862,7 +1858,7 @@ function ActivityRow({
         <p className="mt-2 text-sm text-foreground">{body}</p>
         {footer ? <div className="mt-3 flex">{footer}</div> : null}
       </div>
-    </li>
+    </TimelineRow>
   )
 }
 

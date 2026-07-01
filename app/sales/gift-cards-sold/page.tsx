@@ -18,8 +18,10 @@ import { Suspense, useMemo, useState } from "react"
 import { MOCK_SALES, type Sale, SaleDetailDialog } from "@/app/sales/sales-list/page"
 import { AppShell } from "@/components/blocks/app-shell"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { GiftCardVisual } from "@/components/blocks/gift-card-visual"
 import { ShareGiftCardDialog } from "@/components/blocks/share-gift-card-dialog"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { TimelineRow } from "@/components/blocks/timeline-row"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -798,22 +800,13 @@ function GiftCardActivity({ card, onOpenSale }: { card: GiftCardSold; onOpenSale
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-8 rounded-2xl bg-linear-to-br from-blue-600 to-indigo-600 p-6 text-white shadow-sm">
-        <span className="text-3xl font-semibold">{money(remaining)}</span>
-        <div className="flex items-end justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-white/70">Code</span>
-            <span className="inline-flex items-center gap-1.5 font-medium">
-              {card.code}
-              <CopyButton value={card.code} className="text-white/80 hover:text-white" />
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 text-right">
-            <span className="text-xs text-white/70">Expires</span>
-            <span className="font-medium">{formatDate(card.expiresAt)}</span>
-          </div>
-        </div>
-      </div>
+      <GiftCardVisual
+        className="mx-auto"
+        amount={money(remaining)}
+        code={card.code}
+        expires={formatDate(card.expiresAt)}
+        copyableCode
+      />
 
       <div>
         <p className="mb-2 text-sm text-muted-foreground">{MONTH_FULL[card.issuedAt.getMonth()]}</p>
@@ -821,19 +814,8 @@ function GiftCardActivity({ card, onOpenSale }: { card: GiftCardSold; onOpenSale
           {events.map((event, i) => {
             const isLast = i === events.length - 1
             return (
-              <li key={event.id} className="grid grid-cols-[16px_minmax(0,1fr)] gap-3">
-                <div className="relative flex justify-center">
-                  {!isLast ? (
-                    <div className="absolute inset-y-0 top-3 border-l border-dashed border-border" />
-                  ) : null}
-                  <div className="relative mt-3 size-2 shrink-0 rounded-full bg-foreground/40" />
-                </div>
-                <div
-                  className={cn(
-                    "rounded-2xl border border-border/60 bg-card p-4",
-                    !isLast && "mb-4",
-                  )}
-                >
+              <TimelineRow key={event.id} isLast={isLast}>
+                <div className="rounded-2xl border border-border/60 bg-card p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <span className="font-semibold text-foreground">{event.title}</span>
@@ -849,7 +831,7 @@ function GiftCardActivity({ card, onOpenSale }: { card: GiftCardSold; onOpenSale
                     <p className="mt-2 text-sm text-foreground">{event.secondary}</p>
                   ) : null}
                 </div>
-              </li>
+              </TimelineRow>
             )
           })}
         </ul>
@@ -865,54 +847,99 @@ function GiftCardActivity({ card, onOpenSale }: { card: GiftCardSold; onOpenSale
 function ActivityIcon({ event }: { event: ActivityEvent }) {
   if (event.kind === "redeemed" || event.kind === "fully-redeemed") {
     return (
-      <span className="inline-flex size-10 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11">
-        <GiftIcon className="size-5" />
+      <span className="inline-flex size-8 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11 ring-2 ring-background">
+        <GiftIcon className="size-4" />
       </span>
     )
   }
-  return <Avatar size="md" fallback="character" name="Husain NGI" hashSeed="husain-ngi" />
+  return (
+    <Avatar
+      size="md"
+      className="size-8"
+      fallback="character"
+      name="Husain NGI"
+      hashSeed="husain-ngi"
+    />
+  )
 }
 
 function GiftCardDetails({ card, onOpenSale }: { card: GiftCardSold; onOpenSale: () => void }) {
+  const status = STATUS_META[card.status]
   return (
-    <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
-      <DetailField label="Original amount" value={money(card.totalAed)} />
-      <DetailField label="Redeemed" value={money(card.redeemedAed)} />
-      <DetailField label="Remaining" value={money(card.totalAed - card.redeemedAed)} />
-      <DetailField
-        label="Code"
-        value={
-          <span className="inline-flex items-center gap-1.5">
-            {card.code}
-            <CopyButton value={card.code} />
-          </span>
-        }
-      />
-      <DetailField
-        label="Sale #"
-        value={
-          <button
-            type="button"
-            onClick={onOpenSale}
-            className="cursor-pointer font-medium text-cami-violet-11 hover:underline"
-          >
-            {card.saleNo}
-          </button>
-        }
-      />
-      <DetailField label="Purchaser" value={card.purchaser} />
-      <DetailField label="Owner" value={card.owner} />
-      <DetailField label="Expires" value={formatDate(card.expiresAt)} />
-      <DetailField label="Issue date" value={formatDate(card.issuedAt)} />
+    <div className="rounded-2xl border border-border/60 bg-card">
+      <div className="flex flex-col divide-y divide-border/60 px-4 py-4">
+        <DetailSection title="Balance">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <DetailField label="Original amount" value={money(card.totalAed)} />
+            <DetailField label="Redeemed" value={money(card.redeemedAed)} />
+            <DetailField label="Remaining" value={money(card.totalAed - card.redeemedAed)} />
+          </div>
+        </DetailSection>
+
+        <DetailSection title="Card">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <DetailField
+              label="Status"
+              value={<Badge className={cn("font-medium", status.className)}>{status.label}</Badge>}
+            />
+            <DetailField
+              label="Code"
+              value={
+                <span className="inline-flex items-center gap-1.5">
+                  {card.code}
+                  <CopyButton value={card.code} />
+                </span>
+              }
+            />
+            <DetailField
+              label="Sale #"
+              value={
+                <button
+                  type="button"
+                  onClick={onOpenSale}
+                  className="cursor-pointer font-medium text-cami-violet-11 hover:underline"
+                >
+                  {card.saleNo}
+                </button>
+              }
+            />
+          </div>
+        </DetailSection>
+
+        <DetailSection title="People">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <DetailField label="Purchaser" value={card.purchaser} />
+            <DetailField label="Owner" value={card.owner} />
+          </div>
+        </DetailSection>
+
+        <DetailSection title="Validity">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <DetailField label="Issue date" value={formatDate(card.issuedAt)} />
+            <DetailField label="Expires" value={formatDate(card.expiresAt)} />
+          </div>
+        </DetailSection>
+      </div>
     </div>
   )
 }
 
-function DetailField({ label, value }: { label: string; value: React.ReactNode }) {
+// Mirrors the Details-tab structure used by ClientDetailDialog / PetDetailDialog:
+// grouped subsections separated by a divider, each a 2-column field grid.
+function DetailSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
-      <span className="text-sm leading-5 text-muted-foreground">{value}</span>
+    <section className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
+      <h3 className="font-semibold">{title}</h3>
+      {children}
+    </section>
+  )
+}
+
+function DetailField({ label, value }: { label: string; value?: React.ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="truncate text-sm">{value || "—"}</span>
     </div>
   )
 }
