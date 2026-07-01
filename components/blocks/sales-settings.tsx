@@ -94,7 +94,7 @@ type GiftCardConfig = {
 // bottom "Show empty state" demo toggle flips to the inactive empty state.
 const DEFAULT_GIFT_CARD_CONFIG: GiftCardConfig = {
   enabled: true,
-  values: ["1800", "3500", "5300", "7000", "10500"],
+  values: ["1800", "3500", "5300", "7000"],
   expiration: "1 year",
 }
 
@@ -158,7 +158,7 @@ function FullScreenTakeover({
         <DialogDescription className="sr-only">{ariaDescription}</DialogDescription>
 
         <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
             <span
               className={cn(
                 "min-w-0 truncate font-heading text-base font-semibold leading-6 text-foreground transition-opacity duration-200",
@@ -173,7 +173,7 @@ function FullScreenTakeover({
         </header>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-12 lg:px-10">
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-10">
+          <div className="mx-auto flex w-full max-w-2xl flex-col gap-10">
             <div className="flex flex-col gap-3">
               <h2
                 ref={titleRef}
@@ -995,7 +995,7 @@ function GiftCardSettingsDialog({
             values within minimum and maximum.
           </p>
         </div>
-        <div className="flex flex-col gap-3">
+        <div className="flex w-full max-w-md flex-col gap-3">
           {values.map((value, index) => (
             <GiftCardValueRow
               // biome-ignore lint/suspicious/noArrayIndexKey: rows are positional and editable in place
@@ -1005,19 +1005,19 @@ function GiftCardSettingsDialog({
               onDelete={() => removeValue(index)}
             />
           ))}
-        </div>
-        <div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            radius="full"
-            className="gap-1.5"
-            onClick={addValue}
-          >
-            <PlusIcon className="size-4" />
-            Add value
-          </Button>
+          <div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              radius="full"
+              className="gap-1.5"
+              onClick={addValue}
+            >
+              <PlusIcon className="size-4" />
+              Add value
+            </Button>
+          </div>
         </div>
       </section>
 
@@ -1034,7 +1034,7 @@ function GiftCardSettingsDialog({
           </p>
         </div>
         {/* biome-ignore lint/a11y/noLabelWithoutControl: control is the Select child */}
-        <label className="flex flex-col gap-1.5">
+        <label className="flex w-full max-w-md flex-col gap-1.5">
           <span className="text-sm font-medium leading-5 text-foreground">
             Default expiration period
           </span>
@@ -1070,7 +1070,7 @@ function GiftCardValueRow({
 }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex h-12 flex-1 items-center gap-2 rounded-2xl bg-input px-4 ring-inset focus-within:ring-2 focus-within:ring-foreground">
+      <div className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-2xl bg-input px-4 ring-inset focus-within:ring-2 focus-within:ring-foreground">
         <span className="text-sm font-medium text-muted-foreground">AED</span>
         <input
           inputMode="numeric"
