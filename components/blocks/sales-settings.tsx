@@ -1033,6 +1033,7 @@ function GiftCardSettingsDialog({
             affects newly sold gift cards.
           </p>
         </div>
+
         {/* biome-ignore lint/a11y/noLabelWithoutControl: control is the Select child */}
         <label className="flex w-full max-w-md flex-col gap-1.5">
           <span className="text-sm font-medium leading-5 text-foreground">
