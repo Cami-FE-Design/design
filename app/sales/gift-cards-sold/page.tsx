@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
+import { toast } from "sonner"
 import { MOCK_SALES, type Sale, SaleDetailDialog } from "@/app/sales/sales-list/page"
 import { AppShell } from "@/components/blocks/app-shell"
 import { EmptyState } from "@/components/blocks/empty-state"
@@ -412,7 +413,7 @@ function GiftCardDetailDialog({
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent
-        className="flex h-[800px] max-h-[calc(100vh-100px)] flex-col gap-0 p-0 sm:!max-w-[560px] !max-w-[560px]"
+        className="flex h-[800px] max-h-[calc(100vh-100px)] flex-col gap-0 p-0 sm:!max-w-[630px] !max-w-[630px]"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogDescription className="sr-only">Gift card {card.code}</DialogDescription>
@@ -425,7 +426,14 @@ function GiftCardDetailDialog({
           <div className="flex flex-col gap-0 bg-muted/40">
             <DialogHeader className="flex flex-col gap-3 px-9 pt-7 pb-4">
               <div className="flex items-center justify-between gap-3">
-                <Badge className={cn("font-medium", status.className)}>{status.label}</Badge>
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium",
+                    status.className,
+                  )}
+                >
+                  {status.label}
+                </span>
                 <div className="flex shrink-0 items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -948,7 +956,10 @@ function CopyButton({ value, className }: { value: string; className?: string })
   return (
     <button
       type="button"
-      onClick={() => navigator.clipboard?.writeText(value)}
+      onClick={() => {
+        navigator.clipboard?.writeText(value)
+        toast.success("Code copied")
+      }}
       aria-label="Copy code"
       className={cn("text-muted-foreground transition-colors hover:text-foreground", className)}
     >

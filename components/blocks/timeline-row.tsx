@@ -42,9 +42,13 @@ export function TimelineRow({ leading, isLast, children, className }: TimelineRo
       )}
     >
       {hasLeading ? <div className={cn("pt-4 text-sm", !isLast && "pb-6")}>{leading}</div> : null}
+      {/* Dot and dashed connector share one centered axis. The dot is centered
+          by `justify-center`; the 1px dashed line is pinned to the same center
+          (left-1/2 + w-px + -translate-x-1/2, border-box) so the dot sits
+          exactly on the line regardless of the cell's width. */}
       <div className="relative flex justify-center">
-        <div className="absolute inset-y-0 border-l border-border border-dashed" />
-        <div className="relative mt-5 size-2 shrink-0 -translate-x-[0.5px] rounded-full bg-cami-violet-9 ring-2 ring-card" />
+        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 border-l border-border border-dashed" />
+        <div className="relative mt-5 size-2 shrink-0 rounded-full bg-cami-violet-9 ring-2 ring-card" />
       </div>
       <div className={cn("min-w-0", !isLast && "pb-6")}>{children}</div>
     </li>

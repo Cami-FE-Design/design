@@ -1,6 +1,7 @@
 "use client"
 
 import { CopyIcon } from "lucide-react"
+import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
 type GiftCardVisualProps = {
@@ -32,7 +33,7 @@ export function GiftCardVisual({
   return (
     <div
       className={cn(
-        "flex aspect-[1.6/1] w-full max-w-[360px] flex-col justify-between rounded-2xl bg-linear-to-br from-blue-600 to-indigo-600 p-5 text-white shadow-sm",
+        "flex aspect-[1.6/1] w-full max-w-[360px] flex-col justify-between rounded-2xl bg-linear-to-br from-cami-violet-10 to-cami-violet-11 p-5 text-white shadow-sm",
         className,
       )}
     >
@@ -48,7 +49,10 @@ export function GiftCardVisual({
             {copyableCode ? (
               <button
                 type="button"
-                onClick={() => navigator.clipboard?.writeText(code)}
+                onClick={() => {
+                  navigator.clipboard?.writeText(code)
+                  toast.success("Code copied")
+                }}
                 aria-label="Copy code"
                 className="text-white/80 transition-colors hover:text-white"
               >

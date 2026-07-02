@@ -19,21 +19,22 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import type { LucideIcon } from "lucide-react"
 import {
+  ArrowUpRightIcon,
   BanknoteIcon,
   CalendarClockIcon,
   ChevronDownIcon,
   CircleDollarSignIcon,
-  CreditCardIcon,
+  CirclePlusIcon,
   GiftIcon,
   LockIcon,
   PencilIcon,
-  PlusIcon,
   StoreIcon,
   TagIcon,
   Trash2Icon,
+  WalletIcon,
   XIcon,
 } from "lucide-react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { Fragment, useEffect, useRef, useState } from "react"
 import { EmptyState } from "@/components/blocks/empty-state"
@@ -207,7 +208,7 @@ const SALES_CARDS: SalesCard[] = [
     id: "payment-methods",
     label: "Payment methods",
     description: "Customize the payment methods displayed at checkout for your team members.",
-    icon: CreditCardIcon,
+    icon: WalletIcon,
   },
   {
     id: "gift-cards",
@@ -228,24 +229,31 @@ type PaymentMethod = {
   locked?: boolean
 }
 
+// Neutral icon treatment shared by every payment method, matching the rest of
+// the settings list items. Colored per-method tints (Cash green, custom violet)
+// are intentionally omitted for now: checkout doesn't render these colors, so
+// settings + checkout would be inconsistent. Revisit colored variants — the
+// iconClassName/tileClassName fields still support them — once checkout does.
+const NEUTRAL_PAYMENT_METHOD_STYLE = {
+  iconClassName: "text-muted-foreground",
+  tileClassName: "border border-border/50 bg-background",
+} satisfies Pick<PaymentMethod, "iconClassName" | "tileClassName">
+
 // Every custom payment method (the seed "Other" and any the user adds) shares
 // this icon + tile so the list stays visually uniform. Defined once so the seed
-// and the add handler can't drift apart. Only the locked built-in Cash carries
-// its own semantic green tint.
+// and the add handler can't drift apart.
 const CUSTOM_PAYMENT_METHOD_STYLE = {
   icon: CircleDollarSignIcon,
-  iconClassName: "text-cami-violet-9",
-  tileClassName: "bg-cami-violet-3",
+  ...NEUTRAL_PAYMENT_METHOD_STYLE,
 } satisfies Pick<PaymentMethod, "icon" | "iconClassName" | "tileClassName">
 
-// Cash is always present and locked, and keeps the soft green cash tint.
+// Cash is always present and locked.
 const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
   {
     id: "cash",
     name: "Cash",
     icon: BanknoteIcon,
-    iconClassName: "text-cami-green-11",
-    tileClassName: "bg-cami-green-3",
+    ...NEUTRAL_PAYMENT_METHOD_STYLE,
     locked: true,
   },
   {
@@ -295,7 +303,7 @@ export function SalesSettings() {
               onClick={() => setView(card.id)}
               className="group flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5 text-left transition-colors hover:bg-foreground/3"
             >
-              <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background text-muted-foreground">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background text-muted-foreground">
                 <Icon className="size-5" />
               </span>
               <span className="flex min-w-0 flex-col gap-1">
@@ -358,7 +366,7 @@ function SubScreenActions({
       {children}
       {onAdd && addLabel ? (
         <Button type="button" variant="secondary" size="sm" radius="full" onClick={onAdd}>
-          <PlusIcon />
+          <CirclePlusIcon />
           {addLabel}
         </Button>
       ) : null}
@@ -422,6 +430,8 @@ function PaymentMethodsPanel({
     const id = deleteTarget.id
     setMethods((prev) => prev.filter((m) => m.id !== id))
     setDeleteTarget(null)
+    // Close the edit takeover too (no-op when delete came from the list row).
+    setForm(null)
   }
 
   return (
@@ -473,11 +483,7 @@ function PaymentMethodsPanel({
           onSubmit={handleSubmit}
           onDelete={
             form.mode === "edit" && !form.method.locked
-              ? () => {
-                  const method = form.method
-                  setForm(null)
-                  setDeleteTarget(method)
-                }
+              ? () => setDeleteTarget(form.method)
               : undefined
           }
         />
@@ -525,7 +531,7 @@ function PaymentMethodRow({
     <li className="flex shrink-0 items-center gap-4">
       <span
         className={cn(
-          "flex size-12 shrink-0 items-center justify-center rounded-xl",
+          "flex size-10 shrink-0 items-center justify-center rounded-xl",
           method.tileClassName ?? "bg-muted",
         )}
       >
@@ -594,19 +600,17 @@ function PaymentMethodFormDialog({
       actions={
         <>
           {mode === "edit" && onDelete ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="lg" radius="full">
-                  Options
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-                  <Trash2Icon className="size-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              type="button"
+              variant="ghost"
+              size="lg"
+              radius="full"
+              onClick={onDelete}
+              className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2Icon className="size-4" />
+              Delete
+            </Button>
           ) : null}
           <Button type="button" variant="outline" size="lg" radius="full" onClick={onClose}>
             Close
@@ -624,7 +628,7 @@ function PaymentMethodFormDialog({
       }
     >
       {/* biome-ignore lint/a11y/noLabelWithoutControl: control is the Input child */}
-      <label className="flex flex-col gap-1.5">
+      <label className="flex w-full max-w-md flex-col gap-1.5">
         <span className="text-sm font-medium leading-5 text-foreground">Name</span>
         <Input
           autoFocus
@@ -712,7 +716,7 @@ function SortablePaymentRow({ method }: { method: PaymentMethod }) {
     >
       <span
         className={cn(
-          "flex size-12 shrink-0 items-center justify-center rounded-xl",
+          "flex size-10 shrink-0 items-center justify-center rounded-xl",
           method.tileClassName ?? "bg-muted",
         )}
       >
@@ -815,6 +819,7 @@ function GiftCardsPanel({
       : DEFAULT_GIFT_CARD_CONFIG,
   )
   const [settingsOpen, setSettingsOpen] = useState(initialGift === "setup")
+  const router = useRouter()
   // The Gift cards enable toggle is the single source of truth: off => empty state.
   const active = config.enabled
 
@@ -830,7 +835,7 @@ function GiftCardsPanel({
         <GiftCardSummary
           config={config}
           onEdit={() => setSettingsOpen(true)}
-          onViewSold={() => {}}
+          onViewSold={() => router.push("/sales/gift-cards-sold")}
         />
       ) : (
         <section className="flex w-full flex-col rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146">
@@ -887,46 +892,57 @@ function GiftCardSummary({
   onEdit: () => void
   onViewSold?: () => void
 }) {
-  const valuesLabel = config.values.filter(Boolean).map(formatAed).join(", ")
+  // Keep this row inside the two-column grid like the others: show the first
+  // couple of values inline and roll the rest into a "+N more" count so a long
+  // list can't span the card full-width. The full list lives in the Edit view.
+  const values = config.values.filter(Boolean)
+  const INLINE_COUNT = 2
+  const valuesLabel =
+    values.length === 0
+      ? "—"
+      : values.length <= INLINE_COUNT
+        ? values.map(formatAed).join(", ")
+        : `${values.slice(0, INLINE_COUNT).map(formatAed).join(", ")} +${
+            values.length - INLINE_COUNT
+          } more`
+
   return (
-    <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit">
-      <header className="flex items-start justify-between gap-2">
-        <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
-          Availability and values
-        </h3>
-        <div className="flex shrink-0 items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="outline" size="sm" radius="full" className="gap-1.5">
-                Options
-                <ChevronDownIcon className="size-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => onViewSold?.()}>Gift cards sold</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div className="flex flex-col items-start gap-3">
+      <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit">
+        <header className="flex items-start justify-between gap-2">
+          <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+            Availability and values
+          </h3>
           <Button type="button" variant="secondary" size="sm" radius="full" onClick={onEdit}>
             Edit
           </Button>
-        </div>
-      </header>
-      <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-[16rem_16rem]">
-        <SettingsRow icon={StoreIcon} label="Available for sale" value="In-store only" />
-        <SettingsRow
-          icon={CalendarClockIcon}
-          label="Default expiration period"
-          value={config.expiration}
-        />
-        <div className="sm:col-span-2">
+        </header>
+        <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-[16rem_16rem]">
+          <SettingsRow icon={StoreIcon} label="Available for sale" value="In-store only" />
           <SettingsRow
-            icon={CircleDollarSignIcon}
-            label="Gift card values"
-            value={valuesLabel || "—"}
+            icon={CalendarClockIcon}
+            label="Default expiration period"
+            value={config.expiration}
           />
+          <SettingsRow icon={CircleDollarSignIcon} label="Gift card values" value={valuesLabel} />
         </div>
-      </div>
-    </section>
+      </section>
+      {/* Navigation action, not a card setting — lives outside the card with a
+          trailing arrow to signal it leaves the settings panel. */}
+      {onViewSold ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          radius="full"
+          onClick={onViewSold}
+          className="gap-1.5"
+        >
+          Gift cards sold
+          <ArrowUpRightIcon className="size-4" />
+        </Button>
+      ) : null}
+    </div>
   )
 }
 
@@ -1019,7 +1035,7 @@ function GiftCardSettingsDialog({
               className="gap-1.5"
               onClick={addValue}
             >
-              <PlusIcon className="size-4" />
+              <CirclePlusIcon className="size-4" />
               Add value
             </Button>
           </div>
