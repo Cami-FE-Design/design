@@ -606,9 +606,8 @@ function PaymentMethodFormDialog({
               size="lg"
               radius="full"
               onClick={onDelete}
-              className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
             >
-              <Trash2Icon className="size-4" />
               Delete
             </Button>
           ) : null}
