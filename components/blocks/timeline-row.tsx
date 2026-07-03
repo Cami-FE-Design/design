@@ -27,15 +27,28 @@ export function TimelineRow({ leading, isLast, children, className }: TimelineRo
   // pb-6 lives on the leading + content cells (not the row) so the connector
   // cell auto-stretches to include that padding area — keeps the dashed line
   // continuous between rows instead of breaking at row boundaries.
+  //
+  // Drop the leading date column entirely when there's no `leading` (e.g. the
+  // gift-card activity timeline, which groups by a month header instead of a
+  // per-row date) so cards aren't pushed right by an empty 72px gutter.
+  const hasLeading = leading != null
   return (
     <li
       data-slot="timeline-row"
-      className={cn("grid grid-cols-[72px_16px_minmax(0,1fr)] gap-3", className)}
+      className={cn(
+        "grid gap-3",
+        hasLeading ? "grid-cols-[72px_16px_minmax(0,1fr)]" : "grid-cols-[16px_minmax(0,1fr)]",
+        className,
+      )}
     >
-      <div className={cn("pt-4 text-sm", !isLast && "pb-6")}>{leading}</div>
+      {hasLeading ? <div className={cn("pt-4 text-sm", !isLast && "pb-6")}>{leading}</div> : null}
+      {/* Dot and dashed connector share one centered axis. The dot is centered
+          by `justify-center`; the 1px dashed line is pinned to the same center
+          (left-1/2 + w-px + -translate-x-1/2, border-box) so the dot sits
+          exactly on the line regardless of the cell's width. */}
       <div className="relative flex justify-center">
-        <div className="absolute inset-y-0 border-l border-border border-dashed" />
-        <div className="relative mt-5 size-2 shrink-0 -translate-x-[0.5px] rounded-full bg-cami-violet-9 ring-2 ring-card" />
+        <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 border-l border-border border-dashed" />
+        <div className="relative mt-5 size-2 shrink-0 rounded-full bg-cami-violet-9 ring-2 ring-card" />
       </div>
       <div className={cn("min-w-0", !isLast && "pb-6")}>{children}</div>
     </li>
