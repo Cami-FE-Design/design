@@ -538,3 +538,14 @@
     transform-origin: left;
   }
 }
+
+@layer utilities {
+  /* Hide the scrollbar while keeping horizontal/vertical scroll (used on pill
+     rails, category tabs). */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
