@@ -67,7 +67,8 @@ const SHAMPOOCH: PublicBusiness = {
   businessName: "Shampooch JVC",
   displayName: "Shampooch",
   slug: "shampooch-jvc",
-  logoUrl: "",
+  logoUrl:
+    "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=200&h=200&q=80",
   shortDescription: "Boutique grooming for dogs and cats, in the heart of JVC.",
   longDescription:
     "Shampooch JVC is a boutique pet grooming salon offering full-service baths, cuts, and pampering. Our team works with dogs and cats of every size and temperament, and we keep appointments small to give every pet our full attention.",
@@ -148,7 +149,8 @@ const PURRPALACE: PublicBusiness = {
   businessName: "Purr Palace",
   displayName: "Purr Palace",
   slug: "purr-palace",
-  logoUrl: "",
+  logoUrl:
+    "https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=200&h=200&q=80",
   shortDescription: "Cat-only boarding and daycare in Al Quoz.",
   longDescription:
     "A calm, cat-only environment. No dogs, no shared rooms, no stress. Each guest gets a private suite with a window and quiet hours overnight.",

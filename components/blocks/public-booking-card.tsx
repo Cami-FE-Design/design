@@ -76,8 +76,8 @@ export function PublicBookingCard({ business }: { business: PublicBusiness }) {
           </div>
         </div>
 
-        <Button size="lg" radius="full" className="w-full">
-          Book now
+        <Button asChild size="lg" radius="full" className="w-full">
+          <a href={`/${business.slug}/book`}>Book now</a>
         </Button>
       </CardContent>
     </Card>

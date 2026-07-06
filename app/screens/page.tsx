@@ -463,6 +463,38 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Pet parent, booking flow (E3-4 / E3-6)",
+    description:
+      "Public pet-parent booking on cami.app/[slug]/book, opened from the business page 'Book now'. Categorized multi-select services (scales past 30 via tabs + a Categories sheet), staff/day/time picker, inline details + pet capture (pet-module feature-flagged, no separate step), confirm, and a 'You're booked' terminal. Responsive: mobile single column with a Price breakdown sheet; desktop two-pane with a sticky summary cart.",
+    screens: [
+      {
+        path: "/shampooch-jvc/book",
+        label: "Booking flow · services → time → details → confirm",
+        note: "Multi-select service cards by category, slot picker (staff chips, circle day picker, available-times list, 5-min hold), details + inline pet capture, confirm with summed total, then 'You're booked' with a reference.",
+      },
+      {
+        path: "/purr-palace/book",
+        label: "Booking flow · second business",
+        note: "Confirms the flow is data-driven off the public business",
+      },
+      {
+        path: "/shampooch-jvc/booking/CAMI-4821",
+        label: "Manage booking (E3-5)",
+        note: "View detail → reschedule (re-enters the slot picker) or cancel (guarded destructive) → updated / cancelled terminals.",
+      },
+      {
+        path: "/account",
+        label: "Pet-parent account (E3-6)",
+        note: "Passwordless: mobile → OTP verify → home (upcoming booking, pets, profile). New numbers auto-create an account.",
+      },
+      {
+        path: "/emails/booking-confirmation",
+        label: "Confirmation email (E3-5)",
+        note: "Branded email template; pet business leads the header, Cami signature footer, manage-booking CTA.",
+      },
+    ],
+  },
+  {
     title: "Demos & playground",
     description: "Internal references for shell layout and component states.",
     screens: [
