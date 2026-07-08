@@ -74,6 +74,33 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Consent form signing (public)",
+    description:
+      "Recipient-facing consent-form signing at cami.app/sign/[token] (e.g. a pet grooming consent + liability waiver). Opens from an emailed link, no login. OTP verify → a full-height split matching the operator's 'View form' screen (the only scroll surface is the PDF itself; no close/dismiss control): the document as a real in-app PDF on the left with a floating zoom + page-nav toolbar, and the signing form on the right as a card (Full Legal Name, Email, Type/Draw signature, an agree-to-terms toggle, Sign Agreement) — no modal. Each token suffix (-signed / -completed / -closed) seeds one state so every screen is reachable from a URL.",
+    screens: [
+      {
+        path: "/sign/consent",
+        label: "Awaiting · full flow",
+        note: "OTP verify (any 6 digits not starting with 0 pass; a leading 0 fails + shakes) → signing screen: PDF left (zoom −/+ and Prev/Next page toolbar, the only scroll surface), signing card right. Fill name + email, Type (scripted preview) or Draw (canvas + Clear) a signature, flip the agree toggle → Sign Agreement enables → completed thank-you. No close/dismiss control — the recipient just fills and signs.",
+      },
+      {
+        path: "/sign/consent-signed",
+        label: "Already signed",
+        note: "Skips OTP, lands on the signing screen with the right card in a read-only Signed state showing the captured signature.",
+      },
+      {
+        path: "/sign/consent-completed",
+        label: "Completed · terminal",
+        note: "Post-signing thank-you: success message confirming the signed form was sent back to the business. No document or signing UI.",
+      },
+      {
+        path: "/sign/consent-closed",
+        label: "Closed · terminal",
+        note: "Neutral 'Form closed' terminal — the form was closed without being completed, nothing saved. No close/reopen controls on the signer itself; this is a backend-set state.",
+      },
+    ],
+  },
+  {
     title: "Auth, business",
     description: "Business owner and team member sign-in flow.",
     screens: [
@@ -349,6 +376,21 @@ const SECTIONS: Section[] = [
         path: "/clients?client=millie-cassidy",
         label: "Edit pet takeover (stacked)",
         note: "Open a pet from the client's Pets tab, then Actions → Edit pet. Same takeover, pre-populated with that pet's data.",
+      },
+      {
+        path: "/clients?client=kirsty-dingomal&tab=documents",
+        label: "Client detail · Documents tab",
+        note: "Deep-links straight into the Documents tab: the consent forms + files list. Each signed/pending form has a 'View form' action.",
+      },
+      {
+        path: "/clients?client=kirsty-dingomal&form=seed-form-1",
+        label: "View form · full-screen (signed)",
+        note: "Opens the full-screen consent viewer directly (Documents tab, signed 'Client consent'): PDF left, signature panel right, single Close pill — the operator mirror of the public /sign/consent-signed screen.",
+      },
+      {
+        path: "/clients?client=kirsty-dingomal&file=seed-file-1",
+        label: "File preview · full-screen (PDF)",
+        note: "Opens a Files-row 'Preview file' directly: the same full-screen shell as View form (sticky header, Download + Close) but single-column — just the in-app PDF, no signature panel. A demo PDF is generated so the seeded file renders.",
       },
       {
         path: "/pets",

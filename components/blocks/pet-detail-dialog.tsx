@@ -3,14 +3,15 @@
 import {
   ChevronDownIcon,
   ChevronRightIcon,
+  CirclePlusIcon,
   MoreHorizontalIcon,
-  PlusIcon,
   XIcon,
 } from "lucide-react"
 import { useState } from "react"
 
 import { AddVaccineDialog } from "@/components/blocks/add-vaccine-dialog"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
+import { DocumentsFormsAndFiles } from "@/components/blocks/documents-files-card"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
@@ -393,7 +394,7 @@ export function PetDetailDialog({
                   title="Pet notes"
                   action={
                     <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
+                      <CirclePlusIcon />
                       Add note
                     </Button>
                   }
@@ -425,7 +426,7 @@ export function PetDetailDialog({
                     radius="full"
                     onClick={() => openEditAt("family")}
                   >
-                    <PlusIcon />
+                    <CirclePlusIcon />
                     Add family
                   </Button>
                 </div>
@@ -565,7 +566,7 @@ export function PetDetailDialog({
                   title="Pet notes"
                   action={
                     <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
+                      <CirclePlusIcon />
                       Add note
                     </Button>
                   }
@@ -595,7 +596,7 @@ export function PetDetailDialog({
                       radius="full"
                       onClick={() => setAddVaccineOpen(true)}
                     >
-                      <PlusIcon />
+                      <CirclePlusIcon />
                       Add vaccine
                     </Button>
                   }
@@ -611,32 +612,10 @@ export function PetDetailDialog({
                   )}
                 </SectionCard>
 
-                <SectionCard
-                  title="Consent forms"
-                  action={
-                    <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
-                      Add form
-                    </Button>
-                  }
-                >
-                  <p className="text-sm text-muted-foreground">
-                    Pre-daycare behavioral, health history, allergy info, grooming consent,
-                    liability waiver, etc. — full forms catalog comes in v1.
-                  </p>
-                </SectionCard>
-
-                <SectionCard
-                  title="Files"
-                  action={
-                    <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
-                      Upload file
-                    </Button>
-                  }
-                >
-                  <p className="text-sm text-muted-foreground">No files yet.</p>
-                </SectionCard>
+                <DocumentsFormsAndFiles
+                  formsTitle="Consent forms"
+                  recipientName={owners[0]?.name}
+                />
               </TabsContent>
             </div>
           </Tabs>

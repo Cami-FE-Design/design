@@ -4,6 +4,7 @@ import {
   CalendarIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  CirclePlusIcon,
   MoreHorizontalIcon,
   PawPrintIcon,
   PlusIcon,
@@ -14,6 +15,7 @@ import {
 import { useState } from "react"
 
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
+import { DocumentsFormsAndFiles } from "@/components/blocks/documents-files-card"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
@@ -81,9 +83,15 @@ type ClientDetailDialogProps = {
   onDelete?: () => void
   /** Fired when an owner chip is clicked inside the stacked Pet detail. */
   onSelectOwner?: (ownerId: string) => void
+  /** Tab to open on first mount — lets a URL deep-link land on e.g. Documents. */
+  initialTab?: TabId
+  /** Consent-form id to open in the full-screen viewer on mount (Documents tab). */
+  initialViewFormId?: string
+  /** File id to open in the full-screen file preview on mount (Documents tab). */
+  initialPreviewFileId?: string
 }
 
-type TabId = "overview" | "appointments" | "sales" | "details" | "pets" | "documents"
+export type TabId = "overview" | "appointments" | "sales" | "details" | "pets" | "documents"
 
 const PRIMARY_TABS: Array<{
   id: TabId
@@ -327,8 +335,13 @@ export function ClientDetailDialog({
   onMerge,
   onDelete,
   onSelectOwner,
+  initialTab,
+  initialViewFormId,
+  initialPreviewFileId,
 }: ClientDetailDialogProps) {
-  const [tab, setTab] = useState<TabId>("overview")
+  const [tab, setTab] = useState<TabId>(
+    initialTab && PRIMARY_TABS.some((t) => t.id === initialTab) ? initialTab : "overview",
+  )
   const [apptStatus, setApptStatus] = useState<ApptStatus>("all")
   const [saleStatus, setSaleStatus] = useState<SaleStatus>("all")
   const [noShowDialogOpen, setNoShowDialogOpen] = useState(false)
@@ -565,7 +578,7 @@ export function ClientDetailDialog({
                   title="Notes"
                   action={
                     <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
+                      <CirclePlusIcon />
                       Add note
                     </Button>
                   }
@@ -783,7 +796,7 @@ export function ClientDetailDialog({
                               radius="full"
                               className="gap-1"
                             >
-                              <PlusIcon className="size-3.5" />
+                              <CirclePlusIcon className="size-3.5" />
                               Add tag
                             </Button>
                           </div>
@@ -844,7 +857,7 @@ export function ClientDetailDialog({
                     radius="full"
                     onClick={() => setAddPetOpen(true)}
                   >
-                    <PlusIcon />
+                    <CirclePlusIcon />
                     Add pet
                   </Button>
                 </div>
@@ -869,7 +882,7 @@ export function ClientDetailDialog({
                   title="Notes"
                   action={
                     <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
+                      <CirclePlusIcon />
                       Add note
                     </Button>
                   }
@@ -880,7 +893,7 @@ export function ClientDetailDialog({
                   title="Allergies"
                   action={
                     <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
+                      <CirclePlusIcon />
                       Add allergy
                     </Button>
                   }
@@ -891,38 +904,20 @@ export function ClientDetailDialog({
                   title="Patch tests"
                   action={
                     <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
+                      <CirclePlusIcon />
                       Add patch test
                     </Button>
                   }
                 >
                   <p className="text-sm text-muted-foreground">No patch tests yet.</p>
                 </SectionCard>
-                <SectionCard
-                  title="Forms"
-                  action={
-                    <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
-                      Add form
-                    </Button>
-                  }
-                >
-                  <p className="text-sm text-muted-foreground">
-                    Client intake, COVID screening, liability waiver, photo release, etc. — full
-                    forms catalog comes in v1.
-                  </p>
-                </SectionCard>
-                <SectionCard
-                  title="Files"
-                  action={
-                    <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
-                      Upload file
-                    </Button>
-                  }
-                >
-                  <p className="text-sm text-muted-foreground">No files yet.</p>
-                </SectionCard>
+                <DocumentsFormsAndFiles
+                  formsTitle="Forms"
+                  recipientName={client.name}
+                  recipientEmail={client.email}
+                  initialViewFormId={initialViewFormId}
+                  initialPreviewFileId={initialPreviewFileId}
+                />
               </TabsContent>
             </div>
           </Tabs>
@@ -1284,7 +1279,7 @@ function PetsOverviewCard({ onAddPet }: { onAddPet?: () => void }) {
       title="Pets"
       action={
         <Button variant="secondary" size="sm" radius="full" onClick={onAddPet}>
-          <PlusIcon />
+          <CirclePlusIcon />
           Add pet
         </Button>
       }
