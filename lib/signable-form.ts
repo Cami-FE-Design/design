@@ -3,10 +3,10 @@
 // A form the operator sent for signature is addressed by an opaque link token
 // (what lands in the recipient's email). This is mock-only: a small map of
 // seeded tokens, mirroring how /[slug]/pay/[token] fakes its payment links.
-// The `-signed` / `-completed` / `-closed` suffixes seed each terminal state so
-// every screen is reachable from a URL for the /screens index.
+// The `-signed` / `-completed` suffixes seed each terminal state so every
+// screen is reachable from a URL for the /screens index.
 
-export type SignableFormState = "awaiting" | "signed" | "completed" | "closed"
+export type SignableFormState = "awaiting" | "signed" | "completed"
 
 export type SignableForm = {
   token: string
@@ -60,7 +60,6 @@ const FORMS: ReadonlyMap<string, SignableForm> = new Map(
       { token: "consent", state: "awaiting" },
       { token: "consent-signed", state: "signed" },
       { token: "consent-completed", state: "completed" },
-      { token: "consent-closed", state: "closed" },
     ] as const
   ).map(({ token, state }) => [token, { ...BASE, token, state }]),
 )

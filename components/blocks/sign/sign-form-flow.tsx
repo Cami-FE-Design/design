@@ -19,19 +19,17 @@ import { cn } from "@/lib/utils"
 const RESEND_SECONDS = 30
 const CODE_LENGTH = 6
 
-type Phase = "verify" | "review" | "completed" | "closed"
+type Phase = "verify" | "review" | "completed"
 type VerifyState = "idle" | "verifying" | "success" | "error"
 
 export function SignFormFlow({ form }: { form: SignableForm }) {
   // Each seeded state lands the flow on the matching screen so every state is
   // reachable from a URL: a pre-signed link skips OTP into the read-only review;
-  // completed / closed are terminal; awaiting starts at OTP verify.
+  // completed is terminal; awaiting starts at OTP verify.
   const [phase, setPhase] = useState<Phase>(() => {
     switch (form.state) {
       case "completed":
         return "completed"
-      case "closed":
-        return "closed"
       case "signed":
         return "review"
       default:
@@ -45,16 +43,6 @@ export function SignFormFlow({ form }: { form: SignableForm }) {
         tone="success"
         title="Form completed"
         body={`Thanks, ${form.recipientName.split(" ")[0]}. Your signed ${form.formName} has been sent back to ${form.businessName}. You can close this window.`}
-      />
-    )
-  }
-
-  if (phase === "closed") {
-    return (
-      <TerminalShell
-        tone="neutral"
-        title="Form closed"
-        body="This form was closed without being completed. Nothing was saved."
       />
     )
   }

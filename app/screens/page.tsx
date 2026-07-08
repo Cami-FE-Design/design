@@ -76,7 +76,7 @@ const SECTIONS: Section[] = [
   {
     title: "Consent form signing (public)",
     description:
-      "Recipient-facing consent-form signing at cami.app/sign/[token] (e.g. a pet grooming consent + liability waiver). Opens from an emailed link, no login. OTP verify → a full-height split matching the operator's 'View form' screen (the only scroll surface is the PDF itself; no close/dismiss control): the document as a real in-app PDF on the left with a floating zoom + page-nav toolbar, and the signing form on the right as a card (Full Legal Name, Email, Type/Draw signature, an agree-to-terms toggle, Sign Agreement) — no modal. Each token suffix (-signed / -completed / -closed) seeds one state so every screen is reachable from a URL.",
+      "Recipient-facing consent-form signing at cami.app/sign/[token] (e.g. a pet grooming consent + liability waiver). Opens from an emailed link, no login. OTP verify → a full-height split matching the operator's 'View form' screen (the only scroll surface is the PDF itself; no close/dismiss control): the document as a real in-app PDF on the left with a floating zoom + page-nav toolbar, and the signing form on the right as a card (Full Legal Name, Email, Type/Draw signature, an agree-to-terms toggle, Sign Agreement) — no modal. Each token suffix (-signed / -completed) seeds one state so every screen is reachable from a URL.",
     screens: [
       {
         path: "/sign/consent",
@@ -92,11 +92,6 @@ const SECTIONS: Section[] = [
         path: "/sign/consent-completed",
         label: "Completed · terminal",
         note: "Post-signing thank-you: success message confirming the signed form was sent back to the business. No document or signing UI.",
-      },
-      {
-        path: "/sign/consent-closed",
-        label: "Closed · terminal",
-        note: "Neutral 'Form closed' terminal — the form was closed without being completed, nothing saved. No close/reopen controls on the signer itself; this is a backend-set state.",
       },
     ],
   },
