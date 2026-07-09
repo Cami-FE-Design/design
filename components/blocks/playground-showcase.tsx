@@ -43,8 +43,11 @@ import { RedeemGiftCardDialog } from "@/app/sales/new-sale/redeem-gift-card-dial
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
 import { AppointmentsToolbar } from "@/components/blocks/appointments-toolbar"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
+import { BoardingDetailSheet } from "@/components/blocks/boarding/booking-detail-sheet"
+import { NewBoardingSheet } from "@/components/blocks/boarding/new-boarding-sheet"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
+import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
@@ -115,6 +118,8 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
+import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import { cn } from "@/lib/utils"
@@ -170,6 +175,9 @@ export function PlaygroundShowcase() {
   const [shellSection, setShellSection] = useState<string>("overview")
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailHasPets, setDetailHasPets] = useState(true)
+  const [boardingDrawerOpen, setBoardingDrawerOpen] = useState(false)
+  const [boardingCreateOpen, setBoardingCreateOpen] = useState(false)
+  const [daycareDrawerOpen, setDaycareDrawerOpen] = useState(false)
   const [petDetailOpen, setPetDetailOpen] = useState(false)
   const [clientEditOpen, setClientEditOpen] = useState(false)
   const [petEditOpen, setPetEditOpen] = useState(false)
@@ -966,6 +974,38 @@ export function PlaygroundShowcase() {
           onBookNow={() => toast("Book (stubbed)")}
           onMerge={() => toast("Merge profiles (stubbed)")}
           onDelete={() => toast.error("Delete client (stubbed)")}
+        />
+      </Section>
+
+      <Section
+        title="Boarding & daycare booking drawers"
+        description="Right-side Sheet detail drawers modeled on <AppointmentDetailSheet>. Boarding is night-based (rate/night, check-in/out, N Nights, Subtotal by nights); daycare is duration-based (plan label 'Full Day · Up to 8 hours', time range, Subtotal by minutes). Both share: collapsible customer card, pet card, editable status pill (Booked → Checked in → Checked out → No-show/Canceled), add-on chips + Add menu (Primary Service/Add-on/Product/Custom Item), Late check out fee toggle, notes, sticky Check Out. The New boarding stay create sheet mirrors the add-appointment shell."
+      >
+        <Row label="Boarding">
+          <div className="flex gap-2">
+            <Button onClick={() => setBoardingDrawerOpen(true)}>Open booking detail</Button>
+            <Button variant="outline" radius="full" onClick={() => setBoardingCreateOpen(true)}>
+              New boarding stay
+            </Button>
+          </div>
+        </Row>
+        <Row label="Daycare">
+          <Button onClick={() => setDaycareDrawerOpen(true)}>Open booking detail</Button>
+        </Row>
+        <BoardingDetailSheet
+          open={boardingDrawerOpen}
+          onOpenChange={setBoardingDrawerOpen}
+          stay={BOARDING_STAYS[0]}
+        />
+        <NewBoardingSheet
+          open={boardingCreateOpen}
+          onOpenChange={setBoardingCreateOpen}
+          date={BOARDING_TODAY}
+        />
+        <DaycareDetailSheet
+          open={daycareDrawerOpen}
+          onOpenChange={setDaycareDrawerOpen}
+          session={DAYCARE_SESSIONS[3]}
         />
       </Section>
 
