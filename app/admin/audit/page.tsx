@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo } from "react"
 import { AdminShell } from "@/components/blocks/admin-shell"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -116,12 +117,12 @@ function AuditRow({ event }: { event: GlobalAuditEvent }) {
 function AuditTable({ events }: { events: GlobalAuditEvent[] }) {
   if (events.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-16 text-center">
-        <p className="text-sm font-medium text-foreground">No audit events match</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Try a different tab, business, or clear the search.
-        </p>
-      </div>
+      <EmptyState
+        variant="card"
+        icon={ShieldAlertIcon}
+        title="No audit events match"
+        description="Try a different tab, business, or clear the search."
+      />
     )
   }
   return (

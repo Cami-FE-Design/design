@@ -1,7 +1,8 @@
 "use client"
 
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon } from "lucide-react"
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, PackageIcon } from "lucide-react"
 import { useState } from "react"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { ProductImagePlaceholder } from "@/components/blocks/product-image-placeholder"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -165,9 +166,12 @@ export function ProductsTable({
 
   if (sorted.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-12 text-center text-sm text-muted-foreground">
-        No products match this filter.
-      </div>
+      <EmptyState
+        variant="card"
+        icon={PackageIcon}
+        title="No products match"
+        description="Try a different search."
+      />
     )
   }
 

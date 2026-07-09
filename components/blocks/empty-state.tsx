@@ -16,10 +16,10 @@ type EmptyStateProps = {
   /**
    * Visual treatment:
    * - "plain" (default): borderless, muted icon — for inline section empties.
-   * - "card": dashed-border card with a tilted brand-accent icon and a bolder
-   *   title. This is the full-page listing treatment used across the sales,
-   *   clients, pets, products, and appointments tables when a search/filter
-   *   returns nothing (or the list is genuinely empty).
+   * - "card": the same light line-icon and muted title as "plain", inside a
+   *   dashed self-framed card. This is the full-page listing treatment used
+   *   across the sales, clients, pets, products, and appointments tables when
+   *   a search/filter returns nothing (or the list is genuinely empty).
    */
   variant?: "plain" | "card"
 }
@@ -46,13 +46,12 @@ export function EmptyState({
           className,
         )}
       >
-        <Icon
-          className="size-10 rotate-[-20deg] stroke-[1.25] text-cami-violet-9"
-          aria-hidden="true"
-        />
-        <p className="mt-3 text-base font-semibold text-foreground">{title}</p>
+        <Icon className="size-10 stroke-[1.25] text-muted-foreground/50" aria-hidden="true" />
+        <p className="mt-3 text-sm font-medium text-muted-foreground">{title}</p>
         {description ? (
-          <p className="mt-1 max-w-xs text-balance text-sm text-muted-foreground">{description}</p>
+          <p className="mt-1 max-w-xs text-balance text-sm text-muted-foreground/70">
+            {description}
+          </p>
         ) : null}
         {action ? <div className="mt-4">{action}</div> : null}
       </div>
