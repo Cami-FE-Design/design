@@ -26,6 +26,15 @@ export const BOOKING_STAFF: ReadonlyArray<BookingStaff> = [
   { id: "lena", name: "Lena Hassan", role: "Senior groomer" },
   { id: "mariam", name: "Mariam Saleh", role: "Groomer" },
   { id: "deepa", name: "Deepa Nair", role: "Groomer" },
+  { id: "aisha", name: "Aisha Rahman", role: "Senior groomer" },
+  { id: "omar", name: "Omar Farooq", role: "Groomer" },
+  { id: "priya", name: "Priya Menon", role: "Bather" },
+  { id: "yusuf", name: "Yusuf Khan", role: "Groomer" },
+  { id: "sara", name: "Sara Ali", role: "Stylist" },
+  { id: "diana", name: "Diana Costa", role: "Groomer" },
+  { id: "hana", name: "Hana Tariq", role: "Bather" },
+  { id: "raj", name: "Raj Patel", role: "Senior groomer" },
+  { id: "nadia", name: "Nadia Karim", role: "Groomer" },
 ]
 
 // ─── Days + slots ─────────────────────────────────────────────────────────────
@@ -331,7 +340,9 @@ export function bookingRef(serviceId: string, dayId: string, time: string): stri
 // In production the magic-link token resolves a ref to the real booking. Mock:
 // synthesize a coherent snapshot from the business so /[slug]/booking/[ref]
 // always has something faithful to show.
-export type BookingStatus = "confirmed" | "cancelled"
+// "booked" = request placed, awaiting the salon to confirm. "confirmed" = salon
+// accepted. New bookings always start as "booked".
+export type BookingStatus = "booked" | "confirmed" | "cancelled"
 
 export type BookingDetail = {
   ref: string
@@ -342,6 +353,8 @@ export type BookingDetail = {
   priceAed: number
   dayLabel: string
   timeLabel: string
+  /** Machine start time (local, salon timezone) for calendar exports. */
+  startISO: string
   staffName: string
   petName?: string
   customerName: string
@@ -354,12 +367,17 @@ export function resolveBooking(business: PublicBusiness, ref: string): BookingDe
   return {
     ref,
     businessSlug: business.slug,
-    status: ref.endsWith("-cancelled") ? "cancelled" : "confirmed",
+    status: ref.endsWith("-cancelled")
+      ? "cancelled"
+      : ref.endsWith("-confirmed")
+        ? "confirmed"
+        : "booked",
     serviceName: service.name,
     durationMinutes: service.durationMinutes,
     priceAed: service.priceAed,
     dayLabel: "Wed 1 Jul",
     timeLabel: "10:00am",
+    startISO: "2026-07-01T10:00:00",
     staffName: BOOKING_STAFF[0]!.name,
     petName: businessHasPets(business) ? RETURNING_PETS[0]!.name : undefined,
     customerName: "Michelle You",
@@ -367,3 +385,70 @@ export function resolveBooking(business: PublicBusiness, ref: string): BookingDe
 }
 
 export type { PublicService }
+
+// ─── Calendar export (Add to calendar) ────────────────────────────────────────
+
+const SALON_TZ = "Asia/Dubai"
+
+/** Local floating stamp: YYYYMMDDTHHMMSS — no trailing Z, interpreted in SALON_TZ. */
+function stampCalendar(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0")
+  return (
+    `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}` +
+    `T${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`
+  )
+}
+
+function escapeIcsText(s: string): string {
+  return s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n")
+}
+
+export type CalendarEvent = {
+  ref: string
+  title: string
+  location: string
+  description: string
+  startISO: string
+  durationMinutes: number
+}
+
+/**
+ * Build "Add to calendar" targets. Google gets a TEMPLATE URL; Apple/Outlook get
+ * a downloadable .ics data URI (both consume the iCalendar format).
+ */
+export function calendarLinks(event: CalendarEvent): { google: string; ics: string } {
+  const start = new Date(event.startISO)
+  const end = new Date(start.getTime() + event.durationMinutes * 60_000)
+  const startStamp = stampCalendar(start)
+  const endStamp = stampCalendar(end)
+
+  const google =
+    "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+    `&text=${encodeURIComponent(event.title)}` +
+    `&dates=${startStamp}/${endStamp}` +
+    `&details=${encodeURIComponent(event.description)}` +
+    `&location=${encodeURIComponent(event.location)}` +
+    `&ctz=${encodeURIComponent(SALON_TZ)}`
+
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Cami//Booking//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `UID:${event.ref}@cami.app`,
+    `DTSTART;TZID=${SALON_TZ}:${startStamp}`,
+    `DTEND;TZID=${SALON_TZ}:${endStamp}`,
+    `SUMMARY:${escapeIcsText(event.title)}`,
+    `LOCATION:${escapeIcsText(event.location)}`,
+    `DESCRIPTION:${escapeIcsText(event.description)}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n")
+
+  return {
+    google,
+    ics: `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`,
+  }
+}
