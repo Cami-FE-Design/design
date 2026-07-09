@@ -32,8 +32,8 @@ export const topMenu: MenuItem[] = [
     label: "Schedules",
     children: [
       { label: "Appointments", href: "/appointments" },
-      { label: "Boarding" },
-      { label: "Day Care" },
+      { label: "Boarding", href: "/appointments/boarding" },
+      { label: "Day Care", href: "/appointments/daycare" },
     ],
   },
   {
