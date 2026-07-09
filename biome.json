@@ -7,7 +7,16 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!.next", "!node_modules", "!pnpm-lock.yaml", "!next-env.d.ts", "!**/*.css"]
+    "includes": [
+      "**",
+      "!.next",
+      "!node_modules",
+      "!pnpm-lock.yaml",
+      "!next-env.d.ts",
+      "!**/*.css",
+      "!**/*.min.js",
+      "!**/*.min.mjs"
+    ]
   },
   "formatter": {
     "enabled": true,
