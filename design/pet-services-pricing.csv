@@ -1,0 +1,143 @@
+category,service,price_aed,notes
+Grooming,Blow Dry & Spritz SM,50,
+Grooming,Blow Dry & Spritz MD,50,
+Grooming,Blow Dry & Spritz LG,50,
+Grooming,Wash & Blow Dry SM,100,
+Grooming,Wash & Blow Dry MD,125,
+Grooming,Wash & Blow Dry LG,150,
+Grooming,Full Grooming SM,210,
+Grooming,Full Grooming MD,250,
+Grooming,Full Grooming LG,300,
+Grooming,Dematting SM,60,
+Grooming,Dematting MD,80,
+Grooming,Dematting LG,100,
+Grooming,Deshedding Treatment SM,150,
+Grooming,Deshedding Treatment MD,200,
+Grooming,Deshedding Treatment LG,250,
+Grooming,Puppy's First Groom SM,180,Under 6 months
+Grooming,Puppy's First Groom MD,220,Under 6 months
+Grooming,Puppy's First Groom LG,260,Under 6 months
+Grooming,Hand Stripping SM,250,Wire-coat breeds
+Grooming,Hand Stripping MD,320,Wire-coat breeds
+Grooming,Hand Stripping LG,400,Wire-coat breeds
+Grooming,Spa Treatment SM,180,Includes mud mask
+Grooming,Spa Treatment MD,220,Includes mud mask
+Grooming,Spa Treatment LG,280,Includes mud mask
+Details Job,Ear Cleaning SM,30,
+Details Job,Ear Cleaning MD,30,
+Details Job,Ear Cleaning LG,30,
+Details Job,Nails Clipping SM,30,
+Details Job,Nails Clipping MD,30,
+Details Job,Nails Clipping LG,30,
+Details Job,Medicated Shampoo SM,30,
+Details Job,Medicated Shampoo MD,30,
+Details Job,Medicated Shampoo LG,30,
+Details Job,Teeth Brushing SM,30,
+Details Job,Teeth Brushing MD,30,
+Details Job,Teeth Brushing LG,30,
+Details Job,Anal Gland SM,30,
+Details Job,Anal Gland MD,30,
+Details Job,Anal Gland LG,30,
+Details Job,Paws Trimming SM,30,
+Details Job,Paws Trimming MD,30,
+Details Job,Paws Trimming LG,30,
+Details Job,2 Details SM,50,
+Details Job,2 Details MD,50,
+Details Job,2 Details LG,50,
+Details Job,Paw Balm Application SM,25,
+Details Job,Paw Balm Application MD,25,
+Details Job,Paw Balm Application LG,25,
+Details Job,Cologne Finish SM,20,
+Details Job,Cologne Finish MD,20,
+Details Job,Cologne Finish LG,20,
+Boarding,One Night 1st Dog,160,
+Boarding,One Night Add'l Dog,120,
+Boarding,Extended Stay (7+ nights) 1st Dog,140,Per night
+Boarding,Extended Stay (7+ nights) Add'l Dog,100,Per night
+Boarding,Holiday Surcharge 1st Dog,40,Per night; public holidays
+Boarding,Holiday Surcharge Add'l Dog,30,Per night; public holidays
+Day Care,1 Hour 1st Dog,20,
+Day Care,1 Hour Add'l Dog,15,
+Day Care,1/2 Day 1st Dog,60,Valid for 5 hours
+Day Care,1/2 Day Add'l Dog,45,Valid for 5 hours
+Day Care,1 Day 1st Dog,100,
+Day Care,1 Day Add'l Dog,70,
+Day Care,Late Pickup 1st Dog,50,After 7pm; per hour
+Day Care,Late Pickup Add'l Dog,40,After 7pm; per hour
+Packages,5 Days 1st Dog,450,Valid for 2 months
+Packages,5 Days Add'l Dog,300,Valid for 2 months
+Packages,15 Days 1st Dog,1300,Valid for 2 months
+Packages,15 Days Add'l Dog,900,Valid for 2 months
+Packages,20 Days 1st Dog,1500,Valid for 2 months
+Packages,20 Days Add'l Dog,1100,Valid for 2 months
+Packages,Unlimited 1st Dog,1800,Valid for 1 month
+Packages,Unlimited Add'l Dog,1500,Valid for 1 month
+Packages,Grooming 5-Pack 1st Dog,950,Full grooming; valid 4 months
+Packages,Grooming 5-Pack Add'l Dog,850,Full grooming; valid 4 months
+Welcome,Registration and Assessment 1st Dog,0,Free
+Welcome,Registration and Assessment Add'l Dog,0,Free
+Welcome,Meet & Greet Session 1st Dog,0,Free; 30 minutes
+Welcome,Meet & Greet Session Add'l Dog,0,Free; 30 minutes
+Vet,General Consultation SM,150,
+Vet,General Consultation MD,150,
+Vet,General Consultation LG,150,
+Vet,Follow-up Consultation SM,80,Within 14 days
+Vet,Follow-up Consultation MD,80,Within 14 days
+Vet,Follow-up Consultation LG,80,Within 14 days
+Vet,Core Vaccination (DHPP) SM,180,
+Vet,Core Vaccination (DHPP) MD,180,
+Vet,Core Vaccination (DHPP) LG,180,
+Vet,Rabies Vaccination SM,120,
+Vet,Rabies Vaccination MD,120,
+Vet,Rabies Vaccination LG,120,
+Vet,Kennel Cough Vaccine SM,140,Required for boarding
+Vet,Kennel Cough Vaccine MD,140,Required for boarding
+Vet,Kennel Cough Vaccine LG,140,Required for boarding
+Vet,Deworming SM,60,
+Vet,Deworming MD,80,
+Vet,Deworming LG,100,
+Vet,Flea & Tick Treatment SM,90,
+Vet,Flea & Tick Treatment MD,120,
+Vet,Flea & Tick Treatment LG,150,
+Vet,Microchipping SM,200,
+Vet,Microchipping MD,200,
+Vet,Microchipping LG,200,
+Vet,Health Certificate SM,250,For travel
+Vet,Health Certificate MD,250,For travel
+Vet,Health Certificate LG,250,For travel
+Vet,Blood Test (Basic Panel) SM,350,
+Vet,Blood Test (Basic Panel) MD,350,
+Vet,Blood Test (Basic Panel) LG,350,
+Vet,Blood Test (Full Panel) SM,650,
+Vet,Blood Test (Full Panel) MD,650,
+Vet,Blood Test (Full Panel) LG,650,
+Vet,Dental Check SM,100,
+Vet,Dental Check MD,100,
+Vet,Dental Check LG,100,
+Vet,Dental Cleaning (with anesthesia) SM,800,
+Vet,Dental Cleaning (with anesthesia) MD,1000,
+Vet,Dental Cleaning (with anesthesia) LG,1250,
+Vet,Ear Infection Treatment SM,180,
+Vet,Ear Infection Treatment MD,180,
+Vet,Ear Infection Treatment LG,180,
+Vet,Skin Treatment SM,220,
+Vet,Skin Treatment MD,220,
+Vet,Skin Treatment LG,220,
+Vet,Spay/Neuter Consultation SM,100,
+Vet,Spay/Neuter Consultation MD,100,
+Vet,Spay/Neuter Consultation LG,100,
+Vet,Spay/Neuter Procedure SM,1200,
+Vet,Spay/Neuter Procedure MD,1600,
+Vet,Spay/Neuter Procedure LG,2000,
+Vet,X-Ray SM,300,Per region
+Vet,X-Ray MD,300,Per region
+Vet,X-Ray LG,300,Per region
+Vet,Ultrasound SM,450,
+Vet,Ultrasound MD,450,
+Vet,Ultrasound LG,450,
+Vet,Emergency Consultation SM,400,After hours
+Vet,Emergency Consultation MD,400,After hours
+Vet,Emergency Consultation LG,400,After hours
+Vet,Home Visit SM,250,Within Dubai; plus service fee
+Vet,Home Visit MD,250,Within Dubai; plus service fee
+Vet,Home Visit LG,250,Within Dubai; plus service fee
