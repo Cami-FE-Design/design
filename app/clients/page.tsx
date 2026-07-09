@@ -448,6 +448,7 @@ function ClientsIndex() {
             id: openClient.id,
             name: openClient.name,
             phone: openClient.phone,
+            email: openClient.email,
           }}
           hasPets={hasPets}
           initialTab={tabParam}

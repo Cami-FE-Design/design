@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  ChevronDownIcon,
   CirclePlusIcon,
   DownloadIcon,
   EyeIcon,
@@ -12,13 +13,12 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { SectionCard } from "@/components/blocks/section-card"
-import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -43,19 +43,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { type UploadedFile, useDemoFiles } from "@/lib/demo-files"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { cn } from "@/lib/utils"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-
-type UploadedFile = {
-  id: string
-  name: string
-  /** Object URL for a session-picked file — lets the operator open it. Absent for seeded demo rows. */
-  url?: string
-  /** ISO date the file was added. */
-  uploadedAt: string
-}
 
 type ConsentFormStatus = "awaiting" | "signed"
 
@@ -75,13 +67,6 @@ type ConsentForm = {
 /** Only PDF is accepted for upload right now. */
 const ACCEPTED_EXTENSIONS = [".pdf"]
 const ACCEPT_ATTR = ACCEPTED_EXTENSIONS.join(",")
-
-// A couple of files shown by default so the table (not the empty state) is what
-// operators see first. Session uploads are prepended above these.
-const SEED_FILES: UploadedFile[] = [
-  { id: "seed-file-1", name: "Signed_consent_form.pdf", uploadedAt: "2026-07-02" },
-  { id: "seed-file-2", name: "Grooming_liability_waiver.pdf", uploadedAt: "2026-06-18" },
-]
 
 // Seeded so the listing shows both statuses by default.
 const SEED_FORMS: ConsentForm[] = [
@@ -112,17 +97,7 @@ function formatFileDate(iso: string): string {
   })
 }
 
-/** Leading date-column day + month, e.g. "Jul 5" — matches the visit-history timeline. */
-function formatFormDayMonth(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-}
-
-/** Leading date-column weekday, e.g. "Monday". */
-function formatFormWeekday(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", { weekday: "long" })
-}
-
-/** Card heading time, lowercased to match the visit style (e.g. "10:10am"). */
+/** Row time, lowercased to match the app style (e.g. "10:10am"). */
 function formatFormTime(iso: string): string {
   return new Date(iso)
     .toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
@@ -167,41 +142,38 @@ function splitFileName(name: string): [base: string, ext: string] {
   return dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ""]
 }
 
-// ─── Consent form timeline card ─────────────────────────────────────────────────
+// ─── Consent form row ─────────────────────────────────────────────────────────
 
 /**
- * A single form rendered inside a `<TimelineRow>`: the form name as the title
- * (with sent time + document beneath it) and the Signed / Pending tag pinned
- * top-right, plus a single "View form" action that opens the full-screen form.
- * The signed / pending state is reflected inside that view.
+ * A single consent form rendered as a flat listing row — mirroring the Files
+ * section for a consistent, low-scroll Documents tab. The form name is the
+ * title, with the sent date + time + document beneath it; the Signed / Pending
+ * status is pinned right, followed by a 3-dot menu holding View form / Delete.
  */
-function FormTimelineCard({ form, onView }: { form: ConsentForm; onView: () => void }) {
+function FormRow({
+  form,
+  onView,
+  onDelete,
+}: {
+  form: ConsentForm
+  onView: () => void
+  onDelete: () => void
+}) {
   const badge = FORM_STATUS_BADGE[form.status]
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cami-violet-3 text-cami-violet-11">
-            <FileSignatureIcon className="size-4.5" />
-          </span>
-          <div className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate font-semibold text-foreground">{form.name}</span>
-            <span className="truncate text-xs text-muted-foreground">
-              {formatFormTime(form.sharedAt)} · {form.fileName}
-            </span>
-          </div>
-        </div>
-        <Badge className={cn("border-transparent", badge.className)}>{badge.label}</Badge>
+    <li className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cami-violet-3 text-cami-violet-11">
+        <FileSignatureIcon className="size-4.5" />
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col leading-tight">
+        <span className="truncate text-sm font-medium text-foreground">{form.name}</span>
+        <span className="truncate text-xs text-muted-foreground">
+          {formatFileDate(form.sharedAt)} · {formatFormTime(form.sharedAt)} · {form.fileName}
+        </span>
       </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" radius="full" onClick={onView}>
-          View form
-        </Button>
-        {/* 3-dot actions menu (Edit / Delete) commented out per design. */}
-        {/* <_RowActionsMenu label={`Actions for ${form.name}`} onEdit={onEdit} onDelete={onDelete} className="ml-auto" /> */}
-      </div>
-    </div>
+      <Badge className={cn("shrink-0 border-transparent", badge.className)}>{badge.label}</Badge>
+      <FormActionsMenu label={`Actions for ${form.name}`} onView={onView} onDelete={onDelete} />
+    </li>
   )
 }
 
@@ -369,57 +341,14 @@ function FormViewDialog({
 
 // ─── Row actions menu ─────────────────────────────────────────────────────────
 
-// Kept (underscore-prefixed) but currently unused: the form card's 3-dot menu is
-// disabled per design. Restore the <_RowActionsMenu> usage in FormTimelineCard to bring back Edit / Delete.
-function _RowActionsMenu({
+/** View / delete for a single consent form, matching the Files row menu. */
+function FormActionsMenu({
   label,
-  onEdit,
-  onDelete,
-  className,
-}: {
-  label: string
-  onEdit?: () => void
-  onDelete: () => void
-  className?: string
-}) {
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          radius="full"
-          aria-label={label}
-          className={cn("shrink-0 text-muted-foreground", className)}
-        >
-          <MoreHorizontalIcon className="size-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {onEdit ? <DropdownMenuItem onSelect={onEdit}>Edit details</DropdownMenuItem> : null}
-        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
-          Delete
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-}
-
-// ─── File row actions menu ─────────────────────────────────────────────────────
-
-/** Preview / rename / download / delete for a single uploaded file. */
-function FileActionsMenu({
-  label,
-  onPreview,
-  onRename,
-  onDownload,
+  onView,
   onDelete,
 }: {
   label: string
-  onPreview: () => void
-  onRename: () => void
-  onDownload: () => void
+  onView: () => void
   onDelete: () => void
 }) {
   return (
@@ -435,6 +364,73 @@ function FileActionsMenu({
         >
           <MoreHorizontalIcon className="size-4" />
         </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-44">
+        <DropdownMenuItem onSelect={onView}>
+          <EyeIcon />
+          View form
+        </DropdownMenuItem>
+        <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+          <Trash2Icon />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+// ─── File row actions menu ─────────────────────────────────────────────────────
+
+/**
+ * Preview / rename / download / delete for a single uploaded file.
+ *
+ * `variant` only swaps the trigger: "menu" (default) is the compact 3-dot
+ * button used inside the client/pet Documents tab; "button" is the "Action ▾"
+ * outline pill used in Settings, matching the Sales / Team action pattern. The
+ * menu items themselves are identical, so the two surfaces never diverge.
+ */
+function FileActionsMenu({
+  label,
+  variant = "menu",
+  onPreview,
+  onRename,
+  onDownload,
+  onDelete,
+}: {
+  label: string
+  variant?: "menu" | "button"
+  onPreview: () => void
+  onRename: () => void
+  onDownload: () => void
+  onDelete: () => void
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        {variant === "button" ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            radius="full"
+            aria-label={label}
+            className="shrink-0 gap-1.5"
+          >
+            Action
+            <ChevronDownIcon className="size-4" />
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            radius="full"
+            aria-label={label}
+            className="shrink-0 text-muted-foreground"
+          >
+            <MoreHorizontalIcon className="size-4" />
+          </Button>
+        )}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-44">
         <DropdownMenuItem onSelect={onPreview}>
@@ -649,8 +645,12 @@ type ConsentFormDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   files: UploadedFile[]
-  /** Where the form is sent — pulled from the client/pet profile, not entered here. */
-  recipientLabel?: string
+  /** Recipient name from the profile — shown on the "sending to" line. */
+  recipientName?: string
+  /** Recipient email from the profile — the address the form is sent to. */
+  recipientEmail?: string
+  /** Recipient phone from the profile — shown alongside the send channel. */
+  recipientPhone?: string
   /** When set, the dialog edits this form; otherwise it adds a new one. */
   initial?: ConsentForm | null
   onSubmit: (form: ConsentFormSubmit) => void
@@ -660,7 +660,9 @@ function ConsentFormDialog({
   open,
   onOpenChange,
   files,
-  recipientLabel,
+  recipientName,
+  recipientEmail,
+  recipientPhone,
   initial,
   onSubmit,
 }: ConsentFormDialogProps) {
@@ -696,6 +698,13 @@ function ConsentFormDialog({
     onOpenChange(false)
   }
 
+  // Recipient contacts for the "sending to" line — each stays on one line so a
+  // phone number or email is never broken mid-value across a wrap.
+  const recipientContacts = [
+    recipientEmail ? { value: recipientEmail, label: "Email" } : null,
+    recipientPhone ? { value: recipientPhone, label: "WhatsApp" } : null,
+  ].filter((c): c is { value: string; label: string } => c !== null)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-0 sm:max-w-130! max-w-130!">
@@ -714,6 +723,24 @@ function ConsentFormDialog({
           <DialogTitle className="text-[28px] font-semibold leading-8">
             {isEdit ? "Edit consent form" : "Add consent form"}
           </DialogTitle>
+          {!isEdit && recipientName ? (
+            // Everything flows inline: if it fits, name + contacts sit on one line
+            // with "·" separators between them. When space runs out it wraps by
+            // whole contact — each value stays intact, and the separator glues to
+            // the preceding text (nbsp) so it trails a line instead of dangling at
+            // the start of the next one.
+            <p className="text-sm text-muted-foreground">
+              To <span className="text-foreground">{recipientName}</span>
+              {recipientContacts.map((contact) => (
+                <span key={contact.label}>
+                  {" · "}
+                  <span className="whitespace-nowrap">
+                    {contact.value} · {contact.label}
+                  </span>
+                </span>
+              ))}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-5 px-8 pb-8 pt-6">
@@ -785,13 +812,6 @@ function ConsentFormDialog({
             </label>
           )}
 
-          {!isEdit && recipientLabel ? (
-            <p className="text-xs text-muted-foreground">
-              This form will be emailed to <span className="text-foreground">{recipientLabel}</span>{" "}
-              to verify and sign.
-            </p>
-          ) : null}
-
           <Button
             type="button"
             size="lg"
@@ -808,68 +828,66 @@ function ConsentFormDialog({
   )
 }
 
-// ─── Container: Consent forms + Files ─────────────────────────────────────────
+// ─── Shared helpers ───────────────────────────────────────────────────────────
 
-type DocumentsFormsAndFilesProps = {
-  /** "Forms" for the client dialog, "Consent forms" for the pet dialog. */
-  formsTitle?: string
-  /** Recipient name from the client/pet profile — shown in the send confirmation. */
-  recipientName?: string
-  /** Recipient email from the profile — where the form is sent (not entered in the form). */
-  recipientEmail?: string
-  /** Form id to open in the full-screen viewer on mount — for URL deep-links. */
-  initialViewFormId?: string
+function downloadFile(file: UploadedFile) {
+  // Session uploads carry a real object URL. Seeded demo rows don't, so we
+  // synthesize a small placeholder blob on the fly — download still works.
+  const generated = !file.url
+  const href =
+    file.url ??
+    URL.createObjectURL(
+      new Blob([`Placeholder file for "${file.name}".`], { type: "application/pdf" }),
+    )
+  const link = document.createElement("a")
+  link.href = href
+  link.download = file.name
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  if (generated) URL.revokeObjectURL(href)
+}
+
+// ─── Files section ────────────────────────────────────────────────────────────
+
+type FilesSectionProps = {
   /** File id to open in the full-screen file preview on mount — for URL deep-links. */
   initialPreviewFileId?: string
+  /**
+   * "card" (default) is the detail-dialog look — a green circular file glyph,
+   * scrolling with the dialog. "settings" matches the settings icon pattern
+   * (a neutral bordered square, like `SettingsRow`) and scrolls the list inside
+   * the card so the header + Upload action stay pinned.
+   */
+  variant?: "card" | "settings"
+  /** Extra classes for the outer card — e.g. `flex-1 min-h-0` to fill a panel. */
+  className?: string
 }
 
 /**
- * Consent-forms + Files pair for the Documents tab of the client and pet detail
- * dialogs. The two share state: the "Add consent form" modal picks from the
- * documents uploaded in the Files section, so they live in one component.
- *
- * - Files: "Upload file" opens the OS picker directly (PDF only). Rows can be
- *   checkbox-selected and bulk-deleted (with a confirm), mirroring Products.
- * - Consent forms: "Add form" opens a modal to name the form + pick an uploaded
- *   document (+ optional message). It's emailed to the client/pet's profile
- *   contact, and listed with the form name, sent date, and signed / pending
- *   status.
- *
- * Everything is mock-only and lives in local state for the current session.
+ * The shared Files library UI: an "Upload file" action (PDF only), the file
+ * list, and the preview / rename / delete flows. Every file lives in the
+ * app-wide `useDemoFiles` store, so this exact list is what the Settings "Files"
+ * panel and every client/pet Documents tab render — an upload in one place
+ * shows up in all of them.
  */
-export function DocumentsFormsAndFiles({
-  formsTitle = "Forms",
-  recipientName,
-  recipientEmail,
-  initialViewFormId,
+export function FilesSection({
   initialPreviewFileId,
-}: DocumentsFormsAndFilesProps) {
-  const recipientLabel = recipientEmail ?? recipientName ?? undefined
-  const [files, setFiles] = useState<UploadedFile[]>(SEED_FILES)
-  const [forms, setForms] = useState<ConsentForm[]>(SEED_FORMS)
+  variant = "card",
+  className,
+}: FilesSectionProps) {
+  const isSettings = variant === "settings"
+  const { files, addFiles, renameFile, deleteFile } = useDemoFiles()
   const [fileToDelete, setFileToDelete] = useState<string | null>(null)
   // Deep-link: open the file preview on mount if the id resolves to a file.
   // The preview dialog builds a demo PDF for seeded (url-less) files itself.
   const [filePreviewId, setFilePreviewId] = useState<string | null>(
-    initialPreviewFileId && SEED_FILES.some((f) => f.id === initialPreviewFileId)
+    initialPreviewFileId && files.some((f) => f.id === initialPreviewFileId)
       ? initialPreviewFileId
       : null,
   )
   const [fileToRename, setFileToRename] = useState<string | null>(null)
-  const [formToDelete, setFormToDelete] = useState<string | null>(null)
-  // Deep-link: open the viewer on mount if the id resolves to a seeded form.
-  const [formViewId, setFormViewId] = useState<string | null>(
-    initialViewFormId && SEED_FORMS.some((f) => f.id === initialViewFormId)
-      ? initialViewFormId
-      : null,
-  )
-  const [formDialogOpen, setFormDialogOpen] = useState(false)
-  const [editingFormId, setEditingFormId] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const editingForm = editingFormId ? (forms.find((f) => f.id === editingFormId) ?? null) : null
-
-  // ── Files ──────────────────────────────────────────────────────────────────
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const chosen = Array.from(e.target.files ?? [])
@@ -886,44 +904,221 @@ export function DocumentsFormsAndFiles({
     }
     if (!accepted.length) return
     const now = new Date().toISOString()
-    setFiles((prev) => [
-      ...accepted.map((file) => ({
+    addFiles(
+      accepted.map((file) => ({
         id: crypto.randomUUID(),
         name: file.name,
         url: URL.createObjectURL(file),
         uploadedAt: now,
       })),
-      ...prev,
-    ])
+    )
     toast.success(accepted.length === 1 ? "File uploaded" : `${accepted.length} files uploaded`)
   }
 
-  function deleteFile(id: string) {
-    setFiles((prev) => prev.filter((f) => f.id !== id))
-  }
-
-  function renameFile(id: string, name: string) {
-    setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)))
+  function handleRename(id: string, name: string) {
+    renameFile(id, name)
     toast.success("File renamed")
   }
 
-  function downloadFile(file: UploadedFile) {
-    // Session uploads carry a real object URL. Seeded demo rows don't, so we
-    // synthesize a small placeholder blob on the fly — download still works.
-    const generated = !file.url
-    const href =
-      file.url ??
-      URL.createObjectURL(
-        new Blob([`Placeholder file for "${file.name}".`], { type: "application/pdf" }),
-      )
-    const link = document.createElement("a")
-    link.href = href
-    link.download = file.name
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    if (generated) URL.revokeObjectURL(href)
+  const filePendingDelete = files.find((f) => f.id === fileToDelete) ?? null
+  const filePreview = files.find((f) => f.id === filePreviewId) ?? null
+  const filePendingRename = files.find((f) => f.id === fileToRename) ?? null
+
+  // Row internals (icon + name/date + actions), shared by both variants. The
+  // icon box swaps between the detail-dialog green glyph and the neutral
+  // bordered square used across Settings (see `SettingsRow`).
+  function fileRowInner(file: UploadedFile) {
+    return (
+      <>
+        <span
+          className={cn(
+            "flex shrink-0 items-center justify-center",
+            isSettings
+              ? "size-10 rounded-xl border border-border/50 bg-background text-muted-foreground"
+              : "size-9 rounded-full bg-cami-green-3 text-cami-green-11",
+          )}
+        >
+          <FileTextIcon className={isSettings ? "size-5" : "size-4.5"} />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col leading-tight">
+          {file.url ? (
+            <a
+              href={file.url}
+              target="_blank"
+              rel="noreferrer"
+              className="truncate text-sm font-medium text-foreground hover:underline"
+            >
+              {file.name}
+            </a>
+          ) : (
+            <span className="truncate text-sm font-medium text-foreground">{file.name}</span>
+          )}
+          <span className="text-xs text-muted-foreground">{formatFileDate(file.uploadedAt)}</span>
+        </div>
+        <FileActionsMenu
+          label={`Actions for ${file.name}`}
+          variant={isSettings ? "button" : "menu"}
+          onPreview={() => setFilePreviewId(file.id)}
+          onRename={() => setFileToRename(file.id)}
+          onDownload={() => downloadFile(file)}
+          onDelete={() => setFileToDelete(file.id)}
+        />
+      </>
+    )
   }
+
+  const uploadButton = (
+    <Button
+      variant="secondary"
+      size="sm"
+      radius="full"
+      onClick={() => fileInputRef.current?.click()}
+    >
+      <CirclePlusIcon />
+      Upload file
+    </Button>
+  )
+
+  return (
+    <>
+      {isSettings ? (
+        // Settings: matches the Sales sub-screens — rows inside one bordered
+        // card that scrolls internally, with the Upload action as a pill below.
+        <div className={cn("flex flex-col gap-4", className)}>
+          {files.length === 0 ? (
+            <div className="flex w-full flex-col rounded-2xl border border-border/60 p-5 sm:w-146">
+              <p className="text-sm text-muted-foreground">No files yet.</p>
+            </div>
+          ) : (
+            <ul className="flex max-h-105 w-full flex-col gap-4 overflow-y-auto rounded-2xl border border-border/60 p-5 sm:w-146">
+              {files.map((file, index) => (
+                <Fragment key={file.id}>
+                  {index > 0 ? <li aria-hidden className="h-px shrink-0 bg-border/60" /> : null}
+                  <li className="flex items-center gap-3">{fileRowInner(file)}</li>
+                </Fragment>
+              ))}
+            </ul>
+          )}
+          <div className="flex flex-wrap items-center gap-2">{uploadButton}</div>
+        </div>
+      ) : (
+        <SectionCard title="Files" action={uploadButton} className={className}>
+          {files.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No files yet.</p>
+          ) : (
+            <ul className="flex flex-col divide-y divide-border/60">
+              {files.map((file) => (
+                <li key={file.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                  {fileRowInner(file)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </SectionCard>
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept={ACCEPT_ATTR}
+        className="sr-only"
+        onChange={handleFileChange}
+      />
+
+      <FilePreviewDialog
+        file={filePreview}
+        open={filePreviewId !== null}
+        onOpenChange={(o) => {
+          if (!o) setFilePreviewId(null)
+        }}
+        onDownload={downloadFile}
+      />
+
+      <RenameFileDialog
+        file={filePendingRename}
+        open={fileToRename !== null}
+        onOpenChange={(o) => {
+          if (!o) setFileToRename(null)
+        }}
+        onRename={handleRename}
+      />
+
+      <ConfirmDialog
+        open={fileToDelete !== null}
+        onOpenChange={(o) => {
+          if (!o) setFileToDelete(null)
+        }}
+        title="Delete file?"
+        description={
+          filePendingDelete
+            ? `"${filePendingDelete.name}" will be permanently removed.`
+            : "This action cannot be undone."
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (fileToDelete) deleteFile(fileToDelete)
+          setFileToDelete(null)
+        }}
+      />
+    </>
+  )
+}
+
+// ─── Container: Consent forms + Files ─────────────────────────────────────────
+
+type DocumentsFormsAndFilesProps = {
+  /** "Forms" for the client dialog, "Consent forms" for the pet dialog. */
+  formsTitle?: string
+  /** Recipient name from the client/pet profile — shown in the send confirmation. */
+  recipientName?: string
+  /** Recipient email from the profile — where the form is sent (not entered in the form). */
+  recipientEmail?: string
+  /** Recipient phone from the profile — shown alongside the send channel. */
+  recipientPhone?: string
+  /** Form id to open in the full-screen viewer on mount — for URL deep-links. */
+  initialViewFormId?: string
+  /** File id to open in the full-screen file preview on mount — for URL deep-links. */
+  initialPreviewFileId?: string
+}
+
+/**
+ * Consent-forms + Files pair for the Documents tab of the client and pet detail
+ * dialogs. The "Add consent form" modal picks from the shared file library, and
+ * the Files section (rendered below) manages that same library — so a document
+ * uploaded here, in another profile, or in Settings is available everywhere.
+ *
+ * - Files: the shared `<FilesSection>` — see `useDemoFiles`. Upload is PDF-only.
+ * - Consent forms: "Add form" opens a modal to name the form + pick an uploaded
+ *   document (+ optional message). It's emailed to the client/pet's profile
+ *   contact, and listed with the form name, sent date, and signed / pending
+ *   status. Forms are per-recipient and stay local to this dialog.
+ *
+ * Everything is mock-only and lives in state for the current session.
+ */
+export function DocumentsFormsAndFiles({
+  formsTitle = "Forms",
+  recipientName,
+  recipientEmail,
+  recipientPhone,
+  initialViewFormId,
+  initialPreviewFileId,
+}: DocumentsFormsAndFilesProps) {
+  const recipientLabel = recipientEmail ?? recipientName ?? undefined
+  const { files } = useDemoFiles()
+  const [forms, setForms] = useState<ConsentForm[]>(SEED_FORMS)
+  const [formToDelete, setFormToDelete] = useState<string | null>(null)
+  // Deep-link: open the viewer on mount if the id resolves to a seeded form.
+  const [formViewId, setFormViewId] = useState<string | null>(
+    initialViewFormId && SEED_FORMS.some((f) => f.id === initialViewFormId)
+      ? initialViewFormId
+      : null,
+  )
+  const [formDialogOpen, setFormDialogOpen] = useState(false)
+  const [editingFormId, setEditingFormId] = useState<string | null>(null)
+
+  const editingForm = editingFormId ? (forms.find((f) => f.id === editingFormId) ?? null) : null
 
   // ── Consent forms ────────────────────────────────────────────────────────
 
@@ -971,14 +1166,11 @@ export function DocumentsFormsAndFiles({
     setFormViewId(form.id)
   }
 
-  // Newest-first so the most recent form sits at the top of the timeline.
+  // Newest-first so the most recent form sits at the top of the list.
   const sortedForms = [...forms].sort(
     (a, b) => new Date(b.sharedAt).getTime() - new Date(a.sharedAt).getTime(),
   )
 
-  const filePendingDelete = files.find((f) => f.id === fileToDelete) ?? null
-  const filePreview = files.find((f) => f.id === filePreviewId) ?? null
-  const filePendingRename = files.find((f) => f.id === fileToRename) ?? null
   const formPendingDelete = forms.find((f) => f.id === formToDelete) ?? null
   const formInView = forms.find((f) => f.id === formViewId) ?? null
 
@@ -997,94 +1189,29 @@ export function DocumentsFormsAndFiles({
         {forms.length === 0 ? (
           <p className="text-sm text-muted-foreground">No consent forms shared yet.</p>
         ) : (
-          <ul className="flex flex-col">
-            {sortedForms.map((form, i) => (
-              <TimelineRow
+          <ul className="flex flex-col divide-y divide-border/60">
+            {sortedForms.map((form) => (
+              <FormRow
                 key={form.id}
-                isLast={i === sortedForms.length - 1}
-                leading={
-                  <TimelineDate
-                    dayMonth={formatFormDayMonth(form.sharedAt)}
-                    weekday={formatFormWeekday(form.sharedAt)}
-                  />
-                }
-              >
-                <FormTimelineCard form={form} onView={() => viewForm(form)} />
-              </TimelineRow>
+                form={form}
+                onView={() => viewForm(form)}
+                onDelete={() => setFormToDelete(form.id)}
+              />
             ))}
           </ul>
         )}
       </SectionCard>
 
-      {/* ── Files ─────────────────────────────────────────────────────────── */}
-      <SectionCard
-        title="Files"
-        action={
-          <Button
-            variant="secondary"
-            size="sm"
-            radius="full"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <CirclePlusIcon />
-            Upload file
-          </Button>
-        }
-      >
-        {files.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No files yet.</p>
-        ) : (
-          <ul className="flex flex-col divide-y divide-border/60">
-            {files.map((file) => (
-              <li key={file.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11">
-                  <FileTextIcon className="size-4.5" />
-                </span>
-                <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                  {file.url ? (
-                    <a
-                      href={file.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="truncate text-sm font-medium text-foreground hover:underline"
-                    >
-                      {file.name}
-                    </a>
-                  ) : (
-                    <span className="truncate text-sm font-medium text-foreground">
-                      {file.name}
-                    </span>
-                  )}
-                  <span className="text-xs text-muted-foreground">
-                    {formatFileDate(file.uploadedAt)}
-                  </span>
-                </div>
-                <FileActionsMenu
-                  label={`Actions for ${file.name}`}
-                  onPreview={() => setFilePreviewId(file.id)}
-                  onRename={() => setFileToRename(file.id)}
-                  onDownload={() => downloadFile(file)}
-                  onDelete={() => setFileToDelete(file.id)}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept={ACCEPT_ATTR}
-          className="sr-only"
-          onChange={handleFileChange}
-        />
-      </SectionCard>
+      {/* ── Files (shared library) ────────────────────────────────────────── */}
+      <FilesSection initialPreviewFileId={initialPreviewFileId} />
 
       <ConsentFormDialog
         open={formDialogOpen}
         onOpenChange={setFormDialogOpen}
         files={files}
-        recipientLabel={recipientLabel}
+        recipientName={recipientName}
+        recipientEmail={recipientEmail}
+        recipientPhone={recipientPhone}
         initial={editingForm}
         onSubmit={submitForm}
       />
@@ -1095,44 +1222,6 @@ export function DocumentsFormsAndFiles({
         open={formViewId !== null}
         onOpenChange={(o) => {
           if (!o) setFormViewId(null)
-        }}
-      />
-
-      <FilePreviewDialog
-        file={filePreview}
-        open={filePreviewId !== null}
-        onOpenChange={(o) => {
-          if (!o) setFilePreviewId(null)
-        }}
-        onDownload={downloadFile}
-      />
-
-      <RenameFileDialog
-        file={filePendingRename}
-        open={fileToRename !== null}
-        onOpenChange={(o) => {
-          if (!o) setFileToRename(null)
-        }}
-        onRename={renameFile}
-      />
-
-      <ConfirmDialog
-        open={fileToDelete !== null}
-        onOpenChange={(o) => {
-          if (!o) setFileToDelete(null)
-        }}
-        title="Delete file?"
-        description={
-          filePendingDelete
-            ? `"${filePendingDelete.name}" will be permanently removed.`
-            : "This action cannot be undone."
-        }
-        cancelLabel="Cancel"
-        confirmLabel="Delete"
-        destructive
-        onConfirm={() => {
-          if (fileToDelete) deleteFile(fileToDelete)
-          setFileToDelete(null)
         }}
       />
 

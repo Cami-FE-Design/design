@@ -277,6 +277,11 @@ const SECTIONS: Section[] = [
         label: "Gift cards · settings takeover",
         note: "Full-screen Gift card settings: enable toggle, preset AED values (add/delete), default expiration select. No delete — a program can only be edited or toggled off.",
       },
+      {
+        path: "/shell-demo?settings=files",
+        label: "Files, shared library",
+        note: "Documents category. Central file library backed by the app-wide useDemoFiles store — the same list the client/pet Documents tab shows, so an upload here appears in every profile and vice-versa. Follows the Sales settings pattern: rows in one bordered card that scrolls internally, neutral bordered icon boxes, an 'Action ▾' dropdown per row (Preview / Rename / Download / Delete), and a secondary 'Upload file' pill below. PDF-only upload.",
+      },
     ],
   },
   {

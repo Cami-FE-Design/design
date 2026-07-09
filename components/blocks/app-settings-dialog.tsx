@@ -3,6 +3,7 @@
 import {
   Building2Icon,
   ChevronLeftIcon,
+  FolderIcon,
   GlobeIcon,
   type LucideIcon,
   MapPinIcon,
@@ -13,6 +14,7 @@ import {
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useState } from "react"
 import { BusinessProfileForm } from "@/components/blocks/business-profile-form"
+import { FilesSection } from "@/components/blocks/documents-files-card"
 import { LocationForm } from "@/components/blocks/location-form"
 import { SalesSettings } from "@/components/blocks/sales-settings"
 import { Badge } from "@/components/ui/badge"
@@ -79,6 +81,18 @@ const GROUPS: SettingsGroup[] = [
         label: "Sales",
         description: "Payment methods and gift cards for checkout.",
         icon: TagIcon,
+      },
+    ],
+  },
+  {
+    label: "Documents",
+    items: [
+      {
+        id: "files",
+        label: "Files",
+        description:
+          "Shared document library. Files uploaded here are available across every client and pet profile.",
+        icon: FolderIcon,
       },
     ],
   },
@@ -198,6 +212,7 @@ export function AppSettingsDialog({
             {active.id === "business-details" ? <BusinessProfilePanel /> : null}
             {active.id === "locations" ? <LocationsPanel /> : null}
             {active.id === "language" ? <LanguagePanel /> : null}
+            {active.id === "files" ? <FilesPanel /> : null}
             {active.id === "sales" ? <SalesSettings /> : null}
           </div>
         </div>
@@ -248,4 +263,19 @@ function LanguagePanel() {
 
 function LocationsPanel() {
   return <LocationForm />
+}
+
+function FilesPanel() {
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">Files</h2>
+        <p className="text-sm leading-5 text-muted-foreground">
+          Your shared document library. Files uploaded here are available across every client and
+          pet profile — and anything uploaded from a profile shows up here too.
+        </p>
+      </header>
+      <FilesSection variant="settings" />
+    </div>
+  )
 }

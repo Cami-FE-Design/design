@@ -615,6 +615,7 @@ export function PetDetailDialog({
                 <DocumentsFormsAndFiles
                   formsTitle="Consent forms"
                   recipientName={owners[0]?.name}
+                  recipientPhone={owners[0]?.phone}
                 />
               </TabsContent>
             </div>

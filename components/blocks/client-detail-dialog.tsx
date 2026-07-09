@@ -767,7 +767,7 @@ export function ClientDetailDialog({
                       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                         <DetailField label="Full name" value={client.name} />
                         <DetailField label="Phone" value={client.phone} />
-                        <DetailField label="Email" value="millie@example.com" />
+                        <DetailField label="Email" value={client.email} />
                         <DetailField label="Birthday" value="May 14" />
                         <DetailField label="Gender" value="Female" />
                       </div>
@@ -915,6 +915,7 @@ export function ClientDetailDialog({
                   formsTitle="Forms"
                   recipientName={client.name}
                   recipientEmail={client.email}
+                  recipientPhone={client.phone}
                   initialViewFormId={initialViewFormId}
                   initialPreviewFileId={initialPreviewFileId}
                 />
