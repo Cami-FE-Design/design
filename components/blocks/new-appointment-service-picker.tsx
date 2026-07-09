@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertCircleIcon, ArrowLeftIcon } from "lucide-react"
+import { AlertCircleIcon, ArrowLeftIcon, SearchXIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import {
@@ -12,6 +12,7 @@ import {
   SERVICE_CATEGORY_ACCENT,
   SERVICE_CATEGORY_LABEL,
 } from "@/app/appointments/mock"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
@@ -59,9 +60,7 @@ export function ServicePickerPanel({ onBack, onSelectService }: ServicePickerPan
         <SearchInput size="xl" onValueChange={setSearch} placeholder="Search by service name" />
         <div className="flex flex-col gap-6">
           {grouped.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No services match &ldquo;{search}&rdquo;.
-            </p>
+            <EmptyState icon={SearchXIcon} title={`No services match “${search}”.`} />
           ) : (
             grouped.map(([category, items]) => (
               <ServiceCategoryGroup

@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { AccessDeniedCard } from "@/components/blocks/access-denied-card"
 import { AdminShell } from "@/components/blocks/admin-shell"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -190,12 +191,12 @@ function EventsTable({
 }) {
   if (events.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-16 text-center">
-        <p className="text-sm font-medium text-foreground">No impersonation events match</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Try a different filter or clear the search.
-        </p>
-      </div>
+      <EmptyState
+        variant="card"
+        icon={ShieldAlertIcon}
+        title="No impersonation events match"
+        description="Try a different filter or clear the search."
+      />
     )
   }
   return (

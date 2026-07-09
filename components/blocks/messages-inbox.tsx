@@ -30,6 +30,7 @@ import {
   type ThreadItem,
 } from "@/app/messages/mock"
 import { AppShell } from "@/components/blocks/app-shell"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { NewAppointmentSheet } from "@/components/blocks/new-appointment-sheet"
 import { SectionCard } from "@/components/blocks/section-card"
@@ -226,9 +227,7 @@ function ConversationList({
       </div>
       <div className="flex-1 overflow-y-auto">
         {filtered.length === 0 ? (
-          <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-            No conversations found.
-          </p>
+          <EmptyState icon={MessageCircleIcon} title="No conversations found." />
         ) : (
           filtered.map((c) => (
             <ConversationRow

@@ -4,10 +4,13 @@ import {
   ArrowDownIcon,
   ArrowUpDownIcon,
   ArrowUpIcon,
+  CirclePlusIcon,
+  LayersIcon,
   MoreHorizontalIcon,
   PlusIcon,
 } from "lucide-react"
 import { useRef, useState } from "react"
+import { EmptyState } from "@/components/blocks/empty-state"
 import {
   Button,
   Dialog,
@@ -187,18 +190,23 @@ export function CategoriesPage({ initialCategories, initialAddOpen = false }: Ca
                     ))}
                   {!catsLoading && merchantCategories.length === 0 && (
                     <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="py-10 text-center text-sm text-muted-foreground"
-                      >
-                        No categories yet.{" "}
-                        <button
-                          type="button"
-                          className="text-primary hover:underline"
-                          onClick={() => setAddOpen(true)}
-                        >
-                          Add your first category.
-                        </button>
+                      <TableCell colSpan={5} className="py-0">
+                        <EmptyState
+                          icon={LayersIcon}
+                          title="No categories yet."
+                          action={
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              radius="full"
+                              type="button"
+                              onClick={() => setAddOpen(true)}
+                            >
+                              <CirclePlusIcon />
+                              Add your first category
+                            </Button>
+                          }
+                        />
                       </TableCell>
                     </TableRow>
                   )}

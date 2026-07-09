@@ -11,13 +11,11 @@ import {
   CircleUserIcon,
   FlagIcon,
   FolderIcon,
-  GiftIcon,
   GlobeIcon,
   HomeIcon,
   LightbulbIcon,
   MailIcon,
   MapPinIcon,
-  PackageIcon,
   PencilIcon,
   PercentIcon,
   PhoneIcon,
@@ -861,7 +859,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Empty state"
-        description="Centered placeholder for sections with no data. variant='plain' (default) is the borderless, muted in-section treatment. variant='card' is the full-page listing treatment used by the sales / clients / pets / products / appointments tables when a search or filter returns nothing — dashed card, tilted brand-accent icon, bolder title."
+        description="Centered placeholder for sections with no data. variant='plain' (default) is the borderless, muted in-section treatment. variant='card' wraps the same light line-icon and muted title in a dashed self-framed card — the full-page listing look used by the sales / clients / pets / products / appointments tables when a search or filter returns nothing."
       >
         <div className="grid max-w-3xl gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-border/60 bg-card">
@@ -880,16 +878,6 @@ export function PlaygroundShowcase() {
               }
             />
           </div>
-        </div>
-
-        {/* card variant — self-framed, so it isn't wrapped in another card */}
-        <div className="mt-3 max-w-3xl">
-          <EmptyState
-            variant="card"
-            icon={PackageIcon}
-            title="No products match"
-            description="Try a different search."
-          />
         </div>
       </Section>
 
@@ -1522,25 +1510,6 @@ export function PlaygroundShowcase() {
         </Row>
       </Section>
 
-      {/* ── Products ─────────────────────────────────────────────────────── */}
-      <Section title="Products — empty state">
-        <Row label="No products yet">
-          <div className="w-full max-w-lg rounded-2xl border border-dashed border-border bg-card">
-            <EmptyState
-              icon={PackageIcon}
-              title="No products yet"
-              description="Add your first product to get started"
-              action={
-                <Button radius="full" className="h-9 px-4">
-                  Add product
-                </Button>
-              }
-              className="py-16"
-            />
-          </div>
-        </Row>
-      </Section>
-
       {/* ── Service catalog ──────────────────────────────────────────────── */}
       <Section
         title="Service menu — cards & sidebar"
@@ -1601,27 +1570,6 @@ export function PlaygroundShowcase() {
             onAddService={() => {}}
             onDeleteCategory={() => {}}
           />
-        </Row>
-      </Section>
-
-      <Section
-        title="Sales settings — Gift cards"
-        description="Sales → Gift cards sub-screen. Set up / Edit open a full-screen Gift card settings takeover (enable toggle, preset AED values, expiration). Unlike payment methods, a gift-card program has NO delete: once set up it can only be edited (or toggled off) — there's deliberately no Delete affordance anywhere in this flow."
-      >
-        <Row label="Inactive">
-          <div className="w-full max-w-2xl">
-            <EmptyState
-              variant="card"
-              icon={GiftIcon}
-              title="Gift cards inactive"
-              description="Let your clients buy personalized gift cards and send to friends & family for your business."
-              action={
-                <Button radius="full" onClick={() => toast("Open Gift card settings (stubbed)")}>
-                  Set up
-                </Button>
-              }
-            />
-          </div>
         </Row>
       </Section>
 
