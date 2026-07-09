@@ -5,14 +5,17 @@ import {
   ArrowRightIcon,
   CalendarPlusIcon,
   CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   ChevronUpIcon,
   ClockIcon,
+  Loader2Icon,
   ShieldCheckIcon,
   ShoppingBagIcon,
   XIcon,
 } from "lucide-react"
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
@@ -21,6 +24,7 @@ import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { OtpInput } from "@/components/ui/otp-input"
 import {
   Select,
   SelectContent,
@@ -59,6 +63,28 @@ function StepHeading({ title, hint }: { title: string; hint?: string }) {
   )
 }
 
+// Large stacked choice card — used by the first-visit fork.
+function FirstVisitOption({
+  title,
+  sub,
+  onClick,
+}: {
+  title: string
+  sub: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex flex-col items-start gap-0.5 rounded-2xl border border-border/70 px-5 py-4 text-left transition-colors hover:border-foreground hover:bg-muted/40"
+    >
+      <span className="font-semibold text-foreground text-base">{title}</span>
+      <span className="text-muted-foreground text-sm">{sub}</span>
+    </button>
+  )
+}
+
 // ─── Step 1 — Service (multi-select, categorized) ─────────────────────────────
 
 function ServiceStep({
@@ -93,14 +119,41 @@ function SlotStep({
   time: string | null
   onTime: (t: string) => void
 }) {
+  const staffRailRef = useRef<HTMLDivElement>(null)
+  const scrollStaff = (dir: -1 | 1) =>
+    staffRailRef.current?.scrollBy({ left: dir * 220, behavior: "smooth" })
+
   return (
     <div className="flex flex-col gap-5">
       <StepHeading title="Pick a time" hint="Choose a team member, day, and slot." />
 
       {/* Team member */}
-      <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-muted-foreground">Team member</span>
-        <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-0.5">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-foreground text-sm">Team member</span>
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <button
+              type="button"
+              aria-label="Scroll team left"
+              onClick={() => scrollStaff(-1)}
+              className="flex size-7 items-center justify-center rounded-full hover:bg-muted/60"
+            >
+              <ChevronLeftIcon className="size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Scroll team right"
+              onClick={() => scrollStaff(1)}
+              className="flex size-7 items-center justify-center rounded-full hover:bg-muted/60"
+            >
+              <ChevronRightIcon className="size-4" />
+            </button>
+          </div>
+        </div>
+        <div
+          ref={staffRailRef}
+          className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-0.5 [mask-image:linear-gradient(to_right,transparent_0,black_72px,black_calc(100%-72px),transparent_100%)]"
+        >
           <StaffChip
             active={staffId === "any"}
             onSelect={() => onStaff("any")}
@@ -155,17 +208,11 @@ function StaffChip({
       onClick={onSelect}
       aria-pressed={active}
       className={cn(
-        "flex w-24 shrink-0 flex-col items-center gap-1.5 rounded-2xl border px-2 py-3 transition-colors",
+        "flex w-24 shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border px-2 py-3 transition-colors",
         active ? "border-cami-violet-8 bg-cami-violet-3" : "border-border/60 hover:bg-muted/40",
       )}
     >
-      {avatarName ? (
-        <Avatar size="md" name={avatarName} fallback="initials" />
-      ) : (
-        <span className="flex size-9 items-center justify-center rounded-full bg-muted text-xs font-semibold text-muted-foreground">
-          Any
-        </span>
-      )}
+      {avatarName ? <Avatar size="md" name={avatarName} fallback="initials" /> : null}
       <span className="flex flex-col items-center leading-tight">
         <span
           className={cn("text-xs font-medium", active ? "text-cami-violet-12" : "text-foreground")}
@@ -182,46 +229,230 @@ function StaffChip({
 
 export type Customer = { firstName: string; lastName: string; phone: string; email: string }
 
+// Returning-user phone 2FA — mirrors the operator sign-in verify screen.
+type VerifyState = "idle" | "verifying" | "success" | "error"
+const CODE_LENGTH = 6
+const RESEND_SECONDS = 30
+
+function formatCountdown(s: number) {
+  const m = Math.floor(s / 60)
+    .toString()
+    .padStart(2, "0")
+  const ss = (s % 60).toString().padStart(2, "0")
+  return `${m}:${ss}`
+}
+
 function IdentifyStep({
   hasPets,
+  businessName,
   customer,
   onChange,
   pet,
   onPet,
+  onVerified,
 }: {
   hasPets: boolean
+  businessName: string
   customer: Customer
   onChange: (c: Customer) => void
   pet: NewPet
   onPet: (p: NewPet) => void
+  onVerified: () => void
 }) {
-  const [returning, setReturning] = useState(false)
+  // "ask" = first-visit fork, "new" = register form, "returning" = phone sign-in.
+  const [mode, setMode] = useState<"ask" | "new" | "returning">("ask")
+  // Returning-user sign-in is a two-step phone 2FA: request a code, then verify it.
+  const [authPhase, setAuthPhase] = useState<"phone" | "code">("phone")
+  const [code, setCode] = useState("")
+  const [verifyState, setVerifyState] = useState<VerifyState>("idle")
+  const [seconds, setSeconds] = useState(RESEND_SECONDS)
   const set = (patch: Partial<Customer>) => onChange({ ...customer, ...patch })
 
-  if (returning) {
+  // Resend countdown, only while the code screen is showing.
+  useEffect(() => {
+    if (authPhase !== "code" || seconds <= 0) return
+    const t = setTimeout(() => setSeconds((s) => s - 1), 1000)
+    return () => clearTimeout(t)
+  }, [authPhase, seconds])
+
+  // Auto-verify the moment 6 digits are entered — no manual submit. Demo: any
+  // code starting with "0" fails; everything else succeeds, then we advance.
+  useEffect(() => {
+    if (authPhase !== "code" || code.length !== CODE_LENGTH) return
+    let cancelled = false
+    setVerifyState("verifying")
+    const check = setTimeout(() => {
+      if (cancelled) return
+      if (code.startsWith("0")) {
+        setVerifyState("error")
+        setCode("")
+      } else {
+        setVerifyState("success")
+      }
+    }, 1200)
+    return () => {
+      cancelled = true
+      clearTimeout(check)
+    }
+  }, [authPhase, code])
+
+  // On success, hold the "Verified" state briefly, then seamlessly advance.
+  useEffect(() => {
+    if (verifyState !== "success") return
+    const t = setTimeout(onVerified, 700)
+    return () => clearTimeout(t)
+  }, [verifyState, onVerified])
+
+  function requestCode() {
+    setAuthPhase("code")
+    setSeconds(RESEND_SECONDS)
+    setCode("")
+    setVerifyState("idle")
+  }
+
+  function resetAuth() {
+    setAuthPhase("phone")
+    setCode("")
+    setVerifyState("idle")
+  }
+
+  const isLocked = verifyState === "verifying" || verifyState === "success"
+
+  // ── First-visit fork ────────────────────────────────────────────────────────
+  if (mode === "ask") {
     return (
-      <div className="flex flex-col gap-5">
-        <StepHeading title="Welcome back" hint="We'll text you a link to sign in — no password." />
-        <div className="group flex flex-col gap-1.5">
-          <Label htmlFor="ret-phone">Mobile number</Label>
-          <Input
-            id="ret-phone"
-            inputMode="tel"
-            placeholder="+971 50 123 4567"
-            value={customer.phone}
-            onChange={(e) => set({ phone: e.target.value })}
+      <div className="flex flex-col gap-6">
+        <StepHeading title={`Is this your first visit to ${businessName}?`} />
+        <div className="flex flex-col gap-3">
+          <FirstVisitOption
+            title="Yes"
+            sub="This is my first visit"
+            onClick={() => setMode("new")}
+          />
+          <FirstVisitOption
+            title="No"
+            sub="I've booked here before"
+            onClick={() => {
+              resetAuth()
+              setMode("returning")
+            }}
           />
         </div>
-        <Button variant="outline" radius="full" size="lg" className="w-full">
-          Send me a link
-        </Button>
-        <button
-          type="button"
-          onClick={() => setReturning(false)}
-          className="link mx-auto w-fit text-sm font-medium text-muted-foreground"
-        >
-          First time here? Add your details
-        </button>
+      </div>
+    )
+  }
+
+  if (mode === "returning") {
+    return (
+      <div className="flex flex-col gap-5">
+        {authPhase === "phone" ? (
+          <>
+            <StepHeading
+              title="Welcome back"
+              hint="We'll text you a 6-digit code to verify it's you."
+            />
+            <div className="group flex flex-col gap-1.5">
+              <Label htmlFor="ret-phone">Mobile number</Label>
+              <Input
+                id="ret-phone"
+                inputMode="tel"
+                placeholder="+971 50 123 4567"
+                value={customer.phone}
+                onChange={(e) => set({ phone: e.target.value })}
+              />
+            </div>
+            <Button
+              variant="outline"
+              radius="full"
+              size="lg"
+              className="w-full"
+              disabled={customer.phone.trim().length === 0}
+              onClick={requestCode}
+            >
+              Send code
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                resetAuth()
+                setMode("new")
+              }}
+              className="link mx-auto w-fit text-sm font-medium text-muted-foreground"
+            >
+              First time here? Add your details
+            </button>
+          </>
+        ) : (
+          <>
+            <StepHeading
+              title={`Enter the code we sent to ${customer.phone}`}
+              hint="This helps us keep your account secure."
+            />
+            <div className="flex flex-col items-start gap-3">
+              <OtpInput
+                value={code}
+                onValueChange={(v) => {
+                  if (isLocked) return
+                  if (verifyState === "error") setVerifyState("idle")
+                  setCode(v)
+                }}
+                disabled={isLocked}
+                invalid={verifyState === "error"}
+                className="justify-start"
+              />
+              <div className="flex h-5 items-center text-sm">
+                {verifyState === "verifying" ? (
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                    Verifying…
+                  </span>
+                ) : verifyState === "success" ? (
+                  <span className="flex items-center gap-2 font-medium text-foreground">
+                    <CheckIcon className="size-4" aria-hidden />
+                    Verified
+                  </span>
+                ) : verifyState === "error" ? (
+                  <span role="alert" className="text-destructive">
+                    That code didn&apos;t match. Try again.
+                  </span>
+                ) : null}
+              </div>
+            </div>
+            <div
+              className={cn(
+                "flex items-center justify-center gap-4 text-sm",
+                isLocked && "invisible",
+              )}
+            >
+              {seconds > 0 ? (
+                <span className="text-muted-foreground">
+                  Request a new code in{" "}
+                  <strong className="font-medium tabular-nums">{formatCountdown(seconds)}</strong>
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={requestCode}
+                  className="link font-medium text-muted-foreground"
+                >
+                  Request a new code
+                </button>
+              )}
+              <span className="text-border">·</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthPhase("phone")
+                  setCode("")
+                  setVerifyState("idle")
+                }}
+                className="link font-medium text-muted-foreground"
+              >
+                Use a different number
+              </button>
+            </div>
+          </>
+        )}
       </div>
     )
   }
@@ -321,7 +552,10 @@ function IdentifyStep({
 
       <button
         type="button"
-        onClick={() => setReturning(true)}
+        onClick={() => {
+          resetAuth()
+          setMode("returning")
+        }}
         className="link mx-auto w-fit text-sm font-medium text-muted-foreground"
       >
         Booked here before? Sign in
@@ -691,10 +925,12 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
     ) : step === "identify" ? (
       <IdentifyStep
         hasPets={hasPets}
+        businessName={business.displayName}
         customer={customer}
         onChange={setCustomer}
         pet={pet}
         onPet={setPet}
+        onVerified={next}
       />
     ) : services.length > 0 ? (
       <ConfirmStep

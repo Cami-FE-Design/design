@@ -4,6 +4,7 @@ import {
   ArrowLeftIcon,
   CalendarPlusIcon,
   CheckIcon,
+  ChevronDownIcon,
   ClockIcon,
   MapPinIcon,
   XIcon,
@@ -13,9 +14,16 @@ import { useState } from "react"
 
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
 import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
+import { AppleIcon, GoogleIcon } from "@/components/blocks/social-icons"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { BOOKING_DAYS, type BookingDetail } from "@/lib/booking"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { BOOKING_DAYS, type BookingDetail, type BookingStatus, calendarLinks } from "@/lib/booking"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
 
@@ -34,23 +42,35 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
   )
 }
 
-function StatusPill({ status }: { status: "confirmed" | "cancelled" }) {
+const STATUS_PILL: Record<BookingStatus, { label: string; pill: string; dot: string }> = {
+  booked: {
+    label: "Booked",
+    pill: "bg-cami-violet-3 text-cami-violet-11",
+    dot: "bg-cami-violet-9",
+  },
+  confirmed: {
+    label: "Confirmed",
+    pill: "bg-cami-green-3 text-cami-green-11",
+    dot: "bg-cami-green-9",
+  },
+  cancelled: {
+    label: "Cancelled",
+    pill: "bg-sand-3 text-muted-foreground",
+    dot: "bg-sand-9",
+  },
+}
+
+function StatusPill({ status }: { status: BookingStatus }) {
+  const s = STATUS_PILL[status]
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-        status === "confirmed"
-          ? "bg-cami-green-3 text-cami-green-11"
-          : "bg-sand-3 text-muted-foreground",
+        s.pill,
       )}
     >
-      <span
-        className={cn(
-          "size-1.5 rounded-full",
-          status === "confirmed" ? "bg-cami-green-9" : "bg-sand-9",
-        )}
-      />
-      {status === "confirmed" ? "Confirmed" : "Cancelled"}
+      <span className={cn("size-1.5 rounded-full", s.dot)} />
+      {s.label}
     </span>
   )
 }
@@ -69,6 +89,15 @@ export function ManageBooking({
 
   const fullAddress = [business.street, business.city, business.emirate].filter(Boolean).join(", ")
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
+
+  const calendar = calendarLinks({
+    ref: booking.ref,
+    title: `${booking.serviceName} — ${business.displayName}`,
+    location: fullAddress,
+    description: `Booking ${booking.ref}${booking.petName ? ` · ${booking.petName}` : ""} with ${booking.staffName}. Ref: ${booking.ref}.`,
+    startISO: booking.startISO,
+    durationMinutes: booking.durationMinutes,
+  })
 
   function commitReschedule() {
     const d = BOOKING_DAYS.find((x) => x.id === dayId)!
@@ -201,10 +230,32 @@ export function ManageBooking({
             </a>
 
             <div className="mt-auto flex flex-col gap-2 pt-8">
-              <Button variant="outline" radius="full" size="lg" className="w-full gap-2">
-                <CalendarPlusIcon className="size-4" />
-                Add to calendar
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" radius="full" size="lg" className="w-full gap-2">
+                    <CalendarPlusIcon className="size-4" />
+                    Add to calendar
+                    <ChevronDownIcon className="size-4 text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="center"
+                  className="w-(--radix-dropdown-menu-trigger-width)"
+                >
+                  <DropdownMenuItem asChild>
+                    <a href={calendar.google} target="_blank" rel="noopener noreferrer">
+                      <GoogleIcon className="size-4" />
+                      Google Calendar
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href={calendar.ics} download={`${booking.ref}.ics`}>
+                      <AppleIcon className="size-4" />
+                      Apple / Outlook
+                    </a>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 variant="outline"
                 radius="full"
