@@ -1,11 +1,17 @@
 "use client"
 
-// Demo-only shared file library. Every surface that lists uploaded documents —
-// the Settings "Files" panel and the Files section inside the client/pet detail
-// dialogs — reads and writes the SAME list from here, so a file uploaded in one
-// place shows up everywhere. Mirrors `useDemoBusiness`: a context shared across
-// client-side navigation, with a self-contained fallback so a surface rendered
-// in isolation (playground, tests) still works on its own.
+// Demo-only file stores. There are two distinct libraries here:
+//
+// 1. The SHARED library (`useDemoFiles`) — the business-level "Form templates"
+//    managed in Settings. These are the ONLY documents available to send for
+//    signature, so both the Settings panel and the consent-form send picker
+//    read this same list. Mirrors `useDemoBusiness`: a context shared across
+//    client-side navigation, with a self-contained fallback so a surface
+//    rendered in isolation (playground, tests) still works on its own.
+//
+// 2. A per-profile PERSONAL store (`useLocalFilesStore`) — uploads made on a
+//    single client/pet profile. These stay on that profile only: they never
+//    reach the shared template library and are never sendable.
 //
 // Session-scoped only. Session uploads carry object URLs that can't survive a
 // full reload, so nothing is persisted — matching the prototype's mock nature.
@@ -21,11 +27,18 @@ export type UploadedFile = {
   uploadedAt: string
 }
 
-// A couple of files shown by default so the list (not the empty state) is what
-// operators see first. Session uploads are prepended above these.
+// A couple of sendable templates shown by default so the Settings library (not
+// the empty state) is what operators see first. Session uploads are prepended
+// above these.
 const SEED_FILES: UploadedFile[] = [
   { id: "seed-file-1", name: "Signed_consent_form.pdf", uploadedAt: "2026-07-02" },
   { id: "seed-file-2", name: "Grooming_liability_waiver.pdf", uploadedAt: "2026-06-18" },
+]
+
+// A personal document seeded on every profile's Files section so it isn't empty
+// in the demo. Kept separate from the shared templates above — these never sync.
+const PROFILE_SEED_FILES: UploadedFile[] = [
+  { id: "profile-file-1", name: "Vaccination_record.pdf", uploadedAt: "2026-06-28" },
 ]
 
 type DemoFilesValue = {
@@ -42,8 +55,8 @@ type DemoFilesValue = {
 const DemoFilesContext = createContext<DemoFilesValue | null>(null)
 
 /** The actual store implementation, reused by the provider and the fallback. */
-function useFilesStore(): DemoFilesValue {
-  const [files, setFiles] = useState<UploadedFile[]>(SEED_FILES)
+function useFilesStore(seed: UploadedFile[]): DemoFilesValue {
+  const [files, setFiles] = useState<UploadedFile[]>(seed)
 
   return useMemo<DemoFilesValue>(
     () => ({
@@ -63,18 +76,28 @@ function useFilesStore(): DemoFilesValue {
 }
 
 export function DemoFilesProvider({ children }: { children: React.ReactNode }) {
-  const value = useFilesStore()
+  const value = useFilesStore(SEED_FILES)
   return <DemoFilesContext.Provider value={value}>{children}</DemoFilesContext.Provider>
 }
 
 /**
- * Read the shared file library. Inside a provider every caller shares one list;
- * outside one (playground, tests) each caller gets its own working store so the
- * surface still functions in isolation.
+ * Read the shared template library (the Settings "Form templates"). Inside a
+ * provider every caller shares one list; outside one (playground, tests) each
+ * caller gets its own working store so the surface still functions in isolation.
  */
 export function useDemoFiles(): DemoFilesValue {
   const ctx = useContext(DemoFilesContext)
   // Always called to keep hook order stable; only used when there's no provider.
-  const fallback = useFilesStore()
+  const fallback = useFilesStore(SEED_FILES)
   return ctx ?? fallback
+}
+
+/**
+ * A self-contained files store for a single profile's PERSONAL uploads. It's
+ * never wired to the shared provider, so each client/pet dialog gets its own
+ * list — uploads here stay on that profile and never reach the template library
+ * or the send picker.
+ */
+export function useLocalFilesStore(): DemoFilesValue {
+  return useFilesStore(PROFILE_SEED_FILES)
 }

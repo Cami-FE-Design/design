@@ -17,6 +17,7 @@ import { Fragment, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { SectionCard } from "@/components/blocks/section-card"
 import { Badge } from "@/components/ui/badge"
@@ -43,7 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { type UploadedFile, useDemoFiles } from "@/lib/demo-files"
+import { type UploadedFile, useDemoFiles, useLocalFilesStore } from "@/lib/demo-files"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { cn } from "@/lib/utils"
 
@@ -709,7 +710,7 @@ function ConsentFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-0 sm:max-w-130! max-w-130!">
         <DialogDescription className="sr-only">
-          Name the form and pick an uploaded document to email to the profile contact for signature.
+          Name the form and pick a form template to email to the profile contact for signature.
         </DialogDescription>
 
         <div className="flex flex-col gap-2 px-8 pt-6">
@@ -756,13 +757,15 @@ function ConsentFormDialog({
           </label>
 
           <label htmlFor="consent-document" className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Document</span>
+            <span className="text-sm font-medium text-foreground">Form template</span>
             <Select value={fileId} onValueChange={setFileId} disabled={noFiles}>
               <SelectTrigger
                 id="consent-document"
                 className="h-12! w-full rounded-2xl bg-input px-4 text-sm font-medium"
               >
-                <SelectValue placeholder={noFiles ? "Upload a file first" : "Select a document"} />
+                <SelectValue
+                  placeholder={noFiles ? "No form templates yet" : "Select a form template"}
+                />
               </SelectTrigger>
               <SelectContent>
                 {files.map((file) => (
@@ -774,7 +777,7 @@ function ConsentFormDialog({
             </Select>
             {noFiles ? (
               <span className="text-xs text-muted-foreground">
-                Upload a PDF in the Files section below, then it can be sent for signature.
+                Add a form template in Settings → Forms first, then it can be sent for signature.
               </span>
             ) : null}
           </label>
@@ -865,11 +868,14 @@ type FilesSectionProps = {
 }
 
 /**
- * The shared Files library UI: an "Upload file" action (PDF only), the file
- * list, and the preview / rename / delete flows. Every file lives in the
- * app-wide `useDemoFiles` store, so this exact list is what the Settings "Files"
- * panel and every client/pet Documents tab render — an upload in one place
- * shows up in all of them.
+ * The Files library UI: an "Upload file" action (PDF only), the file list, and
+ * the preview / rename / delete flows. The store depends on the variant:
+ *
+ * - "settings" reads the shared `useDemoFiles` template library — the business-
+ *   level "Form templates" that are the only documents available to send.
+ * - "card" (a client/pet profile) reads a per-profile personal store, so its
+ *   uploads stay on that profile and never reach the shared library or the send
+ *   picker.
  */
 export function FilesSection({
   initialPreviewFileId,
@@ -877,7 +883,11 @@ export function FilesSection({
   className,
 }: FilesSectionProps) {
   const isSettings = variant === "settings"
-  const { files, addFiles, renameFile, deleteFile } = useDemoFiles()
+  // Both hooks run every render to keep hook order stable; only the one matching
+  // the variant is used. Settings = shared templates; a profile = personal-only.
+  const sharedLibrary = useDemoFiles()
+  const personalLibrary = useLocalFilesStore()
+  const { files, addFiles, renameFile, deleteFile } = isSettings ? sharedLibrary : personalLibrary
   const [fileToDelete, setFileToDelete] = useState<string | null>(null)
   // Deep-link: open the file preview on mount if the id resolves to a file.
   // The preview dialog builds a demo PDF for seeded (url-less) files itself.
@@ -986,20 +996,27 @@ export function FilesSection({
         // card that scrolls internally, with the Upload action as a pill below.
         <div className={cn("flex flex-col gap-4", className)}>
           {files.length === 0 ? (
-            <div className="flex w-full flex-col rounded-2xl border border-border/60 p-5 sm:w-146">
-              <p className="text-sm text-muted-foreground">No files yet.</p>
-            </div>
+            <EmptyState
+              variant="card"
+              icon={FileTextIcon}
+              title="No form templates yet"
+              description="Upload a PDF to reuse it as a form you can send to clients and pets for signature."
+              action={uploadButton}
+              className="w-full sm:w-146"
+            />
           ) : (
-            <ul className="flex max-h-105 w-full flex-col gap-4 overflow-y-auto rounded-2xl border border-border/60 p-5 sm:w-146">
-              {files.map((file, index) => (
-                <Fragment key={file.id}>
-                  {index > 0 ? <li aria-hidden className="h-px shrink-0 bg-border/60" /> : null}
-                  <li className="flex items-center gap-3">{fileRowInner(file)}</li>
-                </Fragment>
-              ))}
-            </ul>
+            <>
+              <ul className="flex max-h-105 w-full flex-col gap-4 overflow-y-auto rounded-2xl border border-border/60 p-5 sm:w-146">
+                {files.map((file, index) => (
+                  <Fragment key={file.id}>
+                    {index > 0 ? <li aria-hidden className="h-px shrink-0 bg-border/60" /> : null}
+                    <li className="flex items-center gap-3">{fileRowInner(file)}</li>
+                  </Fragment>
+                ))}
+              </ul>
+              <div className="flex flex-wrap items-center gap-2">{uploadButton}</div>
+            </>
           )}
-          <div className="flex flex-wrap items-center gap-2">{uploadButton}</div>
         </div>
       ) : (
         <SectionCard title="Files" action={uploadButton} className={className}>
@@ -1085,13 +1102,15 @@ type DocumentsFormsAndFilesProps = {
 
 /**
  * Consent-forms + Files pair for the Documents tab of the client and pet detail
- * dialogs. The "Add consent form" modal picks from the shared file library, and
- * the Files section (rendered below) manages that same library — so a document
- * uploaded here, in another profile, or in Settings is available everywhere.
+ * dialogs. The "Add consent form" modal picks from the shared template library
+ * (`useDemoFiles`, managed in Settings → Forms), while the Files section below
+ * is the profile's PERSONAL uploads — the two are deliberately separate.
  *
- * - Files: the shared `<FilesSection>` — see `useDemoFiles`. Upload is PDF-only.
- * - Consent forms: "Add form" opens a modal to name the form + pick an uploaded
- *   document (+ optional message). It's emailed to the client/pet's profile
+ * - Files: a per-profile `<FilesSection>` (card variant). Uploads stay on this
+ *   profile only; they don't appear in the template library or the send picker.
+ *   Upload is PDF-only.
+ * - Consent forms: "Add form" opens a modal to name the form + pick a form
+ *   template (+ optional message). It's emailed to the client/pet's profile
  *   contact, and listed with the form name, sent date, and signed / pending
  *   status. Forms are per-recipient and stay local to this dialog.
  *
@@ -1202,7 +1221,7 @@ export function DocumentsFormsAndFiles({
         )}
       </SectionCard>
 
-      {/* ── Files (shared library) ────────────────────────────────────────── */}
+      {/* ── Files (personal to this profile) ──────────────────────────────── */}
       <FilesSection initialPreviewFileId={initialPreviewFileId} />
 
       <ConsentFormDialog

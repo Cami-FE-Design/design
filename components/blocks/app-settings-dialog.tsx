@@ -85,13 +85,13 @@ const GROUPS: SettingsGroup[] = [
     ],
   },
   {
-    label: "Documents",
+    label: "Forms",
     items: [
       {
-        id: "files",
-        label: "Files",
+        id: "forms",
+        label: "Form templates",
         description:
-          "Shared document library. Files uploaded here are available across every client and pet profile.",
+          "Reusable form templates. Documents added here are the only ones available to send to clients and pets for signature.",
         icon: FolderIcon,
       },
     ],
@@ -212,7 +212,7 @@ export function AppSettingsDialog({
             {active.id === "business-details" ? <BusinessProfilePanel /> : null}
             {active.id === "locations" ? <LocationsPanel /> : null}
             {active.id === "language" ? <LanguagePanel /> : null}
-            {active.id === "files" ? <FilesPanel /> : null}
+            {active.id === "forms" ? <FilesPanel /> : null}
             {active.id === "sales" ? <SalesSettings /> : null}
           </div>
         </div>
@@ -269,10 +269,12 @@ function FilesPanel() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">Files</h2>
+        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+          Form templates
+        </h2>
         <p className="text-sm leading-5 text-muted-foreground">
-          Your shared document library. Files uploaded here are available across every client and
-          pet profile — and anything uploaded from a profile shows up here too.
+          Reusable forms you can send to clients and pets for signature. Uploads made on a profile
+          stay personal to that profile and won&apos;t appear here.
         </p>
       </header>
       <FilesSection variant="settings" />

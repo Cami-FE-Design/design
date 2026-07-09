@@ -278,9 +278,9 @@ const SECTIONS: Section[] = [
         note: "Full-screen Gift card settings: enable toggle, preset AED values (add/delete), default expiration select. No delete — a program can only be edited or toggled off.",
       },
       {
-        path: "/shell-demo?settings=files",
-        label: "Files, shared library",
-        note: "Documents category. Central file library backed by the app-wide useDemoFiles store — the same list the client/pet Documents tab shows, so an upload here appears in every profile and vice-versa. Follows the Sales settings pattern: rows in one bordered card that scrolls internally, neutral bordered icon boxes, an 'Action ▾' dropdown per row (Preview / Rename / Download / Delete), and a secondary 'Upload file' pill below. PDF-only upload.",
+        path: "/shell-demo?settings=forms",
+        label: "Form templates library",
+        note: "Forms category. Business-level library of reusable form templates — the only documents the consent-form send picker offers. Profile uploads stay personal and no longer sync here. Follows the Sales settings pattern: rows in one bordered card that scrolls internally, neutral bordered icon boxes, an 'Action ▾' dropdown per row (Preview / Rename / Download / Delete), and a secondary 'Upload file' pill below. Empty state + PDF-only upload.",
       },
     ],
   },
@@ -388,9 +388,9 @@ const SECTIONS: Section[] = [
         note: "Opens the full-screen consent viewer directly (Documents tab, signed 'Client consent'): PDF left, signature panel right, single Close pill — the operator mirror of the public /sign/consent-signed screen.",
       },
       {
-        path: "/clients?client=kirsty-dingomal&file=seed-file-1",
+        path: "/clients?client=kirsty-dingomal&file=profile-file-1",
         label: "File preview · full-screen (PDF)",
-        note: "Opens a Files-row 'Preview file' directly: the same full-screen shell as View form (sticky header, Download + Close) but single-column — just the in-app PDF, no signature panel. A demo PDF is generated so the seeded file renders.",
+        note: "Opens a Files-row 'Preview file' directly on the profile's personal file: the same full-screen shell as View form (sticky header, Download + Close) but single-column — just the in-app PDF, no signature panel. A demo PDF is generated so the seeded file renders.",
       },
       {
         path: "/pets",
