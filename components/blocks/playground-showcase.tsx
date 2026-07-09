@@ -11,13 +11,11 @@ import {
   CircleUserIcon,
   FlagIcon,
   FolderIcon,
-  GiftIcon,
   GlobeIcon,
   HomeIcon,
   LightbulbIcon,
   MailIcon,
   MapPinIcon,
-  PackageIcon,
   PencilIcon,
   PercentIcon,
   PhoneIcon,
@@ -28,7 +26,7 @@ import {
   StethoscopeIcon,
   SunIcon,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -52,6 +50,7 @@ import { EmptyState } from "@/components/blocks/empty-state"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
+import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
@@ -60,6 +59,11 @@ import { SectionedSheetShell, type SectionGroup } from "@/components/blocks/sect
 import { CategorySidebar } from "@/components/blocks/service-menu/CategorySidebar"
 import { ServiceCardInner } from "@/components/blocks/service-menu/ServiceCard"
 import { SettingsRow } from "@/components/blocks/settings-row"
+import {
+  SignatureDialog,
+  SignaturePreview,
+  type SignatureResult,
+} from "@/components/blocks/sign/signature-dialog"
 import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
 import { Avatar } from "@/components/ui/avatar"
@@ -114,6 +118,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
+import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import { cn } from "@/lib/utils"
 
@@ -174,6 +179,25 @@ export function PlaygroundShowcase() {
   const [petDetailOpen, setPetDetailOpen] = useState(false)
   const [clientEditOpen, setClientEditOpen] = useState(false)
   const [petEditOpen, setPetEditOpen] = useState(false)
+  const [signatureOpen, setSignatureOpen] = useState(false)
+  const [signatureResult, setSignatureResult] = useState<SignatureResult | null>(null)
+
+  // A demo consent PDF built client-side for the <PdfViewer> showcase.
+  const [demoPdfUrl, setDemoPdfUrl] = useState<string | null>(null)
+  useEffect(() => {
+    let built: string | null = null
+    buildConsentPdfUrl("Grooming consent form", [
+      "I confirm that the information I have provided about my pet is accurate and complete.",
+      "I consent to my pet being handled, bathed and groomed by the team, and understand that a muzzle or other safe restraint may be used if my pet becomes anxious.",
+      "I release the staff and the business from liability for any accidental injury or stress to my pet that may occur despite reasonable and professional care.",
+    ]).then((url) => {
+      built = url
+      setDemoPdfUrl(url)
+    })
+    return () => {
+      if (built) URL.revokeObjectURL(built)
+    }
+  }, [])
 
   const togglePick = (id: string) => {
     setPickedTypes((curr) => {
@@ -835,7 +859,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Empty state"
-        description="Centered placeholder for sections with no data. variant='plain' (default) is the borderless, muted in-section treatment. variant='card' is the full-page listing treatment used by the sales / clients / pets / products / appointments tables when a search or filter returns nothing — dashed card, tilted brand-accent icon, bolder title."
+        description="Centered placeholder for sections with no data. variant='plain' (default) is the borderless, muted in-section treatment. variant='card' wraps the same light line-icon and muted title in a dashed self-framed card — the full-page listing look used by the sales / clients / pets / products / appointments tables when a search or filter returns nothing."
       >
         <div className="grid max-w-3xl gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-border/60 bg-card">
@@ -854,16 +878,6 @@ export function PlaygroundShowcase() {
               }
             />
           </div>
-        </div>
-
-        {/* card variant — self-framed, so it isn't wrapped in another card */}
-        <div className="mt-3 max-w-3xl">
-          <EmptyState
-            variant="card"
-            icon={PackageIcon}
-            title="No products match"
-            description="Try a different search."
-          />
         </div>
       </Section>
 
@@ -1000,6 +1014,49 @@ export function PlaygroundShowcase() {
           ]}
           isOwner
         />
+      </Section>
+
+      <Section
+        title="Add a signature dialog"
+        description="Standalone signature-capture modal: full name + Title, a Type / Draw segmented toggle — Type renders the scripted preview + Signature ID, Draw is a pointer canvas pad with Clear. Sign is disabled until valid. The public signer flow (/sign) now captures the signature inline in its split layout rather than in this modal; kept here for reuse elsewhere."
+      >
+        <Row label="Open">
+          <Button onClick={() => setSignatureOpen(true)}>Add a signature</Button>
+        </Row>
+        {signatureResult ? (
+          <Row label="Captured">
+            <SignaturePreview
+              businessName="Shampooch"
+              fullName={signatureResult.fullName}
+              signatureId={signatureResult.signatureId}
+              drawingDataUrl={signatureResult.drawingDataUrl}
+            />
+          </Row>
+        ) : null}
+        <SignatureDialog
+          open={signatureOpen}
+          onOpenChange={setSignatureOpen}
+          businessName="Shampooch"
+          defaultFullName="Michelle You"
+          onSign={setSignatureResult}
+        />
+      </Section>
+
+      <Section
+        title="PDF viewer"
+        description="<PdfViewer> renders PDFs in-app on a canvas (react-pdf / pdf.js) inside our own themed, scrolling container — no native viewer chrome. Pages fit the container width (= 100% zoom); a floating dark toolbar carries zoom (−/+, 50–250%) and page navigation (Prev · Page X/Y · Next, tracked as you scroll). Loaded client-only (dynamic, ssr:false). Used by the public signer flow (/sign), the operator 'View form' split layout, and the Files → Preview action. Here it shows a consent PDF built client-side from copy."
+      >
+        <Row label="Document">
+          <div className="w-full max-w-xl">
+            {demoPdfUrl ? (
+              <PdfViewer file={demoPdfUrl} />
+            ) : (
+              <div className="flex h-60 items-center justify-center rounded-2xl border border-border/60 bg-muted/30 text-sm text-muted-foreground">
+                Preparing document…
+              </div>
+            )}
+          </div>
+        </Row>
       </Section>
 
       <Section
@@ -1453,25 +1510,6 @@ export function PlaygroundShowcase() {
         </Row>
       </Section>
 
-      {/* ── Products ─────────────────────────────────────────────────────── */}
-      <Section title="Products — empty state">
-        <Row label="No products yet">
-          <div className="w-full max-w-lg rounded-2xl border border-dashed border-border bg-card">
-            <EmptyState
-              icon={PackageIcon}
-              title="No products yet"
-              description="Add your first product to get started"
-              action={
-                <Button radius="full" className="h-9 px-4">
-                  Add product
-                </Button>
-              }
-              className="py-16"
-            />
-          </div>
-        </Row>
-      </Section>
-
       {/* ── Service catalog ──────────────────────────────────────────────── */}
       <Section
         title="Service menu — cards & sidebar"
@@ -1532,27 +1570,6 @@ export function PlaygroundShowcase() {
             onAddService={() => {}}
             onDeleteCategory={() => {}}
           />
-        </Row>
-      </Section>
-
-      <Section
-        title="Sales settings — Gift cards"
-        description="Sales → Gift cards sub-screen. Set up / Edit open a full-screen Gift card settings takeover (enable toggle, preset AED values, expiration). Unlike payment methods, a gift-card program has NO delete: once set up it can only be edited (or toggled off) — there's deliberately no Delete affordance anywhere in this flow."
-      >
-        <Row label="Inactive">
-          <div className="w-full max-w-2xl">
-            <EmptyState
-              variant="card"
-              icon={GiftIcon}
-              title="Gift cards inactive"
-              description="Let your clients buy personalized gift cards and send to friends & family for your business."
-              action={
-                <Button radius="full" onClick={() => toast("Open Gift card settings (stubbed)")}>
-                  Set up
-                </Button>
-              }
-            />
-          </div>
         </Row>
       </Section>
 

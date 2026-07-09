@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo, useState } from "react"
 
 import { AppShell } from "@/components/blocks/app-shell"
-import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
+import { ClientDetailDialog, type TabId } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
@@ -192,6 +192,13 @@ function ClientsIndex() {
   const dirParam = searchParams.get("dir")
   const dir: SortDir = isSortDir(dirParam) ? dirParam : DEFAULT_SORT_DIR
   const openClientId = searchParams.get("client")
+  const viewFormParam = searchParams.get("form") ?? undefined
+  const previewFileParam = searchParams.get("file") ?? undefined
+  // A ?form= / ?file= deep-link implies the Documents tab, where they live.
+  const tabParam =
+    viewFormParam || previewFileParam
+      ? "documents"
+      : ((searchParams.get("tab") as TabId | null) ?? undefined)
 
   const updateParams = useCallback(
     (
@@ -441,8 +448,12 @@ function ClientsIndex() {
             id: openClient.id,
             name: openClient.name,
             phone: openClient.phone,
+            email: openClient.email,
           }}
           hasPets={hasPets}
+          initialTab={tabParam}
+          initialViewFormId={viewFormParam}
+          initialPreviewFileId={previewFileParam}
           onSelectOwner={(ownerId) => {
             updateParams({ client: ownerId })
           }}

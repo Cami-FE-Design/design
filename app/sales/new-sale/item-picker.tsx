@@ -12,6 +12,7 @@ import {
   SearchXIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { cn } from "@/lib/utils"
@@ -526,12 +527,7 @@ function GroupHeader({ label, count }: { label: string; count: number }) {
 }
 
 function NoResults({ query }: { query: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-      <SearchXIcon className="size-10 stroke-[1.25] text-muted-foreground/50" aria-hidden />
-      <p className="text-sm font-medium text-muted-foreground">No results for “{query}”</p>
-    </div>
-  )
+  return <EmptyState icon={SearchXIcon} title={`No results for “${query}”`} />
 }
 
 // ─── Filters ──────────────────────────────────────────────────────────────────

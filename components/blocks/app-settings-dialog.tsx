@@ -3,6 +3,7 @@
 import {
   Building2Icon,
   ChevronLeftIcon,
+  FolderIcon,
   GlobeIcon,
   type LucideIcon,
   MapPinIcon,
@@ -13,6 +14,7 @@ import {
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useState } from "react"
 import { BusinessProfileForm } from "@/components/blocks/business-profile-form"
+import { FilesSection } from "@/components/blocks/documents-files-card"
 import { LocationForm } from "@/components/blocks/location-form"
 import { SalesSettings } from "@/components/blocks/sales-settings"
 import { Badge } from "@/components/ui/badge"
@@ -79,6 +81,18 @@ const GROUPS: SettingsGroup[] = [
         label: "Sales",
         description: "Payment methods and gift cards for checkout.",
         icon: TagIcon,
+      },
+    ],
+  },
+  {
+    label: "Forms",
+    items: [
+      {
+        id: "forms",
+        label: "Form templates",
+        description:
+          "Reusable form templates. Documents added here are the only ones available to send to clients and pets for signature.",
+        icon: FolderIcon,
       },
     ],
   },
@@ -198,6 +212,7 @@ export function AppSettingsDialog({
             {active.id === "business-details" ? <BusinessProfilePanel /> : null}
             {active.id === "locations" ? <LocationsPanel /> : null}
             {active.id === "language" ? <LanguagePanel /> : null}
+            {active.id === "forms" ? <FilesPanel /> : null}
             {active.id === "sales" ? <SalesSettings /> : null}
           </div>
         </div>
@@ -248,4 +263,21 @@ function LanguagePanel() {
 
 function LocationsPanel() {
   return <LocationForm />
+}
+
+function FilesPanel() {
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-2">
+        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+          Form templates
+        </h2>
+        <p className="text-sm leading-5 text-muted-foreground">
+          Reusable forms you can send to clients and pets for signature. Uploads made on a profile
+          stay personal to that profile and won&apos;t appear here.
+        </p>
+      </header>
+      <FilesSection variant="settings" />
+    </div>
+  )
 }

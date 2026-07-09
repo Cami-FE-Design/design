@@ -16,12 +16,15 @@ import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import {
   ArrowDownUpIcon,
   ChevronDownIcon,
+  CirclePlusIcon,
+  LayersIcon,
   LinkIcon,
   SettingsIcon,
   SlidersHorizontalIcon,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { EmptyState } from "@/components/blocks/empty-state"
 import {
   Button,
   DropdownMenu,
@@ -624,20 +627,24 @@ export function ServiceMenuPage({
                 )}
 
                 {visibleCategories.length === 0 && uncategorizedServices.length === 0 && (
-                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border py-16">
-                    <p className="text-sm text-muted-foreground">
-                      No categories yet.{" "}
-                      {canManage && (
-                        <button
+                  <EmptyState
+                    icon={LayersIcon}
+                    title="No categories yet."
+                    action={
+                      canManage ? (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          radius="full"
                           type="button"
-                          className="text-primary hover:underline"
                           onClick={() => setAddCategoryOpen(true)}
                         >
+                          <CirclePlusIcon />
                           Add a category
-                        </button>
-                      )}
-                    </p>
-                  </div>
+                        </Button>
+                      ) : undefined
+                    }
+                  />
                 )}
               </div>
 

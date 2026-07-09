@@ -16,6 +16,7 @@ import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
+import { PhoneField } from "@/components/blocks/phone-field"
 import { TagPicker } from "@/components/blocks/tag-picker"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -35,8 +36,6 @@ import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
 const triggerOverride = "data-[size=default]:h-12 rounded-2xl bg-input px-4 font-medium"
-
-const PHONE_CODES = ["+971", "+966", "+965", "+974", "+44", "+1"]
 
 type SectionId = "profile" | "additional" | "addresses" | "contacts" | "pets" | "settings"
 
@@ -293,49 +292,6 @@ function EmptyAddRow({ label, onAdd }: { label: string; onAdd: () => void }) {
       <PlusIcon className="size-4 shrink-0" />
       {label}
     </button>
-  )
-}
-
-function PhoneField({
-  label,
-  code,
-  number,
-  onCodeChange,
-  onNumberChange,
-}: {
-  label: string
-  code: string
-  number: string
-  onCodeChange: (next: string) => void
-  onNumberChange: (next: string) => void
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <Label>{label}</Label>
-      <div className="flex w-full items-center gap-2">
-        <Select value={code} onValueChange={onCodeChange}>
-          <SelectTrigger className={cn(triggerOverride, "w-24 shrink-0")}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PHONE_CODES.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          type="tel"
-          autoComplete="tel"
-          inputMode="tel"
-          value={number}
-          onChange={(e) => onNumberChange(e.target.value)}
-          className="min-w-0 flex-1"
-          placeholder="50 000 0000"
-        />
-      </div>
-    </div>
   )
 }
 

@@ -2,7 +2,8 @@
 
 import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
-import { ChevronDownIcon } from "lucide-react"
+import { ChevronDownIcon, CirclePlusIcon, ScissorsIcon } from "lucide-react"
+import { EmptyState } from "@/components/blocks/empty-state"
 import {
   Button,
   DropdownMenu,
@@ -113,20 +114,24 @@ export function CategorySection({
       </SortableContext>
 
       {services.length === 0 && (
-        <div className="flex items-center justify-center rounded-2xl border border-dashed border-border py-8">
-          {canManage ? (
-            <Button
-              variant="ghost"
-              type="button"
-              className="text-sm text-primary hover:underline"
-              onClick={onAddService}
-            >
-              + Add a service to this category
-            </Button>
-          ) : (
-            <p className="text-sm text-muted-foreground">No services yet.</p>
-          )}
-        </div>
+        <EmptyState
+          icon={ScissorsIcon}
+          title="No services yet."
+          action={
+            canManage ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                radius="full"
+                type="button"
+                onClick={onAddService}
+              >
+                <CirclePlusIcon />
+                Add a service
+              </Button>
+            ) : undefined
+          }
+        />
       )}
     </div>
   )

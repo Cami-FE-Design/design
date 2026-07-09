@@ -4,6 +4,7 @@ import {
   ArrowDownIcon,
   ArrowUpDownIcon,
   ArrowUpIcon,
+  Building2Icon,
   PlusIcon,
   SlidersHorizontalIcon,
 } from "lucide-react"
@@ -13,6 +14,7 @@ import { Suspense, useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { AdminShell } from "@/components/blocks/admin-shell"
 import { BusinessDetailDialog } from "@/components/blocks/business-detail-dialog"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { NewBusinessSheet } from "@/components/blocks/new-business-sheet"
 import { StateDropdown } from "@/components/blocks/state-dropdown"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
@@ -262,12 +264,12 @@ function BusinessesTable({
 }) {
   if (businesses.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-border bg-card px-4 py-16 text-center">
-        <p className="text-sm font-medium text-foreground">No partners match</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Try a different tab or clear the search.
-        </p>
-      </div>
+      <EmptyState
+        variant="card"
+        icon={Building2Icon}
+        title="No partners match"
+        description="Try a different tab or clear the search."
+      />
     )
   }
   return (

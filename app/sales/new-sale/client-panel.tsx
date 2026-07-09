@@ -5,9 +5,11 @@ import {
   ChevronDownIcon,
   PersonStandingIcon,
   PlusIcon,
+  SearchXIcon,
   UserPlusIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
+import { EmptyState } from "@/components/blocks/empty-state"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -216,11 +218,7 @@ function ClientResults({
   }, [query])
 
   if (results.length === 0) {
-    return (
-      <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-        No clients match “{query}”
-      </p>
-    )
+    return <EmptyState icon={SearchXIcon} title={`No clients match “${query}”`} />
   }
 
   return (
