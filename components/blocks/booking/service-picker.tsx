@@ -1,9 +1,14 @@
 "use client"
 
-import { CheckIcon, ListIcon, PlusIcon, XIcon } from "lucide-react"
+import { CheckIcon, ListIcon, PlusIcon } from "lucide-react"
 import { useState } from "react"
 
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { type CatalogService, SERVICE_CATEGORIES } from "@/lib/booking"
 import { formatDuration, formatPriceAed } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
@@ -74,7 +79,6 @@ export function ServicePicker({
   onToggle: (id: string) => void
 }) {
   const [activeId, setActiveId] = useState(SERVICE_CATEGORIES[0]!.id)
-  const [sheetOpen, setSheetOpen] = useState(false)
   const active = SERVICE_CATEGORIES.find((c) => c.id === activeId) ?? SERVICE_CATEGORIES[0]!
   const selected = new Set(selectedIds)
 
@@ -82,7 +86,7 @@ export function ServicePicker({
     <div className="flex flex-col gap-5">
       {/* Category tabs + overflow */}
       <div className="flex items-center gap-2">
-        <div className="no-scrollbar -mx-1 flex flex-1 gap-2 overflow-x-auto px-1">
+        <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1">
           {SERVICE_CATEGORIES.map((cat) => {
             const on = cat.id === activeId
             // Count of selected services in this category — a subtle badge on the tab.
@@ -115,14 +119,39 @@ export function ServicePicker({
             )
           })}
         </div>
-        <button
-          type="button"
-          onClick={() => setSheetOpen(true)}
-          aria-label="All categories"
-          className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted/40"
-        >
-          <ListIcon className="size-4" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              aria-label="All categories"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-foreground hover:bg-muted/40 data-[state=open]:bg-muted/60"
+            >
+              <ListIcon className="size-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="max-h-[60vh] w-56 overflow-y-auto">
+            {SERVICE_CATEGORIES.map((cat) => {
+              const n = cat.services.filter((s) => selected.has(s.id)).length
+              return (
+                <DropdownMenuItem
+                  key={cat.id}
+                  onSelect={() => setActiveId(cat.id)}
+                  className={cn(
+                    "justify-between gap-3",
+                    cat.id === activeId && "font-semibold text-foreground",
+                  )}
+                >
+                  <span>{cat.name}</span>
+                  {n > 0 ? (
+                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-cami-violet-9 text-[10px] text-white">
+                      {n}
+                    </span>
+                  ) : null}
+                </DropdownMenuItem>
+              )
+            })}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Active category */}
@@ -143,57 +172,6 @@ export function ServicePicker({
           />
         ))}
       </div>
-
-      {/* All categories sheet — for menus too long to fit the tab row */}
-      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent
-          side="bottom"
-          showCloseButton={false}
-          className="max-h-[80dvh] gap-0 overflow-y-auto"
-        >
-          <SheetHeader className="flex-row items-center justify-between">
-            <SheetTitle className="font-semibold text-lg">Categories</SheetTitle>
-            <SheetClose asChild>
-              <button
-                type="button"
-                aria-label="Close"
-                className="flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/60"
-              >
-                <XIcon className="size-5" />
-              </button>
-            </SheetClose>
-          </SheetHeader>
-          <nav className="flex flex-col px-2 pb-6">
-            {SERVICE_CATEGORIES.map((cat) => {
-              const n = cat.services.filter((s) => selected.has(s.id)).length
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveId(cat.id)
-                    setSheetOpen(false)
-                  }}
-                  className={cn(
-                    "flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-left text-base transition-colors hover:bg-muted/50",
-                    cat.id === activeId ? "font-semibold text-foreground" : "text-foreground",
-                  )}
-                >
-                  <span>{cat.name}</span>
-                  <span className="flex items-center gap-2 text-muted-foreground text-sm">
-                    {n > 0 ? (
-                      <span className="flex size-5 items-center justify-center rounded-full bg-cami-violet-9 text-white text-xs">
-                        {n}
-                      </span>
-                    ) : null}
-                    {cat.services.length}
-                  </span>
-                </button>
-              )
-            })}
-          </nav>
-        </SheetContent>
-      </Sheet>
     </div>
   )
 }
