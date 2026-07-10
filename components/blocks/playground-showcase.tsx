@@ -1,13 +1,13 @@
 "use client"
 
 import {
+  BanknoteIcon,
   BedIcon,
   BellIcon,
   Building2Icon,
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
-  CircleDollarSignIcon,
   CircleUserIcon,
   FlagIcon,
   FolderIcon,
@@ -1250,7 +1250,7 @@ export function PlaygroundShowcase() {
           <div className="flex w-full max-w-md flex-col gap-5">
             <SettingsRow icon={Building2Icon} label="Business name" value="Shampooch JVC" />
             <SettingsRow icon={FlagIcon} label="Country" value="United Arab Emirates" />
-            <SettingsRow icon={CircleDollarSignIcon} label="Currency" value="AED" />
+            <SettingsRow icon={BanknoteIcon} label="Currency" value="AED" />
             <SettingsRow
               icon={PercentIcon}
               label="Tax calculation"

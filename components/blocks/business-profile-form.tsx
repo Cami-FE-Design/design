@@ -1,13 +1,6 @@
 "use client"
 
-import {
-  Building2Icon,
-  CircleDollarSignIcon,
-  FlagIcon,
-  GlobeIcon,
-  PercentIcon,
-  XIcon,
-} from "lucide-react"
+import { BanknoteIcon, Building2Icon, FlagIcon, GlobeIcon, PercentIcon, XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useRef, useState } from "react"
 import { SettingsRow } from "@/components/blocks/settings-row"
@@ -52,7 +45,7 @@ type SummaryItem = {
 const BUSINESS_INFO_SUMMARY: SummaryItem[] = [
   { icon: Building2Icon, label: "Business name", value: "Shampooch JVC", field: "businessName" },
   { icon: FlagIcon, label: "Country", value: "United Arab Emirates", field: "country" },
-  { icon: CircleDollarSignIcon, label: "Currency", value: "AED", field: "currency" },
+  { icon: BanknoteIcon, label: "Currency", value: "AED", field: "currency" },
   {
     icon: PercentIcon,
     label: "Tax calculation",
