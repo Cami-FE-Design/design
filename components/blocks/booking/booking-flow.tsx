@@ -5,11 +5,13 @@ import {
   ArrowRightIcon,
   CalendarPlusIcon,
   CheckIcon,
+  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronUpIcon,
   ClockIcon,
   Loader2Icon,
+  PlusIcon,
   ShieldCheckIcon,
   ShoppingBagIcon,
   XIcon,
@@ -19,9 +21,14 @@ import { useEffect, useRef, useState } from "react"
 
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
-import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { OtpInput } from "@/components/ui/otp-input"
@@ -40,7 +47,9 @@ import {
   businessHasPets,
   type CatalogService,
   findCatalogService,
+  findClientByPhone,
   PET_SPECIES_OPTIONS,
+  type ReturningClient,
   serviceTotals,
 } from "@/lib/booking"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
@@ -60,28 +69,6 @@ function StepHeading({ title, hint }: { title: string; hint?: string }) {
       <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
       {hint ? <p className="text-sm text-muted-foreground">{hint}</p> : null}
     </div>
-  )
-}
-
-// Large stacked choice card — used by the first-visit fork.
-function FirstVisitOption({
-  title,
-  sub,
-  onClick,
-}: {
-  title: string
-  sub: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group flex flex-col items-start gap-0.5 rounded-2xl border border-border/70 px-5 py-4 text-left transition-colors hover:border-foreground hover:bg-muted/40"
-    >
-      <span className="font-semibold text-foreground text-base">{title}</span>
-      <span className="text-muted-foreground text-sm">{sub}</span>
-    </button>
   )
 }
 
@@ -152,7 +139,7 @@ function SlotStep({
         </div>
         <div
           ref={staffRailRef}
-          className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-0.5 [mask-image:linear-gradient(to_right,transparent_0,black_72px,black_calc(100%-72px),transparent_100%)]"
+          className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 py-0.5 [mask-image:linear-gradient(to_right,black_0,black_calc(100%-72px),transparent_100%)]"
         >
           <StaffChip
             active={staffId === "any"}
@@ -242,31 +229,76 @@ function formatCountdown(s: number) {
   return `${m}:${ss}`
 }
 
+// Name + species inputs — shared by new-client capture and the "add a new pet"
+// branch of the returning-client picker.
+function PetDetailsFields({ pet, onPet }: { pet: NewPet; onPet: (p: NewPet) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      <div className="group flex flex-col gap-1.5">
+        <Label htmlFor="pet-name">Pet name</Label>
+        <Input
+          id="pet-name"
+          placeholder="Bella"
+          value={pet.name}
+          onChange={(e) => onPet({ ...pet, name: e.target.value })}
+        />
+      </div>
+      <div className="group flex flex-col gap-1.5">
+        <Label htmlFor="pet-species">Species</Label>
+        <Select
+          value={pet.species}
+          onValueChange={(v) => onPet({ ...pet, species: v as AvatarSpecies })}
+        >
+          <SelectTrigger
+            id="pet-species"
+            className="w-full rounded-2xl bg-input px-4 font-medium data-[size=default]:h-12"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PET_SPECIES_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  )
+}
+
+// Sentinel picker value for "not one of my saved pets — add a new one".
+const ADD_PET = "__new__"
+
 function IdentifyStep({
   hasPets,
-  businessName,
   customer,
   onChange,
   pet,
   onPet,
-  onVerified,
 }: {
   hasPets: boolean
-  businessName: string
   customer: Customer
   onChange: (c: Customer) => void
   pet: NewPet
   onPet: (p: NewPet) => void
-  onVerified: () => void
 }) {
-  // "ask" = first-visit fork, "new" = register form, "returning" = phone sign-in.
-  const [mode, setMode] = useState<"ask" | "new" | "returning">("ask")
-  // Returning-user sign-in is a two-step phone 2FA: request a code, then verify it.
-  const [authPhase, setAuthPhase] = useState<"phone" | "code">("phone")
+  // Linear sub-flow: phone → code → details. No first-visit fork; phone + OTP is
+  // the single entry, and we resolve who the caller is on verify.
+  const [authPhase, setAuthPhase] = useState<"phone" | "code" | "details">("phone")
   const [code, setCode] = useState("")
   const [verifyState, setVerifyState] = useState<VerifyState>("idle")
   const [seconds, setSeconds] = useState(RESEND_SECONDS)
+  // The resolved client record (null = no account on file = new registration).
+  const [resolved, setResolved] = useState<ReturningClient | null>(null)
+  // Which saved pet is selected, or ADD_PET. Only meaningful for a returning
+  // client with pets on file.
+  const [petChoice, setPetChoice] = useState<string>("")
   const set = (patch: Partial<Customer>) => onChange({ ...customer, ...patch })
+
+  const known = resolved !== null
+  const savedPets = resolved?.pets ?? []
 
   // Resend countdown, only while the code screen is showing.
   useEffect(() => {
@@ -276,7 +308,7 @@ function IdentifyStep({
   }, [authPhase, seconds])
 
   // Auto-verify the moment 6 digits are entered — no manual submit. Demo: any
-  // code starting with "0" fails; everything else succeeds, then we advance.
+  // code starting with "0" fails; everything else succeeds.
   useEffect(() => {
     if (authPhase !== "code" || code.length !== CODE_LENGTH) return
     let cancelled = false
@@ -296,12 +328,31 @@ function IdentifyStep({
     }
   }, [authPhase, code])
 
-  // On success, hold the "Verified" state briefly, then seamlessly advance.
+  // On success, hold the "Verified" state briefly, then resolve the caller by
+  // phone: a record on file pre-fills the form + default-selects a saved pet;
+  // no record leaves an empty registration form. Either way, advance to details.
   useEffect(() => {
     if (verifyState !== "success") return
-    const t = setTimeout(onVerified, 700)
+    const t = setTimeout(() => {
+      const client = findClientByPhone(customer.phone)
+      setResolved(client)
+      if (client) {
+        onChange({
+          firstName: client.firstName,
+          lastName: client.lastName,
+          phone: customer.phone,
+          email: client.email,
+        })
+        if (hasPets && client.pets.length > 0) {
+          const first = client.pets[0]!
+          setPetChoice(first.id)
+          onPet({ name: first.name, species: first.species })
+        }
+      }
+      setAuthPhase("details")
+    }, 700)
     return () => clearTimeout(t)
-  }, [verifyState, onVerified])
+  }, [verifyState, customer.phone, hasPets, onChange, onPet])
 
   function requestCode() {
     setAuthPhase("code")
@@ -310,153 +361,232 @@ function IdentifyStep({
     setVerifyState("idle")
   }
 
-  function resetAuth() {
-    setAuthPhase("phone")
-    setCode("")
-    setVerifyState("idle")
+  function choosePet(v: string) {
+    setPetChoice(v)
+    if (v === ADD_PET) {
+      onPet({ name: "", species: "dog" })
+      return
+    }
+    const p = savedPets.find((x) => x.id === v)
+    if (p) onPet({ name: p.name, species: p.species })
   }
 
   const isLocked = verifyState === "verifying" || verifyState === "success"
 
-  // ── First-visit fork ────────────────────────────────────────────────────────
-  if (mode === "ask") {
+  // ── Phone entry ───────────────────────────────────────────────────────────
+  if (authPhase === "phone") {
     return (
-      <div className="flex flex-col gap-6">
-        <StepHeading title={`Is this your first visit to ${businessName}?`} />
-        <div className="flex flex-col gap-3">
-          <FirstVisitOption
-            title="Yes"
-            sub="This is my first visit"
-            onClick={() => setMode("new")}
+      <div className="flex flex-col gap-5">
+        <StepHeading
+          title="Let's confirm it's you"
+          hint="Enter your mobile number — we'll text a 6-digit code."
+        />
+        <div className="group flex flex-col gap-1.5">
+          <Label htmlFor="ret-phone">Mobile number</Label>
+          <Input
+            id="ret-phone"
+            inputMode="tel"
+            placeholder="+971 50 123 4567"
+            value={customer.phone}
+            onChange={(e) => set({ phone: e.target.value })}
           />
-          <FirstVisitOption
-            title="No"
-            sub="I've booked here before"
-            onClick={() => {
-              resetAuth()
-              setMode("returning")
+        </div>
+        <Button
+          variant="outline"
+          radius="full"
+          size="lg"
+          className="w-full"
+          disabled={customer.phone.trim().length === 0}
+          onClick={requestCode}
+        >
+          Send code
+        </Button>
+      </div>
+    )
+  }
+
+  // ── Code entry ────────────────────────────────────────────────────────────
+  if (authPhase === "code") {
+    return (
+      <div className="flex flex-col gap-5">
+        <StepHeading
+          title={`Enter the code we sent to ${customer.phone}`}
+          hint="This helps us keep your account secure."
+        />
+        <div className="flex flex-col items-start gap-3">
+          <OtpInput
+            value={code}
+            onValueChange={(v) => {
+              if (isLocked) return
+              if (verifyState === "error") setVerifyState("idle")
+              setCode(v)
             }}
+            disabled={isLocked}
+            invalid={verifyState === "error"}
+            className="justify-start"
           />
+          <div className="flex h-5 items-center text-sm">
+            {verifyState === "verifying" ? (
+              <span className="flex items-center gap-2 text-muted-foreground">
+                <Loader2Icon className="size-4 animate-spin" aria-hidden />
+                Verifying…
+              </span>
+            ) : verifyState === "success" ? (
+              <span className="flex items-center gap-2 font-medium text-foreground">
+                <CheckIcon className="size-4" aria-hidden />
+                Verified
+              </span>
+            ) : verifyState === "error" ? (
+              <span role="alert" className="text-destructive">
+                That code didn&apos;t match. Try again.
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div
+          className={cn("flex items-center justify-center gap-4 text-sm", isLocked && "invisible")}
+        >
+          {seconds > 0 ? (
+            <span className="text-muted-foreground">
+              Request a new code in{" "}
+              <strong className="font-medium tabular-nums">{formatCountdown(seconds)}</strong>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={requestCode}
+              className="link font-medium text-muted-foreground"
+            >
+              Request a new code
+            </button>
+          )}
+          <span className="text-border">·</span>
+          <button
+            type="button"
+            onClick={() => {
+              setAuthPhase("phone")
+              setCode("")
+              setVerifyState("idle")
+            }}
+            className="link font-medium text-muted-foreground"
+          >
+            Use a different number
+          </button>
         </div>
       </div>
     )
   }
 
-  if (mode === "returning") {
-    return (
-      <div className="flex flex-col gap-5">
-        {authPhase === "phone" ? (
-          <>
-            <StepHeading
-              title="Welcome back"
-              hint="We'll text you a 6-digit code to verify it's you."
-            />
-            <div className="group flex flex-col gap-1.5">
-              <Label htmlFor="ret-phone">Mobile number</Label>
-              <Input
-                id="ret-phone"
-                inputMode="tel"
-                placeholder="+971 50 123 4567"
-                value={customer.phone}
-                onChange={(e) => set({ phone: e.target.value })}
-              />
-            </div>
-            <Button
-              variant="outline"
-              radius="full"
-              size="lg"
-              className="w-full"
-              disabled={customer.phone.trim().length === 0}
-              onClick={requestCode}
-            >
-              Send code
-            </Button>
+  // ── Details (post-verify) ─────────────────────────────────────────────────
+  // "Who's coming in?" pet block — a saved-pet picker (returning, pets on file)
+  // or inline capture (new pet). Reused across returning + new branches.
+  const selectedPet = petChoice === ADD_PET ? null : savedPets.find((p) => p.id === petChoice)
+  // Just the control (picker or inline capture), no header — the caller supplies
+  // the heading (big StepHeading when it's the whole step, small when a subsection).
+  const petControl =
+    savedPets.length > 0 ? (
+      <div className="flex flex-col gap-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <button
               type="button"
-              onClick={() => {
-                resetAuth()
-                setMode("new")
-              }}
-              className="link mx-auto w-fit text-sm font-medium text-muted-foreground"
+              className="flex w-full items-center gap-3 rounded-2xl border border-border bg-background px-3 py-2.5 text-start transition-colors hover:bg-muted/40"
             >
-              First time here? Add your details
+              {selectedPet ? (
+                <>
+                  <Avatar
+                    name={selectedPet.name}
+                    fallback="species"
+                    species={selectedPet.species}
+                    src={selectedPet.photoUrl}
+                    size="md"
+                    shape="circle"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                    <span className="truncate text-sm font-semibold text-foreground">
+                      {selectedPet.name}
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {selectedPet.breed}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 text-muted-foreground">
+                    <PlusIcon className="size-4" aria-hidden />
+                  </span>
+                  <span className="flex-1 text-start text-sm font-medium text-foreground">
+                    New friend
+                  </span>
+                </>
+              )}
+              <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
             </button>
-          </>
-        ) : (
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-[var(--radix-dropdown-menu-trigger-width)]"
+          >
+            {savedPets.map((p) => (
+              <DropdownMenuItem
+                key={p.id}
+                onSelect={() => choosePet(p.id)}
+                className="items-center gap-2.5"
+              >
+                <Avatar
+                  name={p.name}
+                  fallback="species"
+                  species={p.species}
+                  src={p.photoUrl}
+                  size="sm"
+                  shape="circle"
+                />
+                <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                  <span className="truncate text-sm font-medium">{p.name}</span>
+                  <span className="truncate text-xs text-muted-foreground">{p.breed}</span>
+                </div>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuItem
+              onSelect={() => choosePet(ADD_PET)}
+              className="items-center gap-2.5 text-cami-violet-11"
+            >
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/40">
+                <PlusIcon className="size-3.5" aria-hidden />
+              </span>
+              New friend
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        {petChoice === ADD_PET ? <PetDetailsFields pet={pet} onPet={onPet} /> : null}
+      </div>
+    ) : (
+      <PetDetailsFields pet={pet} onPet={onPet} />
+    )
+
+  // Returning client: name/phone/email are all on file — skip the form and only
+  // ask which pet is coming in (non-pet businesses go straight to review).
+  if (known) {
+    return (
+      <div className="flex flex-col gap-5">
+        {hasPets ? (
           <>
             <StepHeading
-              title={`Enter the code we sent to ${customer.phone}`}
-              hint="This helps us keep your account secure."
+              title="Who's coming in?"
+              hint="Choose a pet from your account, or add a new one."
             />
-            <div className="flex flex-col items-start gap-3">
-              <OtpInput
-                value={code}
-                onValueChange={(v) => {
-                  if (isLocked) return
-                  if (verifyState === "error") setVerifyState("idle")
-                  setCode(v)
-                }}
-                disabled={isLocked}
-                invalid={verifyState === "error"}
-                className="justify-start"
-              />
-              <div className="flex h-5 items-center text-sm">
-                {verifyState === "verifying" ? (
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2Icon className="size-4 animate-spin" aria-hidden />
-                    Verifying…
-                  </span>
-                ) : verifyState === "success" ? (
-                  <span className="flex items-center gap-2 font-medium text-foreground">
-                    <CheckIcon className="size-4" aria-hidden />
-                    Verified
-                  </span>
-                ) : verifyState === "error" ? (
-                  <span role="alert" className="text-destructive">
-                    That code didn&apos;t match. Try again.
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            <div
-              className={cn(
-                "flex items-center justify-center gap-4 text-sm",
-                isLocked && "invisible",
-              )}
-            >
-              {seconds > 0 ? (
-                <span className="text-muted-foreground">
-                  Request a new code in{" "}
-                  <strong className="font-medium tabular-nums">{formatCountdown(seconds)}</strong>
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={requestCode}
-                  className="link font-medium text-muted-foreground"
-                >
-                  Request a new code
-                </button>
-              )}
-              <span className="text-border">·</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthPhase("phone")
-                  setCode("")
-                  setVerifyState("idle")
-                }}
-                className="link font-medium text-muted-foreground"
-              >
-                Use a different number
-              </button>
-            </div>
+            {petControl}
           </>
+        ) : (
+          <StepHeading title="Welcome back" hint="You're verified — review your booking next." />
         )}
       </div>
     )
   }
 
+  // New client: empty registration form. Phone is the verified key, so it's
+  // shown disabled; pet is captured inline (feature-flagged).
   return (
     <div className="flex flex-col gap-5">
       <StepHeading title="Your details" hint="So we can confirm and send reminders." />
@@ -484,15 +614,9 @@ function IdentifyStep({
       </div>
       <div className="group flex flex-col gap-1.5">
         <Label htmlFor="phone">Mobile number</Label>
-        <Input
-          id="phone"
-          inputMode="tel"
-          placeholder="+971 50 123 4567"
-          value={customer.phone}
-          onChange={(e) => set({ phone: e.target.value })}
-        />
+        <Input id="phone" inputMode="tel" value={customer.phone} disabled />
         <p className="text-xs text-muted-foreground">
-          We send your confirmation and reminders here on WhatsApp.
+          Verified. We send your confirmation and reminders here on WhatsApp.
         </p>
       </div>
       <div className="group flex flex-col gap-1.5">
@@ -508,8 +632,6 @@ function IdentifyStep({
           onChange={(e) => set({ email: e.target.value })}
         />
       </div>
-      {/* Pet capture — feature-flagged by the pet module. A first-time booker
-          has no pet on file, so it's collected inline here, not a separate step. */}
       {hasPets ? (
         <div className="flex flex-col gap-4 border-t border-border/60 pt-5">
           <div className="flex flex-col gap-0.5">
@@ -518,48 +640,9 @@ function IdentifyStep({
               Add your pet — you can add more from your account later.
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="group flex flex-col gap-1.5">
-              <Label htmlFor="pet-name">Pet name</Label>
-              <Input
-                id="pet-name"
-                placeholder="Bella"
-                value={pet.name}
-                onChange={(e) => onPet({ ...pet, name: e.target.value })}
-              />
-            </div>
-            <div className="group flex flex-col gap-1.5">
-              <Label htmlFor="pet-species">Species</Label>
-              <Select
-                value={pet.species}
-                onValueChange={(v) => onPet({ ...pet, species: v as AvatarSpecies })}
-              >
-                <SelectTrigger id="pet-species" className="h-12 w-full rounded-2xl bg-input">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PET_SPECIES_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          {petControl}
         </div>
       ) : null}
-
-      <button
-        type="button"
-        onClick={() => {
-          resetAuth()
-          setMode("returning")
-        }}
-        className="link mx-auto w-fit text-sm font-medium text-muted-foreground"
-      >
-        Booked here before? Sign in
-      </button>
     </div>
   )
 }
@@ -829,7 +912,8 @@ function DesktopSummary({
 
 export function BookingFlow({ business }: { business: PublicBusiness }) {
   const hasPets = businessHasPets(business)
-  // Pet is captured inside Identify (feature-flagged), not a separate step.
+  // Pet is picked/captured inside Identify after phone verify (feature-flagged),
+  // not a separate step — see docs/specs/PRO-80.
   const steps: StepId[] = ["service", "slot", "identify", "confirm"]
 
   const [stepIndex, setStepIndex] = useState(0)
@@ -899,7 +983,6 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
   if (done) {
     return (
       <main className="relative flex min-h-dvh flex-col bg-background">
-        <PublicTopGradient />
         <div className="relative mx-auto flex w-full max-w-[460px] flex-1 flex-col px-5 py-6">
           <div className="flex flex-1 flex-col">
             <DoneState business={business} whenLabel={whenLabel} reference={reference} />
@@ -925,12 +1008,10 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
     ) : step === "identify" ? (
       <IdentifyStep
         hasPets={hasPets}
-        businessName={business.displayName}
         customer={customer}
         onChange={setCustomer}
         pet={pet}
         onPet={setPet}
-        onVerified={next}
       />
     ) : services.length > 0 ? (
       <ConfirmStep
@@ -945,10 +1026,10 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
 
   return (
     <main className="relative flex min-h-dvh flex-col bg-background">
-      <PublicTopGradient />
       <div className="relative mx-auto flex w-full max-w-[460px] flex-1 flex-col px-5 pb-6 lg:max-w-[960px] lg:pb-10">
-        {/* Top bar: back + progress (sticky) */}
-        <div className="-mx-5 sticky top-0 z-20 mb-6 flex flex-col gap-3 px-5 pt-6 pb-4 lg:pt-10">
+        {/* Top bar: back + progress (sticky). Frosted bg + a soft skirt below so
+            content scrolling underneath fades out instead of colliding. */}
+        <div className="-mx-5 sticky top-0 z-20 mb-6 flex flex-col gap-3 bg-background/85 px-5 pt-6 pb-4 backdrop-blur-md after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-6 after:bg-gradient-to-b after:from-background after:to-transparent lg:pt-10">
           <div className="flex items-center justify-between">
             <Button variant="ghost" size="icon" radius="full" onClick={back} aria-label="Go back">
               <ArrowLeftIcon className="size-5" />

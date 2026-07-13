@@ -311,12 +311,46 @@ export const SLOT_GROUPS: ReadonlyArray<SlotGroup> = [
 // ─── Existing pets ────────────────────────────────────────────────────────────
 // Returning parents see their household; new parents add one inline (quick-create
 // is name + species only — project_cami_quick_create).
-export type BookingPet = { id: string; name: string; species: AvatarSpecies; breed: string }
+export type BookingPet = {
+  id: string
+  name: string
+  species: AvatarSpecies
+  breed: string
+  /** Real pet photo — Avatar falls back to the species glyph when absent. */
+  photoUrl?: string
+}
 
 export const RETURNING_PETS: ReadonlyArray<BookingPet> = [
   { id: "bella", name: "Bella", species: "dog", breed: "Cavapoo" },
   { id: "miso", name: "Miso", species: "cat", breed: "Domestic shorthair" },
 ]
+
+// ─── Client lookup by phone (identify step) ───────────────────────────────────
+// Phone is unique per customer (duplicates cleaned up), so it's the lookup key.
+// After OTP verify the flow resolves the caller: a record on file pre-fills the
+// details form + surfaces saved pets; no record = a fresh registration form.
+export type ReturningClient = {
+  firstName: string
+  lastName: string
+  email: string
+  pets: ReadonlyArray<BookingPet>
+}
+
+export const RETURNING_CLIENT: ReturningClient = {
+  firstName: "Michelle",
+  lastName: "You",
+  email: "michelle@email.com",
+  pets: RETURNING_PETS,
+}
+
+// Demo resolver: a mobile ending in an EVEN digit is a returning client on file;
+// ODD = new. Mirrors the OTP demo convention (a code starting with "0" fails).
+// Production swaps this for the real phone → client lookup.
+export function findClientByPhone(phone: string): ReturningClient | null {
+  const digits = phone.replace(/\D/g, "")
+  if (digits.length === 0) return null
+  return Number(digits[digits.length - 1]) % 2 === 0 ? RETURNING_CLIENT : null
+}
 
 export const PET_SPECIES_OPTIONS: ReadonlyArray<{ value: AvatarSpecies; label: string }> = [
   { value: "dog", label: "Dog" },
