@@ -84,8 +84,9 @@ export function ServicePicker({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Category tabs + overflow */}
-      <div className="flex items-center gap-2">
+      {/* Category tabs + overflow — sticky under the flow's top bar (z-10 sits
+          below the z-20 header so it tucks under it, no seam). */}
+      <div className="-mx-1 sticky top-20 z-10 flex items-center gap-2 bg-background/85 px-1 py-2 backdrop-blur-md lg:top-24">
         <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1">
           {SERVICE_CATEGORIES.map((cat) => {
             const on = cat.id === activeId

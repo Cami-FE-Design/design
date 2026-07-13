@@ -604,12 +604,12 @@ const SECTIONS: Section[] = [
   {
     title: "Pet parent, booking flow (E3-4 / E3-6)",
     description:
-      "Public pet-parent booking on cami.app/[slug]/book, opened from the business page 'Book now'. Categorized multi-select services (scales past 30 via tabs + a Categories dropdown on the list-icon), staff/day/time picker, a first-visit fork that routes to register or phone 2FA sign-in, inline details + pet capture (pet-module feature-flagged, no separate step), confirm, and a 'You're booked' terminal. Responsive: mobile single column with a Price breakdown sheet; desktop two-pane with a sticky summary cart.",
+      "Public pet-parent booking on cami.app/[slug]/book, opened from the business page 'Book now'. Categorized multi-select services (scales past 30 via tabs + a Categories dropdown on the list-icon), staff/day/time picker, phone-first identify (mobile → OTP → resolve caller: returning client pre-fills details + surfaces a saved-pet picker, new client gets an empty form with phone locked; pet-module feature-flagged, no separate step), confirm, and a 'You're booked' terminal. Responsive: mobile single column with a Price breakdown sheet; desktop two-pane with a sticky summary cart. See docs/specs/PRO-80.",
     screens: [
       {
         path: "/shampooch-jvc/book",
         label: "Booking flow · services → time → identity → confirm",
-        note: "Multi-select service cards by category (list-icon opens a Categories dropdown), slot picker (12-staff horizontal rail with prev/next arrows + edge fade, circle day picker, available-times list, 5-min hold). Identity step forks on 'Is this your first visit?': Yes → details + inline pet capture; No → phone 2FA (enter mobile → auto-verifying 6-digit OTP → seamless advance, no manual continue). Confirm with summed total, then 'You're booked' with a reference.",
+        note: "Multi-select service cards by category (list-icon opens a Categories dropdown), slot picker (12-staff horizontal rail with prev/next arrows + edge fade, circle day picker, available-times list, 5-min hold). Identity step is phone-first: enter mobile → auto-verifying 6-digit OTP (code starting '0' fails) → resolve. Demo: mobile ending in an EVEN digit is a returning client (pre-filled name/email, phone disabled, saved-pet dropdown Bella/Miso + 'Add a new pet'); ODD digit is new (empty form, phone pre-filled & disabled, inline pet capture). Confirm with summed total, then 'You're booked' with a reference.",
       },
       {
         path: "/purr-palace/book",
