@@ -523,6 +523,11 @@ const SECTIONS: Section[] = [
         note: "Seeds a demo cart and opens on the Payment step — method grid, Split, and the cash/card amount dialogs. Footer back-calculates tax-inclusive Subtotal/Tax.",
       },
       {
+        path: "/sales/new-sale?dialog=payment-link",
+        label: "New sale · Payment link (self checkout, PRO-396)",
+        note: "Seeds a demo cart on the Payment step with the Send-payment-link dialog open. Operator confirms client name + mobile (prefilled from the attached client), reads the 3-step 'How it works', sends. Then four auto-advancing beats stand in for the payment socket: Sending checkout link → client is adding their card → Processing payment → Payment received. Cancel returns to the form; Mark as paid settles early (the client may never tap). Done records a 'Payment link' payment line. The client's half of this is /[slug]/pay/[token].",
+      },
+      {
         path: "/sales/new-sale?dialog=redeem",
         label: "New sale · Redeem gift card at checkout",
         note: "Seeds a demo (non-gift-card) cart on the Payment step with the Redeem gift card dialog open: find by code (QM4KTRZA / ZTP3RG84 = active with balance, YYOSNPHO = not active, anything else = typo error), then apply the balance as a Gift card payment line.",
