@@ -5,12 +5,14 @@ import {
   GiftIcon,
   InfoIcon,
   type LucideIcon,
+  SmartphoneIcon,
   SplitIcon,
   WalletIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const METHODS: { id: string; label: string; icon: LucideIcon }[] = [
+  { id: "link", label: "Payment link", icon: SmartphoneIcon },
   { id: "cash", label: "Cash", icon: BanknoteIcon },
   { id: "card", label: "Card", icon: WalletIcon },
   { id: "gift-card", label: "Gift card", icon: GiftIcon },

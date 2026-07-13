@@ -29,6 +29,7 @@ import { PaymentView } from "./payment-view"
 import { RedeemGiftCardDialog } from "./redeem-gift-card-dialog"
 import { SaleNoteDialog } from "./sale-note-dialog"
 import { SelectPaymentModal } from "./select-payment-modal"
+import { SelfCheckoutDialog } from "./self-checkout-dialog"
 import { SplitPaymentView } from "./split-payment-view"
 import { TipView, tipForPreset } from "./tip-view"
 import type {
@@ -117,7 +118,11 @@ function CartFlowInner({
   // surfaces have a real balance to act on.
   const deepDialog = controlled ? null : searchParams.get("dialog")
   const deepStep = controlled ? null : searchParams.get("step")
-  const seedCheckout = deepDialog === "redeem" || deepStep === "tip" || deepStep === "payment"
+  const seedCheckout =
+    deepDialog === "redeem" ||
+    deepDialog === "payment-link" ||
+    deepStep === "tip" ||
+    deepStep === "payment"
 
   const [attachment, setAttachment] = useState<ClientAttachment>(
     initialAttachment ?? (seedCheckout ? { type: "client", client: CLIENTS[1] } : { type: "none" }),
@@ -130,7 +135,7 @@ function CartFlowInner({
   const [editingUid, setEditingUid] = useState<string | null>(null)
   const [step, setStep] = useState<Step>(
     initialStep ??
-      (deepStep === "payment" || deepDialog === "redeem"
+      (deepStep === "payment" || deepDialog === "redeem" || deepDialog === "payment-link"
         ? "payment"
         : deepStep === "tip"
           ? "tip"
@@ -156,6 +161,8 @@ function CartFlowInner({
   const [unpaidConfirmOpen, setUnpaidConfirmOpen] = useState(false)
   // Redeem-an-existing-gift-card-to-pay dialog (Gift card payment method).
   const [redeemOpen, setRedeemOpen] = useState(deepDialog === "redeem")
+  // Send-the-client-a-checkout-link dialog (Payment link payment method).
+  const [selfCheckoutOpen, setSelfCheckoutOpen] = useState(deepDialog === "payment-link")
   // Add-a-gift-card-to-cart dialog. Normally opened from the item picker; also
   // deep-linkable via ?dialog=gift-card on the route page.
   const [giftCardAddOpen, setGiftCardAddOpen] = useState(deepDialog === "gift-card")
@@ -350,6 +357,8 @@ function CartFlowInner({
     // Redeem an existing gift card to pay. The tile is disabled when the cart
     // is itself selling a gift card (can't pay for a gift card with one).
     else if (method === "gift-card") setRedeemOpen(true)
+    // Text the client a secure link; they pay on their own phone (PRO-396).
+    else if (method === "link") setSelfCheckoutOpen(true)
   }
 
   function addPayment(method: Payment["method"], amountMinor: number, receivedBy?: string) {
@@ -791,6 +800,17 @@ function CartFlowInner({
         leftToPayMinor={leftToPayMinor}
         onApply={(amount) => addPayment("gift-card", amount)}
       />
+
+      {selfCheckoutOpen ? (
+        <SelfCheckoutDialog
+          open
+          onOpenChange={setSelfCheckoutOpen}
+          toPayMinor={leftToPayMinor}
+          defaultName={attachment.type === "client" ? attachment.client.name : undefined}
+          defaultPhone={attachment.type === "client" ? attachment.client.phone : undefined}
+          onPaid={(amount) => addPayment("link", amount)}
+        />
+      ) : null}
 
       {giftCardAddOpen ? (
         <GiftCardDialog

@@ -441,7 +441,7 @@ export function CartFooter({
 
 export type Payment = {
   id: number
-  method: "cash" | "card" | "gift-card"
+  method: "cash" | "card" | "gift-card" | "link"
   amountMinor: number
   receivedBy?: string
 }
@@ -450,6 +450,7 @@ const METHOD_LABEL: Record<Payment["method"], string> = {
   cash: "Cash",
   card: "Card",
   "gift-card": "Gift card",
+  link: "Payment link",
 }
 
 type CheckoutFooterProps = {

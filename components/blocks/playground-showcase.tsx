@@ -38,6 +38,7 @@ import {
 import { GiftCardDialog, newGiftCardDraft } from "@/app/sales/new-sale/gift-card-dialog"
 import { PaymentView } from "@/app/sales/new-sale/payment-view"
 import { RedeemGiftCardDialog } from "@/app/sales/new-sale/redeem-gift-card-dialog"
+import { SelfCheckoutDialog } from "@/app/sales/new-sale/self-checkout-dialog"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
 import { AppointmentsToolbar } from "@/components/blocks/appointments-toolbar"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
@@ -1590,6 +1591,21 @@ export function PlaygroundShowcase() {
           <RedeemGiftCardDialogDemo />
         </Row>
       </Section>
+
+      <Section
+        title="New sale — Payment link (self checkout)"
+        description="The operator half of CamiPay (PRO-396). From the Payment step, 'Payment link' texts the client a secure link; they pay on their own phone at /[slug]/pay/[token]. The operator can only observe, so after Send link the dialog runs four beats — Sending checkout link → client is adding their card → Processing payment → Payment received. In the mock these auto-advance on timers; the real build drives them from payment-socket events. Cancel returns to the form and Mark as paid settles early, because a client may never tap the link."
+      >
+        <Row label="Payment step — method grid">
+          <div className="w-full max-w-xl">
+            {/* Payment link leads the grid, ahead of the take-payment-here methods. */}
+            <PaymentView onSelect={(id) => toast(`Selected ${id}`)} />
+          </div>
+        </Row>
+        <Row label="Send payment link dialog">
+          <SelfCheckoutDialogDemo />
+        </Row>
+      </Section>
     </TooltipProvider>
   )
 }
@@ -1609,6 +1625,32 @@ function GiftCardDialogDemo() {
           open
           onOpenChange={setOpen}
           onApply={(draft) => toast(`Gift card added · ${draft.priceMinor / 100} AED`)}
+        />
+      ) : null}
+    </>
+  )
+}
+
+/**
+ * Opens the send-payment-link dialog with AED 57 owed and a client prefilled.
+ * Send link runs the four waiting beats end to end (~8s) through to Payment
+ * received; Mark as paid short-circuits from any of them.
+ */
+function SelfCheckoutDialogDemo() {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Button variant="outline" radius="full" onClick={() => setOpen(true)}>
+        Open Send payment link
+      </Button>
+      {open ? (
+        <SelfCheckoutDialog
+          open
+          onOpenChange={setOpen}
+          toPayMinor={5700}
+          defaultName="Maaz Test"
+          defaultPhone="+971 50 963 6445"
+          onPaid={(amount) => toast(`Paid ${(amount / 100).toFixed(2)} AED by payment link`)}
         />
       ) : null}
     </>
