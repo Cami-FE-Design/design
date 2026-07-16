@@ -244,6 +244,7 @@ export function PlaygroundShowcase() {
   const reportFinanceSummary = getReport("finance-summary")
   const reportPerformanceDashboard = getReport("performance-dashboard")
   const reportPerformanceSummary = getReport("performance-summary")
+  const reportPerformanceOverTime = getReport("performance-over-time")
 
   return (
     <TooltipProvider delayDuration={100}>
@@ -283,6 +284,15 @@ export function PlaygroundShowcase() {
               column)
             </p>
             <DashboardReport report={reportPerformanceSummary} />
+          </div>
+        ) : null}
+        {reportPerformanceOverTime ? (
+          <div className="py-3">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Over-time Matrix — Performance over time (live pills recompute a recharts bar chart +
+              entity × time-period table)
+            </p>
+            <DashboardReport report={reportPerformanceOverTime} />
           </div>
         ) : null}
       </Section>

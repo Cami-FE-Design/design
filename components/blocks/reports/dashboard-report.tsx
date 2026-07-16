@@ -4,9 +4,9 @@
 // 6 metrics owners track daily (Sales, Appointments, New vs Returning, Overall
 // Occupancy, Sales by Category, Payment Method Breakdown), each with a
 // current-vs-comparison delta and a "View report" drill-down to its source
-// report. Ships behind a feature flag (future add-on pricing). Charts are
-// dependency-free SVG. The other two dashboards (Performance summary / over
-// time) are distinct matrix shapes — placeholder for now.
+// report. Ships behind a feature flag (future add-on pricing). Charts use
+// recharts. The other two dashboards (Performance summary / over time) are
+// distinct matrix shapes handled by their own components below.
 
 import { ArrowDownIcon, ArrowUpIcon, ChartNoAxesCombinedIcon } from "lucide-react"
 import Link from "next/link"
@@ -18,6 +18,7 @@ import {
 } from "@/components/blocks/date-range-popover"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { ComparisonLineChart } from "@/components/blocks/reports/comparison-line-chart"
+import { PerformanceOverTimeReport } from "@/components/blocks/reports/performance-over-time-report"
 import { PerformanceSummaryReport } from "@/components/blocks/reports/performance-summary-report"
 import { ReportFiltersSheet } from "@/components/blocks/reports/report-filters-sheet"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
@@ -104,6 +105,11 @@ export function DashboardReport({ report }: { report: ReportDef }) {
   // Performance summary is a metric × team-member matrix — its own view.
   if (report.id === "performance-summary") {
     return <PerformanceSummaryReport report={report} />
+  }
+
+  // Performance over time is an entity × time-period matrix with a metric chart.
+  if (report.id === "performance-over-time") {
+    return <PerformanceOverTimeReport report={report} />
   }
 
   // Only the Performance dashboard is fully specced (Cami's Dashboard WIP tab).

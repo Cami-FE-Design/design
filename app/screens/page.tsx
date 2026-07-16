@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/blocks/theme-toggle"
+import { REPORTS } from "@/lib/reports/registry"
 
 export const metadata: Metadata = {
   title: "Screens",
@@ -18,6 +19,60 @@ type Section = {
   description?: string
   screens: Screen[]
 }
+
+// The reporting module is config-driven — one dynamic route renders all 23
+// reports from lib/reports/registry.ts. So the screen list is GENERATED from
+// the registry rather than hand-maintained: every report is listed and the map
+// can never go stale when a report is added. A few reports carry an extra hint
+// about what's distinct to look at.
+const REPORT_VIEW_OVERRIDE: Record<string, string> = {
+  "performance-summary": "Matrix View",
+  "performance-over-time": "Over-time Matrix",
+}
+function reportViewLabel(report: (typeof REPORTS)[number]): string {
+  return (
+    REPORT_VIEW_OVERRIDE[report.id] ??
+    (report.template === "detailed-table"
+      ? "Detailed Table View"
+      : report.template === "dashboard"
+        ? "Dashboard View"
+        : "Table View")
+  )
+}
+const REPORT_HINTS: Record<string, string> = {
+  "sales-summary":
+    "Group-by 'Type' pill → Product = Aziz's 'sales by item' (DSG-43); bold Total row.",
+  "payments-summary": "Payment methods adapted to Cami (CamiPay / NeoPay / Cash / Gift card).",
+  "finance-summary":
+    "The Detailed Table template — section-grouped metric × period matrix with bold subtotals, flat rows.",
+  "payment-transactions":
+    "Maaz's sheet labels this 'Detailed', but the view is a flat per-transaction table.",
+  "stock-on-hand": "Single-date stepper toolbar (not a range picker).",
+  "appointments-list": "19-column wide table — horizontal scroll + status badges.",
+  "client-summary":
+    "Client insights is merged into Client list (a filtered view), not a separate report.",
+  "client-list": "Carries the richer per-client columns + a Pet Name column (PRO-703 §4).",
+  "performance-dashboard":
+    "Cami's Dashboard WIP spec — 6 KPI cards + a recharts comparison chart + drill-downs. Feature-flagged.",
+  "performance-summary":
+    "Metric × team-member matrix — section subtotals + Total column, header row + first column sticky on both axes, metric labels drill to source reports.",
+  "performance-over-time":
+    "Entity × time-period matrix — live pills (dimension / metric / granularity / range) recompute a recharts bar chart + a sticky-first-column table; % metrics roll up as weighted averages. Feature-flagged.",
+}
+const REPORT_SCREENS: Screen[] = [
+  {
+    path: "/reports",
+    label: "Reporting index",
+    note: "Category tabs (All + Dashboards/Sales/Finance/Appointments/Team/Clients/Inventory), search by name/description, report cards with category icon + Premium badge + favourite star. Every report below opens from here.",
+  },
+  ...REPORTS.map((report) => ({
+    path: `/reports/${report.id}`,
+    label: `${report.name} · ${reportViewLabel(report)}`,
+    note: REPORT_HINTS[report.id]
+      ? `${report.description} ${REPORT_HINTS[report.id]}`
+      : report.description,
+  })),
+]
 
 const SECTIONS: Section[] = [
   {
@@ -500,54 +555,8 @@ const SECTIONS: Section[] = [
   {
     title: "Reporting and analytics (DSG-43 / PRO-703)",
     description:
-      "Config-driven reporting module — 23 reports rendered by shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix) from lib/reports/registry.ts. Fresha-inspired, adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list; Performance dashboard + Performance summary are built, Performance over time remains a placeholder (Phase 3).",
-    screens: [
-      {
-        path: "/reports",
-        label: "Reporting index",
-        note: "Category tabs (All + Dashboards/Sales/Finance/Appointments/Team/Clients/Inventory), search by name/description, report cards with category icon + Premium badge + favourite star. Out of scope (folders, targets, custom builder, data connector) intentionally omitted.",
-      },
-      {
-        path: "/reports/sales-summary",
-        label: "Sales summary · Table View",
-        note: "The Table template: group-by 'Type' pill (Product = Aziz's 'sales by item', DSG-43), date-range picker, Filters sheet, bold Total row, row-count indicator. All AED.",
-      },
-      {
-        path: "/reports/payments-summary",
-        label: "Payments summary · Table View",
-        note: "Payment-method split adapted to Cami — CamiPay / NeoPay / Cash / Gift card — with a Total row and Net payments emphasised.",
-      },
-      {
-        path: "/reports/finance-summary",
-        label: "Finance summary · Detailed Table View",
-        note: "Section-grouped metric × time-period matrix (Sales / Payments / Redemptions) with bold subtotal/total rows and accent drill-down links. Flat rows (no expandable children, per design review), consistent with daily-summary's emphasis pattern.",
-      },
-      {
-        path: "/reports/stock-on-hand",
-        label: "Stock on hand · single-date toolbar",
-        note: "Inventory Table report whose toolbar uses the single-date stepper (not a range picker); Brand/SKU/Product/Location/Stock/Total cost/Avg cost/Retail price with a Total row.",
-      },
-      {
-        path: "/reports/appointments-list",
-        label: "Appointments list · wide table",
-        note: "19-column list demonstrating horizontal scroll + status badges within the shared Table template.",
-      },
-      {
-        path: "/reports/client-summary",
-        label: "Client summary · Table View",
-        note: "New / returning / walk-in split with rebooked %, grouped by location, Total row. Client insights is merged into Client list (a filtered view), not a separate report.",
-      },
-      {
-        path: "/reports/performance-dashboard",
-        label: "Performance dashboard · Dashboard View",
-        note: "Cami spec (Maaz's Dashboard WIP tab) = 6 metrics owners track daily: Sales (with a dependency-free current-vs-comparison line chart), Appointments, New vs Returning, Occupancy, Sales by Category, Payment Method Breakdown — each with a delta chip and a 'View report' drill-down to its source report. Feature-flagged (add-on pricing).",
-      },
-      {
-        path: "/reports/performance-summary",
-        label: "Performance summary · Matrix View",
-        note: "Metric × team-member matrix (Fresha's Performance summary shape) — metrics grouped into sections (Sales summary / Sales performance / Appointments value / Productivity / Clients / Clients reviews) with bold subtotal/total rows and a leading Total column. Both axes stay oriented: the team-member header row is sticky on vertical scroll, the metric-label column is sticky on horizontal scroll (as the roster grows wide). Columns are Cami's real roster (plain header labels); metric labels drill to their source report (Sales → sales-summary, hours → working-hours-summary, appts → appointments-summary, cancelled/no-show → cancellations-no-show-summary, clients → client-summary, tips → tips-summary). Channels adapted to Cami (Public booking / Book Now link / Operator / Walk-in). Ratio/average rows carry an explicit weighted Total; summable rows are summed by the view. Performance over time remains the last dashboard placeholder.",
-      },
-    ],
+      "Config-driven reporting module — all 23 reports render from lib/reports/registry.ts through shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix). Every report is listed below (generated from the registry, so nothing goes stale). Fresha-inspired, adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list; Performance over time is the one remaining placeholder.",
+    screens: REPORT_SCREENS,
   },
   {
     title: "Pet Business, sales (PRO-sales)",

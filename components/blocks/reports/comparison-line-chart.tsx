@@ -1,24 +1,59 @@
 "use client"
 
-// Lightweight, dependency-free time-series line chart with a current-vs-
-// comparison overlay — for the Performance dashboard. Two series distinguished
-// by colour (brand violet vs muted grey) AND a legend + direct labels, so
-// identity is never colour-alone. Recessive gridlines, 2px lines, small
-// markers with native tooltips. Theme-aware via design tokens.
+// Time-series line chart with a current-vs-comparison overlay — for the
+// Performance dashboard. Uses recharts (project standard for report charts).
+// Two series distinguished by colour (brand violet vs muted grey/dashed) AND a
+// legend, so identity is never colour-alone. Theme-aware via design tokens.
 
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
 import type { SeriesPoint } from "@/lib/reports/mock"
 
-const W = 720
-const H = 240
-const PAD = { top: 12, right: 24, bottom: 28, left: 52 }
-const PLOT_W = W - PAD.left - PAD.right
-const PLOT_H = H - PAD.top - PAD.bottom
-const TICKS = 4
-
-function niceMax(max: number) {
-  if (max <= 0) return 100
-  const step = 10 ** Math.floor(Math.log10(max))
-  return Math.ceil(max / step) * step
+function LineTooltip({
+  active,
+  payload,
+  label,
+  currentLabel,
+  comparisonLabel,
+  formatValue,
+}: {
+  active?: boolean
+  payload?: Array<{ dataKey: string; value: number }>
+  label?: string
+  currentLabel: string
+  comparisonLabel: string
+  formatValue: (n: number) => string
+}) {
+  if (!active || !payload?.length) return null
+  const find = (key: string) => payload.find((p) => p.dataKey === key)?.value
+  const current = find("current")
+  const comparison = find("comparison")
+  return (
+    <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-md">
+      <div className="mb-1 font-medium text-foreground">{label}</div>
+      {current !== undefined ? (
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="size-2 rounded-full bg-cami-violet-9" />
+          {currentLabel}:{" "}
+          <span className="tabular-nums text-foreground">{formatValue(current)}</span>
+        </div>
+      ) : null}
+      {comparison !== undefined ? (
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <span className="size-2 rounded-full bg-muted-foreground/40" />
+          {comparisonLabel}:{" "}
+          <span className="tabular-nums text-foreground">{formatValue(comparison)}</span>
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 export function ComparisonLineChart({
@@ -32,90 +67,58 @@ export function ComparisonLineChart({
   comparisonLabel: string
   formatValue: (n: number) => string
 }) {
-  const max = niceMax(Math.max(...data.map((d) => Math.max(d.current, d.comparison)), 0))
-  const n = data.length
-
-  const x = (i: number) => PAD.left + (n <= 1 ? 0 : (i / (n - 1)) * PLOT_W)
-  const y = (v: number) => PAD.top + PLOT_H - (v / max) * PLOT_H
-
-  const toPoints = (key: "current" | "comparison") =>
-    data.map((d, i) => `${x(i)},${y(d[key])}`).join(" ")
-
-  const yTicks = Array.from({ length: TICKS + 1 }, (_, i) => (max / TICKS) * i)
-  // Label roughly every other x point to avoid crowding.
-  const labelEvery = Math.ceil(n / 6)
-
   return (
     <figure className="flex flex-col gap-3">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="h-auto w-full"
-        role="img"
-        aria-label={`${currentLabel} vs ${comparisonLabel}`}
-      >
-        {/* gridlines + y labels */}
-        {yTicks.map((t) => (
-          <g key={t}>
-            <line
-              x1={PAD.left}
-              x2={W - PAD.right}
-              y1={y(t)}
-              y2={y(t)}
-              className="stroke-border/60"
-              strokeWidth={1}
+      <div className="h-60 w-full" role="img" aria-label={`${currentLabel} vs ${comparisonLabel}`}>
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
+            <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.6} />
+            <XAxis
+              dataKey="label"
+              tickLine={false}
+              axisLine={false}
+              interval="preserveStartEnd"
+              minTickGap={24}
+              tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
             />
-            <text
-              x={PAD.left - 8}
-              y={y(t)}
-              dominantBaseline="middle"
-              textAnchor="end"
-              className="fill-muted-foreground text-[10px]"
-            >
-              {formatValue(Math.round(t))}
-            </text>
-          </g>
-        ))}
-
-        {/* x labels */}
-        {data.map((d, i) =>
-          i % labelEvery === 0 || i === n - 1 ? (
-            <text
-              key={d.label}
-              x={x(i)}
-              y={H - 8}
-              textAnchor="middle"
-              className="fill-muted-foreground text-[10px]"
-            >
-              {d.label}
-            </text>
-          ) : null,
-        )}
-
-        {/* comparison series (behind, muted, dashed) */}
-        <polyline
-          points={toPoints("comparison")}
-          fill="none"
-          className="stroke-muted-foreground/40"
-          strokeWidth={2}
-          strokeDasharray="4 4"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {/* current series (front, brand accent) */}
-        <polyline
-          points={toPoints("current")}
-          fill="none"
-          className="stroke-cami-violet-9"
-          strokeWidth={2}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {data.map((d, i) => (
-          <circle key={d.label} cx={x(i)} cy={y(d.current)} r={2.5} className="fill-cami-violet-9">
-            <title>{`${d.label}: ${formatValue(d.current)}`}</title>
-          </circle>
-        ))}
-      </svg>
+            <YAxis
+              width={52}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+              tickFormatter={(v) => formatValue(Number(v))}
+            />
+            <Tooltip
+              content={
+                <LineTooltip
+                  currentLabel={currentLabel}
+                  comparisonLabel={comparisonLabel}
+                  formatValue={formatValue}
+                />
+              }
+            />
+            <Line
+              type="monotone"
+              dataKey="comparison"
+              stroke="var(--color-muted-foreground)"
+              strokeOpacity={0.5}
+              strokeWidth={2}
+              strokeDasharray="4 4"
+              dot={false}
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="current"
+              stroke="var(--color-cami-violet-9)"
+              strokeWidth={2}
+              dot={{ r: 2.5, fill: "var(--color-cami-violet-9)", strokeWidth: 0 }}
+              activeDot={{ r: 4 }}
+              isAnimationActive={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
 
       <figcaption className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
