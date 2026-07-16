@@ -498,6 +498,58 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Reporting and analytics (DSG-43 / PRO-703)",
+    description:
+      "Config-driven reporting module — 23 reports rendered by shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix) from lib/reports/registry.ts. Fresha-inspired, adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list; Performance dashboard + Performance summary are built, Performance over time remains a placeholder (Phase 3).",
+    screens: [
+      {
+        path: "/reports",
+        label: "Reporting index",
+        note: "Category tabs (All + Dashboards/Sales/Finance/Appointments/Team/Clients/Inventory), search by name/description, report cards with category icon + Premium badge + favourite star. Out of scope (folders, targets, custom builder, data connector) intentionally omitted.",
+      },
+      {
+        path: "/reports/sales-summary",
+        label: "Sales summary · Table View",
+        note: "The Table template: group-by 'Type' pill (Product = Aziz's 'sales by item', DSG-43), date-range picker, Filters sheet, bold Total row, row-count indicator. All AED.",
+      },
+      {
+        path: "/reports/payments-summary",
+        label: "Payments summary · Table View",
+        note: "Payment-method split adapted to Cami — CamiPay / NeoPay / Cash / Gift card — with a Total row and Net payments emphasised.",
+      },
+      {
+        path: "/reports/finance-summary",
+        label: "Finance summary · Detailed Table View",
+        note: "Section-grouped metric × time-period matrix (Sales / Payments / Redemptions) with bold subtotal/total rows and accent drill-down links. Flat rows (no expandable children, per design review), consistent with daily-summary's emphasis pattern.",
+      },
+      {
+        path: "/reports/stock-on-hand",
+        label: "Stock on hand · single-date toolbar",
+        note: "Inventory Table report whose toolbar uses the single-date stepper (not a range picker); Brand/SKU/Product/Location/Stock/Total cost/Avg cost/Retail price with a Total row.",
+      },
+      {
+        path: "/reports/appointments-list",
+        label: "Appointments list · wide table",
+        note: "19-column list demonstrating horizontal scroll + status badges within the shared Table template.",
+      },
+      {
+        path: "/reports/client-summary",
+        label: "Client summary · Table View",
+        note: "New / returning / walk-in split with rebooked %, grouped by location, Total row. Client insights is merged into Client list (a filtered view), not a separate report.",
+      },
+      {
+        path: "/reports/performance-dashboard",
+        label: "Performance dashboard · Dashboard View",
+        note: "Cami spec (Maaz's Dashboard WIP tab) = 6 metrics owners track daily: Sales (with a dependency-free current-vs-comparison line chart), Appointments, New vs Returning, Occupancy, Sales by Category, Payment Method Breakdown — each with a delta chip and a 'View report' drill-down to its source report. Feature-flagged (add-on pricing).",
+      },
+      {
+        path: "/reports/performance-summary",
+        label: "Performance summary · Matrix View",
+        note: "Metric × team-member matrix (Fresha's Performance summary shape) — metrics grouped into sections (Sales summary / Sales performance / Appointments value / Productivity / Clients / Clients reviews) with bold subtotal/total rows and a leading Total column. Both axes stay oriented: the team-member header row is sticky on vertical scroll, the metric-label column is sticky on horizontal scroll (as the roster grows wide). Columns are Cami's real roster (plain header labels); metric labels drill to their source report (Sales → sales-summary, hours → working-hours-summary, appts → appointments-summary, cancelled/no-show → cancellations-no-show-summary, clients → client-summary, tips → tips-summary). Channels adapted to Cami (Public booking / Book Now link / Operator / Walk-in). Ratio/average rows carry an explicit weighted Total; summable rows are summed by the view. Performance over time remains the last dashboard placeholder.",
+      },
+    ],
+  },
+  {
     title: "Pet Business, sales (PRO-sales)",
     description:
       "Sales reporting hub. Daily Summary is the first page; sibling pages (Appointments, Invoices, Payments) are reached from the Sales group in the app sidebar.",

@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronDownIcon, SlidersHorizontalIcon } from "lucide-react"
+import { ChevronDownIcon, PlusIcon, SlidersHorizontalIcon } from "lucide-react"
 import { useState } from "react"
 import {
   AddTeamMemberDialog,
@@ -8,6 +8,7 @@ import {
 } from "@/components/blocks/add-team-member-dialog"
 import { AppShell } from "@/components/blocks/app-shell"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { TeamMemberDetailDialog } from "@/components/blocks/team-member-detail-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -28,6 +29,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { TEAM_MEMBERS } from "@/lib/team/mock"
 import { cn } from "@/lib/utils"
 
 type Permission = "High" | "Medium" | "Low"
@@ -43,47 +45,6 @@ type Member = {
   status: MemberStatus
   initials: string
 }
-
-const initialMembers: Member[] = [
-  {
-    id: "m_owner",
-    name: "Maz Khan",
-    title: "Manager",
-    email: "maaz@getcami.io",
-    phone: "+971 50 963 6445",
-    permission: "High",
-    status: "active",
-    initials: "MK",
-  },
-  {
-    id: "m_sara",
-    name: "Sara Park",
-    title: "Groomer",
-    email: "sara@getcami.io",
-    phone: "+971 54 402 0718",
-    permission: "Medium",
-    status: "active",
-    initials: "SP",
-  },
-  {
-    id: "m_beth",
-    name: "Beth Carter",
-    title: "Stylist",
-    email: "beth@getcami.io",
-    phone: "+971 55 218 9043",
-    permission: "Medium",
-    status: "active",
-    initials: "BC",
-  },
-  {
-    id: "m_ahmed",
-    name: null,
-    email: "ahmed@getcami.io",
-    permission: "Low",
-    status: "pending",
-    initials: "A",
-  },
-]
 
 function MemberAvatar({ initials, status }: { initials: string; status: MemberStatus }) {
   return (
@@ -104,6 +65,7 @@ function MemberAvatar({ initials, status }: { initials: string; status: MemberSt
 function MemberTableRow({
   member,
   selected,
+  onOpen,
   onToggleSelect,
   onEditRoles,
   onEditServices,
@@ -113,6 +75,7 @@ function MemberTableRow({
 }: {
   member: Member
   selected: boolean
+  onOpen: (id: string) => void
   onToggleSelect: (id: string, value: boolean) => void
   onEditRoles: (id: string) => void
   onEditServices: (id: string) => void
@@ -124,8 +87,16 @@ function MemberTableRow({
   const isLocked = member.id === "m_owner"
 
   return (
-    <TableRow data-state={selected ? "selected" : undefined}>
-      <TableCell className="w-10 pr-0">
+    <TableRow
+      data-state={selected ? "selected" : undefined}
+      className="cursor-pointer"
+      onClick={() => onOpen(member.id)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") onOpen(member.id)
+      }}
+      tabIndex={0}
+    >
+      <TableCell className="w-10 pr-0" onClick={(e) => e.stopPropagation()}>
         <Checkbox
           checked={selected}
           onCheckedChange={(v) => onToggleSelect(member.id, v === true)}
@@ -157,7 +128,7 @@ function MemberTableRow({
         </div>
       </TableCell>
       <TableCell className="text-sm text-foreground">{member.permission}</TableCell>
-      <TableCell className="text-right">
+      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -199,6 +170,7 @@ function MemberTableRow({
 function MemberTable({
   members,
   selectedIds,
+  onOpen,
   onToggleSelect,
   onToggleSelectAll,
   onEditRoles,
@@ -209,6 +181,7 @@ function MemberTable({
 }: {
   members: Member[]
   selectedIds: Set<string>
+  onOpen: (id: string) => void
   onToggleSelect: (id: string, value: boolean) => void
   onToggleSelectAll: (ids: string[], value: boolean) => void
   onEditRoles: (id: string) => void
@@ -253,6 +226,7 @@ function MemberTable({
             key={member.id}
             member={member}
             selected={selectedIds.has(member.id)}
+            onOpen={onOpen}
             onToggleSelect={onToggleSelect}
             onEditRoles={onEditRoles}
             onEditServices={onEditServices}
@@ -268,12 +242,14 @@ function MemberTable({
 
 export default function TeamSettingsPage() {
   const { name: businessName } = useDemoBusiness()
-  const [members, setMembers] = useState<Member[]>(initialMembers)
+  const [members, setMembers] = useState<Member[]>(TEAM_MEMBERS)
   const [addOpen, setAddOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [viewMemberId, setViewMemberId] = useState<string | null>(null)
 
   const activeMembers = members.filter((m) => m.status === "active")
   const pendingMembers = members.filter((m) => m.status === "pending")
+  const viewMember = members.find((m) => m.id === viewMemberId) ?? null
 
   function handleToggleSelect(id: string, value: boolean) {
     setSelectedIds((prev) => {
@@ -313,6 +289,10 @@ export default function TeamSettingsPage() {
     ])
   }
 
+  function handleEditProfile(id: string) {
+    console.log("Edit profile:", id)
+  }
+
   function handleEditRoles(id: string) {
     console.log("Edit roles & permissions:", id)
   }
@@ -336,13 +316,21 @@ export default function TeamSettingsPage() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-3xl flex-col gap-1">
-          <h1 className="text-2xl leading-8 font-medium text-foreground">Team members</h1>
-          <p className="text-sm text-muted-foreground">Manage who has access to {businessName}</p>
+        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-medium leading-8 text-foreground">Team members</h1>
+            <p className="text-sm text-muted-foreground">Manage who has access to {businessName}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button radius="full" onClick={() => setAddOpen(true)}>
+              <PlusIcon />
+              Add member
+            </Button>
+          </div>
         </div>
       }
     >
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
         <Tabs defaultValue="members">
           <TableToolbar
             tabs={
@@ -369,17 +357,19 @@ export default function TeamSettingsPage() {
             }
             actions={
               <>
-                <SearchInput placeholder="Search team members" aria-label="Search team members" />
-                <Button variant="outline" aria-label="Filter" className="size-8 rounded-full">
-                  <SlidersHorizontalIcon className="size-4" />
-                </Button>
+                <SearchInput
+                  className="h-9! w-72"
+                  placeholder="Search team members"
+                  aria-label="Search team members"
+                />
                 <Button
-                  onClick={() => setAddOpen(true)}
-                  size="sm"
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
                   radius="full"
-                  className="h-8 px-3"
+                  aria-label="Filters"
                 >
-                  Add
+                  <SlidersHorizontalIcon className="size-4" />
                 </Button>
               </>
             }
@@ -388,6 +378,7 @@ export default function TeamSettingsPage() {
             <MemberTable
               members={members}
               selectedIds={selectedIds}
+              onOpen={setViewMemberId}
               onToggleSelect={handleToggleSelect}
               onToggleSelectAll={handleToggleSelectAll}
               onEditRoles={handleEditRoles}
@@ -401,6 +392,7 @@ export default function TeamSettingsPage() {
             <MemberTable
               members={activeMembers}
               selectedIds={selectedIds}
+              onOpen={setViewMemberId}
               onToggleSelect={handleToggleSelect}
               onToggleSelectAll={handleToggleSelectAll}
               onEditRoles={handleEditRoles}
@@ -414,6 +406,7 @@ export default function TeamSettingsPage() {
             <MemberTable
               members={pendingMembers}
               selectedIds={selectedIds}
+              onOpen={setViewMemberId}
               onToggleSelect={handleToggleSelect}
               onToggleSelectAll={handleToggleSelectAll}
               onEditRoles={handleEditRoles}
@@ -431,6 +424,25 @@ export default function TeamSettingsPage() {
         onAdd={handleAddMember}
         businessName={businessName}
       />
+      {viewMember ? (
+        <TeamMemberDetailDialog
+          open
+          onOpenChange={(next) => {
+            if (!next) setViewMemberId(null)
+          }}
+          member={viewMember}
+          isLocked={viewMember.id === "m_owner"}
+          onEditProfile={() => handleEditProfile(viewMember.id)}
+          onEditRoles={() => handleEditRoles(viewMember.id)}
+          onEditServices={() => handleEditServices(viewMember.id)}
+          onEditSchedule={() => handleEditSchedule(viewMember.id)}
+          onResendInvitation={() => handleResendInvitation(viewMember.id)}
+          onRemove={() => {
+            handleRemove(viewMember.id)
+            setViewMemberId(null)
+          }}
+        />
+      ) : null}
     </AppShell>
   )
 }
