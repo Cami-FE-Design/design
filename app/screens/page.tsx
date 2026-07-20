@@ -524,8 +524,8 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/sales/new-sale?dialog=payment-link",
-        label: "New sale · Payment link (self checkout, PRO-396)",
-        note: "Seeds a demo cart on the Payment step with the Send-payment-link dialog open. Operator confirms client name + mobile (prefilled from the attached client), reads the 3-step 'How it works', sends. Then four auto-advancing beats stand in for the payment socket: Sending checkout link → client is adding their card → Processing payment → Payment received. Cancel returns to the form; Mark as paid settles early (the client may never tap). Done records a 'Payment link' payment line. The client's half of this is /[slug]/pay/[token].",
+        label: "New sale · Payment link (self checkout, PRO-909)",
+        note: "Seeds a demo cart on the Payment step with the Send-payment-link dialog open. Operator confirms client name + mobile (prefilled from the attached client), reads the 3-step 'How it works', sends. Sending creates a draft sale and locks the cart: the drawer body is replaced by the Payment-link-sent screen showing recipient, amount and a 12-hour expiry. No progress beats — the operator can't act on them. Cancel payment link invalidates the link (never edits it), closes the cart, and hands off to the draft sale it created — Checkout there resumes at the Tip step; Mark as paid settles to the Payment complete screen. The client's half of this is /[slug]/pay/[token].",
       },
       {
         path: "/sales/new-sale?dialog=redeem",
@@ -560,7 +560,7 @@ const SECTIONS: Section[] = [
       {
         path: "/sales/sales-list?draft=31A06EA3",
         label: "Draft detail dialog",
-        note: "Same centered dialog shell as the sale detail, opened via ?draft=<ref>. Always-Unpaid header (cami-yellow pill, matching the listing) with a Checkout primary action; the kebab has a single destructive 'Cancel draft' that opens a 'Cancel draft sale?' confirm dialog (Go back / Confirm). Walk-In drafts show a violet walk-in card instead of the clickable client row; receipt body is Subtotal / Total / Balance (full total owed). Try 31A06EA3 (Walk-In) or 7F2B19C4 (named client).",
+        note: "Same centered dialog shell as the sale detail, opened via ?draft=<ref>. Always-Unpaid header (cami-yellow pill, matching the listing) with a Checkout primary action that resumes the sale — it closes the dialog and reopens the cart on the Tip step with the draft's line and client already loaded; the kebab has a single destructive 'Cancel draft' that opens a 'Cancel draft sale?' confirm dialog (Go back / Confirm). Walk-In drafts show a violet walk-in card instead of the clickable client row; receipt body is Subtotal / Total / Balance (full total owed). Try 31A06EA3 (Walk-In) or 7F2B19C4 (named client).",
       },
       {
         path: "/sales/sales-list?sale=7",
@@ -640,10 +640,15 @@ const SECTIONS: Section[] = [
   },
   {
     title: "Demos & playground",
-    description: "Internal references for shell layout and component states.",
+    description: "Internal references for design foundations, shell layout, and component states.",
     screens: [
       { path: "/shell-demo", label: "Business app shell" },
       { path: "/playground", label: "Component states" },
+      {
+        path: "/style-guide",
+        label: "Design foundations",
+        note: "Color (semantic slots, Radix / Cami / neutral-gray scales), type, radius, elevation, pattern utilities, spacing. Values are read from the live CSS custom properties at runtime rather than copied, so the page cannot drift from globals.css. Click a swatch to copy its utility.",
+      },
     ],
   },
 ]
