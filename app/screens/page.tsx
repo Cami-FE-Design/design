@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { ThemeToggle } from "@/components/blocks/theme-toggle"
+import { REPORTS } from "@/lib/reports/registry"
 
 export const metadata: Metadata = {
   title: "Screens",
@@ -18,6 +19,60 @@ type Section = {
   description?: string
   screens: Screen[]
 }
+
+// The reporting module is config-driven — one dynamic route renders all 23
+// reports from lib/reports/registry.ts. So the screen list is GENERATED from
+// the registry rather than hand-maintained: every report is listed and the map
+// can never go stale when a report is added. A few reports carry an extra hint
+// about what's distinct to look at.
+const REPORT_VIEW_OVERRIDE: Record<string, string> = {
+  "performance-summary": "Matrix View",
+  "performance-over-time": "Over-time Matrix",
+}
+function reportViewLabel(report: (typeof REPORTS)[number]): string {
+  return (
+    REPORT_VIEW_OVERRIDE[report.id] ??
+    (report.template === "detailed-table"
+      ? "Detailed Table View"
+      : report.template === "dashboard"
+        ? "Dashboard View"
+        : "Table View")
+  )
+}
+const REPORT_HINTS: Record<string, string> = {
+  "sales-summary":
+    "Group-by 'Type' pill → Product = Aziz's 'sales by item' (DSG-43); bold Total row.",
+  "payments-summary": "Payment methods adapted to Cami (CamiPay / NeoPay / Cash / Gift card).",
+  "finance-summary":
+    "The Detailed Table template — section-grouped metric × period matrix with bold subtotals, flat rows.",
+  "payment-transactions":
+    "Maaz's sheet labels this 'Detailed', but the view is a flat per-transaction table.",
+  "stock-on-hand": "Single-date stepper toolbar (not a range picker).",
+  "appointments-list": "19-column wide table — horizontal scroll + status badges.",
+  "client-summary":
+    "Client insights is merged into Client list (a filtered view), not a separate report.",
+  "client-list": "Carries the richer per-client columns + a Pet Name column (PRO-703 §4).",
+  "performance-dashboard":
+    "Cami's Dashboard WIP spec — 6 KPI cards + a recharts comparison chart + drill-downs. Feature-flagged.",
+  "performance-summary":
+    "Metric × team-member matrix — section subtotals + Total column, header row + first column sticky on both axes, metric labels drill to source reports.",
+  "performance-over-time":
+    "Entity × time-period matrix — live pills (dimension / metric / granularity / range) recompute a recharts bar chart + a sticky-first-column table; % metrics roll up as weighted averages. Feature-flagged.",
+}
+const REPORT_SCREENS: Screen[] = [
+  {
+    path: "/reports",
+    label: "Reporting index",
+    note: "Category tabs (All + Dashboards/Sales/Finance/Appointments/Team/Clients/Inventory), search by name/description, report cards with category icon + Premium badge + favourite star. Every report below opens from here.",
+  },
+  ...REPORTS.map((report) => ({
+    path: `/reports/${report.id}`,
+    label: `${report.name} · ${reportViewLabel(report)}`,
+    note: REPORT_HINTS[report.id]
+      ? `${report.description} ${REPORT_HINTS[report.id]}`
+      : report.description,
+  })),
+]
 
 const SECTIONS: Section[] = [
   {
@@ -496,6 +551,12 @@ const SECTIONS: Section[] = [
         note: "Same layout as /products/new, pre-populated from a MOCK_PRODUCTS row. Try p1–p5 for different products; unknown ids render a 'Product not found' fallback.",
       },
     ],
+  },
+  {
+    title: "Reporting and analytics (DSG-43 / PRO-703)",
+    description:
+      "Config-driven reporting module — all 23 reports render from lib/reports/registry.ts through shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix). Every report is listed below (generated from the registry, so nothing goes stale). Fresha-inspired, adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list; Performance over time is the one remaining placeholder.",
+    screens: REPORT_SCREENS,
   },
   {
     title: "Pet Business, sales (PRO-sales)",

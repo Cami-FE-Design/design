@@ -40,10 +40,7 @@ import { PaymentLinkLockScreen } from "@/app/sales/new-sale/payment-link-lock"
 import { PaymentView } from "@/app/sales/new-sale/payment-view"
 import { RedeemGiftCardDialog } from "@/app/sales/new-sale/redeem-gift-card-dialog"
 import { SelfCheckoutDialog } from "@/app/sales/new-sale/self-checkout-dialog"
-
-/** Fixed so the lock-screen expiry label is stable between renders. */
-const NOW = new Date("2026-07-20T10:00:00Z").getTime()
-
+import { AddTeamMemberDialog } from "@/components/blocks/add-team-member-dialog"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
 import { AppointmentsToolbar } from "@/components/blocks/appointments-toolbar"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
@@ -60,6 +57,9 @@ import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
+import { DashboardReport } from "@/components/blocks/reports/dashboard-report"
+import { DetailedTableReport } from "@/components/blocks/reports/detailed-table-report"
+import { TableReport } from "@/components/blocks/reports/table-report"
 import { SectionCard } from "@/components/blocks/section-card"
 import { SectionedSheetShell, type SectionGroup } from "@/components/blocks/sectioned-sheet-shell"
 import { CategorySidebar } from "@/components/blocks/service-menu/CategorySidebar"
@@ -71,6 +71,10 @@ import {
   type SignatureResult,
 } from "@/components/blocks/sign/signature-dialog"
 import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
+import {
+  TeamMemberDetailDialog,
+  type TeamMemberDetailMember,
+} from "@/components/blocks/team-member-detail-dialog"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -125,8 +129,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
+import { getReport } from "@/lib/reports/registry"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import { cn } from "@/lib/utils"
+
+/** Fixed so the lock-screen expiry label is stable between renders. */
+const NOW = new Date("2026-07-20T10:00:00Z").getTime()
 
 type SectionProps = {
   title: string
@@ -166,6 +174,25 @@ const PICKABLE_TYPES = [
   { id: "wellness", label: "Wellness & spa", Icon: SparklesIcon },
 ]
 
+const TEAM_DEMO_MEMBERS: Record<"active" | "pending", TeamMemberDetailMember> = {
+  active: {
+    id: "pg-tm-active",
+    name: "Sara Park",
+    title: "Groomer",
+    email: "sara@getcami.io",
+    phone: "+971 54 402 0718",
+    permission: "Medium",
+    status: "active",
+  },
+  pending: {
+    id: "pg-tm-pending",
+    name: null,
+    email: "ahmed@getcami.io",
+    permission: "Low",
+    status: "pending",
+  },
+}
+
 export function PlaygroundShowcase() {
   const [checked, setChecked] = useState<boolean | "indeterminate">(true)
   const [switchOn, setSwitchOn] = useState(true)
@@ -187,6 +214,9 @@ export function PlaygroundShowcase() {
   const [petEditOpen, setPetEditOpen] = useState(false)
   const [signatureOpen, setSignatureOpen] = useState(false)
   const [signatureResult, setSignatureResult] = useState<SignatureResult | null>(null)
+  const [teamDetailOpen, setTeamDetailOpen] = useState(false)
+  const [teamAddOpen, setTeamAddOpen] = useState(false)
+  const [teamDetailStatus, setTeamDetailStatus] = useState<"active" | "pending">("active")
 
   // A demo consent PDF built client-side for the <PdfViewer> showcase.
   const [demoPdfUrl, setDemoPdfUrl] = useState<string | null>(null)
@@ -214,8 +244,62 @@ export function PlaygroundShowcase() {
     })
   }
 
+  const reportPaymentsSummary = getReport("payments-summary")
+  const reportFinanceSummary = getReport("finance-summary")
+  const reportPerformanceDashboard = getReport("performance-dashboard")
+  const reportPerformanceSummary = getReport("performance-summary")
+  const reportPerformanceOverTime = getReport("performance-over-time")
+
   return (
     <TooltipProvider delayDuration={100}>
+      <Section
+        title="Reporting module (DSG-43 / PRO-703)"
+        description="The shared view templates that render every report from lib/reports/registry.ts. Config-driven — columns, group-by, filters and date control come from each report's definition. All amounts AED."
+      >
+        {reportPaymentsSummary ? (
+          <div className="py-3">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Table View — Payments summary (Total row, Cami payment methods)
+            </p>
+            <TableReport report={reportPaymentsSummary} />
+          </div>
+        ) : null}
+        {reportFinanceSummary ? (
+          <div className="py-3">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Detailed Table View — Finance summary (section-grouped metric × period matrix)
+            </p>
+            <DetailedTableReport report={reportFinanceSummary} />
+          </div>
+        ) : null}
+        {reportPerformanceDashboard ? (
+          <div className="py-3">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Dashboard View — Performance dashboard (6 Cami metrics + comparison chart +
+              drill-downs)
+            </p>
+            <DashboardReport report={reportPerformanceDashboard} />
+          </div>
+        ) : null}
+        {reportPerformanceSummary ? (
+          <div className="py-3">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Matrix View — Performance summary (metric × team-member, section subtotals, Total
+              column)
+            </p>
+            <DashboardReport report={reportPerformanceSummary} />
+          </div>
+        ) : null}
+        {reportPerformanceOverTime ? (
+          <div className="py-3">
+            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Over-time Matrix — Performance over time (live pills recompute a recharts bar chart +
+              entity × time-period table)
+            </p>
+            <DashboardReport report={reportPerformanceOverTime} />
+          </div>
+        ) : null}
+      </Section>
       <Section
         title="Button"
         description="Variants, sizes, with icon, and disabled. Hover and focus are live."
@@ -1019,6 +1103,48 @@ export function PlaygroundShowcase() {
             { id: "tom-cassidy", name: "Tom Cassidy", phone: "+971 50 222 1133" },
           ]}
           isOwner
+        />
+      </Section>
+
+      <Section
+        title="Team member detail dialog"
+        description="Same centered Dialog shell as Client / Pet detail. Sticky header (avatar + name + permission access · email · phone + Edit + Actions + Close), underline tabs: Overview (KPIs, Works at, Services, Notes) · Details (Profile, Settings incl. permission role, Addresses, Emergency contacts). Owner rows lock profile/role edits; a pending invite shows an empty Overview. Opened from a row on /settings/team; Add uses the full-screen takeover."
+      >
+        <Row label="Status">
+          <SegmentedToggle
+            value={teamDetailStatus}
+            onValueChange={(v) => setTeamDetailStatus(v as "active" | "pending")}
+            options={[
+              { value: "active", label: "Active" },
+              { value: "pending", label: "Pending invite" },
+            ]}
+            ariaLabel="Team member status"
+          />
+        </Row>
+        <Row label="Detail">
+          <Button onClick={() => setTeamDetailOpen(true)}>Open team member detail</Button>
+        </Row>
+        <Row label="Add takeover">
+          <Button variant="outline" radius="full" onClick={() => setTeamAddOpen(true)}>
+            Open Add team member
+          </Button>
+        </Row>
+        <TeamMemberDetailDialog
+          open={teamDetailOpen}
+          onOpenChange={setTeamDetailOpen}
+          member={TEAM_DEMO_MEMBERS[teamDetailStatus]}
+          onEditProfile={() => toast("Edit profile (stubbed)")}
+          onEditRoles={() => toast("Edit roles & permissions (stubbed)")}
+          onEditServices={() => toast("Edit services (stubbed)")}
+          onEditSchedule={() => toast("Edit schedule (stubbed)")}
+          onResendInvitation={() => toast("Resend invitation (stubbed)")}
+          onRemove={() => toast.error("Remove from business (stubbed)")}
+        />
+        <AddTeamMemberDialog
+          open={teamAddOpen}
+          onOpenChange={setTeamAddOpen}
+          onAdd={() => toast.success("Team member added (stubbed)")}
+          businessName="Shampooch"
         />
       </Section>
 

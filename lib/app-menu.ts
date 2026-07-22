@@ -1,6 +1,7 @@
 import {
   BookOpenIcon,
   CalendarIcon,
+  ChartNoAxesCombinedIcon,
   ContactIcon,
   HeadsetIcon,
   HomeIcon,
@@ -85,7 +86,12 @@ export const topMenu: MenuItem[] = [
   {
     icon: UsersIcon,
     label: "Team",
-    children: [{ label: "Team Members" }, { label: "Scheduled Shifts" }],
+    children: [{ label: "Team Members", href: "/settings/team" }, { label: "Scheduled Shifts" }],
+  },
+  {
+    icon: ChartNoAxesCombinedIcon,
+    label: "Reporting",
+    children: [{ label: "Reporting and analytics", href: "/reports" }],
   },
 ]
 
