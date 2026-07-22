@@ -36,6 +36,7 @@ import {
   type MockServiceCategory,
 } from "@/app/appointments/mock"
 import { GiftCardDialog, newGiftCardDraft } from "@/app/sales/new-sale/gift-card-dialog"
+import { PaymentLinkLockScreen } from "@/app/sales/new-sale/payment-link-lock"
 import { PaymentView } from "@/app/sales/new-sale/payment-view"
 import { RedeemGiftCardDialog } from "@/app/sales/new-sale/redeem-gift-card-dialog"
 import { SelfCheckoutDialog } from "@/app/sales/new-sale/self-checkout-dialog"
@@ -131,6 +132,9 @@ import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { getReport } from "@/lib/reports/registry"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import { cn } from "@/lib/utils"
+
+/** Fixed so the lock-screen expiry label is stable between renders. */
+const NOW = new Date("2026-07-20T10:00:00Z").getTime()
 
 type SectionProps = {
   title: string
@@ -1721,7 +1725,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="New sale — Payment link (self checkout)"
-        description="The operator half of CamiPay (PRO-396). From the Payment step, 'Payment link' texts the client a secure link; they pay on their own phone at /[slug]/pay/[token]. The operator can only observe, so after Send link the dialog runs four beats — Sending checkout link → client is adding their card → Processing payment → Payment received. In the mock these auto-advance on timers; the real build drives them from payment-socket events. Cancel returns to the form and Mark as paid settles early, because a client may never tap the link."
+        description="The operator half of CamiPay (PRO-396, reworked in PRO-909). From the Payment step, 'Payment link' texts the client a secure link; they pay on their own phone at /[slug]/pay/[token]. Sending the link creates a draft sale and locks the cart — amount and method are frozen so the link and the sale can't drift apart — so the drawer body is replaced by the lock screen rather than narrating progress the operator can't act on. Links live 12 hours. Cancel invalidates the link (never edits it) and hands off to the draft sale it created; Checkout on that draft resumes the journey at Tip. Mark as paid is the manual settle path."
       >
         <Row label="Payment step — method grid">
           <div className="w-full max-w-xl">
@@ -1731,6 +1735,21 @@ export function PlaygroundShowcase() {
         </Row>
         <Row label="Send payment link dialog">
           <SelfCheckoutDialogDemo />
+        </Row>
+        <Row label="Locked cart — link is live">
+          <div className="flex min-h-96 w-full max-w-xl rounded-3xl border border-border/60 bg-background">
+            <PaymentLinkLockScreen
+              link={{
+                name: "Maaz Test",
+                phone: "50 963 6445",
+                amountMinor: 5700,
+                sentAt: NOW,
+                draftRef: "C9B3A77D",
+              }}
+              onCancelLink={() => toast("Link cancelled · opens the draft sale")}
+              onMarkPaid={() => toast("Marked as paid")}
+            />
+          </div>
         </Row>
       </Section>
     </TooltipProvider>
@@ -1760,8 +1779,8 @@ function GiftCardDialogDemo() {
 
 /**
  * Opens the send-payment-link dialog with AED 57 owed and a client prefilled.
- * Send link runs the four waiting beats end to end (~8s) through to Payment
- * received; Mark as paid short-circuits from any of them.
+ * Send only generates the link — in the real flow the cart locks behind it
+ * (see the lock screen below).
  */
 function SelfCheckoutDialogDemo() {
   const [open, setOpen] = useState(false)
@@ -1777,7 +1796,9 @@ function SelfCheckoutDialogDemo() {
           toPayMinor={5700}
           defaultName="Maaz Test"
           defaultPhone="+971 50 963 6445"
-          onPaid={(amount) => toast(`Paid ${(amount / 100).toFixed(2)} AED by payment link`)}
+          onSend={(d) =>
+            toast(`Link sent to +971 ${d.phone} · ${(d.amountMinor / 100).toFixed(2)} AED`)
+          }
         />
       ) : null}
     </>

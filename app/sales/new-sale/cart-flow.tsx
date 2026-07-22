@@ -25,11 +25,12 @@ import { EditLineDialog, type LinePatch } from "./edit-line-dialog"
 import { GiftCardDialog, newGiftCardDraft } from "./gift-card-dialog"
 import { ItemPicker } from "./item-picker"
 import { CLIENT_REQUIRED, CLIENTS, formatAedDecimal, SERVICES, totals } from "./mock"
+import { type ActivePaymentLink, PaymentLinkLockScreen } from "./payment-link-lock"
 import { PaymentView } from "./payment-view"
 import { RedeemGiftCardDialog } from "./redeem-gift-card-dialog"
 import { SaleNoteDialog } from "./sale-note-dialog"
 import { SelectPaymentModal } from "./select-payment-modal"
-import { SelfCheckoutDialog } from "./self-checkout-dialog"
+import { type PaymentLinkDetails, SelfCheckoutDialog } from "./self-checkout-dialog"
 import { SplitPaymentView } from "./split-payment-view"
 import { TipView, tipForPreset } from "./tip-view"
 import type {
@@ -50,6 +51,14 @@ function nextUid(prefix: string): string {
 }
 
 let paymentSeq = 0
+
+/** Draft references are short uppercase hex, matching the Sales list (#31A06EA3). */
+function newDraftRef(): string {
+  return Math.floor(Math.random() * 0xffffffff)
+    .toString(16)
+    .toUpperCase()
+    .padStart(8, "0")
+}
 
 // Demo seed for the checkout deep-links (?step=tip|payment and ?dialog=redeem on
 // the route page): one priced service + a sample client, so the Tip / Payment
@@ -163,6 +172,8 @@ function CartFlowInner({
   const [redeemOpen, setRedeemOpen] = useState(deepDialog === "redeem")
   // Send-the-client-a-checkout-link dialog (Payment link payment method).
   const [selfCheckoutOpen, setSelfCheckoutOpen] = useState(deepDialog === "payment-link")
+  // A live payment link locks the cart until it is paid or cancelled (PRO-909).
+  const [paymentLink, setPaymentLink] = useState<ActivePaymentLink | null>(null)
   // Add-a-gift-card-to-cart dialog. Normally opened from the item picker; also
   // deep-linkable via ?dialog=gift-card on the route page.
   const [giftCardAddOpen, setGiftCardAddOpen] = useState(deepDialog === "gift-card")
@@ -195,16 +206,20 @@ function CartFlowInner({
     setPayments([])
     setClientEditing(false)
     setConfirmed(false)
+    setPaymentLink(null)
   }
 
-  function leave() {
+  // `to` forces a navigation even when the cart is controlled — used when the
+  // sale has somewhere specific to hand off to, e.g. its draft record.
+  function leave(to?: string) {
     resetCart()
     if (controlled) {
       onOpenChange?.(false)
     } else {
       setInternalOpen(false)
-      router.push("/sales/sales-list")
     }
+    if (to) router.push(to)
+    else if (!controlled) router.push("/sales/sales-list")
   }
 
   // Auto-close the drawer a moment after the confirmation shows.
@@ -379,6 +394,39 @@ function CartFlowInner({
     setPayments((prev) => prev.filter((p) => p.id !== id))
   }
 
+  // ─── Payment link (PRO-909) ──────────────────────────────────────────────
+
+  // Generating a link creates a draft sale on the backend and locks this cart:
+  // the amount and the method are frozen so the two cannot drift apart. The
+  // draft's reference is minted here so cancelling can hand back to it; the
+  // real build takes the ref off the created draft sale instead.
+  function sendPaymentLink(details: PaymentLinkDetails) {
+    setPaymentLink({ ...details, sentAt: Date.now(), draftRef: newDraftRef() })
+  }
+
+  // Cancelling invalidates the link only — the draft sale survives it. So we
+  // close the cart and hand the operator to that draft rather than resuming the
+  // locked state; Checkout on the draft picks the journey back up at Tip.
+  function cancelPaymentLink() {
+    if (!paymentLink) return
+    const params = new URLSearchParams({
+      tab: "drafts",
+      draft: paymentLink.draftRef,
+      // Mock plumbing — the draft only exists in this cart's memory, so the
+      // list needs enough to render it. Real build looks it up by ref.
+      draftTotal: String(paymentLink.amountMinor),
+      draftClient: payerName,
+    })
+    leave(`/sales/sales-list?${params}`)
+  }
+
+  function settlePaymentLink() {
+    if (!paymentLink) return
+    addPayment("link", paymentLink.amountMinor)
+    setPaymentLink(null)
+    setConfirmed(true)
+  }
+
   // ─── Exit / draft ────────────────────────────────────────────────────────
 
   function requestClose() {
@@ -407,6 +455,13 @@ function CartFlowInner({
           <ConfirmationScreen
             paidMinor={paidMinor}
             changeMinor={Math.max(0, paidMinor - toPayMinor)}
+          />
+        ) : paymentLink ? (
+          // Cart is locked while a link is live — no step nav, no editing.
+          <PaymentLinkLockScreen
+            link={paymentLink}
+            onCancelLink={cancelPaymentLink}
+            onMarkPaid={settlePaymentLink}
           />
         ) : (
           <>
@@ -577,7 +632,7 @@ function CartFlowInner({
                       onAddCartDiscount={() => setCartDiscountOpen(true)}
                       onAddSaleNote={() => setSaleNoteOpen(true)}
                       onSaveDraft={() => setDraftModalOpen(true)}
-                      onCancelSale={leave}
+                      onCancelSale={() => leave()}
                     />
                   )
                 ) : (
@@ -604,13 +659,13 @@ function CartFlowInner({
                             // confirm before saving it unpaid / part-paid.
                             hasGiftCard
                             ? () => setUnpaidConfirmOpen(true)
-                            : leave
+                            : () => leave()
                     }
                     onAddTip={() => setStep("tip")}
                     onAddCartDiscount={() => setCartDiscountOpen(true)}
                     onAddSaleNote={() => setSaleNoteOpen(true)}
                     onSaveDraft={() => setDraftModalOpen(true)}
-                    onCancelSale={leave}
+                    onCancelSale={() => leave()}
                   />
                 )}
               </div>
@@ -808,7 +863,7 @@ function CartFlowInner({
           toPayMinor={leftToPayMinor}
           defaultName={attachment.type === "client" ? attachment.client.name : undefined}
           defaultPhone={attachment.type === "client" ? attachment.client.phone : undefined}
-          onPaid={(amount) => addPayment("link", amount)}
+          onSend={sendPaymentLink}
         />
       ) : null}
 

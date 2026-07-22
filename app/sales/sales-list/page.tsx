@@ -25,6 +25,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import { CartFlow } from "@/app/sales/new-sale/cart-flow"
+import type { CartLine } from "@/app/sales/new-sale/types"
 import { AppShell } from "@/components/blocks/app-shell"
 import {
   type ClientDetailClient,
@@ -576,6 +577,44 @@ type Draft = {
   grossMinor: number
 }
 
+// Build a Draft for a ref that isn't in MOCK_DRAFTS — see `selectedDraft`.
+// Returns null unless the query string carries a usable total, so a stale or
+// mistyped ?draft= still falls through to "no draft" rather than a blank AED 0.
+function synthesizeDraft(
+  id: string,
+  totalMinor: string | null,
+  client: string | null,
+): Draft | null {
+  const grossMinor = Number(totalMinor)
+  if (!totalMinor || !Number.isFinite(grossMinor) || grossMinor <= 0) return null
+  return {
+    id,
+    client: client || "Walk-In",
+    createdAt: new Date(),
+    tipsMinor: 0,
+    grossMinor,
+  }
+}
+
+// Drafts carry no line items in the mock — the detail dialog renders a single
+// hardcoded Haircut priced at the draft total. Checkout rebuilds that same line
+// so the resumed cart matches what the operator was just looking at. The real
+// build reads the draft sale's stored lines instead.
+function draftToCartLines(draft: Draft): CartLine[] {
+  return [
+    {
+      uid: `draft-${draft.id}-1`,
+      kind: "service",
+      name: "Haircut",
+      priceMinor: draft.grossMinor,
+      durationMin: 90,
+      staffName: "Hussain Shabbir",
+      qty: 1,
+      sourceId: `draft-${draft.id}`,
+    },
+  ]
+}
+
 const MOCK_DRAFTS: Draft[] = [
   {
     id: "31A06EA3",
@@ -730,15 +769,29 @@ function SalesListPageInner() {
   const [range, setRange] = useState<DateRange>(() => rangeForPreset("today", today))
   const [selectedClient, setSelectedClient] = useState<ClientDetailClient | null>(null)
   const [cartOpen, setCartOpen] = useState(false)
+  // Draft being resumed through Checkout — seeds a cart opened on the Tip step.
+  const [checkoutDraft, setCheckoutDraft] = useState<Draft | null>(null)
 
   // URL is the source of truth — match the `?sale=<id>` param to a row.
   const selectedSale = selectedSaleId
     ? (MOCK_SALES.find((s) => String(s.id) === selectedSaleId) ?? null)
     : null
-  // …and `?draft=<ref>` to a draft row.
-  const selectedDraft = selectedDraftId
-    ? (MOCK_DRAFTS.find((d) => d.id === selectedDraftId) ?? null)
-    : null
+  // …and `?draft=<ref>` to a draft row. A ref that isn't in the mock list is a
+  // draft minted elsewhere in the session — cancelling a payment link hands
+  // back here with the total and client on the query string, since there's no
+  // store to persist it. The real build looks the draft up by ref.
+  // Memoized: a fresh object each render would retrigger the detail dialog's
+  // effect on every pass.
+  const draftTotalParam = searchParams.get("draftTotal")
+  const draftClientParam = searchParams.get("draftClient")
+  const selectedDraft = useMemo(
+    () =>
+      selectedDraftId
+        ? (MOCK_DRAFTS.find((d) => d.id === selectedDraftId) ??
+          synthesizeDraft(selectedDraftId, draftTotalParam, draftClientParam))
+        : null,
+    [selectedDraftId, draftTotalParam, draftClientParam],
+  )
 
   function openClientFor(name: string) {
     const slug = name.toLowerCase().replace(/\s+/g, "-")
@@ -1066,9 +1119,36 @@ function SalesListPageInner() {
         onViewProfile={() => {
           if (selectedDraft) openClientFor(selectedDraft.client)
         }}
+        onCheckout={() => {
+          if (selectedDraft) setCheckoutDraft(selectedDraft)
+          setSelectedDraftId(null)
+        }}
       />
 
       <CartFlow open={cartOpen} onOpenChange={setCartOpen} />
+
+      {/* Resuming a draft — the cart is already built, so it opens on Tip.
+          Keyed by draft id so each resume mounts a fresh cart. */}
+      {checkoutDraft ? (
+        <CartFlow
+          key={checkoutDraft.id}
+          open
+          onOpenChange={(next) => !next && setCheckoutDraft(null)}
+          initialLines={draftToCartLines(checkoutDraft)}
+          initialAttachment={
+            checkoutDraft.client === "Walk-In"
+              ? { type: "walk-in" }
+              : {
+                  type: "client",
+                  client: {
+                    id: `draft-${checkoutDraft.id}`,
+                    name: checkoutDraft.client,
+                  },
+                }
+          }
+          initialStep="tip"
+        />
+      ) : null}
     </AppShell>
   )
 }
@@ -1602,9 +1682,16 @@ type DraftDetailDialogProps = {
   draft: Draft | null
   onOpenChange: (open: boolean) => void
   onViewProfile: () => void
+  /** Resume the sale — reopens the cart on the Tip step with the draft loaded. */
+  onCheckout: () => void
 }
 
-function DraftDetailDialog({ draft, onOpenChange, onViewProfile }: DraftDetailDialogProps) {
+function DraftDetailDialog({
+  draft,
+  onOpenChange,
+  onViewProfile,
+  onCheckout,
+}: DraftDetailDialogProps) {
   const open = draft !== null
   // Hold the last draft so the dialog can animate out after `draft` is cleared.
   const [last, setLast] = useState<Draft | null>(draft)
@@ -1655,7 +1742,7 @@ function DraftDetailDialog({ draft, onOpenChange, onViewProfile }: DraftDetailDi
                     Unpaid
                   </span>
                   <div className="flex shrink-0 items-center gap-2">
-                    <Button type="button" size="sm" radius="full">
+                    <Button type="button" size="sm" radius="full" onClick={onCheckout}>
                       Checkout
                     </Button>
                     <DropdownMenu>
