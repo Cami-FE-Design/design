@@ -19,7 +19,7 @@ import {
   PencilIcon,
   WalletIcon,
 } from "lucide-react"
-import { useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { EmptyState } from "@/components/blocks/empty-state"
@@ -134,6 +134,8 @@ const PAYMENTS_BREADCRUMB_ROOT = { label: "Payments", icon: CreditCardIcon }
 
 export function PaymentsSettingsPanel() {
   const searchParams = useSearchParams()
+  const pathname = usePathname() ?? "/"
+  const router = useRouter()
   const { name: businessName } = useDemoBusiness()
 
   // Deep-links: ?pp=policy|methods opens a sub-screen; edit|services|terms
@@ -143,8 +145,27 @@ export function PaymentsSettingsPanel() {
     pp === "methods" ? "methods" : pp ? "policy" : "home",
   )
 
+  // When a takeover was opened via deep-link (e.g. "Edit policy" from the
+  // appointment sheet), closing it should close the whole settings dialog and
+  // return to the page underneath — not strand the user on the dialog they
+  // never opened themselves. Mirrors AppSettingsController's close.
+  function closeDialog() {
+    const next = new URLSearchParams(searchParams.toString())
+    next.delete("settings")
+    next.delete("pp")
+    next.delete("pm")
+    const qs = next.toString()
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+  }
+
   if (view === "policy") {
-    return <PaymentPolicySubScreen onBack={() => setView("home")} initialTakeover={pp} />
+    return (
+      <PaymentPolicySubScreen
+        onBack={() => setView("home")}
+        initialTakeover={pp}
+        onDeepLinkExit={closeDialog}
+      />
+    )
   }
   if (view === "methods") {
     return (
@@ -194,18 +215,31 @@ export function PaymentsSettingsPanel() {
 function PaymentPolicySubScreen({
   onBack,
   initialTakeover,
+  onDeepLinkExit,
 }: {
   onBack: () => void
   initialTakeover: string | null
+  /** Called instead of returning to the summary when the takeover was deep-linked open. */
+  onDeepLinkExit?: () => void
 }) {
   const { name: businessName } = useDemoBusiness()
   const { policy, updatePolicy } = usePaymentPolicy()
 
-  const [takeover, setTakeover] = useState<TakeoverView>(
+  const deepLinkedTakeover =
     initialTakeover === "edit" || initialTakeover === "services" || initialTakeover === "terms"
-      ? initialTakeover
-      : null,
+  const [takeover, setTakeover] = useState<TakeoverView>(
+    deepLinkedTakeover ? (initialTakeover as TakeoverView) : null,
   )
+  // Consumed on first close so in-dialog navigation afterwards behaves normally.
+  const deepLinkRef = useRef(deepLinkedTakeover)
+
+  function closeTakeover() {
+    setTakeover(null)
+    if (deepLinkRef.current) {
+      deepLinkRef.current = false
+      onDeepLinkExit?.()
+    }
+  }
 
   const customCount = overrideCount(policy)
   // Session-only preview override for the demo toggle below — the populated
@@ -376,7 +410,7 @@ function PaymentPolicySubScreen({
 
       {takeover === "edit" ? (
         <PaymentPolicyTakeover
-          onClose={() => setTakeover(null)}
+          onClose={closeTakeover}
           onEditServices={() => setTakeover("services")}
         />
       ) : null}
@@ -385,7 +419,7 @@ function PaymentPolicySubScreen({
           <ServiceCustomizationsTakeover onClose={() => setTakeover("edit")} />
         </ServiceCatalogProvider>
       ) : null}
-      {takeover === "terms" ? <TermsTakeover onClose={() => setTakeover(null)} /> : null}
+      {takeover === "terms" ? <TermsTakeover onClose={closeTakeover} /> : null}
     </div>
   )
 }
