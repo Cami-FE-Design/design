@@ -782,7 +782,10 @@ function DepositCell({
           }
         }}
       >
-        <SelectTrigger className="w-44" aria-label={`Deposit for ${serviceName}`}>
+        <SelectTrigger
+          className={cn(selectTriggerOverride, "w-44 shrink-0")}
+          aria-label={`Deposit for ${serviceName}`}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -826,7 +829,10 @@ function NoShowFeeCell({
           }
         }}
       >
-        <SelectTrigger className="w-40" aria-label={`No-show fee for ${serviceName}`}>
+        <SelectTrigger
+          className={cn(selectTriggerOverride, "w-40 shrink-0")}
+          aria-label={`No-show fee for ${serviceName}`}
+        >
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

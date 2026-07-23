@@ -51,6 +51,8 @@ export function AmountInput({ value, onChange, disabled, className, ariaLabel }:
       <SegmentedToggle<AmountMode>
         value={value.mode}
         disabled={disabled}
+        // lg track (p-1 + h-10 segments) lines up with the h-12 field beside it.
+        size="lg"
         ariaLabel="Amount type"
         options={[
           { value: "fixed", label: <CoinsIcon className="size-4" aria-label="Fixed amount" /> },
