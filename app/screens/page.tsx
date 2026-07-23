@@ -706,6 +706,11 @@ const SECTIONS: Section[] = [
       { path: "/shell-demo", label: "Business app shell" },
       { path: "/playground", label: "Component states" },
       {
+        path: "/appointments",
+        label: "Global search takeover",
+        note: "Click the topbar magnifier (or Cmd/Ctrl+K) on any shell page. Full-screen search over clients + bookings; try 'B-77342' for a booking ref. Rows open the client dialog / appointment sheet on top. Also demoed in the playground.",
+      },
+      {
         path: "/style-guide",
         label: "Design foundations",
         note: "Color (semantic slots, Radix / Cami / neutral-gray scales), type, radius, elevation, pattern utilities, spacing. Values are read from the live CSS custom properties at runtime rather than copied, so the page cannot drift from globals.css. Click a swatch to copy its utility.",

@@ -1,8 +1,9 @@
 "use client"
 
 import { BellIcon, ChevronDownIcon, CirclePlusIcon, SearchIcon } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { DemoBusinessRename } from "@/components/blocks/demo-business-rename"
+import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
 import { NotificationSheet } from "@/components/blocks/notification-sheet"
 import { ProfileMenu } from "@/components/blocks/profile-menu"
 import { QuickAddMenu } from "@/components/blocks/quick-add-menu"
@@ -37,10 +38,11 @@ const iconButtonClass = "size-11 rounded-full text-sidebar-foreground"
 type TopbarIconButtonProps = {
   label: string
   ariaLabel?: string
+  onClick?: () => void
   children: React.ReactNode
 }
 
-function TopbarIconButton({ label, ariaLabel, children }: TopbarIconButtonProps) {
+function TopbarIconButton({ label, ariaLabel, onClick, children }: TopbarIconButtonProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -49,6 +51,7 @@ function TopbarIconButton({ label, ariaLabel, children }: TopbarIconButtonProps)
           size="icon"
           aria-label={ariaLabel ?? label}
           className={iconButtonClass}
+          onClick={onClick}
         >
           {children}
         </Button>
@@ -78,6 +81,19 @@ export function AppTopbar({
     { id: "jumeirah", name: `${businessName} · Jumeirah` },
   ]
   const [selectedId, setSelectedId] = useState(defaultWorkspaceId)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  // Cmd/Ctrl+K opens global search from anywhere in the shell.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [])
   const selected = resolvedWorkspaces.find((w) => w.id === selectedId) ?? resolvedWorkspaces[0]
   const notificationsAriaLabel =
     notificationCount > 0 ? `Notifications, ${notificationCount} unread` : "Notifications"
@@ -122,9 +138,10 @@ export function AppTopbar({
             </Button>
           }
         />
-        <TopbarIconButton label="Search">
+        <TopbarIconButton label="Search" onClick={() => setSearchOpen(true)}>
           <SearchIcon className="size-5" />
         </TopbarIconButton>
+        <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
         <div className="relative size-11">
           <NotificationSheet
             trigger={

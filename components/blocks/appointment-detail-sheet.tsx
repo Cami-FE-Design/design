@@ -65,11 +65,16 @@ function formatTime(hhmm: string): string {
 }
 
 // Booking's local anchor date (matches the listing's anchor on 18 May 2026).
+// Bookings can carry a `dayOffset` (days after the anchor) so surfaces like the
+// global search can show a multi-day spread — the sheet honors it so its header
+// date always matches the row that opened it.
 const ANCHOR_DATE = new Date(2026, 4, 18)
-function isoOfAnchor(): string {
-  const y = ANCHOR_DATE.getFullYear()
-  const m = String(ANCHOR_DATE.getMonth() + 1).padStart(2, "0")
-  const d = String(ANCHOR_DATE.getDate()).padStart(2, "0")
+function isoOfAnchor(dayOffset = 0): string {
+  const date = new Date(ANCHOR_DATE)
+  date.setDate(date.getDate() + dayOffset)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, "0")
+  const d = String(date.getDate()).padStart(2, "0")
   return `${y}-${m}-${d}`
 }
 
@@ -695,7 +700,7 @@ export function AppointmentDetailSheet({
   ]
 
   const theme = STATUS_THEME[status]
-  const iso = isoOfAnchor()
+  const iso = isoOfAnchor(booking.dayOffset)
   const dateLabel = formatHeaderDate(iso)
   const timeLabel = formatTime(booking.start)
   const recurrence = booking.recurrence ?? "doesn't repeat"
