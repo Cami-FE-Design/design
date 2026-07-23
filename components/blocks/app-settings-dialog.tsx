@@ -3,6 +3,7 @@
 import {
   Building2Icon,
   ChevronLeftIcon,
+  CreditCardIcon,
   FolderIcon,
   GlobeIcon,
   type LucideIcon,
@@ -16,6 +17,7 @@ import { useEffect, useState } from "react"
 import { BusinessProfileForm } from "@/components/blocks/business-profile-form"
 import { FilesSection } from "@/components/blocks/documents-files-card"
 import { LocationForm } from "@/components/blocks/location-form"
+import { PaymentsSettingsPanel } from "@/components/blocks/payment-policy/payments-settings-panel"
 import { SalesSettings } from "@/components/blocks/sales-settings"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -79,8 +81,21 @@ const GROUPS: SettingsGroup[] = [
       {
         id: "sales",
         label: "Sales",
-        description: "Payment methods and gift cards for checkout.",
+        description: "Gift cards for checkout.",
         icon: TagIcon,
+      },
+    ],
+  },
+  // Own top-level section, not a Sales sub-item — mirrors Fresha's Workspace
+  // settings where Payments stands alone.
+  {
+    label: "Payments",
+    items: [
+      {
+        id: "payments",
+        label: "Payments",
+        description: "Payment policy and payment methods for bookings and checkout.",
+        icon: CreditCardIcon,
       },
     ],
   },
@@ -214,6 +229,7 @@ export function AppSettingsDialog({
             {active.id === "language" ? <LanguagePanel /> : null}
             {active.id === "forms" ? <FilesPanel /> : null}
             {active.id === "sales" ? <SalesSettings /> : null}
+            {active.id === "payments" ? <PaymentsSettingsPanel /> : null}
           </div>
         </div>
       </DialogContent>

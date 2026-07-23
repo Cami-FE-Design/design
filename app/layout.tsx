@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { DemoBusinessProvider } from "@/lib/demo-business"
 import { DemoFilesProvider } from "@/lib/demo-files"
+import { PaymentPolicyProvider } from "@/lib/payment-policy/store"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
@@ -37,8 +38,10 @@ export default function RootLayout({
           <TooltipProvider delayDuration={150}>
             <DemoBusinessProvider>
               <DemoFilesProvider>
-                {children}
-                <Toaster />
+                <PaymentPolicyProvider>
+                  {children}
+                  <Toaster />
+                </PaymentPolicyProvider>
               </DemoFilesProvider>
             </DemoBusinessProvider>
           </TooltipProvider>

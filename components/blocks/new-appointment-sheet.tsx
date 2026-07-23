@@ -28,7 +28,9 @@ import {
   XIcon,
 } from "lucide-react"
 import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
+import { toast } from "sonner"
 
 import {
   type DepositState,
@@ -86,6 +88,8 @@ import {
 } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { usePaymentPolicy } from "@/lib/payment-policy/store"
+import { depositForServices, examplePolicyText } from "@/lib/payment-policy/types"
 import { cn } from "@/lib/utils"
 
 type SelectedPet = {
@@ -386,14 +390,31 @@ export function NewAppointmentSheet({
     paymentLink: "cami.app/pay",
     bookingLink: "cami.app/book",
   }
-  // Deposit axis is orthogonal to status (PRO-68). Real value comes from the
-  // booking entity; here we derive a sensible default so the status-gated
-  // dropdown is demonstrable: booked owes a deposit, confirmed has paid it.
-  const depositState: DepositState =
-    status === "booked" ? "required" : status === "confirmed" ? "paid" : "none"
+  // Deposit comes from the configured payment policy (Settings → Payments),
+  // respecting per-service overrides and the min-value scope limiter. The
+  // paid/required axis stays derived from status so the status-gated dropdown
+  // remains demonstrable (PRO-68): booked owes a deposit, confirmed has paid it.
+  const { policy } = usePaymentPolicy()
+  const router = useRouter()
+  const pathname = usePathname() ?? "/"
+  const depositMinor = depositForServices(
+    policy,
+    pets.flatMap((pet) =>
+      pet.services.map((svc) => ({
+        serviceId: svc.catalog.id,
+        priceMinor: svc.catalog.priceMinor,
+      })),
+    ),
+  )
+  const policyActive = policy.type === "deposit" && depositMinor > 0
+  const depositState: DepositState = !policyActive
+    ? "none"
+    : status === "booked"
+      ? "required"
+      : status === "confirmed"
+        ? "paid"
+        : "none"
   const messageTemplates = templatesForBooking(status, depositState)
-  // 25% deposit, matching the deposit-ladder template copy.
-  const depositMinor = Math.round(totalMinor * 0.25)
   const editingPet = pets.find((p) => p.uid === editingPetUid) ?? null
   const editingService = editingPet?.services.find((s) => s.uid === editingServiceUid) ?? null
 
@@ -860,68 +881,96 @@ export function NewAppointmentSheet({
                 </section>
               ) : null}
 
-              <section data-slot="payment-policy-section" className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold leading-7 text-foreground">Payment policy</h2>
-                <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-4">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <CreditCardIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
-                    <div className="flex min-w-0 flex-col">
-                      <span className="text-sm font-semibold text-foreground">
-                        Requires confirmation
-                      </span>
-                      {depositState === "required" ? (
-                        <span className="text-xs font-medium text-gold-11">
-                          {formatAed(depositMinor)} deposit requested
+              {policyActive ? (
+                <section data-slot="payment-policy-section" className="flex flex-col gap-3">
+                  <h2 className="text-lg font-semibold leading-7 text-foreground">
+                    Payment policy
+                  </h2>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <CreditCardIcon
+                        className="size-5 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
+                      <div className="flex min-w-0 flex-col">
+                        <span className="text-sm font-semibold text-foreground">
+                          Requires confirmation
                         </span>
-                      ) : depositState === "paid" ? (
-                        <span className="text-xs font-medium text-cami-green-11">
-                          {formatAed(depositMinor)} deposit paid
-                        </span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">No deposit required</span>
-                      )}
+                        {depositState === "required" ? (
+                          <span className="text-xs font-medium text-gold-11">
+                            {formatAed(depositMinor)} deposit requested
+                          </span>
+                        ) : depositState === "paid" ? (
+                          <span className="text-xs font-medium text-cami-green-11">
+                            {formatAed(depositMinor)} deposit paid
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No deposit required</span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        radius="full"
-                        aria-label="Payment policy options"
-                      >
-                        <MoreHorizontalIcon className="size-4" aria-hidden />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      {depositState === "required" ? (
-                        <DropdownMenuItem
-                          onSelect={() => {
-                            const reminder = MOCK_WHATSAPP_TEMPLATES.find(
-                              (t) => t.id === "deposit-reminder",
-                            )
-                            if (reminder) setMessageTemplate(reminder)
-                          }}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          radius="full"
+                          aria-label="Payment policy options"
                         >
-                          <MessageCircleIcon className="size-4" aria-hidden />
-                          Send reminder
+                          <MoreHorizontalIcon className="size-4" aria-hidden />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        {depositState === "required" ? (
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              const reminder = MOCK_WHATSAPP_TEMPLATES.find(
+                                (t) => t.id === "deposit-reminder",
+                              )
+                              if (reminder) setMessageTemplate(reminder)
+                            }}
+                          >
+                            <MessageCircleIcon className="size-4" aria-hidden />
+                            Send reminder
+                          </DropdownMenuItem>
+                        ) : null}
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            toast.info(examplePolicyText(policy, businessName), {
+                              description: policy.terms || undefined,
+                            })
+                          }
+                        >
+                          Show policy
                         </DropdownMenuItem>
-                      ) : null}
-                      <DropdownMenuItem>Show policy</DropdownMenuItem>
-                      <DropdownMenuItem>Edit policy</DropdownMenuItem>
-                      <DropdownMenuItem className="text-tomato-11 focus:bg-tomato-3 focus:text-tomato-11 data-highlighted:bg-tomato-3 data-highlighted:text-tomato-11">
-                        Remove policy
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </section>
+                        <DropdownMenuItem
+                          // Opens the settings dialog on this page, straight into
+                          // the payment policy editor takeover.
+                          onSelect={() => router.push(`${pathname}?settings=payments&pp=edit`)}
+                        >
+                          Edit policy
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-tomato-11 focus:bg-tomato-3 focus:text-tomato-11 data-highlighted:bg-tomato-3 data-highlighted:text-tomato-11">
+                          Remove policy
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </section>
+              ) : null}
             </div>
 
             <footer
               data-slot="appointment-sheet-footer"
               className="border-t border-border bg-card px-6 py-4"
             >
+              {depositState === "required" ? (
+                <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-gold-11">
+                  <AlertCircleIcon className="size-3.5 shrink-0" aria-hidden />
+                  {formatAed(depositMinor)} deposit unpaid — collect it or send a payment link
+                  before checkout
+                </p>
+              ) : null}
               {hasPets ? (
                 <Button
                   radius="full"
