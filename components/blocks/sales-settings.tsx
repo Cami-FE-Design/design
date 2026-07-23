@@ -31,7 +31,6 @@ import {
   StoreIcon,
   TagIcon,
   Trash2Icon,
-  WalletIcon,
   XIcon,
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
