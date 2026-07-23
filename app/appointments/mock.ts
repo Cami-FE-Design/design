@@ -58,6 +58,14 @@ export type MockBooking = {
   isFirstVisit?: boolean
   /** Recurrence label shown in the sheet header below the date, e.g. "Doesn't repeat" / "Every 4 weeks". */
   recurrence?: string
+  /**
+   * Days after the 18 May 2026 demo anchor this booking is scheduled.
+   * Unset = anchor day. Only set on bookings outside the appointments-list
+   * curated subset so that listing keeps reading like the figma; the global
+   * search and the detail sheet both respect it, giving the search's
+   * "Upcoming appointments" a multi-day spread.
+   */
+  dayOffset?: number
 }
 
 export const MOCK_STAFF: MockStaff[] = [
@@ -185,6 +193,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petSpecies: "dog",
     priceMinor: 25000,
     hasSafetyFlag: true,
+    dayOffset: 1,
   },
 
   // Lena Petrov — column 2
@@ -214,6 +223,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petName: "Duke",
     petSpecies: "dog",
     priceMinor: 3000,
+    dayOffset: 1,
   },
   {
     id: "b-007",
@@ -227,6 +237,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petName: "Pepper",
     petSpecies: "rabbit",
     priceMinor: 10000,
+    dayOffset: 2,
   },
 
   // Priya Nair — column 3
@@ -256,6 +267,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petSpecies: "cat",
     priceMinor: 18000,
     linkCount: 1,
+    dayOffset: 3,
   },
   {
     id: "b-010",
@@ -270,6 +282,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petSpecies: "cat",
     priceMinor: 18000,
     linkCount: 1,
+    dayOffset: 3,
   },
 
   // Marco Rossi — column 4
@@ -340,6 +353,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petName: "Biscuit",
     petSpecies: "dog",
     priceMinor: 10000,
+    dayOffset: 1,
   },
   {
     id: "b-016",
@@ -366,6 +380,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petName: "Beans",
     petSpecies: "dog",
     priceMinor: 0,
+    dayOffset: 4,
   },
 
   // Dr. Sarah Khoury — column 6 (vet)
@@ -423,6 +438,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petName: "Snickers",
     petSpecies: "dog",
     priceMinor: 0,
+    dayOffset: 1,
   },
 
   // Olivia Park — column 9 (trainer)
@@ -438,6 +454,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petName: "Marlow",
     petSpecies: "dog",
     priceMinor: 12000,
+    dayOffset: 2,
   },
 
   // Diego Santos — column 10 (vet tech)
@@ -453,6 +470,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petName: "Willow",
     petSpecies: "dog",
     priceMinor: 4000,
+    dayOffset: 2,
   },
   {
     id: "b-024",
@@ -481,6 +499,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petName: "Duke",
     petSpecies: "dog",
     priceMinor: 9000,
+    dayOffset: 3,
   },
   {
     id: "b-026",
@@ -494,6 +513,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petName: "Mango",
     petSpecies: "bird",
     priceMinor: 14000,
+    dayOffset: 4,
   },
   {
     id: "b-027",

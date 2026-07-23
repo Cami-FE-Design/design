@@ -4,6 +4,7 @@ import { BellIcon, ChevronDownIcon, CirclePlusIcon, MenuIcon, SearchIcon } from 
 import type * as React from "react"
 import { useState } from "react"
 import { DemoBusinessRename } from "@/components/blocks/demo-business-rename"
+import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
 import { NotificationSheet } from "@/components/blocks/notification-sheet"
 import { ProfileMenu } from "@/components/blocks/profile-menu"
 import { QuickAddMenu } from "@/components/blocks/quick-add-menu"
@@ -53,6 +54,7 @@ export function AppMobileTopbar({
     { id: "jumeirah", name: `${businessName} · Jumeirah` },
   ]
   const [selectedId, setSelectedId] = useState(defaultWorkspaceId)
+  const [searchOpen, setSearchOpen] = useState(false)
   const selected = resolvedWorkspaces.find((w) => w.id === selectedId) ?? resolvedWorkspaces[0]
   const accountLabel = `${firstName} ${lastName}`.trim() || "Account"
   const initials = `${initialOf(firstName)}${initialOf(lastName)}`
@@ -109,9 +111,16 @@ export function AppMobileTopbar({
             </Button>
           }
         />
-        <Button variant="ghost" size="icon" aria-label="Search" className={iconButtonClass}>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Search"
+          className={iconButtonClass}
+          onClick={() => setSearchOpen(true)}
+        >
           <SearchIcon className="size-5" />
         </Button>
+        <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
         <NotificationSheet
           trigger={
             <Button

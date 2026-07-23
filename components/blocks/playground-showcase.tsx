@@ -50,6 +50,7 @@ import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
@@ -205,6 +206,7 @@ export function PlaygroundShowcase() {
   const [shellMode, setShellMode] = useState<"add" | "detail">("detail")
   const [shellSection, setShellSection] = useState<string>("overview")
   const [detailOpen, setDetailOpen] = useState(false)
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false)
   const [detailHasPets, setDetailHasPets] = useState(true)
   const [boardingDrawerOpen, setBoardingDrawerOpen] = useState(false)
   const [boardingCreateOpen, setBoardingCreateOpen] = useState(false)
@@ -1018,6 +1020,16 @@ export function PlaygroundShowcase() {
             </TimelineRow>
           </ul>
         </div>
+      </Section>
+
+      <Section
+        title="Global search takeover"
+        description="Full-screen search opened from the topbar magnifier (or Cmd/Ctrl+K). Reuses <FullScreenEditDialog> (same sticky header + pill Close as add/edit takeovers) with an xl <SearchInput>. Searches clients by name, mobile, email, or pet, and bookings by client name or booking reference (try 'B-77342'). Empty query shows Upcoming appointments + Clients (recently added). Clicking a client opens <ClientDetailDialog>; clicking an appointment opens <AppointmentDetailSheet> — both stack over the takeover."
+      >
+        <Row label="Open">
+          <Button onClick={() => setGlobalSearchOpen(true)}>Open global search</Button>
+        </Row>
+        <GlobalSearchDialog open={globalSearchOpen} onOpenChange={setGlobalSearchOpen} />
       </Section>
 
       <Section
