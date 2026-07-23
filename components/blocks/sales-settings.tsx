@@ -31,7 +31,6 @@ import {
   StoreIcon,
   TagIcon,
   Trash2Icon,
-  WalletIcon,
   XIcon,
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -108,14 +107,17 @@ function formatAed(value: string) {
  * Full-screen edit/add takeover with the shared scroll-reveal header title:
  * the header shows the title only once the large body title scrolls out of
  * view (matches the business-details edit dialog). `actions` is the right-side
- * button cluster (Close / Save / Options …).
+ * button cluster (Close / Save / Options …). Exported for other settings
+ * panels (e.g. the Payments policy editors) so takeover chrome can't drift.
+ * `wide` widens the content column for table-shaped editors.
  */
-function FullScreenTakeover({
+export function FullScreenTakeover({
   title,
   ariaDescription,
   subtitle,
   actions,
   onClose,
+  wide,
   children,
 }: {
   title: string
@@ -123,6 +125,7 @@ function FullScreenTakeover({
   subtitle?: string
   actions: React.ReactNode
   onClose: () => void
+  wide?: boolean
   children: React.ReactNode
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -159,7 +162,12 @@ function FullScreenTakeover({
         <DialogDescription className="sr-only">{ariaDescription}</DialogDescription>
 
         <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
-          <div className="mx-auto flex max-w-2xl items-center justify-between gap-3">
+          <div
+            className={cn(
+              "mx-auto flex items-center justify-between gap-3",
+              wide ? "max-w-6xl" : "max-w-2xl",
+            )}
+          >
             <span
               className={cn(
                 "min-w-0 truncate font-heading text-base font-semibold leading-6 text-foreground transition-opacity duration-200",
@@ -174,7 +182,9 @@ function FullScreenTakeover({
         </header>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-12 lg:px-10">
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-10">
+          <div
+            className={cn("mx-auto flex w-full flex-col gap-10", wide ? "max-w-6xl" : "max-w-2xl")}
+          >
             <div className="flex flex-col gap-3">
               <h2
                 ref={titleRef}
@@ -194,7 +204,9 @@ function FullScreenTakeover({
   )
 }
 
-type SalesView = "home" | "payment-methods" | "gift-cards"
+// Payment methods moved to the Payments section (Fresha parity) — Sales now
+// only owns Gift cards.
+type SalesView = "home" | "gift-cards"
 
 type SalesCard = {
   id: Exclude<SalesView, "home">
@@ -204,12 +216,6 @@ type SalesCard = {
 }
 
 const SALES_CARDS: SalesCard[] = [
-  {
-    id: "payment-methods",
-    label: "Payment methods",
-    description: "Customize the payment methods displayed at checkout for your team members.",
-    icon: WalletIcon,
-  },
   {
     id: "gift-cards",
     label: "Gift cards",
@@ -268,15 +274,8 @@ export function SalesSettings() {
   // a sub-screen; the per-panel ?pm / ?gc params open a specific takeover/state.
   const searchParams = useSearchParams()
   const sub = searchParams.get("sub")
-  const [view, setView] = useState<SalesView>(
-    sub === "payment-methods" ? "payment-methods" : sub === "gift-cards" ? "gift-cards" : "home",
-  )
+  const [view, setView] = useState<SalesView>(sub === "gift-cards" ? "gift-cards" : "home")
 
-  if (view === "payment-methods") {
-    return (
-      <PaymentMethodsPanel onBack={() => setView("home")} initialAction={searchParams.get("pm")} />
-    )
-  }
   if (view === "gift-cards") {
     return <GiftCardsPanel onBack={() => setView("home")} initialGift={searchParams.get("gc")} />
   }
@@ -322,19 +321,24 @@ export function SalesSettings() {
  * Notion-style breadcrumb + title row for a Sales sub-screen. Mirrors the
  * Business details header: clean h2 + plain description, no inline actions.
  */
+export type BreadcrumbRoot = { label: string; icon: LucideIcon }
+
 function SubScreenHeader({
   onBack,
   title,
   description,
+  // Sales stays the default root; the Payments panel passes its own.
+  root = { label: "Sales", icon: TagIcon },
 }: {
   onBack: () => void
   title: string
   description?: string
+  root?: BreadcrumbRoot
 }) {
   return (
     <div className="flex shrink-0 flex-col gap-4">
       <NotionBreadcrumb
-        segments={[{ label: "Sales", icon: TagIcon, onClick: onBack }, { label: title }]}
+        segments={[{ label: root.label, icon: root.icon, onClick: onBack }, { label: title }]}
       />
       <header className="flex flex-col gap-2">
         <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">{title}</h2>
@@ -376,13 +380,17 @@ function SubScreenActions({
 
 type FormState = { mode: "add" } | { mode: "edit"; method: PaymentMethod } | null
 
-function PaymentMethodsPanel({
+/** Exported for the Payments settings panel, where this now lives (Fresha parity). */
+export function PaymentMethodsPanel({
   onBack,
   initialAction,
+  breadcrumbRoot,
 }: {
   onBack: () => void
   /** Deep-link: "add" | "edit" | "order" opens the matching takeover on mount. */
   initialAction?: string | null
+  /** Breadcrumb root shown before "Payment methods" (defaults to Sales). */
+  breadcrumbRoot?: BreadcrumbRoot
 }) {
   const [methods, setMethods] = useState<PaymentMethod[]>(DEFAULT_PAYMENT_METHODS)
   const [form, setForm] = useState<FormState>(() => {
@@ -440,6 +448,7 @@ function PaymentMethodsPanel({
         onBack={onBack}
         title="Payment methods"
         description="View and customize the payment methods displayed at checkout for your team members."
+        root={breadcrumbRoot}
       />
       <div className="flex flex-col gap-4">
         <ul className="flex max-h-105 w-full flex-col gap-4 overflow-y-auto rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146">
