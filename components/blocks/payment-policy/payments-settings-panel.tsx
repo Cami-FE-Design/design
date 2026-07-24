@@ -44,8 +44,12 @@ import { useDemoBusiness } from "@/lib/demo-business"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
 import {
   type AmountValue,
+  AUTO_CANCEL_REFERENCE_OPTIONS,
+  AUTO_CANCEL_WINDOW_OPTIONS,
+  type AutoCancelReference,
   examplePolicyText,
   formatAmount,
+  LATE_FEE_TRIGGER_OPTIONS,
   overrideCount,
   type PaymentPolicy,
   type PaymentPolicyType,
@@ -651,16 +655,37 @@ function PaymentPolicyTakeover({
               onCheckedChange={(lateFeeEnabled) => patch({ lateFeeEnabled })}
               label="Apply late cancellation or no-show fee"
             >
-              <FieldGroup
-                label="No-show fee"
-                helper="Charged on top of the deposit when a client no-shows or cancels late"
-              >
-                <AmountInput
-                  value={draft.lateFee}
-                  onChange={(lateFee) => patch({ lateFee })}
-                  ariaLabel="No-show fee"
-                />
-              </FieldGroup>
+              <div className="flex flex-col gap-5">
+                <FieldGroup helper="Of the total appointment value">
+                  <AmountInput
+                    value={draft.lateFee}
+                    onChange={(lateFee) => patch({ lateFee })}
+                    ariaLabel="No-show fee"
+                  />
+                </FieldGroup>
+                <FieldGroup
+                  label="Apply fee when"
+                  helper="No-shows are always included in late cancellation and reschedule fees"
+                >
+                  <Select
+                    value={String(draft.lateFeeTrigger)}
+                    onValueChange={(v) =>
+                      patch({ lateFeeTrigger: v === "no-show" ? "no-show" : Number(v) })
+                    }
+                  >
+                    <SelectTrigger className={selectTriggerOverride} aria-label="Apply fee when">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LATE_FEE_TRIGGER_OPTIONS.map((option) => (
+                        <SelectItem key={String(option.value)} value={String(option.value)}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FieldGroup>
+              </div>
             </CheckboxRow>
 
             <CheckboxRow
@@ -669,7 +694,48 @@ function PaymentPolicyTakeover({
               onCheckedChange={(autoCancelUnpaid) => patch({ autoCancelUnpaid })}
               label="Automatically cancel appointments for clients that did not pay a deposit"
               subCopy="Appointments booked by team members in-store will be automatically canceled if clients don't pay their deposit within the set time frame"
-            />
+            >
+              <FieldGroup label="If not paid within">
+                <div className="flex w-full gap-2">
+                  <Select
+                    value={String(draft.autoCancelWithinMin)}
+                    onValueChange={(v) => patch({ autoCancelWithinMin: Number(v) })}
+                  >
+                    <SelectTrigger
+                      className={cn(selectTriggerOverride, "flex-1")}
+                      aria-label="Auto-cancel window"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AUTO_CANCEL_WINDOW_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={String(option.value)}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={draft.autoCancelReference}
+                    onValueChange={(v) => patch({ autoCancelReference: v as AutoCancelReference })}
+                  >
+                    <SelectTrigger
+                      className={cn(selectTriggerOverride, "flex-1")}
+                      aria-label="Auto-cancel reference point"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AUTO_CANCEL_REFERENCE_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </FieldGroup>
+            </CheckboxRow>
           </div>
 
           <hr className="border-border/40" />
