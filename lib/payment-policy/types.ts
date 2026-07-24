@@ -76,6 +76,32 @@ export const RESCHEDULE_OPTIONS: { value: number | null; label: string }[] = [
   ...TIME_WINDOWS.map((t) => ({ value: t.min, label: `${t.label} before appointment` })),
 ]
 
+/**
+ * When the late-cancellation / no-show fee applies (DSG-57): on no-show only,
+ * or when the client cancels less than N minutes before the appointment.
+ */
+export type LateFeeTrigger = "no-show" | number
+
+export const LATE_FEE_TRIGGER_OPTIONS: { value: LateFeeTrigger; label: string }[] = [
+  { value: "no-show", label: "When appointment is marked as no-show" },
+  ...TIME_WINDOWS.map((t) => ({
+    value: t.min,
+    label: `When client cancels less than ${t.label} before appointment`,
+  })),
+]
+
+/** Auto-cancel timing (DSG-57): unpaid-deposit window is measured from booking or before start. */
+export type AutoCancelReference = "after-booking" | "before-start"
+
+export const AUTO_CANCEL_WINDOW_OPTIONS: { value: number; label: string }[] = TIME_WINDOWS.map(
+  (t) => ({ value: t.min, label: t.label }),
+)
+
+export const AUTO_CANCEL_REFERENCE_OPTIONS: { value: AutoCancelReference; label: string }[] = [
+  { value: "after-booking", label: "After booking appointment" },
+  { value: "before-start", label: "Before appointment start time" },
+]
+
 export function rescheduleLabel(min: number | null): string {
   return RESCHEDULE_OPTIONS.find((o) => o.value === min)?.label ?? "48 hours before appointment"
 }
@@ -97,7 +123,13 @@ export type PaymentPolicy = {
   rescheduleWindowMin: number | null
   lateFeeEnabled: boolean
   lateFee: AmountValue
+  /** When the late/no-show fee applies (DSG-57). */
+  lateFeeTrigger: LateFeeTrigger
   autoCancelUnpaid: boolean
+  /** Auto-cancel when the deposit is unpaid within this many minutes… (DSG-57) */
+  autoCancelWithinMin: number
+  /** …measured from booking, or before the appointment start. */
+  autoCancelReference: AutoCancelReference
   customizePerService: boolean
   /** Keyed by service id from the service catalog. */
   serviceOverrides: Record<string, ServiceOverride>
@@ -124,7 +156,10 @@ export const DEFAULT_PAYMENT_POLICY: PaymentPolicy = {
   rescheduleWindowMin: 2880,
   lateFeeEnabled: false,
   lateFee: { mode: "percent", value: 50 },
+  lateFeeTrigger: "no-show",
   autoCancelUnpaid: false,
+  autoCancelWithinMin: 120,
+  autoCancelReference: "after-booking",
   customizePerService: false,
   serviceOverrides: {},
   limitToClientGroups: false,
