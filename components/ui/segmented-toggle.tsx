@@ -26,7 +26,8 @@ type SegmentedToggleProps<T extends string> = {
     SegmentedToggleOption<T>,
     ...SegmentedToggleOption<T>[],
   ]
-  size?: "sm" | "default"
+  /** `lg` matches the h-12 settings-takeover form fields (track p-1 + h-10 segments). */
+  size?: "sm" | "default" | "lg"
   /** Optional accessible label for the whole toggle group (e.g. "Permission area state"). */
   ariaLabel?: string
   className?: string
@@ -159,7 +160,7 @@ export function SegmentedToggle<T extends string>({
             data-state={active ? "active" : "inactive"}
             className={cn(
               "relative z-[1] inline-flex items-center justify-center rounded-full text-xs font-semibold transition-colors duration-[220ms] ease-[cubic-bezier(0.33,1,0.68,1)] outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed",
-              size === "sm" ? "h-5 px-1.5" : "h-7 px-2",
+              size === "sm" ? "h-5 px-1.5" : size === "lg" ? "h-10 px-3" : "h-7 px-2",
               active
                 ? // Active label sits on the white pill — always dark/foreground regardless of tone.
                   "text-foreground"

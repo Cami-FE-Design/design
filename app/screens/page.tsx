@@ -295,27 +295,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=sales",
         label: "Sales, landing",
-        note: "Sales category. Two cards (Payment methods, Gift cards); click to drill into each sub-screen (Back + breadcrumb returns). The sub-screens and their takeovers are each deep-linked below via ?sub / ?pm / ?gc.",
-      },
-      {
-        path: "/shell-demo?settings=sales&sub=payment-methods",
-        label: "Payment methods, list",
-        note: "Locked Cash row + custom methods. Header has Add and Options (Change order, hidden when only Cash); non-Cash rows have an Actions menu (Edit / Delete / Move up / Move down).",
-      },
-      {
-        path: "/shell-demo?settings=sales&sub=payment-methods&pm=add",
-        label: "Payment methods · Add takeover",
-        note: "Full-screen add takeover with a single Name field (e.g. Mastercard).",
-      },
-      {
-        path: "/shell-demo?settings=sales&sub=payment-methods&pm=edit",
-        label: "Payment methods · Edit takeover",
-        note: "Editing the sample 'Other' method; Options → Delete lives in the header.",
-      },
-      {
-        path: "/shell-demo?settings=sales&sub=payment-methods&pm=order",
-        label: "Payment methods · Change order",
-        note: "Full-screen drag-and-drop reorder takeover (Save order).",
+        note: "Sales category. Gift cards card (Payment methods moved to the Payments section); click to drill into the sub-screen (Back + breadcrumb returns). Takeovers deep-linked below via ?sub / ?gc.",
       },
       {
         path: "/shell-demo?settings=sales&sub=gift-cards",
@@ -353,6 +333,43 @@ const SECTIONS: Section[] = [
         path: "/settings/team",
         label: "Add team member takeover",
         note: "Click Add. Sidebar nav with 6 sections; Profile is the default and includes name, email, phone, country, birthday, calendar color (Cami palette), and job title. Settings has the permission role select (High/Medium/Low).",
+      },
+    ],
+  },
+  {
+    title: "Pet Business, payment policy (DSG-51)",
+    description:
+      "Deposit / no-show policy inside the Settings dialog (Payments). Business level only — Location scope pending Malen/Maaz. Persists to localStorage; the configured policy drives the Payment policy card in the appointment sheet. 'Capture card details' policy type is v1 out-of-scope; client-groups scope limiter is disabled pending the client-groups model. Deep-link takeovers with ?pp=edit|services|terms.",
+    screens: [
+      {
+        path: "/shell-demo?settings=payments",
+        label: "Payments, landing",
+        note: "Payments category (own top-level section). Two cards: Payment policy and Payment methods (moved here from Sales); click to drill into each sub-screen (Back + breadcrumb returns).",
+      },
+      {
+        path: "/shell-demo?settings=payments&pp=policy",
+        label: "Payment policy, summary",
+        note: "Summary card (applies-to, deposit %, custom-service count, refund status) with green checks, auto-generated example policy, terms preview, and the prepay-in-full toggle.",
+      },
+      {
+        path: "/shell-demo?settings=payments&pp=methods",
+        label: "Payment methods, list",
+        note: "Locked Cash row + custom methods. Header has Add and Options (Change order, hidden when only Cash); non-Cash rows have an Actions menu (Edit / Delete / Move up / Move down). Add/Edit/Order takeovers deep-link via &pm=add|edit|order.",
+      },
+      {
+        path: "/shell-demo?settings=payments&pp=edit",
+        label: "Payment policy editor takeover",
+        note: "Full-screen Close/Save takeover: policy type (No policy / Require deposit), percent-or-AED deposit amount, Refundable until, reschedule window (30min–72h or 'cannot reschedule'), late-cancellation fee + auto-cancel checkboxes, and Advanced options (customize per service, client groups [coming soon], min appointment value).",
+      },
+      {
+        path: "/shell-demo?settings=payments&pp=services",
+        label: "Customize by service takeover",
+        note: "Search + category pill tabs over the service catalog; per-row Default vs Custom deposit and no-show fee with inline percent/AED inputs; row + category checkboxes with a bulk 'Set custom deposit' bar. Save returns to the policy editor.",
+      },
+      {
+        path: "/shell-demo?settings=payments&pp=terms",
+        label: "Policy displayed to clients takeover",
+        note: "Auto-generated example policy line + free-text additional terms with a 600-char live counter.",
       },
     ],
   },
@@ -555,7 +572,7 @@ const SECTIONS: Section[] = [
   {
     title: "Reporting and analytics (DSG-43 / PRO-703)",
     description:
-      "Config-driven reporting module — all 23 reports render from lib/reports/registry.ts through shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix). Every report is listed below (generated from the registry, so nothing goes stale). Fresha-inspired, adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list; Performance over time is the one remaining placeholder.",
+      "Config-driven reporting module — all 23 reports render from lib/reports/registry.ts through shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix). Every report is listed below (generated from the registry, so nothing goes stale). Adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list; Performance over time is the one remaining placeholder.",
     screens: REPORT_SCREENS,
   },
   {

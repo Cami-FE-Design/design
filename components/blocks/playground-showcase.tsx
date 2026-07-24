@@ -54,6 +54,7 @@ import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
+import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
@@ -130,6 +131,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
+import {
+  type AmountValue,
+  DEFAULT_PAYMENT_POLICY,
+  examplePolicyText,
+} from "@/lib/payment-policy/types"
 import { getReport } from "@/lib/reports/registry"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import { cn } from "@/lib/utils"
@@ -1764,8 +1770,44 @@ export function PlaygroundShowcase() {
           </div>
         </Row>
       </Section>
+
+      <Section
+        title="Payment policy — deposit & no-show config"
+        description="Payment policy (DSG-51) inside the Settings dialog (?settings=payments). Summary panel → policy editor takeover (?pp=edit), with the Customize-by-service table (?pp=services) and the client-facing terms editor (?pp=terms). Configured policy drives the Payment policy card in the appointment sheet: deposit amount from percent/fixed default + per-service overrides, hidden entirely when no policy is set. Shown here: the shared percent/AED amount input and the auto-generated client-facing example line."
+      >
+        <Row label="Amount input — percent mode (deposit default)">
+          <AmountInputDemo initial={{ mode: "percent", value: 25 }} />
+        </Row>
+        <Row label="Amount input — fixed AED mode (no-show fee)">
+          <AmountInputDemo initial={{ mode: "fixed", value: 150 }} />
+        </Row>
+        <Row label="Amount input — disabled (row on Default in the per-service table)">
+          <AmountInput
+            value={{ mode: "percent", value: 25 }}
+            onChange={() => {}}
+            disabled
+            className="w-64"
+          />
+        </Row>
+        <Row label="Example policy — auto-generated client-facing line">
+          <div className="w-full max-w-xl rounded-xl bg-cami-violet-2 px-4 py-3 text-sm text-foreground">
+            {examplePolicyText(DEFAULT_PAYMENT_POLICY, "Sota Salon")}
+          </div>
+        </Row>
+        <Row label="Example policy — no payment policy state">
+          <div className="w-full max-w-xl rounded-xl bg-cami-violet-2 px-4 py-3 text-sm text-foreground">
+            {examplePolicyText({ ...DEFAULT_PAYMENT_POLICY, type: "none" }, "Sota Salon")}
+          </div>
+        </Row>
+      </Section>
     </TooltipProvider>
   )
+}
+
+/** Interactive percent/fixed amount input, as used for deposits and no-show fees. */
+function AmountInputDemo({ initial }: { initial: AmountValue }) {
+  const [value, setValue] = useState<AmountValue>(initial)
+  return <AmountInput value={value} onChange={setValue} className="w-64" />
 }
 
 /** Opens the checkout Add gift card dialog, seeded to an AED 1,800 preset. */
