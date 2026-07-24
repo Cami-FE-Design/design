@@ -12,11 +12,15 @@ import {
   type MockBookingStatus,
 } from "@/app/appointments/mock"
 import { MOCK_CLIENTS, type MockClient } from "@/app/clients/mock"
-import { AppointmentDetailSheet } from "@/components/blocks/appointment-detail-sheet"
+import { AppointmentSubject } from "@/app/sales/new-sale/appointment-subject"
+import { CartFlow } from "@/app/sales/new-sale/cart-flow"
+import { APPOINTMENTS } from "@/app/sales/new-sale/mock"
+import type { CartLine, ClientAttachment } from "@/app/sales/new-sale/types"
 import {
   type ClientDetailClient,
   ClientDetailDialog,
 } from "@/components/blocks/client-detail-dialog"
+import { NewAppointmentSheet } from "@/components/blocks/new-appointment-sheet"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -91,14 +95,62 @@ function refOf(b: MockBooking) {
 
 const STAFF_BY_ID = Object.fromEntries(MOCK_STAFF.map((s) => [s.id, s]))
 
-// "Upcoming" for the empty-query state = not-yet-started bookings with a real
-// client attached (skips the group Daycare session row).
-const UPCOMING_STATUSES = new Set<MockBookingStatus>(["booked", "confirmed"])
 const UPCOMING_LIMIT = 4
 const CLIENT_LIMIT = 5
 
 function byDateThenTime(a: MockBooking, b: MockBooking) {
   return (a.dayOffset ?? 0) - (b.dayOffset ?? 0) || minutesOf(a.start) - minutesOf(b.start)
+}
+
+// ─── Upcoming = the checkout's appointment list (DSG-56) ─────────────────────
+// The empty-query state shows the exact same appointments the cart's "Search
+// appointments" picker offers, so both surfaces always agree.
+
+/** "9:00am" / "2:00pm" → minutes since midnight. */
+function minutes12h(t: string) {
+  const m = /(\d+):(\d+)\s*(am|pm)/i.exec(t)
+  if (!m) return 0
+  let h = Number(m[1]) % 12
+  if (m[3]?.toLowerCase() === "pm") h += 12
+  return h * 60 + Number(m[2])
+}
+
+const UPCOMING_CHECKOUT = [...APPOINTMENTS]
+  .sort((a, b) => minutes12h(a.start) - minutes12h(b.start))
+  .slice(0, UPCOMING_LIMIT)
+
+// The checkout list is "upcoming today" — all on the demo anchor day.
+const ANCHOR_DAY_MONTH = ANCHOR_DATE.toLocaleDateString("en-US", {
+  month: "short",
+  day: "numeric",
+})
+const ANCHOR_WEEKDAY = ANCHOR_DATE.toLocaleDateString("en-US", { weekday: "long" })
+
+/** "9:00am" → "9:00" 24h, for the edit sheet's startTime prop. */
+function to24h(t: string) {
+  const total = minutes12h(t)
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`
+}
+
+/** ISO date for the anchor day + optional offset — the edit sheet's date prop. */
+function isoOfOffset(dayOffset = 0) {
+  const d = new Date(ANCHOR_DATE)
+  d.setDate(d.getDate() + dayOffset)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`
+}
+
+/**
+ * What the edit sheet needs about the clicked appointment. Matches DSG-54: the
+ * panel is the same <NewAppointmentSheet flow="edit"> that /appointments opens
+ * (status pill + Checkout CTA), not the read-only detail sheet.
+ */
+type EditTarget = {
+  id: string
+  date: string
+  startTime: string
+  status: MockBookingStatus
 }
 
 function clientToDetail(c: MockClient): ClientDetailClient {
@@ -114,22 +166,28 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
   const { name: businessName } = useDemoBusiness()
   const [query, setQuery] = useState("")
   const [selectedClient, setSelectedClient] = useState<ClientDetailClient | null>(null)
-  const [selectedBooking, setSelectedBooking] = useState<MockBooking | null>(null)
+  const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
+  // When set, the appointment's services launch the checkout flow at the Tip
+  // step — same handoff as /appointments.
+  const [checkout, setCheckout] = useState<{
+    lines: CartLine[]
+    attachment: ClientAttachment
+  } | null>(null)
 
   const q = query.trim().toLowerCase()
 
-  const appointments = useMemo(() => {
-    const matches = q
-      ? MOCK_BOOKINGS.filter(
-          (b) =>
-            b.clientName.toLowerCase().includes(q) ||
-            refOf(b).toLowerCase().includes(q) ||
-            (b.bookingRef ?? "").toLowerCase().includes(q),
-        )
-      : MOCK_BOOKINGS.filter(
-          (b) => UPCOMING_STATUSES.has(b.status) && b.serviceCategory !== "daycare",
-        )
-    return [...matches].sort(byDateThenTime).slice(0, UPCOMING_LIMIT)
+  // Query results search the full booking dataset (by client name / booking
+  // reference); the empty-query state instead shows UPCOMING_CHECKOUT.
+  const bookingMatches = useMemo(() => {
+    if (!q) return []
+    return MOCK_BOOKINGS.filter(
+      (b) =>
+        b.clientName.toLowerCase().includes(q) ||
+        refOf(b).toLowerCase().includes(q) ||
+        (b.bookingRef ?? "").toLowerCase().includes(q),
+    )
+      .sort(byDateThenTime)
+      .slice(0, UPCOMING_LIMIT)
   }, [q])
 
   const clients = useMemo(() => {
@@ -151,26 +209,11 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
     onOpenChange(next)
   }
 
-  function openBookingClient(booking: MockBooking) {
-    const match = MOCK_CLIENTS.find((c) => c.name === booking.clientName)
-    if (match) {
-      setSelectedClient(clientToDetail(match))
-      return
-    }
-    const slug = booking.clientName.toLowerCase().replace(/\s+/g, "-")
-    setSelectedClient({
-      id: slug,
-      name: booking.clientName,
-      phone: booking.clientPhone,
-      email: `${slug.replace(/-/g, ".")}@example.com`,
-    })
-  }
-
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className={fullScreenDialogClass} aria-describedby={undefined}>
-          <DialogTitle className="sr-only">What are you looking for?</DialogTitle>
+          <DialogTitle className="sr-only">Search</DialogTitle>
 
           {/* Header chrome — same as FullScreenEditDialog: pill Close on desktop,
               round X on mobile. */}
@@ -200,12 +243,9 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
             </div>
           </header>
 
-          {/* Title + search stay pinned; only the results below scroll. */}
-          <div className="px-6 pt-10 lg:px-10">
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
-              <h1 className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl">
-                What are you looking for?
-              </h1>
+          {/* Search stays pinned; only the results below scroll. */}
+          <div className="px-6 pt-8 lg:px-10">
+            <div className="mx-auto flex w-full max-w-5xl flex-col">
               <SearchInput
                 size="xl"
                 autoFocus
@@ -223,11 +263,77 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                 <h2 className="font-heading text-lg font-semibold leading-7 text-foreground">
                   {q ? "Appointments" : "Upcoming appointments (nearest first)"}
                 </h2>
-                {appointments.length === 0 ? (
+                {!q ? (
+                  <ul className="mt-4 flex flex-col">
+                    {UPCOMING_CHECKOUT.map((appt, index) => (
+                      <TimelineRow
+                        key={appt.id}
+                        isLast={index === UPCOMING_CHECKOUT.length - 1}
+                        leading={
+                          index === 0 ? (
+                            <TimelineDate dayMonth={ANCHOR_DAY_MONTH} weekday={ANCHOR_WEEKDAY} />
+                          ) : (
+                            <span aria-hidden />
+                          )
+                        }
+                      >
+                        {/* Same card as the checkout "Search appointments" picker
+                            (DSG-56) — time · location, pet subject, one row per
+                            service line. Click opens the detail sheet. */}
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEditTarget({
+                              id: appt.id,
+                              date: isoOfOffset(0),
+                              startTime: to24h(appt.start),
+                              status: "booked",
+                            })
+                          }
+                          className="flex w-full flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors hover:bg-sand-2"
+                        >
+                          <span className="flex items-start justify-between gap-3">
+                            <span className="flex min-w-0 flex-1 flex-col gap-2">
+                              <span className="flex min-w-0 items-baseline gap-1.5 text-sm">
+                                <span className="font-semibold text-foreground">{appt.start}</span>
+                                <span className="truncate text-muted-foreground">
+                                  · {appt.location ?? businessName}
+                                </span>
+                              </span>
+                              <AppointmentSubject appt={appt} />
+                            </span>
+                            <Badge
+                              className={cn("border-transparent", STATUS_META.booked.className)}
+                            >
+                              {appt.status ?? "Booked"}
+                            </Badge>
+                          </span>
+                          <span className="flex flex-col gap-2">
+                            {appt.lines.map((line) => (
+                              <span
+                                key={line.serviceId}
+                                className="flex items-baseline justify-between gap-2 text-sm"
+                              >
+                                <span className="min-w-0 flex-1 truncate">
+                                  {line.name}
+                                  <span className="text-muted-foreground">
+                                    {" "}
+                                    · {line.staffName} · {formatDuration(line.durationMin)}
+                                  </span>
+                                </span>
+                                <span className="font-medium">{formatAed(line.priceMinor)}</span>
+                              </span>
+                            ))}
+                          </span>
+                        </button>
+                      </TimelineRow>
+                    ))}
+                  </ul>
+                ) : bookingMatches.length === 0 ? (
                   <p className="mt-4 text-sm text-muted-foreground">None found</p>
                 ) : (
                   <ul className="mt-4 flex flex-col">
-                    {appointments.map((b, index) => {
+                    {bookingMatches.map((b, index) => {
                       const status = STATUS_META[b.status]
                       const staff = STAFF_BY_ID[b.staffId]
                       const date = dateOf(b)
@@ -236,11 +342,11 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                       // aligned.
                       const showDate =
                         index === 0 ||
-                        (b.dayOffset ?? 0) !== (appointments[index - 1]?.dayOffset ?? 0)
+                        (b.dayOffset ?? 0) !== (bookingMatches[index - 1]?.dayOffset ?? 0)
                       return (
                         <TimelineRow
                           key={b.id}
-                          isLast={index === appointments.length - 1}
+                          isLast={index === bookingMatches.length - 1}
                           leading={
                             showDate ? (
                               <TimelineDate
@@ -260,7 +366,14 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                           click target here and opens the detail sheet). */}
                           <button
                             type="button"
-                            onClick={() => setSelectedBooking(b)}
+                            onClick={() =>
+                              setEditTarget({
+                                id: b.id,
+                                date: isoOfOffset(b.dayOffset),
+                                startTime: b.start,
+                                status: b.status,
+                              })
+                            }
                             className="flex w-full flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors hover:bg-sand-2"
                           >
                             <span className="flex items-start justify-between gap-3">
@@ -369,17 +482,41 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
         />
       ) : null}
 
-      <AppointmentDetailSheet
-        open={selectedBooking !== null}
-        onOpenChange={(next) => {
-          if (!next) setSelectedBooking(null)
-        }}
-        booking={selectedBooking}
-        staff={MOCK_STAFF}
-        onViewProfile={() => {
-          if (selectedBooking) openBookingClient(selectedBooking)
-        }}
-      />
+      {/* Same edit panel /appointments opens (DSG-54) — status pill visible,
+          CTA = Checkout, which hands off to the cart flow at the Tip step.
+          Keyed per appointment so each open starts a fresh sheet. */}
+      {editTarget ? (
+        <NewAppointmentSheet
+          key={editTarget.id}
+          open
+          onOpenChange={(next) => {
+            if (!next) setEditTarget(null)
+          }}
+          date={editTarget.date}
+          startTime={editTarget.startTime}
+          hasPets
+          flow="edit"
+          initialStatus={editTarget.status}
+          onCheckout={(lines, client) => {
+            setEditTarget(null)
+            setCheckout({
+              lines,
+              attachment: client ? { type: "client", client } : { type: "walk-in" },
+            })
+          }}
+        />
+      ) : null}
+      {checkout ? (
+        <CartFlow
+          open
+          onOpenChange={(next) => {
+            if (!next) setCheckout(null)
+          }}
+          initialLines={checkout.lines}
+          initialAttachment={checkout.attachment}
+          initialStep="tip"
+        />
+      ) : null}
     </>
   )
 }
