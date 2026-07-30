@@ -381,7 +381,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=payments&pp=terminal",
         label: "Terminal pairing, active PIN",
-        note: "Summary card: masked PIN tiles, paired-terminal count, Reveal/Copy pills, and Regenerate — which opens the destructive confirm naming the exact number of terminals that will be signed out.",
+        note: "Summary card: masked PIN tiles, paired-terminal count, Reveal/Copy pills, and Regenerate — which opens the destructive confirm naming the exact number of terminals that will be signed out. Below it, the provisional Paired terminals list (device ID, online/offline, last active — requirements being confirmed).",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=empty",
