@@ -374,6 +374,38 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Pet Business, terminal pairing PIN (DSG-62)",
+    description:
+      "Merchant-level 6-digit PIN for pairing card terminals — Payments > Terminal pairing. One PIN shared across all terminals and locations; regenerating signs out every paired terminal. Masked by default with reveal (30s auto-hide) and copy-with-toast. Locked/error copy is pending Michelle's answer to open question 1; faint demo toggle at the bottom cycles states. Deep-link states with &tp=empty|locked|error|success.",
+    screens: [
+      {
+        path: "/shell-demo?settings=payments&pp=terminal",
+        label: "Terminal pairing, active PIN",
+        note: "Summary card: masked PIN tiles, paired-terminal count, Reveal/Copy pills, and Regenerate — which opens the destructive confirm naming the exact number of terminals that will be signed out.",
+      },
+      {
+        path: "/shell-demo?settings=payments&pp=terminal&tp=empty",
+        label: "Terminal pairing, empty state",
+        note: "No PIN yet — explains what the PIN is for with a Generate PIN action; generating lands on the success state with the new PIN surfaced.",
+      },
+      {
+        path: "/shell-demo?settings=payments&pp=terminal&tp=success",
+        label: "Terminal pairing, regenerate success",
+        note: "New PIN revealed immediately with a green banner: how many terminals were signed out and the instruction to re-pair each with this PIN.",
+      },
+      {
+        path: "/shell-demo?settings=payments&pp=terminal&tp=locked",
+        label: "Terminal pairing, rate-limited",
+        note: "Yellow banner after repeated failed pairing attempts: pairing blocked for 15 minutes, paired terminals keep working, regenerating unlocks immediately. Copy pending open question 1.",
+      },
+      {
+        path: "/shell-demo?settings=payments&pp=terminal&tp=error",
+        label: "Terminal pairing, error state",
+        note: "Regenerate failed — the PIN card stays fully usable (current PIN is still valid) with a red banner: nothing changed, terminals stay connected, inline Try again that retries without re-confirming.",
+      },
+    ],
+  },
+  {
     title: "Cami HQ, roles & permissions (PRO-138)",
     description:
       "E1-6.2 HQ-side role catalog. Lives inside the Settings dialog at ?settings=roles, no standalone routes. Edit and Add open as full-screen dialogs on top.",

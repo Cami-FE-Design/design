@@ -16,6 +16,7 @@ import {
   CreditCardIcon,
   HandCoinsIcon,
   InfoIcon,
+  MonitorSmartphoneIcon,
   PencilIcon,
   WalletIcon,
 } from "lucide-react"
@@ -26,6 +27,10 @@ import { EmptyState } from "@/components/blocks/empty-state"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { FullScreenTakeover, PaymentMethodsPanel } from "@/components/blocks/sales-settings"
+import {
+  type TerminalPairingDemoState,
+  TerminalPairingPanel,
+} from "@/components/blocks/terminal-pairing-panel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -112,7 +117,7 @@ function ExamplePolicyPreview({ text }: { text: string }) {
   )
 }
 
-type PaymentsView = "home" | "policy" | "methods"
+type PaymentsView = "home" | "policy" | "methods" | "terminal"
 
 const PAYMENTS_CARDS: {
   id: Exclude<PaymentsView, "home">
@@ -132,6 +137,12 @@ const PAYMENTS_CARDS: {
     description: "Customize the payment methods displayed at checkout for your team members.",
     icon: WalletIcon,
   },
+  {
+    id: "terminal",
+    label: "Terminal pairing",
+    description: "View, copy, or regenerate the PIN used to pair card terminals.",
+    icon: MonitorSmartphoneIcon,
+  },
 ]
 
 const PAYMENTS_BREADCRUMB_ROOT = { label: "Payments", icon: CreditCardIcon }
@@ -146,7 +157,7 @@ export function PaymentsSettingsPanel() {
   // open the policy sub-screen with the matching takeover on top.
   const pp = searchParams.get("pp")
   const [view, setView] = useState<PaymentsView>(
-    pp === "methods" ? "methods" : pp ? "policy" : "home",
+    pp === "methods" || pp === "terminal" ? pp : pp ? "policy" : "home",
   )
 
   // When a takeover was opened via deep-link (e.g. "Edit policy" from the
@@ -158,6 +169,7 @@ export function PaymentsSettingsPanel() {
     next.delete("settings")
     next.delete("pp")
     next.delete("pm")
+    next.delete("tp")
     const qs = next.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }
@@ -177,6 +189,15 @@ export function PaymentsSettingsPanel() {
         onBack={() => setView("home")}
         initialAction={searchParams.get("pm")}
         breadcrumbRoot={PAYMENTS_BREADCRUMB_ROOT}
+      />
+    )
+  }
+  if (view === "terminal") {
+    return (
+      <TerminalPairingPanel
+        onBack={() => setView("home")}
+        breadcrumbRoot={PAYMENTS_BREADCRUMB_ROOT}
+        initialState={(searchParams.get("tp") as TerminalPairingDemoState) ?? null}
       />
     )
   }
