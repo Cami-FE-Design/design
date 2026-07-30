@@ -10,8 +10,11 @@
 // States (per ticket): empty (no PIN yet), active (masked, reveal/copy/
 // regenerate), regenerate confirm (names the exact session count), regenerate
 // success (new PIN surfaced + re-pair instruction), rate-limited/locked, and
-// error. Locked/error are demo-only states cycled via the bottom toggle,
-// pending open question 1 (lockout duration/behaviour).
+// error. Locked/error are demo-only states cycled via the bottom toggle.
+// Locked behaviour confirmed by Michelle: 15-minute lockout, PIN stays
+// visible, regenerating unlocks pairing immediately. The regenerate confirm
+// is skipped when zero terminals are paired — it exists to warn that
+// regenerating will unpair existing terminals (DSG-62 follow-up).
 
 import {
   CheckCircle2Icon,
@@ -80,6 +83,11 @@ export function TerminalPairingPanel({
 
   const pin = pairing.pin ?? "482913"
 
+  // Demo overrides: locked implies terminals are paired; success means they
+  // were just signed out. Real flows read the store directly.
+  const effectivePaired =
+    demoState === "locked" ? 3 : demoState === "success" ? 0 : pairing.pairedTerminals
+
   function handleGenerate() {
     pairing.generatePin()
     setDemoState(null)
@@ -130,17 +138,15 @@ export function TerminalPairingPanel({
         <PinCard
           pin={pin}
           view={view}
-          // Demo overrides: locked implies terminals are paired; success means
-          // they were just signed out. Real flows read the store directly.
-          pairedTerminals={
-            demoState === "locked" ? 3 : demoState === "success" ? 0 : pairing.pairedTerminals
-          }
+          pairedTerminals={effectivePaired}
           justIssued={justIssued}
           onCopy={() => {
             navigator.clipboard?.writeText(pin)
             toast.success("PIN copied")
           }}
-          onRegenerate={() => setConfirmOpen(true)}
+          // The confirm exists to warn about unpairing existing terminals —
+          // with none paired there's nothing to warn about, so skip it.
+          onRegenerate={() => (effectivePaired === 0 ? handleRegenerate() : setConfirmOpen(true))}
           onRetry={handleRegenerate}
           onDismissIssued={() => setJustIssued(null)}
         />
@@ -165,7 +171,7 @@ export function TerminalPairingPanel({
 
       <RegenerateConfirmDialog
         open={confirmOpen}
-        sessionCount={demoState === "locked" ? 3 : pairing.pairedTerminals}
+        sessionCount={effectivePaired}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={handleRegenerate}
       />
@@ -223,7 +229,7 @@ function PinCard({
       </header>
 
       {view === "success" && justIssued ? (
-        <div className="flex items-start gap-2 rounded-xl border-l-2 border-cami-green-8 bg-cami-green-2 p-3 text-sm leading-5 text-foreground">
+        <div className="flex items-start gap-2 rounded-xl bg-cami-green-2 p-3 text-sm leading-5 text-foreground">
           <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-cami-green-11" aria-hidden />
           <span>
             New PIN generated.{" "}
@@ -238,7 +244,7 @@ function PinCard({
           is still valid, so hiding it behind a full-screen error would read as
           "your PIN is gone" when nothing actually changed. */}
       {view === "error" ? (
-        <div className="flex items-start justify-between gap-3 rounded-xl border-l-2 border-tomato-8 bg-tomato-2 p-3 text-sm leading-5 text-foreground">
+        <div className="flex items-start justify-between gap-3 rounded-xl bg-tomato-2 p-3 text-sm leading-5 text-foreground">
           <div className="flex items-start gap-2">
             <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-tomato-11" aria-hidden />
             <span>
@@ -261,7 +267,7 @@ function PinCard({
       ) : null}
 
       {view === "locked" ? (
-        <div className="flex items-start gap-2 rounded-xl border-l-2 border-cami-yellow-8 bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground">
+        <div className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground">
           <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" aria-hidden />
           <span>
             <span className="font-medium">Pairing temporarily locked.</span> Too many incorrect PIN
@@ -366,30 +372,19 @@ function RegenerateConfirmDialog({
           </Button>
         </div>
         <DialogDescription className="mt-4 text-sm leading-5 text-foreground">
-          {sessionCount > 0 ? (
-            <>
-              This signs out{" "}
-              <span className="font-semibold">
-                {sessionCount === 1 ? "1 paired terminal" : `${sessionCount} paired terminals`}
-              </span>{" "}
-              across all locations, immediately. Each terminal stops taking payments until it's
-              re-paired with the new PIN — avoid doing this mid-shift.
-            </>
-          ) : (
-            <>
-              No terminals are currently paired, so nothing will be signed out. The current PIN
-              stops working and a new one is generated.
-            </>
-          )}
+          This signs out{" "}
+          <span className="font-semibold">
+            {sessionCount === 1 ? "1 paired terminal" : `${sessionCount} paired terminals`}
+          </span>{" "}
+          across all locations, immediately. Each terminal stops taking payments until it's
+          re-paired with the new PIN — avoid doing this mid-shift.
         </DialogDescription>
         <div className="mt-8 flex items-center justify-end gap-3">
           <Button type="button" variant="outline" size="lg" radius="full" onClick={onCancel}>
             Cancel
           </Button>
           <Button type="button" variant="destructive" size="lg" radius="full" onClick={onConfirm}>
-            {sessionCount > 0
-              ? `Sign out ${sessionCount === 1 ? "1 terminal" : `${sessionCount} terminals`} & regenerate`
-              : "Regenerate PIN"}
+            {`Sign out ${sessionCount === 1 ? "1 terminal" : `${sessionCount} terminals`} & regenerate`}
           </Button>
         </div>
       </DialogContent>
