@@ -52,6 +52,18 @@ const DEMO_CYCLE: Exclude<TerminalPairingDemoState, null>[] = [
   "success",
 ]
 
+// Provisional sessions list (requirements being confirmed by Michelle — the
+// agreed fields so far are device ID, device online/offline status, and last
+// active). Session status needs no column: only currently paired terminals
+// appear here, so every row is an active session by definition. Demo data —
+// the visible rows are sliced to the paired-terminal count so regenerating
+// (count drops to 0) empties the list.
+const DEMO_SESSIONS = [
+  { id: "T-4F91-88C2", lastActive: "Just now", online: true },
+  { id: "T-7A03-D514", lastActive: "18 min ago", online: true },
+  { id: "T-2C67-0B9E", lastActive: "Yesterday, 6:42 PM", online: false },
+]
+
 export function TerminalPairingPanel({
   onBack,
   breadcrumbRoot,
@@ -135,21 +147,25 @@ export function TerminalPairingPanel({
           />
         </section>
       ) : (
-        <PinCard
-          pin={pin}
-          view={view}
-          pairedTerminals={effectivePaired}
-          justIssued={justIssued}
-          onCopy={() => {
-            navigator.clipboard?.writeText(pin)
-            toast.success("PIN copied")
-          }}
-          // The confirm exists to warn about unpairing existing terminals —
-          // with none paired there's nothing to warn about, so skip it.
-          onRegenerate={() => (effectivePaired === 0 ? handleRegenerate() : setConfirmOpen(true))}
-          onRetry={handleRegenerate}
-          onDismissIssued={() => setJustIssued(null)}
-        />
+        // Column wrapper so the sessions card matches the PIN card's width.
+        <div className="flex w-full flex-col gap-6 sm:w-fit">
+          <PinCard
+            pin={pin}
+            view={view}
+            pairedTerminals={effectivePaired}
+            justIssued={justIssued}
+            onCopy={() => {
+              navigator.clipboard?.writeText(pin)
+              toast.success("PIN copied")
+            }}
+            // The confirm exists to warn about unpairing existing terminals —
+            // with none paired there's nothing to warn about, so skip it.
+            onRegenerate={() => (effectivePaired === 0 ? handleRegenerate() : setConfirmOpen(true))}
+            onRetry={handleRegenerate}
+            onDismissIssued={() => setJustIssued(null)}
+          />
+          <PairedTerminalsCard sessions={DEMO_SESSIONS.slice(0, effectivePaired)} />
+        </div>
       )}
 
       {/* Prototype demo toggle — cycles through the ticket's states so the
@@ -304,6 +320,69 @@ function PinCard({
           Copy
         </Button>
       </div>
+    </section>
+  )
+}
+
+/**
+ * Currently paired terminals — device ID, online/offline, last active. Only
+ * active sessions are listed (expired/revoked ones drop off), which is why
+ * there is no session-status column. Copy never attributes a pairing to a
+ * staff member: the PIN is a shared secret, the system can't know who typed it.
+ */
+function PairedTerminalsCard({
+  sessions,
+}: {
+  sessions: { id: string; lastActive: string; online: boolean }[]
+}) {
+  return (
+    <section className="flex w-full flex-col gap-4 rounded-2xl border border-border/60 p-5 sm:min-w-146">
+      <header className="flex flex-col gap-1">
+        <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+          Paired terminals
+        </h3>
+        <p className="text-sm leading-5 text-muted-foreground">
+          Card terminals that are paired with your business right now, from all your locations.
+        </p>
+      </header>
+      {sessions.length === 0 ? (
+        <EmptyState
+          icon={MonitorSmartphoneIcon}
+          title="No terminals paired yet"
+          description="To pair one, enter the PIN above on the terminal."
+          className="py-8"
+        />
+      ) : (
+        <ul className="flex flex-col divide-y divide-border/60">
+          {sessions.map((session) => (
+            <li key={session.id} className="flex items-center justify-between gap-6 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background text-muted-foreground">
+                  <MonitorSmartphoneIcon className="size-5" />
+                </div>
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-sm font-medium leading-5 text-foreground">
+                    {session.id}
+                  </span>
+                  <span className="text-sm leading-5 text-muted-foreground">
+                    Last active {session.lastActive}
+                  </span>
+                </div>
+              </div>
+              <span className="flex items-center gap-1.5 text-sm leading-5 text-muted-foreground">
+                <span
+                  aria-hidden
+                  className={cn(
+                    "size-2 rounded-full",
+                    session.online ? "bg-cami-green-9" : "bg-sand-8",
+                  )}
+                />
+                {session.online ? "Online" : "Offline"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }

@@ -55,6 +55,7 @@ import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
+import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
@@ -1166,6 +1167,15 @@ export function PlaygroundShowcase() {
           onAdd={() => toast.success("Team member added (stubbed)")}
           businessName="Shampooch"
         />
+      </Section>
+
+      <Section
+        title="My profile (settings panel)"
+        description="Personal info panel for the signed-in user (Settings → Account → My profile), scoped exactly to DSG-63 'view and edit contact details': one Contact card (Business-details pattern) with Legal name + masked mobile/email and a single Edit → full-screen takeover. Name saves directly; new mobile number → 6-digit OTP dialog (any 6 digits in the demo, shared OtpInput boxes); new email → 'Check your inbox' dialog (Resend with 30s cooldown / Cancel; the link click itself is simulated by a subtle bottom-right 'Demo: open confirmation link' control in the settings panel). Pending changes show as a neutral 'Pending' badge inline on the affected row that reopens the matching dialog; duplicates of team-member values blocked inline."
+      >
+        <div className="max-w-2xl rounded-2xl border border-border/60 bg-muted/20 p-6">
+          <MyProfilePanel />
+        </div>
       </Section>
 
       <Section

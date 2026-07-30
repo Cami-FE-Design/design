@@ -275,7 +275,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=profile",
         label: "Settings dialog, My profile",
-        note: "Account category, placeholder until Auth0 wires up",
+        note: "Personal info for the signed-in user, scoped exactly to DSG-63 'view and edit contact details': one Contact card (Business-details pattern) with Legal name + masked mobile/email and a single Edit → full-screen takeover (name, email, mobile). Name saves directly; a new mobile number needs a 6-digit OTP (any 6 digits work in the demo, shared OtpInput boxes); a new email waits for its confirmation link (dialog offers only Resend/Cancel; the link click is simulated by the subtle bottom-right 'Demo: open confirmation link' control, Gift-cards-toggle convention). A pending change shows as a neutral 'Pending' badge inline on its row — clicking it opens the matching dialog with Verify / Resend (30s cooldown) / Cancel. Values used by a team member are blocked inline; pending changes survive reload (localStorage). Saving the name updates the topbar live. Also reachable from the topbar avatar menu → My profile.",
       },
       {
         path: "/shell-demo?settings=business-details",
@@ -381,7 +381,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=payments&pp=terminal",
         label: "Terminal pairing, active PIN",
-        note: "Summary card: masked PIN tiles, paired-terminal count, Reveal/Copy pills, and Regenerate — which opens the destructive confirm naming the exact number of terminals that will be signed out.",
+        note: "Summary card: masked PIN tiles, paired-terminal count, Reveal/Copy pills, and Regenerate — which opens the destructive confirm naming the exact number of terminals that will be signed out. Below it, the provisional Paired terminals list (device ID, online/offline, last active — requirements being confirmed).",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=empty",

@@ -3,6 +3,7 @@ import { Manrope } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { CurrentUserProvider } from "@/lib/current-user"
 import { DemoBusinessProvider } from "@/lib/demo-business"
 import { DemoFilesProvider } from "@/lib/demo-files"
 import { PaymentPolicyProvider } from "@/lib/payment-policy/store"
@@ -37,16 +38,18 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider delayDuration={150}>
-            <DemoBusinessProvider>
-              <DemoFilesProvider>
-                <PaymentPolicyProvider>
-                  <TerminalPairingProvider>
-                    {children}
-                    <Toaster />
-                  </TerminalPairingProvider>
-                </PaymentPolicyProvider>
-              </DemoFilesProvider>
-            </DemoBusinessProvider>
+            <CurrentUserProvider>
+              <DemoBusinessProvider>
+                <DemoFilesProvider>
+                  <PaymentPolicyProvider>
+                    <TerminalPairingProvider>
+                      {children}
+                      <Toaster />
+                    </TerminalPairingProvider>
+                  </PaymentPolicyProvider>
+                </DemoFilesProvider>
+              </DemoBusinessProvider>
+            </CurrentUserProvider>
           </TooltipProvider>
         </ThemeProvider>
       </body>
