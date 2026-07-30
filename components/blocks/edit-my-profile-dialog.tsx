@@ -1,7 +1,7 @@
 "use client"
 
 import { Dialog as DialogPrimitive } from "radix-ui"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
 import { Button } from "@/components/ui/button"
@@ -221,9 +221,60 @@ export function EditMyProfileDialog({ open, onOpenChange }: EditMyProfileDialogP
 }
 
 /**
+ * Once "sent", a resend can't be spammed — the link goes quiet with a
+ * countdown ("Resend in 28s") until it may be used again.
+ */
+function useResendCooldown(seconds = 30) {
+  const [remaining, setRemaining] = useState(0)
+
+  useEffect(() => {
+    if (remaining <= 0) return
+    const id = window.setInterval(() => setRemaining((r) => Math.max(0, r - 1)), 1000)
+    return () => window.clearInterval(id)
+  }, [remaining])
+
+  // Stable identities so dialogs can safely list these in effect deps.
+  const reset = useCallback(() => setRemaining(0), [])
+  const start = useCallback(() => setRemaining(seconds), [seconds])
+
+  return { remaining, reset, start }
+}
+
+function ResendLine({
+  prompt,
+  onResend,
+  cooldown,
+}: {
+  prompt: string
+  onResend: () => void
+  cooldown: ReturnType<typeof useResendCooldown>
+}) {
+  return (
+    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+      <span>{prompt}</span>
+      {cooldown.remaining > 0 ? (
+        <span>Resend in {cooldown.remaining}s</span>
+      ) : (
+        <button
+          type="button"
+          className="link font-medium text-cami-violet-11"
+          onClick={() => {
+            onResend()
+            cooldown.start()
+          }}
+        >
+          Resend
+        </button>
+      )}
+    </div>
+  )
+}
+
+/**
  * OTP entry for a pending mobile-number change (DSG-63 story 3). Verify
- * applies the pending number; "Cancel change" discards it; closing keeps the
- * change pending — the Contact card offers "Verify now" to resume.
+ * applies the pending number; "Cancel this change" discards it; closing keeps
+ * the change pending — the Contact card's "Pending verification" badge
+ * reopens this dialog.
  */
 export function VerifyPhoneDialog({
   open,
@@ -234,10 +285,15 @@ export function VerifyPhoneDialog({
 }) {
   const { pending, confirmPhoneChange, cancelPhoneChange } = useCurrentUser()
   const [code, setCode] = useState("")
+  const cooldown = useResendCooldown()
+  const resetCooldown = cooldown.reset
 
   useEffect(() => {
-    if (open) setCode("")
-  }, [open])
+    if (open) {
+      setCode("")
+      resetCooldown()
+    }
+  }, [open, resetCooldown])
 
   const target = pending.phone ? maskPhone(pending.phone.code, pending.phone.number) : null
   const canVerify = code.replace(/\D/g, "").length === 6
@@ -282,16 +338,70 @@ export function VerifyPhoneDialog({
         </Button>
 
         <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <span>Didn&apos;t get it?</span>
-            <button
-              type="button"
-              className="link font-medium text-cami-violet-11"
-              onClick={() => toast("Code re-sent")}
-            >
-              Resend
-            </button>
-          </div>
+          <ResendLine
+            prompt="Didn't get it?"
+            cooldown={cooldown}
+            onResend={() => toast("Code re-sent")}
+          />
+          <button
+            type="button"
+            className="link w-fit text-sm font-medium text-muted-foreground"
+            onClick={handleCancelChange}
+          >
+            Cancel this change
+          </button>
+        </div>
+      </DialogContent>
+    </DialogPrimitive.Root>
+  )
+}
+
+/**
+ * Companion for a pending email change (DSG-63 story 4). The change completes
+ * outside the app — when the recipient clicks the emailed link — so this
+ * dialog only offers Resend and Cancel. In the prototype the link click is
+ * simulated by the subtle demo control at the bottom of the Personal info
+ * panel (same convention as the Gift cards empty-state toggle).
+ */
+export function ConfirmEmailDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { pending, cancelEmailChange } = useCurrentUser()
+  const cooldown = useResendCooldown()
+  const resetCooldown = cooldown.reset
+
+  useEffect(() => {
+    if (open) resetCooldown()
+  }, [open, resetCooldown])
+
+  function handleCancelChange() {
+    cancelEmailChange()
+    toast("Email change cancelled")
+    onOpenChange(false)
+  }
+
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="gap-6">
+        <div className="flex flex-col gap-1.5">
+          <DialogTitle>Check your inbox</DialogTitle>
+          <DialogDescription>
+            We sent a confirmation link to{" "}
+            <span className="font-medium text-foreground">{pending.email ?? "your new email"}</span>
+            . Open it to confirm the change — your current email stays active until then.
+          </DialogDescription>
+        </div>
+
+        <div className="flex flex-col items-center gap-3">
+          <ResendLine
+            prompt="Didn't get it?"
+            cooldown={cooldown}
+            onResend={() => toast("Confirmation link re-sent")}
+          />
           <button
             type="button"
             className="link w-fit text-sm font-medium text-muted-foreground"
