@@ -1171,7 +1171,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="My profile (settings panel)"
-        description="Personal account panel for the signed-in user (Settings → Account → My profile, DSG-63). Two-step like Locations: landing list card (avatar + name + Edit pill) drills into an inner-page detail — Notion breadcrumb, identity header with role badge + Edit, pill tabs: Overview (3 appointment KPI tiles + Open calendar), Details (Personal info card, masked email/phone), Workspaces. Cards in the shared w-146 settings footprint; saving Edit updates the topbar avatar/name live via the mock current-user store."
+        description="Personal info panel for the signed-in user (Settings → Account → My profile), scoped exactly to DSG-63 'view and edit contact details': one Contact card (Business-details pattern) with Legal name + masked mobile/email and a single Edit → full-screen takeover. Name saves directly; new mobile number → 6-digit OTP dialog (any 6 digits in the demo, shared OtpInput boxes); new email → pending until 'Open link (demo)'; duplicates of team-member values blocked inline; pending changes show inside the card with Verify/Resend/Cancel."
       >
         <div className="max-w-2xl rounded-2xl border border-border/60 bg-muted/20 p-6">
           <MyProfilePanel />

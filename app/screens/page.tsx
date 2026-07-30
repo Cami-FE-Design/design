@@ -275,7 +275,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=profile",
         label: "Settings dialog, My profile",
-        note: "Personal account for the signed-in user (DSG-63), two-step like Locations: landing list card (avatar + name + Edit pill) drills into an inner-page detail with Notion breadcrumb, identity header (avatar + name + role badge + Edit) and pill tabs — Overview (3 appointment KPI tiles + Open calendar action), Details (Personal info card, masked email/phone, Edit → full-screen takeover in the Gift-card form idiom), Workspaces (read-only memberships). Cards use the shared w-146 settings footprint; saving Edit updates the topbar avatar/name live (localStorage). Sign-in/security deferred until the accounts model lands. Also reachable from the topbar avatar menu → My profile.",
+        note: "Personal info for the signed-in user, scoped exactly to DSG-63 'view and edit contact details': one Contact card (Business-details pattern) with Legal name + masked mobile/email and a single Edit → full-screen takeover (name, email, mobile). Name saves directly; a new mobile number needs a 6-digit OTP (any 6 digits work in the demo, shared OtpInput boxes); a new email waits for its confirmation link ('Open link (demo)' stands in); values used by a team member are blocked inline; pending changes show inside the card with Verify/Resend/Cancel and survive reload (localStorage). Saving the name updates the topbar live. Also reachable from the topbar avatar menu → My profile.",
       },
       {
         path: "/shell-demo?settings=business-details",

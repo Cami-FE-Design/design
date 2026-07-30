@@ -1,10 +1,13 @@
 "use client"
 
-import { ArrowUpIcon, CircleUserIcon } from "lucide-react"
+import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
+import { Button } from "@/components/ui/button"
+import { DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { OtpInput } from "@/components/ui/otp-input"
 import {
   Select,
   SelectContent,
@@ -12,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { type CurrentUser, useCurrentUser } from "@/lib/current-user"
+import { isEmailTaken, isPhoneTaken, maskPhone, useCurrentUser } from "@/lib/current-user"
 import { cn } from "@/lib/utils"
 
 // Match Input's h-12 / rounded-2xl / bg-input. Same pattern used by
@@ -20,12 +23,7 @@ import { cn } from "@/lib/utils"
 // adjacent inputs.
 const triggerOverride = "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
 
-const countries = ["United Arab Emirates", "Saudi Arabia", "Kuwait", "Qatar", "United Kingdom"]
-
 const phoneCodes = ["+971", "+966", "+965", "+974", "+44", "+1"]
-
-const days = Array.from({ length: 31 }, (_, i) => String(i + 1))
-const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 type EditMyProfileDialogProps = {
   open: boolean
@@ -33,184 +31,277 @@ type EditMyProfileDialogProps = {
 }
 
 /**
- * Self-edit takeover for the signed-in user's personal details. Opens on top
- * of the Settings dialog (My profile panel) and mirrors the Business details
- * edit dialog: plain sections with labelled fields, Close/Save pills in the
- * header. Saving writes the mock current-user store, so the topbar avatar and
- * name update live.
+ * Edit takeover for the signed-in user's contact details (DSG-63). Opens on
+ * top of the Settings dialog (Personal info panel) in the shared settings
+ * form idiom: plain sections with labelled max-w-md fields, Close/Save pills.
+ * Name saves directly; a changed email is parked as a pending change awaiting
+ * its confirmation link, and a changed mobile number opens the OTP dialog.
+ * Values already used by another team member are rejected inline.
  */
 export function EditMyProfileDialog({ open, onOpenChange }: EditMyProfileDialogProps) {
-  const { user, updateUser } = useCurrentUser()
-  const [draft, setDraft] = useState<CurrentUser>(user)
+  const { user, pending, requestEmailChange, requestPhoneChange, updateUser } = useCurrentUser()
+  const [firstName, setFirstName] = useState(user.firstName)
+  const [lastName, setLastName] = useState(user.lastName)
+  const [email, setEmail] = useState(user.email)
+  const [phoneCode, setPhoneCode] = useState(user.phoneCode)
+  const [phone, setPhone] = useState(user.phone)
+  const [emailError, setEmailError] = useState<string | null>(null)
+  const [phoneError, setPhoneError] = useState<string | null>(null)
+  const [otpOpen, setOtpOpen] = useState(false)
 
-  // Re-seed the draft from the store every time the dialog opens, so a
+  // Re-seed the form from the store every time the dialog opens, so a
   // cancelled edit doesn't leak stale values into the next session.
   useEffect(() => {
-    if (open) setDraft(user)
+    if (open) {
+      setFirstName(user.firstName)
+      setLastName(user.lastName)
+      setEmail(user.email)
+      setPhoneCode(user.phoneCode)
+      setPhone(user.phone)
+      setEmailError(null)
+      setPhoneError(null)
+    }
   }, [open, user])
 
-  const set = (patch: Partial<CurrentUser>) => setDraft((d) => ({ ...d, ...patch }))
-
-  const initials =
-    `${draft.firstName.trim().charAt(0)}${draft.lastName.trim().charAt(0)}`.toUpperCase()
   const canSave =
-    draft.firstName.trim().length > 0 &&
-    draft.lastName.trim().length > 0 &&
-    /.+@.+\..+/.test(draft.email.trim())
+    firstName.trim().length > 0 && lastName.trim().length > 0 && /.+@.+\..+/.test(email.trim())
 
   function handleSave() {
-    updateUser(draft)
-    toast.success("Profile updated")
+    const nextEmail = email.trim()
+    const nextPhone = phone.trim()
+    const emailChanged = nextEmail !== user.email
+    const phoneChanged = nextPhone !== user.phone || phoneCode !== user.phoneCode
+
+    // DSG-63: block values already used by someone else before starting a change.
+    if (emailChanged && isEmailTaken(nextEmail)) {
+      setEmailError("This email is already in use on Cami. Try another one.")
+      return
+    }
+    if (phoneChanged && nextPhone && isPhoneTaken(phoneCode, nextPhone)) {
+      setPhoneError("This mobile number is already in use on Cami. Try another one.")
+      return
+    }
+
+    // The name applies immediately; email/phone go through verification.
+    updateUser({ firstName: firstName.trim(), lastName: lastName.trim() })
+
+    if (emailChanged) {
+      requestEmailChange(nextEmail)
+      toast.success(`Confirmation link sent to ${nextEmail}`)
+    }
+    if (phoneChanged && nextPhone) {
+      requestPhoneChange(phoneCode, nextPhone)
+      onOpenChange(false)
+      setOtpOpen(true)
+      return
+    }
+    if (!emailChanged) toast.success("Personal info updated")
     onOpenChange(false)
   }
 
   return (
-    <FullScreenEditDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title="Edit profile"
-      subtitle="Update your personal details and how we can contact you."
-      saveDisabled={!canSave}
-      onSave={handleSave}
-      contentClassName="max-w-2xl"
-    >
-      <section className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
-            Profile
-          </h3>
-          <p className="text-sm leading-5 text-muted-foreground">
-            Your name and photo as they appear across Cami.
-          </p>
-        </div>
-        <div className="flex w-full max-w-md flex-col gap-6">
-          <AvatarUploader initials={initials} />
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-3">
+    <>
+      <FullScreenEditDialog
+        open={open}
+        onOpenChange={onOpenChange}
+        title="Edit personal info"
+        subtitle="Update your personal details and how we can contact you."
+        saveDisabled={!canSave}
+        onSave={handleSave}
+        contentClassName="max-w-2xl"
+      >
+        <section className="flex flex-col gap-5">
+          <div className="flex flex-col gap-1">
+            <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+              Legal name
+            </h3>
+            <p className="text-sm leading-5 text-muted-foreground">
+              Your name as it appears on receipts and messages to clients.
+            </p>
+          </div>
+          <div className="grid w-full max-w-md grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-3">
             <Field label="First name">
               <Input
                 autoComplete="given-name"
-                value={draft.firstName}
-                onChange={(e) => set({ firstName: e.target.value })}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
               />
             </Field>
             <Field label="Last name">
               <Input
                 autoComplete="family-name"
-                value={draft.lastName}
-                onChange={(e) => set({ lastName: e.target.value })}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
               />
             </Field>
           </div>
-          <Field label="Job title">
-            <Input
-              placeholder="e.g. Owner"
-              value={draft.jobTitle}
-              onChange={(e) => set({ jobTitle: e.target.value })}
-            />
-          </Field>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium leading-5 text-foreground">Birthday</span>
-            <div className="flex gap-2">
-              <Select value={draft.birthDay} onValueChange={(v) => set({ birthDay: v })}>
-                <SelectTrigger className={cn(triggerOverride, "w-20")}>
-                  <SelectValue placeholder="Day" />
-                </SelectTrigger>
-                <SelectContent>
-                  {days.map((d) => (
-                    <SelectItem key={d} value={d}>
-                      {d}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={draft.birthMonth} onValueChange={(v) => set({ birthMonth: v })}>
-                <SelectTrigger className={cn(triggerOverride, "flex-1")}>
-                  <SelectValue placeholder="Month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {months.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        </section>
+
+        <hr className="border-border/40" />
+
+        <section className="flex flex-col gap-5">
+          <div className="flex flex-col gap-1">
+            <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+              Contact
+            </h3>
+            <p className="text-sm leading-5 text-muted-foreground">
+              Changing your email or mobile number requires verification — we&apos;ll email you a
+              confirmation link, or text a code to a new number. Your current details stay active
+              until you confirm.
+            </p>
+          </div>
+          <div className="flex w-full max-w-md flex-col gap-6">
+            <Field label="Email address">
               <Input
-                inputMode="numeric"
-                pattern="[0-9]*"
-                placeholder="Year"
-                maxLength={4}
-                className="w-24"
-                value={draft.birthYear}
-                onChange={(e) => set({ birthYear: e.target.value })}
+                type="email"
+                autoComplete="email"
+                aria-invalid={emailError ? true : undefined}
+                value={email}
+                onChange={(e) => {
+                  setEmailError(null)
+                  setEmail(e.target.value)
+                }}
               />
+              {emailError ? (
+                <span role="alert" className="text-sm leading-5 text-destructive">
+                  {emailError}
+                </span>
+              ) : pending.email ? (
+                <span className="text-sm leading-5 text-muted-foreground">
+                  Change to {pending.email} pending — confirm via the link we emailed you.
+                </span>
+              ) : null}
+            </Field>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium leading-5 text-foreground">Mobile number</span>
+              <div className="flex w-full items-center gap-2">
+                <Select value={phoneCode} onValueChange={setPhoneCode}>
+                  <SelectTrigger className={cn(triggerOverride, "w-24 shrink-0")}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {phoneCodes.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="tel"
+                  autoComplete="tel"
+                  inputMode="tel"
+                  aria-invalid={phoneError ? true : undefined}
+                  className="min-w-0 flex-1"
+                  value={phone}
+                  onChange={(e) => {
+                    setPhoneError(null)
+                    setPhone(e.target.value)
+                  }}
+                />
+              </div>
+              {phoneError ? (
+                <span role="alert" className="text-sm leading-5 text-destructive">
+                  {phoneError}
+                </span>
+              ) : pending.phone ? (
+                <span className="text-sm leading-5 text-muted-foreground">
+                  Change to {pending.phone.code} {pending.phone.number} pending — enter the code we
+                  texted you.
+                </span>
+              ) : null}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </FullScreenEditDialog>
 
-      <hr className="border-border/40" />
+      <VerifyPhoneDialog open={otpOpen} onOpenChange={setOtpOpen} />
+    </>
+  )
+}
 
-      <section className="flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
-          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
-            Contact
-          </h3>
-          <p className="text-sm leading-5 text-muted-foreground">
-            How we reach you about your account. Not visible to clients.
-          </p>
+/**
+ * OTP entry for a pending mobile-number change (DSG-63 story 3). Verify
+ * applies the pending number; "Cancel change" discards it; closing keeps the
+ * change pending — the Contact card offers "Verify now" to resume.
+ */
+export function VerifyPhoneDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { pending, confirmPhoneChange, cancelPhoneChange } = useCurrentUser()
+  const [code, setCode] = useState("")
+
+  useEffect(() => {
+    if (open) setCode("")
+  }, [open])
+
+  const target = pending.phone ? maskPhone(pending.phone.code, pending.phone.number) : null
+  const canVerify = code.replace(/\D/g, "").length === 6
+
+  function handleVerify() {
+    confirmPhoneChange()
+    toast.success("Mobile number updated")
+    onOpenChange(false)
+  }
+
+  function handleCancelChange() {
+    cancelPhoneChange()
+    toast("Mobile number change cancelled")
+    onOpenChange(false)
+  }
+
+  // Layout mirrors the pet-parent sign-in verify stage (pet-parent-account.tsx):
+  // heading + target line, OTP boxes, full-width Verify, centered links below.
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="gap-6">
+        <div className="flex flex-col gap-1.5">
+          <DialogTitle>Enter your code</DialogTitle>
+          <DialogDescription>
+            We texted a 6-digit code to{" "}
+            <span className="font-medium text-foreground">{target ?? "your new number"}</span>. Your
+            current number stays active until you verify.
+          </DialogDescription>
         </div>
-        <div className="flex w-full max-w-md flex-col gap-6">
-          <Field label="Email address">
-            <Input
-              type="email"
-              autoComplete="email"
-              value={draft.email}
-              onChange={(e) => set({ email: e.target.value })}
-            />
-          </Field>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium leading-5 text-foreground">Mobile number</span>
-            <div className="flex w-full items-center gap-2">
-              <Select value={draft.phoneCode} onValueChange={(v) => set({ phoneCode: v })}>
-                <SelectTrigger className={cn(triggerOverride, "w-24 shrink-0")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {phoneCodes.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Input
-                type="tel"
-                autoComplete="tel"
-                inputMode="tel"
-                className="min-w-0 flex-1"
-                value={draft.phone}
-                onChange={(e) => set({ phone: e.target.value })}
-              />
-            </div>
+
+        <OtpInput value={code} onValueChange={setCode} ariaLabel="Mobile verification code" />
+
+        <Button
+          type="button"
+          radius="full"
+          size="lg"
+          className="w-full"
+          disabled={!canVerify}
+          onClick={handleVerify}
+        >
+          Verify
+        </Button>
+
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <span>Didn&apos;t get it?</span>
+            <button
+              type="button"
+              className="link font-medium text-cami-violet-11"
+              onClick={() => toast("Code re-sent")}
+            >
+              Resend
+            </button>
           </div>
-          <Field label="Country">
-            <Select value={draft.country} onValueChange={(v) => set({ country: v })}>
-              <SelectTrigger className={triggerOverride}>
-                <SelectValue placeholder="Select country" />
-              </SelectTrigger>
-              <SelectContent>
-                {countries.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
+          <button
+            type="button"
+            className="link w-fit text-sm font-medium text-muted-foreground"
+            onClick={handleCancelChange}
+          >
+            Cancel this change
+          </button>
         </div>
-      </section>
-    </FullScreenEditDialog>
+      </DialogContent>
+    </DialogPrimitive.Root>
   )
 }
 
@@ -221,30 +312,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
       {children}
     </label>
-  )
-}
-
-function AvatarUploader({ initials }: { initials: string }) {
-  return (
-    <div className="flex items-center gap-5">
-      <div className="relative">
-        <div
-          aria-hidden
-          className="flex size-24 items-center justify-center rounded-full bg-cami-violet-3 font-heading text-2xl font-semibold text-cami-violet-11"
-        >
-          {initials || <CircleUserIcon className="size-10 text-cami-violet-9" strokeWidth={1.25} />}
-        </div>
-        <button
-          type="button"
-          aria-label="Upload photo"
-          className="absolute right-0 bottom-0 flex size-8 items-center justify-center rounded-full bg-foreground text-background shadow-md ring-2 ring-background transition-colors hover:bg-foreground/90"
-        >
-          <ArrowUpIcon className="size-4" strokeWidth={2.25} />
-        </button>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Your photo shows on the calendar and in the topbar.
-      </p>
-    </div>
   )
 }
