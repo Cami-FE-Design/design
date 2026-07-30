@@ -9,6 +9,7 @@ import {
   CheckIcon,
   ChevronDownIcon,
   CircleUserIcon,
+  CreditCardIcon,
   FlagIcon,
   FolderIcon,
   GlobeIcon,
@@ -77,6 +78,7 @@ import {
   TeamMemberDetailDialog,
   type TeamMemberDetailMember,
 } from "@/components/blocks/team-member-detail-dialog"
+import { TerminalPairingPanel } from "@/components/blocks/terminal-pairing-panel"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -1429,6 +1431,56 @@ export function PlaygroundShowcase() {
               onAdd={() => toast("Open editor focused on Instagram")}
             />
             <SettingsRow icon={GlobeIcon} label="Website" value="www.shampooch.ae" />
+          </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="Terminal pairing PIN (DSG-62)"
+        description="Merchant-level PIN for pairing card terminals — Business Settings > Payments > Terminal pairing. Masked by default with reveal (30s auto-hide) and copy; Regenerate opens a destructive confirm naming the exact number of terminals that will be signed out. Each instance below is live — the faint toggle at its bottom cycles the remaining states (empty, locked, error, success)."
+      >
+        <Row label="Active (masked)">
+          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
+            <TerminalPairingPanel
+              onBack={() => toast("Back to Payments")}
+              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+            />
+          </div>
+        </Row>
+        <Row label="Empty">
+          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
+            <TerminalPairingPanel
+              onBack={() => toast("Back to Payments")}
+              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+              initialState="empty"
+            />
+          </div>
+        </Row>
+        <Row label="Locked">
+          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
+            <TerminalPairingPanel
+              onBack={() => toast("Back to Payments")}
+              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+              initialState="locked"
+            />
+          </div>
+        </Row>
+        <Row label="Error">
+          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
+            <TerminalPairingPanel
+              onBack={() => toast("Back to Payments")}
+              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+              initialState="error"
+            />
+          </div>
+        </Row>
+        <Row label="Success">
+          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
+            <TerminalPairingPanel
+              onBack={() => toast("Back to Payments")}
+              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+              initialState="success"
+            />
           </div>
         </Row>
       </Section>
