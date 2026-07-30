@@ -55,6 +55,7 @@ import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
+import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
@@ -1166,6 +1167,15 @@ export function PlaygroundShowcase() {
           onAdd={() => toast.success("Team member added (stubbed)")}
           businessName="Shampooch"
         />
+      </Section>
+
+      <Section
+        title="My profile (settings panel)"
+        description="Personal account panel for the signed-in user (Settings → Account → My profile, DSG-63). Two-step like Locations: landing list card (avatar + name + Edit pill) drills into an inner-page detail — Notion breadcrumb, identity header with role badge + Edit, pill tabs: Overview (3 appointment KPI tiles + Open calendar), Details (Personal info card, masked email/phone), Workspaces. Cards in the shared w-146 settings footprint; saving Edit updates the topbar avatar/name live via the mock current-user store."
+      >
+        <div className="max-w-2xl rounded-2xl border border-border/60 bg-muted/20 p-6">
+          <MyProfilePanel />
+        </div>
       </Section>
 
       <Section

@@ -1,7 +1,9 @@
 "use client"
 
 import { BellIcon, ChevronDownIcon, CirclePlusIcon, SearchIcon } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { appSettingsHref } from "@/components/blocks/app-settings-controller"
 import { DemoBusinessRename } from "@/components/blocks/demo-business-rename"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
 import { NotificationSheet } from "@/components/blocks/notification-sheet"
@@ -14,6 +16,7 @@ import {
 } from "@/components/blocks/workspace-switcher"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { useCurrentUser } from "@/lib/current-user"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
@@ -63,10 +66,10 @@ function TopbarIconButton({ label, ariaLabel, onClick, children }: TopbarIconBut
 
 export function AppTopbar({
   className,
-  avatarSrc,
-  firstName = "Michelle",
-  lastName = "You",
-  email = "michelle.h.you@gmail.com",
+  avatarSrc: avatarSrcProp,
+  firstName: firstNameProp,
+  lastName: lastNameProp,
+  email: emailProp,
   notificationCount = 0,
   workspaces,
   defaultWorkspaceId = "jvc",
@@ -74,6 +77,15 @@ export function AppTopbar({
   ...props
 }: AppTopbarProps) {
   const { name: businessName } = useDemoBusiness()
+  const router = useRouter()
+  const pathname = usePathname() ?? "/"
+  // Current-user store backs the avatar and profile menu; explicit props still
+  // override for one-off demos.
+  const { user: currentUser } = useCurrentUser()
+  const avatarSrc = avatarSrcProp ?? currentUser.avatarSrc
+  const firstName = firstNameProp ?? currentUser.firstName
+  const lastName = lastNameProp ?? currentUser.lastName
+  const email = emailProp ?? currentUser.email
   // Derive the workspace list from the demo business name so a rename in the
   // switcher rebrands the topbar (and its second location) live.
   const resolvedWorkspaces = workspaces ?? [
@@ -183,6 +195,10 @@ export function AppTopbar({
             </Button>
           }
           user={{ firstName, lastName, email, avatarSrc }}
+          onMyProfile={() => router.push(appSettingsHref(pathname, "profile"), { scroll: false })}
+          onAccountSettings={() =>
+            router.push(appSettingsHref(pathname, "business-details"), { scroll: false })
+          }
         />
       </div>
     </div>
