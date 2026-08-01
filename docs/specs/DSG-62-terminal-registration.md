@@ -269,7 +269,9 @@ the dashboard can trigger them:
 - `Demo: live | typical | all statuses` — swaps the store for the demo sets.
   `live` reflects what you've actually added.
 
-Deep links: `?tp=typical`, `?tp=full`, `?tp=empty`.
+Deep links: `?tp=typical|full|empty` for the list, and `?td=add|credentials|sessions`
+for the dialogs — they hold most of this feature's design decisions but sit
+behind a row menu, so a reviewer handed a bare URL would never reach them.
 
 ## Open questions
 

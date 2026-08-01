@@ -27,7 +27,11 @@ import { EmptyState } from "@/components/blocks/empty-state"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { FullScreenTakeover, PaymentMethodsPanel } from "@/components/blocks/sales-settings"
-import { type TerminalsDemoState, TerminalsPanel } from "@/components/blocks/terminals-panel"
+import {
+  type TerminalsDemoDialog,
+  type TerminalsDemoState,
+  TerminalsPanel,
+} from "@/components/blocks/terminals-panel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -170,6 +174,7 @@ export function PaymentsSettingsPanel() {
     next.delete("pp")
     next.delete("pm")
     next.delete("tp")
+    next.delete("td")
     const qs = next.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }
@@ -198,6 +203,7 @@ export function PaymentsSettingsPanel() {
         onBack={() => setView("home")}
         breadcrumbRoot={PAYMENTS_BREADCRUMB_ROOT}
         initialState={(searchParams.get("tp") as TerminalsDemoState) ?? null}
+        initialDialog={(searchParams.get("td") as TerminalsDemoDialog) ?? null}
       />
     )
   }

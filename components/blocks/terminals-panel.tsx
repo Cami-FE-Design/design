@@ -81,6 +81,13 @@ const triggerOverride = "data-[size=default]:h-12 rounded-2xl bg-input px-4 font
  */
 export type TerminalsDemoState = "typical" | "full" | "empty" | null
 
+/**
+ * Deep-linked dialog (?td=). The two dialogs carry most of this feature's
+ * design decisions but sit behind a row menu, so a reviewer handed a bare URL
+ * would never reach them. Opens on the first terminal in view.
+ */
+export type TerminalsDemoDialog = "credentials" | "sessions" | "add" | null
+
 // The two setup states are amber because they are waiting on someone; the two
 // running states are green or neutral because nothing is owed.
 const STATUS_LABEL: Record<TerminalStatus, string> = {
@@ -101,15 +108,17 @@ export function TerminalsPanel({
   onBack,
   breadcrumbRoot,
   initialState = null,
+  initialDialog = null,
 }: {
   onBack: () => void
   breadcrumbRoot: BreadcrumbRoot
   initialState?: TerminalsDemoState
+  initialDialog?: TerminalsDemoDialog
 }) {
   const store = useTerminals()
   const [demoState, setDemoState] = useState<TerminalsDemoState>(initialState)
 
-  const [registerOpen, setRegisterOpen] = useState(false)
+  const [registerOpen, setRegisterOpen] = useState(initialDialog === "add")
   // Credentials on screen: after registering, after regenerating, or just
   // because someone asked to see them. All three show the same thing.
   const [credentials, setCredentials] = useState<{
@@ -139,6 +148,18 @@ export function TerminalsPanel({
         : demoState === "typical"
           ? TYPICAL_SESSIONS
           : store.sessions
+
+  // Open a deep-linked dialog once, on the first terminal in view. Guarded by
+  // its own flag rather than an effect so it can't reopen after being closed.
+  const [dialogOpened, setDialogOpened] = useState(false)
+  if (!dialogOpened && initialDialog && terminals.length > 0) {
+    setDialogOpened(true)
+    if (initialDialog === "credentials") {
+      setCredentials({ terminal: terminals[0], mode: "viewing" })
+    } else if (initialDialog === "sessions") {
+      setViewingSessions(terminals[0])
+    }
+  }
 
   // Any real action drops the demo override, so it can't mutate the store while
   // a fake list is on screen.

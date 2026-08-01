@@ -376,7 +376,7 @@ const SECTIONS: Section[] = [
   {
     title: "Pet Business, terminals (DSG-62)",
     description:
-      "Add card machines, issue their credentials, and manage sign-in sessions — Payments > Terminals. Replaces the merchant-level shared-PIN model (spec: docs/specs/DSG-62-terminal-registration.md, which supersedes DSG-62-terminal-management.md). Each terminal is added with a name and a required location, and comes back with two credentials doing different jobs: a pairing code typed into the hardware once and never changed, and a 6-digit sign-in PIN typed at every sign-in, readable from the row any time, regenerated on demand. Per-device rather than merchant-wide, so regenerating a PIN or a failed-attempt lockout hits that terminal alone. Nothing is capped — as many terminals as there is hardware for, as many concurrent sessions as staff open. Opens empty by default, which is where a real merchant starts. Deep-link states with &tp=typical|full|empty.",
+      "Add card machines, issue their credentials, and manage sign-in sessions — Payments > Terminals. Replaces the merchant-level shared-PIN model (spec: docs/specs/DSG-62-terminal-registration.md, which supersedes DSG-62-terminal-management.md). Each terminal is added with a name and a required location, and comes back with two credentials doing different jobs: a pairing code typed into the hardware once and never changed, and a 6-digit sign-in PIN typed at every sign-in, readable from the row any time, regenerated on demand. Per-device rather than merchant-wide, so regenerating a PIN or a failed-attempt lockout hits that terminal alone. Nothing is capped — as many terminals as there is hardware for, as many concurrent sessions as staff open. Opens empty by default, which is where a real merchant starts. Deep-link states with &tp=typical|full|empty, and the dialogs with &td=add|credentials|sessions (which open on the first terminal in view).",
     screens: [
       {
         path: "/shell-demo?settings=payments&pp=terminal",
@@ -394,12 +394,12 @@ const SECTIONS: Section[] = [
         note: "Four rows covering the status precedence, first match wins: Locked · 12 min (failed PIN entries, scoped to that device — under the old shared-PIN model this blocked every terminal at every location), Not paired (code issued, device never connected), Active (live sessions), No sessions (paired, nobody signed in). The middle two are states the source mockup had no room for.",
       },
       {
-        path: "/shell-demo?settings=payments&pp=terminal&tp=typical",
+        path: "/shell-demo?settings=payments&pp=terminal&tp=typical&td=credentials",
         label: "Terminals, credentials dialog",
         note: "Show code & PIN on any row. Both credentials on one screen because that is how a device gets set up, but labelled apart because their lifecycles differ: the pairing code is typed into the hardware once and never changes, the PIN is typed at every sign-in and can be regenerated. PIN masked with Show/Copy; Regenerate PIN is a link underneath rather than a fourth icon, since Show and Copy read the value while regenerate replaces it. Same dialog after adding ('Set up X'), from the row ('Code & PIN for X'), and after regenerating ('New PIN for X', pre-revealed, and it says the code hasn't changed).",
       },
       {
-        path: "/shell-demo?settings=payments&pp=terminal&tp=typical",
+        path: "/shell-demo?settings=payments&pp=terminal&tp=typical&td=sessions",
         label: "Terminals, sessions dialog",
         note: "'N devices signed in' on a row. A modal per terminal rather than a second listing — at typical volumes a sessions table was mostly dead rows. Each card shows device model, app build, IP, signed in and expires, with Revoke per session; live ones first. A session belongs to hardware, not a person: the PIN is shared by whoever works that counter, so there is no name to show and IP plus device model is how an unexpected sign-in gets recognised. Footer names the blunt instrument — regenerating the PIN revokes everything at once, for a lost device.",
       },
