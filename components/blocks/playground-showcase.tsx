@@ -1447,7 +1447,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Terminal pairing PIN (DSG-62)"
-        description="Merchant-level PIN for pairing card terminals — Business Settings > Payments > Terminal pairing. Masked by default with reveal (30s auto-hide) and copy; Regenerate opens a destructive confirm naming the exact number of terminals that will be signed out. Each instance below is live — the faint toggle at its bottom cycles the remaining states (empty, locked, error, success)."
+        description="Merchant-level PIN for pairing card terminals — Business Settings > Payments > Terminal pairing. Masked by default with reveal (30s auto-hide) and copy; Regenerate opens a destructive confirm naming the exact number of terminals that will be signed out. Below it, Paired terminals is managed: rows carry device ID, location, and last active, and each row's ⋯ menu opens Rename or Unpair, which drops that one terminal without touching the PIN or the others. Name is the only merchant-writable field — the device ID belongs to the hardware, and the location arrives with the pairing. Note the two different empties — 'No terminals paired' is a live PIN with nothing paired to it; 'Empty (no PIN)' is before a PIN exists at all. Pairing starts on the hardware, so 'Pair a terminal' shows rather than performs: the PIN at full size and revealed, plus 'Enter this PIN on your terminal.' It sits in the card header when the list has rows and as the empty state's action when it doesn't, never both. Separately, a faint 'Demo: pair a terminal' control at the bottom stands in for a staff member typing the PIN into a device — start from 'No terminals paired' to walk the full loop: pair → rename → unpair. Each instance below is live."
       >
         <Row label="Active (masked)">
           <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
@@ -1457,7 +1457,16 @@ export function PlaygroundShowcase() {
             />
           </div>
         </Row>
-        <Row label="Empty">
+        <Row label="No terminals paired">
+          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
+            <TerminalPairingPanel
+              onBack={() => toast("Back to Payments")}
+              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+              initialState="no-terminals"
+            />
+          </div>
+        </Row>
+        <Row label="Empty (no PIN)">
           <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
             <TerminalPairingPanel
               onBack={() => toast("Back to Payments")}

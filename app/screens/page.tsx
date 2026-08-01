@@ -376,17 +376,22 @@ const SECTIONS: Section[] = [
   {
     title: "Pet Business, terminal pairing PIN (DSG-62)",
     description:
-      "Merchant-level 6-digit PIN for pairing card terminals — Payments > Terminal pairing. One PIN shared across all terminals and locations; regenerating signs out every paired terminal. Masked by default with reveal (30s auto-hide) and copy-with-toast. Locked/error copy is pending Michelle's answer to open question 1; faint demo toggle at the bottom cycles states. Deep-link states with &tp=empty|locked|error|success.",
+      "Merchant-level 6-digit PIN for pairing card terminals — Payments > Terminal pairing. One PIN shared across all terminals and locations; regenerating signs out every paired terminal. Masked by default with reveal (30s auto-hide) and copy-with-toast. Paired terminals below the PIN card is managed per row: rename or unpair a single terminal, with location displayed but not editable since it arrives with the pairing (spec: docs/specs/DSG-62-terminal-management.md). Faint demo toggle at the bottom cycles states; a second 'Demo: pair a terminal' control stands in for the device-side keypress, since nothing in the dashboard can start a pairing. Deep-link states with &tp=no-terminals|empty|locked|error|success.",
     screens: [
       {
         path: "/shell-demo?settings=payments&pp=terminal",
-        label: "Terminal pairing, active PIN",
-        note: "Summary card: masked PIN tiles, paired-terminal count, Reveal/Copy pills, and Regenerate — which opens the destructive confirm naming the exact number of terminals that will be signed out. Below it, the provisional Paired terminals list (device ID, online/offline, last active — requirements being confirmed).",
+        label: "Terminal pairing, active PIN + paired terminals",
+        note: "Two cards. Top: masked PIN tiles, paired-terminal count, Reveal/Copy pills, and Regenerate, which opens the destructive confirm naming the exact number of terminals that will be signed out. Bottom: Paired terminals, one row per device showing name, device ID, location, last active, and online state. Each row's ⋯ menu opens Rename (one field, device ID as helper text under it) or Unpair, whose confirm names the terminal and says how to get it back. Name is the only merchant-writable field — the device ID belongs to the hardware, the location arrives with the pairing, and Online/Offline is derived from last active rather than stored. Unpairing one leaves the PIN and every other terminal untouched; before this the only way to drop a terminal was regenerating the PIN.",
+      },
+      {
+        path: "/shell-demo?settings=payments&pp=terminal&tp=no-terminals",
+        label: "Terminal pairing, no terminals paired",
+        note: "A live PIN with nothing paired to it. Distinct from tp=empty (no PIN at all) and tp=success (same empty list, plus the regenerate banner). Carries the 'Pair a terminal' action, which shows rather than performs — pairing starts on the hardware, so the dialog is just the PIN at full size and revealed plus 'Enter this PIN on your terminal.' The same button sits in the card header once the list has rows, never both at once. Start here to walk the whole loop: 'Demo: pair a terminal' at the bottom stands in for a staff member typing the PIN into a device. Pair → the row arrives unnamed as its device ID → Rename → Unpair → back to this empty state.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=empty",
-        label: "Terminal pairing, empty state",
-        note: "No PIN yet — explains what the PIN is for with a Generate PIN action; generating lands on the success state with the new PIN surfaced.",
+        label: "Terminal pairing, empty state (no PIN yet)",
+        note: "No PIN yet — explains what the PIN is for with a Generate PIN action; generating lands on the success state with the new PIN surfaced. The whole panel is this state, unlike tp=no-terminals which is only the list.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=success",
@@ -396,7 +401,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=locked",
         label: "Terminal pairing, rate-limited",
-        note: "Yellow banner after repeated failed pairing attempts: pairing blocked for 15 minutes, paired terminals keep working, regenerating unlocks immediately. Copy pending open question 1.",
+        note: "Yellow banner after repeated failed pairing attempts: pairing blocked for 15 minutes, paired terminals keep working, regenerating unlocks immediately.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=error",
