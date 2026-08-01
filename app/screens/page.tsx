@@ -384,6 +384,11 @@ const SECTIONS: Section[] = [
         note: "No terminals yet, with the only Add terminal button in the empty state (the header one is suppressed while the list is empty). Walk the whole arc from here: add → get the code and PIN → 'Demo: pair a device' stands in for typing the code into the hardware → 'Demo: sign in on a terminal' stands in for staff entering the PIN → the row goes Not paired → No sessions → Active.",
       },
       {
+        path: "/shell-demo?settings=payments&pp=terminal&td=add",
+        label: "Terminals, add a terminal",
+        note: "Name and a required location — a card machine physically sits somewhere, and the location is what tells two identical tablets apart. The pairing code is generated on submit rather than shown on the form: it isn't something the merchant provides or reviews, it's half of the credential. Lands straight on the credentials dialog.",
+      },
+      {
         path: "/shell-demo?settings=payments&pp=terminal&tp=typical",
         label: "Terminals, typical (2 devices)",
         note: "What a real merchant has. List rows rather than a data table: name at full weight, then code · location · last seen on one muted line, so status is the only thing competing with the name. The device tile carries the status tint. Row ⋯ gives Show code & PIN, Rename terminal, Change location (split apart because 'Edit' didn't say what it edits), N devices signed in, Regenerate PIN, and Remove terminal.",
