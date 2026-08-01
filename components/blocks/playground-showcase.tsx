@@ -79,7 +79,7 @@ import {
   TeamMemberDetailDialog,
   type TeamMemberDetailMember,
 } from "@/components/blocks/team-member-detail-dialog"
-import { TerminalPairingPanel } from "@/components/blocks/terminal-pairing-panel"
+import { TerminalsPanel } from "@/components/blocks/terminals-panel"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -1446,59 +1446,32 @@ export function PlaygroundShowcase() {
       </Section>
 
       <Section
-        title="Terminal pairing PIN (DSG-62)"
-        description="Merchant-level PIN for pairing card terminals — Business Settings > Payments > Terminal pairing. Masked by default with reveal (30s auto-hide) and copy; Regenerate opens a destructive confirm naming the exact number of terminals that will be signed out. Below it, Paired terminals is managed: name on top, then device ID · location · last active · Online/Offline on the detail line, with session state (Active/Expired) as the only right-aligned status. Each row's ⋯ menu opens Rename plus Unpair (drops that one terminal without touching the PIN or the others). Every device pairs with a readable default name (Terminal N), and name is the only merchant-writable field — the device ID belongs to the hardware, and the location arrives with the pairing. Session and connectivity are independent, not nested: a powered-on terminal with a dead session is Expired + Online, which means walk over and re-pair it, while Expired + Offline means find it first. Expired rows stay in the list on purpose — regenerating the PIN flips every session to Expired rather than emptying the list, so you can see which devices to walk over and re-pair, and re-pairing restores the name. Their menu says Remove, with no confirm, because the session is already signed out. Note the two different empties — 'No terminals paired' is a live PIN with nothing paired to it; 'Empty (no PIN)' is before a PIN exists at all. Pairing starts on the hardware, so 'Pair a terminal' shows rather than performs: the PIN at full size and revealed, plus 'Enter this PIN on your terminal.' It sits in the card header when the list has rows and as the empty state's action when it doesn't, never both. Separately, a faint 'Demo: pair a terminal' control at the bottom stands in for a staff member typing the PIN into a device — start from 'No terminals paired' to walk the full loop: pair → rename → unpair. Each instance below is live."
+        title="Terminals (DSG-62)"
+        description="Add card machines, issue their credentials, and manage sign-in sessions — Business Settings > Payments > Terminals. Replaces the merchant-level shared-PIN model. Each terminal is added from the dashboard with a name and a location, and comes back with two credentials that do different jobs: a pairing code (TRM-XXXXXX, typed into the hardware once, never changes) and a 6-digit sign-in PIN (typed every sign-in, readable from the row any time, regenerated whenever the merchant wants). Both are shown together because that is how a device gets set up, but labelled apart because their lifecycles differ. Per-device rather than merchant-wide, so regenerating a PIN or a failed-attempt lockout hits that terminal alone. Status is a precedence, first match wins: Locked · 12 min, Not paired, Active, No sessions — the middle two are states the source mockup had no room for and cover most of a working morning. Row menu: Show code & PIN, Rename terminal, Change location (split apart because 'Edit' didn't say what it edits), N devices signed in, Regenerate PIN, Unlock now while locked, Remove terminal. Sessions open as a modal per terminal rather than a second listing, showing device model, app build, IP, signed in and expires, with Revoke per session — a session belongs to hardware, not a person, since the PIN is shared by whoever works that counter. Nothing is capped: as many terminals as there is hardware for, as many concurrent sessions as staff open. Three instances below are live; the faint controls at the bottom stand in for the two things that happen on the hardware (pairing a device, signing in) and swap the demo data."
       >
-        <Row label="Active (masked)">
-          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
-            <TerminalPairingPanel
+        <Row label="Empty (nothing added yet)">
+          <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
+            <TerminalsPanel
               onBack={() => toast("Back to Payments")}
               breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
             />
           </div>
         </Row>
-        <Row label="No terminals paired">
-          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
-            <TerminalPairingPanel
+        <Row label="Typical (2 terminals)">
+          <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
+            <TerminalsPanel
               onBack={() => toast("Back to Payments")}
               breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
-              initialState="no-terminals"
+              initialState="typical"
             />
           </div>
         </Row>
-        <Row label="Empty (no PIN)">
-          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
-            <TerminalPairingPanel
+        <Row label="All statuses">
+          <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
+            <TerminalsPanel
               onBack={() => toast("Back to Payments")}
               breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
-              initialState="empty"
-            />
-          </div>
-        </Row>
-        <Row label="Locked">
-          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
-            <TerminalPairingPanel
-              onBack={() => toast("Back to Payments")}
-              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
-              initialState="locked"
-            />
-          </div>
-        </Row>
-        <Row label="Error">
-          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
-            <TerminalPairingPanel
-              onBack={() => toast("Back to Payments")}
-              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
-              initialState="error"
-            />
-          </div>
-        </Row>
-        <Row label="Success">
-          <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-card p-6">
-            <TerminalPairingPanel
-              onBack={() => toast("Back to Payments")}
-              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
-              initialState="success"
+              initialState="full"
             />
           </div>
         </Row>

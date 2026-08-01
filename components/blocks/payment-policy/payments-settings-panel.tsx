@@ -27,10 +27,7 @@ import { EmptyState } from "@/components/blocks/empty-state"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { FullScreenTakeover, PaymentMethodsPanel } from "@/components/blocks/sales-settings"
-import {
-  type TerminalPairingDemoState,
-  TerminalPairingPanel,
-} from "@/components/blocks/terminal-pairing-panel"
+import { type TerminalsDemoState, TerminalsPanel } from "@/components/blocks/terminals-panel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -139,8 +136,11 @@ const PAYMENTS_CARDS: {
   },
   {
     id: "terminal",
-    label: "Terminal pairing",
-    description: "View, copy, or regenerate the PIN used to pair card terminals.",
+    // "Terminals", not "Terminal pairing" — it matches the noun pattern of its
+    // siblings, and pairing described the old shared-PIN model's central act,
+    // which no longer exists.
+    label: "Terminals",
+    description: "Add card machines, issue their PINs, and manage sign-in sessions.",
     icon: MonitorSmartphoneIcon,
   },
 ]
@@ -194,10 +194,10 @@ export function PaymentsSettingsPanel() {
   }
   if (view === "terminal") {
     return (
-      <TerminalPairingPanel
+      <TerminalsPanel
         onBack={() => setView("home")}
         breadcrumbRoot={PAYMENTS_BREADCRUMB_ROOT}
-        initialState={(searchParams.get("tp") as TerminalPairingDemoState) ?? null}
+        initialState={(searchParams.get("tp") as TerminalsDemoState) ?? null}
       />
     )
   }

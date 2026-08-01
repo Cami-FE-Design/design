@@ -1,5 +1,11 @@
 # DSG-62 follow-up — Paired terminal management
 
+> **SUPERSEDED** by `DSG-62-terminal-registration.md`. This spec describes a
+> single merchant-level PIN shared by every terminal. The model has since moved
+> to per-device registration, per-device PINs, and time-boxed sessions. Kept for
+> the reasoning it records — the row anatomy, destructive-confirm copy, and
+> rename-dialog decisions carried over; the shared-PIN model did not.
+
 Extends the terminal pairing panel (Business Settings > Payments > Terminal
 pairing) from a read-only list of paired terminals to a managed one.
 
