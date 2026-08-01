@@ -7,7 +7,7 @@ import { CurrentUserProvider } from "@/lib/current-user"
 import { DemoBusinessProvider } from "@/lib/demo-business"
 import { DemoFilesProvider } from "@/lib/demo-files"
 import { PaymentPolicyProvider } from "@/lib/payment-policy/store"
-import { TerminalPairingProvider } from "@/lib/terminal-pairing/store"
+import { TerminalsProvider } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
 import "./globals.css"
 
@@ -42,10 +42,10 @@ export default function RootLayout({
               <DemoBusinessProvider>
                 <DemoFilesProvider>
                   <PaymentPolicyProvider>
-                    <TerminalPairingProvider>
+                    <TerminalsProvider>
                       {children}
                       <Toaster />
-                    </TerminalPairingProvider>
+                    </TerminalsProvider>
                   </PaymentPolicyProvider>
                 </DemoFilesProvider>
               </DemoBusinessProvider>
