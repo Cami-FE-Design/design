@@ -52,6 +52,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  activeCount,
   DEMO_TERMINALS,
   locationName,
   type PairedTerminal,
@@ -118,16 +119,22 @@ export function TerminalPairingPanel({
 
   const pin = pairing.pin ?? "482913"
 
-  // Demo overrides: locked implies terminals are paired; success and
-  // no-terminals both show an empty list (success adds the banner on top).
-  // Real flows read the store directly.
+  // Demo overrides: locked implies terminals are paired; success is the state
+  // right after regenerating, so every session shows as expired and waiting to
+  // be re-paired; no-terminals is a genuinely empty list. Real flows read the
+  // store directly.
   const terminals =
     demoState === "locked"
       ? DEMO_TERMINALS
-      : demoState === "success" || demoState === "no-terminals"
-        ? []
-        : pairing.terminals
-  const effectivePaired = terminals.length
+      : demoState === "success"
+        ? // Sessions expire; connectivity is untouched, since regenerating a
+          // PIN doesn't power anything off.
+          DEMO_TERMINALS.map((t) => ({ ...t, status: "expired" as const }))
+        : demoState === "no-terminals"
+          ? []
+          : pairing.terminals
+  // Active sessions, not rows — expired ones are still listed.
+  const effectivePaired = activeCount(terminals)
 
   // A row action while a demo override is active would mutate the store while
   // the list on screen is a fake — clear the override first so the action
@@ -216,7 +223,12 @@ export function TerminalPairingPanel({
             onUnpair={(terminal) =>
               withRealState(() => {
                 pairing.unpairTerminal(terminal.id)
-                toast.success(`${terminal.name} unpaired`)
+                // Verb matches the menu item that was clicked.
+                toast.success(
+                  terminal.status === "expired"
+                    ? `${terminal.name} removed`
+                    : `${terminal.name} unpaired`,
+                )
               })
             }
           />
@@ -487,30 +499,33 @@ function PairedTerminalsCard({
                   <span className="truncate text-sm font-medium leading-5 text-foreground">
                     {terminal.name}
                   </span>
+                  {/* Connectivity reads as one more detail on this line, next
+                      to the timestamp it's derived from — no indicator dot,
+                      that treatment is reserved for session state on the
+                      right. */}
                   <span className="truncate text-sm leading-5 text-muted-foreground">
                     {[
-                      // Suppressed when the terminal hasn't been renamed —
-                      // name already is the device ID, no point printing it twice.
-                      terminal.name === terminal.id ? null : terminal.id,
+                      terminal.id,
                       locationName(terminal.locationId),
                       `Last active ${terminal.lastSeenAt}`,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
+                      terminal.online ? "Online" : "Offline",
+                    ].join(" · ")}
                   </span>
                 </div>
               </div>
+              {/* Two independent columns, fixed-width so they line up down the
+                  list. Session state is whether the pairing is still valid;
+                  connectivity is whether the device is reachable. They vary
+                  independently — Expired + Online is a device sitting there
+                  powered on, ready to re-pair, which is the common case right
+                  after a regenerate. */}
               <div className="flex shrink-0 items-center gap-1">
-                <span className="flex items-center gap-1.5 text-sm leading-5 text-muted-foreground">
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "size-2 rounded-full",
-                      terminal.online ? "bg-cami-green-9" : "bg-sand-8",
-                    )}
-                  />
-                  {terminal.online ? "Online" : "Offline"}
-                </span>
+                <StatusDot
+                  label={terminal.status === "expired" ? "Expired" : "Active"}
+                  // Yellow rather than grey: an expired session needs someone
+                  // to act, where an offline device may just be switched off.
+                  dotClass={terminal.status === "expired" ? "bg-cami-yellow-9" : "bg-cami-green-9"}
+                />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -529,9 +544,21 @@ function PairedTerminalsCard({
                       Rename
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem variant="destructive" onSelect={() => setUnpairing(terminal)}>
-                      Unpair
-                    </DropdownMenuItem>
+                    {/* An expired session is already signed out, so "Unpair"
+                        would name something that already happened, and a
+                        confirm would guard an action that loses nothing. */}
+                    {terminal.status === "expired" ? (
+                      <DropdownMenuItem variant="destructive" onSelect={() => onUnpair(terminal)}>
+                        Remove
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onSelect={() => setUnpairing(terminal)}
+                      >
+                        Unpair
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -679,6 +706,23 @@ function PinDigits({ pin, revealed }: { pin: string; revealed: boolean }) {
         </span>
       ))}
     </div>
+  )
+}
+
+/**
+ * Session state on a terminal row. Same dot-and-label treatment as the
+ * connectivity readout on the detail line, because the two are peers rather
+ * than a primary and a qualifier — a dead session on a powered-on device is
+ * Expired + Online, and both halves are things the merchant acts on. Fixed
+ * width so it lines up down the list; the text carries the meaning, never the
+ * dot colour alone.
+ */
+function StatusDot({ label, dotClass }: { label: string; dotClass: string }) {
+  return (
+    <span className="flex w-[5.25rem] shrink-0 items-center gap-1.5 text-sm leading-5 text-muted-foreground">
+      <span aria-hidden className={cn("size-2 rounded-full", dotClass)} />
+      {label}
+    </span>
   )
 }
 

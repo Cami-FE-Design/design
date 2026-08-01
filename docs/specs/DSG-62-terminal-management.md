@@ -22,7 +22,8 @@ The `Paired terminals` card shipped read-only. Two consequences:
 
 ## Scope
 
-Per-terminal: **rename** and **unpair**.
+Per-terminal: **rename** and **unpair**, against a list that now distinguishes
+**active from expired** pairing sessions.
 
 Location is **displayed, never chosen**. A terminal belongs to wherever it was
 paired, so the value arrives with the pairing and the dashboard reads it. An
@@ -43,11 +44,12 @@ Out of scope for this pass, flagged so the omission is deliberate:
 
 ```ts
 type PairedTerminal = {
-  id: string          // device ID, immutable, printed on the device
-  name: string        // merchant-set; defaults to the device ID at pair time
-  locationId: string
-  lastSeenAt: string  // backend field name
-  online: boolean     // derived from lastSeenAt, not stored
+  id: string                          // device ID, immutable, printed on the device
+  name: string                        // merchant-set; defaults to "Terminal N" at pair time
+  locationId: string                  // set by the pairing
+  lastSeenAt: string                  // backend field name
+  status: "active" | "expired"        // pairing-session state, stored
+  online: boolean                     // derived from lastSeenAt; only meaningful when active
 }
 ```
 
@@ -57,24 +59,49 @@ Answers to the three points raised on the API side.
 
 | UI | Backend | Status |
 | --- | --- | --- |
-| Device ID | `id` | Being added — confirmed. Shown on every row and in the edit dialog. |
-| Status | *(none needed)* | Derived, see below. |
+| Device ID | `id` | Being added — confirmed. Shown on every row and in the rename dialog. |
+| Status | `status: "active" \| "expired"` | **Needed.** See correction below. |
 | Last active | `lastSeenAt` | Already available. Formatted for display in the UI layer. |
 
-**Status needs no field.** This list only ever contains active pairing
-sessions — expired and revoked ones drop off — so a session-status enum would
-be the same value on every row. What the merchant actually asks is "is this
-terminal reachable right now", which is `lastSeenAt` within
-`ONLINE_THRESHOLD_MINUTES` (currently 5). Online / Offline is computed from
-the timestamp that already exists.
+**Correction — status does need a field.** An earlier revision of this spec
+argued it didn't: the list was active-only, so a session-status enum would be
+constant on every row, and the real question ("is this reachable right now")
+was already answerable from `lastSeenAt`.
 
-Two consequences worth stating: the threshold is a UI constant, so tuning it
-takes no migration; and a row can never show `Online` next to a stale
-`lastSeenAt`, because the same field drives both.
+That reasoning depended on expired sessions dropping off the list. They don't.
+Keeping them visible is what tells a merchant *which* devices need re-pairing
+after a PIN regeneration, so `status` is a real, varying value and has to be
+stored.
 
-`name` defaults to the device ID rather than being nullable. Every terminal
-therefore always has a label, and there is no "unnamed terminal" branch in the
-UI. Renaming is an edit, never a required completion step.
+Connectivity is still derived and still needs no field: `online` is
+`lastSeenAt` within `ONLINE_THRESHOLD_MINUTES` (currently 5). Two consequences
+worth stating: the threshold is a UI constant, so tuning it takes no migration;
+and a row can never show `Online` next to a stale `lastSeenAt`, because the
+same field drives both.
+
+### Session status and connectivity are independent
+
+They answer different questions and vary independently. All four combinations
+occur, and each implies a different next action:
+
+| Session | Connectivity | What it means |
+| --- | --- | --- |
+| Active | Online | Working. |
+| Active | Offline | Paired, but switched off or off the network. |
+| Expired | Online | Sitting there powered on, ready to re-pair. The common case straight after a regenerate. |
+| Expired | Offline | Find it first, then re-pair. |
+
+An earlier revision of this spec claimed these were nested, on the assumption
+that an expired session stops checking in. It doesn't: a powered-on terminal
+with a dead session still reaches the server, which is how it knows to prompt
+for re-pairing. Both halves are shown, always.
+
+`name` gets a readable default at pair time (`Terminal 3`), numbered by pairing
+order. Every terminal is legible from the moment it appears, so renaming is an
+improvement rather than a repair, and no row is ever headed by a serial number
+nobody can read across a counter. Numbering takes the highest existing
+`Terminal N` rather than the row count, so removing one doesn't hand its number
+to the next device.
 
 `id` and `locationId` are never editable. The ID is how the merchant matches a
 row to the physical device, so it must survive renames; the location is set by
@@ -89,39 +116,71 @@ location line is visibly carrying information rather than repeating a constant.
 that source exists.
 
 Store gains `renameTerminal(id, name)` and `unpairTerminal(id)`.
-`pairedTerminals` becomes derived from `terminals.length` rather than a stored
-count, so the list and the PIN card's "N terminals currently paired" can no
-longer disagree. Regenerating the PIN clears `terminals` to `[]`, same as
-before. Storage key bumps to `cami-terminal-pairing-v2`.
+`pairedTerminals` becomes derived from the count of **active** sessions rather
+than a stored number, so the list and the PIN card's "N terminals currently
+paired" can no longer disagree. Regenerating the PIN expires every active
+session rather than clearing the list.
+
+Storage key bumps to `cami-terminal-pairing-v3`, and `readSaved()` now
+normalises each row. The merge is a shallow spread, so a saved `terminals`
+array replaces the default wholesale — including rows written before a field
+existed. Left alone, an undefined `status` renders as neither active nor
+expired and silently zeroes the paired count.
 
 ## Row
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ [▣]  Front desk                            ● Online      ⋯   │
-│      T-4F91-88C2 · Shampooch JVC · Last active just now      │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│ [▣]  Front desk                                    ● Active      ⋯   │
+│      T-4F91-88C2 · Shampooch JVC · Last active just now · Online     │
+│                                                                      │
+│ [▣]  Back office                                   ● Expired     ⋯   │
+│      T-9B15-3E7A · Shampooch Marina · Last active 1 min ago · Online  │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 - Primary line: the terminal name.
-- Secondary line: device ID, location, last active, separated by `·`, truncated
-  as one string when the card is narrow.
-- The device ID is dropped from the secondary line when it equals the name —
-  i.e. on a terminal nobody has renamed yet — so it never prints twice.
-- The device ID also appears in the edit dialog under the name field, which is
+- Secondary line: device ID, location, last active, and connectivity, joined by
+  `·` and truncated as one string when the card is narrow.
+- Connectivity sits on the detail line rather than in its own column, next to
+  the timestamp it is derived from, and with no indicator dot. It reads as one
+  more fact about the device.
+- The device ID also appears in the rename dialog under the name field, which is
   the moment the merchant is matching the row against the sticker on the
   hardware.
 - Square rounded device tile on the left, per the avatar-shape convention
   (subject is an object, not a person).
-- Status dot and label stay right-aligned; the `⋯` menu sits after them. The
-  text label carries the status, not the dot colour alone.
+- Session state is the only right-aligned status, with the `⋯` menu after it.
+  Fixed width so `Active` / `Expired` line up down the list.
+- Dots: `Active` green, `Expired` cami-yellow — it needs someone to act, where
+  an `Offline` device may just be switched off for the night.
+- The text carries the status, never the dot colour alone.
 
 ## Menu
 
-| Item | Behaviour |
-| --- | --- |
-| Rename | Opens the rename dialog. |
-| Unpair | Destructive, separated. Opens the unpair confirm. |
+| Item | Active session | Expired session |
+| --- | --- | --- |
+| Rename | Opens the rename dialog. | Same — the name is worth keeping, it's restored if the device re-pairs. |
+| Destructive | `Unpair`, opens the confirm. | `Remove`, no confirm. |
+
+An expired session is already signed out, so `Unpair` would name something that
+has already happened, and a confirm would guard an action that loses nothing.
+`Remove` just clears the row.
+
+### Unpair vs expire
+
+Two different things end a session, and they leave different traces:
+
+- **Regenerating the PIN expires** every active session. The rows stay, flipped
+  to `Expired`, because the merchant now needs to know exactly which devices to
+  walk over to and re-pair. An empty list would throw that away.
+- **Unpairing removes** the row outright. Expiry is something the system did
+  and the merchant still has to act on; unpairing is the merchant saying "take
+  this off my list", and leaving a tombstone behind would ignore that.
+
+Re-pairing a device that expired reactivates its existing row rather than
+adding a second one, and keeps the name the merchant gave it. That name
+surviving is the main practical reason expired rows stay visible at all.
 
 ## Rename dialog
 
@@ -254,7 +313,9 @@ success. The list derives from the store, with these overrides:
 
 - `locked` shows the full demo terminal set (pairing is blocked, existing
   terminals keep working).
-- `success` shows an empty list (regenerating just signed everything out).
+- `success` shows every row flipped to `Expired` — the state immediately after
+  regenerating, where the banner's "N terminals were signed out, enter this PIN
+  on each one" is answerable by looking at the list underneath it.
 - `no-terminals` shows an empty list with an ordinary active PIN card — the
   list empty state with no banner over it.
 
