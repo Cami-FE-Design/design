@@ -38,6 +38,7 @@ import {
   relativeTime,
   stateLabel,
 } from "@/lib/admin-businesses"
+import { useAuth } from "@/lib/auth-mock"
 import { cn } from "@/lib/utils"
 
 type StateFilter = "all" | BusinessState
@@ -342,6 +343,10 @@ function BusinessesTable({
 function BusinessesIndex() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  // Safe here: this page lives under app/admin/layout.tsx, which mounts the
+  // AuthProvider. The detail dialog takes the actor as a prop precisely so it
+  // doesn't inherit that requirement.
+  const auth = useAuth()
   const [overrides, setOverrides] = useState<Record<string, Partial<AdminBusiness>>>({})
   const [newBusinessOpen, setNewBusinessOpen] = useState(false)
 
@@ -516,6 +521,9 @@ function BusinessesIndex() {
         onUpdate={(patch) => {
           if (openBusiness) patchBusiness(openBusiness.id, patch)
         }}
+        // Notification changes land on the partner's audit trail, so they need a
+        // name. Matches the "Cami HQ (Michelle)" form the seeded events use.
+        actor={`Cami HQ (${auth.user.name.split(" ")[0]})`}
         onSlugChange={(_oldSlug, newSlug) => updateParams({ business: newSlug })}
       />
 

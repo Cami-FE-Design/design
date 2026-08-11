@@ -1,8 +1,10 @@
 "use client"
 
 import {
+  BellIcon,
   ChevronLeftIcon,
   GlobeIcon,
+  InfoIcon,
   type LucideIcon,
   ShieldCheckIcon,
   UserIcon,
@@ -11,11 +13,15 @@ import {
 import { Dialog as DialogPrimitive } from "radix-ui"
 import type * as React from "react"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 import { PermissionRolesPane } from "@/components/blocks/permission-roles-pane"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-mock"
+import { useHqRates } from "@/lib/notifications/hq-store"
+import { CHANNEL_LABEL, CHANNELS, formatRate } from "@/lib/notifications/types"
 import { cn } from "@/lib/utils"
 
 type SettingsCategory = {
@@ -66,6 +72,13 @@ const GROUPS: SettingsGroup[] = [
         label: "Roles & Permissions",
         description: "Cami uses fixed role definitions. To request a change, contact engineering.",
         icon: ShieldCheckIcon,
+      },
+      {
+        id: "notification-rates",
+        label: "Notification rates",
+        description:
+          "What Cami charges partners per message. Per-partner overrides live on the partner record, under Notifications.",
+        icon: BellIcon,
       },
     ],
   },
@@ -209,6 +222,7 @@ export function AdminSettingsDialog({
             {active.id === "roles" ? <RolesPanel /> : null}
             {active.id === "language" ? <LanguagePanel /> : null}
             {active.id === "profile" ? <ProfilePanel /> : null}
+            {active.id === "notification-rates" ? <NotificationRatesPanel /> : null}
           </div>
         </div>
       </DialogContent>
@@ -218,6 +232,80 @@ export function AdminSettingsDialog({
 
 function RolesPanel() {
   return <PermissionRolesPane />
+}
+
+/**
+ * Global per-message rates, keyed by channel and country.
+ *
+ * Per-country rather than one global number per channel: UAE SMS pricing is the
+ * whole reason this screen exists, so a single worldwide SMS rate would be wrong
+ * on the first row. Only the UAE row carries demo values — the rest of the world
+ * isn't priced yet, and inventing numbers here would read as real pricing.
+ *
+ * Backed by lib/notifications/hq-store.tsx, so an edit persists and every
+ * surface that prices a message — the partner record's Rates section, the
+ * /admin/billing table, the rate a merchant sees in their own settings — reads
+ * the value set here. A per-merchant override still wins over it.
+ * Spec: docs/specs/notifications-sender-id-and-rates.md
+ */
+function NotificationRatesPanel() {
+  const { rates, setRate, reset } = useHqRates()
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col">
+        <SectionHeader>United Arab Emirates</SectionHeader>
+        {CHANNELS.map((channel) => (
+          <SettingRow
+            key={channel}
+            label={CHANNEL_LABEL[channel]}
+            description={`Billed per message sent. Currently ${formatRate(rates[channel])}.`}
+            control={
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">AED</span>
+                <Input
+                  inputMode="decimal"
+                  className="w-24 text-right"
+                  aria-label={`${CHANNEL_LABEL[channel]} rate, United Arab Emirates`}
+                  value={String(rates[channel])}
+                  onChange={(e) => {
+                    const next = Number(e.target.value)
+                    if (!Number.isFinite(next) || next < 0) return
+                    setRate(channel, next)
+                  }}
+                />
+              </div>
+            }
+          />
+        ))}
+      </div>
+
+      <p className="flex items-start gap-2 rounded-xl bg-muted/50 p-3 text-sm leading-5 text-muted-foreground">
+        <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+        <span>
+          These are the defaults every partner inherits. A negotiated rate is set on the partner
+          record under Notifications, and shows there as an override against the number above.
+          Partners see their own rate and consumption, never this screen.
+        </span>
+      </p>
+
+      {/* No Save button: writes persist as they're typed, so a Save would either
+          do nothing or imply the edits above weren't live yet. Reset is the
+          action that actually needs a control. */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          radius="full"
+          onClick={() => {
+            reset()
+            toast.success("Rates restored to platform defaults")
+          }}
+        >
+          Restore defaults
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 type SettingRowProps = {

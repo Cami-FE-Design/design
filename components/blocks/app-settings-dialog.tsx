@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  BellIcon,
   Building2Icon,
   ChevronLeftIcon,
   CreditCardIcon,
@@ -18,6 +19,7 @@ import { BusinessProfileForm } from "@/components/blocks/business-profile-form"
 import { FilesSection } from "@/components/blocks/documents-files-card"
 import { LocationForm } from "@/components/blocks/location-form"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
+import { NotificationsSettingsPanel } from "@/components/blocks/notifications-settings-panel"
 import { PaymentsSettingsPanel } from "@/components/blocks/payment-policy/payments-settings-panel"
 import { SalesSettings } from "@/components/blocks/sales-settings"
 import { Badge } from "@/components/ui/badge"
@@ -96,6 +98,19 @@ const GROUPS: SettingsGroup[] = [
         label: "Payments",
         description: "Payment policy and payment methods for bookings and checkout.",
         icon: CreditCardIcon,
+      },
+    ],
+  },
+  // Own top-level section, like Payments. Notifications is what a merchant is
+  // billed per message for, so it isn't a sub-item of Business details.
+  {
+    label: "Notifications",
+    items: [
+      {
+        id: "notifications",
+        label: "Notifications",
+        description: "Sender ID, which reminders send, and what they cost.",
+        icon: BellIcon,
       },
     ],
   },
@@ -230,6 +245,7 @@ export function AppSettingsDialog({
             {active.id === "forms" ? <FilesPanel /> : null}
             {active.id === "sales" ? <SalesSettings /> : null}
             {active.id === "payments" ? <PaymentsSettingsPanel /> : null}
+            {active.id === "notifications" ? <NotificationsSettingsPanel /> : null}
           </div>
         </div>
       </DialogContent>

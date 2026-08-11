@@ -1,4 +1,5 @@
 import type { Emirate } from "@/lib/business-profile"
+import type { BusinessNotificationConfig } from "@/lib/notifications/types"
 
 export type BusinessState = "onboarding" | "live" | "suspended" | "archived"
 
@@ -74,6 +75,14 @@ export type AdminBusiness = {
   vatNumber?: string
   reasonCode?: ReasonCodeId
   reasonNote?: string
+  /**
+   * HQ-owned notification config: channel grants, Sender ID registration, rate
+   * overrides, and this period's usage. Absent means "inherits every platform
+   * default", which is the honest state for a merchant HQ has never touched —
+   * storing a copy of the defaults would go stale the moment they change.
+   * Spec: docs/specs/notifications-sender-id-and-rates.md
+   */
+  notifications?: BusinessNotificationConfig
   audit: AuditEvent[]
 }
 
@@ -104,6 +113,13 @@ export const adminBusinesses: AdminBusiness[] = [
     phone: "+971 50 123 4567",
     email: "hello@shampooch.ae",
     vatNumber: "100123456700003",
+    // Fully set up: their own Sender ID is approved, so SMS arrives as
+    // SHAMPOOCH rather than CAMI. Inherits every global rate.
+    notifications: {
+      senderId: { value: "SHAMPOOCH", status: "approved", submittedAt: "2026-04-02T09:00:00Z" },
+      grant: { email: true, sms: true },
+      usage: { email: 412, sms: 289 },
+    },
     audit: [
       {
         id: "a1",
@@ -177,6 +193,15 @@ export const adminBusinesses: AdminBusiness[] = [
     phone: "+971 56 222 1188",
     email: "hello@pawhaus.ae",
     vatNumber: "100876543200003",
+    // The interesting billing row: WhatsApp granted, and SMS on a negotiated
+    // rate above the global one. The override is displayed as an override in
+    // the UI so nobody debugs an invoice discrepancy by guessing.
+    notifications: {
+      senderId: { value: "PAWHAUS", status: "submitted", submittedAt: "2026-04-28T11:20:00Z" },
+      grant: { email: true, sms: true, whatsapp: true },
+      rateOverrides: { sms: 0.14 },
+      usage: { email: 180, sms: 96, whatsapp: 41 },
+    },
     audit: [
       {
         id: "b1",
@@ -223,6 +248,11 @@ export const adminBusinesses: AdminBusiness[] = [
     emirate: "Dubai",
     phone: "+971 52 800 4400",
     email: "noura@velvetpaw.ae",
+    // Brand new and still onboarding: no Sender ID on file, so they send as
+    // CAMI, and SMS hasn't been switched on for them yet. Nothing consumed.
+    notifications: {
+      grant: { email: true, sms: false },
+    },
     audit: [
       {
         id: "c1",
@@ -263,6 +293,20 @@ export const adminBusinesses: AdminBusiness[] = [
     email: "hello@doggos.ae",
     reasonCode: "off_platform",
     reasonNote: "Owner is taking bookings off-platform during Eid promotion.",
+    // The scenario the spec names: the Sender ID was rejected, so HQ turned
+    // SMS off rather than let messages go out under the wrong brand. The
+    // rejection reason renders verbatim in the merchant's own settings.
+    notifications: {
+      senderId: {
+        value: "DOGGOS",
+        status: "rejected",
+        submittedAt: "2026-03-30T08:10:00Z",
+        rejectionReason:
+          "The carrier could not match DOGGOS to the trade licence on file. Submit a Sender ID matching the registered business name.",
+      },
+      grant: { email: true, sms: false },
+      usage: { email: 46 },
+    },
     audit: [
       {
         id: "d1",

@@ -13,8 +13,10 @@ import {
   FlagIcon,
   HeartPulseIcon,
   type LucideIcon,
+  MailIcon,
   MapPinIcon,
   MessageCircleIcon,
+  MessageSquareIcon,
   MoreVerticalIcon,
   PencilIcon,
   PlayIcon,
@@ -51,6 +53,14 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { useNotifications } from "@/lib/notifications/store"
+import {
+  CHANNEL_LABEL,
+  eventLabel,
+  logForAppointment,
+  type NotificationChannel,
+  type NotificationStatus,
+} from "@/lib/notifications/types"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers (mirror new-appointment-sheet conventions) ───────────────────────
@@ -583,6 +593,33 @@ type ActivityEvent = {
   title: string
   timestamp: string
   body: React.ReactNode
+  /**
+   * Set when the event is a notification Cami sent on the merchant's behalf.
+   * This is the answer to "are the messages linked to the appointment activity
+   * screen" — a send is one more thing that happened to this appointment, so it
+   * belongs in this timeline rather than in a separate messages view.
+   * Spec: docs/specs/notifications-sender-id-and-rates.md
+   */
+  notification?: {
+    channel: NotificationChannel
+    status: NotificationStatus
+    /** Recipient as addressed — phone for SMS/WhatsApp, address for Email. */
+    recipient: string
+    failureReason?: string
+  }
+}
+
+const NOTIFICATION_ICON: Record<NotificationChannel, typeof MailIcon> = {
+  email: MailIcon,
+  sms: MessageSquareIcon,
+  whatsapp: MessageCircleIcon,
+}
+
+const NOTIFICATION_STATUS: Record<NotificationStatus, { label: string; className: string }> = {
+  queued: { label: "Queued", className: "bg-muted text-muted-foreground" },
+  sent: { label: "Sent", className: "bg-cami-violet-3 text-cami-violet-11" },
+  delivered: { label: "Delivered", className: "bg-cami-green-3 text-cami-green-11" },
+  failed: { label: "Failed", className: "bg-destructive/10 text-destructive" },
 }
 
 function ActivityPanel({ events, onBack }: { events: ActivityEvent[]; onBack: () => void }) {
@@ -603,25 +640,60 @@ function ActivityPanel({ events, onBack }: { events: ActivityEvent[]; onBack: ()
         <ol className="flex flex-col">
           {events.map((event, i) => {
             const isLast = i === events.length - 1
+            const notification = event.notification
+            const ChannelIcon = notification ? NOTIFICATION_ICON[notification.channel] : null
+            const status = notification ? NOTIFICATION_STATUS[notification.status] : null
+            const failed = notification?.status === "failed"
             return (
               <li key={event.id} className="grid grid-cols-[16px_minmax(0,1fr)] gap-3">
                 <div className="relative flex justify-center">
                   {!isLast ? (
                     <div className="absolute inset-y-0 top-3 border-l border-dashed border-border" />
                   ) : null}
-                  <div className="relative mt-3 size-2 shrink-0 rounded-full bg-foreground/40" />
+                  {/* A notification carries its channel on the dot — it's what
+                      separates two otherwise identical reminder rows. */}
+                  {ChannelIcon ? (
+                    <div className="relative mt-2 flex size-4 shrink-0 items-center justify-center rounded-full bg-sand-2 text-muted-foreground">
+                      <ChannelIcon className="size-3" aria-hidden />
+                    </div>
+                  ) : (
+                    <div className="relative mt-3 size-2 shrink-0 rounded-full bg-foreground/40" />
+                  )}
                 </div>
                 <div
                   className={cn(
                     "rounded-2xl border border-border/60 bg-card p-4",
+                    // A failed send is the only activity event that tints: it's
+                    // the only one that means the customer heard nothing.
+                    failed && "border-destructive/30 bg-destructive/5",
                     !isLast && "mb-4",
                   )}
                 >
                   <div className="flex flex-col gap-0.5">
-                    <span className="font-semibold text-foreground">{event.title}</span>
-                    <span className="text-xs text-muted-foreground">{event.timestamp}</span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-foreground">{event.title}</span>
+                      {status ? (
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-xs font-medium",
+                            status.className,
+                          )}
+                        >
+                          {status.label}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {event.timestamp}
+                      {notification ? ` · to ${notification.recipient}` : ""}
+                    </span>
                   </div>
                   <p className="mt-2 text-sm text-foreground">{event.body}</p>
+                  {notification?.failureReason ? (
+                    <p className="mt-2 text-xs font-medium text-destructive">
+                      {notification.failureReason}
+                    </p>
+                  ) : null}
                 </div>
               </li>
             )
@@ -661,6 +733,8 @@ export function AppointmentDetailSheet({
 }: AppointmentDetailSheetProps) {
   const [status, setStatus] = useState<MockBookingStatus>(booking?.status ?? "booked")
   const [mode, setMode] = useState<SheetMode>("detail")
+  // Read above the `!booking` early return — hooks can't sit behind it.
+  const { log: notificationLog } = useNotifications()
   // Selecting "Canceled" opens a full-screen confirmation flow rather than
   // flipping the status outright; the status only changes once confirmed.
   const [cancelOpen, setCancelOpen] = useState(false)
@@ -677,7 +751,29 @@ export function AppointmentDetailSheet({
   if (!booking) return null
 
   // Demo activity events — matches the figma so the slide-in has something to show.
+  //
+  // The notification rows come from the same store the Settings > Notifications
+  // log reads, so the two surfaces can't disagree about what was sent. Filtered
+  // by this booking's id, so an appointment with no sends shows none rather than
+  // borrowing another booking's messages. Bookings b-002 … b-005 carry demo
+  // sends; every other appointment's timeline is correctly notification-free.
+  const notificationEvents: ActivityEvent[] = logForAppointment(notificationLog, booking.id).map(
+    (entry) => ({
+      id: entry.id,
+      title: `${eventLabel(entry.event)} · ${CHANNEL_LABEL[entry.channel]}`,
+      timestamp: entry.sentAt,
+      body: entry.body,
+      notification: {
+        channel: entry.channel,
+        status: entry.status,
+        recipient: entry.recipient,
+        failureReason: entry.failureReason,
+      },
+    }),
+  )
+
   const activityEvents: ActivityEvent[] = [
+    ...notificationEvents,
     {
       id: "sale-created",
       title: "Sale created",
