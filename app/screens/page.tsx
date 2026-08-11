@@ -246,6 +246,38 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Cami HQ, CamiPay settlement config (PRO-737)",
+    description:
+      "R1 HQ billing spine. Settings tab on the Partner detail modal: CamiPay rail flags, a gateway per rail, and an append-only rate card. Open a Partner below, then the Settings tab. Rate changes are forward-only, they never re-price captured payments.",
+    screens: [
+      {
+        path: "/admin/businesses?business=shampooch-jvc",
+        label: "Settings tab, live Partner",
+        note: "Both rails on NeoPay, terminal cut from 2% to 1.8% on 01 Jun. Show rate history to see the append-only rows, then Change to append another.",
+      },
+      {
+        path: "/admin/businesses?business=pawhaus",
+        label: "Settings tab, scheduled rate",
+        note: "Terminal on TapPay, online on NeoPay (rails are not coupled to one provider). A 1.9% terminal rate is already scheduled for 01 Sep, badged Scheduled until it takes effect.",
+      },
+      {
+        path: "/admin/businesses?business=velvet-paw",
+        label: "Settings tab, no rate card",
+        note: "Onboarding Partner: both rails off, empty rate-card state with Set terminal rate.",
+      },
+      {
+        path: "/admin/businesses?business=doggos",
+        label: "Settings tab, online rail off",
+        note: "Suspended Partner still holds its commercial terms. Terminal rail on with no online rate, so the online row reads Not set.",
+      },
+      {
+        path: "/admin/businesses?business=furry-tales",
+        label: "Settings tab, archived and read-only",
+        note: "Archived Partner: switches disabled, no Change buttons, history still readable.",
+      },
+    ],
+  },
+  {
     title: "Cami HQ, Impersonation (PRO-155)",
     description:
       "E6-2.1 single pane of glass for ops impersonation: standalone events log, scoped session banner, PII reveal flow on the Partner portal.",
