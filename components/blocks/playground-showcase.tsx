@@ -27,7 +27,7 @@ import {
   StethoscopeIcon,
   SunIcon,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -1489,7 +1489,12 @@ export function PlaygroundShowcase() {
       >
         <Row label="Live (Settings + Log tabs)">
           <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
-            <NotificationsSettingsPanel />
+            {/* The panel reads its deep-link params with useSearchParams, which
+                bails out of prerendering unless a boundary sits above it —
+                /playground is a static page, so the boundary lives here. */}
+            <Suspense fallback={null}>
+              <NotificationsSettingsPanel />
+            </Suspense>
           </div>
         </Row>
       </Section>
