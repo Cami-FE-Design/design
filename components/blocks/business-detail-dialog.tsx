@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
+import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
 import { LoginAsOwnerDialog } from "@/components/blocks/login-as-owner-dialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -281,6 +282,7 @@ export function BusinessDetailDialog({
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
                 <TabsTrigger value="manage">Manage</TabsTrigger>
               </TabsList>
             </div>
@@ -328,6 +330,12 @@ export function BusinessDetailDialog({
                   disabled={isArchived}
                   actor={actor}
                 />
+              </TabsContent>
+              {/* Settings is the container for merchant config (PRO-737).
+                  CamiPay settlement is the first section in it; reminder
+                  pricing, add-ons, and method flags land here later. */}
+              <TabsContent value="settings" className="flex flex-col gap-4">
+                <HqCamiPayPanel business={business} disabled={isArchived} />
               </TabsContent>
               <TabsContent value="manage" className="flex flex-col gap-4">
                 <ManageSection

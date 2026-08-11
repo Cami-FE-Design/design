@@ -10,6 +10,11 @@ export type PermissionKey =
   | "merchants.impersonate"
   | "billing.read"
   | "billing.edit"
+  // CamiPay settlement config (PRO-737). Split from `billing.edit` on purpose:
+  // a rate change moves real money, so it is its own grant, not blanket
+  // HQ-staff write. `billing.read` alone gives a read-only view of both.
+  | "billing.camipay.rails.edit"
+  | "billing.camipay.rates.edit"
   | "support.read"
   | "audit.read"
   | "analytics.read"
@@ -47,6 +52,8 @@ const ALL_PERMISSIONS: PermissionKey[] = [
   "merchants.impersonate",
   "billing.read",
   "billing.edit",
+  "billing.camipay.rails.edit",
+  "billing.camipay.rates.edit",
   "support.read",
   "audit.read",
   "analytics.read",

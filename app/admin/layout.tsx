@@ -1,6 +1,7 @@
 import type * as React from "react"
 import { AdminAuthProvider } from "@/components/blocks/admin-auth-provider"
 import { AdminRolesProvider } from "@/lib/admin-roles-store"
+import { CamiPayProvider } from "@/lib/hq-camipay/store"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   // AdminRolesProvider must wrap AdminAuthProvider so the AdminSettingsController
@@ -9,7 +10,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // "useAdminRoles must be used inside <AdminRolesProvider>".
   return (
     <AdminRolesProvider>
-      <AdminAuthProvider>{children}</AdminAuthProvider>
+      <CamiPayProvider>
+        <AdminAuthProvider>{children}</AdminAuthProvider>
+      </CamiPayProvider>
     </AdminRolesProvider>
   )
 }

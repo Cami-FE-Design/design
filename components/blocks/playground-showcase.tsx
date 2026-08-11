@@ -53,6 +53,7 @@ import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
+import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
@@ -134,8 +135,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { adminBusinesses } from "@/lib/admin-businesses"
+import { ALL_HQ_PERMISSIONS, AuthProvider, type PermissionKey } from "@/lib/auth-mock"
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
+import { CamiPayProvider } from "@/lib/hq-camipay/store"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import {
   type AmountValue,
@@ -1884,7 +1887,55 @@ export function PlaygroundShowcase() {
           </div>
         </Row>
       </Section>
+
+      <Section
+        title="Cami HQ — CamiPay settlement config"
+        description="PRO-737. The Settings tab of the HQ Partner detail dialog (/admin/businesses?business=…). Rails are mutable flags with a gateway each; the rate card is append-only, so the only write is Change rate, which adds a row with an effective-from date. Past rows have no edit or delete affordance on purpose. One store is shared across the rows below, so a change made in one row shows up in the others."
+      >
+        <CamiPayProvider>
+          <Row label="Live Partner, full edit rights">
+            <CamiPayPanelDemo slug="shampooch-jvc" permissions={ALL_HQ_PERMISSIONS} />
+          </Row>
+          <Row label="Scheduled rate, split gateways per rail">
+            <CamiPayPanelDemo slug="pawhaus" permissions={ALL_HQ_PERMISSIONS} />
+          </Row>
+          <Row label="Onboarding, rails off and no rate card">
+            <CamiPayPanelDemo slug="velvet-paw" permissions={ALL_HQ_PERMISSIONS} />
+          </Row>
+          <Row label="View-only, billing.read without CamiPay edit">
+            <CamiPayPanelDemo slug="shampooch-jvc" permissions={["billing.read"]} />
+          </Row>
+          <Row label="Archived Partner, whole tab read-only">
+            <CamiPayPanelDemo slug="furry-tales" permissions={ALL_HQ_PERMISSIONS} disabled />
+          </Row>
+        </CamiPayProvider>
+      </Section>
     </TooltipProvider>
+  )
+}
+
+/**
+ * One HQ CamiPay panel, wrapped in its own AuthProvider so each row can show a
+ * different permission set. The CamiPay store is provided once by the section
+ * above, so edits made in one row are reflected in the others.
+ */
+function CamiPayPanelDemo({
+  slug,
+  permissions,
+  disabled,
+}: {
+  slug: string
+  permissions: PermissionKey[]
+  disabled?: boolean
+}) {
+  const business = adminBusinesses.find((b) => b.slug === slug)
+  if (!business) return null
+  return (
+    <div className="w-full max-w-xl">
+      <AuthProvider initialPermissions={permissions}>
+        <HqCamiPayPanel business={business} disabled={disabled} />
+      </AuthProvider>
+    </div>
   )
 }
 
