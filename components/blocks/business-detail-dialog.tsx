@@ -1260,7 +1260,7 @@ export function BusinessNotificationsSection({
                   <Input
                     inputMode="decimal"
                     disabled={disabled}
-                    className="w-24 text-right"
+                    className="h-9! w-16 rounded-xl px-2.5 text-right"
                     aria-label={`${CHANNEL_LABEL[channel]} rate for ${business.name}`}
                     value={String(resolvedRate(config, channel, globalRates))}
                     onFocus={() => {

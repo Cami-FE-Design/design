@@ -264,7 +264,7 @@ function NotificationRatesPanel() {
                 <span className="text-sm text-muted-foreground">AED</span>
                 <Input
                   inputMode="decimal"
-                  className="w-24 text-right"
+                  className="h-9! w-16 rounded-xl px-2.5 text-right"
                   aria-label={`${CHANNEL_LABEL[channel]} rate, United Arab Emirates`}
                   value={String(rates[channel])}
                   onChange={(e) => {
