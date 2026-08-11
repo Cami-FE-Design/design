@@ -116,6 +116,28 @@ export const HQ_PERMISSION_AREAS: HqPermissionArea[] = [
           },
         ],
       },
+      {
+        // PRO-737. Rate changes are split out from the general billing actions
+        // above because they reprice every future transaction for a Partner.
+        id: "billing_camipay",
+        title: { en: "CamiPay settlement", ar: "تسوية كامي باي" },
+        actions: [
+          {
+            code: "billing.camipay.rails.edit",
+            label: {
+              en: "Can turn CamiPay rails on or off and assign a gateway",
+              ar: "تفعيل أو تعطيل قنوات كامي باي وتعيين البوابة",
+            },
+          },
+          {
+            code: "billing.camipay.rates.edit",
+            label: {
+              en: "Can change a Partner's take rate",
+              ar: "تغيير نسبة العمولة للشريك",
+            },
+          },
+        ],
+      },
     ],
   },
   {

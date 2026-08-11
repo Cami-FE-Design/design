@@ -16,6 +16,8 @@ const PERMISSION_LABELS: Record<PermissionKey, string> = {
   "merchants.impersonate": "Login as Owner",
   "billing.read": "Billing (read)",
   "billing.edit": "Billing (edit)",
+  "billing.camipay.rails.edit": "CamiPay rails (edit)",
+  "billing.camipay.rates.edit": "CamiPay rates (edit)",
   "support.read": "Support",
   "audit.read": "Audit Log",
   "analytics.read": "Analytics",
