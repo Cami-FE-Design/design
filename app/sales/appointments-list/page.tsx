@@ -493,6 +493,9 @@ function AppointmentsListPageInner() {
         }}
         booking={selectedBooking}
         staff={MOCK_STAFF}
+        // `&view=activity` opens the sheet on the activity timeline instead of
+        // the detail panel, so a notification trace can be linked to directly.
+        initialMode={searchParams.get("view") === "activity" ? "activity" : undefined}
         onViewSale={() => {
           // Demo mapping: every booking's "View sale" jumps to sale #2, matching
           // the "sale receipt 2" link in the appointment activity log.

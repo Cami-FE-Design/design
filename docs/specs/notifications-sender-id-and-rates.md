@@ -266,9 +266,33 @@ while WhatsApp is ungranted, because the grant model can't produce one. The
 ## Merchant — appointment activity timeline
 
 Notification sends become events in the existing `ActivityPanel`
-(`components/blocks/appointment-detail-sheet.tsx:588`). No new route and no new
+(`components/blocks/appointment-detail-sheet.tsx`). No new route and no new
 component: the panel already models `{ id, title, timestamp, body }` and already
 opens from the detail sheet via a `mode` swap.
+
+**Where this actually lives.** `AppointmentDetailSheet` is reached from
+`/sales/appointments-list` (also the reports tables and global search), *not* from
+the `/appointments` calendar — that opens `NewAppointmentSheet`, which has no
+activity panel. Worth stating because the two sheets look alike and the calendar
+is the obvious place to go looking.
+
+## Deep links
+
+Every surface in this spec opens from a URL. "Open X, then click Y" is not a
+link — a reviewer following one shouldn't have to hunt, and three of these
+needed new params to make that true:
+
+| Link | Opens |
+| --- | --- |
+| `?settings=notifications` | Merchant settings |
+| `?settings=notifications&nt=sender` | Sender ID dialog |
+| `?settings=notifications&nt=log` | Log tab |
+| `?settings=notifications&nr=hidden` | Prices withheld (see open questions) |
+| `/sales/appointments-list?ref=b-002&view=activity` | **New.** The activity timeline itself, not the sheet it hides behind |
+| `/admin/businesses?business=<slug>&section=notifications` | **New.** The partner's Notifications tab. `section`, not `tab` — the roster already owns `tab` |
+| `/admin/businesses?new=1` | **New.** The create sheet, where the onboarding Sender ID field lives |
+| `/admin/businesses?settings=notification-rates` | Platform rates |
+| `/admin/billing` | Consumption and amounts due |
 
 This is the direct answer to *"Are they visible / linked to the appointment
 activity screen? We need to be able to track this."*

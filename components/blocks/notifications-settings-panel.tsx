@@ -297,8 +297,9 @@ function SenderIdDialog({
           </div>
 
           <Notice icon={ClockIcon} className="bg-cami-yellow-2 text-foreground">
-            Registration is handled by the carrier and takes a few days. Messages keep sending as{" "}
-            {FALLBACK_SENDER_ID} until it&rsquo;s approved.
+            {/* One template literal rather than text around an expression —
+                JSX ate the space after the interpolated name. */}
+            {`Registration is handled by the carrier and takes a few days. Messages keep sending as ${FALLBACK_SENDER_ID} until it's approved.`}
           </Notice>
 
           <div className="flex items-center justify-between gap-3">

@@ -221,7 +221,7 @@ const SECTIONS: Section[] = [
         label: "Roster, sort by weekly AED",
       },
       {
-        path: "/admin/businesses?business=shampooch-jvc",
+        path: "/admin/businesses?business=shampooch-jvc&section=notifications",
         label: "Detail modal, Live state",
         note: "Dark green Access row, Manage tab with Sign in / Suspend / Archive",
       },
@@ -230,7 +230,7 @@ const SECTIONS: Section[] = [
         label: "Detail modal, Onboarding state",
       },
       {
-        path: "/admin/businesses?business=doggos",
+        path: "/admin/businesses?business=doggos&section=notifications",
         label: "Detail modal, Suspended state",
         note: "Tomato reason banner with white-circle InfoIcon",
       },
@@ -251,12 +251,12 @@ const SECTIONS: Section[] = [
       "R1 HQ billing spine. Settings tab on the Partner detail modal: CamiPay rail flags, a gateway per rail, and an append-only rate card. Open a Partner below, then the Settings tab. Rate changes are forward-only, they never re-price captured payments.",
     screens: [
       {
-        path: "/admin/businesses?business=shampooch-jvc",
+        path: "/admin/businesses?business=shampooch-jvc&section=notifications",
         label: "Settings tab, live Partner",
         note: "Both rails on NeoPay, terminal cut from 2% to 1.8% on 01 Jun. Show rate history to see the append-only rows, then Change to append another.",
       },
       {
-        path: "/admin/businesses?business=pawhaus",
+        path: "/admin/businesses?business=pawhaus&section=notifications",
         label: "Settings tab, scheduled rate",
         note: "Terminal on TapPay, online on NeoPay (rails are not coupled to one provider). A 1.9% terminal rate is already scheduled for 01 Sep, badged Scheduled until it takes effect.",
       },
@@ -266,7 +266,7 @@ const SECTIONS: Section[] = [
         note: "Onboarding Partner: both rails off, empty rate-card state with Set terminal rate.",
       },
       {
-        path: "/admin/businesses?business=doggos",
+        path: "/admin/businesses?business=doggos&section=notifications",
         label: "Settings tab, online rail off",
         note: "Suspended Partner still holds its commercial terms. Terminal rail on with no online rate, so the online row reads Not set.",
       },
@@ -468,9 +468,9 @@ const SECTIONS: Section[] = [
         note: "The business-wide answer to 'did today's reminders actually go out?', which the per-appointment timeline structurally can't give. Channel and status filters over every send: recipient, time, body, cost. Failure reasons render inline rather than behind a tooltip — a failed send is the one row type someone is actively hunting for. Two failures in the demo data: a landline that can't take SMS and a hard-bounced mailbox. The footer says 'your most recent sends' rather than claiming to be the whole period, so it can't look like it disagrees with the larger Usage totals. No WhatsApp row appears while WhatsApp is ungranted — the grant model can't produce a send on a channel that's off — so the 'queued' example sits on SMS.",
       },
       {
-        path: "/appointments",
+        path: "/sales/appointments-list?ref=b-002&view=activity",
         label: "Notification events in appointment activity",
-        note: "Open any appointment → Quick actions → View activity. Notification sends are events in the existing activity timeline rather than a new surface: channel icon on the timeline dot, delivery status pill, recipient in the meta line, message body as the event body. A failed send is the only activity event that tints, because it's the only one that means the customer heard nothing. Reads the same store as the log tab, filtered by this booking's id — so the two can't disagree and an appointment with no sends correctly shows none instead of borrowing another booking's messages. Bookings b-002 (Tom Cassidy / Luna) through b-005 (Millie Cassidy / Mochi) carry demo sends: Luna has a delivered 24h reminder on both channels plus a receipt, Willow has a confirmation and a queued 2h reminder, Rocky has a failed SMS, Mochi has a hard-bounced review request. Every other appointment's timeline is notification-free, which is the honest state.",
+        note: "Opens the detail sheet on Tom Cassidy / Luna; and lands straight on the activity panel (&view=activity) — it's also reachable via the ⋮ in the sheet footer, bottom-left, opposite Pay now. Note this sheet lives on /sales/appointments-list, not /appointments — the calendar opens the edit modal instead. Notification sends are events in the existing activity timeline rather than a new surface: channel icon on the timeline dot, delivery status pill, recipient in the meta line, message body as the event body. A failed send is the only activity event that tints, because it's the only one that means the customer heard nothing. Reads the same store as the log tab, filtered by this booking's id — so the two can't disagree and an appointment with no sends correctly shows none instead of borrowing another booking's messages. Four bookings carry demo sends — swap the ?ref= for b-003, b-004, or b-005 keeping &view=activity: Luna has a delivered 24h reminder on both channels plus a receipt, Willow has a confirmation and a queued 2h reminder, Rocky has a failed SMS, Mochi has a hard-bounced review request. Every other appointment's timeline is notification-free, which is the honest state.",
       },
     ],
   },
@@ -485,19 +485,19 @@ const SECTIONS: Section[] = [
         note: "New route — the Billing menu item has been pointing at a page that didn't exist. Per-partner sends × the rate that applies, with the per-channel totals above and the amount due this period. A rate override is labelled as one on the cell, so nobody debugs an invoice discrepancy by guessing. A cell reads 'Off' when the channel isn't granted and '0' when it is granted but nothing was sent — a blank cell would mean two different things. Amounts use the rate stamped on each send, so changing a rate never rewrites a closed period. Scoped to messaging: Cami Pay subscription and transaction fees are a separate ledger, and the page says so.",
       },
       {
-        path: "/admin/businesses?business=shampooch-jvc",
+        path: "/admin/businesses?business=shampooch-jvc&section=notifications",
         label: "Partner record → Notifications tab",
-        note: "Click the Notifications tab (it isn't URL-driven yet). Three sections in the order someone debugging a partner asks about them: Channels (master switches — turning one off locks that column in the merchant's own settings without clearing what they had, so turning it back on restores exactly that), Sender ID (registered name, what customers actually see, and the Approve / Reject decision), Rates (per-channel override against the live global number, with the period's amount due underneath). Shampooch's Sender ID is approved, so there's no decision to take here. Every change on this tab writes to the partner's Activity tab — channel toggles, Sender ID approve/reject with its reason, and rate edits (one entry per edit, written on blur rather than per keystroke). 'Why did our reminders stop' is answerable with a name and a time.",
+        note: "Opens straight on the Notifications tab (&section=notifications). Three sections in the order someone debugging a partner asks about them: Channels (master switches — turning one off locks that column in the merchant's own settings without clearing what they had, so turning it back on restores exactly that), Sender ID (registered name, what customers actually see, and the Approve / Reject decision), Rates (per-channel override against the live global number, with the period's amount due underneath). Shampooch's Sender ID is approved, so there's no decision to take here. Every change on this tab writes to the partner's Activity tab — channel toggles, Sender ID approve/reject with its reason, and rate edits (one entry per edit, written on blur rather than per keystroke). 'Why did our reminders stop' is answerable with a name and a time.",
       },
       {
-        path: "/admin/businesses?business=pawhaus",
+        path: "/admin/businesses?business=pawhaus&section=notifications",
         label: "Partner record → pending Sender ID + rate override",
-        note: "Notifications tab. The only partner with a decision outstanding: PAWHAUS is pending, so Approve / Reject appear — Reject requires a reason, because that reason renders verbatim in the merchant's own settings and a rejection with no reason strands them with nothing to fix. Also the override case: SMS at AED 0.14 against a global AED 0.12, labelled 'Overridden — global is AED 0.12'. WhatsApp is granted here, which is what unlocks that column in their portal.",
+        note: "The only partner with a decision outstanding: PAWHAUS is pending, so Approve / Reject appear — Reject requires a reason, because that reason renders verbatim in the merchant's own settings and a rejection with no reason strands them with nothing to fix. Also the override case: SMS at AED 0.14 against a global AED 0.12, labelled 'Overridden — global is AED 0.12'. WhatsApp is granted here, which is what unlocks that column in their portal.",
       },
       {
-        path: "/admin/businesses?business=doggos",
+        path: "/admin/businesses?business=doggos&section=notifications",
         label: "Partner record → rejected Sender ID, SMS off",
-        note: "Notifications tab. The scenario the spec names: the Sender ID was rejected, so HQ turned SMS off rather than let messages go out under the wrong brand. The rejection reason shows in a tinted block, and the merchant sees the same sentence in their own settings. This partner is also suspended, so the tab reads correctly alongside the suspension banner.",
+        note: "The scenario the spec names: the Sender ID was rejected, so HQ turned SMS off rather than let messages go out under the wrong brand. The rejection reason shows in a tinted block, and the merchant sees the same sentence in their own settings. This partner is also suspended, so the tab reads correctly alongside the suspension banner.",
       },
       {
         path: "/admin/businesses?settings=notification-rates",
@@ -505,9 +505,9 @@ const SECTIONS: Section[] = [
         note: "Platform defaults every partner inherits, per channel and per country. Per-country rather than one global SMS number, because UAE pricing is the whole reason the screen exists — only the UAE row carries values, since inventing numbers for unpriced markets would read as real pricing. Partners never see this screen; they see their own rate and their own consumption. Edits persist (localStorage, lib/notifications/hq-store.tsx) and flow everywhere a message is priced — the partner record's Rates section, the /admin/billing amounts, and the rate a merchant reads in their own Reminders card. Change SMS here, then check /admin/billing and Settings › Notifications: both move. A per-merchant override still wins. No Save button, since writes persist as typed and a Save would imply they hadn't; Restore defaults is the control that needed to exist.",
       },
       {
-        path: "/admin/businesses",
+        path: "/admin/businesses?new=1",
         label: "New Partner → Sender ID at onboarding",
-        note: "Click Add. The SMS Sender ID field is new, defaulting to CAMI. 'Mandatory with a CAMI default' is a contradiction in a form — a field that always holds a valid value can't be skipped — so it's required-with-a-default: leaving it as CAMI is an explicit choice, and entering one starts the registration clock at account creation instead of whenever someone remembers to open settings. Deliberately not prefilled from the business name, per GNK: request it from the merchant rather than inferring branding. Same validator as the merchant-side field, so a partner can't be created in a state their own settings would reject.",
+        note: "Opens the create sheet directly (?new=1). The SMS Sender ID field is new, defaulting to CAMI. 'Mandatory with a CAMI default' is a contradiction in a form — a field that always holds a valid value can't be skipped — so it's required-with-a-default: leaving it as CAMI is an explicit choice, and entering one starts the registration clock at account creation instead of whenever someone remembers to open settings. Deliberately not prefilled from the business name, per GNK: request it from the merchant rather than inferring branding. Same validator as the merchant-side field, so a partner can't be created in a state their own settings would reject.",
       },
     ],
   },
@@ -759,7 +759,7 @@ const SECTIONS: Section[] = [
         note: "Tabular view of a curated 10-row booking subset covering all seven statuses (anchored on 18 May 2026 to match the figma). Toolbar: search by ref/client, Month-to-date pill, Filters pill, sort dropdown (Created/Scheduled/Duration · asc/desc). Status badges: Booked (blue), Confirmed (violet), No-show (tomato), Completed (green), etc. Footer count.",
       },
       {
-        path: "/sales/appointments-list?ref=b-002",
+        path: "/sales/appointments-list?ref=b-002&view=activity",
         label: "Appointment detail sheet",
         note: "Opens the right-side sheet over the listing via ?ref=<id>. Try b-001…b-024 for different states (b-002 is ready-for-pickup, b-003 confirmed, etc.). Status-colored header band (blue=booked, gray=completed, tomato=no-show), Services list, sale total with inline-expand breakdown, Quick actions popover. Status pill behavior: terminal statuses (completed/cancelled) are static, no-show only offers Undo, others get the full dropdown — pill + band update live.",
       },

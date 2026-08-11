@@ -140,6 +140,11 @@ export type BusinessDetailDialogProps = {
    * auth scope.
    */
   actor?: string
+  /**
+   * Which tab to open on. URL-driven so a link can land on the section it means
+   * — "open the partner then click Notifications" isn't a deep link.
+   */
+  initialTab?: string
 }
 
 export function BusinessDetailDialog({
@@ -149,12 +154,20 @@ export function BusinessDetailDialog({
   onUpdate,
   onSlugChange,
   actor,
+  initialTab,
 }: BusinessDetailDialogProps) {
+  const [tab, setTab] = useState(initialTab ?? "general")
   const [editProfileOpen, setEditProfileOpen] = useState(false)
   const [changeSlugOpen, setChangeSlugOpen] = useState(false)
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false)
   const [suspendOpen, setSuspendOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
+
+  // Follow the link when one names a tab. Opening a different partner keeps the
+  // tab you were on, which is what you want when comparing two of them.
+  useEffect(() => {
+    setTab(initialTab ?? "general")
+  }, [initialTab])
 
   // Reset nested dialogs when the parent dialog closes or business changes.
   useEffect(() => {
@@ -234,7 +247,7 @@ export function BusinessDetailDialog({
           className="!max-w-[630px] flex h-[640px] max-h-[calc(100vh-100px)] flex-col gap-0 p-0 sm:!max-w-[630px]"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <Tabs defaultValue="general" className="flex min-h-0 flex-1 flex-col">
+          <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
             <div className="flex flex-col gap-0 bg-muted/40">
               <DialogHeader className="flex flex-row items-start gap-3 px-9 pt-[34px] pb-5">
                 <BusinessAvatar business={business} />

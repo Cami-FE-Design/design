@@ -24,7 +24,11 @@ import {
   type SenderIdStatus,
 } from "@/lib/notifications/types"
 
-const STORAGE_KEY = "cami-notifications-v1"
+// Bumped to v2: the demo log's appointmentId values changed (apt-N → real
+// booking ids), so a v1 blob restored a log that matched no appointment and the
+// activity timeline silently showed no sends. Same reason the terminals store
+// carries a version in its key.
+const STORAGE_KEY = "cami-notifications-v2"
 
 type NotificationsValue = NotificationsState & {
   /** Submit a merchant-entered Sender ID — moves straight to `submitted`. */
@@ -64,7 +68,10 @@ function readSaved(): NotificationsState | null {
       events,
       grant: { ...DEFAULT_GRANT, ...saved.grant },
       periodUsage: { ...DEFAULT_PERIOD_USAGE, ...saved.periodUsage },
-      log: saved.log ?? DEMO_LOG,
+      // Always the fixture, never the saved copy. Nothing in the UI writes to
+      // the log, so persisting it buys nothing and guarantees that any future
+      // change to the demo sends is invisible until someone clears storage.
+      log: DEMO_LOG,
     }
   } catch {
     return null

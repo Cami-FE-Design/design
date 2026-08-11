@@ -719,6 +719,13 @@ type AppointmentDetailSheetProps = {
   onViewProfile?: () => void
   /** Fired when "View sale" in the Quick actions popover is clicked. */
   onViewSale?: () => void
+  /**
+   * Which panel the sheet opens on. The activity timeline was only reachable by
+   * opening the sheet and finding the footer ⋮, so it couldn't be linked to for
+   * review — every other surface in the repo can be. `/sales/appointments-list?ref=b-002&view=activity`
+   * now lands straight on it.
+   */
+  initialMode?: SheetMode
 }
 
 type SheetMode = "detail" | "activity"
@@ -730,9 +737,10 @@ export function AppointmentDetailSheet({
   staff,
   onViewProfile,
   onViewSale,
+  initialMode,
 }: AppointmentDetailSheetProps) {
   const [status, setStatus] = useState<MockBookingStatus>(booking?.status ?? "booked")
-  const [mode, setMode] = useState<SheetMode>("detail")
+  const [mode, setMode] = useState<SheetMode>(initialMode ?? "detail")
   // Read above the `!booking` early return — hooks can't sit behind it.
   const { log: notificationLog } = useNotifications()
   // Selecting "Canceled" opens a full-screen confirmation flow rather than
@@ -744,9 +752,11 @@ export function AppointmentDetailSheet({
   useEffect(() => {
     if (booking) {
       setStatus(booking.status)
-      setMode("detail")
+      // Honours the deep-linked panel, so opening a linked appointment doesn't
+      // immediately bounce back to the detail view.
+      setMode(initialMode ?? "detail")
     }
-  }, [booking])
+  }, [booking, initialMode])
 
   if (!booking) return null
 
