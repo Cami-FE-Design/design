@@ -248,17 +248,17 @@ const SECTIONS: Section[] = [
   {
     title: "Cami HQ, CamiPay settlement config (PRO-737)",
     description:
-      "R1 HQ billing spine. Settings tab on the Partner detail modal: CamiPay rail flags, a gateway per rail, and an append-only rate card. Open a Partner below, then the Settings tab. Rate changes are forward-only, they never re-price captured payments.",
+      "R1 HQ billing spine. Settings tab on the Partner detail modal: CamiPay rail flags, a gateway per rail, and an append-only rate card. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off. Open a Partner below, then the Settings tab. Rate changes are forward-only, they never re-price captured payments.",
     screens: [
       {
         path: "/admin/businesses?business=shampooch-jvc",
         label: "Settings tab, live Partner",
-        note: "Both rails on NeoPay, terminal cut from 2% to 1.8% on 01 Jun. Show rate history to see the append-only rows, then Change to append another.",
+        note: "Both rails on NeoPay, terminal cut from 2% to 1.8% and online to 3% + AED 0.75 under AED 100, both on 01 May. Show rate history to see the append-only rows, then Change to append another; the dialog previews the fee on either side of the bracket before you save.",
       },
       {
         path: "/admin/businesses?business=pawhaus",
         label: "Settings tab, scheduled rate",
-        note: "Terminal on TapPay, online on NeoPay (rails are not coupled to one provider). A 1.9% terminal rate is already scheduled for 01 Sep, badged Scheduled until it takes effect.",
+        note: "Terminal on TapPay, online on NeoPay (rails are not coupled to one provider). A 1.9% terminal rate is already scheduled for 01 Sep, badged Scheduled until it takes effect. Online carries a 3.25% + AED 1.00 under AED 100 bracket.",
       },
       {
         path: "/admin/businesses?business=velvet-paw",
@@ -267,13 +267,35 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/admin/businesses?business=doggos",
-        label: "Settings tab, online rail off",
-        note: "Suspended Partner still holds its commercial terms. Terminal rail on with no online rate, so the online row reads Not set.",
+        label: "Settings tab, live rail earning nothing",
+        note: "Suspended Partner still holds its commercial terms. The online rail is live with no rate row, so it reads Not set and warns that Cami earns nothing on those payments. A missing rate is zero, not an error, which is why it is called out rather than blocked.",
       },
       {
         path: "/admin/businesses?business=furry-tales",
         label: "Settings tab, archived and read-only",
         note: "Archived Partner: switches disabled, no Change buttons, history still readable.",
+      },
+    ],
+  },
+  {
+    title: "CamiPay fee visibility, Partner side (PRO-737)",
+    description:
+      "The other half of the rate card: what the Partner sees. A fee breakdown on every CamiPay sale, and a read-only view of their own rates. Cami's fee only, never the gateway's processing cost, and the rate is the one snapshotted at capture rather than whatever the card says today.",
+    screens: [
+      {
+        path: "/sales/sales-list",
+        label: "Sale detail, fee breakdown",
+        note: "Open sale 16 (Terminal, 1.8%, no fixed) and sale 15 (Online, 3% + AED 0.75, part-paid so the fee follows what was captured, not the total). Sale amount → Cami fee → Net to you, with the calculation under the fee.",
+      },
+      {
+        path: "/sales/gift-cards-sold?card=gc-5",
+        label: "Sale detail, above the bracket",
+        note: "View sale on this AED 10,500 gift card. Same 3% + AED 0.75 rate as sale 15, but above the AED 100 ceiling, so the fixed part drops and the fee is the percentage alone.",
+      },
+      {
+        path: "/sales/sales-list?settings=payments&pp=camipay",
+        label: "Partner settings, CamiPay rates",
+        note: "Settings → Payments → CamiPay rates. Read-only with no disabled controls, no gateway named, no processing fee. Reads the same store HQ writes to, so change a rate in HQ and it appears here.",
       },
     ],
   },

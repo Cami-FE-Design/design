@@ -47,6 +47,7 @@ import { AppointmentsToolbar } from "@/components/blocks/appointments-toolbar"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
 import { BoardingDetailSheet } from "@/components/blocks/boarding/booking-detail-sheet"
 import { NewBoardingSheet } from "@/components/blocks/boarding/new-boarding-sheet"
+import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
@@ -136,7 +137,7 @@ import { adminBusinesses } from "@/lib/admin-businesses"
 import { ALL_HQ_PERMISSIONS, AuthProvider, type PermissionKey } from "@/lib/auth-mock"
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
-import { CamiPayProvider } from "@/lib/hq-camipay/store"
+import { CamiPayProvider, ZERO_RATE } from "@/lib/hq-camipay/store"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import {
   type AmountValue,
@@ -1851,7 +1852,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Cami HQ — CamiPay settlement config"
-        description="PRO-737. The Settings tab of the HQ Partner detail dialog (/admin/businesses?business=…). Rails are mutable flags with a gateway each; the rate card is append-only, so the only write is Change rate, which adds a row with an effective-from date. Past rows have no edit or delete affordance on purpose. One store is shared across the rows below, so a change made in one row shows up in the others."
+        description="PRO-737. The Settings tab of the HQ Partner detail dialog (/admin/businesses?business=…). One card, one section per rail: whether it is on, where it routes, and what Cami charges on it. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off (Shampooch Online, Pawhaus Online). Rates are append-only, so the only write is Change, which adds a row with an effective-from date; past rows have no edit or delete affordance on purpose. A live rail with no rate row earns Cami nothing and says so (Doggos Online). The switch and gateway are gated by billing.camipay.rails.edit, Change by billing.camipay.rates.edit, separately. One store is shared across the rows below, so a change made in one row shows up in the others."
       >
         <CamiPayProvider>
           <Row label="Live Partner, full edit rights">
@@ -1870,6 +1871,52 @@ export function PlaygroundShowcase() {
             <CamiPayPanelDemo slug="furry-tales" permissions={ALL_HQ_PERMISSIONS} disabled />
           </Row>
         </CamiPayProvider>
+      </Section>
+
+      <Section
+        title="CamiPay fee breakdown — Partner side"
+        description="PRO-737. What the Partner sees on their own sale detail (/sales/sales-list, open a sale paid by CamiPay). Sale amount → Cami fee → Net, with the calculation spelled out under the fee so the number is never a black box. The gateway's processing fee is deliberately absent: the Partner pays Cami's fee and nothing else. The rate is snapshotted onto the payment at capture, so a later rate change never restates it."
+      >
+        <Row label="Percentage only">
+          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
+            <CamiPayFeeBreakdown
+              rail="terminal"
+              rate={{ percent: 1.8, fixedMinor: 0, fixedBelowMinor: null }}
+              amountMinor={5400}
+              capturedOnLabel="25 May 2026"
+            />
+          </div>
+        </Row>
+        <Row label="Percentage + fixed, under the bracket so the fixed applies">
+          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
+            <CamiPayFeeBreakdown
+              rail="online"
+              rate={{ percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 }}
+              amountMinor={3040}
+              capturedOnLabel="25 May 2026"
+            />
+          </div>
+        </Row>
+        <Row label="Same rate above the bracket, so the fixed drops off">
+          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
+            <CamiPayFeeBreakdown
+              rail="online"
+              rate={{ percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 }}
+              amountMinor={1050000}
+              capturedOnLabel="01 Jun 2026"
+            />
+          </div>
+        </Row>
+        <Row label="No rate configured, so no fee">
+          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
+            <CamiPayFeeBreakdown
+              rail="terminal"
+              rate={ZERO_RATE}
+              amountMinor={4200}
+              capturedOnLabel="25 May 2026"
+            />
+          </div>
+        </Row>
       </Section>
     </TooltipProvider>
   )

@@ -18,6 +18,7 @@ import {
   InfoIcon,
   MonitorSmartphoneIcon,
   PencilIcon,
+  PercentIcon,
   WalletIcon,
 } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
@@ -26,6 +27,7 @@ import { toast } from "sonner"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
+import { CamiPayRatesPanel } from "@/components/blocks/payment-policy/camipay-rates-panel"
 import { FullScreenTakeover, PaymentMethodsPanel } from "@/components/blocks/sales-settings"
 import {
   type TerminalsDemoDialog,
@@ -47,6 +49,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { CamiPayProvider } from "@/lib/hq-camipay/store"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
 import {
   type AmountValue,
@@ -118,7 +121,7 @@ function ExamplePolicyPreview({ text }: { text: string }) {
   )
 }
 
-type PaymentsView = "home" | "policy" | "methods" | "terminal"
+type PaymentsView = "home" | "policy" | "methods" | "terminal" | "camipay"
 
 const PAYMENTS_CARDS: {
   id: Exclude<PaymentsView, "home">
@@ -147,6 +150,12 @@ const PAYMENTS_CARDS: {
     description: "Add card machines, issue their PINs, and manage sign-in sessions.",
     icon: MonitorSmartphoneIcon,
   },
+  {
+    id: "camipay",
+    label: "CamiPay rates",
+    description: "What Cami charges you on payments taken through CamiPay.",
+    icon: PercentIcon,
+  },
 ]
 
 const PAYMENTS_BREADCRUMB_ROOT = { label: "Payments", icon: CreditCardIcon }
@@ -161,7 +170,7 @@ export function PaymentsSettingsPanel() {
   // open the policy sub-screen with the matching takeover on top.
   const pp = searchParams.get("pp")
   const [view, setView] = useState<PaymentsView>(
-    pp === "methods" || pp === "terminal" ? pp : pp ? "policy" : "home",
+    pp === "methods" || pp === "terminal" || pp === "camipay" ? pp : pp ? "policy" : "home",
   )
 
   // When a takeover was opened via deep-link (e.g. "Edit policy" from the
@@ -205,6 +214,20 @@ export function PaymentsSettingsPanel() {
         initialState={(searchParams.get("tp") as TerminalsDemoState) ?? null}
         initialDialog={(searchParams.get("td") as TerminalsDemoDialog) ?? null}
       />
+    )
+  }
+  if (view === "camipay") {
+    // The CamiPay store is mounted in the HQ layout, not this one. Wrapping
+    // here rather than at the app root keeps the Business app from carrying
+    // HQ state it has no other use for, and the provider hydrates from the
+    // same localStorage key, so a rate set in HQ is what this panel shows.
+    return (
+      <CamiPayProvider>
+        <CamiPayRatesPanel
+          onBack={() => setView("home")}
+          breadcrumbRoot={PAYMENTS_BREADCRUMB_ROOT}
+        />
+      </CamiPayProvider>
     )
   }
 
