@@ -165,10 +165,13 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
     // Onboarding: rails off, no rate card yet. Drives the empty state.
     biz_velvetpaw: OFF,
     // Suspended: rails still configured. Suspension is a lifecycle state, the
-    // commercial terms outlive it.
+    // commercial terms outlive it. Online is live with no rate row, which is
+    // the "went live before anyone set a rate" mistake the rate card warns
+    // about. It is the only seeded Partner in that state, so the warning has
+    // somewhere to be seen.
     biz_doggos: {
       terminal: { enabled: true, gatewayId: "neopay" },
-      online: { enabled: false, gatewayId: null },
+      online: { enabled: true, gatewayId: "neopay" },
     },
     biz_furrytales: {
       terminal: { enabled: false, gatewayId: null },

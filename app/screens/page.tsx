@@ -267,8 +267,8 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/admin/businesses?business=doggos",
-        label: "Settings tab, online rail off",
-        note: "Suspended Partner still holds its commercial terms. Terminal rail on with no online rate, so the online row reads Not set.",
+        label: "Settings tab, live rail earning nothing",
+        note: "Suspended Partner still holds its commercial terms. The online rail is live with no rate row, so it reads Not set and warns that Cami earns nothing on those payments. A missing rate is zero, not an error, which is why it is called out rather than blocked.",
       },
       {
         path: "/admin/businesses?business=furry-tales",

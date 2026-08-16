@@ -213,11 +213,28 @@ Four decisions, all of them refusals:
 Plus one disclosure: the dialog states the consequence in plain language before
 you save, and the card carries a permanent footnote saying the same thing.
 
-## Rails card
+## One card, one section per rail
 
-Header: `CamiPay rails`. Two rows, divided, terminal first.
+Header: `CamiPay`, with a right-aligned hint `Set at Business level`, which is
+the INV-10 inheritance declaration made visible. Two sections, divided, terminal
+first.
 
-Each row:
+This was originally **two** cards, `CamiPay rails` and `Rate card`, each listing
+the same two rails in the same order. The split was modelled on the write
+semantics: mutable flags in one, an append-only ledger in the other. That is a
+fact about the store, not about the question being asked. Ops asks "how is
+Terminal set up for this Partner", and the answer was spread across two places
+that had to be read against each other.
+
+The coupling was already visible in the code: the "live with no rate" warning
+belongs to the rate but reads the rail's `enabled` flag. A warning that has to
+reach into the other card to know whether to fire is the shape telling you the
+cards were one thing.
+
+The append-only model is unchanged, and still enforced the same way: there is no
+editable rate field on the surface at all.
+
+Each rail section:
 
 | Element | Behaviour |
 | --- | --- |
@@ -225,7 +242,23 @@ Each row:
 | Label | `CamiPay Terminal` / `CamiPay Online` |
 | Description | "Card machine payments taken in person, at the counter." / "Payment links and checkout on the public booking page." |
 | Switch | Enable / disable. Immediate, no save button, no redeploy. Toasts `CamiPay Terminal enabled for Shampooch JVC`. |
-| Gateway select | Only rendered when the rail is on. An off rail has no gateway question to answer. |
+| Gateway row | Only rendered when the rail is on. An off rail has no gateway question to answer. |
+| Rate row | Always rendered, see below. |
+
+Gateway and Rate share one label-and-control row shape, indented under the rail
+header, so the section reads as a list of settings for that rail rather than two
+kinds of thing that happen to be adjacent.
+
+**The rate stays visible when the rail is off**, unlike the gateway. A gateway is
+operational and an off rail has no routing to configure; a rate is a commercial
+term and it outlives the switch. Doggos is the case: suspended, and its terms
+still stand.
+
+**Two permissions on one card.** `billing.camipay.rails.edit` gates the switch
+and the gateway select; `billing.camipay.rates.edit` gates the Change button.
+They are gated per control rather than per card, because turning a rail on is an
+operational act and changing a rate is a commercial one, and the same person
+does not necessarily do both.
 
 Gateway options are NeoPay, TapPay, Network International, Stripe. Everything
 except NeoPay carries a muted `Onboarding` badge inside the option, so nobody
@@ -242,30 +275,32 @@ will route." It is a warning, not a block, because the two settings are set by
 different people at different times and blocking one on the other would just
 mean the rail never gets turned on.
 
-**Guardrail footnote (INV-P1)**, always present, muted:
+**Guardrail footnote**, always present, muted, one block rather than two:
 
 > Turning a rail off removes it from this Partner's checkout, nothing more. Cash
-> and off-rail card payments still record to the sale ledger.
+> and off-rail card payments still record to the sale ledger. Changing a rate
+> never re-prices past payments, so a change only applies from its effective
+> date forward.
 
-That sentence exists because "turn off CamiPay" reads like "stop recording this
+The first half is INV-P1: "turn off CamiPay" reads like "stop recording this
 Partner's money", and it does not. Disabling a rail turns off a tender path, not
-Cami's ownership of the commercial record.
+Cami's ownership of the commercial record. The second half is the forward-only
+rule. Both answer the same question, "this change is narrower than it looks",
+which is why they share one block. Two stacked grey notes read as boilerplate
+where one reads as a rule.
 
-## Rate card
+### The rate row
 
-Header: `Rate card`, with a right-aligned hint `Set at Business level`, which is
-the INV-10 inheritance declaration made visible.
-
-One row per rail:
+One per rail section:
 
 | Element | Content |
 | --- | --- |
-| Rail | `CamiPay Terminal` / `CamiPay Online` |
-| Provenance | `From 01 May 2026, set by Maz Khan`, or `No rate set` |
-| Rate | `1.8%` or `3% + AED 0.75`, tabular nums, or `Not set` in muted when the rail has no rows |
-| Bracket | Second line when one is set: `AED 0.75 applies under AED 100.00, 3% alone at or above` |
-| Warning | Amber line when the rail is **enabled with no rate**: "This rail is live with no rate, so Cami earns nothing on these payments." |
+| Label | `Rate`, matching the `Gateway` row above it |
+| Value | `1.8%` or `3% + AED 0.75`, tabular nums, or `Not set` in muted when the rail has no rows |
 | Action | `Change`, or `Set rate` when there is no current rate |
+| Provenance | `From 01 May 2026, set by Maz Khan`. Omitted entirely when there is no rate, since the value already reads `Not set` and "No rate set" under it says it twice |
+| Bracket | Line under the provenance when one is set: `AED 0.75 applies under AED 100.00, 3% alone at or above` |
+| Warning | Amber line when the rail is **enabled with no rate**: "This rail is live with no rate, so Cami earns nothing on these payments." |
 
 Percentages trim trailing zeros, `2%` not `2.00%`, because the extra digits read
 as precision that is not there. Money never trims: `AED 0.75`, and `AED 100.00`
@@ -282,12 +317,6 @@ rate and the strip disappears. There is no cancel action, deliberately: a
 scheduled row is a committed commercial term, and undoing one is a new row, not
 a delete.
 
-**Footnote**, always present:
-
-> Changing a rate never re-prices past payments. Every payment keeps the rate
-> that was live when it was captured, so a change only applies from its
-> effective date forward.
-
 **Rate history**, collapsed by default: `Show rate history (4)`. Expanded, one
 row per rate row, newest effective date first, both rails interleaved:
 
@@ -297,9 +326,10 @@ AED 0.75 applies under AED 100.00, 3% alone at or above
 Set by Maz Khan on 22 Apr 2026
 ```
 
-Future rows read `Starts 01 Sep 2026` instead of `From`. History is scoped to
-the Partner, not the rail, because the question ops actually asks is "what has
-this Partner been charged", not "what has this rail been".
+Future rows read `Starts 01 Sep 2026` instead of `From`. History sits at the
+foot of the card rather than inside either rail section, and stays scoped to the
+Partner, not the rail, because the question ops actually asks is "what has this
+Partner been charged", not "what has this rail been".
 
 ## Change rate dialog
 
@@ -431,7 +461,7 @@ Seeded in `DEFAULT_CAMIPAY_STATE`, all five reachable from `/screens`.
 | Shampooch JVC | Both rails on NeoPay. Terminal cut 2% to 1.8%, online 3.5% to **3% + AED 0.75 under AED 100**, both effective 01 May. Four history rows. |
 | Pawhaus | Terminal on TapPay, online on NeoPay. Online is 3.25% + AED 1.00 under AED 100. 1.9% terminal **scheduled** for 01 Sep. |
 | Velvet Paw | Onboarding. Both rails off, no rate card, empty state. |
-| Doggos | Suspended. Terminal rail on, online rail off, no online rate so that row reads `Not set`. |
+| Doggos | Suspended. Both rails on NeoPay, but no online rate, so that row reads `Not set` and carries the "live with no rate" warning. The only seeded Partner in that state. |
 | Furry Tales | Archived. Whole tab read-only. |
 
 Shampooch's change is dated 01 May rather than 01 Jun so that it sits **before**

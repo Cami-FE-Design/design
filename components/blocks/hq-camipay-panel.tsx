@@ -16,7 +16,6 @@ import {
   InfoIcon,
   LinkIcon,
   type LucideIcon,
-  PercentIcon,
   TriangleAlertIcon,
 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -24,7 +23,6 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
 import { DatePicker } from "@/components/blocks/date-picker"
-import { EmptyState } from "@/components/blocks/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -135,23 +133,90 @@ function FootNote({
 /* Rails                                                                      */
 /* -------------------------------------------------------------------------- */
 
-function RailRow({
+/** Label + control, the shared shape of the Gateway and Rate rows. */
+function SettingRow({
+  label,
+  htmlFor,
+  children,
+  hint,
+}: {
+  label: string
+  htmlFor?: string
+  children: React.ReactNode
+  hint?: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex min-h-9 items-center justify-between gap-3">
+        {htmlFor ? (
+          <label htmlFor={htmlFor} className="text-sm text-muted-foreground">
+            {label}
+          </label>
+        ) : (
+          <span className="text-sm text-muted-foreground">{label}</span>
+        )}
+        <div className="flex shrink-0 items-center gap-3">{children}</div>
+      </div>
+      {hint}
+    </div>
+  )
+}
+
+function Warning({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="flex items-start gap-2 text-xs leading-4 text-cami-yellow-11">
+      <TriangleAlertIcon className="mt-px size-3.5 shrink-0" />
+      <span>{children}</span>
+    </p>
+  )
+}
+
+/**
+ * Everything about one rail: whether it is on, where it routes, and what Cami
+ * charges on it.
+ *
+ * These used to be two cards, rails and rate card, each listing the same two
+ * rails in the same order. Splitting them was modelled on the write semantics,
+ * mutable flags versus an append-only ledger, but that is a fact about the
+ * store, not about the question being asked. Ops asks "how is Terminal set up
+ * for this Partner", and the answer was spread across two places that had to be
+ * read against each other. The coupling was already showing: the zero-rate
+ * warning lives with the rate but reads the rail's enabled flag.
+ *
+ * The append-only model is unchanged and still enforced the same way, by there
+ * being no editable rate field on the surface at all.
+ */
+function RailSection({
   business,
   rail,
   disabled,
+  onChangeRate,
 }: {
   business: AdminBusiness
   rail: CamiPayRail
   disabled: boolean
+  onChangeRate: (rail: CamiPayRail) => void
 }) {
   const camipay = useCamiPay()
   const auth = useAuth()
-  const canEdit = auth.has("billing.camipay.rails.edit") && !disabled
+  // Two independent permissions on one card. Turning a rail on is operational,
+  // changing a rate is commercial, and the same person does not necessarily do
+  // both, so each control is gated separately rather than the card as a whole.
+  const canEditRail = auth.has("billing.camipay.rails.edit") && !disabled
+  const canEditRate = auth.has("billing.camipay.rates.edit") && !disabled
 
   const meta = CAMIPAY_RAILS.find((r) => r.id === rail)
   const config = merchantConfig(camipay, business.id)[rail]
   const Icon = RAIL_ICON[rail]
   const selectId = `${rail}-gateway`
+
+  const current = effectiveRate(camipay, business.id, rail)
+  const scheduled = scheduledRates(camipay, business.id, rail)
+  const bracket = current ? formatRateBracket(current.rate) : null
+  // A rail that is taking money with no rate row is charging nothing. That is
+  // the defined behaviour (a missing rate is zero, not an error), but it is
+  // also almost always a mistake, so it is surfaced rather than left silent.
+  const liveWithoutRate = config.enabled && !current
 
   function handleToggle(next: boolean) {
     camipay.setRailEnabled(business.id, rail, next)
@@ -164,7 +229,7 @@ function RailRow({
   }
 
   return (
-    <div className="flex flex-col gap-3 border-b border-border/50 py-3.5 last:border-b-0">
+    <div className="flex flex-col gap-2 border-b border-border/50 py-4 last:border-b-0">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-3">
           <span
@@ -186,107 +251,87 @@ function RailRow({
         <Switch
           checked={config.enabled}
           onCheckedChange={handleToggle}
-          disabled={!canEdit}
+          disabled={!canEditRail}
           aria-label={`${meta?.label}, ${config.enabled ? "on" : "off"}`}
         />
       </div>
 
-      {config.enabled ? (
-        <div className="flex items-center justify-between gap-3 pl-11">
-          <label htmlFor={selectId} className="text-sm text-muted-foreground">
-            Gateway
-          </label>
-          <Select
-            value={config.gatewayId ?? ""}
-            onValueChange={(v) => handleGateway(v as GatewayId)}
-            disabled={!canEdit}
+      <div className="flex flex-col gap-1.5 pl-11">
+        {/* Gateway only when the rail is on: an off rail has no routing
+            question to answer. The rate stays visible either way, because a
+            commercial term outlives the switch, see the suspended Partner. */}
+        {config.enabled ? (
+          <SettingRow
+            label="Gateway"
+            htmlFor={selectId}
+            hint={
+              config.gatewayId ? null : (
+                <Warning>This rail is on but has no gateway, so nothing will route.</Warning>
+              )
+            }
           >
-            <SelectTrigger id={selectId} className="w-56">
-              <SelectValue placeholder="Select gateway" />
-            </SelectTrigger>
-            <SelectContent>
-              {GATEWAYS.map((g) => (
-                <SelectItem key={g.id} value={g.id}>
-                  <span className="flex items-center gap-2">
-                    {g.label}
-                    {g.status === "onboarding" ? (
-                      <Badge variant="muted" size="sm">
-                        Onboarding
-                      </Badge>
-                    ) : null}
+            <Select
+              value={config.gatewayId ?? ""}
+              onValueChange={(v) => handleGateway(v as GatewayId)}
+              disabled={!canEditRail}
+            >
+              <SelectTrigger id={selectId} className="w-56">
+                <SelectValue placeholder="Select gateway" />
+              </SelectTrigger>
+              <SelectContent>
+                {GATEWAYS.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    <span className="flex items-center gap-2">
+                      {g.label}
+                      {g.status === "onboarding" ? (
+                        <Badge variant="muted" size="sm">
+                          Onboarding
+                        </Badge>
+                      ) : null}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingRow>
+        ) : null}
+
+        <SettingRow
+          label="Rate"
+          hint={
+            <div className="flex flex-col gap-1.5">
+              {/* Provenance only when there is a rate. The value already reads
+                  "Not set", and "No rate set" under it says it twice. */}
+              {current ? (
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  From {formatEffectiveDate(current.effectiveFrom)}, set by {current.createdBy}
+                </span>
+              ) : null}
+              {bracket ? (
+                <span className="text-xs text-muted-foreground tabular-nums">{bracket}</span>
+              ) : null}
+              {liveWithoutRate ? (
+                <Warning>
+                  This rail is live with no rate, so Cami earns nothing on these payments.
+                </Warning>
+              ) : null}
+              {scheduled.map((row) => (
+                <span
+                  key={row.id}
+                  className="flex items-center gap-2 rounded-xl bg-cami-yellow-3 px-3 py-2 text-xs text-cami-yellow-11"
+                >
+                  <Badge variant="warning" size="sm">
+                    Scheduled
+                  </Badge>
+                  <span className="tabular-nums">
+                    {formatRate(row.rate)} from {formatEffectiveDate(row.effectiveFrom)}, set by{" "}
+                    {row.createdBy}
                   </span>
-                </SelectItem>
+                </span>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
-      ) : null}
-
-      {config.enabled && !config.gatewayId ? (
-        <p className="flex items-center gap-2 pl-11 text-xs text-cami-yellow-11">
-          <TriangleAlertIcon className="size-3.5 shrink-0" />
-          This rail is on but has no gateway, so nothing will route.
-        </p>
-      ) : null}
-    </div>
-  )
-}
-
-function RailsCard({ business, disabled }: { business: AdminBusiness; disabled: boolean }) {
-  return (
-    <Card title="CamiPay rails">
-      <div className="flex flex-col">
-        {CAMIPAY_RAILS.map((rail) => (
-          <RailRow key={rail.id} business={business} rail={rail.id} disabled={disabled} />
-        ))}
-      </div>
-      <FootNote>
-        Turning a rail off removes it from this Partner's checkout, nothing more. Cash and off-rail
-        card payments still record to the sale ledger.
-      </FootNote>
-    </Card>
-  )
-}
-
-/* -------------------------------------------------------------------------- */
-/* Rate card                                                                  */
-/* -------------------------------------------------------------------------- */
-
-function RateRailRow({
-  business,
-  rail,
-  disabled,
-  onChangeRate,
-}: {
-  business: AdminBusiness
-  rail: CamiPayRail
-  disabled: boolean
-  onChangeRate: (rail: CamiPayRail) => void
-}) {
-  const camipay = useCamiPay()
-  const auth = useAuth()
-  const canEdit = auth.has("billing.camipay.rates.edit") && !disabled
-
-  const current = effectiveRate(camipay, business.id, rail)
-  const scheduled = scheduledRates(camipay, business.id, rail)
-  const bracket = current ? formatRateBracket(current.rate) : null
-  // A rail that is taking money with no rate row is charging nothing. That is
-  // the defined behaviour (a missing rate is zero, not an error), but it is
-  // also almost always a mistake, so it is surfaced rather than left silent.
-  const liveWithoutRate = merchantConfig(camipay, business.id)[rail].enabled && !current
-
-  return (
-    <div className="flex flex-col gap-2 border-b border-border/50 py-3.5 last:border-b-0">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-sm font-medium text-foreground">{railLabel(rail)}</span>
-          <span className="text-xs text-muted-foreground">
-            {current
-              ? `From ${formatEffectiveDate(current.effectiveFrom)}, set by ${current.createdBy}`
-              : "No rate set"}
-          </span>
-        </div>
-        <div className="flex shrink-0 items-center gap-3">
+            </div>
+          }
+        >
           <span
             className={cn(
               "text-base font-medium tabular-nums",
@@ -295,7 +340,7 @@ function RateRailRow({
           >
             {current ? formatRate(current.rate) : "Not set"}
           </span>
-          {canEdit ? (
+          {canEditRate ? (
             <Button
               variant="outline"
               size="sm"
@@ -306,32 +351,8 @@ function RateRailRow({
               {current ? "Change" : "Set rate"}
             </Button>
           ) : null}
-        </div>
+        </SettingRow>
       </div>
-
-      {bracket ? <p className="text-xs text-muted-foreground tabular-nums">{bracket}</p> : null}
-
-      {liveWithoutRate ? (
-        <p className="flex items-start gap-2 text-xs leading-4 text-cami-yellow-11">
-          <TriangleAlertIcon className="mt-px size-3.5 shrink-0" />
-          This rail is live with no rate, so Cami earns nothing on these payments.
-        </p>
-      ) : null}
-
-      {scheduled.map((row) => (
-        <div
-          key={row.id}
-          className="flex items-center gap-2 rounded-xl bg-cami-yellow-3 px-3 py-2 text-xs text-cami-yellow-11"
-        >
-          <Badge variant="warning" size="sm">
-            Scheduled
-          </Badge>
-          <span className="tabular-nums">
-            {formatRate(row.rate)} from {formatEffectiveDate(row.effectiveFrom)}, set by{" "}
-            {row.createdBy}
-          </span>
-        </div>
-      ))}
     </div>
   )
 }
@@ -384,7 +405,7 @@ function RateHistory({ rows }: { rows: RateRow[] }) {
   )
 }
 
-function RateCard({
+function CamiPayCard({
   business,
   disabled,
   onChangeRate,
@@ -394,48 +415,37 @@ function RateCard({
   onChangeRate: (rail: CamiPayRail) => void
 }) {
   const camipay = useCamiPay()
-  const auth = useAuth()
   const rows = merchantRates(camipay, business.id)
-  const canEdit = auth.has("billing.camipay.rates.edit") && !disabled
 
   return (
     <Card
-      title="Rate card"
+      title="CamiPay"
       hint={<span className="text-xs text-muted-foreground">Set at Business level</span>}
     >
-      {rows.length === 0 ? (
-        <EmptyState
-          className="py-4"
-          icon={PercentIcon}
-          title="No rate card yet"
-          description="With no rate set, Cami charges this Partner nothing on CamiPay payments. Set a rate per rail before they start taking money."
-          action={
-            canEdit ? (
-              <Button variant="outline" radius="full" onClick={() => onChangeRate("terminal")}>
-                Set terminal rate
-              </Button>
-            ) : null
-          }
-        />
-      ) : (
-        <div className="flex flex-col">
-          {CAMIPAY_RAILS.map((rail) => (
-            <RateRailRow
-              key={rail.id}
-              business={business}
-              rail={rail.id}
-              disabled={disabled}
-              onChangeRate={onChangeRate}
-            />
-          ))}
-        </div>
-      )}
+      <div className="flex flex-col">
+        {CAMIPAY_RAILS.map((rail) => (
+          <RailSection
+            key={rail.id}
+            business={business}
+            rail={rail.id}
+            disabled={disabled}
+            onChangeRate={onChangeRate}
+          />
+        ))}
+      </div>
 
+      {/* One footnote, not two. Both sentences answer the same question, "this
+          change is narrower than it looks", and two stacked grey blocks read as
+          boilerplate where one reads as a rule. */}
       <FootNote>
-        Changing a rate never re-prices past payments. Every payment keeps the rate that was live
-        when it was captured, so a change only applies from its effective date forward.
+        Turning a rail off removes it from this Partner's checkout, nothing more. Cash and off-rail
+        card payments still record to the sale ledger. Changing a rate never re-prices past
+        payments, so a change only applies from its effective date forward.
       </FootNote>
 
+      {/* History stays Partner-scoped rather than moving inside each rail: the
+          question ops asks is "what has this Partner been charged", not "what
+          has this rail been". */}
       <RateHistory rows={rows} />
     </Card>
   )
@@ -797,8 +807,7 @@ export function HqCamiPayPanel({ business, disabled = false }: HqCamiPayPanelPro
               : "You have view-only access to settlement config. Ask an HQ admin for CamiPay edit rights."}
           </FootNote>
         ) : null}
-        <RailsCard business={business} disabled={disabled} />
-        <RateCard
+        <CamiPayCard
           business={business}
           disabled={disabled}
           onChangeRate={(rail) => setRateDialogRail(rail)}

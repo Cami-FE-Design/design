@@ -1852,7 +1852,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Cami HQ — CamiPay settlement config"
-        description="PRO-737. The Settings tab of the HQ Partner detail dialog (/admin/businesses?business=…). Rails are mutable flags with a gateway each; the rate card is append-only, so the only write is Change rate, which adds a row with an effective-from date. Past rows have no edit or delete affordance on purpose. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off (Shampooch Online, Pawhaus Online). A live rail with no rate row earns Cami nothing and says so. One store is shared across the rows below, so a change made in one row shows up in the others."
+        description="PRO-737. The Settings tab of the HQ Partner detail dialog (/admin/businesses?business=…). One card, one section per rail: whether it is on, where it routes, and what Cami charges on it. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off (Shampooch Online, Pawhaus Online). Rates are append-only, so the only write is Change, which adds a row with an effective-from date; past rows have no edit or delete affordance on purpose. A live rail with no rate row earns Cami nothing and says so (Doggos Online). The switch and gateway are gated by billing.camipay.rails.edit, Change by billing.camipay.rates.edit, separately. One store is shared across the rows below, so a change made in one row shows up in the others."
       >
         <CamiPayProvider>
           <Row label="Live Partner, full edit rights">
