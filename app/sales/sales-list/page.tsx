@@ -6,10 +6,12 @@ import {
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
+  CreditCardIcon,
   DownloadIcon,
   FileSpreadsheetIcon,
   FileTextIcon,
   GiftIcon,
+  LinkIcon,
   MoreVerticalIcon,
   NotebookPenIcon,
   PencilIcon,
@@ -27,6 +29,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
 import { CartFlow } from "@/app/sales/new-sale/cart-flow"
 import type { CartLine } from "@/app/sales/new-sale/types"
 import { AppShell } from "@/components/blocks/app-shell"
+import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import {
   type ClientDetailClient,
   ClientDetailDialog,
@@ -77,6 +80,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { type CamiPayRail, type CamiPayRate, railLabel } from "@/lib/hq-camipay/store"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -396,6 +400,17 @@ export type SaleGiftCard = {
   valueAed: number
 }
 
+/**
+ * A payment taken over CamiPay, with the rate that was live when it was
+ * captured copied onto it. The snapshot is the point: settlement and this
+ * screen read the stored rate, never the Partner's current rate card, so a
+ * renegotiation cannot restate a sale that already happened (PRO-737, INV-01).
+ */
+export type SaleCamiPay = {
+  rail: CamiPayRail
+  rate: CamiPayRate
+}
+
 export type Sale = {
   id: number
   client: string
@@ -405,7 +420,20 @@ export type Sale = {
   grossMinor: number
   /** Set when this sale is a gift-card purchase (drives the gift-card item UI). */
   giftCard?: SaleGiftCard
+  /** Set when the payment went over CamiPay. Absent means cash. */
+  camipay?: SaleCamiPay
 }
+
+// Rate snapshots for the mock sales, copied from Shampooch JVC's rate card in
+// `DEFAULT_CAMIPAY_STATE` as it stood on each sale's date. Written out rather
+// than resolved at render time, because that is exactly what a real capture
+// does: it stores the rate, it does not look it up later.
+//
+// Both are the rates effective 01 May 2026, which is before every sale below.
+// The online one carries the AED 100 bracket, so the sales split across it:
+// anything under keeps the AED 0.75, the AED 10,500 gift-card sale does not.
+const RATE_TERMINAL: CamiPayRate = { percent: 1.8, fixedMinor: 0, fixedBelowMinor: null }
+const RATE_ONLINE: CamiPayRate = { percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 }
 
 // Demo today is 2026-05-25. Trimmed to 10 rows: five "today" rows (one per
 // status) guarantee every state is visible the moment the page opens, plus
@@ -422,6 +450,7 @@ export const MOCK_SALES: Sale[] = [
     saleAt: new Date(2026, 4, 25, 14, 30),
     tipsMinor: 1000,
     grossMinor: 5400,
+    camipay: { rail: "terminal", rate: RATE_TERMINAL },
   },
   {
     id: 15,
@@ -430,6 +459,9 @@ export const MOCK_SALES: Sale[] = [
     saleAt: new Date(2026, 4, 25, 12, 5),
     tipsMinor: 0,
     grossMinor: 3800,
+    // Under the AED 100 bracket, so the fixed AED 0.75 applies. Part-paid too,
+    // which proves the fee follows what was captured, not the sale total.
+    camipay: { rail: "online", rate: RATE_ONLINE },
   },
   {
     id: 14,
@@ -463,6 +495,7 @@ export const MOCK_SALES: Sale[] = [
     saleAt: new Date(2026, 4, 24, 10, 15),
     tipsMinor: 0,
     grossMinor: 2500,
+    camipay: { rail: "terminal", rate: RATE_TERMINAL },
   },
   {
     id: 6,
@@ -508,6 +541,10 @@ export const MOCK_SALES: Sale[] = [
     tipsMinor: 0,
     grossMinor: 1050000,
     giftCard: { cardId: "gc-5", code: "ZTP3RG84", status: "Active", valueAed: 10500 },
+    // Above the AED 100 bracket, so the AED 0.75 is dropped and the fee is the
+    // percentage alone. Paired with sale 15, which sits under it. Reached from
+    // /sales/gift-cards-sold via "View sale".
+    camipay: { rail: "online", rate: RATE_ONLINE },
   },
   {
     id: 23,
@@ -1567,10 +1604,21 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
                           Payment
-                          <span className="inline-flex items-center gap-1 rounded-md bg-cami-green-3 px-1.5 py-0.5 text-xs font-medium text-cami-green-11">
-                            <BanknoteIcon className="size-3" />
-                            Cash
-                          </span>
+                          {data.camipay ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-cami-violet-3 px-1.5 py-0.5 text-xs font-medium text-cami-violet-11">
+                              {data.camipay.rail === "terminal" ? (
+                                <CreditCardIcon className="size-3" />
+                              ) : (
+                                <LinkIcon className="size-3" />
+                              )}
+                              {railLabel(data.camipay.rail)}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-cami-green-3 px-1.5 py-0.5 text-xs font-medium text-cami-green-11">
+                              <BanknoteIcon className="size-3" />
+                              Cash
+                            </span>
+                          )}
                         </span>
                         <span className="truncate text-xs text-muted-foreground">
                           {formatDateOnly(data.saleAt)} at {formatTimeOnly(data.saleAt)}
@@ -1580,6 +1628,25 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                         {money(paid)}
                       </span>
                     </div>
+                  </>
+                ) : null}
+
+                {/* What Cami took out of this payment. Only for CamiPay, and
+                    only once money has actually moved — a fee on an unpaid or
+                    voided sale is a number for a thing that never happened. */}
+                {data.camipay && data.status !== "voided" && paid > 0 ? (
+                  <>
+                    <div className="h-px bg-border/60" />
+                    {/* `collectedMinor`, not `paidMinor`: a completed sale's
+                        paid figure includes change tendered back, and Cami
+                        charges on what was captured, not what crossed the
+                        counter. */}
+                    <CamiPayFeeBreakdown
+                      rail={data.camipay.rail}
+                      rate={data.camipay.rate}
+                      amountMinor={collectedMinor}
+                      capturedOnLabel={formatDateOnly(data.saleAt)}
+                    />
                   </>
                 ) : null}
 

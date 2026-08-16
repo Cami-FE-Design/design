@@ -20,7 +20,10 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 
-const STORAGE_KEY = "cami-hq-camipay-v1"
+// v2: the rate stopped being a bare percentage and became percent + fixed +
+// an optional ceiling for the fixed part. The old v1 payload cannot be read as
+// the new shape, so the key is bumped rather than migrated.
+const STORAGE_KEY = "cami-hq-camipay-v2"
 
 /* -------------------------------------------------------------------------- */
 /* Types                                                                      */
@@ -74,6 +77,40 @@ export function gatewayLabel(id: GatewayId | null): string {
 }
 
 /**
+ * What Cami charges the Partner on one transaction. Two components, because a
+ * take rate in this market is quoted as both: "3% + AED 0.75 per transaction".
+ * A percentage alone under-recovers on small tickets, where the gateway's own
+ * per-transaction cost is close to the whole fee.
+ *
+ * Amounts are in fils (minor units), never floats. `fixedMinor: 75` is
+ * AED 0.75.
+ */
+export type CamiPayRate = {
+  /** Percentage component, e.g. 3 for 3%. */
+  percent: number
+  /** Fixed per-transaction component, in fils. 0 means percentage only. */
+  fixedMinor: number
+  /**
+   * Ceiling for the fixed component, in fils. The fixed part applies only to
+   * transactions BELOW this amount; at or above it the Partner pays the
+   * percentage alone. `null` means the fixed part applies to every
+   * transaction.
+   *
+   * This is Firaz's bracket: the fixed fee exists to cover the floor cost on
+   * small tickets, so above a threshold it stops earning its keep and charging
+   * it just makes Cami look expensive on the invoices Partners scrutinise most.
+   */
+  fixedBelowMinor: number | null
+}
+
+/** A rate that costs the Partner nothing. What an unconfigured rail resolves to. */
+export const ZERO_RATE: CamiPayRate = { percent: 0, fixedMinor: 0, fixedBelowMinor: null }
+
+export function isZeroRate(rate: CamiPayRate): boolean {
+  return rate.percent === 0 && rate.fixedMinor === 0
+}
+
+/**
  * One row of a merchant's rate card. Append-only: a rate change writes a new
  * row, it never mutates an existing one. `createdBy` / `createdAt` are the
  * attribution (INV-08); `effectiveFrom` is when the rate starts applying, which
@@ -83,8 +120,7 @@ export type RateRow = {
   id: string
   merchantId: string
   rail: CamiPayRail
-  /** Take rate as a percentage, e.g. 1.8 for 1.8%. */
-  rate: number
+  rate: CamiPayRate
   /** ISO `YYYY-MM-DD`. Applies to captures on or after this date. */
   effectiveFrom: string
   createdBy: string
@@ -140,12 +176,16 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
     },
   },
   rates: [
-    // Shampooch JVC: opened at 2%/3.5%, renegotiated down from 01 Jun.
+    // Shampooch JVC: opened on the platform defaults (2% / 3.5%, no fixed),
+    // renegotiated from 01 May. The online cut trades percentage for a fixed
+    // component under AED 100, which is the case the old percent-only model
+    // could not hold. The date sits before the demo sales (25 May) on purpose,
+    // so the rates on `/sales` and the rate card here tell the same story.
     {
       id: "rate_sh_t1",
       merchantId: "biz_shampooch",
       rail: "terminal",
-      rate: 2,
+      rate: { percent: 2, fixedMinor: 0, fixedBelowMinor: null },
       effectiveFrom: "2026-03-04",
       createdBy: "Michelle You",
       createdAt: "2026-03-04T09:20:00Z",
@@ -154,7 +194,7 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
       id: "rate_sh_o1",
       merchantId: "biz_shampooch",
       rail: "online",
-      rate: 3.5,
+      rate: { percent: 3.5, fixedMinor: 0, fixedBelowMinor: null },
       effectiveFrom: "2026-03-04",
       createdBy: "Michelle You",
       createdAt: "2026-03-04T09:20:00Z",
@@ -163,27 +203,28 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
       id: "rate_sh_t2",
       merchantId: "biz_shampooch",
       rail: "terminal",
-      rate: 1.8,
-      effectiveFrom: "2026-06-01",
+      rate: { percent: 1.8, fixedMinor: 0, fixedBelowMinor: null },
+      effectiveFrom: "2026-05-01",
       createdBy: "Maz Khan",
-      createdAt: "2026-05-22T11:04:00Z",
+      createdAt: "2026-04-22T11:04:00Z",
     },
     {
       id: "rate_sh_o2",
       merchantId: "biz_shampooch",
       rail: "online",
-      rate: 3,
-      effectiveFrom: "2026-06-01",
+      rate: { percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 },
+      effectiveFrom: "2026-05-01",
       createdBy: "Maz Khan",
-      createdAt: "2026-05-22T11:04:00Z",
+      createdAt: "2026-04-22T11:04:00Z",
     },
     // Pawhaus: flat since onboarding, with a future-dated cut already agreed.
-    // The scheduled row is what proves the forward-only model in the UI.
+    // The scheduled row is what proves the forward-only model in the UI, and
+    // the online rail carries the threshold bracket so it is visible somewhere.
     {
       id: "rate_pw_t1",
       merchantId: "biz_pawhaus",
       rail: "terminal",
-      rate: 2,
+      rate: { percent: 2, fixedMinor: 0, fixedBelowMinor: null },
       effectiveFrom: "2026-03-18",
       createdBy: "Michelle You",
       createdAt: "2026-03-18T10:12:00Z",
@@ -192,7 +233,7 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
       id: "rate_pw_o1",
       merchantId: "biz_pawhaus",
       rail: "online",
-      rate: 3.25,
+      rate: { percent: 3.25, fixedMinor: 100, fixedBelowMinor: 10000 },
       effectiveFrom: "2026-03-18",
       createdBy: "Michelle You",
       createdAt: "2026-03-18T10:12:00Z",
@@ -201,7 +242,7 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
       id: "rate_pw_t2",
       merchantId: "biz_pawhaus",
       rail: "terminal",
-      rate: 1.9,
+      rate: { percent: 1.9, fixedMinor: 0, fixedBelowMinor: null },
       effectiveFrom: "2026-09-01",
       createdBy: "Hareem Adil",
       createdAt: "2026-08-04T14:30:00Z",
@@ -210,7 +251,7 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
       id: "rate_dg_t1",
       merchantId: "biz_doggos",
       rail: "terminal",
-      rate: 2.2,
+      rate: { percent: 2.2, fixedMinor: 0, fixedBelowMinor: null },
       effectiveFrom: "2026-02-12",
       createdBy: "Michelle You",
       createdAt: "2026-02-12T09:10:00Z",
@@ -219,7 +260,7 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
       id: "rate_ft_t1",
       merchantId: "biz_furrytales",
       rail: "terminal",
-      rate: 2.5,
+      rate: { percent: 2.5, fixedMinor: 0, fixedBelowMinor: null },
       effectiveFrom: "2026-01-08",
       createdBy: "Michelle You",
       createdAt: "2026-01-08T08:30:00Z",
@@ -260,6 +301,14 @@ export function formatEffectiveDate(iso: string): string {
   })
 }
 
+/**
+ * The Partner the Business app is standing in for. The prototype's Business
+ * portal is always Shampooch JVC, so its merchant-side surfaces read the same
+ * store HQ writes to and a rate change in HQ shows up in the Partner's own
+ * settings without any wiring in between.
+ */
+export const DEMO_MERCHANT_ID = "biz_shampooch"
+
 export function merchantConfig(state: CamiPayState, merchantId: string): MerchantCamiPayConfig {
   return state.configs[merchantId] ?? OFF
 }
@@ -293,6 +342,21 @@ export function effectiveRate(
   return railRates(state, merchantId, rail).find((r) => r.effectiveFrom <= onIso) ?? null
 }
 
+/**
+ * The rate a capture would actually charge. An unconfigured rail resolves to
+ * `ZERO_RATE`, not to an error and not to a platform default: Maaz's rule is
+ * that a missing rate means Cami charges nothing, and the surfaces make that
+ * consequence visible rather than papering over it with a fallback number.
+ */
+export function effectiveRateValue(
+  state: CamiPayState,
+  merchantId: string,
+  rail: CamiPayRail,
+  onIso: string = todayIso(),
+): CamiPayRate {
+  return effectiveRate(state, merchantId, rail, onIso)?.rate ?? ZERO_RATE
+}
+
 /** Rows dated in the future, soonest first. Rendered as "Scheduled". */
 export function scheduledRates(
   state: CamiPayState,
@@ -305,9 +369,89 @@ export function scheduledRates(
     .reverse()
 }
 
-export function formatRate(rate: number): string {
+/* -------------------------------------------------------------------------- */
+/* Rate formatting and fee maths                                              */
+/* -------------------------------------------------------------------------- */
+
+/** `7500` becomes `AED 75.00`. Always two decimals, money never trims. */
+export function formatAed(minor: number): string {
+  const sign = minor < 0 ? "-" : ""
+  return `${sign}AED ${(Math.abs(minor) / 100).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
+
+export function formatPercent(percent: number): string {
   // Trailing zero reads as precision that isn't there: 2%, not 2.00%.
-  return `${Number(rate.toFixed(2))}%`
+  return `${Number(percent.toFixed(2))}%`
+}
+
+/**
+ * The headline rate: `3%`, or `3% + AED 0.75`. The threshold is deliberately
+ * NOT in here. A rate has to be sayable in one breath, and
+ * "3% + AED 0.75 on sales under AED 100" is not that. The bracket renders as a
+ * second line, see `formatRateBracket`.
+ */
+export function formatRate(rate: CamiPayRate): string {
+  if (isZeroRate(rate)) return "No fee"
+  if (rate.fixedMinor === 0) return formatPercent(rate.percent)
+  if (rate.percent === 0) return `${formatAed(rate.fixedMinor)} per transaction`
+  return `${formatPercent(rate.percent)} + ${formatAed(rate.fixedMinor)}`
+}
+
+/**
+ * The bracket qualifier, or null when the rate has no bracket to explain.
+ * Only meaningful when a fixed component exists, since the threshold gates
+ * nothing else.
+ */
+export function formatRateBracket(rate: CamiPayRate): string | null {
+  if (rate.fixedMinor === 0 || rate.fixedBelowMinor === null) return null
+  return `${formatAed(rate.fixedMinor)} applies under ${formatAed(rate.fixedBelowMinor)}, ${formatPercent(rate.percent)} alone at or above`
+}
+
+export type FeeBreakdown = {
+  /** The percentage component of the fee, in fils. */
+  percentMinor: number
+  /** The fixed component actually charged, in fils. Zero when the bracket excludes it. */
+  fixedMinor: number
+  /** What the Partner pays Cami on this transaction, in fils. */
+  totalMinor: number
+  /** What lands with the Partner, in fils. */
+  netMinor: number
+  /** False when a fixed component exists but this transaction sat above the bracket. */
+  fixedApplied: boolean
+}
+
+/**
+ * Apply a rate to one transaction. This is the single place the arithmetic
+ * lives, so HQ's preview, the merchant's sale breakdown, and (eventually)
+ * settlement cannot drift from each other.
+ *
+ * Takes an absolute amount. Refunds are handled by the caller deciding what to
+ * do with a reversed fee, which is a commercial question this function has no
+ * business answering.
+ */
+export function computeFee(rate: CamiPayRate, amountMinor: number): FeeBreakdown {
+  const base = Math.abs(amountMinor)
+  const percentMinor = Math.round((base * rate.percent) / 100)
+  const fixedApplied =
+    rate.fixedMinor > 0 && (rate.fixedBelowMinor === null || base < rate.fixedBelowMinor)
+  const fixedMinor = fixedApplied ? rate.fixedMinor : 0
+  const totalMinor = percentMinor + fixedMinor
+  return { percentMinor, fixedMinor, totalMinor, netMinor: base - totalMinor, fixedApplied }
+}
+
+/**
+ * How the fee was arrived at, in one line, for a specific transaction:
+ * `3% of AED 120.00 + AED 0.75`. Shown to the Partner so the number is not a
+ * black box, which is the whole point of GNK's breakdown requirement.
+ */
+export function explainFee(rate: CamiPayRate, amountMinor: number): string {
+  const { fixedApplied } = computeFee(rate, amountMinor)
+  const pct = `${formatPercent(rate.percent)} of ${formatAed(Math.abs(amountMinor))}`
+  if (!fixedApplied) return pct
+  return `${pct} + ${formatAed(rate.fixedMinor)}`
 }
 
 /* -------------------------------------------------------------------------- */
@@ -324,7 +468,7 @@ export type CamiPayValue = CamiPayState & {
   addRate: (input: {
     merchantId: string
     rail: CamiPayRail
-    rate: number
+    rate: CamiPayRate
     effectiveFrom: string
     createdBy: string
   }) => void

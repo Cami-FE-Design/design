@@ -42,8 +42,10 @@ Out of scope for this pass, flagged so the omission is deliberate:
 
 - **Full settlement config**: gateway credentials, payout accounts, batch
   timing. Separate surface, separate spec.
-- **Business-app changes.** The Partner only sees the effect, which is which
-  rails appear at checkout. No new Business-side screen.
+- **Business-app changes.** Covered by the companion spec,
+  [PRO-737, CamiPay fee visibility on the Partner side](./PRO-737-camipay-fee-visibility.md):
+  a fee breakdown on the sale detail and a read-only rate view in settings.
+  Nothing the Partner can change lives there.
 - **Per-location rates.** See Inheritance below, the level is declared but
   overrides are not built.
 - **Backend.** Store is React context plus localStorage, same pattern as
@@ -77,17 +79,74 @@ type RailConfig = {
   gatewayId: GatewayId | null
 }
 
+// What Cami charges on one transaction. Amounts in fils, never floats.
+type CamiPayRate = {
+  percent: number             // 3 means 3%
+  fixedMinor: number          // 75 means AED 0.75 per transaction
+  fixedBelowMinor: number | null // fixed part applies only below this; null = always
+}
+
 // Append-only. A rate change writes a NEW row, it never updates one.
 type RateRow = {
   id: string
   merchantId: string
   rail: CamiPayRail
-  rate: number          // percentage, 1.8 means 1.8%
+  rate: CamiPayRate
   effectiveFrom: string // YYYY-MM-DD, a calendar date, not an instant
   createdBy: string     // INV-08, attributable
   createdAt: string     // ISO timestamp of when the row was written
 }
 ```
+
+### Why the rate is three fields, not one
+
+A take rate in this market is quoted as **percentage plus a fixed amount per
+transaction**: Maaz's example is `3% + AED 0.75`. A percentage alone
+under-recovers on small tickets, where the gateway's own per-transaction cost is
+close to the whole fee.
+
+`fixedBelowMinor` is Firaz's bracket. His framing: under AED 100 the fixed fee
+applies, above it a flat percentage is enough. The field is stored as a ceiling
+on the fixed component rather than as a second full rate, because that is what
+the rule actually is, one fee with a threshold on one of its parts. Two rate
+tiers would have to answer what happens to the percentage across the boundary,
+and the commercial answer is "nothing".
+
+Maaz, on why it exists before the commercials are settled: *"from a technical
+perspective, we should build the % + Value brackets so we have flexibility.
+Commercially, we can figure this out offline."* The model carries the bracket;
+the default is `null`, so nobody has to use it.
+
+### Missing rate means zero, and the UI says so
+
+Maaz, on a rail with no configured fee: *"fee needs to be treated as Zero."*
+
+`effectiveRateValue` resolves an unconfigured rail to `ZERO_RATE` rather than to
+a platform default. No rate is seeded at onboarding. The consequence is that a
+Partner can be live and charged nothing, so three surfaces state it rather than
+letting it pass silently:
+
+- The rate-card empty state reads "With no rate set, Cami charges this Partner
+  nothing on CamiPay payments."
+- A rail that is **enabled with no rate row** carries an amber line: "This rail
+  is live with no rate, so Cami earns nothing on these payments."
+- The Partner's own settings screen shows "No fee" rather than a dash.
+
+Seeding the platform defaults (2% terminal, 3.5% online) instead was considered
+and rejected: a seeded rate is indistinguishable from a negotiated one once it
+is on the card, and the person who would have caught the mistake is the one
+reading the card.
+
+### Fee arithmetic lives in one function
+
+`computeFee(rate, amountMinor)` returns `{ percentMinor, fixedMinor, totalMinor,
+netMinor, fixedApplied }`. HQ's dialog preview, the Partner's sale breakdown,
+and settlement all call it. Three implementations of the same rounding is how
+the number on the invoice stops matching the number in the app.
+
+The percentage rounds half-up to the nearest fil. The fixed part is added after,
+never rounded. `fixedApplied` is false when the bracket excluded it, which is
+what lets the breakdown explain a fee the Partner expected to be higher.
 
 `effectiveFrom` and `createdAt` are deliberately different fields. When a rate
 was agreed is not when it starts applying, and the history list shows both.
@@ -202,12 +261,19 @@ One row per rail:
 | Element | Content |
 | --- | --- |
 | Rail | `CamiPay Terminal` / `CamiPay Online` |
-| Provenance | `From 01 Jun 2026, set by Maz Khan`, or `No rate set` |
-| Rate | `1.8%`, tabular nums, or `Not set` in muted when the rail has no rows |
+| Provenance | `From 01 May 2026, set by Maz Khan`, or `No rate set` |
+| Rate | `1.8%` or `3% + AED 0.75`, tabular nums, or `Not set` in muted when the rail has no rows |
+| Bracket | Second line when one is set: `AED 0.75 applies under AED 100.00, 3% alone at or above` |
+| Warning | Amber line when the rail is **enabled with no rate**: "This rail is live with no rate, so Cami earns nothing on these payments." |
 | Action | `Change`, or `Set rate` when there is no current rate |
 
-Trailing zeros are trimmed, `2%` not `2.00%`, because the extra digits read as
-precision that is not there.
+Percentages trim trailing zeros, `2%` not `2.00%`, because the extra digits read
+as precision that is not there. Money never trims: `AED 0.75`, and `AED 100.00`
+for a round threshold.
+
+The bracket is a separate line rather than part of the headline rate. A rate has
+to be sayable in one breath, and "3% + AED 0.75 on sales under AED 100" is not
+that.
 
 **Scheduled rows.** A future-dated row renders as an amber strip under its rail:
 a `Scheduled` badge plus `1.9% from 01 Sep 2026, set by Hareem Adil`. It stays
@@ -226,8 +292,9 @@ a delete.
 row per rate row, newest effective date first, both rails interleaved:
 
 ```
-CamiPay Terminal, 1.8%              From 01 Jun 2026
-Set by Maz Khan on 22 May 2026
+CamiPay Online, 3% + AED 0.75                        From 01 May 2026
+AED 0.75 applies under AED 100.00, 3% alone at or above
+Set by Maz Khan on 22 Apr 2026
 ```
 
 Future rows read `Starts 01 Sep 2026` instead of `From`. History is scoped to
@@ -236,25 +303,54 @@ this Partner been charged", not "what has this rail been".
 
 ## Change rate dialog
 
-Title: `Change terminal rate` / `Change online rate`.
+Title: `Change CamiPay Terminal rate` / `Change CamiPay Online rate`. Not
+lowercased, because CamiPay is a product name before it is a word in a sentence
+and "change camipay terminal rate" reads as a typo.
 
 Description carries the current state and the model in one line:
 
-> Shampooch JVC is on **1.8%** since 01 Jun 2026. A change is added to the rate
+> Shampooch JVC is on **1.8%** since 01 May 2026. A change is added to the rate
 > card, it does not overwrite what came before.
 
 Fields:
 
-1. **New rate.** Text input, `inputMode="decimal"`, `%` suffix pinned inside the
-   field. Validation: required, numeric, greater than 0, 100 or less. Not
-   constrained to the 1.8 to 3.5% band from the glossary, since that is a
-   commercial norm and not a system rule.
-2. **Effective from.** `DatePicker`, defaults to today, `disableBefore` today.
+1. **Percentage** and **Fixed per transaction**, side by side with a `+` between
+   them. They are one rate, not two settings, and stacking them read as a
+   choice. `%` suffix inside the first, `AED` prefix inside the second.
+2. **Drop the fixed fee on larger sales**, a switch that only appears once a
+   fixed fee has been entered, since a bracket with nothing to gate is
+   meaningless. Switching it on reveals **Fixed fee applies below**.
+3. **Effective from.** `DatePicker`, defaults to today, `disableBefore` today.
 
-**Consequence preview**, appears once both fields have values:
+Validation: both amounts are optional individually and blank counts as zero, but
+at least one must be above zero. A `0% + AED 0` row would look like a decision
+and behave like an absence, and absence is already expressible by leaving the
+rail unconfigured. Percentage caps at 100. Nothing constrains the rate to the
+1.8 to 3.5% band from the glossary, since that is a commercial norm and not a
+system rule.
+
+**Consequence preview**, appears once a rate has been entered:
 
 > Payments captured before **01 Sep 2026** stay at **1.8%**. From that date,
-> Cami charges **1.9%**.
+> Cami charges **2.5% + AED 0.75**.
+
+Under it, worked examples run through `computeFee`:
+
+```
+On AED 120.00, 2.5% of AED 120.00 + AED 0.75          AED 3.75
+```
+
+With a bracket set, two examples appear, one either side of the threshold:
+
+```
+On AED 50.00, 2.5% of AED 50.00 + AED 0.75            AED 2.00
+On AED 150.00, 2.5% of AED 150.00                     AED 3.75
+```
+
+Two rather than one because the whole reason a bracket exists is that the two
+behave differently, and nobody setting a rate should have to take that on trust.
+Until the threshold has a value the rate is treated as unbracketed, so the
+examples never describe a rule that is half-entered.
 
 Submit label switches on the date: `Apply change` for today, `Schedule change`
 for a future date. Toast matches, either `CamiPay Terminal rate is now 1.9%` or
@@ -332,18 +428,26 @@ Seeded in `DEFAULT_CAMIPAY_STATE`, all five reachable from `/screens`.
 
 | Partner | State |
 | --- | --- |
-| Shampooch JVC | Both rails on NeoPay. Terminal cut 2% to 1.8%, online 3.5% to 3%, both effective 01 Jun. Four history rows. |
-| Pawhaus | Terminal on TapPay, online on NeoPay. 1.9% terminal **scheduled** for 01 Sep. |
+| Shampooch JVC | Both rails on NeoPay. Terminal cut 2% to 1.8%, online 3.5% to **3% + AED 0.75 under AED 100**, both effective 01 May. Four history rows. |
+| Pawhaus | Terminal on TapPay, online on NeoPay. Online is 3.25% + AED 1.00 under AED 100. 1.9% terminal **scheduled** for 01 Sep. |
 | Velvet Paw | Onboarding. Both rails off, no rate card, empty state. |
 | Doggos | Suspended. Terminal rail on, online rail off, no online rate so that row reads `Not set`. |
 | Furry Tales | Archived. Whole tab read-only. |
+
+Shampooch's change is dated 01 May rather than 01 Jun so that it sits **before**
+the demo sales on 25 May. The Partner-side breakdown snapshots its rate at
+capture, and a change dated after the sales would have left the two halves of
+the feature telling different stories on the same screen pair.
 
 The playground section shows five of these side by side: Shampooch JVC, Pawhaus,
 Velvet Paw, Shampooch JVC again under `billing.read` only for the view-only
 treatment, and Furry Tales. Doggos is `/screens` only. All playground rows share
 one `CamiPayProvider`, so a change made in one is reflected in the others.
 
-State persists to localStorage under `cami-hq-camipay-v1`. `reset()` clears it.
+State persists to localStorage under `cami-hq-camipay-v2`. `reset()` clears it.
+The key moved from `v1` when the rate stopped being a bare number: the old
+payload cannot be read as the new shape, and a half-migrated rate card is worse
+than a reset one.
 
 ## Known gaps
 
@@ -358,3 +462,16 @@ State persists to localStorage under `cami-hq-camipay-v1`. `reset()` clears it.
   real number to set the threshold at.
 - **The Settings tab is not deep-linkable.** Dialog-local state. Worth a `&tab=`
   param when a second section lands.
+- **One gateway per rail, not several.** GNK asked about multi-select gateway
+  selection. Maaz's answer settled it for now: NeoPay for terminals, Tap Pay for
+  online, one each. The rail-to-gateway field already allows a different
+  provider per rail (INV-P3), which is the flexibility that was actually asked
+  for. A rail routing to two gateways at once would need a split rule, and there
+  is no rule to encode yet.
+- **The bracket has no commercial owner.** Firaz and Maaz agreed to build it and
+  settle the numbers offline. Every seeded default uses `fixedBelowMinor: null`
+  except the two Partners that demo it, so the feature exists without asserting
+  a price.
+- **Rates are not per-transaction-type.** One rate per rail covers cards; if
+  wallets or bank transfers land on the same rail with different economics, the
+  rate would need to hang off the tender, not the rail.

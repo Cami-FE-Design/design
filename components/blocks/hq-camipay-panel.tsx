@@ -57,9 +57,14 @@ import { useAuth } from "@/lib/auth-mock"
 import {
   CAMIPAY_RAILS,
   type CamiPayRail,
+  type CamiPayRate,
+  computeFee,
   effectiveRate,
+  explainFee,
+  formatAed,
   formatEffectiveDate,
   formatRate,
+  formatRateBracket,
   GATEWAYS,
   type GatewayId,
   gatewayLabel,
@@ -264,6 +269,11 @@ function RateRailRow({
 
   const current = effectiveRate(camipay, business.id, rail)
   const scheduled = scheduledRates(camipay, business.id, rail)
+  const bracket = current ? formatRateBracket(current.rate) : null
+  // A rail that is taking money with no rate row is charging nothing. That is
+  // the defined behaviour (a missing rate is zero, not an error), but it is
+  // also almost always a mistake, so it is surfaced rather than left silent.
+  const liveWithoutRate = merchantConfig(camipay, business.id)[rail].enabled && !current
 
   return (
     <div className="flex flex-col gap-2 border-b border-border/50 py-3.5 last:border-b-0">
@@ -298,6 +308,15 @@ function RateRailRow({
           ) : null}
         </div>
       </div>
+
+      {bracket ? <p className="text-xs text-muted-foreground tabular-nums">{bracket}</p> : null}
+
+      {liveWithoutRate ? (
+        <p className="flex items-start gap-2 text-xs leading-4 text-cami-yellow-11">
+          <TriangleAlertIcon className="mt-px size-3.5 shrink-0" />
+          This rail is live with no rate, so Cami earns nothing on these payments.
+        </p>
+      ) : null}
 
       {scheduled.map((row) => (
         <div
@@ -344,6 +363,11 @@ function RateHistory({ rows }: { rows: RateRow[] }) {
                 <span className="text-foreground">
                   {railLabel(row.rail)}, {formatRate(row.rate)}
                 </span>
+                {formatRateBracket(row.rate) ? (
+                  <span className="text-muted-foreground tabular-nums">
+                    {formatRateBracket(row.rate)}
+                  </span>
+                ) : null}
                 <span className="text-muted-foreground">
                   Set by {row.createdBy} on {formatDate(row.createdAt)}
                 </span>
@@ -384,7 +408,7 @@ function RateCard({
           className="py-4"
           icon={PercentIcon}
           title="No rate card yet"
-          description="Set a take rate per rail before this Partner starts taking CamiPay."
+          description="With no rate set, Cami charges this Partner nothing on CamiPay payments. Set a rate per rail before they start taking money."
           action={
             canEdit ? (
               <Button variant="outline" radius="full" onClick={() => onChangeRate("terminal")}>
@@ -421,16 +445,75 @@ function RateCard({
 /* Change rate dialog                                                         */
 /* -------------------------------------------------------------------------- */
 
-const rateSchema = z.object({
-  rate: z
+/** Blank counts as zero, so a percentage-only rate needs no keystrokes in the fixed field. */
+const amountField = (max: number, tooBig: string) =>
+  z
     .string()
-    .min(1, "Enter a rate")
-    .refine((v) => !Number.isNaN(Number(v)), "Numbers only")
-    .refine((v) => Number(v) > 0, "Must be above 0")
-    .refine((v) => Number(v) <= 100, "Must be 100 or less"),
-  effectiveFrom: z.string().min(1, "Pick a date"),
-})
+    .refine((v) => v.trim() === "" || !Number.isNaN(Number(v)), "Numbers only")
+    .refine((v) => v.trim() === "" || Number(v) >= 0, "Cannot be negative")
+    .refine((v) => v.trim() === "" || Number(v) <= max, tooBig)
+
+const rateSchema = z
+  .object({
+    percent: amountField(100, "Must be 100 or less"),
+    fixed: amountField(1000, "That is above AED 1,000"),
+    bracketEnabled: z.boolean(),
+    bracketAmount: amountField(1_000_000, "That is above AED 1,000,000"),
+    effectiveFrom: z.string().min(1, "Pick a date"),
+  })
+  // A rate of nothing is a real state, but it is reached by leaving the rail
+  // unconfigured, not by writing a zero row. Saving 0% + AED 0 would look like
+  // a decision and behave like an absence.
+  .refine((v) => num(v.percent) > 0 || num(v.fixed) > 0, {
+    message: "Enter a percentage, a fixed fee, or both",
+    path: ["percent"],
+  })
+  .refine((v) => !v.bracketEnabled || num(v.bracketAmount) > 0, {
+    message: "Enter the amount the fixed fee stops applying at",
+    path: ["bracketAmount"],
+  })
 type RateValues = z.infer<typeof rateSchema>
+
+function blankRate(today: string): RateValues {
+  return { percent: "", fixed: "", bracketEnabled: false, bracketAmount: "", effectiveFrom: today }
+}
+
+function num(v: string): number {
+  const n = Number(v)
+  return v.trim() === "" || Number.isNaN(n) ? 0 : n
+}
+
+/** AED as typed to fils as stored. */
+function toMinor(v: string): number {
+  return Math.round(num(v) * 100)
+}
+
+function valuesToRate(values: RateValues): CamiPayRate {
+  const fixedMinor = toMinor(values.fixed)
+  const below = toMinor(values.bracketAmount)
+  // A bracket needs both a fixed fee to gate and a threshold to gate it at.
+  // Without either it is dropped rather than stored as a rule that can never
+  // fire, which also keeps the preview honest while the amount is still empty.
+  const bracketed = values.bracketEnabled && fixedMinor > 0 && below > 0
+  return {
+    percent: num(values.percent),
+    fixedMinor,
+    fixedBelowMinor: bracketed ? below : null,
+  }
+}
+
+/** One line of the worked example under the dialog fields. */
+function WorkedExample({ rate, amountMinor }: { rate: CamiPayRate; amountMinor: number }) {
+  const fee = computeFee(rate, amountMinor)
+  return (
+    <div className="flex items-baseline justify-between gap-3 text-xs tabular-nums">
+      <span className="text-muted-foreground">
+        On {formatAed(amountMinor)}, {explainFee(rate, amountMinor)}
+      </span>
+      <span className="shrink-0 font-medium text-foreground">{formatAed(fee.totalMinor)}</span>
+    </div>
+  )
+}
 
 function ChangeRateDialog({
   open,
@@ -450,31 +533,43 @@ function ChangeRateDialog({
 
   const form = useForm<RateValues>({
     resolver: zodResolver(rateSchema as never),
-    defaultValues: { rate: "", effectiveFrom: today },
+    defaultValues: blankRate(today),
   })
 
+  // Every open starts from empty. Carrying the last attempt over would let
+  // someone re-submit a rate they had abandoned, and a rate row cannot be
+  // taken back once written.
   useEffect(() => {
-    if (open) form.reset({ rate: "", effectiveFrom: today })
-  }, [open, form, today])
+    if (open) form.reset(blankRate(todayIso()))
+  }, [open, form])
 
-  const nextRate = form.watch("rate")
-  const effectiveFrom = form.watch("effectiveFrom")
+  const values = form.watch()
+  const effectiveFrom = values.effectiveFrom
   const isScheduled = Boolean(effectiveFrom) && effectiveFrom > today
-  const parsed = Number(nextRate)
-  const showPreview = Boolean(effectiveFrom) && Boolean(nextRate) && !Number.isNaN(parsed)
+  const draft = valuesToRate(values)
+  const showPreview = Boolean(effectiveFrom) && (draft.percent > 0 || draft.fixedMinor > 0)
 
-  function onSubmit(values: RateValues) {
+  // Sample amounts for the worked example. With a bracket, one either side of
+  // it, because the whole reason a bracket exists is that the two behave
+  // differently and nobody should have to take that on trust.
+  const samples =
+    draft.fixedBelowMinor !== null
+      ? [Math.max(500, Math.round(draft.fixedBelowMinor / 2)), draft.fixedBelowMinor + 5000]
+      : [12000]
+
+  function onSubmit(v: RateValues) {
+    const rate = valuesToRate(v)
     camipay.addRate({
       merchantId: business.id,
       rail,
-      rate: Number(values.rate),
-      effectiveFrom: values.effectiveFrom,
+      rate,
+      effectiveFrom: v.effectiveFrom,
       createdBy: auth.user.name,
     })
     toast.success(
-      values.effectiveFrom > today
-        ? `${railLabel(rail)} rate scheduled for ${formatEffectiveDate(values.effectiveFrom)}`
-        : `${railLabel(rail)} rate is now ${formatRate(Number(values.rate))}`,
+      v.effectiveFrom > today
+        ? `${railLabel(rail)} rate scheduled for ${formatEffectiveDate(v.effectiveFrom)}`
+        : `${railLabel(rail)} rate is now ${formatRate(rate)}`,
     )
     onOpenChange(false)
   }
@@ -483,7 +578,9 @@ function ChangeRateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Change {railLabel(rail).toLowerCase()} rate</DialogTitle>
+          {/* Not lowercased: "camipay terminal" reads as a typo, and CamiPay
+              is a product name before it is a word in a sentence. */}
+          <DialogTitle>Change {railLabel(rail)} rate</DialogTitle>
           <DialogDescription>
             {business.name} is on{" "}
             <span className="font-medium text-foreground">
@@ -495,33 +592,125 @@ function ChangeRateDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4 pt-4">
-            <FormField
-              control={form.control}
-              name="rate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New rate</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Input
-                        inputMode="decimal"
-                        autoComplete="off"
-                        placeholder="1.8"
-                        className="pr-10"
-                        {...field}
-                      />
-                      <span
-                        aria-hidden
-                        className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-muted-foreground"
-                      >
-                        %
-                      </span>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {/* Percentage and fixed sit side by side because they are one
+                rate, not two settings. "3% + AED 0.75" is how the commercial
+                team says it, and stacking them would read as a choice. */}
+            <div className="flex items-start gap-3">
+              <FormField
+                control={form.control}
+                name="percent"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormLabel>Percentage</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          inputMode="decimal"
+                          autoComplete="off"
+                          placeholder="1.8"
+                          className="pr-10"
+                          {...field}
+                        />
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm text-muted-foreground"
+                        >
+                          %
+                        </span>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <span aria-hidden className="pt-9 text-sm font-medium text-muted-foreground">
+                +
+              </span>
+              <FormField
+                control={form.control}
+                name="fixed"
+                render={({ field }) => (
+                  <FormItem className="flex-1">
+                    <FormLabel>Fixed per transaction</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-muted-foreground"
+                        >
+                          AED
+                        </span>
+                        <Input
+                          inputMode="decimal"
+                          autoComplete="off"
+                          placeholder="0.00"
+                          className="pl-14"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* The bracket only has meaning once a fixed fee exists to gate. */}
+            {draft.fixedMinor > 0 ? (
+              <div className="flex flex-col gap-3 rounded-2xl border border-border/60 p-4">
+                <FormField
+                  control={form.control}
+                  name="bracketEnabled"
+                  render={({ field }) => (
+                    <FormItem className="flex items-start justify-between gap-4">
+                      <div className="flex min-w-0 flex-col gap-0.5">
+                        <FormLabel>Drop the fixed fee on larger sales</FormLabel>
+                        <span className="text-xs leading-4 text-muted-foreground">
+                          Above the amount you set, the Partner pays the percentage alone.
+                        </span>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          aria-label="Drop the fixed fee on larger sales"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                {values.bracketEnabled ? (
+                  <FormField
+                    control={form.control}
+                    name="bracketAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Fixed fee applies below</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-muted-foreground"
+                            >
+                              AED
+                            </span>
+                            <Input
+                              inputMode="decimal"
+                              autoComplete="off"
+                              placeholder="100.00"
+                              className="pl-14"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+
             <FormField
               control={form.control}
               name="effectiveFrom"
@@ -544,7 +733,7 @@ function ChangeRateDialog({
             />
 
             {showPreview ? (
-              <div className="flex flex-col gap-1.5 rounded-2xl bg-muted/60 p-4 text-sm">
+              <div className="flex flex-col gap-3 rounded-2xl bg-muted/60 p-4 text-sm">
                 <span className="flex items-start gap-2 text-muted-foreground">
                   <InfoIcon className="mt-0.5 size-3.5 shrink-0" />
                   <span>
@@ -557,9 +746,14 @@ function ChangeRateDialog({
                       {current ? formatRate(current.rate) : "their captured rate"}
                     </span>
                     . From that date, Cami charges{" "}
-                    <span className="font-medium text-foreground">{formatRate(parsed)}</span>.
+                    <span className="font-medium text-foreground">{formatRate(draft)}</span>.
                   </span>
                 </span>
+                <div className="flex flex-col gap-1 border-t border-border/50 pt-3">
+                  {samples.map((amountMinor) => (
+                    <WorkedExample key={amountMinor} rate={draft} amountMinor={amountMinor} />
+                  ))}
+                </div>
               </div>
             ) : null}
 
