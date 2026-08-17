@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
+import { PhoneField } from "@/components/blocks/phone-field"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -220,7 +221,20 @@ function StaffChip({
 
 // ─── Step 3 — Identify ────────────────────────────────────────────────────────
 
-export type Customer = { firstName: string; lastName: string; phone: string; email: string }
+export type Customer = {
+  firstName: string
+  lastName: string
+  /** Dial code, kept separate from the number so the field can offer a picker. */
+  phoneCode: string
+  /** National number without the dial code. */
+  phone: string
+  email: string
+}
+
+/** Dial code + number as one displayable string. */
+export function formatCustomerPhone(customer: Customer): string {
+  return `${customer.phoneCode} ${customer.phone}`.trim()
+}
 
 // Returning-user phone 2FA — mirrors the operator sign-in verify screen.
 type VerifyState = "idle" | "verifying" | "success" | "error"
@@ -432,6 +446,7 @@ function IdentifyStep({
         onChange({
           firstName: client.firstName,
           lastName: client.lastName,
+          phoneCode: customer.phoneCode,
           phone: customer.phone,
           email: client.email,
         })
@@ -444,7 +459,7 @@ function IdentifyStep({
       setAuthPhase("details")
     }, 700)
     return () => clearTimeout(t)
-  }, [verifyState, customer.phone, hasPets, onChange, onPet])
+  }, [verifyState, customer.phone, customer.phoneCode, hasPets, onChange, onPet])
 
   function requestCode() {
     setAuthPhase("code")
@@ -473,16 +488,14 @@ function IdentifyStep({
           title="Let's confirm it's you"
           hint="Enter your mobile number — we'll text a 6-digit code."
         />
-        <div className="group flex flex-col gap-1.5">
-          <Label htmlFor="ret-phone">Mobile number</Label>
-          <Input
-            id="ret-phone"
-            inputMode="tel"
-            placeholder="+971 50 123 4567"
-            value={customer.phone}
-            onChange={(e) => set({ phone: e.target.value })}
-          />
-        </div>
+        <PhoneField
+          id="ret-phone"
+          label="Mobile number"
+          code={customer.phoneCode}
+          number={customer.phone}
+          onCodeChange={(phoneCode) => set({ phoneCode })}
+          onNumberChange={(phone) => set({ phone })}
+        />
         <Button
           variant="outline"
           radius="full"
@@ -502,7 +515,7 @@ function IdentifyStep({
     return (
       <div className="flex flex-col gap-5">
         <StepHeading
-          title={`Enter the code we sent to ${customer.phone}`}
+          title={`Enter the code we sent to ${formatCustomerPhone(customer)}`}
           hint="This helps us keep your account secure."
         />
         <div className="flex flex-col items-start gap-3">
@@ -709,11 +722,18 @@ function IdentifyStep({
           />
         </div>
       </div>
-      <div className="group flex flex-col gap-1.5">
-        <Label htmlFor="phone">Mobile number</Label>
-        <Input id="phone" inputMode="tel" value={customer.phone} disabled />
+      <div className="flex flex-col gap-1.5">
+        <PhoneField
+          id="phone"
+          label="Mobile number"
+          code={customer.phoneCode}
+          number={customer.phone}
+          onCodeChange={() => undefined}
+          onNumberChange={() => undefined}
+          disabled
+        />
         <p className="text-xs text-muted-foreground">
-          Verified. We send your confirmation and reminders here on WhatsApp.
+          Verified. We send your confirmation and reminders here on Email / SMS / WhatsApp.
         </p>
       </div>
       <div className="group flex flex-col gap-1.5">
@@ -1031,6 +1051,7 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
   const [customer, setCustomer] = useState<Customer>({
     firstName: "",
     lastName: "",
+    phoneCode: "+971",
     phone: "",
     email: "",
   })

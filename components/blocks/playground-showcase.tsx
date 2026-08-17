@@ -68,6 +68,7 @@ import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
+import { PhoneField } from "@/components/blocks/phone-field"
 import { PickupFields } from "@/components/blocks/pickup-fields"
 import { DashboardReport } from "@/components/blocks/reports/dashboard-report"
 import { DetailedTableReport } from "@/components/blocks/reports/detailed-table-report"
@@ -334,6 +335,8 @@ const TEAM_DEMO_MEMBERS: Record<"active" | "pending", TeamMemberDetailMember> = 
 
 export function PlaygroundShowcase() {
   const [checked, setChecked] = useState<boolean | "indeterminate">(true)
+  const [phoneCode, setPhoneCode] = useState("+971")
+  const [phoneNumber, setPhoneNumber] = useState("")
   const [switchOn, setSwitchOn] = useState(true)
   const [radio, setRadio] = useState("option-2")
   const [pickedTypes, setPickedTypes] = useState<Set<string>>(
@@ -606,6 +609,34 @@ export function PlaygroundShowcase() {
         </Row>
         <Row label="Textarea">
           <Textarea className="w-full max-w-sm" placeholder="Notes" />
+        </Row>
+        <Row label="Phone field">
+          <div className="w-full max-w-sm">
+            <PhoneField
+              id="pg-phone"
+              label="Mobile number"
+              code={phoneCode}
+              number={phoneNumber}
+              onCodeChange={setPhoneCode}
+              onNumberChange={setPhoneNumber}
+            />
+          </div>
+        </Row>
+        <Row label="Phone · verified">
+          <div className="flex w-full max-w-sm flex-col gap-1.5">
+            <PhoneField
+              id="pg-phone-locked"
+              label="Mobile number"
+              code="+971"
+              number="50 123 4567"
+              onCodeChange={() => undefined}
+              onNumberChange={() => undefined}
+              disabled
+            />
+            <p className="text-xs text-muted-foreground">
+              Verified. We send your confirmation and reminders here on Email / SMS / WhatsApp.
+            </p>
+          </div>
         </Row>
       </Section>
 

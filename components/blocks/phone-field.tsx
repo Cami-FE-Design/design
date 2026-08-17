@@ -28,6 +28,8 @@ export function PhoneField({
   onCodeChange,
   onNumberChange,
   id,
+  disabled = false,
+  placeholder = "50 000 0000",
 }: {
   label: string
   code: string
@@ -36,12 +38,15 @@ export function PhoneField({
   onNumberChange: (next: string) => void
   /** Optional id wired to the number input for label association. */
   id?: string
+  /** Locks both controls — used once a number is verified and can't be edited. */
+  disabled?: boolean
+  placeholder?: string
 }) {
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
       <div className="flex w-full items-center gap-2">
-        <Select value={code} onValueChange={onCodeChange}>
+        <Select value={code} onValueChange={onCodeChange} disabled={disabled}>
           <SelectTrigger className={cn(triggerOverride, "w-24 shrink-0")}>
             <SelectValue />
           </SelectTrigger>
@@ -61,7 +66,8 @@ export function PhoneField({
           value={number}
           onChange={(e) => onNumberChange(e.target.value)}
           className="min-w-0 flex-1"
-          placeholder="50 000 0000"
+          placeholder={placeholder}
+          disabled={disabled}
         />
       </div>
     </div>

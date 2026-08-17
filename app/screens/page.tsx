@@ -793,7 +793,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shampooch-jvc/book",
         label: "Booking flow · services → time → identity → confirm",
-        note: "Multi-select service cards by category (list-icon opens a Categories dropdown), slot picker (12-staff horizontal rail with prev/next arrows + edge fade, circle day picker, available-times list, 5-min hold). Identity step is phone-first: enter mobile → auto-verifying 6-digit OTP (code starting '0' fails) → resolve. Demo: mobile ending in an EVEN digit is a returning client (pre-filled name/email, phone disabled, saved-pet dropdown Bella/Miso + 'Add a new pet'); ODD digit is new (empty form, phone pre-filled & disabled, inline pet capture). Confirm with summed total, then 'You're booked' with a reference.",
+        note: "Multi-select service cards by category (list-icon opens a Categories dropdown), slot picker (12-staff horizontal rail with prev/next arrows + edge fade, circle day picker, available-times list, 5-min hold). Identity step is phone-first: enter mobile in the shared <PhoneField> (dial-code select + number, matching dev) → auto-verifying 6-digit OTP (code starting '0' fails) → resolve; once verified the same field renders locked. Demo: mobile ending in an EVEN digit is a returning client (pre-filled name/email, phone disabled, saved-pet dropdown Bella/Miso + 'Add a new pet'); ODD digit is new (empty form, phone pre-filled & disabled, inline pet capture). Confirm with summed total, then 'You're booked' with a reference.",
       },
       {
         path: "/shampooch-jvc/book",
