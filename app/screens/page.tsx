@@ -798,7 +798,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shampooch-jvc/book",
         label: "Booking flow · pickup + pet notes",
-        note: "On the identity step (both the returning and the new-client branch): an 'I need pickup' checkbox, unchecked by default. Checking it reveals the address block with 'Use my saved address' pre-ticked (billing/shipping idiom — nothing to type in the common case); unticking it, or having no saved address, shows a Pickup address input. 'Anything we should know?' pet notes sit outside the checkbox — they're asked on every booking, pickup or not. Both surface as rows on the Review step. Use an EVEN-ending mobile to get the returning client with a saved address on file.",
+        note: "New clients now give an optional Address on the registration form itself, next to name and email — it belongs on the profile, not only behind the pickup tick. On the identity step (both the returning and the new-client branch): an 'I need pickup' checkbox, unchecked by default. Checking it reveals the address block with 'Use my saved address' pre-ticked (billing/shipping idiom — nothing to type in the common case); unticking it, or having no saved address, shows a Pickup address input. 'Anything we should know?' pet notes sit outside the checkbox — they're asked on every booking, pickup or not. Both surface as rows on the Review step. Use an EVEN-ending mobile to get the returning client with a saved address on file.",
       },
       {
         path: "/purr-palace/book",

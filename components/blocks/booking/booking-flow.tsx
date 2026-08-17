@@ -229,6 +229,12 @@ export type Customer = {
   /** National number without the dial code. */
   phone: string
   email: string
+  /**
+   * Home address. Captured on the new-client registration form so it lands on
+   * the profile like the name and email do — pickup then reuses it rather than
+   * being the only reason we ever ask for an address.
+   */
+  address: string
 }
 
 /** Dial code + number as one displayable string. */
@@ -294,10 +300,16 @@ function PickupAndNotesFields({
   pickup,
   onPickup,
   savedAddress,
+  addressSource = "profile",
 }: {
   pickup: PickupDetails
   onPickup: (p: PickupDetails) => void
   savedAddress?: string
+  /**
+   * Where `savedAddress` came from — the account on file, or the address the
+   * caller just typed into their details above. Only changes the wording.
+   */
+  addressSource?: "profile" | "details"
 }) {
   const set = (patch: Partial<PickupDetails>) => onPickup({ ...pickup, ...patch })
   const showAddressInput = !pickup.useSavedAddress || !savedAddress
@@ -328,7 +340,11 @@ function PickupAndNotesFields({
                 checked={pickup.useSavedAddress}
                 onCheckedChange={(value) => set({ useSavedAddress: value === true })}
               />
-              <span className="text-sm text-foreground">Use my saved address</span>
+              <span className="text-sm text-foreground">
+                {addressSource === "details"
+                  ? "Collect from the address above"
+                  : "Use my saved address"}
+              </span>
             </label>
           ) : null}
 
@@ -449,12 +465,27 @@ function IdentifyStep({
           phoneCode: customer.phoneCode,
           phone: customer.phone,
           email: client.email,
+          address: client.address ?? "",
         })
         if (hasPets && client.pets.length > 0) {
           const first = client.pets[0]!
           setPetChoice(first.id)
           onPet({ name: first.name, species: first.species })
         }
+      } else {
+        // No record on file. Clear anything a previous resolve left behind —
+        // going back and re-verifying with a different number would otherwise
+        // hand the new registration form the last caller's name, email and pet.
+        onChange({
+          firstName: "",
+          lastName: "",
+          phoneCode: customer.phoneCode,
+          phone: customer.phone,
+          email: "",
+          address: "",
+        })
+        setPetChoice("")
+        onPet({ name: "", species: "dog" })
       }
       setAuthPhase("details")
     }, 700)
@@ -749,6 +780,21 @@ function IdentifyStep({
           onChange={(e) => set({ email: e.target.value })}
         />
       </div>
+      <div className="group flex flex-col gap-1.5">
+        <Label htmlFor="address">
+          Address <span className="font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <Input
+          id="address"
+          autoComplete="street-address"
+          placeholder="Villa / apartment, street, area"
+          value={customer.address}
+          onChange={(e) => set({ address: e.target.value })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Saved to your account. We use it if you ask us to collect your pet.
+        </p>
+      </div>
       {hasPets ? (
         <div className="flex flex-col gap-4 border-t border-border/60 pt-5">
           <div className="flex flex-col gap-0.5">
@@ -760,7 +806,12 @@ function IdentifyStep({
           {petControl}
         </div>
       ) : null}
-      <PickupAndNotesFields pickup={pickup} onPickup={onPickup} />
+      <PickupAndNotesFields
+        pickup={pickup}
+        onPickup={onPickup}
+        savedAddress={customer.address.trim() || undefined}
+        addressSource="details"
+      />
     </div>
   )
 }
@@ -1054,6 +1105,7 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
     phoneCode: "+971",
     phone: "",
     email: "",
+    address: "",
   })
   const [pet, setPet] = useState<NewPet>({ name: "", species: "dog" })
   const [pickup, setPickup] = useState<PickupDetails>(EMPTY_PICKUP_DETAILS)
@@ -1075,8 +1127,11 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
   const petLabel = hasPets && pet.name.trim() ? pet.name : undefined
   // Same resolver the identify step uses, so the review line shows whichever
   // address will actually be collected from.
-  const pickupAddressLabel =
-    resolvePickupAddress(pickup, findClientByPhone(customer.phone)?.address) ?? undefined
+  // The profile address is whichever we have: the one on file for a returning
+  // caller, or the one a new caller just typed into their details.
+  const profileAddress =
+    findClientByPhone(customer.phone)?.address ?? (customer.address.trim() || undefined)
+  const pickupAddressLabel = resolvePickupAddress(pickup, profileAddress) ?? undefined
   const customerLabel = [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim()
 
   const canContinue =
