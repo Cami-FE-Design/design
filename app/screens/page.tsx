@@ -811,14 +811,24 @@ const SECTIONS: Section[] = [
         note: "View detail (status starts as 'Booked', violet; ref suffix -confirmed → green, -cancelled → sand) → Add to calendar dropdown (Google Calendar / Apple · Outlook .ics) → reschedule (re-enters the slot picker) or cancel (guarded destructive) → updated / cancelled terminals.",
       },
       {
+        path: "/shampooch-jvc/booking/CAMI-4821-pickup",
+        label: "Manage booking · pickup variant",
+        note: "The '-pickup' ref suffix (same convention as -confirmed / -cancelled) renders the collection variant: Pickup and Notes rows join Service / When / Duration / With / Pet, so the parent can check the collection address without calling the salon.",
+      },
+      {
         path: "/account",
         label: "Pet-parent account (E3-6)",
-        note: "Passwordless: mobile → OTP verify → home (upcoming booking, pets, profile). New numbers auto-create an account.",
+        note: "Passwordless: mobile → OTP verify → home (upcoming booking, pets, profile). New numbers auto-create an account. Profile now carries an Address row — the same address the booking form captures and pickup reuses.",
       },
       {
         path: "/emails/booking-confirmation",
         label: "Confirmation email (E3-5)",
         note: "Branded email template; pet business leads the header, Cami signature footer, manage-booking CTA.",
+      },
+      {
+        path: "/emails/booking-confirmation?pickup=1",
+        label: "Confirmation email · pickup variant",
+        note: "Same template with ?pickup=1. Adds a Notes row, and the 'Where' row becomes 'Pickup from' with the collection address — on a pickup booking the salon address isn't where the parent needs to be, so it would be the wrong thing to print.",
       },
     ],
   },

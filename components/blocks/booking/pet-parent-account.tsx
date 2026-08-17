@@ -24,6 +24,7 @@ const PARENT = {
   name: "Michelle You",
   phone: "+971 50 123 4567",
   email: "michelle@ce-creates.com",
+  address: "Villa 12, Street 4B, Jumeirah 1, Dubai",
 }
 
 const UPCOMING = {
@@ -245,6 +246,8 @@ function HomeStage({ onSignOut }: { onSignOut: () => void }) {
           <ProfileRow label="Name" value={PARENT.name} />
           <ProfileRow label="Mobile" value={PARENT.phone} />
           <ProfileRow label="Email" value={PARENT.email} />
+          {/* Captured on the booking form — this is the address pickup reuses. */}
+          <ProfileRow label="Address" value={PARENT.address} />
         </div>
       </section>
 

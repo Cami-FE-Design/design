@@ -425,12 +425,19 @@ export type BookingDetail = {
   staffName: string
   petName?: string
   customerName: string
+  /** Set when the parent asked us to collect the pet. */
+  pickupAddress?: string
+  /** Pet notes the parent left at booking time. */
+  petNotes?: string
 }
 
 export function resolveBooking(business: PublicBusiness, ref: string): BookingDetail {
   // Prefer a marquee service; fall back to the first on the menu.
   const service =
     business.services.find((s) => s.name.toLowerCase().includes("groom")) ?? business.services[0]!
+  // Demo switch, matching the -confirmed / -cancelled suffix convention: a
+  // "-pickup" ref renders the collection variant of the detail and the email.
+  const withPickup = ref.endsWith("-pickup")
   return {
     ref,
     businessSlug: business.slug,
@@ -448,6 +455,8 @@ export function resolveBooking(business: PublicBusiness, ref: string): BookingDe
     staffName: BOOKING_STAFF[0]!.name,
     petName: businessHasPets(business) ? RETURNING_PETS[0]!.name : undefined,
     customerName: "Michelle You",
+    pickupAddress: withPickup ? RETURNING_CLIENT.address : undefined,
+    petNotes: withPickup ? "Anxious in the van — needs the crate, not a loose harness." : undefined,
   }
 }
 

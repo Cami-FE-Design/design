@@ -70,7 +70,14 @@ export function ConfirmationEmail({
             <Row label="Duration" value={formatDuration(booking.durationMinutes)} />
             <Row label="With" value={booking.staffName} />
             {booking.petName ? <Row label="Pet" value={booking.petName} /> : null}
-            <Row label="Where" value={fullAddress} />
+            {booking.petNotes ? <Row label="Notes" value={booking.petNotes} /> : null}
+            {/* On a pickup booking the salon address is not where the parent
+                needs to be, so the collection address takes the "Where" row. */}
+            {booking.pickupAddress ? (
+              <Row label="Pickup from" value={booking.pickupAddress} />
+            ) : (
+              <Row label="Where" value={fullAddress} />
+            )}
             <Row
               label="Total"
               value={<span className="tabular-nums">{formatPriceAed(booking.priceAed)}</span>}
