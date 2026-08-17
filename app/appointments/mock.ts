@@ -59,6 +59,25 @@ export type MockBooking = {
   /** Recurrence label shown in the sheet header below the date, e.g. "Doesn't repeat" / "Every 4 weeks". */
   recurrence?: string
   /**
+   * Pet parent asked us to collect the pet rather than dropping it off.
+   * Drives the pickup icon on the calendar block and the pickup rows in the
+   * popover / detail sheet. Set from the "Pickup required" checkbox in both
+   * the public booking flow and the staff new-appointment sheet.
+   */
+  needsPickup?: boolean
+  /**
+   * Where the pet is collected from. Only meaningful when `needsPickup`.
+   * Defaults to the client's saved address at booking time; the booking keeps
+   * its own copy so editing the client profile later doesn't rewrite history.
+   */
+  pickupAddress?: string
+  /**
+   * Pet-related notes (allergies, behavior, handling). Deliberately separate
+   * from `notes` — those are booking-specific, these travel with the pet and
+   * show on every appointment regardless of pickup.
+   */
+  petNotes?: string
+  /**
    * Days after the 18 May 2026 demo anchor this booking is scheduled.
    * Unset = anchor day. Only set on bookings outside the appointments-list
    * curated subset so that listing keeps reading like the figma; the global
@@ -150,6 +169,9 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     relationshipPills: ["Regular", "4 weeks"],
     tags: ["Sensitive ears"],
     notes: "Owner asked for extra paw moisturizer last visit.",
+    petNotes: "Hates the dryer on high. Sensitive ears — no water near the head.",
+    needsPickup: true,
+    pickupAddress: "Villa 12, Street 4B, Jumeirah 1, Dubai",
     agreementSigned: true,
     intakeFormSubmitted: true,
     groomingFrequency: "4 weeks",
@@ -176,6 +198,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     relationshipPills: ["VIP", "8 weeks"],
     tags: ["Anxious"],
     notes: "Prefers female groomers. Treat-motivated.",
+    petNotes: "Anxious in the van — needs the crate, not a loose harness.",
     agreementSigned: false,
     intakeFormSubmitted: true,
     groomingFrequency: "8 weeks",
@@ -193,6 +216,9 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     petSpecies: "dog",
     priceMinor: 25000,
     hasSafetyFlag: true,
+    needsPickup: true,
+    pickupAddress: "Apt 1804, Marina Heights Tower, Dubai Marina",
+    petNotes: "Muzzle for nail work. Reactive to other dogs in the van.",
     dayOffset: 1,
   },
 

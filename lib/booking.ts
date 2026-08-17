@@ -333,6 +333,8 @@ export type ReturningClient = {
   firstName: string
   lastName: string
   email: string
+  /** Saved address on the account — pre-fills the pickup address. */
+  address?: string
   pets: ReadonlyArray<BookingPet>
 }
 
@@ -340,7 +342,38 @@ export const RETURNING_CLIENT: ReturningClient = {
   firstName: "Michelle",
   lastName: "You",
   email: "michelle@email.com",
+  address: "Villa 12, Street 4B, Jumeirah 1, Dubai",
   pets: RETURNING_PETS,
+}
+
+/**
+ * Pickup + pet notes captured during the identify step.
+ *
+ * `needsPickup` is off by default: most parents drop off, and defaulting it on
+ * would put a pickup icon on every appointment in the calendar. When it's on we
+ * reuse the saved address (billing/shipping style) so nothing has to be typed
+ * in the common case. `petNotes` is deliberately independent of pickup —
+ * allergies and handling notes matter on every appointment.
+ */
+export type PickupDetails = {
+  needsPickup: boolean
+  useSavedAddress: boolean
+  address: string
+  petNotes: string
+}
+
+export const EMPTY_PICKUP_DETAILS: PickupDetails = {
+  needsPickup: false,
+  useSavedAddress: true,
+  address: "",
+  petNotes: "",
+}
+
+/** The address that will actually be used for collection, or null if none. */
+export function resolvePickupAddress(pickup: PickupDetails, savedAddress?: string): string | null {
+  if (!pickup.needsPickup) return null
+  if (pickup.useSavedAddress && savedAddress) return savedAddress
+  return pickup.address.trim() || null
 }
 
 // Demo resolver: a mobile ending in an EVEN digit is a returning client on file;

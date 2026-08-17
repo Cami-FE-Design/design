@@ -11,6 +11,7 @@ import {
   ChevronUpIcon,
   ClockIcon,
   Loader2Icon,
+  MapPinIcon,
   PlusIcon,
   ShieldCheckIcon,
   ShoppingBagIcon,
@@ -23,6 +24,7 @@ import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,16 +42,20 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Textarea } from "@/components/ui/textarea"
 import {
   BOOKING_DAYS,
   BOOKING_STAFF,
   bookingRef,
   businessHasPets,
   type CatalogService,
+  EMPTY_PICKUP_DETAILS,
   findCatalogService,
   findClientByPhone,
   PET_SPECIES_OPTIONS,
+  type PickupDetails,
   type ReturningClient,
+  resolvePickupAddress,
   serviceTotals,
 } from "@/lib/booking"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
@@ -268,6 +274,88 @@ function PetDetailsFields({ pet, onPet }: { pet: NewPet; onPet: (p: NewPet) => v
   )
 }
 
+// Pickup + pet notes. Rendered in both identify branches (returning and new)
+// so the parent is asked the same two things either way.
+function PickupAndNotesFields({
+  pickup,
+  onPickup,
+  savedAddress,
+}: {
+  pickup: PickupDetails
+  onPickup: (p: PickupDetails) => void
+  savedAddress?: string
+}) {
+  const set = (patch: Partial<PickupDetails>) => onPickup({ ...pickup, ...patch })
+  const showAddressInput = !pickup.useSavedAddress || !savedAddress
+
+  return (
+    <div className="flex flex-col gap-4 border-t border-border/60 pt-5">
+      <label htmlFor="needs-pickup" className="flex cursor-pointer items-start gap-3">
+        <Checkbox
+          id="needs-pickup"
+          checked={pickup.needsPickup}
+          onCheckedChange={(value) => set({ needsPickup: value === true })}
+          className="mt-0.5"
+        />
+        <span className="flex flex-col gap-0.5 leading-tight">
+          <span className="text-sm font-medium text-foreground">I need pickup</span>
+          <span className="text-xs text-muted-foreground">
+            We&apos;ll collect your pet instead of you dropping them off.
+          </span>
+        </span>
+      </label>
+
+      {pickup.needsPickup ? (
+        <div className="flex flex-col gap-3 pl-7">
+          {savedAddress ? (
+            <label htmlFor="use-saved-address" className="flex cursor-pointer items-center gap-3">
+              <Checkbox
+                id="use-saved-address"
+                checked={pickup.useSavedAddress}
+                onCheckedChange={(value) => set({ useSavedAddress: value === true })}
+              />
+              <span className="text-sm text-foreground">Use my saved address</span>
+            </label>
+          ) : null}
+
+          {pickup.useSavedAddress && savedAddress ? (
+            <div className="flex items-start gap-2 rounded-xl bg-cami-sage-2 p-3 text-sm text-cami-sage-12">
+              <MapPinIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+              {savedAddress}
+            </div>
+          ) : null}
+
+          {showAddressInput ? (
+            <div className="group flex flex-col gap-1.5">
+              <Label htmlFor="pickup-address">Pickup address</Label>
+              <Input
+                id="pickup-address"
+                placeholder="Villa / apartment, street, area"
+                value={pickup.address}
+                onChange={(e) => set({ address: e.target.value })}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="group flex flex-col gap-1.5">
+        <Label htmlFor="pet-notes">
+          Anything we should know?{" "}
+          <span className="font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <Textarea
+          id="pet-notes"
+          placeholder="Allergies, behavior, handling instructions…"
+          value={pickup.petNotes}
+          onChange={(e) => set({ petNotes: e.target.value })}
+          className="min-h-24"
+        />
+      </div>
+    </div>
+  )
+}
+
 // Sentinel picker value for "not one of my saved pets — add a new one".
 const ADD_PET = "__new__"
 
@@ -277,12 +365,16 @@ function IdentifyStep({
   onChange,
   pet,
   onPet,
+  pickup,
+  onPickup,
 }: {
   hasPets: boolean
   customer: Customer
   onChange: (c: Customer) => void
   pet: NewPet
   onPet: (p: NewPet) => void
+  pickup: PickupDetails
+  onPickup: (p: PickupDetails) => void
 }) {
   // Linear sub-flow: phone → code → details. No first-visit fork; phone + OTP is
   // the single entry, and we resolve who the caller is on verify.
@@ -581,6 +673,11 @@ function IdentifyStep({
         ) : (
           <StepHeading title="Welcome back" hint="You're verified — review your booking next." />
         )}
+        <PickupAndNotesFields
+          pickup={pickup}
+          onPickup={onPickup}
+          savedAddress={resolved?.address}
+        />
       </div>
     )
   }
@@ -643,6 +740,7 @@ function IdentifyStep({
           {petControl}
         </div>
       ) : null}
+      <PickupAndNotesFields pickup={pickup} onPickup={onPickup} />
     </div>
   )
 }
@@ -669,6 +767,8 @@ function ConfirmStep({
   staffLabel,
   petLabel,
   customerLabel,
+  pickupAddress,
+  petNotes,
 }: {
   business: PublicBusiness
   services: ReadonlyArray<CatalogService>
@@ -676,6 +776,8 @@ function ConfirmStep({
   staffLabel: string
   petLabel?: string
   customerLabel: string
+  pickupAddress?: string
+  petNotes?: string
 }) {
   const total = services.reduce((n, s) => n + s.priceAed, 0)
   const duration = services.reduce((n, s) => n + s.durationMinutes, 0)
@@ -720,6 +822,8 @@ function ConfirmStep({
         <SummaryRow label="With" value={staffLabel} />
         {petLabel ? <SummaryRow label="Pet" value={petLabel} /> : null}
         <SummaryRow label="Booked by" value={customerLabel} />
+        {pickupAddress ? <SummaryRow label="Pickup" value={pickupAddress} /> : null}
+        {petNotes ? <SummaryRow label="Notes" value={petNotes} /> : null}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -931,6 +1035,7 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
     email: "",
   })
   const [pet, setPet] = useState<NewPet>({ name: "", species: "dog" })
+  const [pickup, setPickup] = useState<PickupDetails>(EMPTY_PICKUP_DETAILS)
 
   const step = steps[stepIndex]!
   const services = serviceIds.map(findCatalogService).filter(Boolean) as CatalogService[]
@@ -947,6 +1052,10 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
       ? "Any team member"
       : (BOOKING_STAFF.find((s) => s.id === staffId)?.name ?? "Any team member")
   const petLabel = hasPets && pet.name.trim() ? pet.name : undefined
+  // Same resolver the identify step uses, so the review line shows whichever
+  // address will actually be collected from.
+  const pickupAddressLabel =
+    resolvePickupAddress(pickup, findClientByPhone(customer.phone)?.address) ?? undefined
   const customerLabel = [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim()
 
   const canContinue =
@@ -1012,6 +1121,8 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
         onChange={setCustomer}
         pet={pet}
         onPet={setPet}
+        pickup={pickup}
+        onPickup={setPickup}
       />
     ) : services.length > 0 ? (
       <ConfirmStep
@@ -1021,6 +1132,8 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
         staffLabel={staffLabel}
         petLabel={petLabel}
         customerLabel={customerLabel || "You"}
+        pickupAddress={pickupAddressLabel}
+        petNotes={pickup.petNotes.trim() || undefined}
       />
     ) : null
 

@@ -57,6 +57,7 @@ import {
 import { ServicePickerPanel } from "@/components/blocks/new-appointment-service-picker"
 import { NoteDialog } from "@/components/blocks/note-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
+import { PickupFields } from "@/components/blocks/pickup-fields"
 import { SendMessageDialog } from "@/components/blocks/send-message-dialog"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -86,6 +87,7 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
@@ -127,15 +129,32 @@ type SelectedClient = {
   id: string
   name: string
   phone: string
+  /** Saved address on the client profile — pre-fills the pickup address. */
+  address?: string
 }
 
 // Mock client directory used by the demo client picker. Searchable by name
 // or phone number. Real implementation reads from the pet-parents directory.
 const MOCK_CLIENTS: SelectedClient[] = [
-  { id: "karen-dougall", name: "Karen Dougall", phone: "+971 54 433 3592" },
-  { id: "maaz-test", name: "Maaz Test You", phone: "+971 50 963 6445" },
+  {
+    id: "karen-dougall",
+    name: "Karen Dougall",
+    phone: "+971 54 433 3592",
+    address: "Villa 12, Street 4B, Jumeirah 1, Dubai",
+  },
+  {
+    id: "maaz-test",
+    name: "Maaz Test You",
+    phone: "+971 50 963 6445",
+    address: "Apt 1804, Marina Heights Tower, Dubai Marina",
+  },
   { id: "demo-profile", name: "Demo Profile", phone: "+1 234 567 8901" },
-  { id: "aaesha-al-ali", name: "Aaesha Al Ali", phone: "+971 50 374 5511" },
+  {
+    id: "aaesha-al-ali",
+    name: "Aaesha Al Ali",
+    phone: "+971 50 374 5511",
+    address: "Villa 7, Al Barsha 2, Dubai",
+  },
   { id: "aaliyah-hazari", name: "Aaliyah Hazari", phone: "+971 52 692 6368" },
 ]
 
@@ -316,6 +335,13 @@ export function NewAppointmentSheet({
   const availablePets = computeAvailablePets(selectedClient, pets)
   const [note, setNote] = useState<string | null>(null)
   const [noteDialogOpen, setNoteDialogOpen] = useState(false)
+  // Pickup defaults to off — most appointments are self-drop, and if it were on
+  // by default every block on the calendar would carry the pickup icon.
+  const [needsPickup, setNeedsPickup] = useState(false)
+  const [useSavedAddress, setUseSavedAddress] = useState(true)
+  const [customPickupAddress, setCustomPickupAddress] = useState("")
+  const [petNotes, setPetNotes] = useState("")
+  const savedAddress = selectedClient?.address
   const [messageTemplate, setMessageTemplate] = useState<WhatsAppTemplate | null>(null)
   const [petPendingDelete, setPetPendingDelete] = useState<string | null>(null)
   const [petBeingEdited, setPetBeingEdited] = useState<string | null>(null)
@@ -832,6 +858,36 @@ export function NewAppointmentSheet({
                     />
                   </div>
                 )}
+              </section>
+
+              <section data-slot="pickup-section" className="flex flex-col gap-3">
+                <h2 className="text-lg font-semibold leading-7 text-foreground">Pickup</h2>
+                <PickupFields
+                  needsPickup={needsPickup}
+                  onNeedsPickup={setNeedsPickup}
+                  useSavedAddress={useSavedAddress}
+                  onUseSavedAddress={setUseSavedAddress}
+                  address={customPickupAddress}
+                  onAddress={setCustomPickupAddress}
+                  savedAddress={savedAddress}
+                  clientName={selectedClient?.name}
+                />
+              </section>
+
+              <section data-slot="pet-notes-section" className="flex flex-col gap-3">
+                <h2 className="text-lg font-semibold leading-7 text-foreground">Pet notes</h2>
+                <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-4">
+                  <Textarea
+                    value={petNotes}
+                    onChange={(event) => setPetNotes(event.target.value)}
+                    placeholder="Allergies, behavior, handling instructions…"
+                    className="min-h-24"
+                    aria-label="Pet notes"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Shown on every appointment for this pet, whether or not it needs pickup.
+                  </p>
+                </div>
               </section>
 
               {note !== null ? (
