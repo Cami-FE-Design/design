@@ -163,11 +163,29 @@ type SectionProps = {
   children: React.ReactNode
 }
 
+// Section titles double as anchors so a review message can deep-link straight
+// to one section instead of asking the reader to scroll and hunt for it.
+// "Appointments — pickup & pet notes" → #appointments-pickup-pet-notes
+function sectionSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+}
+
 function Section({ title, description, children }: SectionProps) {
+  const slug = sectionSlug(title)
   return (
-    <section className="scroll-mt-20 border-t border-border py-10 first:border-t-0 first:pt-0">
+    <section
+      id={slug}
+      className="scroll-mt-20 border-t border-border py-10 first:border-t-0 first:pt-0"
+    >
       <div className="mb-6 flex flex-col gap-1">
-        <h2 className="text-base font-medium text-foreground">{title}</h2>
+        <h2 className="text-base font-medium text-foreground">
+          <a href={`#${slug}`} className="hover:underline">
+            {title}
+          </a>
+        </h2>
         {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {children}
