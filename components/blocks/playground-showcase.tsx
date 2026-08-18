@@ -68,6 +68,7 @@ import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
+import { PetNotesFields, PetNotesList } from "@/components/blocks/pet-notes-fields"
 import { PhoneField } from "@/components/blocks/phone-field"
 import { PickupFields } from "@/components/blocks/pickup-fields"
 import { DashboardReport } from "@/components/blocks/reports/dashboard-report"
@@ -151,6 +152,7 @@ import {
   DEFAULT_PAYMENT_POLICY,
   examplePolicyText,
 } from "@/lib/payment-policy/types"
+import type { PetNoteEntry } from "@/lib/pet-notes"
 import { getReport } from "@/lib/reports/registry"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import { cn } from "@/lib/utils"
@@ -224,7 +226,10 @@ const PICKUP_DEMO_BOOKING: MockBooking = {
   bookingRef: "B-77342",
   needsPickup: true,
   pickupAddress: "Villa 12, Street 4B, Jumeirah 1, Dubai",
-  petNotes: "Hates the dryer on high. Sensitive ears — no water near the head.",
+  petNotes: [
+    { category: "grooming-sensitivity", detail: "Hates the dryer on high." },
+    { category: "handling", detail: "Sensitive ears — no water near the head." },
+  ],
   notes: "Owner asked for extra paw moisturizer last visit.",
 }
 
@@ -287,6 +292,15 @@ function PickupFieldsDemo({ state }: { state: (typeof PICKUP_FIELD_STATES)[numbe
       savedAddress={state.savedAddress}
       clientName={state.clientName}
     />
+  )
+}
+
+function PetNotesFieldsDemo({ initial, idPrefix }: { initial: PetNoteEntry[]; idPrefix: string }) {
+  const [entries, setEntries] = useState<PetNoteEntry[]>(initial)
+  return (
+    <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-4">
+      <PetNotesFields entries={entries} onEntries={setEntries} idPrefix={idPrefix} />
+    </div>
   )
 }
 
@@ -1845,11 +1859,11 @@ export function PlaygroundShowcase() {
         <Row label="Flag icons (pickup leads the row)">
           {(
             [
-              { key: "pickup", label: "Pickup only", flags: { needsPickup: true } },
+              { key: "pickup", label: "Pet address only", flags: { needsPickup: true } },
               { key: "deposit", label: "Deposit only", flags: { hasDeposit: true } },
               {
                 key: "pickup-safety",
-                label: "Pickup + safety flag",
+                label: "Pet address + safety flag",
                 flags: { needsPickup: true, hasSafetyFlag: true },
               },
               {
@@ -1893,12 +1907,41 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Appointments — pickup & pet notes"
-        description="Pickup capture on the staff appointment sheet (<PickupFields>) and the read-only rendering on the calendar popover. Pickup is unchecked by default — most appointments are self-drop, and defaulting it on would put a car icon on every block. When it is on, the saved address is reused billing/shipping style so nothing has to be typed in the common case. Pet notes deliberately sit outside the checkbox: allergies and handling matter on every appointment, pickup or not. Every field state is live below — tick and untick them."
+        description="Pet-address capture on the staff appointment sheet (<PickupFields>) and the read-only rendering on the calendar popover. Copy is deliberately service-agnostic — 'pickup' does not apply to mobile grooming, where the groomer always travels to the pet. The tick is off by default: most appointments are self-drop, and defaulting it on would put a car icon on every block. When it is on, the saved address is reused billing/shipping style so nothing has to be typed in the common case. Pet notes deliberately sit outside the checkbox: allergies and handling matter on every appointment. Every field state is live below — tick and untick them."
       >
         <PickupFieldsStates />
         <Row label="Popover — pickup + notes">
           <AppointmentQuickPanel booking={PICKUP_DEMO_BOOKING} />
           <AppointmentDetailPanel booking={PICKUP_DEMO_BOOKING} />
+        </Row>
+      </Section>
+
+      <Section
+        title="Pet notes — structured categories"
+        description="Replaces the single free-text box. A blank box gets skipped or filled with prose nobody can filter on; tapping categories keeps it fast for the parent and gives groomers comparable data. Multi-select, and the specifics field is required once a chip is on — a selected chip with nothing typed is no better than the blank box it replaced, so it blocks Continue. 'Other' is a genuine fallback, not the default catch-all. Same component on the public booking flow and the staff appointment sheet."
+      >
+        <Row label="Empty">
+          <PetNotesFieldsDemo initial={[]} idPrefix="pg-notes-empty" />
+        </Row>
+        <Row label="Two categories picked">
+          <PetNotesFieldsDemo
+            initial={[
+              { category: "allergies", detail: "Chicken, and oatmeal shampoo" },
+              { category: "handling", detail: "Sensitive paws — needs a muzzle for nails" },
+            ]}
+            idPrefix="pg-notes-filled"
+          />
+        </Row>
+        <Row label="Picked, specifics still blank">
+          <PetNotesFieldsDemo
+            initial={[{ category: "behavior", detail: "" }]}
+            idPrefix="pg-notes-blank"
+          />
+        </Row>
+        <Row label="Read-only rendering">
+          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-4">
+            <PetNotesList entries={PICKUP_DEMO_BOOKING.petNotes ?? []} />
+          </div>
         </Row>
       </Section>
 

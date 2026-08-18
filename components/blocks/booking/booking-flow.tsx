@@ -22,6 +22,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
+import { PetNotesFields } from "@/components/blocks/pet-notes-fields"
 import { PhoneField } from "@/components/blocks/phone-field"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -43,7 +44,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Textarea } from "@/components/ui/textarea"
 import {
   BOOKING_DAYS,
   BOOKING_STAFF,
@@ -59,6 +59,7 @@ import {
   resolvePickupAddress,
   serviceTotals,
 } from "@/lib/booking"
+import { type PetNoteEntry, petNoteLabel, petNotesComplete } from "@/lib/pet-notes"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
 
@@ -323,12 +324,7 @@ function PickupAndNotesFields({
           onCheckedChange={(value) => set({ needsPickup: value === true })}
           className="mt-0.5"
         />
-        <span className="flex flex-col gap-0.5 leading-tight">
-          <span className="text-sm font-medium text-foreground">I need pickup</span>
-          <span className="text-xs text-muted-foreground">
-            We&apos;ll collect your pet instead of you dropping them off.
-          </span>
-        </span>
+        <span className="text-sm font-medium text-foreground">Pet Address</span>
       </label>
 
       {pickup.needsPickup ? (
@@ -341,9 +337,7 @@ function PickupAndNotesFields({
                 onCheckedChange={(value) => set({ useSavedAddress: value === true })}
               />
               <span className="text-sm text-foreground">
-                {addressSource === "details"
-                  ? "Collect from the address above"
-                  : "Use my saved address"}
+                {addressSource === "details" ? "Same as the address above" : "Use my saved address"}
               </span>
             </label>
           ) : null}
@@ -357,7 +351,7 @@ function PickupAndNotesFields({
 
           {showAddressInput ? (
             <div className="group flex flex-col gap-1.5">
-              <Label htmlFor="pickup-address">Pickup address</Label>
+              <Label htmlFor="pickup-address">Your Pet Address</Label>
               <Input
                 id="pickup-address"
                 placeholder="Villa / apartment, street, area"
@@ -369,19 +363,11 @@ function PickupAndNotesFields({
         </div>
       ) : null}
 
-      <div className="group flex flex-col gap-1.5">
-        <Label htmlFor="pet-notes">
-          Anything we should know?{" "}
-          <span className="font-normal text-muted-foreground">(optional)</span>
-        </Label>
-        <Textarea
-          id="pet-notes"
-          placeholder="Allergies, behavior, handling instructions…"
-          value={pickup.petNotes}
-          onChange={(e) => set({ petNotes: e.target.value })}
-          className="min-h-24"
-        />
-      </div>
+      <PetNotesFields
+        entries={pickup.petNotes}
+        onEntries={(petNotes) => set({ petNotes })}
+        idPrefix="booking-pet-notes"
+      />
     </div>
   )
 }
@@ -848,7 +834,7 @@ function ConfirmStep({
   petLabel?: string
   customerLabel: string
   pickupAddress?: string
-  petNotes?: string
+  petNotes?: ReadonlyArray<PetNoteEntry>
 }) {
   const total = services.reduce((n, s) => n + s.priceAed, 0)
   const duration = services.reduce((n, s) => n + s.durationMinutes, 0)
@@ -893,8 +879,16 @@ function ConfirmStep({
         <SummaryRow label="With" value={staffLabel} />
         {petLabel ? <SummaryRow label="Pet" value={petLabel} /> : null}
         <SummaryRow label="Booked by" value={customerLabel} />
-        {pickupAddress ? <SummaryRow label="Pickup" value={pickupAddress} /> : null}
-        {petNotes ? <SummaryRow label="Notes" value={petNotes} /> : null}
+        {pickupAddress ? <SummaryRow label="Pet Address" value={pickupAddress} /> : null}
+        {petNotes?.length
+          ? petNotes.map((note) => (
+              <SummaryRow
+                key={note.category}
+                label={petNoteLabel(note.category)}
+                value={note.detail}
+              />
+            ))
+          : null}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -1142,7 +1136,8 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
         : step === "identify"
           ? customer.firstName.trim().length > 0 &&
             customer.phone.trim().length > 0 &&
-            (!hasPets || pet.name.trim().length > 0)
+            (!hasPets || pet.name.trim().length > 0) &&
+            petNotesComplete(pickup.petNotes)
           : true
 
   const isLast = stepIndex === steps.length - 1
@@ -1209,7 +1204,7 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
         petLabel={petLabel}
         customerLabel={customerLabel || "You"}
         pickupAddress={pickupAddressLabel}
-        petNotes={pickup.petNotes.trim() || undefined}
+        petNotes={pickup.petNotes.filter((n) => n.detail.trim().length > 0)}
       />
     ) : null
 

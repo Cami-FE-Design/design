@@ -5,7 +5,6 @@ import {
   ArrowLeftIcon,
   CalendarClockIcon,
   CalendarXIcon,
-  CarFrontIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronsRightIcon,
@@ -35,6 +34,7 @@ import {
   SERVICE_CATEGORY_ACCENT,
 } from "@/app/appointments/mock"
 import { CancelAppointmentDialog } from "@/components/blocks/cancel-appointment-dialog"
+import { PetNotesList } from "@/components/blocks/pet-notes-fields"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -52,6 +52,7 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet"
+import type { PetNoteEntry } from "@/lib/pet-notes"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers (mirror new-appointment-sheet conventions) ───────────────────────
@@ -502,39 +503,31 @@ function ServicesSection({ booking, staffName }: { booking: MockBooking; staffNa
 }
 
 // ─── Pickup + pet notes (PRO-… pet parent booking flow) ───────────────────────
-// Two separate sections on purpose: pickup only exists when the parent asked us
-// to collect the pet, while pet notes (allergies, behavior, handling) travel
-// with the pet and matter on every appointment.
+// Two separate sections on purpose: the pet address is only set when we travel
+// to the pet — in-store grooming with collection, or a mobile groomer visiting —
+// while pet notes (allergies, behavior, handling) travel with the pet and matter
+// on every appointment.
 
 function PickupSection({ address }: { address?: string }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-lg font-semibold leading-7 text-foreground">Pickup</h2>
-      <div className="flex items-start gap-3 rounded-2xl border border-border/60 bg-card p-4">
-        <span
-          aria-hidden
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-cami-sage-3 text-cami-sage-11"
-        >
-          <CarFrontIcon className="size-4" />
+      <h2 className="text-lg font-semibold leading-7 text-foreground">Your Pet Address</h2>
+      <div className="flex items-start gap-2.5 rounded-2xl border border-border/60 bg-card p-4">
+        <MapPinIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="min-w-0 flex-1 text-sm text-foreground">
+          {address ?? "No pet address on file"}
         </span>
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-tight">
-          <span className="text-sm font-semibold text-foreground">Pickup required</span>
-          <span className="flex items-start gap-1 text-xs text-muted-foreground">
-            <MapPinIcon className="mt-px size-3 shrink-0" aria-hidden />
-            {address ?? "No pickup address on file"}
-          </span>
-        </div>
       </div>
     </section>
   )
 }
 
-function PetNotesSection({ notes }: { notes: string }) {
+function PetNotesSection({ notes }: { notes: ReadonlyArray<PetNoteEntry> }) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold leading-7 text-foreground">Pet notes</h2>
       <div className="rounded-2xl border border-border/60 bg-card p-4">
-        <p className="text-sm leading-relaxed text-foreground">{notes}</p>
+        <PetNotesList entries={notes} />
       </div>
     </section>
   )
@@ -831,7 +824,7 @@ export function AppointmentDetailSheet({
                 <ClientCard client={client} onViewProfile={onViewProfile} />
                 <ServicesSection booking={booking} staffName={staffName} />
                 {booking.needsPickup ? <PickupSection address={booking.pickupAddress} /> : null}
-                {booking.petNotes ? <PetNotesSection notes={booking.petNotes} /> : null}
+                {booking.petNotes?.length ? <PetNotesSection notes={booking.petNotes} /> : null}
                 <SaleTotalSection totals={totals} label={totalLabel} />
               </div>
 

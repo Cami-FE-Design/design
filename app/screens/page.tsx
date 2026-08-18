@@ -584,8 +584,8 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/appointments",
-        label: "New booking sheet · Pickup + Pet notes",
-        note: "'New booking' → scroll to the Pickup and Pet notes sections. Pickup is unchecked by default; ticking it reveals the address block, which reuses the selected client's saved address (Karen Dougall and Maaz Test You have one on file; Aaliyah Hazari doesn't, which forces the manual input; with no client picked yet you get a 'pick a client' hint). Pet notes sit outside the checkbox — asked on every appointment. NOTE: this route does not render the calendar grid — the booking blocks and their popover live on /playground.",
+        label: "New booking sheet · Pet Address + Pet notes",
+        note: "'New booking' → scroll to the Pet Address and Pet notes sections. The Pet Address tick is off by default; ticking it reveals the address block, which reuses the selected client's saved address (Karen Dougall and Maaz Test You have one on file; Aaliyah Hazari doesn't, which forces the manual input; with no client picked yet you get a 'pick a client' hint). Pet notes use the same six tappable categories as the public flow, so notes captured by staff and by the parent stay the same shape. NOTE: this route does not render the calendar grid — the booking blocks and their popover live on /playground.",
       },
       {
         path: "/appointments",
@@ -723,7 +723,7 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/sales/appointments-list?ref=b-002",
-        label: "Detail sheet · Pickup + Pet notes",
+        label: "Detail sheet · Pet Address + Pet notes",
         note: "Same sheet, showing the two new sections between Services and the sale total: a Pickup card (car chip + collection address, only when the booking needs pickup) and a Pet notes card. The sheet opens from the Ref # link in the table — not the row body — so use this deep link. b-004 also has both; b-001 has neither, which is the empty case.",
       },
       {
@@ -797,8 +797,8 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/shampooch-jvc/book",
-        label: "Booking flow · pickup + pet notes",
-        note: "New clients now give an optional Address on the registration form itself, next to name and email — it belongs on the profile, not only behind the pickup tick. On the identity step (both the returning and the new-client branch): an 'I need pickup' checkbox, unchecked by default. Checking it reveals the address block with 'Use my saved address' pre-ticked (billing/shipping idiom — nothing to type in the common case); unticking it, or having no saved address, shows a Pickup address input. 'Anything we should know?' pet notes sit outside the checkbox — they're asked on every booking, pickup or not. Both surface as rows on the Review step. Use an EVEN-ending mobile to get the returning client with a saved address on file.",
+        label: "Booking flow · pet address + pet notes",
+        note: "New clients now give an optional Address on the registration form itself, next to name and email — it belongs on the profile, not only behind the address tick. On the identity step (both the returning and the new-client branch): a 'Pet Address' checkbox, unchecked by default. Checking it reveals the address block with 'Use my saved address' pre-ticked (billing/shipping idiom — nothing to type in the common case); unticking it, or having no saved address, shows a 'Your Pet Address' input. Wording is deliberately service-agnostic — 'pickup' doesn't apply to mobile grooming, where the groomer always travels to the pet. 'Anything we should know?' is now six tappable categories (Allergies / Behavior / Medical condition / Handling / Grooming sensitivity / Other) rather than one blank box — multi-select, and tapping one opens its own specifics field, which is required before Continue. It sits outside the address checkbox: allergies and handling matter on every booking. Both surface as rows on the Review step. Use an EVEN-ending mobile to get the returning client with a saved address on file.",
       },
       {
         path: "/purr-palace/book",
@@ -828,7 +828,7 @@ const SECTIONS: Section[] = [
       {
         path: "/emails/booking-confirmation?pickup=1",
         label: "Confirmation email · pickup variant",
-        note: "Same template with ?pickup=1. Adds a Notes row, and the 'Where' row becomes 'Pickup from' with the collection address — on a pickup booking the salon address isn't where the parent needs to be, so it would be the wrong thing to print.",
+        note: "Same template with ?pickup=1. Adds a Notes row, and the 'Where' row becomes 'Pet Address' — when we travel to the pet the salon address isn't where the parent needs to be, so printing it would be the wrong thing.",
       },
     ],
   },

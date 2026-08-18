@@ -6,6 +6,7 @@
 // back-calculated for display), reusing public-business as the source of truth.
 
 import type { AvatarSpecies } from "@/components/ui/avatar"
+import type { PetNoteEntry } from "@/lib/pet-notes"
 import type { PublicBusiness, PublicService } from "@/lib/public-business"
 
 // ─── Pet-module gate ──────────────────────────────────────────────────────────
@@ -352,21 +353,23 @@ export const RETURNING_CLIENT: ReturningClient = {
  * `needsPickup` is off by default: most parents drop off, and defaulting it on
  * would put a pickup icon on every appointment in the calendar. When it's on we
  * reuse the saved address (billing/shipping style) so nothing has to be typed
- * in the common case. `petNotes` is deliberately independent of pickup —
- * allergies and handling notes matter on every appointment.
+ * in the common case. `petNotes` is deliberately independent of the address —
+ * allergies and handling notes matter on every appointment. They are structured
+ * category + detail pairs rather than one free-text box so groomers get
+ * comparable data instead of prose.
  */
 export type PickupDetails = {
   needsPickup: boolean
   useSavedAddress: boolean
   address: string
-  petNotes: string
+  petNotes: PetNoteEntry[]
 }
 
 export const EMPTY_PICKUP_DETAILS: PickupDetails = {
   needsPickup: false,
   useSavedAddress: true,
   address: "",
-  petNotes: "",
+  petNotes: [],
 }
 
 /** The address that will actually be used for collection, or null if none. */
@@ -428,7 +431,7 @@ export type BookingDetail = {
   /** Set when the parent asked us to collect the pet. */
   pickupAddress?: string
   /** Pet notes the parent left at booking time. */
-  petNotes?: string
+  petNotes?: PetNoteEntry[]
 }
 
 export function resolveBooking(business: PublicBusiness, ref: string): BookingDetail {
@@ -456,7 +459,12 @@ export function resolveBooking(business: PublicBusiness, ref: string): BookingDe
     petName: businessHasPets(business) ? RETURNING_PETS[0]!.name : undefined,
     customerName: "Michelle You",
     pickupAddress: withPickup ? RETURNING_CLIENT.address : undefined,
-    petNotes: withPickup ? "Anxious in the van — needs the crate, not a loose harness." : undefined,
+    petNotes: withPickup
+      ? [
+          { category: "behavior", detail: "Anxious in the van — needs the crate, not a harness." },
+          { category: "handling", detail: "Sensitive paws — go slowly with the nails." },
+        ]
+      : undefined,
   }
 }
 

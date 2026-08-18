@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { BOOKING_DAYS, type BookingDetail, type BookingStatus, calendarLinks } from "@/lib/booking"
+import { petNoteLabel } from "@/lib/pet-notes"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
 
@@ -214,9 +215,15 @@ export function ManageBooking({
               <DetailRow label="With" value={booking.staffName} />
               {booking.petName ? <DetailRow label="Pet" value={booking.petName} /> : null}
               {booking.pickupAddress ? (
-                <DetailRow label="Pickup" value={booking.pickupAddress} />
+                <DetailRow label="Pet Address" value={booking.pickupAddress} />
               ) : null}
-              {booking.petNotes ? <DetailRow label="Notes" value={booking.petNotes} /> : null}
+              {booking.petNotes?.map((note) => (
+                <DetailRow
+                  key={note.category}
+                  label={petNoteLabel(note.category)}
+                  value={note.detail}
+                />
+              ))}
               <DetailRow
                 label="Total"
                 value={<span className="tabular-nums">{formatPriceAed(booking.priceAed)}</span>}

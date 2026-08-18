@@ -57,6 +57,7 @@ import {
 import { ServicePickerPanel } from "@/components/blocks/new-appointment-service-picker"
 import { NoteDialog } from "@/components/blocks/note-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
+import { PetNotesFields } from "@/components/blocks/pet-notes-fields"
 import { PickupFields } from "@/components/blocks/pickup-fields"
 import { SendMessageDialog } from "@/components/blocks/send-message-dialog"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
@@ -87,11 +88,11 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
 import { depositForServices, examplePolicyText } from "@/lib/payment-policy/types"
+import type { PetNoteEntry } from "@/lib/pet-notes"
 import { cn } from "@/lib/utils"
 
 type SelectedPet = {
@@ -129,7 +130,7 @@ type SelectedClient = {
   id: string
   name: string
   phone: string
-  /** Saved address on the client profile — pre-fills the pickup address. */
+  /** Saved address on the client profile — pre-fills the pet address. */
   address?: string
 }
 
@@ -340,7 +341,7 @@ export function NewAppointmentSheet({
   const [needsPickup, setNeedsPickup] = useState(false)
   const [useSavedAddress, setUseSavedAddress] = useState(true)
   const [customPickupAddress, setCustomPickupAddress] = useState("")
-  const [petNotes, setPetNotes] = useState("")
+  const [petNotes, setPetNotes] = useState<PetNoteEntry[]>([])
   const savedAddress = selectedClient?.address
   const [messageTemplate, setMessageTemplate] = useState<WhatsAppTemplate | null>(null)
   const [petPendingDelete, setPetPendingDelete] = useState<string | null>(null)
@@ -861,7 +862,7 @@ export function NewAppointmentSheet({
               </section>
 
               <section data-slot="pickup-section" className="flex flex-col gap-3">
-                <h2 className="text-lg font-semibold leading-7 text-foreground">Pickup</h2>
+                <h2 className="text-lg font-semibold leading-7 text-foreground">Pet Address</h2>
                 <PickupFields
                   needsPickup={needsPickup}
                   onNeedsPickup={setNeedsPickup}
@@ -876,17 +877,13 @@ export function NewAppointmentSheet({
 
               <section data-slot="pet-notes-section" className="flex flex-col gap-3">
                 <h2 className="text-lg font-semibold leading-7 text-foreground">Pet notes</h2>
-                <div className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-4">
-                  <Textarea
-                    value={petNotes}
-                    onChange={(event) => setPetNotes(event.target.value)}
-                    placeholder="Allergies, behavior, handling instructions…"
-                    className="min-h-24"
-                    aria-label="Pet notes"
+                <div className="rounded-2xl border border-border/60 bg-card p-4">
+                  <PetNotesFields
+                    entries={petNotes}
+                    onEntries={setPetNotes}
+                    idPrefix="appointment-pet-notes"
+                    label="What should the groomer know?"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Shown on every appointment for this pet, whether or not it needs pickup.
-                  </p>
                 </div>
               </section>
 
