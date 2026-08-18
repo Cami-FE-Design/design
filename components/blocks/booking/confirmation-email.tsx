@@ -1,5 +1,6 @@
 import { Avatar } from "@/components/ui/avatar"
 import type { BookingDetail } from "@/lib/booking"
+import { petNoteLabel } from "@/lib/pet-notes"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
 
 // Booking confirmation email (E3-5). Cami-branded but the PET BUSINESS leads —
@@ -70,11 +71,13 @@ export function ConfirmationEmail({
             <Row label="Duration" value={formatDuration(booking.durationMinutes)} />
             <Row label="With" value={booking.staffName} />
             {booking.petName ? <Row label="Pet" value={booking.petName} /> : null}
-            {booking.petNotes ? <Row label="Notes" value={booking.petNotes} /> : null}
+            {booking.petNotes?.map((note) => (
+              <Row key={note.category} label={petNoteLabel(note.category)} value={note.detail} />
+            ))}
             {/* On a pickup booking the salon address is not where the parent
                 needs to be, so the collection address takes the "Where" row. */}
             {booking.pickupAddress ? (
-              <Row label="Pickup from" value={booking.pickupAddress} />
+              <Row label="Pet Address" value={booking.pickupAddress} />
             ) : (
               <Row label="Where" value={fullAddress} />
             )}

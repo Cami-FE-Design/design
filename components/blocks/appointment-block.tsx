@@ -232,11 +232,11 @@ function BlockIconRow({ booking, subtleClass, tight }: BlockIconRowProps) {
           10px icon disappears among the passive deposit / recurring marks. */}
       {booking.needsPickup ? (
         <span
-          title="Pickup required"
+          title="Pet Address"
           className="flex size-3.5 shrink-0 items-center justify-center rounded-full bg-cami-sage-9 text-white"
         >
           <CarFrontIcon className="size-2.5" aria-hidden />
-          <span className="sr-only">Pickup required</span>
+          <span className="sr-only">Pet Address</span>
         </span>
       ) : null}
       {icons.map(({ key, Icon }) => (

@@ -4,7 +4,6 @@ import {
   AlertTriangleIcon,
   ArrowRightToLineIcon,
   BellRingIcon,
-  CarFrontIcon,
   CheckIcon,
   ChevronDownIcon,
   Clock3Icon,
@@ -12,6 +11,7 @@ import {
   ExternalLinkIcon,
   EyeOffIcon,
   type LucideIcon,
+  MapPinIcon,
   MoreHorizontalIcon,
   PhoneIcon,
   PlusIcon,
@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
+import { formatPetNotes, petNoteLabel } from "@/lib/pet-notes"
 import { cn } from "@/lib/utils"
 
 // Status metadata. Tailwind classes use the closest available cami- token
@@ -356,9 +357,9 @@ export function AppointmentQuickPanel({
           durationMin={booking.durationMin}
           priceMinor={booking.priceMinor}
         />
-        {booking.petNotes ? (
+        {booking.petNotes?.length ? (
           <p className="line-clamp-1 text-[11px] text-muted-foreground italic">
-            {booking.petNotes}
+            {formatPetNotes(booking.petNotes)}
           </p>
         ) : null}
         {booking.notes ? (
@@ -366,9 +367,9 @@ export function AppointmentQuickPanel({
         ) : null}
         {booking.needsPickup ? (
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <CarFrontIcon className="size-2.5 shrink-0" aria-hidden />
+            <MapPinIcon className="size-2.5 shrink-0" aria-hidden />
             <span className="min-w-0 truncate">
-              Pickup required
+              Pet address
               {booking.pickupAddress ? ` · ${booking.pickupAddress}` : null}
             </span>
           </div>
@@ -467,12 +468,18 @@ export function AppointmentDetailPanel({
           </button>
         </section>
 
-        {booking.petNotes ? (
+        {booking.petNotes?.length ? (
           <section data-slot="pet-notes-section" className="flex flex-col gap-1">
             <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               Pet notes
             </div>
-            <p className="rounded-md bg-muted px-2 py-1.5 text-[11px]">{booking.petNotes}</p>
+            <ul className="flex flex-col gap-1 rounded-md bg-muted px-2 py-1.5 text-[11px]">
+              {booking.petNotes.map((note) => (
+                <li key={note.category}>
+                  <span className="font-medium">{petNoteLabel(note.category)}:</span> {note.detail}
+                </li>
+              ))}
+            </ul>
           </section>
         ) : null}
 
@@ -488,12 +495,12 @@ export function AppointmentDetailPanel({
         {booking.needsPickup ? (
           <section data-slot="pickup-section" className="flex flex-col gap-1">
             <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              Pickup
+              Your Pet Address
             </div>
             <div className="flex items-start gap-1.5 rounded-md bg-cami-sage-2 px-2 py-1.5 text-[11px] text-cami-sage-12">
-              <CarFrontIcon className="mt-px size-3 shrink-0" aria-hidden />
+              <MapPinIcon className="mt-px size-3 shrink-0" aria-hidden />
               <span className="min-w-0 flex-1">
-                {booking.pickupAddress ?? "Pickup required — no address on file"}
+                {booking.pickupAddress ?? "No pet address on file"}
               </span>
             </div>
           </section>

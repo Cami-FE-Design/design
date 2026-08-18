@@ -61,12 +61,7 @@ export function PickupFields({
           onCheckedChange={(value) => onNeedsPickup(value === true)}
           className="mt-0.5"
         />
-        <span className="flex flex-col gap-0.5 leading-tight">
-          <span className="text-sm font-medium text-foreground">Pickup required</span>
-          <span className="text-xs text-muted-foreground">
-            We collect the pet instead of the parent dropping off.
-          </span>
-        </span>
+        <span className="text-sm font-medium text-foreground">Add a pet address</span>
       </label>
 
       {needsPickup ? (
@@ -95,18 +90,18 @@ export function PickupFields({
           {!clientName ? (
             <div className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm text-cami-yellow-12">
               <UserRoundIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-              Pick a client above to reuse their saved address, or type the pickup address here.
+              Pick a client above to reuse their saved address, or type the pet address here.
             </div>
           ) : !savedAddress ? (
             <div className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm text-cami-yellow-12">
               <CarFrontIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-              No address on {clientName}'s profile yet — enter the pickup address below.
+              No address on {clientName}'s profile yet — enter the pet address below.
             </div>
           ) : null}
 
           {showAddressInput ? (
             <div className="flex max-w-md flex-col gap-1.5">
-              <Label htmlFor={addressId}>Pickup address</Label>
+              <Label htmlFor={addressId}>Your Pet Address</Label>
               <Input
                 id={addressId}
                 value={address}

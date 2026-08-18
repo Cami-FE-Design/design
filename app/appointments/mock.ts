@@ -1,4 +1,5 @@
 import type { AvatarSpecies } from "@/components/ui/avatar"
+import type { PetNoteEntry } from "@/lib/pet-notes"
 
 export type MockBookingStatus =
   | "booked"
@@ -74,9 +75,10 @@ export type MockBooking = {
   /**
    * Pet-related notes (allergies, behavior, handling). Deliberately separate
    * from `notes` — those are booking-specific, these travel with the pet and
-   * show on every appointment regardless of pickup.
+   * show on every appointment regardless of whether we go to the pet.
+   * Structured category + detail pairs so groomers get comparable data.
    */
-  petNotes?: string
+  petNotes?: PetNoteEntry[]
   /**
    * Days after the 18 May 2026 demo anchor this booking is scheduled.
    * Unset = anchor day. Only set on bookings outside the appointments-list
@@ -169,7 +171,10 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     relationshipPills: ["Regular", "4 weeks"],
     tags: ["Sensitive ears"],
     notes: "Owner asked for extra paw moisturizer last visit.",
-    petNotes: "Hates the dryer on high. Sensitive ears — no water near the head.",
+    petNotes: [
+      { category: "grooming-sensitivity", detail: "Hates the dryer on high." },
+      { category: "handling", detail: "Sensitive ears — no water near the head." },
+    ],
     needsPickup: true,
     pickupAddress: "Villa 12, Street 4B, Jumeirah 1, Dubai",
     agreementSigned: true,
@@ -198,7 +203,12 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     relationshipPills: ["VIP", "8 weeks"],
     tags: ["Anxious"],
     notes: "Prefers female groomers. Treat-motivated.",
-    petNotes: "Anxious in the van — needs the crate, not a loose harness.",
+    petNotes: [
+      {
+        category: "behavior",
+        detail: "Anxious in the van — needs the crate, not a loose harness.",
+      },
+    ],
     agreementSigned: false,
     intakeFormSubmitted: true,
     groomingFrequency: "8 weeks",
@@ -218,7 +228,10 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     hasSafetyFlag: true,
     needsPickup: true,
     pickupAddress: "Apt 1804, Marina Heights Tower, Dubai Marina",
-    petNotes: "Muzzle for nail work. Reactive to other dogs in the van.",
+    petNotes: [
+      { category: "handling", detail: "Muzzle for nail work." },
+      { category: "behavior", detail: "Reactive to other dogs in the van." },
+    ],
     dayOffset: 1,
   },
 
