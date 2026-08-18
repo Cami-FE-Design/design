@@ -33,6 +33,7 @@ import { toast } from "sonner"
 import {
   MOCK_BOOKINGS,
   MOCK_STAFF,
+  type MockBooking,
   type MockBookingStatus,
   type MockServiceCategory,
 } from "@/app/appointments/mock"
@@ -43,6 +44,10 @@ import { RedeemGiftCardDialog } from "@/app/sales/new-sale/redeem-gift-card-dial
 import { SelfCheckoutDialog } from "@/app/sales/new-sale/self-checkout-dialog"
 import { AddTeamMemberDialog } from "@/components/blocks/add-team-member-dialog"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
+import {
+  AppointmentDetailPanel,
+  AppointmentQuickPanel,
+} from "@/components/blocks/appointment-popover"
 import { AppointmentsToolbar } from "@/components/blocks/appointments-toolbar"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
 import { BoardingDetailSheet } from "@/components/blocks/boarding/booking-detail-sheet"
@@ -63,6 +68,8 @@ import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
+import { PhoneField } from "@/components/blocks/phone-field"
+import { PickupFields } from "@/components/blocks/pickup-fields"
 import { DashboardReport } from "@/components/blocks/reports/dashboard-report"
 import { DetailedTableReport } from "@/components/blocks/reports/detailed-table-report"
 import { TableReport } from "@/components/blocks/reports/table-report"
@@ -157,11 +164,29 @@ type SectionProps = {
   children: React.ReactNode
 }
 
+// Section titles double as anchors so a review message can deep-link straight
+// to one section instead of asking the reader to scroll and hunt for it.
+// "Appointments — pickup & pet notes" → #appointments-pickup-pet-notes
+function sectionSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+}
+
 function Section({ title, description, children }: SectionProps) {
+  const slug = sectionSlug(title)
   return (
-    <section className="scroll-mt-20 border-t border-border py-10 first:border-t-0 first:pt-0">
+    <section
+      id={slug}
+      className="scroll-mt-20 border-t border-border py-10 first:border-t-0 first:pt-0"
+    >
       <div className="mb-6 flex flex-col gap-1">
-        <h2 className="text-base font-medium text-foreground">{title}</h2>
+        <h2 className="text-base font-medium text-foreground">
+          <a href={`#${slug}`} className="hover:underline">
+            {title}
+          </a>
+        </h2>
         {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {children}
@@ -176,6 +201,106 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
         {label}
       </span>
       <div className="flex flex-wrap items-center gap-3">{children}</div>
+    </div>
+  )
+}
+
+// ─── Pickup & pet notes demos ─────────────────────────────────────────────────
+
+const PICKUP_DEMO_BOOKING: MockBooking = {
+  id: "pg-pickup",
+  staffId: "aya-hassan",
+  start: "10:15",
+  durationMin: 60,
+  status: "confirmed",
+  serviceCategory: "grooming",
+  serviceName: "Wash & Blow Dry MD",
+  clientName: "Tom Cassidy",
+  clientPhone: "+971 50 374 5511",
+  petName: "Luna",
+  petSpecies: "cat",
+  petBreed: "British Shorthair",
+  priceMinor: 14000,
+  bookingRef: "B-77342",
+  needsPickup: true,
+  pickupAddress: "Villa 12, Street 4B, Jumeirah 1, Dubai",
+  petNotes: "Hates the dryer on high. Sensitive ears — no water near the head.",
+  notes: "Owner asked for extra paw moisturizer last visit.",
+}
+
+// Every reachable state of the pickup block, each one live so the checkboxes
+// can be toggled in place.
+const PICKUP_FIELD_STATES: Array<{
+  key: string
+  label: string
+  needsPickup: boolean
+  useSavedAddress: boolean
+  savedAddress?: string
+  clientName?: string
+}> = [
+  { key: "off", label: "Off (default)", needsPickup: false, useSavedAddress: true },
+  {
+    key: "no-client",
+    label: "On · no client selected yet",
+    needsPickup: true,
+    useSavedAddress: true,
+  },
+  {
+    key: "saved",
+    label: "On · reusing the saved address",
+    needsPickup: true,
+    useSavedAddress: true,
+    savedAddress: "Villa 12, Street 4B, Jumeirah 1, Dubai",
+    clientName: "Karen Dougall",
+  },
+  {
+    key: "override",
+    label: "On · overriding with a different address",
+    needsPickup: true,
+    useSavedAddress: false,
+    savedAddress: "Villa 12, Street 4B, Jumeirah 1, Dubai",
+    clientName: "Karen Dougall",
+  },
+  {
+    key: "no-saved",
+    label: "On · client has no address on file",
+    needsPickup: true,
+    useSavedAddress: true,
+    clientName: "Aaliyah Hazari",
+  },
+]
+
+function PickupFieldsDemo({ state }: { state: (typeof PICKUP_FIELD_STATES)[number] }) {
+  const [needsPickup, setNeedsPickup] = useState(state.needsPickup)
+  const [useSavedAddress, setUseSavedAddress] = useState(state.useSavedAddress)
+  const [address, setAddress] = useState("")
+
+  return (
+    <PickupFields
+      idPrefix={`pg-${state.key}`}
+      needsPickup={needsPickup}
+      onNeedsPickup={setNeedsPickup}
+      useSavedAddress={useSavedAddress}
+      onUseSavedAddress={setUseSavedAddress}
+      address={address}
+      onAddress={setAddress}
+      savedAddress={state.savedAddress}
+      clientName={state.clientName}
+    />
+  )
+}
+
+function PickupFieldsStates() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {PICKUP_FIELD_STATES.map((state) => (
+        <div key={state.key} className="flex flex-col gap-2">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            {state.label}
+          </span>
+          <PickupFieldsDemo state={state} />
+        </div>
+      ))}
     </div>
   )
 }
@@ -210,6 +335,8 @@ const TEAM_DEMO_MEMBERS: Record<"active" | "pending", TeamMemberDetailMember> = 
 
 export function PlaygroundShowcase() {
   const [checked, setChecked] = useState<boolean | "indeterminate">(true)
+  const [phoneCode, setPhoneCode] = useState("+971")
+  const [phoneNumber, setPhoneNumber] = useState("")
   const [switchOn, setSwitchOn] = useState(true)
   const [radio, setRadio] = useState("option-2")
   const [pickedTypes, setPickedTypes] = useState<Set<string>>(
@@ -482,6 +609,34 @@ export function PlaygroundShowcase() {
         </Row>
         <Row label="Textarea">
           <Textarea className="w-full max-w-sm" placeholder="Notes" />
+        </Row>
+        <Row label="Phone field">
+          <div className="w-full max-w-sm">
+            <PhoneField
+              id="pg-phone"
+              label="Mobile number"
+              code={phoneCode}
+              number={phoneNumber}
+              onCodeChange={setPhoneCode}
+              onNumberChange={setPhoneNumber}
+            />
+          </div>
+        </Row>
+        <Row label="Phone · verified">
+          <div className="flex w-full max-w-sm flex-col gap-1.5">
+            <PhoneField
+              id="pg-phone-locked"
+              label="Mobile number"
+              code="+971"
+              number="50 123 4567"
+              onCodeChange={() => undefined}
+              onNumberChange={() => undefined}
+              disabled
+            />
+            <p className="text-xs text-muted-foreground">
+              Verified. We send your confirmation and reminders here on Email / SMS / WhatsApp.
+            </p>
+          </div>
         </Row>
       </Section>
 
@@ -1686,6 +1841,64 @@ export function PlaygroundShowcase() {
               />
             </div>
           ))}
+        </Row>
+        <Row label="Flag icons (pickup leads the row)">
+          {(
+            [
+              { key: "pickup", label: "Pickup only", flags: { needsPickup: true } },
+              { key: "deposit", label: "Deposit only", flags: { hasDeposit: true } },
+              {
+                key: "pickup-safety",
+                label: "Pickup + safety flag",
+                flags: { needsPickup: true, hasSafetyFlag: true },
+              },
+              {
+                key: "all",
+                label: "All four",
+                flags: {
+                  needsPickup: true,
+                  hasDeposit: true,
+                  isRecurring: true,
+                  hasSafetyFlag: true,
+                },
+              },
+            ] as Array<{ key: string; label: string; flags: Partial<MockBooking> }>
+          ).map(({ key, label, flags }) => (
+            <div key={key} className="flex flex-col gap-1.5">
+              <div className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20">
+                <AppointmentBlock
+                  booking={{
+                    id: `demo-flags-${key}`,
+                    staffId: "demo",
+                    start: "10:00",
+                    durationMin: 60,
+                    status: "confirmed",
+                    serviceCategory: "grooming",
+                    serviceName: "Full Grooming SM",
+                    clientName: "Karen Dougall",
+                    petName: "Willow",
+                    petSpecies: "dog",
+                    priceMinor: 21000,
+                    ...flags,
+                  }}
+                  top={0}
+                  height={95}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground">{label}</span>
+            </div>
+          ))}
+        </Row>
+      </Section>
+
+      <Section
+        title="Appointments — pickup & pet notes"
+        description="Pickup capture on the staff appointment sheet (<PickupFields>) and the read-only rendering on the calendar popover. Pickup is unchecked by default — most appointments are self-drop, and defaulting it on would put a car icon on every block. When it is on, the saved address is reused billing/shipping style so nothing has to be typed in the common case. Pet notes deliberately sit outside the checkbox: allergies and handling matter on every appointment, pickup or not. Every field state is live below — tick and untick them."
+      >
+        <PickupFieldsStates />
+        <Row label="Popover — pickup + notes">
+          <AppointmentQuickPanel booking={PICKUP_DEMO_BOOKING} />
+          <AppointmentDetailPanel booking={PICKUP_DEMO_BOOKING} />
         </Row>
       </Section>
 

@@ -11,6 +11,7 @@ import {
   ChevronUpIcon,
   ClockIcon,
   Loader2Icon,
+  MapPinIcon,
   PlusIcon,
   ShieldCheckIcon,
   ShoppingBagIcon,
@@ -21,8 +22,10 @@ import { useEffect, useRef, useState } from "react"
 
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
+import { PhoneField } from "@/components/blocks/phone-field"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,16 +43,20 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Textarea } from "@/components/ui/textarea"
 import {
   BOOKING_DAYS,
   BOOKING_STAFF,
   bookingRef,
   businessHasPets,
   type CatalogService,
+  EMPTY_PICKUP_DETAILS,
   findCatalogService,
   findClientByPhone,
   PET_SPECIES_OPTIONS,
+  type PickupDetails,
   type ReturningClient,
+  resolvePickupAddress,
   serviceTotals,
 } from "@/lib/booking"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
@@ -214,7 +221,26 @@ function StaffChip({
 
 // ─── Step 3 — Identify ────────────────────────────────────────────────────────
 
-export type Customer = { firstName: string; lastName: string; phone: string; email: string }
+export type Customer = {
+  firstName: string
+  lastName: string
+  /** Dial code, kept separate from the number so the field can offer a picker. */
+  phoneCode: string
+  /** National number without the dial code. */
+  phone: string
+  email: string
+  /**
+   * Home address. Captured on the new-client registration form so it lands on
+   * the profile like the name and email do — pickup then reuses it rather than
+   * being the only reason we ever ask for an address.
+   */
+  address: string
+}
+
+/** Dial code + number as one displayable string. */
+export function formatCustomerPhone(customer: Customer): string {
+  return `${customer.phoneCode} ${customer.phone}`.trim()
+}
 
 // Returning-user phone 2FA — mirrors the operator sign-in verify screen.
 type VerifyState = "idle" | "verifying" | "success" | "error"
@@ -268,6 +294,98 @@ function PetDetailsFields({ pet, onPet }: { pet: NewPet; onPet: (p: NewPet) => v
   )
 }
 
+// Pickup + pet notes. Rendered in both identify branches (returning and new)
+// so the parent is asked the same two things either way.
+function PickupAndNotesFields({
+  pickup,
+  onPickup,
+  savedAddress,
+  addressSource = "profile",
+}: {
+  pickup: PickupDetails
+  onPickup: (p: PickupDetails) => void
+  savedAddress?: string
+  /**
+   * Where `savedAddress` came from — the account on file, or the address the
+   * caller just typed into their details above. Only changes the wording.
+   */
+  addressSource?: "profile" | "details"
+}) {
+  const set = (patch: Partial<PickupDetails>) => onPickup({ ...pickup, ...patch })
+  const showAddressInput = !pickup.useSavedAddress || !savedAddress
+
+  return (
+    <div className="flex flex-col gap-4 border-t border-border/60 pt-5">
+      <label htmlFor="needs-pickup" className="flex cursor-pointer items-start gap-3">
+        <Checkbox
+          id="needs-pickup"
+          checked={pickup.needsPickup}
+          onCheckedChange={(value) => set({ needsPickup: value === true })}
+          className="mt-0.5"
+        />
+        <span className="flex flex-col gap-0.5 leading-tight">
+          <span className="text-sm font-medium text-foreground">I need pickup</span>
+          <span className="text-xs text-muted-foreground">
+            We&apos;ll collect your pet instead of you dropping them off.
+          </span>
+        </span>
+      </label>
+
+      {pickup.needsPickup ? (
+        <div className="flex flex-col gap-3 pl-7">
+          {savedAddress ? (
+            <label htmlFor="use-saved-address" className="flex cursor-pointer items-center gap-3">
+              <Checkbox
+                id="use-saved-address"
+                checked={pickup.useSavedAddress}
+                onCheckedChange={(value) => set({ useSavedAddress: value === true })}
+              />
+              <span className="text-sm text-foreground">
+                {addressSource === "details"
+                  ? "Collect from the address above"
+                  : "Use my saved address"}
+              </span>
+            </label>
+          ) : null}
+
+          {pickup.useSavedAddress && savedAddress ? (
+            <div className="flex items-start gap-2 rounded-xl bg-cami-sage-2 p-3 text-sm text-cami-sage-12">
+              <MapPinIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+              {savedAddress}
+            </div>
+          ) : null}
+
+          {showAddressInput ? (
+            <div className="group flex flex-col gap-1.5">
+              <Label htmlFor="pickup-address">Pickup address</Label>
+              <Input
+                id="pickup-address"
+                placeholder="Villa / apartment, street, area"
+                value={pickup.address}
+                onChange={(e) => set({ address: e.target.value })}
+              />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="group flex flex-col gap-1.5">
+        <Label htmlFor="pet-notes">
+          Anything we should know?{" "}
+          <span className="font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <Textarea
+          id="pet-notes"
+          placeholder="Allergies, behavior, handling instructions…"
+          value={pickup.petNotes}
+          onChange={(e) => set({ petNotes: e.target.value })}
+          className="min-h-24"
+        />
+      </div>
+    </div>
+  )
+}
+
 // Sentinel picker value for "not one of my saved pets — add a new one".
 const ADD_PET = "__new__"
 
@@ -277,12 +395,16 @@ function IdentifyStep({
   onChange,
   pet,
   onPet,
+  pickup,
+  onPickup,
 }: {
   hasPets: boolean
   customer: Customer
   onChange: (c: Customer) => void
   pet: NewPet
   onPet: (p: NewPet) => void
+  pickup: PickupDetails
+  onPickup: (p: PickupDetails) => void
 }) {
   // Linear sub-flow: phone → code → details. No first-visit fork; phone + OTP is
   // the single entry, and we resolve who the caller is on verify.
@@ -340,19 +462,35 @@ function IdentifyStep({
         onChange({
           firstName: client.firstName,
           lastName: client.lastName,
+          phoneCode: customer.phoneCode,
           phone: customer.phone,
           email: client.email,
+          address: client.address ?? "",
         })
         if (hasPets && client.pets.length > 0) {
           const first = client.pets[0]!
           setPetChoice(first.id)
           onPet({ name: first.name, species: first.species })
         }
+      } else {
+        // No record on file. Clear anything a previous resolve left behind —
+        // going back and re-verifying with a different number would otherwise
+        // hand the new registration form the last caller's name, email and pet.
+        onChange({
+          firstName: "",
+          lastName: "",
+          phoneCode: customer.phoneCode,
+          phone: customer.phone,
+          email: "",
+          address: "",
+        })
+        setPetChoice("")
+        onPet({ name: "", species: "dog" })
       }
       setAuthPhase("details")
     }, 700)
     return () => clearTimeout(t)
-  }, [verifyState, customer.phone, hasPets, onChange, onPet])
+  }, [verifyState, customer.phone, customer.phoneCode, hasPets, onChange, onPet])
 
   function requestCode() {
     setAuthPhase("code")
@@ -381,16 +519,14 @@ function IdentifyStep({
           title="Let's confirm it's you"
           hint="Enter your mobile number — we'll text a 6-digit code."
         />
-        <div className="group flex flex-col gap-1.5">
-          <Label htmlFor="ret-phone">Mobile number</Label>
-          <Input
-            id="ret-phone"
-            inputMode="tel"
-            placeholder="+971 50 123 4567"
-            value={customer.phone}
-            onChange={(e) => set({ phone: e.target.value })}
-          />
-        </div>
+        <PhoneField
+          id="ret-phone"
+          label="Mobile number"
+          code={customer.phoneCode}
+          number={customer.phone}
+          onCodeChange={(phoneCode) => set({ phoneCode })}
+          onNumberChange={(phone) => set({ phone })}
+        />
         <Button
           variant="outline"
           radius="full"
@@ -410,7 +546,7 @@ function IdentifyStep({
     return (
       <div className="flex flex-col gap-5">
         <StepHeading
-          title={`Enter the code we sent to ${customer.phone}`}
+          title={`Enter the code we sent to ${formatCustomerPhone(customer)}`}
           hint="This helps us keep your account secure."
         />
         <div className="flex flex-col items-start gap-3">
@@ -581,6 +717,11 @@ function IdentifyStep({
         ) : (
           <StepHeading title="Welcome back" hint="You're verified — review your booking next." />
         )}
+        <PickupAndNotesFields
+          pickup={pickup}
+          onPickup={onPickup}
+          savedAddress={resolved?.address}
+        />
       </div>
     )
   }
@@ -612,11 +753,18 @@ function IdentifyStep({
           />
         </div>
       </div>
-      <div className="group flex flex-col gap-1.5">
-        <Label htmlFor="phone">Mobile number</Label>
-        <Input id="phone" inputMode="tel" value={customer.phone} disabled />
+      <div className="flex flex-col gap-1.5">
+        <PhoneField
+          id="phone"
+          label="Mobile number"
+          code={customer.phoneCode}
+          number={customer.phone}
+          onCodeChange={() => undefined}
+          onNumberChange={() => undefined}
+          disabled
+        />
         <p className="text-xs text-muted-foreground">
-          Verified. We send your confirmation and reminders here on WhatsApp.
+          Verified. We send your confirmation and reminders here on Email / SMS / WhatsApp.
         </p>
       </div>
       <div className="group flex flex-col gap-1.5">
@@ -632,6 +780,21 @@ function IdentifyStep({
           onChange={(e) => set({ email: e.target.value })}
         />
       </div>
+      <div className="group flex flex-col gap-1.5">
+        <Label htmlFor="address">
+          Address <span className="font-normal text-muted-foreground">(optional)</span>
+        </Label>
+        <Input
+          id="address"
+          autoComplete="street-address"
+          placeholder="Villa / apartment, street, area"
+          value={customer.address}
+          onChange={(e) => set({ address: e.target.value })}
+        />
+        <p className="text-xs text-muted-foreground">
+          Saved to your account. We use it if you ask us to collect your pet.
+        </p>
+      </div>
       {hasPets ? (
         <div className="flex flex-col gap-4 border-t border-border/60 pt-5">
           <div className="flex flex-col gap-0.5">
@@ -643,6 +806,12 @@ function IdentifyStep({
           {petControl}
         </div>
       ) : null}
+      <PickupAndNotesFields
+        pickup={pickup}
+        onPickup={onPickup}
+        savedAddress={customer.address.trim() || undefined}
+        addressSource="details"
+      />
     </div>
   )
 }
@@ -669,6 +838,8 @@ function ConfirmStep({
   staffLabel,
   petLabel,
   customerLabel,
+  pickupAddress,
+  petNotes,
 }: {
   business: PublicBusiness
   services: ReadonlyArray<CatalogService>
@@ -676,6 +847,8 @@ function ConfirmStep({
   staffLabel: string
   petLabel?: string
   customerLabel: string
+  pickupAddress?: string
+  petNotes?: string
 }) {
   const total = services.reduce((n, s) => n + s.priceAed, 0)
   const duration = services.reduce((n, s) => n + s.durationMinutes, 0)
@@ -720,6 +893,8 @@ function ConfirmStep({
         <SummaryRow label="With" value={staffLabel} />
         {petLabel ? <SummaryRow label="Pet" value={petLabel} /> : null}
         <SummaryRow label="Booked by" value={customerLabel} />
+        {pickupAddress ? <SummaryRow label="Pickup" value={pickupAddress} /> : null}
+        {petNotes ? <SummaryRow label="Notes" value={petNotes} /> : null}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -927,10 +1102,13 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
   const [customer, setCustomer] = useState<Customer>({
     firstName: "",
     lastName: "",
+    phoneCode: "+971",
     phone: "",
     email: "",
+    address: "",
   })
   const [pet, setPet] = useState<NewPet>({ name: "", species: "dog" })
+  const [pickup, setPickup] = useState<PickupDetails>(EMPTY_PICKUP_DETAILS)
 
   const step = steps[stepIndex]!
   const services = serviceIds.map(findCatalogService).filter(Boolean) as CatalogService[]
@@ -947,6 +1125,13 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
       ? "Any team member"
       : (BOOKING_STAFF.find((s) => s.id === staffId)?.name ?? "Any team member")
   const petLabel = hasPets && pet.name.trim() ? pet.name : undefined
+  // Same resolver the identify step uses, so the review line shows whichever
+  // address will actually be collected from.
+  // The profile address is whichever we have: the one on file for a returning
+  // caller, or the one a new caller just typed into their details.
+  const profileAddress =
+    findClientByPhone(customer.phone)?.address ?? (customer.address.trim() || undefined)
+  const pickupAddressLabel = resolvePickupAddress(pickup, profileAddress) ?? undefined
   const customerLabel = [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim()
 
   const canContinue =
@@ -1012,6 +1197,8 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
         onChange={setCustomer}
         pet={pet}
         onPet={setPet}
+        pickup={pickup}
+        onPickup={setPickup}
       />
     ) : services.length > 0 ? (
       <ConfirmStep
@@ -1021,6 +1208,8 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
         staffLabel={staffLabel}
         petLabel={petLabel}
         customerLabel={customerLabel || "You"}
+        pickupAddress={pickupAddressLabel}
+        petNotes={pickup.petNotes.trim() || undefined}
       />
     ) : null
 

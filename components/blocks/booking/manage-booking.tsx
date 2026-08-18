@@ -213,6 +213,10 @@ export function ManageBooking({
               <DetailRow label="Duration" value={formatDuration(booking.durationMinutes)} />
               <DetailRow label="With" value={booking.staffName} />
               {booking.petName ? <DetailRow label="Pet" value={booking.petName} /> : null}
+              {booking.pickupAddress ? (
+                <DetailRow label="Pickup" value={booking.pickupAddress} />
+              ) : null}
+              {booking.petNotes ? <DetailRow label="Notes" value={booking.petNotes} /> : null}
               <DetailRow
                 label="Total"
                 value={<span className="tabular-nums">{formatPriceAed(booking.priceAed)}</span>}

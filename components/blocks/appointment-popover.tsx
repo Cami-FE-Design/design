@@ -4,6 +4,7 @@ import {
   AlertTriangleIcon,
   ArrowRightToLineIcon,
   BellRingIcon,
+  CarFrontIcon,
   CheckIcon,
   ChevronDownIcon,
   Clock3Icon,
@@ -355,8 +356,22 @@ export function AppointmentQuickPanel({
           durationMin={booking.durationMin}
           priceMinor={booking.priceMinor}
         />
+        {booking.petNotes ? (
+          <p className="line-clamp-1 text-[11px] text-muted-foreground italic">
+            {booking.petNotes}
+          </p>
+        ) : null}
         {booking.notes ? (
           <p className="line-clamp-1 text-[11px] text-muted-foreground italic">{booking.notes}</p>
+        ) : null}
+        {booking.needsPickup ? (
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <CarFrontIcon className="size-2.5 shrink-0" aria-hidden />
+            <span className="min-w-0 truncate">
+              Pickup required
+              {booking.pickupAddress ? ` · ${booking.pickupAddress}` : null}
+            </span>
+          </div>
         ) : null}
         {booking.hasDeposit ? (
           <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -452,12 +467,35 @@ export function AppointmentDetailPanel({
           </button>
         </section>
 
+        {booking.petNotes ? (
+          <section data-slot="pet-notes-section" className="flex flex-col gap-1">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Pet notes
+            </div>
+            <p className="rounded-md bg-muted px-2 py-1.5 text-[11px]">{booking.petNotes}</p>
+          </section>
+        ) : null}
+
         {booking.notes ? (
           <section data-slot="notes-section" className="flex flex-col gap-1">
             <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               Notes
             </div>
             <p className="rounded-md bg-cami-yellow-2 px-2 py-1.5 text-[11px]">{booking.notes}</p>
+          </section>
+        ) : null}
+
+        {booking.needsPickup ? (
+          <section data-slot="pickup-section" className="flex flex-col gap-1">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Pickup
+            </div>
+            <div className="flex items-start gap-1.5 rounded-md bg-cami-sage-2 px-2 py-1.5 text-[11px] text-cami-sage-12">
+              <CarFrontIcon className="mt-px size-3 shrink-0" aria-hidden />
+              <span className="min-w-0 flex-1">
+                {booking.pickupAddress ?? "Pickup required — no address on file"}
+              </span>
+            </div>
           </section>
         ) : null}
 

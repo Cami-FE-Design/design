@@ -579,8 +579,13 @@ const SECTIONS: Section[] = [
     screens: [
       {
         path: "/appointments",
-        label: "People grid · Day view",
-        note: "11 staff, ~25 fixture bookings, mid-day now-line. Click a block logs to console; popover ships in slice 3.",
+        label: "Toolbar + sheets",
+        note: "Header toolbar (date, Day/Week, filters, New booking) over a demo body. The people grid itself is not mounted on this route yet — it renders in /playground under 'Appointments — toolbar and people grid', which is also the only place the booking blocks and their hover/click popover can be exercised.",
+      },
+      {
+        path: "/appointments",
+        label: "New booking sheet · Pickup + Pet notes",
+        note: "'New booking' → scroll to the Pickup and Pet notes sections. Pickup is unchecked by default; ticking it reveals the address block, which reuses the selected client's saved address (Karen Dougall and Maaz Test You have one on file; Aaliyah Hazari doesn't, which forces the manual input; with no client picked yet you get a 'pick a client' hint). Pet notes sit outside the checkbox — asked on every appointment. NOTE: this route does not render the calendar grid — the booking blocks and their popover live on /playground.",
       },
       {
         path: "/appointments",
@@ -717,6 +722,11 @@ const SECTIONS: Section[] = [
         note: "Opens the right-side sheet over the listing via ?ref=<id>. Try b-001…b-024 for different states (b-002 is ready-for-pickup, b-003 confirmed, etc.). Status-colored header band (blue=booked, gray=completed, tomato=no-show), Services list, sale total with inline-expand breakdown, Quick actions popover. Status pill behavior: terminal statuses (completed/cancelled) are static, no-show only offers Undo, others get the full dropdown — pill + band update live.",
       },
       {
+        path: "/sales/appointments-list?ref=b-002",
+        label: "Detail sheet · Pickup + Pet notes",
+        note: "Same sheet, showing the two new sections between Services and the sale total: a Pickup card (car chip + collection address, only when the booking needs pickup) and a Pet notes card. The sheet opens from the Ref # link in the table — not the row body — so use this deep link. b-004 also has both; b-001 has neither, which is the empty case.",
+      },
+      {
         path: "/sales/sales-list",
         label: "Sales list (invoices)",
         note: "Tabbed (Sales / Drafts) listing of invoices, header layout matches /products (title, Options + Add sale, tabs with counts, search + date-range + filter + sort in one row). Status badges: Completed (green), Part Paid (gold), Unpaid (gray), Refunded (gray), Voided (tomato). Demo today is 2026-05-25 — five 'today' rows guarantee one of every status is visible by default; switch the range to Last 7 days to see the full 10-row fixture.",
@@ -783,7 +793,12 @@ const SECTIONS: Section[] = [
       {
         path: "/shampooch-jvc/book",
         label: "Booking flow · services → time → identity → confirm",
-        note: "Multi-select service cards by category (list-icon opens a Categories dropdown), slot picker (12-staff horizontal rail with prev/next arrows + edge fade, circle day picker, available-times list, 5-min hold). Identity step is phone-first: enter mobile → auto-verifying 6-digit OTP (code starting '0' fails) → resolve. Demo: mobile ending in an EVEN digit is a returning client (pre-filled name/email, phone disabled, saved-pet dropdown Bella/Miso + 'Add a new pet'); ODD digit is new (empty form, phone pre-filled & disabled, inline pet capture). Confirm with summed total, then 'You're booked' with a reference.",
+        note: "Multi-select service cards by category (list-icon opens a Categories dropdown), slot picker (12-staff horizontal rail with prev/next arrows + edge fade, circle day picker, available-times list, 5-min hold). Identity step is phone-first: enter mobile in the shared <PhoneField> (dial-code select + number, matching dev) → auto-verifying 6-digit OTP (code starting '0' fails) → resolve; once verified the same field renders locked. Demo: mobile ending in an EVEN digit is a returning client (pre-filled name/email, phone disabled, saved-pet dropdown Bella/Miso + 'Add a new pet'); ODD digit is new (empty form, phone pre-filled & disabled, inline pet capture). Confirm with summed total, then 'You're booked' with a reference.",
+      },
+      {
+        path: "/shampooch-jvc/book",
+        label: "Booking flow · pickup + pet notes",
+        note: "New clients now give an optional Address on the registration form itself, next to name and email — it belongs on the profile, not only behind the pickup tick. On the identity step (both the returning and the new-client branch): an 'I need pickup' checkbox, unchecked by default. Checking it reveals the address block with 'Use my saved address' pre-ticked (billing/shipping idiom — nothing to type in the common case); unticking it, or having no saved address, shows a Pickup address input. 'Anything we should know?' pet notes sit outside the checkbox — they're asked on every booking, pickup or not. Both surface as rows on the Review step. Use an EVEN-ending mobile to get the returning client with a saved address on file.",
       },
       {
         path: "/purr-palace/book",
@@ -796,14 +811,24 @@ const SECTIONS: Section[] = [
         note: "View detail (status starts as 'Booked', violet; ref suffix -confirmed → green, -cancelled → sand) → Add to calendar dropdown (Google Calendar / Apple · Outlook .ics) → reschedule (re-enters the slot picker) or cancel (guarded destructive) → updated / cancelled terminals.",
       },
       {
+        path: "/shampooch-jvc/booking/CAMI-4821-pickup",
+        label: "Manage booking · pickup variant",
+        note: "The '-pickup' ref suffix (same convention as -confirmed / -cancelled) renders the collection variant: Pickup and Notes rows join Service / When / Duration / With / Pet, so the parent can check the collection address without calling the salon.",
+      },
+      {
         path: "/account",
         label: "Pet-parent account (E3-6)",
-        note: "Passwordless: mobile → OTP verify → home (upcoming booking, pets, profile). New numbers auto-create an account.",
+        note: "Passwordless: mobile → OTP verify → home (upcoming booking, pets, profile). New numbers auto-create an account. Profile now carries an Address row — the same address the booking form captures and pickup reuses.",
       },
       {
         path: "/emails/booking-confirmation",
         label: "Confirmation email (E3-5)",
         note: "Branded email template; pet business leads the header, Cami signature footer, manage-booking CTA.",
+      },
+      {
+        path: "/emails/booking-confirmation?pickup=1",
+        label: "Confirmation email · pickup variant",
+        note: "Same template with ?pickup=1. Adds a Notes row, and the 'Where' row becomes 'Pickup from' with the collection address — on a pickup booking the salon address isn't where the parent needs to be, so it would be the wrong thing to print.",
       },
     ],
   },

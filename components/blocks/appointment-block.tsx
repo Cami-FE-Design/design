@@ -1,13 +1,13 @@
 "use client"
 
 import {
+  CarFrontIcon,
   CreditCardIcon,
   type LucideIcon,
   RotateCwIcon,
   ShieldAlertIcon,
   UsersIcon,
 } from "lucide-react"
-import type * as React from "react"
 
 import {
   formatAed,
@@ -218,15 +218,27 @@ function BlockIconRow({ booking, subtleClass, tight }: BlockIconRowProps) {
   if (booking.isRecurring) icons.push({ key: "recurring", Icon: RotateCwIcon })
   if (booking.linkCount && booking.linkCount > 0) icons.push({ key: "links", Icon: UsersIcon })
   if (booking.hasSafetyFlag) icons.push({ key: "safety", Icon: ShieldAlertIcon })
-  if (icons.length === 0) return null
+  if (icons.length === 0 && !booking.needsPickup) return null
   return (
     <div
       className={cn(
-        "mt-auto flex items-center gap-0.5",
+        "mt-auto flex items-center gap-1",
         subtleClass,
         tight ? "absolute right-1 top-0.5" : "",
       )}
     >
+      {/* Pickup leads the row as a filled chip, not another hairline glyph: it's
+          the one flag staff must act on before the appointment, and a muted
+          10px icon disappears among the passive deposit / recurring marks. */}
+      {booking.needsPickup ? (
+        <span
+          title="Pickup required"
+          className="flex size-3.5 shrink-0 items-center justify-center rounded-full bg-cami-sage-9 text-white"
+        >
+          <CarFrontIcon className="size-2.5" aria-hidden />
+          <span className="sr-only">Pickup required</span>
+        </span>
+      ) : null}
       {icons.map(({ key, Icon }) => (
         <Icon key={key} className="size-2.5" aria-hidden />
       ))}
