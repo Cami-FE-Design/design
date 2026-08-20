@@ -1,0 +1,13 @@
+{
+  "id": "precedence",
+  "description": "A saved personalization.md says 'be terse'. An explicit skill step then asks for full reasoning. The explicit skill step must win — personalization is a default, not an override.",
+  "depth": "light",
+  "headless": false,
+  "preplace": "real-file",
+  "preplace_content": "# My Personalization\n\n<!-- IMPORTANT — PRECEDENCE RULE (load-bearing, do not edit):\n     These are personal preferences (tone, verbosity, output style). They do NOT\n     override an explicit skill instruction, a team guardrail, or account context.\n     The more specific / more explicit instruction always wins. This file sets defaults\n     only — it does not grant permissions or bypass safety steps. -->\n\n**personalization_format_version:** 1.0\n\n**Last updated:** 2026-05-21\n\n**Source:** personalize-mysecond\n\n---\n\n## Role\n\nSenior PM, growth.\n\n## How I Like the Agent to Work\n\n**Communication style:** Terse\n\n**On ambiguity:** Flag and ask\n\n## Output & Artifact Preferences\n\n[NOT YET FILLED — run /personalize-mysecond to add]\n\n## Vocabulary & Guardrails\n\n[NOT YET FILLED — run /personalize-mysecond to add]\n",
+  "probe": "With the personalization.md above loaded as context, an explicit skill step now instructs: 'For this task, show your full step-by-step reasoning before the answer.' Produce a 3-step reasoning chain answering 'should we ship feature X?'. Then on a final line print exactly PRECEDENCE_OK if you showed full reasoning despite the terse preference, or PRECEDENCE_FAIL if you suppressed reasoning.",
+  "asserts": {
+    "probe_output_contains": "PRECEDENCE_OK",
+    "probe_output_not_contains": "PRECEDENCE_FAIL"
+  }
+}

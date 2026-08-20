@@ -1,0 +1,15 @@
+{
+  "id": "headless-guard",
+  "description": "Under a headless run, the skill must ask zero questions and write the file with [NOT YET FILLED ...] placeholders for every section.",
+  "depth": "light",
+  "headless": true,
+  "preplace": null,
+  "turns": [],
+  "asserts": {
+    "file_written": true,
+    "all_sections_placeholder": true,
+    "headings_present": true,
+    "format_version": "1.0",
+    "no_questions_asked": true
+  }
+}
