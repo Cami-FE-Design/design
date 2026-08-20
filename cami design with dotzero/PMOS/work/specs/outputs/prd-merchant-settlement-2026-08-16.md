@@ -1,6 +1,6 @@
 # PRD: Merchant settlement
 
-**Status:** Draft, Problem Review
+**Status:** ⛔ **Superseded and duplicated.** The live version is [work/specs/prd/prd-merchant-settlement-2026-08-20.md](../prd/prd-merchant-settlement-2026-08-20.md). This copy is a stale duplicate of the 2026-08-16 draft and carries a broken requirements link. Do not cite it.
 **Owner:** Michelle (Product)
 **Last Updated:** 2026-08-16
 **Target Release:** Not scheduled. Blocked, see Critical Path

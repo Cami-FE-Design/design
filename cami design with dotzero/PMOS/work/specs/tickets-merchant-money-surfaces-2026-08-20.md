@@ -3,7 +3,7 @@
 **Assignee:** Husain (UI) · **DRI:** Michelle (Product)
 **Date:** 2026-08-20
 **Parent epic:** Merchant settlement, group D (Show the merchant) plus the group A/B config surfaces
-**Requirements source:** [merchant-settlement BRD](brd/merchant-settlement-brd.md) (`SET-` IDs) · [PRD](prd/prd-merchant-settlement-2026-08-16.md)
+**Requirements source:** [merchant-settlement BRD](brd/merchant-settlement-brd.md) (`SET-` IDs) · [PRD](prd/prd-merchant-settlement-2026-08-20.md)
 **Benchmark:** 8 Fresha screenshots from SOTA's live account, 20 Aug 2026 (attach to Linear, see Assets)
 **Law:** INV-P2, INV-P4, INV-P9, INV-01, INV-03, INV-08, INV-12 · [06 Money Composition Contract](../../context/knowledge/06-money-composition-contract.md) §4 · ADR-001, ADR-002, ADR-014
 

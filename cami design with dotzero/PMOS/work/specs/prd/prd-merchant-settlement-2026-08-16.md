@@ -1,6 +1,6 @@
 # PRD: Merchant settlement
 
-**Status:** Draft, Problem Review
+**Status:** ⛔ **Superseded** by [prd-merchant-settlement-2026-08-20](./prd-merchant-settlement-2026-08-20.md), 2026-08-20. Kept for history. Do not cite this version.
 **Owner:** Michelle (Product)
 **Last Updated:** 2026-08-16
 **Target Release:** Not scheduled. Blocked, see Critical Path
@@ -268,3 +268,4 @@ It is a commercial negotiation with lead time, not a build task, and every other
 | Date | Change |
 |---|---|
 | 2026-08-16 | First draft. Built on the 2026-08-16 discovery set. Split custody decided the same day |
+| 2026-08-20 | ⛔ Superseded by [prd-merchant-settlement-2026-08-20](./prd-merchant-settlement-2026-08-20.md), rebuilt against the 2026-08-20 PRD template |

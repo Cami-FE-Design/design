@@ -2,7 +2,7 @@
 
 **One question:** How does a merchant get their money, and how does Cami get paid?
 **Audience:** BA, QA, engineers. Plain language on purpose.
-**Companion PRD:** [prd-merchant-settlement-2026-08-16](../prd/prd-merchant-settlement-2026-08-16.md) — problem, evidence, risks, and the stakeholder case. Deliberately not duplicated: requirements and `SET-` IDs live here, the argument lives there.
+**Companion PRD:** [prd-merchant-settlement-2026-08-20](../prd/prd-merchant-settlement-2026-08-20.md) — problem, evidence, risks, and the stakeholder case. Deliberately not duplicated: requirements and `SET-` IDs live here, the argument lives there.
 **Law:** [01](../../../context/knowledge/01-product-invariants.md) INV-P2, INV-P3, INV-P9, INV-P10, INV-01, INV-03, INV-05, INV-08, INV-12 · [02](../../../context/knowledge/02-glossary.md) · [03](../../../context/knowledge/03-state-machines.md) §8, §9, §10, §14 · [04](../../../context/knowledge/04-decision-records.md) ADR-002, ADR-014 · [06](../../../context/knowledge/06-money-composition-contract.md) §6, §8
 **Fills:** the gap PRO-737 named and deferred, "gateway credentials, payout accounts, batch timing. Separate surface, separate spec."
 **Status:** Draft for review. **One blocker must be answered before build**, see Open decisions D1.
