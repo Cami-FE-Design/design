@@ -282,3 +282,4 @@ SET-X11 has no requirement above it. Raising it here rather than leaving it to b
 | Date | Change |
 |---|---|
 | 2026-08-16 | First draft. Split custody confirmed. D1, how Cami earns on terminal, raised as the build blocker |
+| 2026-08-20 | Companion PRD repointed to the rebuilt `prd-merchant-settlement-2026-08-20`. Mirror refreshed |
