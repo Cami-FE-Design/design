@@ -5,7 +5,7 @@
 **Status:** Draft spec, pending the §2 premise rulings
 **Current state:** [Cami today](assets/DSG-72-current-cami.png) (Pet Loft, `Sale 22`, 16 Aug 2026)
 **Benchmark:** five Fresha invoices, one per status. [Completed](assets/DSG-72-fresha-completed.png) · [Part paid](assets/DSG-72-fresha-part-paid.png) · [Unpaid](assets/DSG-72-fresha-unpaid.png) · [Refunded](assets/DSG-72-fresha-refunded.png) · [Voided](assets/DSG-72-fresha-voided.png)
-**Last updated:** 2026-08-21
+**Last updated:** 2026-08-21 (PMOS citations verified)
 
 ---
 
@@ -18,7 +18,7 @@
 | **Gap** | Cami is behind Fresha on this surface, and SOTA is switching off Fresha. The benchmark is not aspirational, it is what the Tier 2 anchor already receives today |
 | **Where** | `components/blocks/invoice-document.tsx` (shared), demo route `/sales/invoice-document` with query-param state switcher |
 | **Not here** | Settings screen for TRN/address, invoice numbering, document type gating logic, QR payload generation (all PRD-9). Arabic and bilingual, deferred |
-| **Also fixes** | [EC-39](../../cami%20design%20with%20dotzero/docs/PMOS/context/knowledge/05-edge-case-catalog.md) — a single "total" field on a receipt or export produces a wrong VAT return. This document is the surface that fix lands on |
+| **Also fixes** | [EC-39](../../cami%20design%20with%20dotzero/PMOS/context/knowledge/05-edge-case-catalog.md) — a single "total" field on a receipt or export produces a wrong VAT return. This document is the surface that fix lands on |
 
 ---
 
@@ -214,6 +214,50 @@ Three separate captures of the printed PDF (Print, Download PDF, and the earlier
 
 ---
 
+## 0.7 The Money Composition Contract is now in the repo
+
+Michelle landed the PMOS workspace on 2026-08-20 (`chore: track the PMOS product workspace`), so `cami design with dotzero/PMOS/context/knowledge/` is readable from a clone. Every citation in §3 was unverifiable until then. All of them check out, and three things came back that the spec did not have.
+
+### Verified, with the exact clause
+
+| Design decision | Clause, verbatim |
+|---|---|
+| Package redemption renders at zero gross | 06 §2 **step 3**: "Package redemption applied, line gross set to zero". §4 repeats it |
+| Per-line rounding, half-up, never at subtotal | 06 §7, and INV-M2 `vat_total = Σ round(line_gross_final × 5 / 105)` |
+| Two bottom lines | INV-M3 `amount_due = taxable_gross + tip`, INV-M5 `tip ∉ tax_base`, and 06 §4 "**Two totals must be reported separately at all times** … A single 'total' field is insufficient and will produce an incorrect return (INV-P9)" |
+| Refund reverses VAT and issues a credit note | 06 §6 table: "VAT — **Reversed with the line, credit note issued**". Plus "Refund after capture always produces a credit note with its own document number (INV-04)" |
+| **Refund lines are negatively signed** | INV-M6 is `line_gross_final ≥ 0`, and its rationale is the ruling: "**No negative line on a sale. Reversals are separate negatively-signed documents** (INV-01, INV-04)". So the invariant binds the *sale*, and the contract states outright that a reversal is negatively signed. **§0.6 finding 25 is not a stylistic preference — production contradicts the contract** |
+| The original carries a refunded-to-date figure | 03 §10, business-rules-v2 rule 15: a partially-refunded sale "stays `Completed` and carries a refunded-to-date figure plus still-refundable". Exactly the rows added for finding 29 |
+| Voided sales lose Edit / Share / Email | 03 §10 rule 14: a voided sale "keeps rendering with a voided marker, and **Edit/Share/Email drop away**". The sale detail dialog already behaves this way — confirmed, not assumed |
+| EC-39 | 05: "Single 'total' field on a receipt or export. Amount due and taxable gross differ whenever a tip exists; one field produces a wrong VAT return" |
+
+### New: a risk nobody has raised on this ticket
+
+**06 §9.1 — mandatory service charge.** Open decision, needs tax confirmation before build:
+
+> A voluntary tip is outside VAT scope; a **mandatory service charge is consideration for a supply and is taxable**. One generic "tip" field means a merchant uses it for a mandatory charge and **output tax is understated**.
+
+Note the wording in §4 too: "**Voluntary** tip is outside the scope of VAT". The word is load-bearing.
+
+This document has exactly one generic `Tip` row, rendered outside the VAT base. If a merchant is using Cami's tip field for a mandatory service charge — and nothing stops them — then **this invoice understates output tax**, and it does so on a document the merchant hands to an accountant. It is the mirror image of EC-39: EC-39 overstates the base by folding a tip in, this understates it by taking a taxable charge out.
+
+Not fixable here: §9.1 needs a tax ruling and probably a second money object. Raised as Q16 so the design is not read as having settled it.
+
+### Two open contract decisions that reach this surface
+
+| Contract decision | Effect here |
+|---|---|
+| **06 §9.3 VAT timing on package sale** — at sale, or at redemption? | Decides whether a redeemed line carries VAT. Built with none, per step 3 |
+| **06 §9.5 Tip on a zero-gross invoice** | Q7. The rendering is safe either way |
+
+### An internal tension worth naming
+
+INV-09 says a zero-amount invoice "lists line items at full retail, shows AED 0.00 **with the covering tender named**", while Composition Order step 3 says the line gross is **set to zero** and §3 of this spec says a redemption is "neither a discount nor a tender".
+
+Read one way the package is named as a tender (which is what production does); read the other it is a zero-gross line with the package named as a sub-label (which is what is built). Both reach `Balance 0.00`. **Q13 is therefore not simply production-versus-contract — the contract itself carries two readings**, and reconciling them belongs to its owner.
+
+---
+
 ## 1. Regulatory basis
 
 UAE VAT Executive Regulation Article 59. Two invoice types exist in law, not one.
@@ -269,7 +313,7 @@ That is correct but incomplete. It collapses full and simplified into one. Both 
 
 Ticket lists Status: Paid, Unpaid, Partial, Refunded, Void.
 
-Product law disagrees on one of those. Per [INV-04](../../cami%20design%20with%20dotzero/docs/PMOS/context/knowledge/01-product-invariants.md) and business-rules-v2 refunds-and-voids (agreed 2026-08-04, rule 8 and rule 15):
+Product law disagrees on one of those. Per [INV-04](../../cami%20design%20with%20dotzero/PMOS/context/knowledge/01-product-invariants.md) and business-rules-v2 refunds-and-voids (agreed 2026-08-04, rule 8 and rule 15):
 
 - A refund is a **separate, negatively-signed document with its own document number**, sitting above the original.
 - The original sale **stays `Completed`**. There is no `PartiallyRefunded` status. It carries a refunded-to-date figure and a still-refundable figure.
@@ -302,7 +346,7 @@ Research does not support that as stated:
 | UAE e-invoicing lands July 2026 | July 2026 is the **pilot**. Large business live 1 Jan 2027, SMEs 1 Jul 2027. Cami merchants are SMEs, so 2027 |
 | Scope | **B2B and B2G only** at launch. B2C is not covered. Cami merchants sell to consumers, so mostly out of initial scope |
 | Mechanism | Peppol 5-corner, structured **XML (PINT AE)** transmitted through an Accredited Service Provider. Not a QR printed on a PDF |
-| QR on the printed document | **KSA ZATCA** mandates a TLV-encoded QR on **simplified (B2C)** invoices. That is exactly Cami's transaction shape, in the market Cami is gated on ([INV-A3](../../cami%20design%20with%20dotzero/docs/PMOS/context/knowledge/01-product-invariants.md)) |
+| QR on the printed document | **KSA ZATCA** mandates a TLV-encoded QR on **simplified (B2C)** invoices. That is exactly Cami's transaction shape, in the market Cami is gated on ([INV-A3](../../cami%20design%20with%20dotzero/PMOS/context/knowledge/01-product-invariants.md)) |
 
 **Conclusion: keep the reserved QR block, change the reason.** The block earns its space for KSA ZATCA, where a QR on a B2C simplified invoice is mandatory and TLV-encoded. It does not earn its space for UAE Peppol, which is an XML transmission problem, not a document layout problem.
 
@@ -314,7 +358,7 @@ This also means the ticket's "space is held so the layout is not re-cut later" l
 
 ## 3. Money display rules
 
-Non-negotiable. Sourced from [06 Money Composition Contract](../../cami%20design%20with%20dotzero/docs/PMOS/context/knowledge/06-money-composition-contract.md). Every rule below cites the contract clause it implements.
+Non-negotiable. Sourced from [06 Money Composition Contract](../../cami%20design%20with%20dotzero/PMOS/context/knowledge/06-money-composition-contract.md). Every rule below cites the contract clause it implements.
 
 | Rule | Source | Consequence for the document |
 |---|---|---|
@@ -523,15 +567,16 @@ Carried from the ticket, with the §2 corrections folded in.
 | 3 | Confirm QR block is reserved for KSA ZATCA, not UAE Peppol (§2.3) | Michelle + PRD-9 | QR dimensions, PRD-9 urgency |
 | 4 | Does the void reason print on the customer copy? (§6) | Michelle | Void screen |
 | 5 | Does the recipient TRN get captured anywhere today? Full tax invoice is unreachable without it | PRD-9 | Full-type screen is mock-only until then |
-| 6 | ~~Tip on refund is unresolved (06 §9.2).~~ **RESOLVED 2026-08-21** (Pet Loft developer, via Hussain): the refund returns the tip as well. The credit note reverses tip alongside the taxable amount, and the reversed VAT stays on the line only. Built as `?state=credit-note-tip` | — | — |
-| 7 | ~~Tip on a package-only zero-gross invoice is unresolved (06 §9.5).~~ **RESOLVED 2026-08-21.** Live Sale 387 (§0.6) proves the tip must be named: unlabelled, it is indistinguishable from VAT and produces a wrong return. Built as `?state=zero-value-tip`. Michelle to rubber-stamp the wording, not the decision | Michelle | — |
+| 6 | **Tip on refund — still formally open, downgraded 2026-08-21.** A developer confirmed the code returns the tip, and the credit note is built that way (`?state=credit-note-tip`). But 06 §9.2 reads *"Returned to the customer, or retained because already distributed to staff? … **Already deferred by owner 2026-08-06**"*, and §10 states a decision does not resolve inside the contract — it becomes an ADR. So what exists is an **implementation**, not a ruling: payout timing decides it, and if tips are already paid out to staff the answer flips. Treat the screen as provisional | Product + Finance (owner) | Credit note wording only |
+| 7 | **Tip on a package-only zero-gross invoice — still formally open, downgraded 2026-08-21.** Live Sale 387 (§0.6) settles that the tip must be *named* rather than folded into `Total`, and that is built (`?state=zero-value-tip`). It does **not** settle 06 §9.5, which asks whether a tip is permitted at all when taxable gross is zero and what it settles against. The rendering holds under either answer; the permission question is not ours | Product + Finance (owner) | Nothing — rendering is safe either way |
 | 8 | Confirm the totals block change (§3.1): keep every live label, add only the `(excl. VAT)` / `(incl. VAT)` qualifiers and the `Tip` / `Amount due` rows | Michelle | Totals block on every screen |
 | 9 | ~~Which surface was Aziz looking at?~~ **Settled.** The Cami output (Pet Loft `Sale 22`) matches the ticket's wording exactly. No contradiction | — | — |
 | 10 | ~~Fresha refunds reverse no VAT. Becomes a P1 Cami bug if Q12 shows the same.~~ **CONFIRMED ON THE CAMI SIDE 2026-08-21 — raise as P1.** The Cami refund PDF reverses no VAT *and* keeps its line, subtotal and total positive (§0.6 findings 25, 27), so both output tax and revenue are overstated after every refund. Two documents reporting `Total AED 1900.00` for AED 1,900 of trade | Michelle / Maaz | **Nothing here — this is a product bug, not a design question** |
 | 11 | Registered address drifts between Fresha documents from one location, "Regina Tower, Dubai" vs "Regina Tower, Dubai (District 12)". A registered address is a legal field and must not drift | PRD-9 | Nothing here |
+| 16 | **Is the `Tip` row ever carrying a mandatory service charge?** 06 §9.1 is open and warns that one generic tip field lets a merchant put a mandatory charge in it, which is taxable — so this document would understate output tax (§0.7). Needs the §9.1 tax ruling; if a service charge becomes its own object, this document needs a second row inside the VAT base. **Nothing to build until that lands, but it must not be assumed settled** | Product + Finance (owner), tax confirmation | A future taxable-charge row |
 | 15 | **Does the refund reason print on the credit note?** Production captures one and shows it in-app ("Product defect or damage", §0.6 finding 24). §6 rules the *void* reason stays internal, on the grounds that a merchant's internal note on a customer document invites disputes. A refund reason is arguably different — the client already knows why they were refunded. Production captures one and does **not** print it (finding 28). Recommendation, and what is built: print it, since it explains a negative document the client is already holding, unlike a void reason which explains an internal decision | Michelle | Credit note screen |
 | 14 | **Does the link view stay A4 on a phone?** §4 rules that the link view is the same document in a viewport frame, not a separate design — that is what guarantees field-order consistency, and it is what is built. But the customer opens this link mostly on mobile, where a 210mm page zooms out small. Live Cami's link view is a mobile-friendly card instead (§0.6 finding 21), and that is its one genuine advantage. Options: keep A4 everywhere; or allow a mobile reflow that keeps identical content and field order but relaxes the fixed page width. **Built as a proposal so both can be compared, 2026-08-21.** `InvoiceDocumentView` takes a `responsive` prop, off by default. Only `/invoice/<id>` — the one surface a customer opens on a phone — turns it on. Below md the identity block stacks over the meta block, the closing blocks go full width, and the line table scrolls inside its own container rather than dropping a column. Every block, its order, its labels and its figures are unchanged, so §8 holds: what breaks §8 is a different design, which is what live Cami ships today (finding 21), not a reflow. Print forces true A4 regardless of viewport. Michelle to rule on whether the reflow stays or the link view goes back to fixed A4 everywhere | Michelle | Link view only |
-| 13 | **Package redemption: zero-gross line, or full-value tender?** Live Sale 387 renders it as a tender at full value; 06 §1 says a redemption is neither a discount nor a tender and the line goes to zero gross. Both reach Balance 0.00, so nothing looks broken — but they report different taxable bases. Design follows the contract (§0.6 finding 17) | Product + Finance | Zero-value screens |
+| 13 | **Package redemption: zero-gross line, or full-value tender?** Live Sale 387 renders it as a tender at full value; 06 §1 says a redemption is neither a discount nor a tender and the line goes to zero gross. Both reach Balance 0.00, so nothing looks broken — but they report different taxable bases. Design follows Composition Order step 3. **Sharpened 2026-08-21:** INV-09 and step 3 can be read two ways, so this is a tension inside the contract, not just production drift (§0.7) | Contract owner | Zero-value screens |
 | 12 | **What does Cami emit on void, unpaid, discount, and gift card today?** ~~refund~~ **answered** (finding 22: separate document, own number, original stays Completed) and ~~tip~~ **answered** (§0.6). Still unsampled: void, unpaid, discount, gift card. Blocks §2.2 and the credit note screen. Full list in §0.5 | Michelle | Credit note and voided screens |
 
 ---
