@@ -21,6 +21,8 @@
 // below identity — A4 with a recipient block and a reserved QR block cannot
 // afford four centered lines.
 
+import { useEffect, useState } from "react"
+import { createPortal } from "react-dom"
 import {
   documentTitle,
   formatInvoiceAmount,
@@ -836,6 +838,7 @@ export function InvoiceDocumentView({
   doc,
   className,
   responsive = false,
+  printable = true,
 }: {
   doc: InvoiceDocument
   className?: string
@@ -857,13 +860,54 @@ export function InvoiceDocumentView({
    * Pending Michelle's ruling on §9 Q14. Print is unaffected either way.
    */
   responsive?: boolean
+  /**
+   * Whether this instance owns the printed output. One page can hold many
+   * documents — the playground shows sixteen — and each printable instance emits
+   * its own print copy, so sixteen would print sixteen documents. Scaled-down
+   * previews pass false; the demo route and the customer link keep true.
+   */
+  printable?: boolean
 }) {
   const pages = paginateLines(doc.lines)
+
+  // A body-level host for the print copy. Created on mount so the portal has a
+  // target that is a direct child of <body>, which is what lets the printed
+  // document sit in normal flow and paginate.
+  const [printHost, setPrintHost] = useState<HTMLElement | null>(null)
+  useEffect(() => {
+    if (!printable) return
+    // Clear stale hosts before adding ours. Two hosts print the document twice —
+    // a 3-page invoice comes out as 6 pages — and Fast Refresh or a StrictMode
+    // double-mount can leave one behind. Only one instance per page is printable
+    // by design (see the prop), so nothing legitimate is being removed here.
+    for (const stale of document.querySelectorAll(".invoice-print-host")) stale.remove()
+    const host = document.createElement("div")
+    host.className = "invoice-print-host"
+    document.body.appendChild(host)
+    setPrintHost(host)
+    return () => host.remove()
+  }, [printable])
+
+  const pageEls = pages.map((p, i) => (
+    <Page
+      key={p.key}
+      doc={doc}
+      lines={p.lines}
+      page={i + 1}
+      pageCount={pages.length}
+      responsive={responsive}
+    />
+  ))
 
   return (
     <div
       className={cn(
-        "invoice-doc flex flex-col items-center gap-6 print:gap-0",
+        "invoice-doc flex flex-col items-center gap-6",
+        // The screen copy is hidden in print by its OWN rule, not by hiding an
+        // ancestor. Relying on `body > *:not(.invoice-print-host)` printed both
+        // copies — the on-screen document sits too deep for that selector to
+        // reach it, so a 3-page invoice came out as 6 pages.
+        printable && "print:hidden",
         // Without an explicit width the items-center ancestors shrink-wrap to the
         // widest child, so the page could never be narrower than its own table.
         responsive && "w-full min-w-0",
@@ -880,18 +924,22 @@ export function InvoiceDocumentView({
         .invoice-doc .invoice-emoji {
           font-family: inherit, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
         }
+        /* The print copy lives in a body-level host and is hidden on screen. */
+        .invoice-print-host { display: none; }
         @media print {
-          /* Only the document prints — no app chrome, no state switcher. Done by
-             visibility rather than display:none on body's children, so it works
-             wherever the document is mounted in the tree. */
-          body { visibility: hidden; }
-          .invoice-doc {
-            visibility: visible;
-            position: absolute;
-            inset: 0 auto auto 0;
-            gap: 0;
-          }
-          .invoice-doc * { visibility: visible; }
+          /* Only the print copy prints. Everything else in the document goes away
+             entirely — display:none, not visibility:hidden, so no chrome reserves
+             space above the first page.
+             The copy has to be a direct child of <body> and stay IN NORMAL FLOW:
+             an absolutely-positioned element does not paginate (only its first
+             page renders), and an ancestor with overflow-y:auto clips it. The
+             review harness has both, which is why printing 30 lines produced a
+             single page before this. */
+          /* Chrome around the document. The screen copy hides itself via
+             print:hidden, because it is nested too deep for this selector. */
+          body > *:not(.invoice-print-host) { display: none !important; }
+          .invoice-print-host { display: block; }
+          .invoice-print-host .invoice-doc { gap: 0; }
           /* Print is always true A4, even when the viewport put the page in its
              reflowed state — a printed invoice is never "mobile". */
           .invoice-page {
@@ -907,16 +955,21 @@ export function InvoiceDocumentView({
         }
       `}</style>
 
-      {pages.map((p, i) => (
-        <Page
-          key={p.key}
-          doc={doc}
-          lines={p.lines}
-          page={i + 1}
-          pageCount={pages.length}
-          responsive={responsive}
-        />
-      ))}
+      {pageEls}
+
+      {/* The print copy. A duplicate rather than a move, so the on-screen layout
+          is untouched; aria-hidden because it is the same content twice. Never
+          responsive: a printed invoice is always true A4. */}
+      {printHost
+        ? createPortal(
+            <div aria-hidden className="invoice-doc flex flex-col items-center">
+              {pages.map((p, i) => (
+                <Page key={p.key} doc={doc} lines={p.lines} page={i + 1} pageCount={pages.length} />
+              ))}
+            </div>,
+            printHost,
+          )
+        : null}
     </div>
   )
 }
