@@ -2365,7 +2365,8 @@ function InvoicePreview({ id, note }: { id: keyof typeof INVOICE_FIXTURES; note:
     <div className="flex w-[270px] flex-col gap-2">
       <div className="h-[382px] overflow-hidden rounded-lg border border-border/60 bg-sand-3 dark:bg-neutral-900">
         <div className="origin-top-left scale-[0.34]">
-          <InvoiceDocumentView doc={doc} />
+          {/* Not printable: sixteen previews would each emit a print copy. */}
+          <InvoiceDocumentView doc={doc} printable={false} />
         </div>
       </div>
       <div className="flex flex-col gap-0.5">
