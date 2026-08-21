@@ -1,0 +1,18 @@
+# Slite notes pulled into context/slite/ at session start.
+# Format, tab-separated:  <noteId>	<output-filename.md>	<human label>
+#
+# ONLY list notes with no repo counterpart. Do not add 01-06 or anything in
+# context/ — those are authored here and mirrored OUT to Slite. Listing them
+# would load two copies of the same doc and make it ambiguous which one wins.
+#
+# Do not add anything under the business-rules tree either. That is co-authored
+# with Mike in cami-feature-docs and is cited by ID, never duplicated.
+#
+# Keep this list short. Everything here is loaded into context on every single
+# session, so a long reference doc costs more than it returns. Data Migration
+# (0_Gu7nlGy6Ieui) was dropped on 2026-08-20 for exactly that: 37KB, ~9k tokens,
+# 80% of the budget. Add it back if migration becomes live work.
+
+jZNcDZdJa86Iqp	business-process.md	Business Process
+ffvFyWGShvKH5C	open-questions.md	Open Questions (Slite)
+hSFOqi7Q0sZUEw	roadmap-slite.md	Roadmap (Slite)
