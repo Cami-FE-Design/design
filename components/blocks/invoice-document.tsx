@@ -330,108 +330,118 @@ function LineTable({
         </div>
       ) : null}
 
-      <table
+      {/* Scroll belongs to the TABLE only. It used to wrap this whole component,
+          which put the stacked list inside a `w-max` box — max-content means a
+          flex-wrap row never has to wrap, so the phone layout scrolled sideways
+          and clipped the amounts instead of stacking. */}
+      <div
         className={cn(
-          "w-full border-collapse text-[9pt]",
-          responsive && "hidden md:table print:table",
+          responsive && "invoice-scroll -mx-1 w-full min-w-0 overflow-x-auto px-1 md:mx-0 md:px-0",
         )}
       >
-        {showHeader ? (
-          // display: table-header-group so the browser repeats it if a print
-          // engine paginates the table anyway (§7).
-          <thead className="table-header-group">
-            <tr className={cn("text-[7.5pt] font-medium uppercase tracking-[0.06em]", MUTED)}>
-              <th className="border-b border-[#a1a1aa] pb-1.5 text-left font-medium">
-                Description
-              </th>
-              <th className="w-[12mm] border-b border-[#a1a1aa] pb-1.5 text-right font-medium">
-                Qty
-              </th>
-              <th className="w-[26mm] border-b border-[#a1a1aa] pb-1.5 text-right font-medium">
-                Unit price
-              </th>
-              {withTax ? (
-                <>
-                  <th className="w-[14mm] border-b border-[#a1a1aa] pb-1.5 text-right font-medium">
-                    VAT
-                  </th>
-                  <th className="w-[24mm] border-b border-[#a1a1aa] pb-1.5 text-right font-medium">
-                    VAT amount
-                  </th>
-                </>
-              ) : null}
-              <th className="w-[28mm] border-b border-[#a1a1aa] pb-1.5 text-right font-medium">
-                Line total
-              </th>
-            </tr>
-          </thead>
-        ) : null}
-        <tbody>
-          {lines.map((line) => {
-            const vat = lineVat(line, doc.vatRate)
-            return (
-              <tr key={line.id} className="break-inside-avoid align-top">
-                <td className={cn("border-b border-[#e4e4e7] py-2 pr-4", INK)}>
-                  <span className="invoice-emoji font-medium">{line.description}</span>
-                  {line.subLabel ? (
-                    <span className={cn("mt-0.5 block text-[8pt] leading-[1.35]", MUTED)}>
-                      {line.subLabel}
-                    </span>
-                  ) : null}
-                  {line.discountLabel ? (
-                    <span className={cn("mt-0.5 block text-[8pt] leading-[1.35]", MUTED)}>
-                      {line.discountLabel}
-                    </span>
-                  ) : null}
-                </td>
-                <td className={cn("border-b border-[#e4e4e7] py-2 text-right tabular-nums", INK)}>
-                  {line.qty}
-                </td>
-                <td className={cn("border-b border-[#e4e4e7] py-2 text-right tabular-nums", INK)}>
-                  {formatInvoiceAmount(line.unitGrossMinor)}
-                  {/* The discount, carried by a strikethrough rather than a column. */}
-                  {line.originalUnitGrossMinor !== undefined &&
-                  line.originalUnitGrossMinor !== line.unitGrossMinor ? (
-                    <span className={cn("mt-0.5 block text-[8pt] line-through", MUTED)}>
-                      {formatInvoiceAmount(line.originalUnitGrossMinor)}
-                    </span>
-                  ) : null}
-                </td>
+        <table
+          className={cn(
+            "w-full border-collapse text-[9pt]",
+            responsive && "hidden min-w-[150mm] md:table print:table",
+          )}
+        >
+          {showHeader ? (
+            // display: table-header-group so the browser repeats it if a print
+            // engine paginates the table anyway (§7).
+            <thead className="table-header-group">
+              <tr className={cn("text-[7.5pt] font-medium uppercase tracking-[0.06em]", MUTED)}>
+                <th className="border-b border-[#a1a1aa] pb-1.5 text-left font-medium">
+                  Description
+                </th>
+                <th className="w-[12mm] border-b border-[#a1a1aa] pb-1.5 text-right font-medium">
+                  Qty
+                </th>
+                <th className="w-[26mm] border-b border-[#a1a1aa] pb-1.5 text-right font-medium">
+                  Unit price
+                </th>
                 {withTax ? (
                   <>
-                    <td
-                      className={cn(
-                        "border-b border-[#e4e4e7] py-2 text-right tabular-nums",
-                        line.taxable ? INK : MUTED,
-                      )}
-                    >
-                      {/* A non-taxable line shows an em dash, never a 0% that
-                        implies it was rated (INV-P8). */}
-                      {line.taxable ? formatVatRate(doc.vatRate) : "—"}
-                    </td>
-                    <td
-                      className={cn(
-                        "border-b border-[#e4e4e7] py-2 text-right tabular-nums",
-                        line.taxable ? INK : MUTED,
-                      )}
-                    >
-                      {line.taxable ? formatInvoiceAmount(vat) : "—"}
-                    </td>
+                    <th className="w-[14mm] border-b border-[#a1a1aa] pb-1.5 text-right font-medium">
+                      VAT
+                    </th>
+                    <th className="w-[24mm] border-b border-[#a1a1aa] pb-1.5 text-right font-medium">
+                      VAT amount
+                    </th>
                   </>
                 ) : null}
-                <td
-                  className={cn(
-                    "border-b border-[#e4e4e7] py-2 text-right font-medium tabular-nums",
-                    INK,
-                  )}
-                >
-                  {formatInvoiceAmount(line.lineGrossMinor)}
-                </td>
+                <th className="w-[28mm] border-b border-[#a1a1aa] pb-1.5 text-right font-medium">
+                  Line total
+                </th>
               </tr>
-            )
-          })}
-        </tbody>
-      </table>
+            </thead>
+          ) : null}
+          <tbody>
+            {lines.map((line) => {
+              const vat = lineVat(line, doc.vatRate)
+              return (
+                <tr key={line.id} className="break-inside-avoid align-top">
+                  <td className={cn("border-b border-[#e4e4e7] py-2 pr-4", INK)}>
+                    <span className="invoice-emoji font-medium">{line.description}</span>
+                    {line.subLabel ? (
+                      <span className={cn("mt-0.5 block text-[8pt] leading-[1.35]", MUTED)}>
+                        {line.subLabel}
+                      </span>
+                    ) : null}
+                    {line.discountLabel ? (
+                      <span className={cn("mt-0.5 block text-[8pt] leading-[1.35]", MUTED)}>
+                        {line.discountLabel}
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className={cn("border-b border-[#e4e4e7] py-2 text-right tabular-nums", INK)}>
+                    {line.qty}
+                  </td>
+                  <td className={cn("border-b border-[#e4e4e7] py-2 text-right tabular-nums", INK)}>
+                    {formatInvoiceAmount(line.unitGrossMinor)}
+                    {/* The discount, carried by a strikethrough rather than a column. */}
+                    {line.originalUnitGrossMinor !== undefined &&
+                    line.originalUnitGrossMinor !== line.unitGrossMinor ? (
+                      <span className={cn("mt-0.5 block text-[8pt] line-through", MUTED)}>
+                        {formatInvoiceAmount(line.originalUnitGrossMinor)}
+                      </span>
+                    ) : null}
+                  </td>
+                  {withTax ? (
+                    <>
+                      <td
+                        className={cn(
+                          "border-b border-[#e4e4e7] py-2 text-right tabular-nums",
+                          line.taxable ? INK : MUTED,
+                        )}
+                      >
+                        {/* A non-taxable line shows an em dash, never a 0% that
+                        implies it was rated (INV-P8). */}
+                        {line.taxable ? formatVatRate(doc.vatRate) : "—"}
+                      </td>
+                      <td
+                        className={cn(
+                          "border-b border-[#e4e4e7] py-2 text-right tabular-nums",
+                          line.taxable ? INK : MUTED,
+                        )}
+                      >
+                        {line.taxable ? formatInvoiceAmount(vat) : "—"}
+                      </td>
+                    </>
+                  ) : null}
+                  <td
+                    className={cn(
+                      "border-b border-[#e4e4e7] py-2 text-right font-medium tabular-nums",
+                      INK,
+                    )}
+                  >
+                    {formatInvoiceAmount(line.lineGrossMinor)}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
     </>
   )
 }
@@ -468,12 +478,14 @@ function StackedLine({
 
       {/* The same columns the table would show, as labelled pairs in the same
           order: Qty, Unit price, then VAT and VAT amount when tax applies. */}
-      <dl className={cn("flex flex-wrap gap-x-4 gap-y-0.5 text-[8pt]", MUTED)}>
-        <div className="flex gap-1">
+      {/* Each pair is nowrap so a label never separates from its value; the row
+          itself wraps to as many lines as the screen needs. */}
+      <dl className={cn("flex flex-wrap gap-x-4 gap-y-1 text-[8pt]", MUTED)}>
+        <div className="flex gap-1 whitespace-nowrap">
           <dt>Qty</dt>
           <dd className={cn("tabular-nums", INK)}>{line.qty}</dd>
         </div>
-        <div className="flex gap-1">
+        <div className="flex gap-1 whitespace-nowrap">
           <dt>Unit price</dt>
           <dd className={cn("tabular-nums", INK)}>
             {formatInvoiceAmount(line.unitGrossMinor)}
@@ -487,13 +499,13 @@ function StackedLine({
         </div>
         {withTax ? (
           <>
-            <div className="flex gap-1">
+            <div className="flex gap-1 whitespace-nowrap">
               <dt>VAT</dt>
               <dd className={cn("tabular-nums", line.taxable ? INK : MUTED)}>
                 {line.taxable ? formatVatRate(doc.vatRate) : "—"}
               </dd>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 whitespace-nowrap">
               <dt>VAT amount</dt>
               <dd className={cn("tabular-nums", line.taxable ? INK : MUTED)}>
                 {line.taxable ? formatInvoiceAmount(vat) : "—"}
@@ -801,17 +813,7 @@ function Page({
               full-tax table cannot fit, so it scrolls inside its own container
               rather than dropping a column — a missing unit price or tax amount
               would be a content change, which §8 does not allow. */}
-          <div
-            className={
-              responsive
-                ? "invoice-scroll -mx-1 w-full min-w-0 overflow-x-auto px-1 md:mx-0 md:px-0"
-                : undefined
-            }
-          >
-            <div className={responsive ? "w-max min-w-full md:w-auto md:min-w-0" : undefined}>
-              <LineTable doc={doc} lines={lines} responsive={responsive} />
-            </div>
-          </div>
+          <LineTable doc={doc} lines={lines} responsive={responsive} />
         </div>
 
         {isLast ? (
