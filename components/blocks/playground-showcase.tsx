@@ -56,10 +56,12 @@ import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
+import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
 import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
+import { InvoiceDocumentView } from "@/components/blocks/invoice-document"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
@@ -79,6 +81,7 @@ import { SectionedSheetShell, type SectionGroup } from "@/components/blocks/sect
 import { CategorySidebar } from "@/components/blocks/service-menu/CategorySidebar"
 import { ServiceCardInner } from "@/components/blocks/service-menu/ServiceCard"
 import { SettingsRow } from "@/components/blocks/settings-row"
+import { ShareInvoiceDialog, type ShareLinkState } from "@/components/blocks/share-invoice-dialog"
 import {
   SignatureDialog,
   SignaturePreview,
@@ -146,6 +149,7 @@ import { ALL_HQ_PERMISSIONS, AuthProvider, type PermissionKey } from "@/lib/auth
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { CamiPayProvider, ZERO_RATE } from "@/lib/hq-camipay/store"
+import { INVOICE_FIXTURES } from "@/lib/invoice/mock"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import {
   type AmountValue,
@@ -2174,7 +2178,206 @@ export function PlaygroundShowcase() {
           </div>
         </Row>
       </Section>
+
+      <Section
+        title="Invoice document — A4 downloadable"
+        description="DSG-72. One component renders the PDF download, the email attachment and the unique invoice link, so field order is identical across the three by construction. Paper, not app chrome: it stays white-with-dark-ink in dark mode and carries no badge chips — payment state is carried by the numbers (Balance), and only Refunded and Voided get a line of prose under the document date. Previews are scaled to 34%; open /sales/invoice-document?state=<id> for full size and the Print action."
+      >
+        <Row label="Status — carried by the numbers, no chips">
+          <InvoicePreview id="completed" note="Split tender, per-tender timestamps, Balance 0.00" />
+          <InvoicePreview id="part-paid" note="Cart discount, Balance outstanding" />
+          <InvoicePreview
+            id="unpaid"
+            note="Named promotion. Explicit 'No payments received' row, not a bare gap"
+          />
+        </Row>
+        <Row label="Exceptional states — prose, plus a watermark for void">
+          <InvoicePreview
+            id="credit-note"
+            note="Own number, references the original, and reverses the VAT the benchmark omits"
+          />
+          <InvoicePreview
+            id="voided"
+            note="Subtitle carries the timestamp, watermark carries the at-a-glance signal"
+          />
+        </Row>
+        <Row label="Document type — three-way, one layout">
+          <InvoicePreview
+            id="tax-full"
+            note="Recipient TRN captured, so per-line tax columns render"
+          />
+          <InvoicePreview
+            id="plain"
+            note="No business TRN: no tax column, no tax summary, no tax wording anywhere"
+          />
+          <InvoicePreview id="recipient-minimal" note="Recipient collapses to a single name line" />
+        </Row>
+        <Row label="Money edge cases">
+          <InvoicePreview
+            id="tip"
+            note="EC-39. A tip splits taxable gross from amount due — both rows always render"
+          />
+          <InvoicePreview
+            id="zero-value"
+            note="Package redemption at AED 0.00 is still a valid, fully itemised invoice"
+          />
+          <InvoicePreview
+            id="zero-value-tip"
+            note="Live Sale 387. Package covers the service, customer tips 5.00 — production folds that 5.00 into Total unlabelled, where it is indistinguishable from 5% VAT"
+          />
+          <InvoicePreview
+            id="credit-note-tip"
+            note="A refund returns the tip too, but the reversed VAT stays on the line only"
+          />
+          <InvoicePreview
+            id="overtender"
+            note="Change goes back across the counter and does not count as collected"
+          />
+        </Row>
+        <Row label="Identity, overflow and pagination">
+          <InvoicePreview
+            id="logo"
+            note="Logo slot filled. With none it collapses, no placeholder box"
+          />
+          <InvoicePreview
+            id="overflow"
+            note="Long legal name wraps to two lines; long description wraps in-column"
+          />
+          <InvoicePreview
+            id="multi-page"
+            note="30 lines. Condensed identity + column headers repeat, page N of M"
+          />
+        </Row>
+      </Section>
+
+      <Section
+        title="Invoice document — share & email actions"
+        description="DSG-72. The two modals behind the sale detail dialog's actions, matched to the shipped implementation in cami-business rather than to a screenshot. Neither navigates away from the sale — that is the shape every production action on this dialog shares. Share invoice hands out the unique invoice link, which renders the same document as the PDF and the email attachment."
+      >
+        <Row label="Share invoice — the link is fetched, so it has three states">
+          <ShareDialogDemo
+            linkState="ready"
+            label="Ready"
+            note="Link arrived. Copy shows a tick that reverts after 2s. Gmail also copies the link and toasts, because Gmail's compose URL drops a prefilled body often enough that the operator would otherwise send an empty email; WhatsApp's text param is reliable and does neither."
+          />
+          <ShareDialogDemo
+            linkState="loading"
+            label="Loading"
+            note="Dialog opens before the backend has minted the share token. Skeleton in place of the URL, every action disabled."
+          />
+          <ShareDialogDemo
+            linkState="error"
+            label="Failed"
+            note="Token request failed. 'Failed to generate link' in place of the URL, Gmail drops to a non-interactive row rather than a dead link."
+          />
+        </Row>
+        <Row label="Email invoice">
+          <EmailDialogDemo
+            label="Client on file"
+            note="Prefilled and focused. Send is disabled until the address is valid."
+          />
+          <EmailDialogDemo
+            walkIn
+            label="Walk-in"
+            note="No client record, so no address to prefill — an extra line says so instead of leaving an empty field unexplained."
+          />
+          <EmailDialogDemo
+            invalid
+            label="Validation"
+            note="The error appears on a failed Send, never while typing: 'Email address is required' when empty, 'Enter a valid email address' otherwise."
+          />
+        </Row>
+      </Section>
     </TooltipProvider>
+  )
+}
+
+/** One Share invoice dialog, opened inline so a link state can be inspected. */
+function ShareDialogDemo({
+  linkState,
+  label,
+  note,
+}: {
+  linkState: ShareLinkState
+  label: string
+  note: string
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="flex w-64 flex-col gap-2">
+      <Button variant="outline" radius="full" size="sm" onClick={() => setOpen(true)}>
+        Share invoice · {label}
+      </Button>
+      <span className="text-xs leading-snug text-muted-foreground">{note}</span>
+      <ShareInvoiceDialog
+        open={open}
+        onOpenChange={setOpen}
+        invoiceUrl="https://business.getcami.io/invoice/17"
+        merchantName="Pet Loft Dubai"
+        saleNumber="17"
+        defaultEmail="haroon.zafar@example.com"
+        linkState={linkState}
+      />
+    </div>
+  )
+}
+
+/** One Email invoice dialog. `invalid` opens with a blank field to reach the error. */
+function EmailDialogDemo({
+  label,
+  note,
+  walkIn = false,
+  invalid = false,
+}: {
+  label: string
+  note: string
+  walkIn?: boolean
+  invalid?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="flex w-64 flex-col gap-2">
+      <Button variant="outline" radius="full" size="sm" onClick={() => setOpen(true)}>
+        Email invoice · {label}
+      </Button>
+      <span className="text-xs leading-snug text-muted-foreground">{note}</span>
+      <EmailInvoiceDialog
+        open={open}
+        onOpenChange={setOpen}
+        defaultEmail={walkIn || invalid ? "" : "haroon.zafar@example.com"}
+        documentLabel="Tax Invoice #00017"
+        isWalkIn={walkIn}
+      />
+    </div>
+  )
+}
+
+/**
+ * One invoice state, scaled down so several fit side by side in the showcase.
+ *
+ * The document is a fixed 210mm wide, so it cannot flex into a showcase row —
+ * `scale` shrinks it without touching the layout, which is the point: what you
+ * see here is the same geometry that prints, not a responsive variant of it.
+ */
+function InvoicePreview({ id, note }: { id: keyof typeof INVOICE_FIXTURES; note: string }) {
+  const { label, doc } = INVOICE_FIXTURES[id]
+  return (
+    <div className="flex w-[270px] flex-col gap-2">
+      <div className="h-[382px] overflow-hidden rounded-lg border border-border/60 bg-sand-3 dark:bg-neutral-900">
+        <div className="origin-top-left scale-[0.34]">
+          <InvoiceDocumentView doc={doc} />
+        </div>
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <a
+          href={`/sales/invoice-document?state=${id}`}
+          className="text-xs font-medium text-foreground hover:underline"
+        >
+          {label}
+        </a>
+        <span className="text-xs leading-snug text-muted-foreground">{note}</span>
+      </div>
+    </div>
   )
 }
 

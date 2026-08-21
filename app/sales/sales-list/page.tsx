@@ -35,9 +35,11 @@ import {
   ClientDetailDialog,
 } from "@/components/blocks/client-detail-dialog"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
+import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { RefundSaleDialog } from "@/components/blocks/refund-sale-dialog"
 import { ShareGiftCardDialog } from "@/components/blocks/share-gift-card-dialog"
+import { ShareInvoiceDialog } from "@/components/blocks/share-invoice-dialog"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { TimelineRow } from "@/components/blocks/timeline-row"
 import { VoidSaleDialog } from "@/components/blocks/void-sale-dialog"
@@ -81,6 +83,8 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { type CamiPayRail, type CamiPayRate, railLabel } from "@/lib/hq-camipay/store"
+import { invoiceFromSale } from "@/lib/invoice/from-sale"
+import { documentTitle } from "@/lib/invoice/totals"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -443,6 +447,39 @@ const RATE_ONLINE: CamiPayRate = { percent: 3, fixedMinor: 75, fixedBelowMinor: 
 // link breaks.
 export const MOCK_SALES: Sale[] = [
   // 25 May — today. One per status so the default Today view shows every state.
+  // A refund and the sale it reverses, as a pair — production emits both as their
+  // own rows with adjacent numbers (live Sale 241 → Refund 242, DSG-72 §0.6), and
+  // the original stays `completed`. Kept adjacent and same-amount on purpose: a
+  // credit note has to cite a real invoice, and before this pair existed the only
+  // refunded rows sat next to a voided and a part-paid sale.
+  {
+    id: 20,
+    client: "Yamen Haddad",
+    status: "refunded",
+    saleAt: new Date(2026, 4, 25, 17, 20),
+    tipsMinor: 0,
+    grossMinor: -190000,
+  },
+  {
+    id: 19,
+    client: "Yamen Haddad",
+    status: "completed",
+    saleAt: new Date(2026, 4, 25, 17, 5),
+    tipsMinor: 0,
+    grossMinor: 190000,
+  },
+  // Package redemption with a tip: nothing to pay for the service, but the client
+  // tipped anyway. Mirrors live Cami Sale 387 (DSG-72 §0.6), where the tip is
+  // folded into Total unlabelled and lands exactly where VAT would. Gross 0 with
+  // a non-zero tip is the shape that breaks a single-Total receipt.
+  {
+    id: 17,
+    client: "Haroon Zafar",
+    status: "completed",
+    saleAt: new Date(2026, 4, 25, 16, 10),
+    tipsMinor: 500,
+    grossMinor: 0,
+  },
   {
     id: 16,
     client: "Tom Cassidy",
@@ -1226,6 +1263,8 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
   const [refundOpen, setRefundOpen] = useState(false)
   const [voidOpen, setVoidOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const [shareInvoiceOpen, setShareInvoiceOpen] = useState(false)
+  const [emailInvoiceOpen, setEmailInvoiceOpen] = useState(false)
   useEffect(() => {
     if (sale) {
       setLast(sale)
@@ -1271,6 +1310,42 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
   // multi-payment layout; everything else is a single cash payment. Real sales
   // arrive with their own payment records.
   const collectedMinor = Math.min(paidMinor, grossAbsMinor)
+
+  // Print / Download PDF open the document for this sale in a NEW TAB. Every
+  // production action on this dialog works in place — a modal, a print dialog, a
+  // download — and none of them costs the operator their place in the sale. A new
+  // tab is the closest honest equivalent while still showing the document, which
+  // is the point of the design repo.
+  //
+  // Share invoice and Email do not come through here: production opens a modal
+  // for each, so they go to <ShareInvoiceDialog> and <EmailInvoiceDialog>.
+  // Both actions open the document in a new tab, and the difference between them
+  // is the print dialog — which is exactly how they differ in production
+  // (confirmed 21 Aug 2026): Print raises it automatically, Download PDF does
+  // not and leaves the operator to save from the viewer.
+  //
+  // Production reaches a real `blob:` PDF, because a backend renders the document
+  // to a PDF binary. This repo has no PDF generator — the document is React plus
+  // print CSS — so the browser's print dialog, with "Save as PDF" as its
+  // destination, is the only route to a file here. That is a capability gap, not
+  // a design choice; the document itself is identical either way.
+  const openInvoice = (autoprint: boolean) => {
+    const suffix = autoprint ? "&autoprint=1" : ""
+    window.open(
+      `/sales/invoice-document?sale=${data.id}&surface=pdf${suffix}`,
+      "_blank",
+      "noopener",
+    )
+  }
+
+  const invoiceDoc = invoiceFromSale(data)
+  // Production hands out `https://business.getcami.io/invoice/<id>`, and this
+  // repo serves the same path at /invoice/<id> — so the shared link is real and
+  // openable here, not a cosmetic string. Falls back to the production host
+  // during SSR, where there is no origin to read.
+  const invoiceOrigin =
+    typeof window === "undefined" ? "https://business.getcami.io" : window.location.origin
+  const invoiceUrl = `${invoiceOrigin}/invoice/${data.id}`
   const voidPayments =
     collectedMinor <= 0
       ? []
@@ -1319,11 +1394,22 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                       • voided    → no button (action drops to the kebab menu)
                       • unpaid / part-paid → filled "Pay now" (balance owed) */}
                   {data.status === "completed" ? (
-                    <Button type="button" size="sm" radius="full">
+                    <Button
+                      type="button"
+                      size="sm"
+                      radius="full"
+                      onClick={() => setShareInvoiceOpen(true)}
+                    >
                       Share invoice
                     </Button>
                   ) : data.status === "refunded" ? (
-                    <Button type="button" variant="outline" size="sm" radius="full">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      radius="full"
+                      onClick={() => setShareInvoiceOpen(true)}
+                    >
                       Share invoice
                     </Button>
                   ) : data.status === "unpaid" || data.status === "part-paid" ? (
@@ -1370,16 +1456,16 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                       <DropdownMenuSeparator />
 
                       {data.status !== "voided" ? (
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setEmailInvoiceOpen(true)}>
                           <SendIcon className="size-4" />
                           Email
                         </DropdownMenuItem>
                       ) : null}
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => openInvoice(true)}>
                         <PrinterIcon className="size-4" />
                         Print
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => openInvoice(false)}>
                         <DownloadIcon className="size-4" />
                         Download PDF
                       </DropdownMenuItem>
@@ -1732,6 +1818,30 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
       <VoidSaleDialog open={voidOpen} onOpenChange={setVoidOpen} payments={voidPayments} />
 
       <ShareGiftCardDialog open={shareOpen} onOpenChange={setShareOpen} />
+
+      {/* Production's Share invoice: a copyable invoice link plus share targets,
+          layered over the sale rather than navigating away from it. The link is
+          the ticket's "unique invoice link", so it renders the same document as
+          the PDF and the email attachment. */}
+      <ShareInvoiceDialog
+        open={shareInvoiceOpen}
+        onOpenChange={setShareInvoiceOpen}
+        invoiceUrl={invoiceUrl}
+        merchantName={invoiceDoc.issuer.tradingName ?? invoiceDoc.issuer.legalName}
+        saleNumber={String(data.id)}
+        isRefund={data.status === "refunded"}
+        defaultEmail={clientEmail}
+      />
+
+      {/* Production's Email: one prefilled address, Cancel / Send. No document
+          preview and no navigation — the attachment framing is reviewable on its
+          own at /sales/invoice-document?sale=<id>&surface=email. */}
+      <EmailInvoiceDialog
+        open={emailInvoiceOpen}
+        onOpenChange={setEmailInvoiceOpen}
+        defaultEmail={clientEmail}
+        documentLabel={`${documentTitle(invoiceDoc)} #${invoiceDoc.number}`}
+      />
     </Dialog>
   )
 }
