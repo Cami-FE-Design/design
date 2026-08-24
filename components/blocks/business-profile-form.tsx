@@ -3,6 +3,7 @@
 import { BanknoteIcon, Building2Icon, FlagIcon, GlobeIcon, PercentIcon, XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useRef, useState } from "react"
+import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
 import { Button } from "@/components/ui/button"
@@ -79,16 +80,18 @@ export function BusinessProfileForm() {
 
   return (
     <>
-      <div className="flex flex-col gap-6">
-        <header className="flex flex-col gap-2">
-          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-            Business details
-          </h2>
-          <p className="text-sm leading-5 text-muted-foreground">
-            Identity, branding, and contact details shown on your public booking page.
-          </p>
-        </header>
-
+      <SettingsPanel
+        header={
+          <header className="flex flex-col gap-2">
+            <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+              Business details
+            </h2>
+            <p className="text-sm leading-5 text-muted-foreground">
+              Identity, branding, and contact details shown on your public booking page.
+            </p>
+          </header>
+        }
+      >
         <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit">
           <header className="flex items-start justify-between gap-2">
             <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
@@ -133,7 +136,7 @@ export function BusinessProfileForm() {
             ))}
           </div>
         </section>
-      </div>
+      </SettingsPanel>
 
       <BusinessDetailsEditDialog
         open={editing}

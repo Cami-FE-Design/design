@@ -38,6 +38,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { Fragment, useEffect, useRef, useState } from "react"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
+import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -118,6 +119,7 @@ export function FullScreenTakeover({
   actions,
   onClose,
   wide,
+  contentClassName,
   children,
 }: {
   title: string
@@ -125,12 +127,20 @@ export function FullScreenTakeover({
   subtitle?: string
   actions: React.ReactNode
   onClose: () => void
+  /** Shorthand for the widest column, used by the per-service table. */
   wide?: boolean
+  /**
+   * Explicit width for the centred column, e.g. `max-w-4xl`. Same name and job
+   * as `FullScreenEditDialog`'s, so the two takeovers read alike. Wins over
+   * `wide`, which is only a two-way switch between a reading column and a table.
+   */
+  contentClassName?: string
   children: React.ReactNode
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const [showHeaderTitle, setShowHeaderTitle] = useState(false)
+  const widthClass = contentClassName ?? (wide ? "max-w-6xl" : "max-w-2xl")
 
   useEffect(() => {
     let cleanup: (() => void) | undefined
@@ -162,12 +172,7 @@ export function FullScreenTakeover({
         <DialogDescription className="sr-only">{ariaDescription}</DialogDescription>
 
         <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
-          <div
-            className={cn(
-              "mx-auto flex items-center justify-between gap-3",
-              wide ? "max-w-6xl" : "max-w-2xl",
-            )}
-          >
+          <div className={cn("mx-auto flex items-center justify-between gap-3", widthClass)}>
             <span
               className={cn(
                 "min-w-0 truncate font-heading text-base font-semibold leading-6 text-foreground transition-opacity duration-200",
@@ -182,9 +187,7 @@ export function FullScreenTakeover({
         </header>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-12 lg:px-10">
-          <div
-            className={cn("mx-auto flex w-full flex-col gap-10", wide ? "max-w-6xl" : "max-w-2xl")}
-          >
+          <div className={cn("mx-auto flex w-full flex-col gap-10", widthClass)}>
             <div className="flex flex-col gap-3">
               <h2
                 ref={titleRef}
@@ -281,14 +284,16 @@ export function SalesSettings() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">Sales</h2>
-        <p className="text-sm leading-5 text-muted-foreground">
-          Manage how you take payments and sell gift cards at checkout.
-        </p>
-      </header>
-
+    <SettingsPanel
+      header={
+        <header className="flex flex-col gap-2">
+          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">Sales</h2>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Manage how you take payments and sell gift cards at checkout.
+          </p>
+        </header>
+      }
+    >
       {/* Width matches the Business details "Business info" card: its inner
           16rem+16rem grid + gap-x-8 (34rem) + the card's p-5 padding (2.5rem)
           = 36.5rem (w-146). The two Sales cards fill that same footprint. */}
@@ -300,20 +305,22 @@ export function SalesSettings() {
               key={card.id}
               type="button"
               onClick={() => setView(card.id)}
-              className="group flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5 text-left transition-colors hover:bg-foreground/3"
+              className="group flex flex-col gap-2.5 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors hover:bg-foreground/3"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background text-muted-foreground">
-                <Icon className="size-5" />
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background text-muted-foreground">
+                  <Icon className="size-4" />
+                </span>
+                <span className="truncate text-base font-semibold text-foreground">
+                  {card.label}
+                </span>
               </span>
-              <span className="flex min-w-0 flex-col gap-1">
-                <span className="text-base font-semibold text-foreground">{card.label}</span>
-                <span className="text-sm leading-5 text-muted-foreground">{card.description}</span>
-              </span>
+              <span className="text-sm leading-5 text-muted-foreground">{card.description}</span>
             </button>
           )
         })}
       </div>
-    </div>
+    </SettingsPanel>
   )
 }
 
@@ -443,13 +450,16 @@ export function PaymentMethodsPanel({
   }
 
   return (
-    <div className="flex h-full flex-col gap-6">
-      <SubScreenHeader
-        onBack={onBack}
-        title="Payment methods"
-        description="View and customize the payment methods displayed at checkout for your team members."
-        root={breadcrumbRoot}
-      />
+    <SettingsPanel
+      header={
+        <SubScreenHeader
+          onBack={onBack}
+          title="Payment methods"
+          description="View and customize the payment methods displayed at checkout for your team members."
+          root={breadcrumbRoot}
+        />
+      }
+    >
       <div className="flex flex-col gap-4">
         <ul className="flex max-h-105 w-full flex-col gap-4 overflow-y-auto rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146">
           {methods.map((method, index) => (
@@ -514,7 +524,7 @@ export function PaymentMethodsPanel({
         onCancel={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
       />
-    </div>
+    </SettingsPanel>
   )
 }
 
@@ -832,13 +842,15 @@ function GiftCardsPanel({
   const active = config.enabled
 
   return (
-    <div className="flex h-full flex-col gap-6">
-      <SubScreenHeader
-        onBack={onBack}
-        title="Gift cards"
-        description="Choose how you would like to sell your gift cards, and customize their settings."
-      />
-
+    <SettingsPanel
+      header={
+        <SubScreenHeader
+          onBack={onBack}
+          title="Gift cards"
+          description="Choose how you would like to sell your gift cards, and customize their settings."
+        />
+      }
+    >
       {active ? (
         <GiftCardSummary
           config={config}
@@ -887,7 +899,7 @@ function GiftCardsPanel({
           }}
         />
       ) : null}
-    </div>
+    </SettingsPanel>
   )
 }
 

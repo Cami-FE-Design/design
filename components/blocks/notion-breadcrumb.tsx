@@ -49,7 +49,7 @@ function BreadcrumbSegmentNode({
     </>
   )
 
-  const base = "inline-flex max-w-[16rem] items-center gap-1.5 leading-none"
+  const base = "inline-flex max-w-[16rem] items-center gap-1.5 leading-5"
 
   if (segment.onClick) {
     return (

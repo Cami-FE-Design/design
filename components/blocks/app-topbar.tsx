@@ -1,11 +1,12 @@
 "use client"
 
-import { BellIcon, ChevronDownIcon, CirclePlusIcon, SearchIcon } from "lucide-react"
+import { BanknoteIcon, BellIcon, ChevronDownIcon, CirclePlusIcon, SearchIcon } from "lucide-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { appSettingsHref } from "@/components/blocks/app-settings-controller"
 import { DemoBusinessRename } from "@/components/blocks/demo-business-rename"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
+import { MoneyDrawer } from "@/components/blocks/money/money-drawer"
 import { NotificationSheet } from "@/components/blocks/notification-sheet"
 import { ProfileMenu } from "@/components/blocks/profile-menu"
 import { QuickAddMenu } from "@/components/blocks/quick-add-menu"
@@ -154,6 +155,20 @@ export function AppTopbar({
           <SearchIcon className="size-5" />
         </TopbarIconButton>
         <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+        {/* The merchant's money, one click from anywhere (DSG-73 §5). Omar's
+            morning glance is "did yesterday land?", and a drawer answers it
+            without navigating him off whatever he was doing.
+
+            Not a wallet, and not called one: Cami holds no stored balance the
+            merchant tops up or spends from. Fresha's is a real wallet, which is
+            why theirs carries "Wallet top-up" rows and ours never will. */}
+        <MoneyDrawer
+          trigger={
+            <Button variant="ghost" size="icon" aria-label="Your money" className={iconButtonClass}>
+              <BanknoteIcon className="size-5" />
+            </Button>
+          }
+        />
         <div className="relative size-11">
           <NotificationSheet
             trigger={

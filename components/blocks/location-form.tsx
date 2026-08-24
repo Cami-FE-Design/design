@@ -31,6 +31,7 @@ import {
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useRef, useState } from "react"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
+import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -211,20 +212,24 @@ export function LocationForm() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">Locations</h2>
-        <p className="text-sm leading-5 text-muted-foreground">
-          Where you operate. Click a location to manage its details.
-        </p>
-      </header>
-
+    <SettingsPanel
+      header={
+        <header className="flex flex-col gap-2">
+          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+            Locations
+          </h2>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Where you operate. Click a location to manage its details.
+          </p>
+        </header>
+      }
+    >
       <div className="flex flex-col gap-3">
         {LOCATIONS.map((loc) => (
           <LocationListCard key={loc.id} location={loc} onOpen={() => setSelectedId(loc.id)} />
         ))}
       </div>
-    </div>
+    </SettingsPanel>
   )
 }
 
@@ -275,44 +280,53 @@ function LocationListCard({ location, onOpen }: { location: Location; onOpen: ()
 
 function LocationDetailView({ location, onBack }: { location: Location; onBack: () => void }) {
   return (
-    <div className="flex animate-in flex-col gap-6 duration-300 ease-[cubic-bezier(0.33,1,0.68,1)] slide-in-from-right-12">
-      <NotionBreadcrumb
-        segments={[
-          { label: "Locations", icon: MapPinIcon, onClick: onBack },
-          { label: location.name, photoUrl: location.photoUrl },
-        ]}
-      />
+    <SettingsPanel
+      className="animate-in duration-300 ease-[cubic-bezier(0.33,1,0.68,1)] slide-in-from-right-12"
+      header={
+        <>
+          <NotionBreadcrumb
+            segments={[
+              { label: "Locations", icon: MapPinIcon, onClick: onBack },
+              { label: location.name, photoUrl: location.photoUrl },
+            ]}
+          />
 
-      <header className="flex items-center gap-4">
-        <div className="relative shrink-0">
-          <div className="size-16 overflow-hidden rounded-2xl bg-muted">
-            {/* biome-ignore lint/performance/noImgElement: placeholder photo for design mock */}
-            <img src={location.photoUrl} alt={location.name} className="size-full object-cover" />
-          </div>
-          <button
-            type="button"
-            aria-label="Upload location photo"
-            className="absolute -right-1 -bottom-1 flex size-7 items-center justify-center rounded-full border-2 border-background bg-foreground text-background shadow-sm transition-transform hover:scale-105"
-          >
-            <ArrowUpIcon className="size-3.5" />
-          </button>
-        </div>
-        <div className="flex flex-col gap-1">
-          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-            {location.name}
-          </h2>
-          <a
-            href={`/${location.slug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 self-start font-mono text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            cami.app/{location.slug}
-            <ArrowUpRightIcon className="size-3.5" />
-          </a>
-        </div>
-      </header>
-
+          <header className="flex items-center gap-4">
+            <div className="relative shrink-0">
+              <div className="size-16 overflow-hidden rounded-2xl bg-muted">
+                {/* biome-ignore lint/performance/noImgElement: placeholder photo for design mock */}
+                <img
+                  src={location.photoUrl}
+                  alt={location.name}
+                  className="size-full object-cover"
+                />
+              </div>
+              <button
+                type="button"
+                aria-label="Upload location photo"
+                className="absolute -right-1 -bottom-1 flex size-7 items-center justify-center rounded-full border-2 border-background bg-foreground text-background shadow-sm transition-transform hover:scale-105"
+              >
+                <ArrowUpIcon className="size-3.5" />
+              </button>
+            </div>
+            <div className="flex flex-col gap-1">
+              <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+                {location.name}
+              </h2>
+              <a
+                href={`/${location.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 self-start font-mono text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                cami.app/{location.slug}
+                <ArrowUpRightIcon className="size-3.5" />
+              </a>
+            </div>
+          </header>
+        </>
+      }
+    >
       <Tabs defaultValue="general" className="flex flex-col gap-6">
         <TabsList variant="ghost">
           <TabsTrigger value="general">General</TabsTrigger>
@@ -338,7 +352,7 @@ function LocationDetailView({ location, onBack }: { location: Location; onBack: 
           <ManageTab location={location} />
         </TabsContent>
       </Tabs>
-    </div>
+    </SettingsPanel>
   )
 }
 

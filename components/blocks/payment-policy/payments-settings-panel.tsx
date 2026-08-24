@@ -29,6 +29,7 @@ import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { CamiPayRatesPanel } from "@/components/blocks/payment-policy/camipay-rates-panel"
 import { FullScreenTakeover, PaymentMethodsPanel } from "@/components/blocks/sales-settings"
+import { SettingsPanel } from "@/components/blocks/settings-panel"
 import {
   type TerminalsDemoDialog,
   type TerminalsDemoState,
@@ -232,15 +233,21 @@ export function PaymentsSettingsPanel() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">Payments</h2>
-        <p className="text-sm leading-5 text-muted-foreground">
-          How your clients pay for their appointments at {businessName}.
-        </p>
-      </header>
-
-      {/* Same card footprint as the Sales landing (see sales-settings.tsx). */}
+    <SettingsPanel
+      header={
+        <header className="flex flex-col gap-2">
+          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+            Payments
+          </h2>
+          <p className="text-sm leading-5 text-muted-foreground">
+            How your clients pay for their appointments at {businessName}.
+          </p>
+        </header>
+      }
+    >
+      {/* Same card footprint as the Sales landing (see sales-settings.tsx).
+          Six cards, so the icon sits beside the title rather than above it —
+          the whole menu has to land in one view without scrolling. */}
       <div className="grid gap-3 sm:w-146 sm:grid-cols-2">
         {PAYMENTS_CARDS.map((card) => {
           const Icon = card.icon
@@ -249,20 +256,22 @@ export function PaymentsSettingsPanel() {
               key={card.id}
               type="button"
               onClick={() => setView(card.id)}
-              className="group flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5 text-left transition-colors hover:bg-foreground/3"
+              className="group flex flex-col gap-2.5 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors hover:bg-foreground/3"
             >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background text-muted-foreground">
-                <Icon className="size-5" />
+              <span className="flex min-w-0 items-center gap-2.5">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background text-muted-foreground">
+                  <Icon className="size-4" />
+                </span>
+                <span className="truncate text-base font-semibold text-foreground">
+                  {card.label}
+                </span>
               </span>
-              <span className="flex min-w-0 flex-col gap-1">
-                <span className="text-base font-semibold text-foreground">{card.label}</span>
-                <span className="text-sm leading-5 text-muted-foreground">{card.description}</span>
-              </span>
+              <span className="text-sm leading-5 text-muted-foreground">{card.description}</span>
             </button>
           )
         })}
       </div>
-    </div>
+    </SettingsPanel>
   )
 }
 
@@ -303,28 +312,30 @@ function PaymentPolicySubScreen({
   const hasPolicy = demoOverride ? demoOverride === "populated" : policy.type === "deposit"
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex shrink-0 flex-col gap-4">
-        <NotionBreadcrumb
-          segments={[
-            {
-              label: PAYMENTS_BREADCRUMB_ROOT.label,
-              icon: PAYMENTS_BREADCRUMB_ROOT.icon,
-              onClick: onBack,
-            },
-            { label: "Payment policy" },
-          ]}
-        />
-        <header className="flex flex-col gap-2">
-          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-            Payment policy
-          </h2>
-          <p className="text-sm leading-5 text-muted-foreground">
-            How your clients pay for their appointments at {businessName}.
-          </p>
-        </header>
-      </div>
-
+    <SettingsPanel
+      header={
+        <>
+          <NotionBreadcrumb
+            segments={[
+              {
+                label: PAYMENTS_BREADCRUMB_ROOT.label,
+                icon: PAYMENTS_BREADCRUMB_ROOT.icon,
+                onClick: onBack,
+              },
+              { label: "Payment policy" },
+            ]}
+          />
+          <header className="flex flex-col gap-2">
+            <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+              Payment policy
+            </h2>
+            <p className="text-sm leading-5 text-muted-foreground">
+              How your clients pay for their appointments at {businessName}.
+            </p>
+          </header>
+        </>
+      }
+    >
       {hasPolicy ? (
         <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
           <header className="flex items-start justify-between gap-2">
@@ -474,7 +485,7 @@ function PaymentPolicySubScreen({
         </ServiceCatalogProvider>
       ) : null}
       {takeover === "terms" ? <TermsTakeover onClose={closeTakeover} /> : null}
-    </div>
+    </SettingsPanel>
   )
 }
 

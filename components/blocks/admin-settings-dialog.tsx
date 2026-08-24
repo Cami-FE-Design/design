@@ -12,6 +12,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import type * as React from "react"
 import { useEffect, useState } from "react"
 import { PermissionRolesPane } from "@/components/blocks/permission-roles-pane"
+import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -196,19 +197,24 @@ export function AdminSettingsDialog({
             </Button>
           </DialogClose>
 
-          <div className="flex-1 overflow-y-auto px-6 py-9 max-lg:pt-14 lg:px-10">
-            <header className="mb-8 flex flex-col gap-2">
-              <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-                {active.label}
-              </h2>
-              {active.description ? (
-                <p className="text-sm leading-5 text-muted-foreground">{active.description}</p>
-              ) : null}
-            </header>
-
-            {active.id === "roles" ? <RolesPanel /> : null}
-            {active.id === "language" ? <LanguagePanel /> : null}
-            {active.id === "profile" ? <ProfilePanel /> : null}
+          {/* Title stays put, body scrolls under it (settings-panel.tsx). */}
+          <div className="flex min-h-0 flex-1 flex-col px-6 pt-9 max-lg:pt-14 lg:px-10">
+            <SettingsPanel
+              header={
+                <header className="flex flex-col gap-2">
+                  <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+                    {active.label}
+                  </h2>
+                  {active.description ? (
+                    <p className="text-sm leading-5 text-muted-foreground">{active.description}</p>
+                  ) : null}
+                </header>
+              }
+            >
+              {active.id === "roles" ? <RolesPanel /> : null}
+              {active.id === "language" ? <LanguagePanel /> : null}
+              {active.id === "profile" ? <ProfilePanel /> : null}
+            </SettingsPanel>
           </div>
         </div>
       </DialogContent>

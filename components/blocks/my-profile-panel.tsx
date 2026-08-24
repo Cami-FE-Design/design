@@ -8,6 +8,7 @@ import {
   EditMyProfileDialog,
   VerifyPhoneDialog,
 } from "@/components/blocks/edit-my-profile-dialog"
+import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,16 +29,18 @@ export function MyProfilePanel() {
   const [editing, setEditing] = useState(false)
 
   return (
-    <div className="flex h-full flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-          Personal info
-        </h2>
-        <p className="text-sm leading-5 text-muted-foreground">
-          Customize your personal details and how we can contact you.
-        </p>
-      </header>
-
+    <SettingsPanel
+      header={
+        <header className="flex flex-col gap-2">
+          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+            Personal info
+          </h2>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Customize your personal details and how we can contact you.
+          </p>
+        </header>
+      }
+    >
       <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
         <header className="flex items-start justify-between gap-2">
           <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">Contact</h3>
@@ -75,7 +78,7 @@ export function MyProfilePanel() {
       ) : null}
 
       <EditMyProfileDialog open={editing} onOpenChange={setEditing} />
-    </div>
+    </SettingsPanel>
   )
 }
 
