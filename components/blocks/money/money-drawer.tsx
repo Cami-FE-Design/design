@@ -32,7 +32,7 @@
 import { ArrowUpRightIcon, LandmarkIcon } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import type * as React from "react"
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import type { DateRange } from "@/components/blocks/date-range-popover"
 import { MoneyActivityView } from "@/components/blocks/money/money-activity"
 import { type MoneySummaryVariant, MoneySummaryView } from "@/components/blocks/money/money-summary"
@@ -113,7 +113,20 @@ type Props = {
   payouts?: ReadonlyArray<Payout>
 }
 
-export function MoneyDrawer({ trigger, txs: txsProp, payouts: payoutsProp }: Props) {
+// useSearchParams() bails out of static prerendering unless it runs inside a
+// Suspense boundary, and this drawer sits in the topbar of every AppShell page,
+// so the boundary lives here rather than at the one call site. The fallback is
+// the trigger itself, so the icon is in the prerendered HTML either way.
+// Mirrors AppSettingsController's boundary in app-shell.tsx.
+export function MoneyDrawer(props: Props) {
+  return (
+    <Suspense fallback={props.trigger}>
+      <MoneyDrawerInner {...props} />
+    </Suspense>
+  )
+}
+
+function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props) {
   const params = useSearchParams()
   const stateParam = params.get("state")
   const railsParam = params.get("rails")
