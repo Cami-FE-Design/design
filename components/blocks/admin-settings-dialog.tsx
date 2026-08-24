@@ -1,13 +1,6 @@
 "use client"
 
-import {
-  ChevronLeftIcon,
-  GlobeIcon,
-  type LucideIcon,
-  ShieldCheckIcon,
-  UserIcon,
-  XIcon,
-} from "lucide-react"
+import { ChevronLeftIcon, GlobeIcon, type LucideIcon, ShieldCheckIcon, XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import type * as React from "react"
 import { useEffect, useState } from "react"
