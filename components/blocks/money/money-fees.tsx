@@ -37,7 +37,12 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { addressToLines } from "@/lib/address"
 import { formatDate, formatDateTime } from "@/lib/format"
-import { formatRate } from "@/lib/hq-camipay/store"
+import {
+  DEMO_MERCHANT_ID,
+  effectiveRateValue,
+  formatRate,
+  useCamiPay,
+} from "@/lib/hq-camipay/store"
 import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
 import { feeInvoiceOf } from "@/lib/money/fee-invoice"
 import {
@@ -48,8 +53,8 @@ import {
   type TerminalFeeModel,
 } from "@/lib/money/fees"
 import { formatMoney } from "@/lib/money/format"
-import { DEMO_RATES, TODAY_ISO } from "@/lib/money/mock"
-import type { MerchantRails, MoneyTx } from "@/lib/money/types"
+import { TODAY_ISO } from "@/lib/money/mock"
+import type { CamiPayRail, MerchantRails, MoneyTx } from "@/lib/money/types"
 import { cn } from "@/lib/utils"
 
 type Props = {
@@ -128,6 +133,13 @@ function RateCard({
   rails: MerchantRails
   terminalModel: TerminalFeeModel
 }) {
+  // The SAME store the CamiPay rates panel reads (PRO-737), not the mock
+  // constant this screen used to restate. Two surfaces claiming the merchant's
+  // rate from two sources is the §2.1 defect one level up: change a rate in HQ
+  // and only one of them moves.
+  const camipay = useCamiPay()
+  const rate = (rail: CamiPayRail) => effectiveRateValue(camipay, DEMO_MERCHANT_ID, rail)
+
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-5">
       <div className="flex flex-col gap-1">
@@ -142,10 +154,10 @@ function RateCard({
 
       <div className="grid gap-3 sm:grid-cols-2">
         {rails.online ? (
-          <RateRow label="Online payments" rate={formatRate(DEMO_RATES.online)} />
+          <RateRow label="Online payments" rate={formatRate(rate("online"))} />
         ) : null}
         {rails.terminal ? (
-          <RateRow label="Card machine payments" rate={formatRate(DEMO_RATES.terminal)} />
+          <RateRow label="Card machine payments" rate={formatRate(rate("terminal"))} />
         ) : null}
       </div>
 
@@ -153,7 +165,8 @@ function RateCard({
           competitor the merchant has used does charge one. */}
       <p className="text-xs text-muted-foreground">
         There is no subscription and no monthly platform fee — the software is free. Cami charges on
-        payments, plus messaging you send.
+        payments, plus messaging you send. Your full rate card, including any change already
+        scheduled, is under Settings › Payments › CamiPay rates.
       </p>
 
       {rails.terminal ? (

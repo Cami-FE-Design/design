@@ -32,15 +32,20 @@ import {
   LandmarkIcon,
   ReceiptTextIcon,
   TrendingUpIcon,
-  WalletIcon,
 } from "lucide-react"
 import { toast } from "sonner"
 import { type DateRange, DateRangePopover } from "@/components/blocks/date-range-popover"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { RailBadge } from "@/components/blocks/money/rail-badge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatDate } from "@/lib/format"
-import { formatRate } from "@/lib/hq-camipay/store"
+import {
+  DEMO_MERCHANT_ID,
+  effectiveRateValue,
+  formatRate,
+  useCamiPay,
+} from "@/lib/hq-camipay/store"
 import {
   formatMoney,
   fromDayIso,
@@ -50,13 +55,7 @@ import {
   toDayIso,
 } from "@/lib/money/format"
 import { summarize, summarizeByRail } from "@/lib/money/ledger"
-import {
-  DEMO_RATES,
-  nextPayoutDay,
-  PAYOUT_MINIMUM_MINOR,
-  PAYOUT_SCHEDULE,
-  TODAY_ISO,
-} from "@/lib/money/mock"
+import { nextPayoutDay, PAYOUT_MINIMUM_MINOR, PAYOUT_SCHEDULE, TODAY_ISO } from "@/lib/money/mock"
 import type {
   CamiPayRail,
   MerchantRails,
@@ -118,7 +117,7 @@ export function MoneySummaryView({
       {!hasActivity ? (
         <EmptyState
           variant="card"
-          icon={WalletIcon}
+          icon={BanknoteIcon}
           title="No money moved in this period"
           description="Card payments taken through Cami will appear here, along with what Cami charged and what went to your bank."
         />
@@ -267,9 +266,8 @@ function HeldCard({
         <div className="flex flex-col gap-1">
           {/* Never "Balance". What it is, who has it, when it leaves (G1, G3). */}
           <p className="text-sm font-medium text-foreground">Held by {who}</p>
-          <p className="text-xs text-muted-foreground">{RAIL_LABEL[rail]}</p>
         </div>
-        <Badge variant="secondary">{who}</Badge>
+        <RailBadge rail={rail} />
       </div>
 
       <p
@@ -331,7 +329,9 @@ function BlendedHeadline({
           {rails
             .map(
               (r) =>
-                `${custodianLabel(custodianOf(r))} pays ${PAYOUT_SCHEDULE[r].label.toLowerCase()}`,
+                `${custodianLabel(custodianOf(r))} pays ${PAYOUT_SCHEDULE[r].label
+                  .charAt(0)
+                  .toLowerCase()}${PAYOUT_SCHEDULE[r].label.slice(1)}`,
             )
             .join(" · ")}
         </p>
@@ -383,6 +383,12 @@ function Tiles({ summary }: { summary: MoneySummary }) {
  * trusting it (T4-4).
  */
 function Breakdown({ summary, custodianName }: { summary: MoneySummary; custodianName: string }) {
+  // The live rate card (PRO-737), not the mock constant. Stating the rate from
+  // a second source is how this screen and the fees screen come to disagree
+  // about what the merchant pays.
+  const camipay = useCamiPay()
+  const rateOf = (rail: CamiPayRail) => effectiveRateValue(camipay, DEMO_MERCHANT_ID, rail)
+
   // Opens at the balance, not at zero. Held money is a point-in-time figure and
   // the rows below it are period flows — mixing the two without an opening line
   // is what makes a "balance" under a period selector go negative.
@@ -412,8 +418,8 @@ function Breakdown({ summary, custodianName }: { summary: MoneySummary; custodia
         <Row label="Total charged" value={summary.deductions.totalMinor} strong />
         {/* No subscription line, now or later. The OS is free (INV-P4). */}
         <p className="pt-1 text-xs text-muted-foreground">
-          Cami charges {formatRate(DEMO_RATES.terminal)} on card machine payments and{" "}
-          {formatRate(DEMO_RATES.online)} online. There is no subscription — the software is free.
+          Cami charges {formatRate(rateOf("terminal"))} on card machine payments and{" "}
+          {formatRate(rateOf("online"))} online. There is no subscription — the software is free.
         </p>
       </Block>
 
@@ -536,7 +542,7 @@ function RailDetail({
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-medium text-foreground">{RAIL_LABEL[rail]}</span>
-                <Badge variant="secondary">Paid by {who}</Badge>
+                <Badge variant="muted">Paid by {who}</Badge>
               </div>
               <dl className="flex flex-col gap-1.5 text-sm">
                 <DefRow term="Money in" value={formatMoney(summary.moneyIn.totalMinor)} />
@@ -625,11 +631,19 @@ function RecentPayouts({
               )}
             >
               <div className="flex min-w-0 flex-col">
+                {/* A held run sent nothing, so it must not be worded as money
+                    that moved. "AED 479.70 from NeoPay · to •••• 1001" said the
+                    opposite of the badge beside it. */}
                 <span className="text-sm font-medium text-foreground">
-                  {formatMoney(p.amountMinor)} from {who}
+                  {p.status === "held-below-minimum"
+                    ? `Nothing sent from ${who}`
+                    : `${formatMoney(p.amountMinor)} from ${who}`}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {formatDate(p.sentAt)} · to •••• {p.destinationLast4}
+                  {formatDate(p.sentAt)}
+                  {p.status === "held-below-minimum"
+                    ? ` · ${formatMoney(p.amountMinor)} rolled forward`
+                    : ` · to •••• ${p.destinationLast4}`}
                   {p.retryOfPayoutId ? " · retry of a returned payout" : ""}
                 </span>
               </div>
@@ -642,8 +656,12 @@ function RecentPayouts({
                     p.status === "failed"
                       ? "destructive"
                       : p.status === "paid"
-                        ? "secondary"
-                        : "outline"
+                        ? "success"
+                        : p.status === "held-below-minimum"
+                          ? // Nothing happened, and nothing is wrong. A neutral
+                            // chip, not a status the merchant should act on.
+                            "muted"
+                          : "outline"
                   }
                 >
                   {payoutStatusLabel(p.status)}

@@ -20,6 +20,7 @@ import {
   summarizeByRail,
 } from "./ledger"
 import { MONEY_TXS, PAYOUT_MINIMUM_MINOR, PAYOUTS, periodBounds, TODAY_ISO } from "./mock"
+import { RAILS_OPTIONS, resolveScenario, STATE_OPTIONS } from "./scenarios"
 import type { MoneyTx } from "./types"
 
 const MTD = periodBounds("month-to-date")
@@ -73,6 +74,34 @@ describe("the breakdown arrives at the headline", () => {
       expect(byRail.online.heldMinor).toBeGreaterThanOrEqual(0)
       expect(byRail.terminal.heldMinor).toBeGreaterThanOrEqual(0)
       expect(summarize(MONEY_TXS, period).heldMinor).toBeGreaterThanOrEqual(0)
+    }
+  })
+
+  it("holds no negative rail in ANY scenario, not just the full ledger", () => {
+    // The original of this test ran against MONEY_TXS only, and missed a real
+    // one: the below-minimum scenario sliced the last few rows, which could
+    // take a fee and a messaging charge without the payment they came off. That
+    // rendered a rail as holding MINUS fifty-four dirhams. Scenario-derived data
+    // is data too.
+    for (const rails of RAILS_OPTIONS) {
+      for (const state of STATE_OPTIONS) {
+        const sc = resolveScenario(state.id, rails.id)
+        const byRail = summarizeByRail(sc.txs, ALL)
+        const where = `${rails.id}/${state.id}`
+        expect(byRail.online.heldMinor, where).toBeGreaterThanOrEqual(0)
+        expect(byRail.terminal.heldMinor, where).toBeGreaterThanOrEqual(0)
+      }
+    }
+  })
+
+  it("keeps the below-minimum scenario actually below the minimum", () => {
+    // Otherwise the screen shows a "rolled forward" banner over a figure large
+    // enough to have been paid out.
+    for (const rails of RAILS_OPTIONS) {
+      const sc = resolveScenario("below-minimum", rails.id)
+      const held = summarize(sc.txs, ALL).heldMinor
+      expect(held).toBeGreaterThan(0)
+      expect(held).toBeLessThan(PAYOUT_MINIMUM_MINOR)
     }
   })
 
@@ -207,6 +236,20 @@ describe("the activity feed (DSG-78)", () => {
     for (const g of groups) {
       expect(g.txs.reduce((sum, t) => sum + t.amountMinor, 0)).toBe(g.subtotalMinor)
       expect(g.txs.every((t) => t.at.slice(0, 10) === g.dayIso)).toBe(true)
+    }
+  })
+
+  it("keeps a fee under the payment that caused it, not above it", () => {
+    // Newest-first by raw timestamp put the fee above its own sale, because the
+    // fee is written minutes later. Adjacent in the wrong order is not "visibly
+    // paired" (T5-3) — it is a charge appearing before its reason.
+    for (const group of groupByDay(MONEY_TXS)) {
+      const index = new Map(group.txs.map((t, i) => [t.id, i]))
+      for (const tx of group.txs) {
+        const causeIndex = index.get(tx.causedByTxId ?? "")
+        if (causeIndex === undefined) continue
+        expect(causeIndex).toBeLessThan(index.get(tx.id) as number)
+      }
     }
   })
 

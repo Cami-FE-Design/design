@@ -13,6 +13,7 @@ import { MoneyFeesView } from "@/components/blocks/money/money-fees"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import type { BreadcrumbRoot } from "@/components/blocks/sales-settings"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { CamiPayProvider } from "@/lib/hq-camipay/store"
 import type { TerminalFeeModel } from "@/lib/money/fees"
 import { MONEY_TXS } from "@/lib/money/mock"
 import type { MerchantRails } from "@/lib/money/types"
@@ -52,11 +53,16 @@ export function MoneyFeesPanel({
         </>
       }
     >
-      <MoneyFeesView
-        txs={MONEY_TXS.filter((t) => rails[t.rail])}
-        rails={rails}
-        terminalModel={terminalModel}
-      />
+      {/* The CamiPay store is mounted in the HQ layout, not this one — same
+          wrapping the Payments panel does for the rates screen, so a rate set
+          in HQ is the rate this screen states. */}
+      <CamiPayProvider>
+        <MoneyFeesView
+          txs={MONEY_TXS.filter((t) => rails[t.rail])}
+          rails={rails}
+          terminalModel={terminalModel}
+        />
+      </CamiPayProvider>
     </SettingsPanel>
   )
 }

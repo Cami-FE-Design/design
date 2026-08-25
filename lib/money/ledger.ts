@@ -131,6 +131,35 @@ export type DayGroup = {
   txs: MoneyTx[]
 }
 
+/**
+ * Newest event first, but a payment and everything it caused stay together and
+ * in causal order.
+ *
+ * Sorting rows by their own timestamp looks right and reads wrong: a fee is
+ * written a couple of minutes after the payment, so newest-first puts the fee
+ * ABOVE the sale that produced it. The merchant meets "Cami fee − AED 7.31"
+ * before the AED 243.50 it came off. T5-3 asks for the pair to be visibly
+ * paired — adjacent in the wrong order is not that.
+ *
+ * So the sort key is the ANCHOR: a row that was caused by another sorts with
+ * its cause, and inside that group the cause comes first.
+ */
+function orderWithinDay(txs: ReadonlyArray<MoneyTx>): MoneyTx[] {
+  const byId = new Map(txs.map((t) => [t.id, t]))
+  const anchorAt = (t: MoneyTx) => byId.get(t.causedByTxId ?? "")?.at ?? t.at
+
+  return [...txs].sort((a, b) => {
+    const aAnchor = anchorAt(a)
+    const bAnchor = anchorAt(b)
+    if (aAnchor !== bAnchor) return aAnchor < bAnchor ? 1 : -1
+    // Same event: the payment first, then what it caused, oldest first.
+    const aChild = a.causedByTxId !== undefined
+    const bChild = b.causedByTxId !== undefined
+    if (aChild !== bChild) return aChild ? 1 : -1
+    return a.at < b.at ? -1 : 1
+  })
+}
+
 /** Reverse-chronological, grouped by day, newest day first (T5-1). */
 export function groupByDay(txs: ReadonlyArray<MoneyTx>): DayGroup[] {
   const byDay = new Map<string, MoneyTx[]>()
@@ -146,7 +175,7 @@ export function groupByDay(txs: ReadonlyArray<MoneyTx>): DayGroup[] {
     .map(([dayIso, dayTxs]) => ({
       dayIso,
       subtotalMinor: dayTxs.reduce((sum, t) => sum + t.amountMinor, 0),
-      txs: [...dayTxs].sort((a, b) => (a.at < b.at ? 1 : -1)),
+      txs: orderWithinDay(dayTxs),
     }))
 }
 

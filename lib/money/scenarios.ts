@@ -18,8 +18,8 @@
 // state falls out of the ledger; nobody picks either. It exists so a reviewer
 // can reach any combination without seeding data.
 
-import { MONEY_TXS, PAYOUTS, TODAY_ISO } from "./mock"
-import type { MerchantRails, MoneyTx, Payout, SettlementBlock } from "./types"
+import { MONEY_TXS, PAYOUTS } from "./mock"
+import type { CamiPayRail, MerchantRails, MoneyTx, Payout, SettlementBlock } from "./types"
 
 /* -------------------------------------------------------------------------- */
 /* Rails — configuration                                                      */
@@ -107,11 +107,25 @@ export function resolveScenario(state: StateId, rails: RailsId = "both"): Scenar
       return { ...base, txs: ledger.filter((t) => t.kind !== "payout"), payouts: [] }
 
     case "below-minimum": {
-      // One day's takings, nothing swept yet. Skipped is not failed, and this
-      // is the state where that copy has to hold (SET-X9).
-      const today = ledger
-        .filter((t) => t.at.slice(0, 10) === TODAY_ISO && t.kind !== "payout")
-        .slice(-3)
+      // One payment per rail and everything it caused, nothing swept yet.
+      // Skipped is not failed, and this is the state where that copy has to
+      // hold (SET-X9).
+      //
+      // Whole EVENTS, not the last N rows. Slicing rows blindly could take a
+      // fee and a messaging charge without the payment they came off, which
+      // rendered a rail as holding MINUS fifty-four dirhams — a figure a
+      // merchant's money cannot be in, and the exact defect ledger.test.ts
+      // pins against the full ledger.
+      const firstOf = (rail: CamiPayRail) =>
+        ledger.find((t) => t.rail === rail && (t.kind === "sale" || t.kind === "deposit"))
+
+      const seeds = (["online", "terminal"] as const)
+        .filter((r) => merchantRails[r])
+        .map(firstOf)
+        .filter((t) => t !== undefined)
+
+      const seedIds = new Set(seeds.map((t) => t.id))
+      const today = ledger.filter((t) => seedIds.has(t.id) || seedIds.has(t.causedByTxId ?? ""))
       return { ...base, txs: today, payouts: [] }
     }
 

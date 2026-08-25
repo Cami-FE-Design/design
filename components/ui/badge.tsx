@@ -20,6 +20,12 @@ const badgeVariants = cva(
         // doesn't provide this service"). Mirrors primary-soft's tone-on-tone
         // pattern using the cami-yellow scale, with a faint border.
         warning: "border-cami-yellow-5 bg-cami-yellow-3 text-cami-yellow-11",
+        // Soft green, the mirror of `warning` — for a confirmed-good state that
+        // has to be stated rather than implied ("Verified"). The scale was
+        // already being hand-rolled at the call site (terminals-panel) because
+        // this variant did not exist, which left anything positive falling back
+        // to the flat grey `secondary`.
+        success: "border-cami-green-5 bg-cami-green-2 text-cami-green-11",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
         outline: "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
