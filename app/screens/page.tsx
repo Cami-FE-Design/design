@@ -300,6 +300,148 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Merchant money surfaces (DSG-73)",
+    description:
+      "Hosted on /shell-demo because none of these have a route: the money drawer lives in the topbar and the billing panels inside the settings dialog, so the links open them over the bare app shell rather than over an unrelated page. Where the merchant's money is, when it lands, and what Cami charged. Split custody is the whole design: terminal money is held and paid by NeoPay, online money by Cami — one merchant, two payouts, two senders, two schedules. The benchmark's defect is a headline and its own breakdown disagreeing 9.3x because payouts were missing from the arithmetic; here every figure is derived from one ledger, so the breakdown cannot drift from the headline. Spec: docs/specs/DSG-73-merchant-money-surfaces.md.",
+    screens: [
+      {
+        path: "/shell-demo?money=drawer",
+        label: "Topbar money drawer · the entry point",
+        note: "The money icon sits in the topbar on every screen, so it has no route of its own — these links open it over the bare shell. It is the only way in, because a routed Money section was an orphan nothing linked to. One card per sender (Cami / NeoPay) with what each holds and when it lands, the last three days of activity, then a way into the full screens. Reads the same derivation as the account summary, so the drawer and the page cannot disagree — which is exactly what they do in Fresha.",
+      },
+      {
+        path: "/shell-demo?money=summary",
+        label: "Account summary (DSG-77) · two rails",
+        note: "The recommended D6 layout. Cami-held money is the headline (the only timing Cami controls), NeoPay's sits beside it at lower weight. Follow the breakdown down: money in → what Cami charged → adjustments → already paid to your bank → still held. The running totals between blocks are the point — the arithmetic is visible, not asserted.",
+      },
+      {
+        path: "/shell-demo?money=summary&variant=blended",
+        label: "Account summary · blended (the other D6 option)",
+        note: "One figure for everything held, custodian split stated underneath. Take both to design review — this one is easier to glance at and closer to recreating the two-balance defect from the other direction.",
+      },
+      {
+        path: "/shell-demo?money=summary&state=paused",
+        label: "Payouts paused, destination unverified",
+        note: "SET-B4. The banner has to say the money will NOT fall back to the old account, because that is every merchant's reasonable assumption.",
+      },
+      {
+        path: "/shell-demo?money=summary&state=pending",
+        label: "Verification pending",
+        note: "Between unverified and healthy. Payouts are still paused, but the copy carries no fault — nothing is wrong and nothing is being asked of the merchant, so the tone drops from warning to plain information.",
+      },
+      {
+        path: "/shell-demo?money=summary&state=below-minimum",
+        label: "Below minimum, rolls forward",
+        note: "SET-X9. Skipped is not failed — no alarm colour, no error wording. A merchant who reads this as a problem calls support about money that is fine.",
+      },
+      {
+        path: "/shell-demo?money=summary&state=not-ready",
+        label: "Not settle-ready",
+        note: "Nothing has ever gone out, so the held figure is large and none of it is moving. Payouts line reads zero and the banner explains why.",
+      },
+      {
+        path: "/shell-demo?money=summary&rails=terminal-only",
+        label: "Terminal-only merchant",
+        note: "SET-X7. One custodian, so the rail split collapses and there is no Cami-controlled schedule to show. Complete screen, not a degraded one.",
+      },
+      {
+        path: "/shell-demo?money=summary&rails=online-only",
+        label: "Online-only merchant",
+        note: "SET-X8. The mirror case.",
+      },
+      {
+        path: "/shell-demo?money=summary&state=no-activity",
+        label: "Zero activity",
+        note: "New merchant. Empty state says what will appear here rather than showing a row of AED 0.00 tiles.",
+      },
+      {
+        path: "/shell-demo?money=activity",
+        label: "Activity feed (DSG-78)",
+        note: 'Day-grouped feed with a daily NET subtotal, not takings — a heavy fee day should not read as a good one. Rows carry direction in the icon and colour before the sign. Filter by type, sender (the rail axis Fresha has no equivalent of), and location. "Show earlier days" pages by whole days so a subtotal never describes rows you cannot see.',
+      },
+      {
+        path: "/shell-demo?money=activity",
+        label: "Transaction detail · open any row",
+        note: 'Fresha\'s field set adopted (date, linked reference, channel, location, method, billing period, From/To) plus a Custody block — with two custodians, "To: Cami" and "To: NeoPay" are different facts. A fee and the payment that caused it show as one event.',
+      },
+      {
+        path: "/shell-demo?money=activity&rails=terminal-only",
+        label: "Payout detail · the one that did not arrive",
+        note: "Filter to Payouts and open the 12 Aug row. It keeps its reason permanently, the money came back as its own row, and the retry is a separate payout carrying the same transactions. Contents are summed on screen so the drill-in arrives at the payout figure instead of asserting it.",
+      },
+      {
+        path: "/shell-demo?money=activity&loading=1",
+        label: "Activity · loading",
+        note: "Skeletons keep the day-group shape, so nothing jumps when the rows land.",
+      },
+      {
+        path: "/shell-demo?money=activity&state=no-activity",
+        label: "Activity · empty vs filtered-to-zero",
+        note: "Two different empties. This one is a new merchant; filter the healthy feed to a type it has none of and the copy says there IS money here, just none matching your filters.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=fees",
+        label: "Invoices and fees (DSG-76)",
+        note: "Settings › Billing › Invoices and fees — a panel, not a page, so the merchant is never thrown out of the dialog they opened. Period headings newest first, two documents each, and the current month pending with the date it arrives — Fresha's shape, which works. What differs is the content: no subscription line (their statement is 58% plan charges), the rate stated ON the screen rather than buried in a download, and every fee expandable down to the sale that caused it with the working shown.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=fees",
+        label: "Cami tax invoice · open any closed period",
+        note: "Download PDF on a closed period opens Cami's own tax invoice, rendered through the DSG-72 document rather than a second renderer. Cami is the supplier here and the merchant the customer, so it carries Cami's TRN, the merchant's, and the VAT they can reclaim. The recipient block comes from Billing details — get the legal name wrong there and this document is wrong.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=fees&d1=invoice",
+        label: "Invoices and fees · the other D1 outcome",
+        note: "D1 is open. Here Cami invoices for card machine fees rather than NeoPay deducting them, so the tax invoice is payable and the explanatory card changes. Same derivation, one card's difference — take both to the D1 call.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=bank",
+        label: "Bank account (DSG-75) · verified",
+        note: "Settings → Billing → Bank account. Masked to last 4, a verification state, and the fact Fresha's screen leaves out entirely: two senders pay into this one account on two schedules, and only Cami's is Cami's to change. Change history is permanent and keeps failed attempts.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=bank&bd=gateway-failed",
+        label: "Bank account · gateway write failed",
+        note: "The state the whole screen exists for (SET-B3, QA SET-X1). Hit Change, fill anything in, confirm — the flow reports that NeoPay refused, that NOTHING was changed, and names the account still in force. A half-applied change would send half the merchant's money to a closed account and fail days later where support cannot see it.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=bank&bd=unverified",
+        label: "Bank account · unverified, payouts paused",
+        note: "SET-B4. Payouts pause and — the part every merchant assumes wrongly — they do NOT fall back to the previous account. The copy says so outright.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=bank&bd=read-only",
+        label: "Bank account · no permission to change",
+        note: "SET-B9. Gated by its own permission, separate from rails and rates: reading the rate card does not entitle you to move the money. No disabled Change button — the account is simply read-only, with a line saying who to ask.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=bank&bd=online-only",
+        label: "Bank account · online-only merchant",
+        note: "SET-X8. No NeoPay row in the schedule and no gateway copy to explain — only Cami pays this merchant.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=bank&bd=terminal-only",
+        label: "Bank account · terminal-only merchant",
+        note: "SET-X7. One custodian, so there is one schedule and it is NeoPay's — read-only in the strong sense, no greyed control implying a permission that could be granted.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=details",
+        label: "Billing details (DSG-74) · complete",
+        note: "The legal identity every document Cami stamps is stamped with — today those values are a hardcoded constant in lib/invoice/from-sale.ts. Edit opens the standard takeover, which states the thing merchants get wrong: changes apply forward only, and an invoice already sent keeps what it was issued with.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=details&bl=no-trn",
+        label: "Billing details · no TRN",
+        note: "The state with a real consequence: without a TRN what the client receives is an ordinary invoice with no tax wording anywhere. Worded as a fact rather than an error — plenty of businesses are simply not VAT-registered.",
+      },
+      {
+        path: "/shell-demo?settings=billing&bp=details&bl=empty",
+        label: "Billing details · nothing filled in yet",
+        note: "T1-1. Every field still renders; missing ones collapse into an Add pill rather than a blank row, so nothing is silently absent.",
+      },
+    ],
+  },
+  {
     title: "Cami HQ, Impersonation (PRO-155)",
     description:
       "E6-2.1 single pane of glass for ops impersonation: standalone events log, scoped session banner, PII reveal flow on the Partner portal.",
@@ -896,8 +1038,12 @@ export default function ScreensPage() {
             </div>
 
             <ul className="flex flex-col">
+              {/* Keyed by path AND label: a section deliberately lists the same
+                  route more than once when there are different things to look at
+                  on it (the activity feed and the detail panel behind a row, say),
+                  and a path-only key collides on those. */}
               {section.screens.map((screen) => (
-                <li key={screen.path}>
+                <li key={`${screen.path}|${screen.label}`}>
                   <Link
                     href={screen.path}
                     target="_blank"

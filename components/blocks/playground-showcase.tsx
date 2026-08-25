@@ -43,6 +43,7 @@ import { PaymentView } from "@/app/sales/new-sale/payment-view"
 import { RedeemGiftCardDialog } from "@/app/sales/new-sale/redeem-gift-card-dialog"
 import { SelfCheckoutDialog } from "@/app/sales/new-sale/self-checkout-dialog"
 import { AddTeamMemberDialog } from "@/components/blocks/add-team-member-dialog"
+import { AddressSearchField } from "@/components/blocks/address-search-field"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
 import {
   AppointmentDetailPanel,
@@ -64,6 +65,17 @@ import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { InvoiceDocumentView } from "@/components/blocks/invoice-document"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
+import {
+  type BankAccountDemoState,
+  BankAccountPanel,
+} from "@/components/blocks/money/bank-account-panel"
+import {
+  type BillingDetailsDemoState,
+  BillingDetailsPanel,
+} from "@/components/blocks/money/billing-details-panel"
+import { MoneyActivityView } from "@/components/blocks/money/money-activity"
+import { MoneyFeesView } from "@/components/blocks/money/money-fees"
+import { MoneySummaryView } from "@/components/blocks/money/money-summary"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
@@ -144,6 +156,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { type AddressParts, addressToLines, EMPTY_ADDRESS } from "@/lib/address"
 import { adminBusinesses } from "@/lib/admin-businesses"
 import { ALL_HQ_PERMISSIONS, AuthProvider, type PermissionKey } from "@/lib/auth-mock"
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
@@ -151,6 +164,10 @@ import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { CamiPayProvider, ZERO_RATE } from "@/lib/hq-camipay/store"
 import { INVOICE_FIXTURES } from "@/lib/invoice/mock"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
+import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
+import type { TerminalFeeModel } from "@/lib/money/fees"
+import { defaultRange, MONEY_TXS, PAYOUTS } from "@/lib/money/mock"
+import type { MerchantRails, SettlementBlock } from "@/lib/money/types"
 import {
   type AmountValue,
   DEFAULT_PAYMENT_POLICY,
@@ -1583,6 +1600,111 @@ export function PlaygroundShowcase() {
       </Section>
 
       <Section
+        title="Merchant money surfaces — account summary (DSG-77)"
+        description="Split custody made legible: terminal money is held and paid by NeoPay, online money by Cami. Every figure is derived from one ledger (lib/money), so the breakdown arrives at the headline instead of asserting it — the defect the Fresha benchmark shows at 9.3x. D6 is undecided, so both layouts are here."
+      >
+        <Row label="Two rails">
+          <MoneySummaryDemo variant="two-rail" />
+        </Row>
+        <Row label="Blended">
+          <MoneySummaryDemo variant="blended" />
+        </Row>
+        <Row label="Payouts paused">
+          <MoneySummaryDemo variant="two-rail" block="destination-unverified" />
+        </Row>
+        <Row label="Below minimum">
+          <MoneySummaryDemo variant="two-rail" block="below-minimum" />
+        </Row>
+        <Row label="Terminal only">
+          <MoneySummaryDemo variant="two-rail" rails={{ online: false, terminal: true }} />
+        </Row>
+        <Row label="Zero activity">
+          <MoneySummaryDemo variant="two-rail" empty />
+        </Row>
+      </Section>
+
+      <Section
+        title="Merchant money surfaces — activity and detail (DSG-78)"
+        description="The itemised feed under the number. Day groups carry a NET subtotal rather than takings, so a heavy fee day cannot read as a good one. Rows carry direction in the icon and colour before the sign. Open any row for the detail panel; open a payout row to drill into what it carried and watch the contents sum to the payout figure."
+      >
+        <Row label="Both rails">
+          <MoneyActivityDemo />
+        </Row>
+        <Row label="Terminal only">
+          <MoneyActivityDemo rails={{ online: false, terminal: true }} />
+        </Row>
+        <Row label="Empty">
+          <MoneyActivityDemo empty />
+        </Row>
+      </Section>
+
+      <Section
+        title="Merchant money surfaces — bank account (DSG-75)"
+        description="The one control that can redirect every dirham the business takes, so changing it is a multi-step flow and never an inline edit. Fresha's version is a masked account and an Edit button; this one adds a verification state, both senders shown against the single account they pay into, and a permanent change log that keeps failed attempts. The state worth clicking is the gateway failure — it must leave the old account untouched and say so."
+      >
+        <Row label="Verified">
+          <BankAccountDemo state="verified" />
+        </Row>
+        <Row label="Unverified">
+          <BankAccountDemo state="unverified" />
+        </Row>
+        <Row label="Gateway failed">
+          <BankAccountDemo state="gateway-failed" />
+        </Row>
+        <Row label="Read-only">
+          <BankAccountDemo state="read-only" />
+        </Row>
+        <Row label="Terminal only">
+          <BankAccountDemo state="terminal-only" />
+        </Row>
+      </Section>
+
+      <Section
+        title="Merchant money surfaces — invoices and fees (DSG-76)"
+        description="What Cami charged, per period, with the current month pending. Cami's statement is a different document from the benchmark's: no subscription line (the OS is free), the rate stated on the screen rather than only inside a download, and every fee expandable to the sale that caused it with the working shown. Each line renders the rate snapshotted at capture, so a past statement never re-rates after a renegotiation."
+      >
+        <Row label="NeoPay deducts">
+          <MoneyFeesDemo terminalModel="gateway-deducts" />
+        </Row>
+        <Row label="Cami invoices">
+          <MoneyFeesDemo terminalModel="cami-invoices" />
+        </Row>
+        <Row label="Online only">
+          <MoneyFeesDemo
+            terminalModel="gateway-deducts"
+            rails={{ online: true, terminal: false }}
+          />
+        </Row>
+      </Section>
+
+      <Section
+        title="Merchant money surfaces — billing details (DSG-74)"
+        description="Four values, held once, printed on every tax invoice the merchant sends and every invoice Cami sends them. Missing fields collapse into an Add pill rather than a blank row, and the no-TRN state names its consequence: ordinary invoices with no tax wording. Edit opens the standard takeover, which says changes apply forward only, and takes the registered address through the address search field below rather than a free-text box."
+      >
+        <Row label="Complete">
+          <BillingDetailsDemo state="complete" />
+        </Row>
+        <Row label="No TRN">
+          <BillingDetailsDemo state="no-trn" />
+        </Row>
+        <Row label="Nothing filled in">
+          <BillingDetailsDemo state="empty" />
+        </Row>
+      </Section>
+
+      <Section
+        title="Address search field"
+        description="Search first, structured fields second. The repo's older address blocks put a decorative 'Search address' box above a grid the merchant still filled in by hand; here picking a place fills the grid, and the grid stays editable because a places result is a starting point and the trade licence is what has to match. Manual entry is the first row of the dropdown, not a fallback reached by failing — plenty of registered addresses (new buildings, free-zone desks, PO boxes) are in no index at all. Arrow keys and Enter work the dropdown. The suggestions stand in for a Places Autocomplete response; production swaps the constant for the call. Field set matches the benchmark's billing form rather than a full postal schema — no emirate, because in the UAE it repeats the city on almost every address, and blank optional fields collapse instead of leaving a gap in the invoice's issuer block."
+      >
+        <Row label="Empty — search only">
+          <AddressSearchFieldDemo />
+        </Row>
+        <Row label="Prefilled — fields already open">
+          <AddressSearchFieldDemo initial={DEMO_BILLING_DETAILS.address} />
+        </Row>
+      </Section>
+
+      <Section
         title="Settings row"
         description="Icon + label/value stack used inside settings summary cards. When the value is null the row collapses into a subtle 'Add {label}' pill."
       >
@@ -2480,5 +2602,133 @@ function RedeemGiftCardDialogDemo() {
         onApply={(amount) => toast(`Redeemed ${(amount / 100).toFixed(2)} AED`)}
       />
     </>
+  )
+}
+
+/**
+ * The account summary at one state. Rendered whole rather than in pieces: the
+ * thing worth reviewing is whether the arithmetic reads down the page to the
+ * headline, and a row of extracted cards cannot show that.
+ */
+function MoneySummaryDemo({
+  variant,
+  block = null,
+  rails = { online: true, terminal: true },
+  empty = false,
+}: {
+  variant: "two-rail" | "blended"
+  block?: SettlementBlock | null
+  rails?: MerchantRails
+  empty?: boolean
+}) {
+  const [range, setRange] = useState(() => defaultRange())
+  const txs = empty ? [] : MONEY_TXS.filter((t) => rails[t.rail])
+  const payouts = empty ? [] : PAYOUTS.filter((p) => rails[p.rail])
+
+  return (
+    <div className="w-full rounded-2xl border border-border/60 bg-sand-2 p-4">
+      <MoneySummaryView
+        txs={txs}
+        payouts={payouts}
+        rails={rails}
+        range={range}
+        onRangeChange={setRange}
+        variant={variant}
+        block={block}
+      />
+    </div>
+  )
+}
+
+/**
+ * The activity feed at one state. Filters, pagination and both detail dialogs
+ * are live here — the payout drill-in is the part worth clicking, since it is
+ * the one that has to arrive at the payout figure rather than assert it.
+ */
+function MoneyActivityDemo({
+  rails = { online: true, terminal: true },
+  empty = false,
+}: {
+  rails?: MerchantRails
+  empty?: boolean
+}) {
+  const txs = empty ? [] : MONEY_TXS.filter((t) => rails[t.rail])
+  const payouts = empty ? [] : PAYOUTS.filter((p) => rails[p.rail])
+
+  return (
+    <div className="w-full rounded-2xl border border-border/60 bg-sand-2 p-4">
+      <MoneyActivityView txs={txs} payouts={payouts} rails={rails} />
+    </div>
+  )
+}
+
+/**
+ * The bank account panel at one state. Open "Change" on the gateway-failed one:
+ * the flow has to end on a screen that says which system refused and that
+ * nothing moved.
+ */
+function BankAccountDemo({ state }: { state: BankAccountDemoState }) {
+  return (
+    <div className="w-full rounded-2xl border border-border/60 bg-sand-2 p-4">
+      <BankAccountPanel
+        onBack={() => toast("Back to Payments")}
+        breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+        initialState={state}
+      />
+    </div>
+  )
+}
+
+/** The fee statements at one D1 outcome. Expand a closed period to see the working. */
+function MoneyFeesDemo({
+  terminalModel,
+  rails = { online: true, terminal: true },
+}: {
+  terminalModel: TerminalFeeModel
+  rails?: MerchantRails
+}) {
+  return (
+    <div className="w-full rounded-2xl border border-border/60 bg-sand-2 p-4">
+      <MoneyFeesView
+        txs={MONEY_TXS.filter((t) => rails[t.rail])}
+        rails={rails}
+        terminalModel={terminalModel}
+      />
+    </div>
+  )
+}
+
+/** The address field on its own, so both entry routes are visible at once. */
+function AddressSearchFieldDemo({ initial = EMPTY_ADDRESS }: { initial?: AddressParts }) {
+  const [parts, setParts] = useState<AddressParts>(initial)
+  return (
+    <div className="flex w-full flex-col gap-4 rounded-2xl border border-border/60 bg-sand-2 p-4">
+      <AddressSearchField value={parts} onChange={setParts} />
+      <div className="flex flex-col gap-0.5 rounded-xl bg-cami-sage-2 p-3">
+        <p className="text-sm font-medium text-foreground">On the document</p>
+        {addressToLines(parts).length > 0 ? (
+          addressToLines(parts).map((line) => (
+            <p key={line} className="text-sm leading-5 text-muted-foreground">
+              {line}
+            </p>
+          ))
+        ) : (
+          <p className="text-sm leading-5 text-muted-foreground">Nothing yet.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/** Billing details at one state. Open Edit to read the forward-only note. */
+function BillingDetailsDemo({ state }: { state: BillingDetailsDemoState }) {
+  return (
+    <div className="w-full rounded-2xl border border-border/60 bg-sand-2 p-4">
+      <BillingDetailsPanel
+        onBack={() => toast("Back to Payments")}
+        breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+        initialState={state}
+      />
+    </div>
   )
 }

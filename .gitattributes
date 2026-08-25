@@ -1,0 +1,17 @@
+# Normalize all text files to LF in the repository and in the working tree.
+# Without this, Windows clones with core.autocrlf=true flag every file as
+# modified even when the bytes are identical.
+* text=auto eol=lf
+
+# Binary assets — never touch line endings.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary

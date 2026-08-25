@@ -10,6 +10,7 @@ import {
   MapPinIcon,
   TagIcon,
   UserIcon,
+  WalletIcon,
   XIcon,
 } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
@@ -17,9 +18,11 @@ import { useEffect, useState } from "react"
 import { BusinessProfileForm } from "@/components/blocks/business-profile-form"
 import { FilesSection } from "@/components/blocks/documents-files-card"
 import { LocationForm } from "@/components/blocks/location-form"
+import { BillingSettingsPanel } from "@/components/blocks/money/billing-settings-panel"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
 import { PaymentsSettingsPanel } from "@/components/blocks/payment-policy/payments-settings-panel"
 import { SalesSettings } from "@/components/blocks/sales-settings"
+import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -96,6 +99,20 @@ const GROUPS: SettingsGroup[] = [
         label: "Payments",
         description: "Payment policy and payment methods for bookings and checkout.",
         icon: CreditCardIcon,
+      },
+    ],
+  },
+  // Its own section, not a Payments sub-item. Payments is how clients pay the
+  // merchant; Billing is the merchant's own legal identity and their money with
+  // Cami. Mirrors the benchmark, where the two are separate cards.
+  {
+    label: "Billing",
+    items: [
+      {
+        id: "billing",
+        label: "Billing",
+        description: "Legal details, payout account, and what Cami charged you.",
+        icon: WalletIcon,
       },
     ],
   },
@@ -222,7 +239,9 @@ export function AppSettingsDialog({
             </Button>
           </DialogClose>
 
-          <div className="flex-1 overflow-y-auto px-6 py-9 max-lg:pt-14 lg:px-10">
+          {/* Padding and top offset live here; the scrolling belongs to the
+              panel, which pins its own header (settings-panel.tsx). */}
+          <div className="flex min-h-0 flex-1 flex-col px-6 pt-9 max-lg:pt-14 lg:px-10">
             {active.id === "profile" ? <MyProfilePanel /> : null}
             {active.id === "business-details" ? <BusinessProfilePanel /> : null}
             {active.id === "locations" ? <LocationsPanel /> : null}
@@ -230,6 +249,7 @@ export function AppSettingsDialog({
             {active.id === "forms" ? <FilesPanel /> : null}
             {active.id === "sales" ? <SalesSettings /> : null}
             {active.id === "payments" ? <PaymentsSettingsPanel /> : null}
+            {active.id === "billing" ? <BillingSettingsPanel /> : null}
           </div>
         </div>
       </DialogContent>
@@ -243,19 +263,22 @@ function BusinessProfilePanel() {
 
 function LanguagePanel() {
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-          Language &amp; region
-        </h2>
-        <p className="text-sm leading-5 text-muted-foreground">
-          Switching locale flips the entire portal direction.
-        </p>
-      </header>
+    <SettingsPanel
+      header={
+        <header className="flex flex-col gap-2">
+          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+            Language &amp; region
+          </h2>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Switching locale flips the entire portal direction.
+          </p>
+        </header>
+      }
+    >
       <p className="text-sm leading-5 text-muted-foreground">
         Locale switcher isn't wired for the Pet Business portal yet. Coming with the i18n pass.
       </p>
-    </div>
+    </SettingsPanel>
   )
 }
 
@@ -265,17 +288,20 @@ function LocationsPanel() {
 
 function FilesPanel() {
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-          Form templates
-        </h2>
-        <p className="text-sm leading-5 text-muted-foreground">
-          Reusable forms you can send to clients and pets for signature. Uploads made on a profile
-          stay personal to that profile and won&apos;t appear here.
-        </p>
-      </header>
+    <SettingsPanel
+      header={
+        <header className="flex flex-col gap-2">
+          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+            Form templates
+          </h2>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Reusable forms you can send to clients and pets for signature. Uploads made on a profile
+            stay personal to that profile and won&apos;t appear here.
+          </p>
+        </header>
+      }
+    >
       <FilesSection variant="settings" />
-    </div>
+    </SettingsPanel>
   )
 }

@@ -21,6 +21,7 @@
 
 import { CreditCardIcon, InfoIcon, LinkIcon, type LucideIcon } from "lucide-react"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
+import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { Badge } from "@/components/ui/badge"
 import { useDemoBusiness } from "@/lib/demo-business"
 import {
@@ -128,24 +129,26 @@ export function CamiPayRatesPanel({
   const { name: businessName } = useDemoBusiness()
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex shrink-0 flex-col gap-4">
-        <NotionBreadcrumb
-          segments={[
-            { label: breadcrumbRoot.label, icon: breadcrumbRoot.icon, onClick: onBack },
-            { label: "CamiPay rates" },
-          ]}
-        />
-        <header className="flex flex-col gap-2">
-          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-            CamiPay rates
-          </h2>
-          <p className="text-sm leading-5 text-muted-foreground">
-            What Cami charges {businessName} on payments taken through CamiPay.
-          </p>
-        </header>
-      </div>
-
+    <SettingsPanel
+      header={
+        <>
+          <NotionBreadcrumb
+            segments={[
+              { label: breadcrumbRoot.label, icon: breadcrumbRoot.icon, onClick: onBack },
+              { label: "CamiPay rates" },
+            ]}
+          />
+          <header className="flex flex-col gap-2">
+            <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+              CamiPay rates
+            </h2>
+            <p className="text-sm leading-5 text-muted-foreground">
+              What Cami charges {businessName} on payments taken through CamiPay.
+            </p>
+          </header>
+        </>
+      }
+    >
       <div className="flex w-full flex-col gap-3 sm:w-fit sm:min-w-146 sm:max-w-146">
         {CAMIPAY_RAILS.map((rail) => (
           <RailCard key={rail.id} rail={rail.id} />
@@ -161,6 +164,6 @@ export function CamiPayRatesPanel({
           </span>
         </p>
       </div>
-    </div>
+    </SettingsPanel>
   )
 }

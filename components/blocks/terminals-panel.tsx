@@ -31,6 +31,7 @@ import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import type { BreadcrumbRoot } from "@/components/blocks/sales-settings"
+import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { Button } from "@/components/ui/button"
 import { DialogContent, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -169,25 +170,27 @@ export function TerminalsPanel({
   }
 
   return (
-    <div className="flex h-full flex-col gap-6">
-      <div className="flex shrink-0 flex-col gap-4">
-        <NotionBreadcrumb
-          segments={[
-            { label: breadcrumbRoot.label, icon: breadcrumbRoot.icon, onClick: onBack },
-            { label: "Terminals" },
-          ]}
-        />
-        <header className="flex flex-col gap-2">
-          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-            Terminals
-          </h2>
-          <p className="max-w-xl text-sm leading-5 text-muted-foreground">
-            Add the card machines that take Terminal/POS payments. Each device is paired once with
-            its code, then staff sign in with its 6-digit PIN for 24 hours at a time.
-          </p>
-        </header>
-      </div>
-
+    <SettingsPanel
+      header={
+        <>
+          <NotionBreadcrumb
+            segments={[
+              { label: breadcrumbRoot.label, icon: breadcrumbRoot.icon, onClick: onBack },
+              { label: "Terminals" },
+            ]}
+          />
+          <header className="flex flex-col gap-2">
+            <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+              Terminals
+            </h2>
+            <p className="max-w-xl text-sm leading-5 text-muted-foreground">
+              Add the card machines that take Terminal/POS payments. Each device is paired once with
+              its code, then staff sign in with its 6-digit PIN for 24 hours at a time.
+            </p>
+          </header>
+        </>
+      }
+    >
       <div className="flex flex-col gap-6">
         <RegisteredTerminalsCard
           terminals={terminals}
@@ -348,7 +351,7 @@ export function TerminalsPanel({
           })
         }
       />
-    </div>
+    </SettingsPanel>
   )
 }
 
