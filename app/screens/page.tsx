@@ -325,6 +325,11 @@ const SECTIONS: Section[] = [
         note: "SET-B4. The banner has to say the money will NOT fall back to the old account, because that is every merchant's reasonable assumption.",
       },
       {
+        path: "/shell-demo?money=summary&state=pending",
+        label: "Verification pending",
+        note: "Between unverified and healthy. Payouts are still paused, but the copy carries no fault — nothing is wrong and nothing is being asked of the merchant, so the tone drops from warning to plain information.",
+      },
+      {
         path: "/shell-demo?money=summary&state=below-minimum",
         label: "Below minimum, rolls forward",
         note: "SET-X9. Skipped is not failed — no alarm colour, no error wording. A merchant who reads this as a problem calls support about money that is fine.",
@@ -365,6 +370,16 @@ const SECTIONS: Section[] = [
         note: "Filter to Payouts and open the 12 Aug row. It keeps its reason permanently, the money came back as its own row, and the retry is a separate payout carrying the same transactions. Contents are summed on screen so the drill-in arrives at the payout figure instead of asserting it.",
       },
       {
+        path: "/shell-demo?money=activity&loading=1",
+        label: "Activity · loading",
+        note: "Skeletons keep the day-group shape, so nothing jumps when the rows land.",
+      },
+      {
+        path: "/shell-demo?money=activity&state=no-activity",
+        label: "Activity · empty vs filtered-to-zero",
+        note: "Two different empties. This one is a new merchant; filter the healthy feed to a type it has none of and the copy says there IS money here, just none matching your filters.",
+      },
+      {
         path: "/shell-demo?settings=billing&bp=fees",
         label: "Invoices and fees (DSG-76)",
         note: "Settings › Billing › Invoices and fees — a panel, not a page, so the merchant is never thrown out of the dialog they opened. Period headings newest first, two documents each, and the current month pending with the date it arrives — Fresha's shape, which works. What differs is the content: no subscription line (their statement is 58% plan charges), the rate stated ON the screen rather than buried in a download, and every fee expandable down to the sale that caused it with the working shown.",
@@ -400,11 +415,6 @@ const SECTIONS: Section[] = [
         note: "SET-B9. Gated by its own permission, separate from rails and rates: reading the rate card does not entitle you to move the money. No disabled Change button — the account is simply read-only, with a line saying who to ask.",
       },
       {
-        path: "/shell-demo?money=activity&loading=1",
-        label: "Activity · loading",
-        note: "Skeletons keep the day-group shape, so nothing jumps when the rows land.",
-      },
-      {
         path: "/shell-demo?settings=billing&bp=bank&bd=online-only",
         label: "Bank account · online-only merchant",
         note: "SET-X8. No NeoPay row in the schedule and no gateway copy to explain — only Cami pays this merchant.",
@@ -428,11 +438,6 @@ const SECTIONS: Section[] = [
         path: "/shell-demo?settings=billing&bp=details&bl=empty",
         label: "Billing details · nothing filled in yet",
         note: "T1-1. Every field still renders; missing ones collapse into an Add pill rather than a blank row, so nothing is silently absent.",
-      },
-      {
-        path: "/shell-demo?money=activity&state=no-activity",
-        label: "Activity · empty vs filtered-to-zero",
-        note: "Two different empties. This one is a new merchant; filter the healthy feed to a type it has none of and the copy says there IS money here, just none matching your filters.",
       },
     ],
   },

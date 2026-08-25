@@ -265,6 +265,12 @@ The first attempt filed the bank account and the legal entity under Payments, wh
 
 Worth stating plainly, because the review controls sit inside the product components and a developer picking this up needs to know which half to keep.
 
+**Where review scaffolding is allowed to live.** The rule that decides it, because this pack got it wrong first:
+
+> A surface with a route of its own can carry a switcher on that route for free — arriving the product way skips it. A surface with no route has nowhere to put one except inside the product component, so it gets links instead.
+
+DSG-72's invoice document has its own route and a fixture dropdown, and that is correct: arrive with `?sale=`, and the switcher is not rendered at all. These screens have no route — the drawer lives in the topbar, the panels in the settings dialog — so a picker here would have been product code waiting to be deleted.
+
 **No state picker exists on any of these screens.** One did briefly, in the takeover header, and it was a second mechanism for a job the links already do: `/screens` lists a link per state and the review message hands them out individually. A picker would also have sat inside the product UI waiting to be deleted. The query params below carry the states and leave nothing to remove.
 
 **Goes away when the settlement API lands:**
