@@ -15,7 +15,7 @@
 //     the sibling row in the feed (T5-3).
 
 import { ArrowUpRightIcon, ExternalLinkIcon, InfoIcon } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { RailBadge } from "@/components/blocks/money/rail-badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -88,7 +88,11 @@ export function TransactionDetailDialog({ tx, txs, payouts, onOpenChange, onOpen
                 {txKindLabel(tx.kind)} · {isOut ? "Out" : "In"}
               </span>
             </div>
-            <Badge variant="secondary">{custodianLabel(custodian)}</Badge>
+            {/* The rail, not the custodian — the Custody block below already
+                says "Held by Cami" in words, and a grey chip repeating it read
+                as a switched-off status. Same chip the held cards carry, so a
+                merchant learns one mark for one fact (G3). */}
+            <RailBadge rail={tx.rail} />
           </div>
 
           {tx.note ? <p className="text-sm text-foreground">{tx.note}</p> : null}

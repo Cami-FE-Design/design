@@ -49,16 +49,17 @@ export const PAYOUT_SCHEDULE: Record<
     label: "Weekly, every Thursday",
     // Cami holds this money, so Cami controls the timing (SET-B6).
     editable: true,
-    description:
-      "Card payments taken online are held by Cami and paid to your bank every Thursday.",
+    // Says who holds the money, which the cadence line above it does not. It
+    // used to end "...paid to your bank every Thursday", repeating the line
+    // directly above it word for word.
+    description: "Card payments taken online are held by Cami until the next run.",
   },
   terminal: {
     label: "Daily, next business day",
     // The gateway's schedule. Read-only is the requirement, not an oversight
     // (SET-B7) — Cami cannot change what NeoPay does.
     editable: false,
-    description:
-      "Card machine payments are held by NeoPay and paid to your bank the next business day. NeoPay sets this schedule.",
+    description: "Card machine payments are held by NeoPay, not by Cami.",
   },
 }
 

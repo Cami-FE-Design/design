@@ -17,15 +17,16 @@
 
 import {
   ArrowDownLeftIcon,
+  ArrowLeftRightIcon,
   ArrowUpRightIcon,
   BanknoteIcon,
+  CoinsIcon,
   FilterIcon,
+  HandCoinsIcon,
   LandmarkIcon,
   MessageSquareIcon,
   ReceiptTextIcon,
   RotateCcwIcon,
-  SlidersHorizontalIcon,
-  WalletIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { type DateRange, DateRangePopover } from "@/components/blocks/date-range-popover"
@@ -52,19 +53,24 @@ import {
   txKindLabel,
 } from "@/lib/money/format"
 import { filterActivity, groupByDay, paginateDays } from "@/lib/money/ledger"
-import { defaultRange, TODAY_ISO } from "@/lib/money/mock"
+import { DESTINATION_LAST4, defaultRange, TODAY_ISO } from "@/lib/money/mock"
 import type { CamiPayRail, MerchantRails, MoneyTx, MoneyTxKind, Payout } from "@/lib/money/types"
 import { custodianLabel, custodianOf } from "@/lib/money/types"
 import { cn } from "@/lib/utils"
 
-const KIND_ICON: Record<MoneyTxKind, typeof WalletIcon> = {
+const KIND_ICON: Record<MoneyTxKind, typeof BanknoteIcon> = {
   sale: BanknoteIcon,
-  deposit: WalletIcon,
-  tip: BanknoteIcon,
+  // HandCoins is what Payments already uses for a deposit, so one concept keeps
+  // one glyph across the product. It replaced a WALLET, which contradicted the
+  // thing this pack keeps saying: Cami has no wallet.
+  deposit: HandCoinsIcon,
+  // Was the same banknote as a sale. A tip is money the merchant did not price.
+  tip: CoinsIcon,
   refund: RotateCcwIcon,
   "cami-fee": ReceiptTextIcon,
   messaging: MessageSquareIcon,
-  adjustment: SlidersHorizontalIcon,
+  // Sliders read as settings. An adjustment moves money back or forth.
+  adjustment: ArrowLeftRightIcon,
   payout: LandmarkIcon,
 }
 
@@ -255,7 +261,7 @@ export function MoneyActivityView({ txs, payouts, rails, loading = false }: Prop
         ) : (
           <EmptyState
             variant="card"
-            icon={WalletIcon}
+            icon={BanknoteIcon}
             title="No activity in this period"
             description="Every card payment, fee and payout will appear here as it happens."
           />
@@ -383,7 +389,8 @@ function Row({
           ) : null}
         </span>
         <span className="truncate text-xs text-muted-foreground">
-          {[tx.client, tx.reference?.label, tx.note].filter(Boolean).join(" · ") || tx.locationName}
+          {[tx.client, tx.reference?.label, tx.note].filter(Boolean).join(" · ") ||
+            (tx.kind === "payout" ? `to •••• ${DESTINATION_LAST4}` : tx.locationName)}
         </span>
       </div>
 

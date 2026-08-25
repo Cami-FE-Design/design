@@ -76,6 +76,7 @@ import {
 import { MoneyActivityView } from "@/components/blocks/money/money-activity"
 import { MoneyFeesView } from "@/components/blocks/money/money-fees"
 import { MoneySummaryView } from "@/components/blocks/money/money-summary"
+import { RailBadge } from "@/components/blocks/money/rail-badge"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
@@ -537,6 +538,18 @@ export function PlaygroundShowcase() {
           <Badge variant="destructive">Error</Badge>
           <Badge variant="primary-soft">Active</Badge>
           <Badge variant="muted">Off</Badge>
+          {/* The two tone-on-tone status variants. `success` was added for
+              DSG-75's "Verified": before it, anything confirmed-good fell back
+              to the flat grey `secondary`, which reads as switched off — and
+              the green was being hand-rolled at the call site instead. */}
+          <Badge variant="warning">Needs attention</Badge>
+          <Badge variant="success">Verified</Badge>
+        </Row>
+        <Row label="Money surfaces">
+          {/* One mark for one fact (DSG-73, G3): the RAIL always rides in a
+              chip, the custodian is always named in words beside it. */}
+          <RailBadge rail="online" />
+          <RailBadge rail="terminal" />
         </Row>
         <Row label="Size">
           <Badge size="sm">Small</Badge>

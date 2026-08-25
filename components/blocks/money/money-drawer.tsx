@@ -29,17 +29,17 @@
 // "balance" (spec §2.1). This drawer shows the SAME `summarize()` output the
 // summary page shows, per custodian, so the two surfaces cannot disagree.
 
-import { ArrowUpRightIcon, LandmarkIcon } from "lucide-react"
-import { useSearchParams } from "next/navigation"
+import { ArrowUpRightIcon } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 import type * as React from "react"
 import { Suspense, useState } from "react"
 import type { DateRange } from "@/components/blocks/date-range-popover"
 import { MoneyActivityView } from "@/components/blocks/money/money-activity"
 import { type MoneySummaryVariant, MoneySummaryView } from "@/components/blocks/money/money-summary"
 import { PayoutDetailDialog } from "@/components/blocks/money/payout-detail-dialog"
+import { RailBadge } from "@/components/blocks/money/rail-badge"
 import { TransactionDetailDialog } from "@/components/blocks/money/transaction-detail-dialog"
 import { FullScreenTakeover } from "@/components/blocks/sales-settings"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
@@ -50,6 +50,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { formatDate } from "@/lib/format"
+import { CamiPayProvider } from "@/lib/hq-camipay/store"
 import { formatDayHeading, formatMoney, txKindLabel } from "@/lib/money/format"
 import { groupByDay, paginateDays, summarizeByRail } from "@/lib/money/ledger"
 import {
@@ -128,6 +129,7 @@ export function MoneyDrawer(props: Props) {
 
 function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props) {
   const params = useSearchParams()
+  const router = useRouter()
   const stateParam = params.get("state")
   const railsParam = params.get("rails")
   const stateId: StateId = isStateId(stateParam) ? stateParam : "healthy"
@@ -154,9 +156,20 @@ function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props
   const [openTx, setOpenTx] = useState<MoneyTx | null>(null)
   const [openPayout, setOpenPayout] = useState<Payout | null>(null)
 
+  // Switching view rewrites `?money=`, because on these screens the link IS the
+  // mechanism: /screens and the review message hand out URLs, and a URL that
+  // says `summary` while Activity is on screen sends the reader somewhere else.
+  function go(next: Overlay) {
+    setOverlay(next)
+    const params2 = new URLSearchParams(params.toString())
+    if (next) params2.set("money", next)
+    else params2.delete("money")
+    router.replace(`?${params2.toString()}`, { scroll: false })
+  }
+
   function show(next: Overlay) {
     setOpen(false)
-    setOverlay(next)
+    go(next)
   }
 
   const bounds = periodBounds("month-to-date")
@@ -321,14 +334,14 @@ function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props
           title={OVERLAY_COPY[overlay].title}
           ariaDescription={OVERLAY_COPY[overlay].aria}
           subtitle={OVERLAY_COPY[overlay].subtitle}
-          onClose={() => setOverlay(null)}
+          onClose={() => go(null)}
           actions={
             <Button
               type="button"
               variant="outline"
               size="lg"
               radius="full"
-              onClick={() => setOverlay(null)}
+              onClick={() => go(null)}
             >
               Close
             </Button>
@@ -340,7 +353,7 @@ function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setOverlay(tab.id)}
+                  onClick={() => go(tab.id)}
                   aria-current={overlay === tab.id ? "page" : undefined}
                   className={cn(
                     "rounded-full px-3 py-1.5 text-sm transition-colors",
@@ -355,15 +368,21 @@ function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props
             </nav>
 
             {overlay === "summary" ? (
-              <MoneySummaryView
-                txs={txs}
-                payouts={payouts}
-                rails={scenario.rails}
-                range={range}
-                onRangeChange={setRange}
-                variant={variant}
-                block={scenario.block}
-              />
+              // The rate card store is mounted in the HQ layout, not here. The
+              // summary states the merchant's rate, so without this it would
+              // read the built-in default while the fees screen reads what HQ
+              // actually set — the same drift one screen over.
+              <CamiPayProvider>
+                <MoneySummaryView
+                  txs={txs}
+                  payouts={payouts}
+                  rails={scenario.rails}
+                  range={range}
+                  onRangeChange={setRange}
+                  variant={variant}
+                  block={scenario.block}
+                />
+              </CamiPayProvider>
             ) : (
               <MoneyActivityView
                 txs={txs}
@@ -388,16 +407,13 @@ function HeldRow({ rail, heldMinor }: { rail: CamiPayRail; heldMinor: number }) 
       <div className="flex items-center justify-between gap-2">
         {/* Named, scoped, and attributed to a sender. Never a bare "Balance" (G1). */}
         <span className="text-sm font-medium text-foreground">Held by {who}</span>
-        <Badge variant="secondary">
-          <LandmarkIcon className="size-3" />
-          {rail === "online" ? "Online" : "Card machine"}
-        </Badge>
+        <RailBadge rail={rail} />
       </div>
       <span className="font-heading text-2xl font-semibold leading-none text-foreground">
         {formatMoney(heldMinor)}
       </span>
       <span className="text-xs text-muted-foreground">
-        Arriving {formatDate(`${arriving}T00:00:00Z`)} · {PAYOUT_SCHEDULE[rail].label.toLowerCase()}
+        Arriving {formatDate(`${arriving}T00:00:00Z`)} · {PAYOUT_SCHEDULE[rail].label}
       </span>
     </div>
   )
