@@ -1614,7 +1614,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Merchant money surfaces — account summary (DSG-77)"
-        description="Split custody made legible: terminal money is held and paid by NeoPay, online money by Cami. Every figure is derived from one ledger (lib/money), so the breakdown arrives at the headline instead of asserting it — the defect the Fresha benchmark shows at 9.3x. D6 is undecided, so both layouts are here."
+        description="Split custody made legible: terminal money is held and paid by NeoPay, online money by Cami. Every figure is derived from one ledger (lib/money), so the breakdown arrives at the headline instead of asserting it — the defect the benchmark shows at 9.3x. D6 is undecided, so both layouts are here."
       >
         <Row label="Two rails">
           <MoneySummaryDemo variant="two-rail" />
@@ -1653,7 +1653,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Merchant money surfaces — bank account (DSG-75)"
-        description="The one control that can redirect every dirham the business takes, so changing it is a multi-step flow and never an inline edit. Fresha's version is a masked account and an Edit button; this one adds a verification state, both senders shown against the single account they pay into, and a permanent change log that keeps failed attempts. The state worth clicking is the gateway failure — it must leave the old account untouched and say so."
+        description="The one control that can redirect every dirham the business takes, so changing it is a multi-step flow and never an inline edit. The reference version is a masked account and an Edit button; this one adds a verification state, both senders shown against the single account they pay into, and a permanent change log that keeps failed attempts. The state worth clicking is the gateway failure — it must leave the old account untouched and say so."
       >
         <Row label="Verified">
           <BankAccountDemo state="verified" />

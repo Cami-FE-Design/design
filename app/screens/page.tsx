@@ -307,7 +307,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?money=drawer",
         label: "Topbar money drawer · the entry point",
-        note: "The money icon sits in the topbar on every screen, so it has no route of its own — these links open it over the bare shell. It is the only way in, because a routed Money section was an orphan nothing linked to. One card per sender (Cami / NeoPay) with what each holds and when it lands, the last three days of activity, then a way into the full screens. Reads the same derivation as the account summary, so the drawer and the page cannot disagree — which is exactly what they do in Fresha.",
+        note: "The money icon sits in the topbar on every screen, so it has no route of its own — these links open it over the bare shell. It is the only way in, because a routed Money section was an orphan nothing linked to. One card per sender (Cami / NeoPay) with what each holds and when it lands, the last three days of activity, then a way into the full screens. Reads the same derivation as the account summary, so the drawer and the page cannot disagree — which is exactly what they do in the reference product.",
       },
       {
         path: "/shell-demo?money=summary",
@@ -357,12 +357,12 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?money=activity",
         label: "Activity feed (DSG-78)",
-        note: 'Day-grouped feed with a daily NET subtotal, not takings — a heavy fee day should not read as a good one. Rows carry direction in the icon and colour before the sign. Filter by type, sender (the rail axis Fresha has no equivalent of), and location. "Show earlier days" pages by whole days so a subtotal never describes rows you cannot see.',
+        note: 'Day-grouped feed with a daily NET subtotal, not takings — a heavy fee day should not read as a good one. Rows carry direction in the icon and colour before the sign. Filter by type, sender (the rail axis the reference product has no equivalent of), and location. "Show earlier days" pages by whole days so a subtotal never describes rows you cannot see.',
       },
       {
         path: "/shell-demo?money=activity",
         label: "Transaction detail · open any row",
-        note: 'Fresha\'s field set adopted (date, linked reference, channel, location, method, billing period, From/To) plus a Custody block — with two custodians, "To: Cami" and "To: NeoPay" are different facts. A fee and the payment that caused it show as one event.',
+        note: 'The reference field set adopted (date, linked reference, channel, location, method, billing period, From/To) plus a Custody block — with two custodians, "To: Cami" and "To: NeoPay" are different facts. A fee and the payment that caused it show as one event.',
       },
       {
         path: "/shell-demo?money=activity&rails=terminal-only",
@@ -382,7 +382,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=billing&bp=fees",
         label: "Invoices and fees (DSG-76)",
-        note: "Settings › Billing › Invoices and fees — a panel, not a page, so the merchant is never thrown out of the dialog they opened. Period headings newest first, two documents each, and the current month pending with the date it arrives — Fresha's shape, which works. What differs is the content: no subscription line (their statement is 58% plan charges), the rate stated ON the screen rather than buried in a download, and every fee expandable down to the sale that caused it with the working shown.",
+        note: "Settings › Billing › Invoices and fees — a panel, not a page, so the merchant is never thrown out of the dialog they opened. Period headings newest first, two documents each, and the current month pending with the date it arrives — the reference shape, which works. What differs is the content: no subscription line (their statement is 58% plan charges), the rate stated ON the screen rather than buried in a download, and every fee expandable down to the sale that caused it with the working shown.",
       },
       {
         path: "/shell-demo?settings=billing&bp=fees",
@@ -397,7 +397,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=billing&bp=bank",
         label: "Bank account (DSG-75) · verified",
-        note: "Settings → Billing → Bank account. Masked to last 4, a verification state, and the fact Fresha's screen leaves out entirely: two senders pay into this one account on two schedules, and only Cami's is Cami's to change. Change history is permanent and keeps failed attempts.",
+        note: "Settings → Billing → Bank account. Masked to last 4, a verification state, and the fact the reference product leaves out entirely: two senders pay into this one account on two schedules, and only Cami's is Cami's to change. Change history is permanent and keeps failed attempts.",
       },
       {
         path: "/shell-demo?settings=billing&bp=bank&bd=gateway-failed",
