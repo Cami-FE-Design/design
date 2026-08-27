@@ -268,9 +268,11 @@ function ProductsIndex() {
                   <TagIcon className="size-4" />
                   Manage my categories
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <ImportIcon className="size-4" />
-                  Import products
+                <DropdownMenuItem asChild>
+                  <Link href="/products/import">
+                    <ImportIcon className="size-4" />
+                    Import products
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel>Export</DropdownMenuLabel>

@@ -86,6 +86,14 @@ import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
 import { PetNotesFields, PetNotesList } from "@/components/blocks/pet-notes-fields"
 import { PhoneField } from "@/components/blocks/phone-field"
 import { PickupFields } from "@/components/blocks/pickup-fields"
+import { DonePanel } from "@/components/blocks/product-import/redesign/done-panel"
+import { IssueSummary } from "@/components/blocks/product-import/redesign/issue-summary"
+import { OutcomeStrip } from "@/components/blocks/product-import/redesign/outcome-strip"
+import { ReviewPanel } from "@/components/blocks/product-import/redesign/review-panel"
+import {
+  REVIEW_GRID_TEMPLATE,
+  ReviewRow,
+} from "@/components/blocks/product-import/redesign/review-row"
 import { DashboardReport } from "@/components/blocks/reports/dashboard-report"
 import { DetailedTableReport } from "@/components/blocks/reports/detailed-table-report"
 import { TableReport } from "@/components/blocks/reports/table-report"
@@ -175,6 +183,10 @@ import {
   examplePolicyText,
 } from "@/lib/payment-policy/types"
 import type { PetNoteEntry } from "@/lib/pet-notes"
+import { groupIssues } from "@/lib/product-import/issues"
+import { applySummaryFor, getScenario, type ImportScenarioId } from "@/lib/product-import/mock"
+import { placeholderSkuRows, reviewCounts } from "@/lib/product-import/outcome"
+import type { ProductImportPreviewRow, RowOverride } from "@/lib/product-import/types"
 import { getReport } from "@/lib/reports/registry"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import { cn } from "@/lib/utils"
@@ -2423,6 +2435,111 @@ export function PlaygroundShowcase() {
           />
         </Row>
       </Section>
+
+      <Section
+        title="Product import — review states (DSG-80)"
+        description="The redesigned bulk-import review. Aya's migration from the Slack thread is the reference case: 100 rows, 83 added, 17 blocked for a missing SKU. The complaint was that those 17 rows shared one cause and the shipped UI made you expand each one to find it, so causes are now grouped and stated once and the table's last column says what happens in words rather than counting errors. Every frame reads the real mock payload; compare against what ships today at /products/import via the compare bar."
+      >
+        <Row label="Grouped causes">
+          <IssueSummaryDemo
+            scenario="aya-migration"
+            severity="blocking"
+            note="One cause, 17 rows. States the rule, the rows it hit, what a SKU is for and how to fix it, plus the download that lets the operator repair only the failures. Nothing to expand."
+          />
+          <IssueSummaryDemo
+            scenario="mixed"
+            severity="blocking"
+            note="Two causes in one file, ordered by how many rows each hit."
+          />
+          <IssueSummaryDemo
+            scenario="aya-migration"
+            severity="advisory"
+            note="Advisories are weighted down: one line and a count, no row list and no fix line. In the shipped UI these two sentences repeat on all 100 rows."
+          />
+        </Row>
+
+        <Row label="Outcome strip">
+          <OutcomeStripDemo
+            scenario="aya-migration"
+            note="First import, so additions lead. The blocked count is deliberately absent — it belongs in the issue summary where there is something to do about it."
+          />
+          <OutcomeStripDemo
+            scenario="mixed"
+            note="Re-import: updates lead, and needs-your-OK is tinted because it is the count that stalls the import."
+          />
+        </Row>
+
+        <Row label="Row anatomy">
+          <ReviewRowDemo
+            scenario="aya-migration"
+            status="reject"
+            note="Blocked. 'No SKU' sits in the row; the shipped version says '1 Error · 2 Warnings' and hides the reason behind the chevron. Expand for the checker's own sentences."
+          />
+          <ReviewRowDemo
+            scenario="mixed"
+            status="update"
+            note="Names the fields that will change, so opening the diff is optional rather than required."
+          />
+          <ReviewRowDemo
+            scenario="mixed"
+            status="flag"
+            note="Withheld price change. The approval switch is per field and defaults to off."
+          />
+          <ReviewRowDemo
+            scenario="mixed"
+            status="skip"
+            note="Replaces 'Skipped by mode' with the option the operator actually chose."
+          />
+          <ReviewRowDemo
+            scenario="duplicate-barcodes"
+            status="reject"
+            note="The one rejection that can be undone in place — import the row minus the clashing barcode."
+          />
+          <ReviewRowDemo
+            scenario="placeholder-skus"
+            status="create"
+            note="After PRD-63. Imports cleanly but carries 'SKU CAMI-0001 — ours, not yours', so a generated code never passes as the operator's own."
+          />
+        </Row>
+
+        <Row label="Whole review step, per case">
+          <ReviewStateDemo
+            scenario="aya-migration"
+            note="The reported case. 83 ready, 17 blocked; clicking a cause filters the table to exactly those rows."
+          />
+          <ReviewStateDemo
+            scenario="mixed"
+            note="Every status at once plus an unrecognised tax rate. The status filter only appears because more than one status is present."
+          />
+          <ReviewStateDemo
+            scenario="all-rejected"
+            note="Nothing importable. No disabled primary button and no status filter — one way out instead."
+          />
+          <ReviewStateDemo
+            scenario="up-to-date"
+            note="The file matches the catalogue. Confirm is gone; the headline is the answer."
+          />
+          <ReviewStateDemo
+            scenario="placeholder-skus"
+            note="After PRD-63 all 100 rows import, and the advisory names the 17 generated SKUs. In the shipped UI this import looks completely clean."
+          />
+        </Row>
+
+        <Row label="Done step">
+          <DoneStateDemo
+            scenario="mixed"
+            note="Rows were left behind, so the outcome offers the failed-row download rather than only a count."
+          />
+          <DoneStateDemo
+            scenario="placeholder-skus"
+            note="'17 products need a real SKU', linking to a filtered product list. This block is what makes PRD-63 safe to ship."
+          />
+          <DoneStateDemo
+            scenario="duplicate-barcodes"
+            note="A small clean import — the follow-up blocks only appear when there is something to chase."
+          />
+        </Row>
+      </Section>
     </TooltipProvider>
   )
 }
@@ -2743,5 +2860,148 @@ function BillingDetailsDemo({ state }: { state: BillingDetailsDemoState }) {
         initialState={state}
       />
     </div>
+  )
+}
+
+// ─── Product import demos (DSG-80) ───────────────────────────────────────────
+
+/** Frame + caption shared by the import demos, matching the other wide demos. */
+function ImportFrame({
+  note,
+  className,
+  children,
+}: {
+  note: string
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex w-full flex-col gap-2">
+      <div className={cn("w-full rounded-2xl border border-border/60 bg-sand-2 p-4", className)}>
+        {children}
+      </div>
+      <p className="text-xs leading-5 text-muted-foreground">{note}</p>
+    </div>
+  )
+}
+
+function scenarioPreview(scenario: ImportScenarioId) {
+  const preview = getScenario(scenario).preview
+  if (!preview) throw new Error(`scenario ${scenario} has no preview`)
+  return preview
+}
+
+/** One grouped-issue block on its own, blocking or advisory. */
+function IssueSummaryDemo({
+  scenario,
+  severity,
+  note,
+}: {
+  scenario: ImportScenarioId
+  severity: "blocking" | "advisory"
+  note: string
+}) {
+  const preview = scenarioPreview(scenario)
+  const groups = groupIssues(preview.rows)
+  const counts = reviewCounts(preview)
+
+  return (
+    <ImportFrame note={note}>
+      <IssueSummary
+        groups={severity === "blocking" ? groups.blocking : groups.advisory}
+        severity={severity}
+        title={
+          severity === "blocking"
+            ? `${counts.blocked} rows can't be imported`
+            : "Worth knowing before you import"
+        }
+        blockedRowCount={counts.blocked}
+        onShowRows={() => toast("Filters the table to these rows")}
+        onDownloadFailed={() => toast("Downloads the rows that failed")}
+      />
+    </ImportFrame>
+  )
+}
+
+function OutcomeStripDemo({ scenario, note }: { scenario: ImportScenarioId; note: string }) {
+  return (
+    <ImportFrame note={note}>
+      <OutcomeStrip counts={reviewCounts(scenarioPreview(scenario))} />
+    </ImportFrame>
+  )
+}
+
+/** A single row under the real table header, so the columns line up as shipped. */
+function ReviewRowDemo({
+  scenario,
+  status,
+  note,
+}: {
+  scenario: ImportScenarioId
+  status: ProductImportPreviewRow["status"]
+  note: string
+}) {
+  const preview = scenarioPreview(scenario)
+  const row = preview.rows.find((r) => r.status === status)
+  const [expanded, setExpanded] = useState(false)
+  const [override, setOverride] = useState<RowOverride>({})
+
+  if (!row) return null
+
+  return (
+    <ImportFrame note={note} className="p-0">
+      <div className="overflow-hidden rounded-2xl bg-background">
+        <div
+          className="grid gap-3 border-b border-border/60 bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground"
+          style={{ gridTemplateColumns: REVIEW_GRID_TEMPLATE }}
+        >
+          <span>Row</span>
+          <span>Status</span>
+          <span>Product</span>
+          <span>Details</span>
+          <span />
+        </div>
+        <ReviewRow
+          row={row}
+          preview={preview}
+          expanded={expanded}
+          onToggleExpand={() => setExpanded((v) => !v)}
+          override={override}
+          onOverrideChange={setOverride}
+        />
+      </div>
+    </ImportFrame>
+  )
+}
+
+/** The whole review step at one case, height-capped because it is a preview. */
+function ReviewStateDemo({ scenario, note }: { scenario: ImportScenarioId; note: string }) {
+  const preview = scenarioPreview(scenario)
+  return (
+    <ImportFrame note={note}>
+      <div className="max-h-[560px] overflow-y-auto rounded-xl bg-background p-4">
+        <ReviewPanel
+          preview={preview}
+          onConfirm={() => toast(`Imports ${reviewCounts(preview).willImport} products`)}
+          onCancel={() => toast("Back to products")}
+        />
+      </div>
+    </ImportFrame>
+  )
+}
+
+function DoneStateDemo({ scenario, note }: { scenario: ImportScenarioId; note: string }) {
+  const preview = scenarioPreview(scenario)
+  return (
+    <ImportFrame note={note}>
+      <div className="rounded-xl bg-background p-4">
+        <DonePanel
+          summary={applySummaryFor(preview)}
+          preview={preview}
+          placeholderSkuCount={placeholderSkuRows(preview).length}
+          onImportAnother={() => toast("Starts a new import")}
+        />
+      </div>
+    </ImportFrame>
   )
 }
