@@ -821,6 +821,11 @@ const SECTIONS: Section[] = [
         note: "All 100 rows import, 17 with a SKU Cami invented — named here, invisible in the as-built view.",
       },
       {
+        path: "/products/import?scenario=placeholder-skus&at=done",
+        label: "Import products — outcome step",
+        note: "'17 products need a real SKU' with a link to review them — the follow-up PRD-63 needs and today's screen does not have.",
+      },
+      {
         path: "/products/import?view=as-built&at=review",
         label: "Import products — as it ships today",
         note: "The same review screen in production: 'Skipped by mode', 'New dictionary entries', reasons hidden behind 'View changes'. The baseline.",

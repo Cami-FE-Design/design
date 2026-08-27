@@ -78,6 +78,7 @@ describe("every /screens link lands on the screen its note describes", () => {
       expect: "All 100 products are ready to import",
     },
     { search: "?view=as-built&at=review", expect: "Review before importing" },
+    { search: "?scenario=placeholder-skus&at=done", expect: "100 products added" },
   ]
 
   for (const link of links) {

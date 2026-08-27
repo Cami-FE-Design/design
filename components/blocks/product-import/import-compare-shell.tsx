@@ -14,6 +14,7 @@
 // /products/import                              → the redesign, Aya's migration
 // /products/import?view=as-built                 → what ships today
 // /products/import?scenario=placeholder-skus     → the After-PRD-63 case
+// /products/import?at=review  |  ?at=done         → straight to a later step
 //
 // The query string is the only source of truth — no mirrored useState. A first
 // attempt read window.location once on mount and wrote back with
@@ -45,6 +46,9 @@ import { ProductImportFlow } from "./redesign/import-flow"
 
 type View = "redesign" | "as-built"
 
+/** Which step a link opens on. */
+type StartAt = "upload" | "review" | "done"
+
 const VIEW_OPTIONS = [
   { value: "redesign" as View, label: "Redesign (DSG-80)" },
   { value: "as-built" as View, label: "As it ships today" },
@@ -63,23 +67,24 @@ export function ProductImportCompareShell() {
   const scenarioId: ImportScenarioId = isScenarioId(scenarioParam)
     ? scenarioParam
     : DEFAULT_SCENARIO_ID
-  const startAtReview = searchParams.get("at") === "review"
+  const atParam = searchParams.get("at")
+  const startAt: StartAt = atParam === "done" ? "done" : atParam === "review" ? "review" : "upload"
 
   /** Write the bar's state back to the URL so it stays shareable. Defaults are
       omitted, which keeps the plain path clean. */
-  const go = (next: { view?: View; scenario?: ImportScenarioId; atReview?: boolean }) => {
+  const go = (next: { view?: View; scenario?: ImportScenarioId; at?: StartAt }) => {
     const params = new URLSearchParams(searchParams.toString())
     const resolved = {
       view: next.view ?? view,
       scenario: next.scenario ?? scenarioId,
-      atReview: next.atReview ?? startAtReview,
+      at: next.at ?? startAt,
     }
     if (resolved.view === "as-built") params.set("view", "as-built")
     else params.delete("view")
     if (resolved.scenario !== DEFAULT_SCENARIO_ID) params.set("scenario", resolved.scenario)
     else params.delete("scenario")
-    if (resolved.atReview) params.set("at", "review")
-    else params.delete("at")
+    if (resolved.at === "upload") params.delete("at")
+    else params.set("at", resolved.at)
     const qs = params.toString()
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
   }
@@ -131,11 +136,11 @@ export function ProductImportCompareShell() {
             </Select>
             {scenario.preview && (
               <Button
-                variant={startAtReview ? "secondary" : "outline"}
+                variant={startAt === "upload" ? "outline" : "secondary"}
                 size="sm"
-                onClick={() => go({ atReview: !startAtReview })}
+                onClick={() => go({ at: startAt === "upload" ? "review" : "upload" })}
               >
-                {startAtReview ? "Starting at review" : "Skip the upload step"}
+                {startAt === "upload" ? "Skip the upload step" : `Starting at ${startAt}`}
               </Button>
             )}
           </div>
@@ -152,13 +157,13 @@ export function ProductImportCompareShell() {
 
         {view === "redesign" ? (
           <ProductImportFlow
-            key={`${scenarioId}-${startAtReview}`}
+            key={`${scenarioId}-${startAt}`}
             scenarioId={scenarioId}
-            startAtReview={startAtReview}
+            startAt={startAt}
           />
         ) : (
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <ProductImportWizard scenarioId={scenarioId} startAtReview={startAtReview} />
+            <ProductImportWizard scenarioId={scenarioId} startAtReview={startAt !== "upload"} />
           </div>
         )}
       </div>
