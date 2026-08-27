@@ -778,7 +778,7 @@ const SECTIONS: Section[] = [
   {
     title: "Pet Business, products (PRO-product)",
     description:
-      "Product catalog prototype. Listing page with empty/populated toggle, full-screen add-product takeover with brand, category, and supplier pickers.",
+      "Product catalog prototype. Listing page with empty/populated toggle, full-screen add-product takeover with brand, category, and supplier pickers, and the bulk-import flow (DSG-80) with its as-built counterpart alongside it for comparison.",
     screens: [
       {
         path: "/products",
@@ -804,6 +804,26 @@ const SECTIONS: Section[] = [
         path: "/products/p1/edit",
         label: "Edit product, full-screen takeover",
         note: "Same layout as /products/new, pre-populated from a MOCK_PRODUCTS row. Try p1–p5 for different products; unknown ids render a 'Product not found' fallback.",
+      },
+      {
+        path: "/products/import",
+        label: "Import products — upload step",
+        note: "Redesigned step 1: file picker beside the options, asked as questions instead of named as settings. The dashed bar switches case and version.",
+      },
+      {
+        path: "/products/import?at=review",
+        label: "Import products — review step (the ticket)",
+        note: "Aya's case. The 17 blocked rows grouped under one named cause with how to fix it, reasons in the row instead of behind a chevron. Spec: docs/specs/DSG-80-product-import.md",
+      },
+      {
+        path: "/products/import?scenario=placeholder-skus&at=review",
+        label: "Import products — after PRD-63",
+        note: "All 100 rows import, 17 with a SKU Cami invented — named here, invisible in the as-built view.",
+      },
+      {
+        path: "/products/import?view=as-built&at=review",
+        label: "Import products — as it ships today",
+        note: "The same review screen in production: 'Skipped by mode', 'New dictionary entries', reasons hidden behind 'View changes'. The baseline.",
       },
     ],
   },
@@ -1050,7 +1070,7 @@ export default function ScreensPage() {
                     rel="noreferrer"
                     className="group -mx-2 grid grid-cols-[minmax(0,16rem)_1fr] items-baseline gap-6 rounded-md px-2 py-2.5 transition-colors hover:bg-foreground/[0.04]"
                   >
-                    <code className="truncate font-mono text-xs text-muted-foreground group-hover:text-foreground">
+                    <code className="break-all font-mono text-xs text-muted-foreground group-hover:text-foreground">
                       {screen.path}
                     </code>
                     <div className="min-w-0">

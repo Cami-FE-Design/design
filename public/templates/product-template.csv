@@ -1,0 +1,7 @@
+,Basic Info,,,,,,,,Pricing,,,Inventory,,,
+Product ID,Product Name,Barcode,Brand,Measure Unit,Quantity,Short Description,Description,Category,Supply Price,Retail Price,Tax Rate,SKU,Additional SKUs,Supplier,Current Stock
+,Royal Canin Adult 4kg,3182550700344,Royal Canin,kg,4,Premium adult dog food,Complete and balanced nutrition for adult dogs 1-7 years old,Dry Food,22,34.5,5%,ADS-12312,"SWE-32423, SWE-32424",Pet Distributors LLC,25
+,Pedigree Puppy 2kg,8901058851234,Pedigree,kg,2,Puppy growth formula,Wholesome nutrition with vitamins and minerals for healthy puppy growth,Dry Food,12.5,19.99,0%,,,Pet Distributors LLC,40
+,Whiskas Tuna 400ml,5900951259876,Whiskas,ml,400,Wet cat food with tuna,Delicious wet food in jelly with real tuna chunks,Wet Food,3.2,5.5,,,,Cat Supplies Co,100
+,Generic Pet Shampoo,,,ml,250,Gentle pet shampoo,,Grooming,8,15,,,,,
+,Vet Consultation Voucher,,,pcs,1,Single vet visit voucher,,Services,,,,,,,
