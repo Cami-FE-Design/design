@@ -230,13 +230,32 @@ function Section({ title, description, children }: SectionProps) {
   )
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({
+  label,
+  align = "center",
+  children,
+}: {
+  label: string
+  /** `start` for tall demo frames, where a centred label floats halfway down. */
+  align?: "center" | "start"
+  children: React.ReactNode
+}) {
+  const top = align === "start"
   return (
-    <div className="grid grid-cols-[140px_1fr] items-center gap-6 py-3">
-      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <div
+      className={cn("grid grid-cols-[140px_1fr] gap-6 py-3", top ? "items-start" : "items-center")}
+    >
+      <span
+        className={cn(
+          "text-xs font-medium uppercase tracking-wide text-muted-foreground",
+          top && "pt-0.5",
+        )}
+      >
         {label}
       </span>
-      <div className="flex flex-wrap items-center gap-3">{children}</div>
+      <div className={cn("flex flex-wrap gap-4", top ? "items-start" : "items-center gap-3")}>
+        {children}
+      </div>
     </div>
   )
 }
@@ -2440,103 +2459,116 @@ export function PlaygroundShowcase() {
         title="Product import — review states (DSG-80)"
         description="The redesigned bulk-import review. Aya's migration from the Slack thread is the reference case: 100 rows, 83 added, 17 blocked for a missing SKU. The complaint was that those 17 rows shared one cause and the shipped UI made you expand each one to find it, so causes are now grouped and stated once and the table's last column says what happens in words rather than counting errors. Every frame reads the real mock payload; compare against what ships today at /products/import via the compare bar."
       >
-        <Row label="Grouped causes">
-          <IssueSummaryDemo
-            scenario="aya-migration"
-            severity="blocking"
-            note="One cause, 17 rows. States the rule, the rows it hit, what a SKU is for and how to fix it, plus the download that lets the operator repair only the failures. Nothing to expand."
-          />
+        <Row label="Grouped causes" align="start">
           <IssueSummaryDemo
             scenario="mixed"
             severity="blocking"
-            note="Two causes in one file, ordered by how many rows each hit."
+            label="Blocking — two causes"
+            note="Ordered by how many rows each hit. Each states the rule, the rows, and the fix."
           />
           <IssueSummaryDemo
             scenario="aya-migration"
             severity="advisory"
-            note="Advisories are weighted down: one line and a count, no row list and no fix line. In the shipped UI these two sentences repeat on all 100 rows."
+            label="Advisory"
+            note="Weighted down: one line and a count, no row list, no fix line."
           />
         </Row>
 
-        <Row label="Outcome strip">
+        <Row label="Outcome strip" align="start">
           <OutcomeStripDemo
             scenario="aya-migration"
-            note="First import, so additions lead. The blocked count is deliberately absent — it belongs in the issue summary where there is something to do about it."
+            label="First import"
+            note="Additions lead. Blocked rows are counted here but acted on in the summary above."
           />
           <OutcomeStripDemo
             scenario="mixed"
-            note="Re-import: updates lead, and needs-your-OK is tinted because it is the count that stalls the import."
+            label="Re-import"
+            note="Updates lead; needs-your-OK is tinted because it is the count that stalls."
           />
         </Row>
 
-        <Row label="Row anatomy">
+        <Row label="Row anatomy" align="start">
           <ReviewRowDemo
             scenario="aya-migration"
             status="reject"
-            note="Blocked. 'No SKU' sits in the row; the shipped version says '1 Error · 2 Warnings' and hides the reason behind the chevron. Expand for the checker's own sentences."
+            label="Blocked"
+            note="The cause sits in the row. Expand for the checker's own sentences."
           />
           <ReviewRowDemo
             scenario="mixed"
             status="update"
-            note="Names the fields that will change, so opening the diff is optional rather than required."
+            label="Update"
+            note="Names the fields that change, so the diff is optional."
           />
           <ReviewRowDemo
             scenario="mixed"
             status="flag"
-            note="Withheld price change. The approval switch is per field and defaults to off."
+            label="Needs your OK"
+            note="Per-field switch, off by default."
           />
           <ReviewRowDemo
             scenario="mixed"
             status="skip"
-            note="Replaces 'Skipped by mode' with the option the operator actually chose."
+            label="Left out"
+            note="The option the operator chose, not 'Skipped by mode'."
           />
           <ReviewRowDemo
             scenario="duplicate-barcodes"
             status="reject"
-            note="The one rejection that can be undone in place — import the row minus the clashing barcode."
+            label="Blocked, but rescuable"
+            note="The one rejection that can be undone in place."
           />
           <ReviewRowDemo
             scenario="placeholder-skus"
             status="create"
-            note="After PRD-63. Imports cleanly but carries 'SKU CAMI-0001 — ours, not yours', so a generated code never passes as the operator's own."
+            label="Generated SKU"
+            note="Imports cleanly, but says the code is ours."
           />
         </Row>
 
-        <Row label="Whole review step, per case">
+        <Row label="Whole review step" align="start">
           <ReviewStateDemo
             scenario="aya-migration"
-            note="The reported case. 83 ready, 17 blocked; clicking a cause filters the table to exactly those rows."
+            label="The reported case"
+            note="83 ready, 17 blocked. Clicking a cause filters the table to those rows."
           />
           <ReviewStateDemo
             scenario="mixed"
-            note="Every status at once plus an unrecognised tax rate. The status filter only appears because more than one status is present."
+            label="Every status at once"
+            note="Plus an unrecognised tax rate. The filter appears because several statuses are present."
           />
           <ReviewStateDemo
             scenario="all-rejected"
-            note="Nothing importable. No disabled primary button and no status filter — one way out instead."
+            label="Nothing importable"
+            note="No disabled primary button and no filter — one way out instead."
           />
           <ReviewStateDemo
             scenario="up-to-date"
-            note="The file matches the catalogue. Confirm is gone; the headline is the answer."
+            label="Already up to date"
+            note="Confirm is gone; the headline is the answer."
           />
           <ReviewStateDemo
             scenario="placeholder-skus"
-            note="After PRD-63 all 100 rows import, and the advisory names the 17 generated SKUs. In the shipped UI this import looks completely clean."
+            label="After PRD-63"
+            note="All 100 import; the advisory names the 17 generated SKUs."
           />
         </Row>
 
-        <Row label="Done step">
+        <Row label="Done step" align="start">
           <DoneStateDemo
             scenario="mixed"
-            note="Rows were left behind, so the outcome offers the failed-row download rather than only a count."
+            label="With rows left behind"
+            note="Offers the failed-row download, not just a count."
           />
           <DoneStateDemo
             scenario="placeholder-skus"
-            note="'17 products need a real SKU', linking to a filtered product list. This block is what makes PRD-63 safe to ship."
+            label="After PRD-63"
+            note="'17 products need a real SKU', linking to them. This is what makes PRD-63 safe to ship."
           />
           <DoneStateDemo
             scenario="duplicate-barcodes"
-            note="A small clean import — the follow-up blocks only appear when there is something to chase."
+            label="Clean import"
+            note="Follow-up blocks appear only when there is something to chase."
           />
         </Row>
       </Section>
@@ -2867,20 +2899,30 @@ function BillingDetailsDemo({ state }: { state: BillingDetailsDemoState }) {
 
 /** Frame + caption shared by the import demos, matching the other wide demos. */
 function ImportFrame({
+  label,
   note,
   className,
+  wide,
   children,
 }: {
-  note: string
+  /** Short name for the variant, above the frame where a label belongs. */
+  label: string
+  /** One line on what to look at. Optional — most variants speak for themselves. */
+  note?: string
   className?: string
+  /** Full width, for frames that need it (a table row, a whole step). */
+  wide?: boolean
   children: React.ReactNode
 }) {
   return (
-    <div className="flex w-full flex-col gap-2">
-      <div className={cn("w-full rounded-2xl border border-border/60 bg-sand-2 p-4", className)}>
+    <div className={cn("flex min-w-0 flex-col gap-1.5", wide ? "w-full" : "flex-1 basis-112")}>
+      <div className="flex flex-col gap-0.5">
+        <span className="text-xs font-medium text-foreground">{label}</span>
+        {note ? <span className="text-xs leading-5 text-muted-foreground">{note}</span> : null}
+      </div>
+      <div className={cn("w-full rounded-2xl border border-border/60 bg-sand-2 p-3", className)}>
         {children}
       </div>
-      <p className="text-xs leading-5 text-muted-foreground">{note}</p>
     </div>
   )
 }
@@ -2895,18 +2937,20 @@ function scenarioPreview(scenario: ImportScenarioId) {
 function IssueSummaryDemo({
   scenario,
   severity,
+  label,
   note,
 }: {
   scenario: ImportScenarioId
   severity: "blocking" | "advisory"
-  note: string
+  label: string
+  note?: string
 }) {
   const preview = scenarioPreview(scenario)
   const groups = groupIssues(preview.rows)
   const counts = reviewCounts(preview)
 
   return (
-    <ImportFrame note={note}>
+    <ImportFrame label={label} note={note}>
       <IssueSummary
         groups={severity === "blocking" ? groups.blocking : groups.advisory}
         severity={severity}
@@ -2923,9 +2967,17 @@ function IssueSummaryDemo({
   )
 }
 
-function OutcomeStripDemo({ scenario, note }: { scenario: ImportScenarioId; note: string }) {
+function OutcomeStripDemo({
+  scenario,
+  label,
+  note,
+}: {
+  scenario: ImportScenarioId
+  label: string
+  note?: string
+}) {
   return (
-    <ImportFrame note={note}>
+    <ImportFrame label={label} note={note}>
       <OutcomeStrip counts={reviewCounts(scenarioPreview(scenario))} />
     </ImportFrame>
   )
@@ -2935,11 +2987,13 @@ function OutcomeStripDemo({ scenario, note }: { scenario: ImportScenarioId; note
 function ReviewRowDemo({
   scenario,
   status,
+  label,
   note,
 }: {
   scenario: ImportScenarioId
   status: ProductImportPreviewRow["status"]
-  note: string
+  label: string
+  note?: string
 }) {
   const preview = scenarioPreview(scenario)
   const row = preview.rows.find((r) => r.status === status)
@@ -2949,7 +3003,7 @@ function ReviewRowDemo({
   if (!row) return null
 
   return (
-    <ImportFrame note={note} className="p-0">
+    <ImportFrame label={label} note={note} wide className="p-0">
       <div className="overflow-hidden rounded-2xl bg-background">
         <div
           className="grid gap-3 border-b border-border/60 bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground"
@@ -2975,10 +3029,18 @@ function ReviewRowDemo({
 }
 
 /** The whole review step at one case, height-capped because it is a preview. */
-function ReviewStateDemo({ scenario, note }: { scenario: ImportScenarioId; note: string }) {
+function ReviewStateDemo({
+  scenario,
+  label,
+  note,
+}: {
+  scenario: ImportScenarioId
+  label: string
+  note?: string
+}) {
   const preview = scenarioPreview(scenario)
   return (
-    <ImportFrame note={note}>
+    <ImportFrame label={label} note={note} wide>
       <div className="max-h-[560px] overflow-y-auto rounded-xl bg-background p-4">
         <ReviewPanel
           preview={preview}
@@ -2990,10 +3052,18 @@ function ReviewStateDemo({ scenario, note }: { scenario: ImportScenarioId; note:
   )
 }
 
-function DoneStateDemo({ scenario, note }: { scenario: ImportScenarioId; note: string }) {
+function DoneStateDemo({
+  scenario,
+  label,
+  note,
+}: {
+  scenario: ImportScenarioId
+  label: string
+  note?: string
+}) {
   const preview = scenarioPreview(scenario)
   return (
-    <ImportFrame note={note}>
+    <ImportFrame label={label} note={note} wide>
       <div className="rounded-xl bg-background p-4">
         <DonePanel
           summary={applySummaryFor(preview)}
