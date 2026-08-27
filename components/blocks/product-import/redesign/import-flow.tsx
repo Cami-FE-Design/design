@@ -66,15 +66,23 @@ function Stepper({ current }: { current: Step }) {
 
 type FlowProps = {
   scenarioId: ImportScenarioId
-  /** Land straight on the review step, skipping the file picker. */
-  startAtReview?: boolean
+  /** Which step to open on, so a link can point at a later one. */
+  startAt?: "upload" | "review" | "done"
 }
 
-export function ProductImportFlow({ scenarioId, startAtReview }: FlowProps) {
+/** Map the URL's step name onto this flow's three steps. */
+const stepFor = (at: FlowProps["startAt"], hasPreview: boolean): Step => {
+  if (!hasPreview) return 1
+  if (at === "done") return 3
+  if (at === "review") return 2
+  return 1
+}
+
+export function ProductImportFlow({ scenarioId, startAt }: FlowProps) {
   const config = PRODUCT_IMPORT_CONFIG
   const scenario = getScenario(scenarioId)
 
-  const [step, setStep] = useState<Step>(startAtReview && scenario.preview ? 2 : 1)
+  const [step, setStep] = useState<Step>(stepFor(startAt, Boolean(scenario.preview)))
   /** Set while a machine phase runs inside the current step. */
   const [busy, setBusy] = useState<"checking" | "importing" | null>(null)
   const [progress, setProgress] = useState<number | null>(null)
@@ -110,8 +118,8 @@ export function ProductImportFlow({ scenarioId, startAtReview }: FlowProps) {
     setProgress(null)
     setUploadError(null)
     setJobError(null)
-    setStep(startAtReview && getScenario(scenarioId).preview ? 2 : 1)
-  }, [clearTimers, scenarioId, startAtReview])
+    setStep(stepFor(startAt, Boolean(getScenario(scenarioId).preview)))
+  }, [clearTimers, scenarioId, startAt])
 
   const runJob = useCallback(
     (onDone: () => void) => {
