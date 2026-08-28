@@ -38,6 +38,7 @@ import {
   relativeTime,
   stateLabel,
 } from "@/lib/admin-businesses"
+import { useAuth } from "@/lib/auth-mock"
 import { cn } from "@/lib/utils"
 
 type StateFilter = "all" | BusinessState
@@ -342,8 +343,14 @@ function BusinessesTable({
 function BusinessesIndex() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  // Safe here: this page lives under app/admin/layout.tsx, which mounts the
+  // AuthProvider. The detail dialog takes the actor as a prop precisely so it
+  // doesn't inherit that requirement.
+  const auth = useAuth()
   const [overrides, setOverrides] = useState<Record<string, Partial<AdminBusiness>>>({})
-  const [newBusinessOpen, setNewBusinessOpen] = useState(false)
+  // `?new=1` opens the create sheet directly — the Sender ID field captured at
+  // onboarding lives in there, and "go to Partners then click Add" isn't a link.
+  const [newBusinessOpen, setNewBusinessOpen] = useState(searchParams.get("new") === "1")
 
   const businesses = useMemo(
     () => adminBusinesses.map((b) => (overrides[b.id] ? { ...b, ...overrides[b.id] } : b)),
@@ -516,6 +523,12 @@ function BusinessesIndex() {
         onUpdate={(patch) => {
           if (openBusiness) patchBusiness(openBusiness.id, patch)
         }}
+        // Notification changes land on the partner's audit trail, so they need a
+        // name. Matches the "Cami HQ (Michelle)" form the seeded events use.
+        actor={`Cami HQ (${auth.user.name.split(" ")[0]})`}
+        // `&section=notifications` lands on that tab. `tab` is already taken by
+        // the roster's own tabs above.
+        initialTab={searchParams.get("section") ?? undefined}
         onSlugChange={(_oldSlug, newSlug) => updateParams({ business: newSlug })}
       />
 

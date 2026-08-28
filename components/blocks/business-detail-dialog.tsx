@@ -7,6 +7,7 @@ import {
   ArrowUpRightIcon,
   CheckIcon,
   ChevronDownIcon,
+  CircleAlertIcon,
   CircleCheckIcon,
   CircleSlash2Icon,
   ClockIcon,
@@ -18,7 +19,7 @@ import {
   XIcon,
 } from "lucide-react"
 import Image from "next/image"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
@@ -59,6 +60,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import {
@@ -78,6 +80,24 @@ import {
 } from "@/lib/admin-businesses"
 import { PermissionGate } from "@/lib/auth-mock"
 import { EMIRATES } from "@/lib/business-profile"
+import { useHqRates } from "@/lib/notifications/hq-store"
+import {
+  amountDue,
+  type BusinessNotificationConfig,
+  CHANNEL_LABEL,
+  CHANNELS,
+  effectiveSenderId,
+  FALLBACK_SENDER_ID,
+  formatRate,
+  isRateOverridden,
+  type NotificationChannel,
+  rateLooksImplausible,
+  resolvedGrant,
+  resolvedRate,
+  resolvedSenderId,
+  type SenderIdStatus,
+  totalSends,
+} from "@/lib/notifications/types"
 import { cn } from "@/lib/utils"
 
 const profileSchema = z.object({
@@ -115,6 +135,18 @@ export type BusinessDetailDialogProps = {
   onOpenChange: (open: boolean) => void
   onUpdate: (patch: Partial<AdminBusiness>) => void
   onSlugChange?: (oldSlug: string, newSlug: string) => void
+  /**
+   * HQ user recorded against notification changes on the audit trail. Passed in
+   * from the page (which sits inside the admin AuthProvider) rather than read
+   * with useAuth() here, so this dialog keeps working on surfaces without an
+   * auth scope.
+   */
+  actor?: string
+  /**
+   * Which tab to open on. URL-driven so a link can land on the section it means
+   * — "open the partner then click Notifications" isn't a deep link.
+   */
+  initialTab?: string
 }
 
 export function BusinessDetailDialog({
@@ -123,12 +155,21 @@ export function BusinessDetailDialog({
   onOpenChange,
   onUpdate,
   onSlugChange,
+  actor,
+  initialTab,
 }: BusinessDetailDialogProps) {
+  const [tab, setTab] = useState(initialTab ?? "general")
   const [editProfileOpen, setEditProfileOpen] = useState(false)
   const [changeSlugOpen, setChangeSlugOpen] = useState(false)
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false)
   const [suspendOpen, setSuspendOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
+
+  // Follow the link when one names a tab. Opening a different partner keeps the
+  // tab you were on, which is what you want when comparing two of them.
+  useEffect(() => {
+    setTab(initialTab ?? "general")
+  }, [initialTab])
 
   // Reset nested dialogs when the parent dialog closes or business changes.
   useEffect(() => {
@@ -208,7 +249,7 @@ export function BusinessDetailDialog({
           className="!max-w-[630px] flex h-[640px] max-h-[calc(100vh-100px)] flex-col gap-0 p-0 sm:!max-w-[630px]"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <Tabs defaultValue="general" className="flex min-h-0 flex-1 flex-col">
+          <Tabs value={tab} onValueChange={setTab} className="flex min-h-0 flex-1 flex-col">
             <div className="flex flex-col gap-0 bg-muted/40">
               <DialogHeader className="flex flex-row items-start gap-3 px-9 pt-[34px] pb-5">
                 <BusinessAvatar business={business} />
@@ -255,6 +296,7 @@ export function BusinessDetailDialog({
                     {business.audit.length}
                   </span>
                 </TabsTrigger>
+                <TabsTrigger value="notifications">Notifications</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
                 <TabsTrigger value="manage">Manage</TabsTrigger>
               </TabsList>
@@ -295,6 +337,14 @@ export function BusinessDetailDialog({
               </TabsContent>
               <TabsContent value="activity" className="flex flex-col gap-3">
                 <ActivitySection business={business} />
+              </TabsContent>
+              <TabsContent value="notifications" className="flex flex-col gap-4">
+                <BusinessNotificationsSection
+                  business={business}
+                  onUpdate={onUpdate}
+                  disabled={isArchived}
+                  actor={actor}
+                />
               </TabsContent>
               {/* Settings is the container for merchant config (PRO-737).
                   CamiPay settlement is the first section in it; reminder
@@ -963,6 +1013,385 @@ function ActivitySection({ business }: { business: AdminBusiness }) {
           ))}
         </ul>
       )}
+    </div>
+  )
+}
+
+// ── Notifications (HQ control plane) ─────────────────────────────────────────
+//
+// Spec: docs/specs/notifications-sender-id-and-rates.md
+//
+// Three things HQ owns per merchant, in the order someone debugging a merchant
+// asks about them: is the channel even on, whose name are messages going out
+// under, and what are we charging.
+
+const SENDER_STATUS_PILL: Record<SenderIdStatus, { label: string; className: string }> = {
+  "not-submitted": { label: "Sending as CAMI", className: "bg-sand-3 text-sand-11" },
+  submitted: { label: "Pending", className: "bg-cami-yellow-3 text-cami-yellow-11" },
+  approved: { label: "Approved", className: "bg-cami-green-3 text-cami-green-11" },
+  rejected: { label: "Rejected", className: "bg-tomato-3 text-tomato-11" },
+}
+
+/** Exported for the playground, which shows the three states side by side. */
+export function BusinessNotificationsSection({
+  business,
+  onUpdate,
+  disabled,
+  actor = "Cami HQ",
+}: {
+  business: AdminBusiness
+  onUpdate: (patch: Partial<AdminBusiness>) => void
+  disabled?: boolean
+  /**
+   * Who gets recorded against these changes. Passed in rather than read from
+   * useAuth() so this section still renders outside an AuthProvider (the
+   * playground is outside /admin, where the provider lives).
+   */
+  actor?: string
+}) {
+  const config = business.notifications
+  const grant = resolvedGrant(config)
+  const senderId = resolvedSenderId(config)
+  // Live platform rates, so "global is AED 0.12" tracks what HQ actually set
+  // rather than the shipped constant. Returns defaults outside the provider.
+  const { rates: globalRates } = useHqRates()
+  const implausibleRates = CHANNELS.filter((c) =>
+    rateLooksImplausible(resolvedRate(config, c, globalRates)),
+  )
+  const [rejecting, setRejecting] = useState(false)
+  const [reason, setReason] = useState("")
+  // Rate inputs write on every keystroke, so the audit entry can't be written
+  // there — "0", "0.", "0.1", "0.14" would be four rows. The value at focus is
+  // held here and compared on blur, so one deliberate edit is one entry.
+  const rateAtFocus = useRef<Partial<Record<NotificationChannel, number>>>({})
+  /**
+   * What the user has literally typed, per channel, while a field has focus.
+   * Absent means "show the stored value" — which is what blur restores, so the
+   * field ends canonically formatted rather than however it was typed. See the
+   * note on the input: without this the number binding ate decimals mid-entry.
+   */
+  const [rateDraft, setRateDraft] = useState<Partial<Record<NotificationChannel, string>>>({})
+
+  /**
+   * Merge into the existing config so one control can't wipe the others, and
+   * record the change on the partner's audit trail. Every mutation here is one
+   * a merchant may later ask about — "why did our reminders stop" has to be
+   * answerable with a name and a time.
+   */
+  function patchConfig(
+    patch: Partial<BusinessNotificationConfig>,
+    audit?: { action: string; detail?: string },
+  ) {
+    onUpdate({
+      notifications: { ...config, ...patch },
+      ...(audit
+        ? {
+            audit: [
+              {
+                id: `ntf-${Date.now()}`,
+                at: new Date().toISOString(),
+                actor,
+                action: audit.action,
+                detail: audit.detail,
+                kind: "edit" as const,
+              },
+              ...business.audit,
+            ],
+          }
+        : {}),
+    })
+  }
+
+  function toggleChannel(channel: NotificationChannel, next: boolean) {
+    patchConfig(
+      { grant: { ...grant, [channel]: next } },
+      {
+        action: `${CHANNEL_LABEL[channel]} notifications ${next ? "enabled" : "disabled"}`,
+        detail: next
+          ? `${business.name} can send reminders over ${CHANNEL_LABEL[channel]} again.`
+          : `${business.name} can no longer send reminders over ${CHANNEL_LABEL[channel]}. Their own settings show the channel locked.`,
+      },
+    )
+    toast.success(`${CHANNEL_LABEL[channel]} ${next ? "enabled" : "disabled"} for ${business.name}`)
+  }
+
+  function approve() {
+    patchConfig(
+      { senderId: { ...senderId, status: "approved", rejectionReason: undefined } },
+      {
+        action: "Sender ID approved",
+        detail: `SMS for ${business.name} now sends as ${senderId.value} instead of ${FALLBACK_SENDER_ID}.`,
+      },
+    )
+    toast.success(`${senderId.value} approved`)
+  }
+
+  function reject() {
+    if (!reason.trim()) return
+    patchConfig(
+      { senderId: { ...senderId, status: "rejected", rejectionReason: reason.trim() } },
+      {
+        // The reason is on the audit entry as well as in the merchant's notice,
+        // so the decision stays legible after the merchant submits a new one and
+        // overwrites their copy.
+        action: `Sender ID ${senderId.value} rejected`,
+        detail: reason.trim(),
+      },
+    )
+    toast.success(`${senderId.value} rejected`)
+    setRejecting(false)
+    setReason("")
+  }
+
+  /** Called on blur. Writes one audit entry if the rate actually moved. */
+  function commitRate(channel: NotificationChannel) {
+    const before = rateAtFocus.current[channel]
+    const after = resolvedRate(config, channel, globalRates)
+    rateAtFocus.current[channel] = undefined
+    // Drop the draft so the field re-renders from the stored number.
+    setRateDraft((d) => {
+      const { [channel]: _typed, ...rest } = d
+      return rest
+    })
+    if (before === undefined || before === after) return
+    patchConfig(
+      {},
+      {
+        action: `${CHANNEL_LABEL[channel]} rate changed`,
+        detail: `${formatRate(before)} → ${formatRate(after)} per message for ${business.name} (global is ${formatRate(globalRates[channel])}).`,
+      },
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <SectionCard title="Channels">
+        <p className="text-sm text-muted-foreground">
+          Master switches. Turning one off locks that column in the merchant&rsquo;s own settings —
+          it doesn&rsquo;t clear what they had switched on, so turning it back on restores exactly
+          that.
+        </p>
+        <div className="flex flex-col">
+          {CHANNELS.map((channel) => (
+            <div
+              key={channel}
+              className="flex items-center justify-between gap-3 border-t border-border/60 py-3"
+            >
+              <div className="flex min-w-0 flex-col">
+                <span className="text-sm font-medium text-foreground">
+                  {CHANNEL_LABEL[channel]}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {(config?.usage?.[channel] ?? 0).toLocaleString("en-US")} sent this period
+                </span>
+              </div>
+              <Switch
+                checked={grant[channel]}
+                disabled={disabled}
+                onCheckedChange={(next) => toggleChannel(channel, next)}
+                aria-label={`${CHANNEL_LABEL[channel]} for ${business.name}`}
+              />
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title="Sender ID"
+        action={
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-xs font-medium",
+              SENDER_STATUS_PILL[senderId.status].className,
+            )}
+          >
+            {SENDER_STATUS_PILL[senderId.status].label}
+          </span>
+        }
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <StatBlock
+            label="Registered name"
+            value={senderId.value ?? `${FALLBACK_SENDER_ID} (default)`}
+          />
+          {/* Only when it differs from what the box above actually shows — which
+              is exactly `submitted` and `rejected`, the two states where a
+              registration is in flight or refused and customers are still seeing
+              CAMI. Same rule as the merchant's own card.
+              The `senderId.value` guard is load-bearing, not defensive: with no
+              Sender ID on file the value is null while the effective sender is
+              CAMI, so a bare inequality is true and this rendered "CUSTOMERS SEE
+              CAMI" beside a registered name reading "CAMI (default)" — the very
+              duplication the condition exists to remove. */}
+          {senderId.value && effectiveSenderId(senderId) !== senderId.value ? (
+            <StatBlock label="Customers see" value={effectiveSenderId(senderId)} />
+          ) : null}
+          {senderId.submittedAt ? (
+            <StatBlock label="Submitted" value={formatDate(senderId.submittedAt)} />
+          ) : null}
+        </div>
+
+        {senderId.rejectionReason ? (
+          <p className="rounded-xl bg-tomato-2 p-3 text-sm leading-5 text-foreground">
+            {senderId.rejectionReason}
+          </p>
+        ) : null}
+
+        {/* Only a pending registration has a decision to take. Approving or
+            rejecting anything else would name an action that already happened. */}
+        {senderId.status === "submitted" && !disabled ? (
+          rejecting ? (
+            <div className="flex flex-col gap-2">
+              {/* A reason is required because it renders verbatim in the
+                  merchant's own settings — a rejection with no reason strands
+                  them with nothing to fix. */}
+              <Textarea
+                value={reason}
+                rows={3}
+                autoFocus
+                aria-label="Rejection reason"
+                placeholder="Why the carrier or Cami rejected it. The merchant sees this."
+                onChange={(e) => setReason(e.target.value)}
+              />
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={() => setRejecting(false)}>
+                  Cancel
+                </Button>
+                <Button variant="destructive" disabled={!reason.trim()} onClick={reject}>
+                  Reject Sender ID
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button onClick={approve}>Approve</Button>
+              <Button variant="outline" onClick={() => setRejecting(true)}>
+                Reject
+              </Button>
+            </div>
+          )
+        ) : null}
+      </SectionCard>
+
+      <SectionCard title="Rates">
+        <p className="text-sm text-muted-foreground">
+          AED per message. Blank inherits the global rate; an override is labelled as one so nobody
+          debugs a billing discrepancy by guessing.
+        </p>
+        <div className="flex flex-col">
+          {CHANNELS.map((channel) => {
+            const overridden = isRateOverridden(config, channel, globalRates)
+            return (
+              <div
+                key={channel}
+                className="flex items-center justify-between gap-3 border-t border-border/60 py-3"
+              >
+                <div className="flex min-w-0 flex-col">
+                  <span className="text-sm font-medium text-foreground">
+                    {CHANNEL_LABEL[channel]}
+                  </span>
+                  {/* Only when overridden. Inheriting, the placeholder already
+                      shows the global number, so "Global rate AED 0.02" beside a
+                      box showing 0.02 said it twice; overridden, the global is a
+                      fact the field genuinely can't carry, and it's the one a
+                      billing discrepancy is debugged against. */}
+                  {overridden ? (
+                    <span className="text-xs text-muted-foreground">
+                      Overridden — global is {formatRate(globalRates[channel])}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">AED</span>
+                  <Input
+                    inputMode="decimal"
+                    disabled={disabled}
+                    className="h-9! w-16 rounded-xl px-2.5 text-right"
+                    aria-label={`${CHANNEL_LABEL[channel]} rate for ${business.name}`}
+                    // Blank when this partner inherits, which is what the card
+                    // above has always claimed ("Blank inherits the global
+                    // rate") and what the field never did — it rendered the
+                    // resolved rate, so no field was ever blank, inheriting and
+                    // overridden looked identical, and the sub-line repeating
+                    // "Global rate AED 0.02" beside a field reading 0.02 was an
+                    // echo rather than information. The placeholder carries the
+                    // inherited number so the box isn't a mystery.
+                    // The draft holds what was literally typed. Binding the field
+                    // to the number and parsing every keystroke with `Number` ate
+                    // any decimal mid-entry — "0." → 0 → "0" — so a decimal rate
+                    // was untypeable and digits merely accumulated.
+                    value={
+                      rateDraft[channel] ??
+                      (overridden ? String(resolvedRate(config, channel, globalRates)) : "")
+                    }
+                    placeholder={String(globalRates[channel])}
+                    onFocus={() => {
+                      // Remember where the rate started so blur can tell a real
+                      // edit from a click that touched the field and left.
+                      rateAtFocus.current[channel] = resolvedRate(config, channel, globalRates)
+                    }}
+                    onBlur={() => commitRate(channel)}
+                    onChange={(e) => {
+                      const raw = e.target.value.trim()
+                      // Guard the string, not the parsed number, so "0." and
+                      // "0.0" survive as intermediate states.
+                      if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return
+                      setRateDraft((d) => ({ ...d, [channel]: raw }))
+                      const rest = { ...config?.rateOverrides }
+                      // Cleared, or typed back to the global — both mean "inherit".
+                      // Writing the override unconditionally meant touching the
+                      // field made the partner overridden forever, with no way
+                      // back; the card promised inheritance the UI couldn't reach.
+                      if (raw === "") {
+                        delete rest[channel]
+                        patchConfig({ rateOverrides: rest })
+                        return
+                      }
+                      const next = Number(raw)
+                      if (!Number.isFinite(next) || next < 0) return
+                      if (next === globalRates[channel]) {
+                        delete rest[channel]
+                        patchConfig({ rateOverrides: rest })
+                        return
+                      }
+                      // No audit entry here — one per keystroke. commitRate on
+                      // blur writes the single entry for the whole edit.
+                      patchConfig({ rateOverrides: { ...rest, [channel]: next } })
+                    }}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        {/* Same warning as the global rates panel, same threshold, same reason:
+            a decimal that went missing while typing bills a real partner a real
+            amount. One notice naming the channels rather than a line per row. */}
+        {implausibleRates.length > 0 ? (
+          <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-cami-yellow-12">
+            <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              {implausibleRates
+                .map(
+                  (c) =>
+                    `${CHANNEL_LABEL[c]} at ${formatRate(resolvedRate(config, c, globalRates))}`,
+                )
+                .join(" and ")}{" "}
+              {implausibleRates.length === 1 ? "is" : "are"} far above a normal per-message rate —
+              check for a missing decimal point. {business.name} is billed on this.
+            </span>
+          </p>
+        ) : null}
+
+        <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 px-3 py-2">
+          <span className="text-sm text-muted-foreground">
+            {totalSends(config).toLocaleString("en-US")} messages this period
+          </span>
+          <span className="text-sm font-medium text-foreground">
+            {formatRate(amountDue(config, globalRates))} due
+          </span>
+        </div>
+      </SectionCard>
     </div>
   )
 }

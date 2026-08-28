@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  BellIcon,
   Building2Icon,
   ChevronLeftIcon,
   CreditCardIcon,
@@ -8,6 +9,7 @@ import {
   GlobeIcon,
   type LucideIcon,
   MapPinIcon,
+  MessageSquareTextIcon,
   TagIcon,
   UserIcon,
   WalletIcon,
@@ -16,10 +18,12 @@ import {
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useState } from "react"
 import { BusinessProfileForm } from "@/components/blocks/business-profile-form"
+import { CommsTemplatesPanel } from "@/components/blocks/comms-templates-panel"
 import { FilesSection } from "@/components/blocks/documents-files-card"
 import { LocationForm } from "@/components/blocks/location-form"
 import { BillingSettingsPanel } from "@/components/blocks/money/billing-settings-panel"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
+import { NotificationsSettingsPanel } from "@/components/blocks/notifications-settings-panel"
 import { PaymentsSettingsPanel } from "@/components/blocks/payment-policy/payments-settings-panel"
 import { SalesSettings } from "@/components/blocks/sales-settings"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
@@ -113,6 +117,29 @@ const GROUPS: SettingsGroup[] = [
         label: "Billing",
         description: "Legal details, payout account, and what Cami charged you.",
         icon: WalletIcon,
+      },
+    ],
+  },
+  // Own top-level section, like Payments. Notifications is what a merchant is
+  // billed per message for, so it isn't a sub-item of Business details.
+  {
+    label: "Notifications",
+    items: [
+      {
+        id: "notifications",
+        label: "Notifications",
+        description: "Sender ID, which reminders send, and what they cost.",
+        icon: BellIcon,
+      },
+      // Sibling of Notifications, not a tab inside it: that panel already
+      // carries Settings and Log, and a 7-event list with a full-screen editor
+      // is a destination rather than a tab. Notifications decides whether a
+      // message sends; this decides what it says.
+      {
+        id: "comms-templates",
+        label: "Communication templates",
+        description: "The wording of every automated email and WhatsApp message.",
+        icon: MessageSquareTextIcon,
       },
     ],
   },
@@ -250,6 +277,8 @@ export function AppSettingsDialog({
             {active.id === "sales" ? <SalesSettings /> : null}
             {active.id === "payments" ? <PaymentsSettingsPanel /> : null}
             {active.id === "billing" ? <BillingSettingsPanel /> : null}
+            {active.id === "notifications" ? <NotificationsSettingsPanel /> : null}
+            {active.id === "comms-templates" ? <CommsTemplatesPanel /> : null}
           </div>
         </div>
       </DialogContent>

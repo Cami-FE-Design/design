@@ -1079,37 +1079,7 @@ export function templatesForBooking(
   })
 }
 
-export type TemplateTokens = {
-  client?: string
-  service?: string
-  staff?: string
-  date?: string
-  time?: string
-  business?: string
-  /** Salon location / address line. */
-  location?: string
-  /** CamiPay deposit checkout URL (PRO-396). */
-  paymentLink?: string
-  /** Public rebook URL. */
-  bookingLink?: string
-}
-
-const TEMPLATE_FALLBACK: Record<keyof TemplateTokens, string> = {
-  client: "there",
-  service: "your appointment",
-  staff: "our team",
-  date: "the scheduled date",
-  time: "the scheduled time",
-  business: "our salon",
-  location: "our salon",
-  paymentLink: "the payment link",
-  bookingLink: "our booking page",
-}
-
-/** Replace {{token}} placeholders with booking values; missing values fall back. */
-export function resolveTemplate(body: string, tokens: TemplateTokens): string {
-  return body.replace(/\{\{(\w+)\}\}/g, (_match, key: string) => {
-    const k = key as keyof TemplateTokens
-    return tokens[k] ?? TEMPLATE_FALLBACK[k] ?? `{{${key}}}`
-  })
-}
+// The token vocabulary and its resolver now live in lib/comms/tokens.ts, so the
+// settings-side template editor (DSG-83) and the appointments drawer read one
+// list. Re-exported here because the drawer callers import them from this mock.
+export { resolveTemplate, type TemplateTokens } from "@/lib/comms/tokens"
