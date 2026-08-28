@@ -27,7 +27,7 @@ import {
   StethoscopeIcon,
   SunIcon,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -53,6 +53,7 @@ import { AppointmentsToolbar } from "@/components/blocks/appointments-toolbar"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
 import { BoardingDetailSheet } from "@/components/blocks/boarding/booking-detail-sheet"
 import { NewBoardingSheet } from "@/components/blocks/boarding/new-boarding-sheet"
+import { BusinessNotificationsSection } from "@/components/blocks/business-detail-dialog"
 import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
@@ -78,6 +79,7 @@ import { MoneyFeesView } from "@/components/blocks/money/money-fees"
 import { MoneySummaryView } from "@/components/blocks/money/money-summary"
 import { RailBadge } from "@/components/blocks/money/rail-badge"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
+import { NotificationsSettingsPanel } from "@/components/blocks/notifications-settings-panel"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
@@ -1822,6 +1824,48 @@ export function PlaygroundShowcase() {
       </Section>
 
       <Section
+        title="Notifications settings"
+        description="Sender ID, reminder channels, and per-message usage — Business Settings > Notifications. Follow-on to the Notifications & Reminders sign-off, which excluded all of this. The Sender ID is one state machine rather than three timelines (not-submitted → submitted → approved | rejected), with CAMI as the fallback in three of the four states — so the short-term 'just enable SMS in UAE' ask is satisfied by not-submitted working properly, not by an interim screen. Merchant intent and the Cami HQ channel grant stay separate fields and are never merged: an ungranted channel locks its column and keeps one 'not enabled for your business' notice rather than hiding the column, because a missing column reads as a missing feature, and re-enabling at HQ restores exactly what the merchant had switched on. Per-message cost is stamped at send time rather than derived from the current rate, so an HQ rate change can't retroactively rewrite last month's consumption. One live instance below, not three: the demo controls write to the shared store, so parallel copies would fight over it. Walk the four Sender ID states and the WhatsApp grant with the faint controls bottom-right — both stand in for decisions taken in Cami HQ. The Log tab is the business-wide view the per-appointment activity timeline structurally can't give."
+      >
+        <Row label="Live (Settings + Log tabs)">
+          <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
+            {/* The panel reads its deep-link params with useSearchParams, which
+                bails out of prerendering unless a boundary sits above it —
+                /playground is a static page, so the boundary lives here. */}
+            <Suspense fallback={null}>
+              <NotificationsSettingsPanel />
+            </Suspense>
+          </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="Notifications, Cami HQ control plane"
+        description="The HQ half of the notification spec — a Notifications tab on the partner record (Cami HQ > Partners > any partner). Three sections in the order someone debugging a partner asks about them: Channels (master switches — turning one off locks that column in the merchant's own settings without clearing their intent, so turning it back on restores exactly what they had), Sender ID (registered name, what customers actually see, and the Approve / Reject decision — Reject requires a reason because it renders verbatim in the merchant's settings, and a rejection with no reason strands them with nothing to fix), and Rates (per-channel override shown against the global number, with the period's amount due underneath). Only a pending registration has a decision to take: approving or rejecting anything else would name an action that already happened. The three rows below are the states that matter, each reading a different demo partner; edits are local to the row so they don't fight each other."
+      >
+        <Row label="Approved Sender ID, global rates (Shampooch)">
+          <div className="w-full max-w-2xl">
+            <HqNotificationsDemo slug="shampooch-jvc" />
+          </div>
+        </Row>
+        <Row label="Pending Sender ID + SMS rate override (Pawhaus)">
+          <div className="w-full max-w-2xl">
+            <HqNotificationsDemo slug="pawhaus" />
+          </div>
+        </Row>
+        <Row label="Rejected Sender ID, SMS switched off (Doggos)">
+          <div className="w-full max-w-2xl">
+            <HqNotificationsDemo slug="doggos" />
+          </div>
+        </Row>
+        <Row label="No config at all — inherits every default (Furry Tales)">
+          <div className="w-full max-w-2xl">
+            <HqNotificationsDemo slug="furry-tales" />
+          </div>
+        </Row>
+      </Section>
+
+      <Section
         title="Note callout"
         description="Notion-style note pill. Lightbulb on a soft sand background. Used inside edit dialogs to flag side-effects ('Once saved...')."
       >
@@ -3073,5 +3117,22 @@ function DoneStateDemo({
         />
       </div>
     </ImportFrame>
+  )
+}
+
+/**
+ * One partner's HQ notification controls, backed by local state so the four
+ * rows in the showcase can be edited independently instead of writing through
+ * to the shared mock array and fighting each other.
+ */
+function HqNotificationsDemo({ slug }: { slug: string }) {
+  const base = adminBusinesses.find((b) => b.slug === slug)
+  const [business, setBusiness] = useState(base)
+  if (!business) return null
+  return (
+    <BusinessNotificationsSection
+      business={business}
+      onUpdate={(patch) => setBusiness((prev) => (prev ? { ...prev, ...patch } : prev))}
+    />
   )
 }

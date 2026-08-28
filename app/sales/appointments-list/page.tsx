@@ -122,13 +122,6 @@ function formatDateOnly(d: Date) {
   return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
 }
 
-function formatDuration(min: number) {
-  if (min < 60) return `${min}min`
-  const h = Math.floor(min / 60)
-  const m = min % 60
-  return m === 0 ? `${h}h` : `${h}h ${m}min`
-}
-
 function formatPrice(minor: number) {
   return `AED ${Math.round(minor / 100).toLocaleString()}`
 }
@@ -493,6 +486,9 @@ function AppointmentsListPageInner() {
         }}
         booking={selectedBooking}
         staff={MOCK_STAFF}
+        // `&view=activity` opens the sheet on the activity timeline instead of
+        // the detail panel, so a notification trace can be linked to directly.
+        initialMode={searchParams.get("view") === "activity" ? "activity" : undefined}
         onViewSale={() => {
           // Demo mapping: every booking's "View sale" jumps to sale #2, matching
           // the "sale receipt 2" link in the appointment activity log.

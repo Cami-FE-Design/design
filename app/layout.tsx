@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { CurrentUserProvider } from "@/lib/current-user"
 import { DemoBusinessProvider } from "@/lib/demo-business"
 import { DemoFilesProvider } from "@/lib/demo-files"
+import { HqNotificationsProvider } from "@/lib/notifications/hq-store"
+import { NotificationsProvider } from "@/lib/notifications/store"
 import { PaymentPolicyProvider } from "@/lib/payment-policy/store"
 import { TerminalsProvider } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
@@ -43,8 +45,15 @@ export default function RootLayout({
                 <DemoFilesProvider>
                   <PaymentPolicyProvider>
                     <TerminalsProvider>
-                      {children}
-                      <Toaster />
+                      <NotificationsProvider>
+                        {/* Root, not the admin layout: HQ sets the rates but
+                            both portals read them — a merchant sees the price
+                            they're billed at. */}
+                        <HqNotificationsProvider>
+                          {children}
+                          <Toaster />
+                        </HqNotificationsProvider>
+                      </NotificationsProvider>
                     </TerminalsProvider>
                   </PaymentPolicyProvider>
                 </DemoFilesProvider>

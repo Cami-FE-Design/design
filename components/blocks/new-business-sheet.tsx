@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { FALLBACK_SENDER_ID, validateSenderId } from "@/lib/notifications/types"
 
 const businessSchema = z.object({
   name: z
@@ -33,6 +34,25 @@ const businessSchema = z.object({
   ownerFirstName: z.string().min(1, { message: "First name is required." }),
   ownerLastName: z.string().min(1, { message: "Last name is required." }),
   ownerEmail: z.email({ message: "Enter a valid email." }),
+  /**
+   * Captured at onboarding per GNK's recommendation, adopted by maaz: collect
+   * here, editable in Business Settings later, default to CAMI if not provided.
+   *
+   * "Mandatory with a CAMI default" is a contradiction in a form — a field that
+   * always has a valid value isn't one the operator can fail to fill. So it is
+   * required-with-a-default: the field always carries something, and leaving it
+   * as CAMI is an explicit choice rather than a skipped step. It is deliberately
+   * NOT prefilled from the business name — GNK: "rather than inferring branding
+   * preferences, we should request the sender ID directly from the merchant."
+   * Spec: docs/specs/notifications-sender-id-and-rates.md
+   */
+  senderId: z.string().superRefine((raw, ctx) => {
+    const value = raw.trim()
+    // Blank and CAMI both mean the same thing — send under the platform name.
+    if (!value || value.toUpperCase() === FALLBACK_SENDER_ID) return
+    const problem = validateSenderId(value)
+    if (problem) ctx.addIssue({ code: "custom", message: problem })
+  }),
 })
 
 type BusinessValues = z.infer<typeof businessSchema>
@@ -65,6 +85,7 @@ export function NewBusinessSheet({ open, onOpenChange, onCreated }: NewBusinessS
       ownerFirstName: "",
       ownerLastName: "",
       ownerEmail: "",
+      senderId: FALLBACK_SENDER_ID,
     },
   })
 
@@ -86,8 +107,14 @@ export function NewBusinessSheet({ open, onOpenChange, onCreated }: NewBusinessS
 
   function onSubmit(values: BusinessValues) {
     onCreated?.(values)
+    const senderId = values.senderId.trim()
+    const ownSenderId = senderId && senderId.toUpperCase() !== FALLBACK_SENDER_ID
     toast.success(`${values.name} created`, {
-      description: `Welcome email sent to ${values.ownerEmail}.`,
+      description: ownSenderId
+        ? // The registration clock starts at account creation rather than
+          // whenever someone remembers to open settings.
+          `Welcome email sent to ${values.ownerEmail}. ${senderId.toUpperCase()} submitted for registration.`
+        : `Welcome email sent to ${values.ownerEmail}. Messages send as ${FALLBACK_SENDER_ID}.`,
     })
     onOpenChange(false)
   }
@@ -190,6 +217,30 @@ export function NewBusinessSheet({ open, onOpenChange, onCreated }: NewBusinessS
                   </FormControl>
                   <FormDescription>
                     We'll email a link here to set the first password.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="senderId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>SMS Sender ID</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={FALLBACK_SENDER_ID}
+                      autoComplete="off"
+                      maxLength={11}
+                      className="uppercase"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    The name their SMS arrives from. 3&ndash;11 letters or numbers. Ask the merchant
+                    — don&rsquo;t derive it from the business name. Leave as {FALLBACK_SENDER_ID} to
+                    send under the platform name; they can change it in their settings later.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
