@@ -120,10 +120,22 @@ const GROUPS: SettingsGroup[] = [
       },
     ],
   },
-  // Own top-level section, like Payments. Notifications is what a merchant is
-  // billed per message for, so it isn't a sub-item of Business details.
+  // Own top-level section, like Payments — messaging is what a merchant is billed
+  // per message for, so it isn't a sub-item of Business details.
+  //
+  // Group is "Messaging", not "Notifications", because it now holds two items
+  // and one of them was called Notifications too. A single-item group repeating
+  // its own name is just a section divider — Sales, Payments and Billing all do
+  // it harmlessly. With two items the group name has to be the thing they share,
+  // and "Notifications › Notifications" said nothing about how that item differed
+  // from its sibling. Messaging is that umbrella: one half decides whether a
+  // message sends, the other what it says.
+  //
+  // The item's `id` stays `notifications`, so every deep link, /screens entry and
+  // the Reminders→templates hand-off keep working, and the panel's own heading
+  // still matches the item label.
   {
-    label: "Notifications",
+    label: "Messaging",
     items: [
       {
         id: "notifications",
