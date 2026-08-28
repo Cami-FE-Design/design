@@ -3,6 +3,7 @@ import { Manrope } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { CommsTemplatesProvider } from "@/lib/comms/store"
 import { CurrentUserProvider } from "@/lib/current-user"
 import { DemoBusinessProvider } from "@/lib/demo-business"
 import { DemoFilesProvider } from "@/lib/demo-files"
@@ -50,8 +51,13 @@ export default function RootLayout({
                             both portals read them — a merchant sees the price
                             they're billed at. */}
                         <HqNotificationsProvider>
-                          {children}
-                          <Toaster />
+                          {/* Inside NotificationsProvider: a template row dims
+                              when the Reminders matrix has that channel off, so
+                              the panel reads both stores. */}
+                          <CommsTemplatesProvider>
+                            {children}
+                            <Toaster />
+                          </CommsTemplatesProvider>
                         </HqNotificationsProvider>
                       </NotificationsProvider>
                     </TerminalsProvider>

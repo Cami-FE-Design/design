@@ -59,6 +59,7 @@ import {
   CHANNEL_LABEL,
   eventLabel,
   logForAppointment,
+  logStamp,
   type NotificationChannel,
   type NotificationStatus,
 } from "@/lib/notifications/types"
@@ -804,7 +805,9 @@ export function AppointmentDetailSheet({
     (entry) => ({
       id: entry.id,
       title: `${eventLabel(entry.event)} · ${CHANNEL_LABEL[entry.channel]}`,
-      timestamp: entry.sentAt,
+      // logStamp, not the raw ISO: this timeline has no day header to carry the
+      // date, so each event states its own day and time.
+      timestamp: logStamp(entry.sentAt),
       body: entry.body,
       notification: {
         channel: entry.channel,

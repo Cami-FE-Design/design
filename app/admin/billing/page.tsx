@@ -44,6 +44,7 @@ import {
   formatRate,
   isRateOverridden,
   type NotificationChannel,
+  periodShape,
   resolvedGrant,
   resolvedRate,
   totalSends,
@@ -51,11 +52,17 @@ import {
 import { cn } from "@/lib/utils"
 
 /**
- * The billing period. A constant rather than derived from the clock: every
- * timestamp in the admin mocks is fixed, so a "current month" computed at render
- * would drift away from the demo data and show an empty period.
+ * The billing period, from the same helper the merchant's usage card uses.
+ *
+ * Still not derived from the clock — `periodShape` reads the fixed `DEMO_TODAY`,
+ * so the original reason for a constant holds: a "current month" computed at
+ * render would drift away from the fixed admin mocks and show an empty period.
+ * The point of routing through the helper is that both portals now name the same
+ * period. They briefly didn't — this page said "1 – 10 August 2026" while the
+ * merchant card, once derived, said "1 – 28 Aug", for figures that agree to the
+ * fils.
  */
-const PERIOD = "1 – 10 August 2026"
+const PERIOD = periodShape(0).labelLong
 
 type ChannelFilter = "all" | NotificationChannel
 

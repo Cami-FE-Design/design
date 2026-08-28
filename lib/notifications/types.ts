@@ -97,6 +97,13 @@ export type NotificationLogEntry = {
   /** Who it went to, for scanning. Not part of the send itself. */
   recipientName: string
   body: string
+  /**
+   * ISO 8601 with an explicit offset, e.g. `2026-08-28T11:20:00+04:00`.
+   *
+   * Was a pre-formatted display string ("Yesterday 10:15") until the log gained
+   * day grouping, which needs a real date to bucket on. Parsing the day back out
+   * of a display string works right up until the copy changes.
+   */
   sentAt: string
   status: NotificationStatus
   failureReason?: string
@@ -253,7 +260,7 @@ export const DEMO_LOG: NotificationLogEntry[] = [
     recipient: "+971 50 374 5511",
     recipientName: "Tom Cassidy",
     body: "Hi Tom — reminder: Luna's Wash & Blow Dry is tomorrow at 10:15 AM with Shampooch. Reply STOP to opt out.",
-    sentAt: "Yesterday 10:15",
+    sentAt: "2026-08-27T10:15:00+04:00",
     status: "delivered",
     cost: 0.12,
   },
@@ -265,7 +272,7 @@ export const DEMO_LOG: NotificationLogEntry[] = [
     recipient: "tom.cassidy@gmail.com",
     recipientName: "Tom Cassidy",
     body: "Luna's appointment is tomorrow at 10:15 AM. Wash & Blow Dry MD with Aya Hassan, 60 min.",
-    sentAt: "Yesterday 10:15",
+    sentAt: "2026-08-27T10:15:00+04:00",
     status: "delivered",
     cost: 0.02,
   },
@@ -277,7 +284,7 @@ export const DEMO_LOG: NotificationLogEntry[] = [
     recipient: "tom.cassidy@gmail.com",
     recipientName: "Tom Cassidy",
     body: "Receipt for AED 140.00 — Wash & Blow Dry MD. AED 50.00 deposit applied.",
-    sentAt: "Today 11:20",
+    sentAt: "2026-08-28T11:20:00+04:00",
     status: "sent",
     cost: 0.02,
   },
@@ -290,7 +297,7 @@ export const DEMO_LOG: NotificationLogEntry[] = [
     recipient: "+971 50 491 2202",
     recipientName: "Karen Dougall",
     body: "Booking confirmed: Willow, Full Grooming MD, today 11:30 AM at Shampooch.",
-    sentAt: "Today 08:44",
+    sentAt: "2026-08-28T08:44:00+04:00",
     status: "delivered",
     cost: 0.12,
   },
@@ -304,7 +311,7 @@ export const DEMO_LOG: NotificationLogEntry[] = [
     recipient: "+971 50 491 2202",
     recipientName: "Karen Dougall",
     body: "Reminder: Willow's Full Grooming is at 11:30 AM today.",
-    sentAt: "Today 09:30",
+    sentAt: "2026-08-28T09:30:00+04:00",
     status: "queued",
     cost: 0.12,
   },
@@ -318,7 +325,7 @@ export const DEMO_LOG: NotificationLogEntry[] = [
     recipient: "+971 4 771 0032",
     recipientName: "Luke Tan",
     body: "Booking confirmed: Rocky, Deshedding LG, tomorrow 1:00 PM at Shampooch.",
-    sentAt: "Today 08:10",
+    sentAt: "2026-08-28T08:10:00+04:00",
     status: "failed",
     failureReason: "Landline number — SMS not deliverable",
     cost: 0,
@@ -332,7 +339,7 @@ export const DEMO_LOG: NotificationLogEntry[] = [
     recipient: "m.cassidy@oldmail.example",
     recipientName: "Millie Cassidy",
     body: "How did Mochi's visit go? Leave Shampooch a review.",
-    sentAt: "Yesterday 17:31",
+    sentAt: "2026-08-25T17:31:00+04:00",
     status: "failed",
     failureReason: "Mailbox does not exist (hard bounce)",
     cost: 0,
@@ -345,7 +352,7 @@ export const DEMO_LOG: NotificationLogEntry[] = [
     recipient: "m.cassidy@oldmail.example",
     recipientName: "Millie Cassidy",
     body: "Booking confirmed: Mochi, Full Grooming SM, 9:30 AM with Lena Petrov.",
-    sentAt: "Yesterday 08:02",
+    sentAt: "2026-08-27T08:02:00+04:00",
     status: "delivered",
     cost: 0.02,
   },
@@ -364,6 +371,25 @@ export const DEFAULT_PERIOD_USAGE: PeriodUsage = {
   whatsapp: { sent: 0, failed: 0, cost: 0 },
 }
 
+/**
+ * The same period with WhatsApp consuming too, for the demo toggle.
+ *
+ * The default has WhatsApp at zero, which is the honest shipped state — but it
+ * also made the usage card's three-segment share bar unreachable, so a whole
+ * branch of the design could not be reviewed. Both states matter: a granted
+ * channel that hasn't been used says "Nothing sent yet", and one that has says
+ * what it cost.
+ *
+ * Deliberately NOT mirrored into DEMO_LOG. periodUsage is a period aggregate and
+ * the log is the most recent sends; the two are not derived from each other (see
+ * NotificationsState.periodUsage), so consumption can exist without a matching
+ * row in a paginated log. 214 sends at the AED 0.09 global rate is AED 19.26.
+ */
+export const DEMO_PERIOD_USAGE_WITH_WHATSAPP: PeriodUsage = {
+  ...DEFAULT_PERIOD_USAGE,
+  whatsapp: { sent: 214, failed: 2, cost: 19.26 },
+}
+
 export const DEFAULT_NOTIFICATIONS_STATE: NotificationsState = {
   senderId: DEFAULT_SENDER_ID,
   events: DEFAULT_EVENTS,
@@ -372,33 +398,14 @@ export const DEFAULT_NOTIFICATIONS_STATE: NotificationsState = {
   log: DEMO_LOG,
 }
 
-/** Per-channel counts and spend over whatever slice of the log is passed in. */
-export function usageByChannel(
-  log: NotificationLogEntry[],
-): Record<NotificationChannel, { sent: number; failed: number; cost: number }> {
-  const empty = () => ({ sent: 0, failed: 0, cost: 0 })
-  const totals: Record<NotificationChannel, { sent: number; failed: number; cost: number }> = {
-    email: empty(),
-    sms: empty(),
-    whatsapp: empty(),
-  }
-  for (const entry of log) {
-    const bucket = totals[entry.channel]
-    // A failed send costs nothing and isn't a delivered message, so it counts
-    // in neither the billable total nor the sent count — but it stays visible,
-    // because "we tried and it bounced" is the reason someone opens this.
-    if (entry.status === "failed") bucket.failed += 1
-    else bucket.sent += 1
-    bucket.cost += entry.cost
-  }
-  return totals
-}
+// `usageByChannel(log)` and `totalCost(log)` used to live here and are gone on
+// purpose. Both derived period usage by summing the log, which is the one thing
+// this model says not to do: the log is the most recent sends, not the period, so
+// summing it under-reports the invoice by an order of magnitude — the first build
+// of the usage card showed AED 0.49 for a month that cost AED 42.92. Neither had
+// a caller, so they were purely a signposted route back to that bug. Period
+// figures come from `periodUsage` via `periodTotalCost`.
 
-export function totalCost(log: NotificationLogEntry[]): number {
-  return log.reduce((sum, entry) => sum + entry.cost, 0)
-}
-
-/** Amount consumed this billing period, across channels. */
 export function periodTotalCost(usage: PeriodUsage): number {
   return CHANNELS.reduce((sum, channel) => sum + usage[channel].cost, 0)
 }
@@ -441,6 +448,180 @@ export function logForAppointment(
   appointmentId: string,
 ): NotificationLogEntry[] {
   return log.filter((entry) => entry.appointmentId === appointmentId)
+}
+
+// ── Log timestamps and day grouping ─────────────────────────────────────────
+//
+// The log groups by day, the way the money activity feed does: "did today's
+// reminders actually go out" is the question it exists to answer, and an
+// ungrouped list of times makes you read every row to find the boundary.
+//
+// Everything below is deliberately string arithmetic on the ISO value, not Date
+// parsing. Two reasons. `Date.now()` would re-bucket the fixtures every midnight
+// and make a screenshot unreproducible; and parsing an offset-bearing ISO into a
+// local Date then asking for its calendar day reintroduces the timezone bug this
+// is meant to avoid — a 23:30 +04:00 send would land on the previous day for a
+// reviewer in London.
+
+/** The demo's "today", in the business's own offset. Fixed on purpose — see above. */
+export const DEMO_TODAY = "2026-08-28"
+
+const MONTH_ABBR = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+]
+
+/** The calendar day a send belongs to, as `YYYY-MM-DD`. Sorts and compares as a string. */
+export function logDay(sentAt: string): string {
+  return sentAt.slice(0, 10)
+}
+
+/** Wall-clock time of a send, as `HH:MM`. The day is the group header's job. */
+export function logTime(sentAt: string): string {
+  return sentAt.slice(11, 16)
+}
+
+/** `YYYY-MM-DD` one day earlier. UTC math on a date-only value, so no DST edge. */
+function dayBefore(day: string): string {
+  const [y, m, d] = day.split("-").map(Number)
+  return new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10)
+}
+
+/**
+ * Group header for a day. Relative for the two days a merchant actually thinks
+ * in, absolute beyond that — "3 days ago" makes you do the arithmetic the label
+ * was supposed to save you.
+ */
+export function logDayLabel(day: string): string {
+  if (day === DEMO_TODAY) return "Today"
+  if (day === dayBefore(DEMO_TODAY)) return "Yesterday"
+  const [, m, d] = day.split("-").map(Number)
+  return `${d} ${MONTH_ABBR[m - 1]}`
+}
+
+/** One line for surfaces with no day header of their own (the activity timeline). */
+export function logStamp(sentAt: string): string {
+  return `${logDayLabel(logDay(sentAt))} ${logTime(sentAt)}`
+}
+
+export type LogDayGroup = {
+  day: string
+  label: string
+  entries: NotificationLogEntry[]
+}
+
+/** Newest day first, and newest send first inside each day. */
+export function groupLogByDay(entries: NotificationLogEntry[]): LogDayGroup[] {
+  const byDay = new Map<string, NotificationLogEntry[]>()
+  for (const entry of entries) {
+    const day = logDay(entry.sentAt)
+    const bucket = byDay.get(day)
+    if (bucket) bucket.push(entry)
+    else byDay.set(day, [entry])
+  }
+  return [...byDay.keys()]
+    .sort((a, b) => b.localeCompare(a))
+    .map((day) => ({
+      day,
+      label: logDayLabel(day),
+      entries: [...(byDay.get(day) ?? [])].sort((x, y) => y.sentAt.localeCompare(x.sentAt)),
+    }))
+}
+
+/**
+ * Above this, a per-message rate is almost certainly a misplaced decimal.
+ *
+ * AED 1.00 is roughly eight times the highest rate Cami actually charges (SMS at
+ * 0.12) and about seven times the highest negotiated override in the mocks
+ * (0.14), so the gap between "an aggressive rate" and "a typo" is wide enough
+ * that a single round number sits comfortably in it.
+ *
+ * A warning, never a block. What Cami charges is a commercial decision and a cap
+ * would eventually be wrong about someone's real rate — but a rate this size is
+ * the one that quietly bills a partner thousands, so it has to be said out loud.
+ * The failure mode is specific enough to name: it is nearly always a decimal
+ * that went missing while typing.
+ */
+export const IMPLAUSIBLE_RATE = 1
+
+export function rateLooksImplausible(amount: number): boolean {
+  return amount > IMPLAUSIBLE_RATE
+}
+
+// ── Period shape ─────────────────────────────────────────────────────────────
+
+const MONTH_FULL = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]
+
+/** Days in the calendar month a `YYYY-MM-DD` day falls in. */
+function daysInMonth(day: string): number {
+  const [y, m] = day.split("-").map(Number)
+  return new Date(Date.UTC(y, m, 0)).getUTCDate()
+}
+
+/**
+ * The billing period as the merchant experiences it: which days it covers so
+ * far, and where the running total is heading.
+ *
+ * The projection exists because "Total so far" implies a trajectory and then
+ * shows none. A merchant on day 28 of a month wants to know what the invoice
+ * lands at, and the honest answer is a straight-line estimate from what has
+ * already been consumed — stated as an estimate, never as a figure to plan on.
+ *
+ * Not projected on day 1: one day of sends extrapolated over 31 is noise
+ * wearing a number's clothes.
+ */
+export function periodShape(total: number, today = DEMO_TODAY) {
+  const [, month, dayOfMonth] = today.split("-").map(Number)
+  const days = daysInMonth(today)
+  const [year] = today.split("-").map(Number)
+  return {
+    /** The days covered so far, e.g. "1 – 28 Aug". */
+    label: `1 – ${dayOfMonth} ${MONTH_ABBR[month - 1]}`,
+    /**
+     * The same period spelled out, e.g. "1 – 28 August 2026", for HQ surfaces
+     * that have the room and cover more than one merchant's month.
+     *
+     * Both labels come from here so the two portals cannot disagree about which
+     * period they are describing — they briefly did, when the merchant card was
+     * derived and /admin/billing was still a hardcoded string.
+     */
+    labelLong: `1 – ${dayOfMonth} ${MONTH_FULL[month - 1]} ${year}`,
+    /** The day the invoice is cut, e.g. "31 Aug" — the projection's horizon. */
+    endLabel: `${days} ${MONTH_ABBR[month - 1]}`,
+    dayOfMonth,
+    days,
+    /** null while there isn't enough of the month to extrapolate from. */
+    projected: dayOfMonth >= 3 ? (total / dayOfMonth) * days : null,
+  }
+}
+
+/** Each channel's share of the period cost, 0–1. Zero total → all zero. */
+export function costShare(usage: PeriodUsage, channel: NotificationChannel): number {
+  const total = periodTotalCost(usage)
+  return total > 0 ? usage[channel].cost / total : 0
 }
 
 export function eventLabel(event: ReminderEvent): string {

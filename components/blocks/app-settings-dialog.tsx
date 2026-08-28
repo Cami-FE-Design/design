@@ -9,6 +9,7 @@ import {
   GlobeIcon,
   type LucideIcon,
   MapPinIcon,
+  MessageSquareTextIcon,
   TagIcon,
   UserIcon,
   WalletIcon,
@@ -17,6 +18,7 @@ import {
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useState } from "react"
 import { BusinessProfileForm } from "@/components/blocks/business-profile-form"
+import { CommsTemplatesPanel } from "@/components/blocks/comms-templates-panel"
 import { FilesSection } from "@/components/blocks/documents-files-card"
 import { LocationForm } from "@/components/blocks/location-form"
 import { BillingSettingsPanel } from "@/components/blocks/money/billing-settings-panel"
@@ -128,6 +130,16 @@ const GROUPS: SettingsGroup[] = [
         label: "Notifications",
         description: "Sender ID, which reminders send, and what they cost.",
         icon: BellIcon,
+      },
+      // Sibling of Notifications, not a tab inside it: that panel already
+      // carries Settings and Log, and a 7-event list with a full-screen editor
+      // is a destination rather than a tab. Notifications decides whether a
+      // message sends; this decides what it says.
+      {
+        id: "comms-templates",
+        label: "Communication templates",
+        description: "The wording of every automated email and WhatsApp message.",
+        icon: MessageSquareTextIcon,
       },
     ],
   },
@@ -266,6 +278,7 @@ export function AppSettingsDialog({
             {active.id === "payments" ? <PaymentsSettingsPanel /> : null}
             {active.id === "billing" ? <BillingSettingsPanel /> : null}
             {active.id === "notifications" ? <NotificationsSettingsPanel /> : null}
+            {active.id === "comms-templates" ? <CommsTemplatesPanel /> : null}
           </div>
         </div>
       </DialogContent>

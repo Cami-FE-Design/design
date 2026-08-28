@@ -15,6 +15,7 @@ import {
   DEFAULT_PERIOD_USAGE,
   DEFAULT_SENDER_ID,
   DEMO_LOG,
+  DEMO_PERIOD_USAGE_WITH_WHATSAPP,
   DEMO_SENDER_IDS,
   type EventMatrix,
   type NotificationChannel,
@@ -41,6 +42,15 @@ type NotificationsValue = NotificationsState & {
   toggleEvent: (event: ReminderEvent, channel: NotificationChannel, next: boolean) => void
   /** Demo-only: stand in for the HQ master switch this panel reads. */
   setGrant: (channel: NotificationChannel, next: boolean) => void
+  /**
+   * Demo-only: give WhatsApp period consumption, or take it away.
+   *
+   * Exists so the usage card's three-segment share bar is reachable at all — the
+   * shipped default has WhatsApp at zero, which left that branch of the design
+   * unreviewable. Real consumption arrives from the backend; nothing in the
+   * product writes this.
+   */
+  setWhatsAppUsage: (on: boolean) => void
   reset: () => void
 }
 
@@ -122,6 +132,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         }),
       setGrant: (channel, next) =>
         persist({ ...state, grant: { ...state.grant, [channel]: next } }),
+      setWhatsAppUsage: (on) =>
+        persist({
+          ...state,
+          periodUsage: on ? DEMO_PERIOD_USAGE_WITH_WHATSAPP : DEFAULT_PERIOD_USAGE,
+        }),
       reset: () => {
         setState(DEFAULT_NOTIFICATIONS_STATE)
         try {
@@ -150,6 +165,7 @@ export function useNotifications(): NotificationsValue {
     setSenderIdStatus: () => {},
     toggleEvent: () => {},
     setGrant: () => {},
+    setWhatsAppUsage: () => {},
     reset: () => {},
   }
 }

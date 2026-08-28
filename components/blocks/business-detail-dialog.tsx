@@ -7,6 +7,7 @@ import {
   ArrowUpRightIcon,
   CheckIcon,
   ChevronDownIcon,
+  CircleAlertIcon,
   CircleCheckIcon,
   CircleSlash2Icon,
   ClockIcon,
@@ -90,6 +91,7 @@ import {
   formatRate,
   isRateOverridden,
   type NotificationChannel,
+  rateLooksImplausible,
   resolvedGrant,
   resolvedRate,
   resolvedSenderId,
@@ -1053,12 +1055,22 @@ export function BusinessNotificationsSection({
   // Live platform rates, so "global is AED 0.12" tracks what HQ actually set
   // rather than the shipped constant. Returns defaults outside the provider.
   const { rates: globalRates } = useHqRates()
+  const implausibleRates = CHANNELS.filter((c) =>
+    rateLooksImplausible(resolvedRate(config, c, globalRates)),
+  )
   const [rejecting, setRejecting] = useState(false)
   const [reason, setReason] = useState("")
   // Rate inputs write on every keystroke, so the audit entry can't be written
   // there — "0", "0.", "0.1", "0.14" would be four rows. The value at focus is
   // held here and compared on blur, so one deliberate edit is one entry.
   const rateAtFocus = useRef<Partial<Record<NotificationChannel, number>>>({})
+  /**
+   * What the user has literally typed, per channel, while a field has focus.
+   * Absent means "show the stored value" — which is what blur restores, so the
+   * field ends canonically formatted rather than however it was typed. See the
+   * note on the input: without this the number binding ate decimals mid-entry.
+   */
+  const [rateDraft, setRateDraft] = useState<Partial<Record<NotificationChannel, string>>>({})
 
   /**
    * Merge into the existing config so one control can't wipe the others, and
@@ -1136,6 +1148,11 @@ export function BusinessNotificationsSection({
     const before = rateAtFocus.current[channel]
     const after = resolvedRate(config, channel, globalRates)
     rateAtFocus.current[channel] = undefined
+    // Drop the draft so the field re-renders from the stored number.
+    setRateDraft((d) => {
+      const { [channel]: _typed, ...rest } = d
+      return rest
+    })
     if (before === undefined || before === after) return
     patchConfig(
       {},
@@ -1197,7 +1214,18 @@ export function BusinessNotificationsSection({
             label="Registered name"
             value={senderId.value ?? `${FALLBACK_SENDER_ID} (default)`}
           />
-          <StatBlock label="Customers see" value={effectiveSenderId(senderId)} />
+          {/* Only when it differs from what the box above actually shows — which
+              is exactly `submitted` and `rejected`, the two states where a
+              registration is in flight or refused and customers are still seeing
+              CAMI. Same rule as the merchant's own card.
+              The `senderId.value` guard is load-bearing, not defensive: with no
+              Sender ID on file the value is null while the effective sender is
+              CAMI, so a bare inequality is true and this rendered "CUSTOMERS SEE
+              CAMI" beside a registered name reading "CAMI (default)" — the very
+              duplication the condition exists to remove. */}
+          {senderId.value && effectiveSenderId(senderId) !== senderId.value ? (
+            <StatBlock label="Customers see" value={effectiveSenderId(senderId)} />
+          ) : null}
           {senderId.submittedAt ? (
             <StatBlock label="Submitted" value={formatDate(senderId.submittedAt)} />
           ) : null}
@@ -1262,11 +1290,16 @@ export function BusinessNotificationsSection({
                   <span className="text-sm font-medium text-foreground">
                     {CHANNEL_LABEL[channel]}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {overridden
-                      ? `Overridden — global is ${formatRate(globalRates[channel])}`
-                      : `Global rate ${formatRate(globalRates[channel])}`}
-                  </span>
+                  {/* Only when overridden. Inheriting, the placeholder already
+                      shows the global number, so "Global rate AED 0.02" beside a
+                      box showing 0.02 said it twice; overridden, the global is a
+                      fact the field genuinely can't carry, and it's the one a
+                      billing discrepancy is debugged against. */}
+                  {overridden ? (
+                    <span className="text-xs text-muted-foreground">
+                      Overridden — global is {formatRate(globalRates[channel])}
+                    </span>
+                  ) : null}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">AED</span>
@@ -1275,7 +1308,23 @@ export function BusinessNotificationsSection({
                     disabled={disabled}
                     className="h-9! w-16 rounded-xl px-2.5 text-right"
                     aria-label={`${CHANNEL_LABEL[channel]} rate for ${business.name}`}
-                    value={String(resolvedRate(config, channel, globalRates))}
+                    // Blank when this partner inherits, which is what the card
+                    // above has always claimed ("Blank inherits the global
+                    // rate") and what the field never did — it rendered the
+                    // resolved rate, so no field was ever blank, inheriting and
+                    // overridden looked identical, and the sub-line repeating
+                    // "Global rate AED 0.02" beside a field reading 0.02 was an
+                    // echo rather than information. The placeholder carries the
+                    // inherited number so the box isn't a mystery.
+                    // The draft holds what was literally typed. Binding the field
+                    // to the number and parsing every keystroke with `Number` ate
+                    // any decimal mid-entry — "0." → 0 → "0" — so a decimal rate
+                    // was untypeable and digits merely accumulated.
+                    value={
+                      rateDraft[channel] ??
+                      (overridden ? String(resolvedRate(config, channel, globalRates)) : "")
+                    }
+                    placeholder={String(globalRates[channel])}
                     onFocus={() => {
                       // Remember where the rate started so blur can tell a real
                       // edit from a click that touched the field and left.
@@ -1283,13 +1332,31 @@ export function BusinessNotificationsSection({
                     }}
                     onBlur={() => commitRate(channel)}
                     onChange={(e) => {
-                      const next = Number(e.target.value)
+                      const raw = e.target.value.trim()
+                      // Guard the string, not the parsed number, so "0." and
+                      // "0.0" survive as intermediate states.
+                      if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return
+                      setRateDraft((d) => ({ ...d, [channel]: raw }))
+                      const rest = { ...config?.rateOverrides }
+                      // Cleared, or typed back to the global — both mean "inherit".
+                      // Writing the override unconditionally meant touching the
+                      // field made the partner overridden forever, with no way
+                      // back; the card promised inheritance the UI couldn't reach.
+                      if (raw === "") {
+                        delete rest[channel]
+                        patchConfig({ rateOverrides: rest })
+                        return
+                      }
+                      const next = Number(raw)
                       if (!Number.isFinite(next) || next < 0) return
+                      if (next === globalRates[channel]) {
+                        delete rest[channel]
+                        patchConfig({ rateOverrides: rest })
+                        return
+                      }
                       // No audit entry here — one per keystroke. commitRate on
                       // blur writes the single entry for the whole edit.
-                      patchConfig({
-                        rateOverrides: { ...config?.rateOverrides, [channel]: next },
-                      })
+                      patchConfig({ rateOverrides: { ...rest, [channel]: next } })
                     }}
                   />
                 </div>
@@ -1297,6 +1364,25 @@ export function BusinessNotificationsSection({
             )
           })}
         </div>
+        {/* Same warning as the global rates panel, same threshold, same reason:
+            a decimal that went missing while typing bills a real partner a real
+            amount. One notice naming the channels rather than a line per row. */}
+        {implausibleRates.length > 0 ? (
+          <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-cami-yellow-12">
+            <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              {implausibleRates
+                .map(
+                  (c) =>
+                    `${CHANNEL_LABEL[c]} at ${formatRate(resolvedRate(config, c, globalRates))}`,
+                )
+                .join(" and ")}{" "}
+              {implausibleRates.length === 1 ? "is" : "are"} far above a normal per-message rate —
+              check for a missing decimal point. {business.name} is billed on this.
+            </span>
+          </p>
+        ) : null}
+
         <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 px-3 py-2">
           <span className="text-sm text-muted-foreground">
             {totalSends(config).toLocaleString("en-US")} messages this period

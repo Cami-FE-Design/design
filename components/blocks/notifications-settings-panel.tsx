@@ -26,7 +26,7 @@ import {
   MessageSquareIcon,
   XIcon,
 } from "lucide-react"
-import { useSearchParams } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
@@ -50,16 +50,21 @@ import {
   CHANNEL_LABEL,
   CHANNELS,
   channelEnabled,
+  costShare,
   effectiveSenderId,
   eventLabel,
   FALLBACK_SENDER_ID,
   formatRate,
+  groupLogByDay,
+  logTime,
   MERCHANT_SEES_RATES,
   type NotificationChannel,
   type NotificationLogEntry,
   type NotificationStatus,
+  periodShape,
   periodTotalCost,
   REMINDER_EVENTS,
+  type ReminderEvent,
   type SenderId,
   type SenderIdStatus,
   senderIdLocked,
@@ -75,6 +80,31 @@ const CHANNEL_ICON: Record<NotificationChannel, typeof MailIcon> = {
   email: MailIcon,
   sms: MessageSquareIcon,
   whatsapp: MessageCircleIcon,
+}
+
+/**
+ * Fill per channel, for the usage card's share bar and its legend swatches.
+ *
+ * Picked for separation, which took two goes. The first pairing was violet-9
+ * against pink-9 — `#362a82` and `#80649b`, both purple, differing only in
+ * lightness. On a 8px bar they read as one colour in two shades, which is
+ * precisely the thing a share bar cannot afford.
+ *
+ * The palette offers six `-9` steps. yellow-9 (`#f3f100`) is the loud accent and
+ * would swallow a meter whole; gray-9 (`#8c84c6`) and pink-9 sit in violet's
+ * family. That leaves the one triple that separates on hue *and* lightness:
+ *
+ *   violet `#362a82` dark indigo · sage `#82949e` grey-blue · green `#90df85` light
+ *
+ * WhatsApp takes green because that association is already in every user's head.
+ * SMS takes the darkest ink because it is the channel that dominates the bill
+ * (81% here, on fewer sends than email), so the heaviest segment carries the
+ * heaviest colour. Email, the cheap high-volume one, takes the neutral.
+ */
+const CHANNEL_FILL: Record<NotificationChannel, string> = {
+  email: "bg-cami-sage-9",
+  sms: "bg-cami-violet-9",
+  whatsapp: "bg-cami-green-9",
 }
 
 // ── Sender ID ────────────────────────────────────────────────────────────────
@@ -115,14 +145,21 @@ const SENDER_STATE: Record<
   },
 }
 
+/**
+ * The notice says what the field and the pill can't: what to do, or what is
+ * happening elsewhere. Anything the field already states is left out of it —
+ * "Messages send as CAMI" next to a field reading "CAMI (default)", and "SMS
+ * arrives from X" next to a field reading X and an Approved pill, were both the
+ * third telling of one fact.
+ */
 function senderNotice(senderId: SenderId): string {
   switch (senderId.status) {
     case "not-submitted":
-      return `Messages send as ${FALLBACK_SENDER_ID}. Add your own Sender ID to have SMS arrive under your business name instead.`
+      return `Add your own Sender ID to have SMS arrive under your business name instead of ${FALLBACK_SENDER_ID}.`
     case "submitted":
-      return `${senderId.value} is with the carrier for registration. Until it's approved, messages keep sending as ${FALLBACK_SENDER_ID}.`
+      return `Registration is with the carrier. Until it's approved, messages keep sending as ${FALLBACK_SENDER_ID}.`
     case "approved":
-      return `SMS arrives from ${senderId.value}. Customers see this name instead of a phone number.`
+      return "Customers see this name instead of a phone number."
     case "rejected":
       return (
         senderId.rejectionReason ??
@@ -186,21 +223,69 @@ function SenderIdCard({ onEdit }: { onEdit: () => void }) {
         </Button>
       </header>
 
+      {/*
+        No field label. The card is titled "Sender ID" and its description says
+        what one is; a third "Sender ID" inside 100px is the word, not the
+        information.
+
+        The line under the field is conditional, because it is only sometimes
+        worth saying. It states what customers actually see, which the field
+        already shows whenever the two agree:
+
+          not-submitted  field "CAMI (default)"  · effective CAMI       → same
+          submitted      field their value       · effective CAMI       → differs
+          approved       field their value       · effective their value → same
+          rejected       field their value       · effective CAMI       → differs
+
+        So it renders in exactly the two states where a registration is in
+        flight or was refused — which is the gap this card exists to expose —
+        and stays quiet when it would only repeat the field.
+      */}
       <div className="flex w-full max-w-md flex-col gap-1.5">
-        <span className="text-sm font-medium leading-5 text-foreground">Sender ID</span>
-        <div className="flex h-12 items-center rounded-2xl bg-input px-4">
-          <span
-            className={cn(
-              "text-sm font-medium",
-              senderId.value ? "text-foreground" : "text-muted-foreground",
-            )}
+        {/*
+          The field opens the dialog too.
+
+          It carries `bg-input h-12 rounded-2xl` — the exact costume of an input
+          — and wasn't one, so the obvious thing to try was clicking it and the
+          obvious thing to happen was nothing. Either the affordance goes or it
+          becomes real; real is better, because reaching for the value you want to
+          change is the more natural gesture than crossing to a button in the
+          opposite corner. The header button stays: it's the explicit, labelled
+          path, and it's the one that says "Add" versus "Edit".
+
+          While a registration is pending the field is a plain div, matching the
+          disabled header button — clickable-but-refused is a worse answer than
+          not clickable.
+        */}
+        {locked ? (
+          <div className="flex h-12 items-center rounded-2xl bg-input px-4">
+            <span className="text-sm font-medium text-foreground">{senderId.value}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label={senderId.value ? "Edit your Sender ID" : "Add a Sender ID"}
+            // Same classes as the clickable field in package-form.tsx, hover
+            // included — that pattern already exists for exactly this, so the
+            // two shouldn't answer the hover question differently.
+            className="flex h-12 items-center rounded-2xl bg-input px-4 text-left transition-colors hover:bg-input/70"
           >
-            {senderId.value ?? `${FALLBACK_SENDER_ID} (default)`}
+            <span
+              className={cn(
+                "text-sm font-medium",
+                senderId.value ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {senderId.value ?? `${FALLBACK_SENDER_ID} (default)`}
+            </span>
+          </button>
+        )}
+        {senderId.value && effectiveSenderId(senderId) !== senderId.value ? (
+          <span className="text-sm leading-5 text-muted-foreground">
+            Customers currently see <strong>{effectiveSenderId(senderId)}</strong>.
           </span>
-        </div>
-        <span className="text-sm leading-5 text-muted-foreground">
-          Customers currently see <strong>{effectiveSenderId(senderId)}</strong>.
-        </span>
+        ) : null}
       </div>
 
       <Notice icon={state.icon} className={state.noticeClass}>
@@ -334,7 +419,13 @@ function SenderIdDialog({
 
 // ── Reminders matrix ─────────────────────────────────────────────────────────
 
-function RemindersCard({ showRates }: { showRates: boolean }) {
+function RemindersCard({
+  showRates,
+  onEditCopy,
+}: {
+  showRates: boolean
+  onEditCopy: (event: ReminderEvent) => void
+}) {
   const { events, grant, toggleEvent } = useNotifications()
   // Rates come from the HQ store, not a merchant-side copy. Two sources for one
   // price drift apart, and the merchant's is the one that would silently go
@@ -400,7 +491,23 @@ function RemindersCard({ showRates }: { showRates: boolean }) {
             <div className="flex min-w-0 flex-col">
               {/* Truncation only makes sense in a fixed column. Stacked, the
                   title has the full card width and should use it. */}
-              <span className="text-sm font-medium text-foreground sm:truncate">{event.label}</span>
+              {/* The label is a link into the template editor (DSG-83) — this
+                  card answers "does it send", the templates panel answers "what
+                  does it say", and the two are the obvious next question from
+                  each other. Defaults to the email template: email is the one
+                  channel that's always granted, so the link can never land on a
+                  channel this merchant doesn't have. */}
+              <button
+                type="button"
+                onClick={() => onEditCopy(event.id)}
+                // Underline on hover only. Permanently underlining all seven
+                // labels turned a settings table into a list of links — the
+                // affordance has to be discoverable without being the loudest
+                // thing in the card, and the switches are what this card is for.
+                className="text-left text-sm font-medium text-foreground decoration-1 underline-offset-2 transition-colors hover:underline sm:truncate"
+              >
+                {event.label}
+              </button>
               <span className="text-xs text-muted-foreground sm:truncate">{event.description}</span>
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-2 sm:contents">
@@ -464,6 +571,18 @@ function UsageCard({ onViewLog, showRates }: { onViewLog: () => void; showRates:
   const { periodUsage, grant } = useNotifications()
   const { rates } = useHqRates()
   const total = useMemo(() => periodTotalCost(periodUsage), [periodUsage])
+  // Derived from DEMO_TODAY, not a hardcoded "1 – 10 August" that went stale the
+  // day after it was written.
+  const period = useMemo(() => periodShape(total), [total])
+
+  // `shown` drives the rows and the legend; `billed` only the bar's segments.
+  // Keeping them separate is what lets the legend list WhatsApp at 0% — a key
+  // that omits a channel the rows below list reads as a bug, and a 0% share
+  // cannot be drawn as a segment.
+  const shown = CHANNELS.filter(
+    (c) => grant[c] || periodUsage[c].sent > 0 || periodUsage[c].failed > 0,
+  )
+  const billed = CHANNELS.filter((c) => periodUsage[c].cost > 0)
 
   return (
     <section className={cardClass}>
@@ -473,13 +592,80 @@ function UsageCard({ onViewLog, showRates }: { onViewLog: () => void; showRates:
             Usage this month
           </h3>
           <p className="text-sm leading-5 text-muted-foreground">
-            1 &ndash; 10 August. Your invoice is issued at the end of the month.
+            {period.label}. Your invoice is issued at the end of the month.
           </p>
         </div>
         <Button type="button" variant="secondary" size="sm" radius="full" onClick={onViewLog}>
           View log
         </Button>
       </header>
+
+      {/*
+        Share of cost, as one bar.
+
+        Three costs in a column are three unrelated numbers: the card held the
+        most useful fact about this bill and showed it nowhere. SMS is 81% of
+        AED 42.92 on *fewer* sends than email — "what is driving this" is the
+        question a merchant brings to a usage card, and a proportion answers it
+        in one glance where three right-aligned figures need arithmetic.
+
+        A meter, not a chart: the same geometry as the import progress bar
+        (progress-panel.tsx), stacked. recharts earns its keep on the reporting
+        dashboards; for one proportion in a settings card it would be a
+        dependency and a render pass to draw four divs.
+
+        Hidden with the rates — it is a picture *of* the costs, so leaving it up
+        while the figures are withheld would leak the ratio they hide.
+      */}
+      {showRates && billed.length > 1 ? (
+        <div className="flex flex-col gap-2">
+          {/* The segments are decoration; the label carries the same split in
+              words, because a screen reader gets nothing from three divs. The
+              legend below repeats it visually, so nothing here is the only copy
+              of the fact. */}
+          <div
+            className="flex h-2 w-full overflow-hidden rounded-full bg-muted"
+            role="img"
+            aria-label={`Share of cost: ${billed
+              .map(
+                (c) =>
+                  `${CHANNEL_LABEL[c]} ${Math.round(costShare(periodUsage, c) * 100)} per cent`,
+              )
+              .join(", ")}`}
+          >
+            {billed.map((channel) => (
+              <div
+                key={channel}
+                className={cn(
+                  "h-full first:rounded-l-full last:rounded-r-full",
+                  CHANNEL_FILL[channel],
+                )}
+                style={{ width: `${costShare(periodUsage, channel) * 100}%` }}
+                aria-hidden
+              />
+            ))}
+          </div>
+          {/* "Share of cost" is not decoration. Unlabelled, the bar reads just as
+              easily as share of *sends*, and the two are wildly different: SMS is
+              81% of the cost on 41% of the sends. A bar of the wrong quantity is
+              worse than no bar.
+              The legend lists every channel the rows list, including one at 0% —
+              a key that omits a channel visible right below it reads as a bug,
+              and a 0% share has no segment to point at. */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="text-xs font-medium text-foreground">Share of cost</span>
+            {shown.map((channel) => (
+              <span
+                key={channel}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground"
+              >
+                <span className={cn("size-2 shrink-0 rounded-full", CHANNEL_FILL[channel])} />
+                {CHANNEL_LABEL[channel]} {Math.round(costShare(periodUsage, channel) * 100)}%
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-col">
         {CHANNELS.filter(
@@ -490,11 +676,16 @@ function UsageCard({ onViewLog, showRates }: { onViewLog: () => void; showRates:
           return (
             <div
               key={channel}
-              className="flex items-center gap-3 border-b border-border/40 py-3 last:border-b-0"
+              className="flex items-start gap-3 border-b border-border/40 py-3 last:border-b-0"
             >
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background text-muted-foreground">
-                <Icon className="size-5" />
-              </div>
+              {/* Bare icon. The 40px bordered box was a frame inside a framed
+                  card, and the same box was just removed from the log rows for
+                  the same reason — the channel is a one-bit fact.
+                  items-start + mt-0.5 puts it on the channel name, the same way
+                  the log rows do it. With items-center it floated between the two
+                  lines and aligned to nothing, while the eye pairs it with the
+                  label — and the two surfaces disagreed about their own rows. */}
+              <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
               <div className="flex min-w-0 flex-col">
                 <span className="text-sm font-medium leading-5 text-foreground">
                   {CHANNEL_LABEL[channel]}
@@ -523,8 +714,13 @@ function UsageCard({ onViewLog, showRates }: { onViewLog: () => void; showRates:
                   AED 8.24), so it hides with the rates. The period total below
                   stays — it's what they owe, and one number can't be solved
                   back into two per-channel rates. */}
+              {/* leading-5 to match the channel name it now sits beside: the row
+                  is items-start, so the cost lands on the first line with the
+                  label rather than floating against the block. Label and its
+                  amount on one baseline read as a pair — the same arrangement the
+                  log rows use for event, status and cost. */}
               {showRates ? (
-                <span className="ms-auto text-sm font-medium text-foreground">
+                <span className="ms-auto text-sm font-medium leading-5 text-foreground">
                   {formatRate(row.cost)}
                 </span>
               ) : null}
@@ -533,11 +729,29 @@ function UsageCard({ onViewLog, showRates }: { onViewLog: () => void; showRates:
         })}
       </div>
 
-      <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted/40 px-4 py-3">
-        <span className="text-sm font-medium text-foreground">Total so far</span>
-        <span className="font-heading text-lg font-semibold text-foreground">
-          {formatRate(total)}
-        </span>
+      {/* "Total so far" implied a trajectory and showed none. The projection is
+          the straight line from what's already been consumed — labelled an
+          estimate, and suppressed for the first two days of a month, where one
+          day extrapolated over thirty-one is noise wearing a number's clothes.
+          It sits under the total, not beside it: what they owe today is the
+          fact, and the month-end figure is the inference. */}
+      <div className="flex flex-col gap-1.5 rounded-2xl bg-muted/40 px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-foreground">Total so far</span>
+          <span className="font-heading text-lg font-semibold text-foreground">
+            {formatRate(total)}
+          </span>
+        </div>
+        {showRates && period.projected !== null && total > 0 ? (
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs text-muted-foreground">
+              At this rate, by {period.endLabel}
+            </span>
+            <span className="text-xs tabular-nums text-muted-foreground">
+              about {formatRate(period.projected)}
+            </span>
+          </div>
+        ) : null}
       </div>
     </section>
   )
@@ -608,11 +822,37 @@ function LogTab({ showRates }: { showRates: boolean }) {
           />
         </section>
       ) : (
-        <ol className="flex flex-col gap-2">
-          {visible.map((entry) => (
-            <LogRow key={entry.id} entry={entry} showRates={showRates} />
+        // One bordered card with divided rows, not a card per send.
+        //
+        // Per-row cards cost a border, a radius and 16px of padding each to
+        // separate rows a 1px rule already separates, and the demo's eight rows
+        // are not the case to design for — a real month is hundreds, paginated.
+        // At that length the borders are the loudest thing on a surface whose
+        // whole job is scanning. It is also the idiom the rest of the repo uses
+        // for a list of rows (documents-files-card, Communication templates), so
+        // the log stops looking like a different product one tab over.
+        // Grouped by day, like the money activity feed. "Did today's reminders
+        // actually go out" is the question this tab exists to answer, and an
+        // ungrouped list makes you read every row's time to find the boundary.
+        // The day count sits on the header: it's the number someone checking a
+        // quiet day actually wants, and it costs nothing to state.
+        <div className="flex flex-col gap-5">
+          {groupLogByDay(visible).map((group) => (
+            <section key={group.day} className="flex flex-col gap-2">
+              <div className="flex items-baseline gap-2">
+                <h4 className="text-sm font-medium text-foreground">{group.label}</h4>
+                <span className="text-xs text-muted-foreground">
+                  {group.entries.length} {group.entries.length === 1 ? "message" : "messages"}
+                </span>
+              </div>
+              <ol className="flex flex-col divide-y divide-border/60 overflow-hidden rounded-2xl border border-border/60">
+                {group.entries.map((entry) => (
+                  <LogRow key={entry.id} entry={entry} showRates={showRates} />
+                ))}
+              </ol>
+            </section>
           ))}
-        </ol>
+        </div>
       )}
 
       {/* Says "most recent", not "every message this period". The Usage card's
@@ -629,10 +869,11 @@ function LogRow({ entry, showRates }: { entry: NotificationLogEntry; showRates: 
   const Icon = CHANNEL_ICON[entry.channel]
   const status = LOG_STATUS[entry.status]
   return (
-    <li className="flex gap-3 rounded-2xl border border-border/60 bg-card p-4">
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/50 bg-background text-muted-foreground">
-        <Icon className="size-5" />
-      </div>
+    <li className="flex gap-3 px-5 py-3.5">
+      {/* Bare icon, not a 40px bordered box. The box was a second frame inside
+          a framed row, and the channel is a one-bit fact — it doesn't need the
+          same visual weight as the message. mt-0.5 sits it on the first line. */}
+      <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-foreground">{eventLabel(entry.event)}</span>
@@ -646,8 +887,10 @@ function LogRow({ entry, showRates }: { entry: NotificationLogEntry; showRates: 
             </span>
           ) : null}
         </div>
+        {/* Time only — the day is the group header's job now, and repeating it
+            on every row is what the grouping was meant to remove. */}
         <span className="truncate text-xs text-muted-foreground">
-          {entry.recipientName} · {entry.recipient} · {entry.sentAt}
+          {entry.recipientName} · {entry.recipient} · {logTime(entry.sentAt)}
         </span>
         <p className="line-clamp-2 text-sm leading-5 text-foreground">{entry.body}</p>
         {/* Inline, not behind a tooltip — a failure is the one row type someone
@@ -664,8 +907,11 @@ function LogRow({ entry, showRates }: { entry: NotificationLogEntry; showRates: 
 
 export function NotificationsSettingsPanel() {
   const searchParams = useSearchParams()
+  const pathname = usePathname() ?? "/"
+  const router = useRouter()
   const { name: businessName } = useDemoBusiness()
-  const { senderId, grant, log, setSenderIdStatus, setGrant } = useNotifications()
+  const { senderId, grant, log, periodUsage, setSenderIdStatus, setGrant, setWhatsAppUsage } =
+    useNotifications()
 
   const [tab, setTab] = useState(searchParams?.get("nt") === "log" ? "log" : "settings")
   // `?nr=hidden` previews the merchant portal with prices withheld — the open
@@ -673,6 +919,19 @@ export function NotificationsSettingsPanel() {
   // MERCHANT_SEES_RATES in lib/notifications/types.ts.
   const showRates = MERCHANT_SEES_RATES && searchParams?.get("nr") !== "hidden"
   const [senderDialog, setSenderDialog] = useState(searchParams?.get("nt") === "sender")
+
+  // Hand off to the Communication templates panel (DSG-83). The settings dialog
+  // is URL-driven (app-settings-controller.tsx), so switching category is a
+  // param change rather than shared state between two panels.
+  const editCopy = (event: ReminderEvent) => {
+    const next = new URLSearchParams(searchParams?.toString() ?? "")
+    next.set("settings", "comms-templates")
+    next.set("ce", `${event}:email`)
+    // Params owned by this panel would otherwise follow us into the next one.
+    next.delete("nt")
+    next.delete("nr")
+    router.replace(`${pathname}?${next.toString()}`, { scroll: false })
+  }
 
   // Demo: walk the Sender ID states. The transitions out of `submitted` are HQ
   // decisions taken in another portal, so nothing here could reach them.
@@ -714,7 +973,7 @@ export function NotificationsSettingsPanel() {
           className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pr-1"
         >
           <SenderIdCard onEdit={() => setSenderDialog(true)} />
-          <RemindersCard showRates={showRates} />
+          <RemindersCard showRates={showRates} onEditCopy={editCopy} />
           <UsageCard onViewLog={() => setTab("log")} showRates={showRates} />
         </TabsContent>
 
@@ -733,6 +992,20 @@ export function NotificationsSettingsPanel() {
         >
           Demo: WhatsApp {grant.whatsapp ? "granted" : "not granted"}
         </button>
+        {/* Third control, and it exists for coverage rather than for a decision
+            taken elsewhere: the shipped default has WhatsApp at zero cost, which
+            made the usage card's three-segment share bar unreachable. Only
+            offered while the channel is granted — consumption on an ungranted
+            channel is a state the grant model cannot produce. */}
+        {grant.whatsapp ? (
+          <button
+            type="button"
+            onClick={() => setWhatsAppUsage(periodUsage.whatsapp.cost === 0)}
+            className="text-xs text-muted-foreground/40 transition-colors hover:text-muted-foreground"
+          >
+            Demo: WhatsApp {periodUsage.whatsapp.cost > 0 ? "consuming" : "unused"}
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={() => setSenderIdStatus(nextStatus[senderId.status])}

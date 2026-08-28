@@ -3,6 +3,7 @@
 import {
   BellIcon,
   ChevronLeftIcon,
+  CircleAlertIcon,
   GlobeIcon,
   InfoIcon,
   type LucideIcon,
@@ -11,7 +12,7 @@ import {
 } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import type * as React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { PermissionRolesPane } from "@/components/blocks/permission-roles-pane"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
@@ -21,7 +22,13 @@ import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/co
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-mock"
 import { useHqRates } from "@/lib/notifications/hq-store"
-import { CHANNEL_LABEL, CHANNELS, formatRate } from "@/lib/notifications/types"
+import {
+  CHANNEL_LABEL,
+  CHANNELS,
+  formatRate,
+  type NotificationChannel,
+  rateLooksImplausible,
+} from "@/lib/notifications/types"
 import { cn } from "@/lib/utils"
 
 type SettingsCategory = {
@@ -256,6 +263,53 @@ function RolesPanel() {
 function NotificationRatesPanel() {
   const { rates, setRate, reset } = useHqRates()
 
+  /**
+   * Where each rate stood when the field took focus, so blur can tell a real
+   * edit from a click that landed and left.
+   *
+   * Writes still persist as typed — the panel has no Save and shouldn't grow
+   * one. But a rate that changes what every partner is billed and says nothing
+   * back is unnerving: Reset gets a toast, and until now editing got silence.
+   * Confirming on blur rather than per keystroke is also exactly what the
+   * per-partner override editor does (business-detail-dialog's `commitRate`), so
+   * the two rate surfaces now behave the same way instead of one being chatty
+   * and the other mute.
+   */
+  const rateAtFocus = useRef<Partial<Record<NotificationChannel, number>>>({})
+
+  /**
+   * What the user has literally typed, per channel, while a field has focus.
+   *
+   * The field cannot be bound straight to the number. Display was
+   * `String(rates[channel])` and every keystroke was parsed back with `Number`,
+   * so the round trip ate any decimal still being typed: "0." → 0 → "0", and the
+   * point vanished the instant it was entered. A decimal rate was literally
+   * untypeable — digits just accumulated, which is how a rate of AED 2266 per
+   * message got in.
+   *
+   * So the draft holds the raw string and the number is derived from it. `null`
+   * (absent) means "show the stored value", which is what blur restores so the
+   * field ends up canonically formatted rather than however it was typed.
+   */
+  const [rateDraft, setRateDraft] = useState<Partial<Record<NotificationChannel, string>>>({})
+
+  const implausible = CHANNELS.filter((c) => rateLooksImplausible(rates[c]))
+
+  function commitRate(channel: NotificationChannel) {
+    const before = rateAtFocus.current[channel]
+    const after = rates[channel]
+    rateAtFocus.current[channel] = undefined
+    // Drop the draft so the field re-renders from the stored number.
+    setRateDraft((d) => {
+      const { [channel]: _typed, ...rest } = d
+      return rest
+    })
+    if (before === undefined || before === after) return
+    toast.success(
+      `${CHANNEL_LABEL[channel]} rate is now ${formatRate(after)} per message for every partner without an override.`,
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col">
@@ -264,7 +318,24 @@ function NotificationRatesPanel() {
           <SettingRow
             key={channel}
             label={CHANNEL_LABEL[channel]}
-            description={`Billed per message sent. Currently ${formatRate(rates[channel])}.`}
+            // The old description read "Billed per message sent. Currently AED
+            // 0.02." — the first half is what the panel description above
+            // already says, and the second half was a literal echo of the input
+            // beside it, re-rendering in lockstep with it since writes persist
+            // as typed.
+            //
+            // SMS gets a description because it has a fact the field cannot
+            // carry: the rate is per 160-character segment, so a long message
+            // bills twice (PRO-989 — the payment link alone is 69 characters and
+            // a long merchant name pushes a send to ~153/160, where "any
+            // overflow doubles cost per send"). That is the mechanic an invoice
+            // dispute turns on, and the rates screen is where it belongs. Email
+            // and WhatsApp are per message, which the panel header already says.
+            description={
+              channel === "sms"
+                ? "Charged per 160-character segment — a longer message counts as two."
+                : undefined
+            }
             control={
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">AED</span>
@@ -272,10 +343,26 @@ function NotificationRatesPanel() {
                   inputMode="decimal"
                   className="h-9! w-16 rounded-xl px-2.5 text-right"
                   aria-label={`${CHANNEL_LABEL[channel]} rate, United Arab Emirates`}
-                  value={String(rates[channel])}
+                  value={rateDraft[channel] ?? String(rates[channel])}
+                  onFocus={() => {
+                    rateAtFocus.current[channel] = rates[channel]
+                  }}
+                  onBlur={() => commitRate(channel)}
                   onChange={(e) => {
-                    const next = Number(e.target.value)
-                    if (!Number.isFinite(next) || next < 0) return
+                    const raw = e.target.value
+                    // Digits and at most one point. Rejecting on the *string*
+                    // rather than on Number() is the whole fix: it lets "0." and
+                    // "0.0" through as valid intermediate states while still
+                    // refusing letters, signs and a second point. A negative is
+                    // impossible by construction, so no `< 0` check is needed.
+                    if (raw !== "" && !/^\d*\.?\d*$/.test(raw)) return
+                    setRateDraft((d) => ({ ...d, [channel]: raw }))
+                    const next = Number(raw)
+                    // "" and "." both parse to something useless; keep the last
+                    // stored rate until the draft is a number again.
+                    if (raw === "" || !Number.isFinite(next)) return
+                    // No toast here — one per keystroke. commitRate on blur
+                    // confirms the whole edit once.
                     setRate(channel, next)
                   }}
                 />
@@ -284,6 +371,24 @@ function NotificationRatesPanel() {
           />
         ))}
       </div>
+
+      {/* One notice naming the offending channels, not a line per row — the same
+          call as the templates panel: a per-row warning that only ever fires on
+          one row still costs every row the space to say nothing. Names the value
+          and the likely cause, because "unusually high" alone leaves the reader
+          to work out that a decimal went missing. A warning, not a block: the
+          rate is a commercial decision, and this screen is where a typo bills
+          every partner without an override. */}
+      {implausible.length > 0 ? (
+        <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-cami-yellow-12">
+          <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            {implausible.map((c) => `${CHANNEL_LABEL[c]} at ${formatRate(rates[c])}`).join(" and ")}{" "}
+            {implausible.length === 1 ? "is" : "are"} far above a normal per-message rate — check
+            for a missing decimal point. This is what every partner without an override is billed.
+          </span>
+        </p>
+      ) : null}
 
       <p className="flex items-start gap-2 rounded-xl bg-muted/50 p-3 text-sm leading-5 text-muted-foreground">
         <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -306,7 +411,11 @@ function NotificationRatesPanel() {
             toast.success("Rates restored to platform defaults")
           }}
         >
-          Restore defaults
+          {/* Not "Restore defaults": this screen *is* the defaults, so that read
+              as restoring the thing you're looking at. "Platform defaults" is
+              the vocabulary the notice above and the toast below already use for
+              the shipped numbers. */}
+          Reset to platform defaults
         </Button>
       </div>
     </div>
@@ -321,14 +430,26 @@ type SettingRowProps = {
 
 function SettingRow({ label, description, control }: SettingRowProps) {
   return (
-    <div className="flex items-start justify-between gap-6 border-t border-border/40 py-5 first:border-t-0 first:pt-0">
+    <div
+      className={cn(
+        "flex items-start justify-between gap-6 border-t border-border/40 first:border-t-0 first:pt-0",
+        // py-5 was sized for a two-line row. On a row with no description it
+        // left ~77px of box around 20px of text, so the rates panel read as
+        // three labels floating in air. Two rows further down this file were
+        // already description-less and had the same problem, so the padding
+        // follows the content rather than each caller compensating.
+        description ? "py-5" : "py-3.5",
+      )}
+    >
       <div className="flex min-w-0 flex-col gap-1">
         <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
         {description ? (
           <span className="text-xs leading-4 text-muted-foreground">{description}</span>
         ) : null}
       </div>
-      <div className="shrink-0">{control}</div>
+      {/* Centred against a single-line row so a 36px input doesn't hang below a
+          20px label; top-aligned when there's a description to sit beside. */}
+      <div className={cn("shrink-0", description ? "" : "-my-1.5 self-center")}>{control}</div>
     </div>
   )
 }

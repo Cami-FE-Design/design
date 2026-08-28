@@ -10,8 +10,72 @@
 > `lib/notifications/store.tsx`, platform rate list in
 > `lib/notifications/hq-store.tsx`, per-partner config on
 > `AdminBusiness.notifications`.
-> Reviewable from `/screens` under "Pet Business, notifications" and "Cami HQ,
-> notification control plane". Known gaps are marked in place below.
+> Reviewable from `/screens` under "Pet Business, notifications and templates"
+> and "Cami HQ, notification control plane". Known gaps are marked in place below.
+>
+> **Revised while DSG-83 was built**, since the two ship on one branch. Five
+> changes to the merchant panel, four to the HQ side, and one deletion from the
+> model — but nothing to the model's structure:
+>
+> - **Sender ID says CAMI once.** The card stated it three times — the field, the
+>   line beneath it, and the notice. The line now renders only when what
+>   customers see differs from what was entered, which is exactly `submitted` and
+>   `rejected`; in `not-submitted` and `approved` the field already says it. The
+>   notice dropped the half the field was already carrying, and the duplicate
+>   field label went.
+> - **Reminders event labels link into their template editor** — the "degrades
+>   gracefully into a row of template links" hand-off this spec wrote for itself.
+>   Underlined on hover only; permanently underlining all seven turned a settings
+>   table into a list of links.
+> - **`NotificationLogEntry.sentAt` is a real ISO timestamp**, not the
+>   pre-formatted `"Yesterday 10:15"` it shipped as, and the Log groups by day
+>   with a per-day count. Grouping is string arithmetic on the ISO value rather
+>   than `Date` parsing, so a 23:30 +04:00 send can't bucket to the previous day
+>   for a reviewer in another timezone, and a fixed `DEMO_TODAY` keeps fixtures
+>   from re-bucketing at midnight. Log rows are one bordered card with divided
+>   rows rather than a card each.
+> - **A third demo control, for coverage.** `Demo: WhatsApp unused / consuming`
+>   flips `periodUsage.whatsapp` between zero and 214 sends. Unlike the other two
+>   it stands in for nothing HQ decides — it exists because the shipped default
+>   has WhatsApp at zero, which made the share bar's three-segment state
+>   unreachable and so unreviewable. Deliberately not mirrored into `DEMO_LOG`:
+>   `periodUsage` is a period aggregate and the log is the most recent sends, and
+>   this spec already relies on the two not being derived from each other.
+> - **HQ: a decimal rate was untypeable.** Both rate editors bound the field to
+>   the number and parsed every keystroke back with `Number`, so the round trip
+>   ate the decimal point as it was entered — `"0."` → `0` → `"0"`. Digits merely
+>   accumulated, which is how a rate of AED 2266 per message got in. The field now
+>   binds to the typed string and validation guards the string, not the parsed
+>   number, which is what lets `"0."` and `"0.0"` through as intermediate states.
+> - **HQ: blank now means inherited.** The per-partner Rates card has always said
+>   "Blank inherits the global rate" and the field never was blank — it rendered
+>   the resolved rate, so inheriting and overridden looked identical, and `onChange`
+>   wrote the override unconditionally, making a partner overridden forever the
+>   moment the field was touched. Clearing it, or typing the global value back,
+>   now returns them to inheriting; the placeholder carries the inherited number.
+> - **HQ: rates warn above AED 1.00**, naming the channel and the likely cause (a
+>   missing decimal). A warning, never a block — the rate is a commercial decision
+>   — but AED 1.00 is eight times the highest real rate, and it stays quiet at
+>   0.24 because that is a legitimate doubled SMS segment. `IMPLAUSIBLE_RATE` is
+>   shared so the two rate surfaces cannot disagree. Editing also confirms on blur
+>   with a toast, matching the per-partner editor's existing `commitRate`; Reset
+>   had feedback and editing had silence.
+> - **HQ: Sender ID says it once**, the same rule as the merchant card, including
+>   the `senderId.value` null guard — without it, a partner with no Sender ID on
+>   file rendered "CUSTOMERS SEE CAMI" beside a registered name of
+>   "CAMI (default)". Velvet Paw and Furry Tales both land in that state.
+>   The global rates panel also drops its per-row descriptions, which repeated the
+>   panel header and echoed the input; SMS keeps one, for the 160-character
+>   segment rule (PRO-989) that the field genuinely cannot carry.
+> - **Two exported helpers deleted.** `usageByChannel(log)` and `totalCost(log)`
+>   had no callers and derived period usage by summing the log — the one thing
+>   this model says not to do, and the source of the AED 0.49-for-AED-42.92 bug.
+> - **Usage leads with a share-of-cost bar and ends with a month-end estimate.**
+>   The card held the most useful fact about the bill — SMS is 81% of it on fewer
+>   sends than email — and showed it nowhere. The bar is a meter reusing the
+>   import progress-bar geometry, not a chart, and it hides with the rates since
+>   it would otherwise leak the ratio the withheld figures hide. The period label
+>   derives from the data instead of a hardcoded `1 – 10 August`.
 
 Follow-on to the Notifications & Reminders sign-off. Everything here was
 **explicitly excluded** from that sign-off (Ahsan, standup) but the backend is
