@@ -23,6 +23,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
 import { DatePicker } from "@/components/blocks/date-picker"
+import { SectionCard } from "@/components/blocks/section-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -85,26 +86,6 @@ const RAIL_ICON: Record<CamiPayRail, LucideIcon> = {
 /* -------------------------------------------------------------------------- */
 /* Shell                                                                      */
 /* -------------------------------------------------------------------------- */
-
-function Card({
-  title,
-  hint,
-  children,
-}: {
-  title: string
-  hint?: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <section className="flex flex-col gap-1 rounded-2xl border border-border/60 bg-card p-4">
-      <header className="flex items-center justify-between gap-2 pb-1">
-        <h3 className="text-sm font-medium text-foreground">{title}</h3>
-        {hint}
-      </header>
-      {children}
-    </section>
-  )
-}
 
 function FootNote({
   icon: Icon = InfoIcon,
@@ -418,9 +399,9 @@ function CamiPayCard({
   const rows = merchantRates(camipay, business.id)
 
   return (
-    <Card
+    <SectionCard
       title="CamiPay"
-      hint={<span className="text-xs text-muted-foreground">Set at Business level</span>}
+      action={<span className="text-xs text-muted-foreground">Set at Business level</span>}
     >
       <div className="flex flex-col">
         {CAMIPAY_RAILS.map((rail) => (
@@ -447,7 +428,7 @@ function CamiPayCard({
           question ops asks is "what has this Partner been charged", not "what
           has this rail been". */}
       <RateHistory rows={rows} />
-    </Card>
+    </SectionCard>
   )
 }
 
