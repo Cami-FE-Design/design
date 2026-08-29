@@ -25,6 +25,7 @@ import { toast } from "sonner"
 import * as z from "zod"
 import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
 import { LoginAsOwnerDialog } from "@/components/blocks/login-as-owner-dialog"
+import { SectionCard } from "@/components/blocks/section-card"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -426,26 +427,6 @@ function BusinessAvatar({ business }: { business: AdminBusiness }) {
     >
       {initials}
     </span>
-  )
-}
-
-function SectionCard({
-  title,
-  action,
-  children,
-}: {
-  title: string
-  action?: React.ReactNode
-  children: React.ReactNode
-}) {
-  return (
-    <section className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
-      <header className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-medium text-foreground">{title}</h3>
-        {action}
-      </header>
-      {children}
-    </section>
   )
 }
 
