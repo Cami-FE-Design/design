@@ -5,6 +5,7 @@ import {
   HeadsetIcon,
   HomeIcon,
   type LucideIcon,
+  MonitorSmartphoneIcon,
   ScrollTextIcon,
   SettingsIcon,
   UserCogIcon,
@@ -29,6 +30,15 @@ export const adminTopMenu: AdminMenuItem[] = [
     icon: ContactRoundIcon,
     label: "Partners",
     href: "/admin/businesses",
+    permission: "merchants.view",
+  },
+  {
+    // Cami owns the card machines and leases them out (DSG-82), so the fleet is
+    // its own listing rather than a tab inside one Partner: the question support
+    // starts from is "who has this serial", which no per-Partner view answers.
+    icon: MonitorSmartphoneIcon,
+    label: "Terminals",
+    href: "/admin/terminals",
     permission: "merchants.view",
   },
   { icon: CreditCardIcon, label: "Billing", href: "/admin/billing", permission: "billing.read" },

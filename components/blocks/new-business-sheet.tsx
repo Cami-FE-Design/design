@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { generateMerchantCode } from "@/lib/admin-businesses"
 import { FALLBACK_SENDER_ID, validateSenderId } from "@/lib/notifications/types"
 
 const businessSchema = z.object({
@@ -109,7 +110,11 @@ export function NewBusinessSheet({ open, onOpenChange, onCreated }: NewBusinessS
     onCreated?.(values)
     const senderId = values.senderId.trim()
     const ownSenderId = senderId && senderId.toUpperCase() !== FALLBACK_SENDER_ID
-    toast.success(`${values.name} created`, {
+    // Issued here rather than asked for: the code is immutable and meaningless
+    // by design (DSG-82), so there is nothing for whoever creates the Partner
+    // to decide. The toast is where they first see it.
+    const code = generateMerchantCode()
+    toast.success(`${values.name} created · ${code}`, {
       description: ownSenderId
         ? // The registration clock starts at account creation rather than
           // whenever someone remembers to open settings.

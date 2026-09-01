@@ -2,6 +2,7 @@ import type * as React from "react"
 import { AdminAuthProvider } from "@/components/blocks/admin-auth-provider"
 import { AdminRolesProvider } from "@/lib/admin-roles-store"
 import { CamiPayProvider } from "@/lib/hq-camipay/store"
+import { HqTerminalsProvider } from "@/lib/hq-terminals/store"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   // AdminRolesProvider must wrap AdminAuthProvider so the AdminSettingsController
@@ -11,7 +12,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <AdminRolesProvider>
       <CamiPayProvider>
-        <AdminAuthProvider>{children}</AdminAuthProvider>
+        <HqTerminalsProvider>
+          <AdminAuthProvider>{children}</AdminAuthProvider>
+        </HqTerminalsProvider>
       </CamiPayProvider>
     </AdminRolesProvider>
   )

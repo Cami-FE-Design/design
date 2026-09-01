@@ -217,8 +217,11 @@ function BusinessRow({
           <BusinessAvatar name={business.name} photoUrl={business.photoUrl} />
           <div className="flex min-w-0 flex-col">
             <span className="truncate text-sm font-medium text-foreground">{business.name}</span>
+            {/* Code first: it is the identifier support quotes, and unlike the
+                slug it never changes (DSG-82). Inline, not the copy chip — a
+                button on every row is twelve buttons nobody asked for. */}
             <span className="truncate font-mono text-xs text-muted-foreground">
-              cami.app/{business.slug}
+              {business.code} · cami.app/{business.slug}
             </span>
           </div>
         </div>
@@ -431,6 +434,7 @@ function BusinessesIndex() {
       if (!q) return true
       return (
         b.name.toLowerCase().includes(q) ||
+        b.code.toLowerCase().includes(q) ||
         b.slug.toLowerCase().includes(q) ||
         b.ownerName.toLowerCase().includes(q) ||
         b.ownerEmail.toLowerCase().includes(q)

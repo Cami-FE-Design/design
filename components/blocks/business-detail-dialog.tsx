@@ -24,7 +24,9 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
 import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
+import { HqTerminalsPanel } from "@/components/blocks/hq-terminals-panel"
 import { LoginAsOwnerDialog } from "@/components/blocks/login-as-owner-dialog"
+import { MerchantCode } from "@/components/blocks/merchant-code"
 import { SectionCard } from "@/components/blocks/section-card"
 import { Button } from "@/components/ui/button"
 import {
@@ -258,17 +260,23 @@ export function BusinessDetailDialog({
                   <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
                     {business.name}
                   </DialogTitle>
-                  <DialogDescription asChild>
-                    <a
-                      href={`/${business.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-mono text-xs text-muted-foreground hover:text-foreground"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      cami.app/{business.slug}
-                    </a>
-                  </DialogDescription>
+                  {/* Two identifiers, two jobs: the code is what support says
+                      out loud and pastes into a ticket (DSG-82), the slug is
+                      where the Partner's public page lives. */}
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <MerchantCode code={business.code} />
+                    <DialogDescription asChild>
+                      <a
+                        href={`/${business.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="truncate font-mono text-xs text-muted-foreground hover:text-foreground"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        cami.app/{business.slug}
+                      </a>
+                    </DialogDescription>
+                  </div>
                 </div>
                 <DialogClose asChild>
                   <Button
@@ -352,6 +360,9 @@ export function BusinessDetailDialog({
                   pricing, add-ons, and method flags land here later. */}
               <TabsContent value="settings" className="flex flex-col gap-4">
                 <HqCamiPayPanel business={business} disabled={isArchived} />
+                {/* Terminals sit under CamiPay because they are a fact about
+                    the Terminal rail directly above them (DSG-82). */}
+                <HqTerminalsPanel business={business} disabled={isArchived} />
               </TabsContent>
               <TabsContent value="manage" className="flex flex-col gap-4">
                 <ManageSection
