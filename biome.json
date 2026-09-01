@@ -15,7 +15,8 @@
       "!next-env.d.ts",
       "!**/*.css",
       "!**/*.min.js",
-      "!**/*.min.mjs"
+      "!**/*.min.mjs",
+      "!docs/specs/assets"
     ]
   },
   "formatter": {
