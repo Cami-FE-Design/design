@@ -38,6 +38,7 @@ export const REPORTS: ReportDef[] = [
     dateControl: "range-compare",
     premium: true,
     featureFlagged: true,
+    filters: ["location", "teamMember", "channel", "paymentMethod", "category"],
   },
   {
     id: "performance-summary",

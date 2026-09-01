@@ -3,6 +3,10 @@
 // Shared page frame for every report view: Back + breadcrumb, then a title row
 // with a favourite star on the left and the Options (export) menu on the right —
 // aligned like the other app pages. The report body scrolls itself.
+//
+// Every report gets the same frame. The Performance dashboard briefly had a
+// scroll-away variant with its own condensed bar; it bought one extra fold of
+// content and cost the module its shared header geometry, so it's gone.
 
 import {
   ArrowLeftIcon,
@@ -68,6 +72,54 @@ function ExportMenu() {
   )
 }
 
+function ReportHeader({ report }: { report: ReportDef }) {
+  const { freshnessLabel, setActiveTab } = useReports()
+  return (
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
+      <div className="flex items-center gap-3">
+        <Button asChild variant="outline" radius="full" size="sm">
+          <Link href="/reports">
+            <ArrowLeftIcon className="size-3.5" />
+            Back
+          </Link>
+        </Button>
+        <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Link
+            href="/reports"
+            className="hover:text-foreground"
+            onClick={() => setActiveTab("all")}
+          >
+            All reports
+          </Link>
+          <span aria-hidden>·</span>
+          <Link
+            href="/reports"
+            className="hover:text-foreground"
+            onClick={() => setActiveTab(report.category)}
+          >
+            {CATEGORY_LABELS[report.category]}
+          </Link>
+          <span aria-hidden>·</span>
+          <span className="text-foreground">{report.name}</span>
+        </nav>
+      </div>
+
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl leading-8 font-medium text-foreground">{report.name}</h1>
+            <FavouriteStar id={report.id} />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {report.description} {freshnessLabel}
+          </p>
+        </div>
+        <ExportMenu />
+      </div>
+    </div>
+  )
+}
+
 export function ReportShell({
   report,
   children,
@@ -75,56 +127,12 @@ export function ReportShell({
   report: ReportDef
   children: React.ReactNode
 }) {
-  const { freshnessLabel, setActiveTab } = useReports()
-
   return (
-    <AppShell
-      header={
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <Button asChild variant="outline" radius="full" size="sm">
-              <Link href="/reports">
-                <ArrowLeftIcon className="size-3.5" />
-                Back
-              </Link>
-            </Button>
-            <nav className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Link
-                href="/reports"
-                className="hover:text-foreground"
-                onClick={() => setActiveTab("all")}
-              >
-                All reports
-              </Link>
-              <span aria-hidden>·</span>
-              <Link
-                href="/reports"
-                className="hover:text-foreground"
-                onClick={() => setActiveTab(report.category)}
-              >
-                {CATEGORY_LABELS[report.category]}
-              </Link>
-              <span aria-hidden>·</span>
-              <span className="text-foreground">{report.name}</span>
-            </nav>
-          </div>
-
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl leading-8 font-medium text-foreground">{report.name}</h1>
-                <FavouriteStar id={report.id} />
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {report.description} {freshnessLabel}
-              </p>
-            </div>
-            <ExportMenu />
-          </div>
-        </div>
-      }
-    >
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col overflow-y-auto pb-4">
+    <AppShell header={<ReportHeader report={report} />}>
+      <div
+        data-report-scroll
+        className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col overflow-y-auto pb-4"
+      >
         {children}
       </div>
     </AppShell>

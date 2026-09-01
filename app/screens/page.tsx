@@ -53,7 +53,7 @@ const REPORT_HINTS: Record<string, string> = {
     "Client insights is merged into Client list (a filtered view), not a separate report.",
   "client-list": "Carries the richer per-client columns + a Pet Name column (PRO-703 §4).",
   "performance-dashboard":
-    "Cami's Dashboard WIP spec — 6 KPI cards + a recharts comparison chart + drill-downs. Feature-flagged.",
+    "REVAMPED (DSG-79) — the full Dashboard WIP spec, 22 widget cards across Sales & revenue and Appointments & CRM. Hero KPI strip jumps to any widget; the header scrolls away behind a thin sticky bar and the control rail (date range / compare / filters / Customise) sticks under it with a scroll-spy section nav. Customise toggles any widget off and previews the dashboard as Owner / Manager / Staff, which is how the per-report access levels are shown instead of a chip on every card. New chart primitives: donut, funnel, ranked bars, capacity heatmap — see /playground for them in isolation. Feature-flagged.",
   "performance-summary":
     "Metric × team-member matrix — section subtotals + Total column, header row + first column sticky on both axes, metric labels drill to source reports.",
   "performance-over-time":
@@ -924,7 +924,7 @@ const SECTIONS: Section[] = [
   {
     title: "Reporting and analytics (DSG-43 / PRO-703)",
     description:
-      "Config-driven reporting module — all 23 reports render from lib/reports/registry.ts through shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix). Every report is listed below (generated from the registry, so nothing goes stale). Adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list; Performance over time is the one remaining placeholder.",
+      "Config-driven reporting module — all 23 reports render from lib/reports/registry.ts through shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix). Every report is listed below (generated from the registry, so nothing goes stale). Adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list; Performance over time is the one remaining placeholder. The Performance dashboard is the DSG-79 revamp — start there.",
     screens: REPORT_SCREENS,
   },
   {

@@ -55,6 +55,13 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
+  --color-chart-cat-1: var(--chart-cat-1);
+  --color-chart-cat-2: var(--chart-cat-2);
+  --color-chart-cat-3: var(--chart-cat-3);
+  --color-chart-cat-4: var(--chart-cat-4);
+  --color-chart-cat-5: var(--chart-cat-5);
+  --color-chart-cat-other: var(--chart-cat-other);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -327,6 +334,34 @@
   --chart-3: var(--blue-10);
   --chart-4: var(--blue-11);
   --chart-5: var(--blue-12);
+
+  /* Categorical chart palette (Performance dashboard, DSG-79).
+     Drawn from the team calendar swatches the product already ships (see
+     `calendarColors` in add-team-member-dialog.tsx) — but only from ONE
+     lightness tier of them. An earlier pass mixed those swatches across tiers
+     (violet-8 beside pink-9's dusty purple and yellow-7's olive) and the donut
+     read as muddy and mismatched rather than as a set. Same nine colours,
+     picked so they sit at the same weight.
+
+     Note the trade-off so nobody "fixes" it later: as chart series on a
+     near-white card these fail the dataviz validator's lightness-band and
+     chroma-floor checks — they are pastels built for large calendar blocks,
+     not thin marks. They pass the separation checks (CVD and normal-vision
+     ΔE), which is what decides whether a reader can tell two slices apart,
+     and the contrast WARN is relieved the way the skill requires: every slice
+     carries a legend row with its label, amount and share. So: donut arcs and
+     funnel/bar fills only — never thin lines, small marks, or text.
+
+     Slots are assigned in FIXED order, never cycled; slot 6 is the neutral
+     "Other" overflow. Dark mode is deliberately NOT overridden — these point
+     at the cami scales, so they flip exactly as the same swatches do
+     everywhere else in the app. */
+  --chart-cat-1: var(--cami-violet-8);
+  --chart-cat-2: var(--cami-green-7);
+  --chart-cat-3: var(--cami-pink-7);
+  --chart-cat-4: var(--cami-yellow-7);
+  --chart-cat-5: var(--cami-violet-7);
+  --chart-cat-other: var(--sand-8);
 
   --sidebar: var(--sand-3);
   --sidebar-foreground: var(--sand-11);
@@ -635,3 +670,8 @@
     display: none;
   }
 }
+
+
+
+
+

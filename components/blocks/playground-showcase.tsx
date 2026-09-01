@@ -97,6 +97,10 @@ import {
   REVIEW_GRID_TEMPLATE,
   ReviewRow,
 } from "@/components/blocks/product-import/redesign/review-row"
+import { CapacityHeatmap } from "@/components/blocks/reports/charts/capacity-heatmap"
+import { DonutChart } from "@/components/blocks/reports/charts/donut-chart"
+import { FunnelChart } from "@/components/blocks/reports/charts/funnel-chart"
+import { RankedBarChart } from "@/components/blocks/reports/charts/ranked-bar-chart"
 import { DashboardReport } from "@/components/blocks/reports/dashboard-report"
 import { DetailedTableReport } from "@/components/blocks/reports/detailed-table-report"
 import { TableReport } from "@/components/blocks/reports/table-report"
@@ -190,6 +194,16 @@ import { groupIssues } from "@/lib/product-import/issues"
 import { applySummaryFor, getScenario, type ImportScenarioId } from "@/lib/product-import/mock"
 import { placeholderSkuRows, reviewCounts } from "@/lib/product-import/outcome"
 import type { ProductImportPreviewRow, RowOverride } from "@/lib/product-import/types"
+import {
+  CLOSED_LOST,
+  HEATMAP_DAYS,
+  HEATMAP_HOURS,
+  HEATMAP_MATRIX,
+  SALES_BY_PAYMENT,
+  SALES_BY_PAYMENT_VALUES,
+  WHATSAPP_FUNNEL,
+} from "@/lib/reports/dashboard/mock"
+import { CHART_CAT_SWATCH } from "@/lib/reports/dashboard/palette"
 import { getReport } from "@/lib/reports/registry"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import { cn } from "@/lib/utils"
@@ -2631,6 +2645,65 @@ export function PlaygroundShowcase() {
             label="Clean import"
             note="Follow-up blocks appear only when there is something to chase."
           />
+        </Row>
+      </Section>
+
+      <Section
+        title="Performance dashboard — chart primitives"
+        description="The four marks the Performance dashboard (DSG-79) is built from, plus the categorical palette they share. Colours come from the --chart-cat-* tokens; both the light and dark sets pass the dataviz validator, so check this section in both themes."
+      >
+        <Row label="Categorical palette" align="start">
+          <div className="flex flex-wrap gap-3">
+            {CHART_CAT_SWATCH.map((swatch, i) => (
+              <div key={swatch} className="flex items-center gap-2">
+                <span className={cn("size-4 rounded-sm", swatch)} />
+                <span className="text-xs text-muted-foreground">
+                  {i === CHART_CAT_SWATCH.length - 1 ? "Other (overflow)" : `Slot ${i + 1}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Row>
+
+        <Row label="Donut" align="start">
+          <div className="w-[420px] rounded-2xl border border-border/60 bg-card p-5">
+            <DonutChart
+              items={SALES_BY_PAYMENT}
+              values={SALES_BY_PAYMENT_VALUES}
+              centreLabel="collected"
+              centreValue="AED 10,240"
+              formatValue={(n) => `AED ${n.toLocaleString("en-US")}`}
+            />
+          </div>
+        </Row>
+
+        <Row label="Funnel" align="start">
+          <div className="w-[420px] rounded-2xl border border-border/60 bg-card p-5">
+            <FunnelChart stages={WHATSAPP_FUNNEL} />
+          </div>
+        </Row>
+
+        <Row label="Ranked bars" align="start">
+          <div className="w-[420px] rounded-2xl border border-border/60 bg-card p-5">
+            <RankedBarChart data={CLOSED_LOST} formatValue={(n) => `${n}`} />
+          </div>
+          <span className="w-56 text-xs leading-snug text-muted-foreground">
+            One measure, so one hue — colour here would imply the reasons are separate series.
+          </span>
+        </Row>
+
+        <Row label="Capacity heatmap" align="start">
+          <div className="w-[620px] rounded-2xl border border-border/60 bg-card p-5">
+            <CapacityHeatmap
+              rowLabels={HEATMAP_HOURS}
+              colLabels={HEATMAP_DAYS}
+              matrix={HEATMAP_MATRIX}
+            />
+          </div>
+          <span className="w-56 text-xs leading-snug text-muted-foreground">
+            Sequential blue ramp, never the categorical slots. The number is printed in every cell
+            so the reading never depends on colour.
+          </span>
         </Row>
       </Section>
     </TooltipProvider>

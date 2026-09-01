@@ -15,6 +15,7 @@ import {
   YAxis,
 } from "recharts"
 import type { SeriesPoint } from "@/lib/reports/mock"
+import { cn } from "@/lib/utils"
 
 function LineTooltip({
   active,
@@ -61,15 +62,42 @@ export function ComparisonLineChart({
   currentLabel,
   comparisonLabel,
   formatValue,
+  zeroBaseline = true,
+  height = 176,
+  grow = false,
 }: {
   data: SeriesPoint[]
   currentLabel: string
   comparisonLabel: string
   formatValue: (n: number) => string
+  /**
+   * Money and count series are anchored at zero — the height of the line is the
+   * quantity, and cropping it exaggerates the swings. Rate series (occupancy,
+   * returning-client %) are not: forcing 0–100 squashes a 66→77 movement into
+   * the top tenth of the plot and leaves the card mostly white space, which is
+   * what the first pass shipped. Those pass `zeroBaseline={false}`.
+   */
+  zeroBaseline?: boolean
+  height?: number
+  /** Take the card's leftover height instead of sitting at a fixed size. */
+  grow?: boolean
 }) {
+  const values = data.flatMap((d) => [d.current, d.comparison])
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const pad = Math.max(1, Math.round((max - min) * 0.25))
+  const domain: [number | string, number | string] = zeroBaseline
+    ? [0, "auto"]
+    : [Math.max(0, min - pad), max + pad]
+
   return (
-    <figure className="flex flex-col gap-3">
-      <div className="h-60 w-full" role="img" aria-label={`${currentLabel} vs ${comparisonLabel}`}>
+    <figure className={cn("flex flex-col gap-3", grow && "flex-1")}>
+      <div
+        className={cn("w-full", grow && "flex-1")}
+        style={grow ? { minHeight: height } : { height }}
+        role="img"
+        aria-label={`${currentLabel} vs ${comparisonLabel}`}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 12, left: 4, bottom: 4 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.6} />
@@ -83,6 +111,7 @@ export function ComparisonLineChart({
             />
             <YAxis
               width={52}
+              domain={domain}
               tickLine={false}
               axisLine={false}
               tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}

@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cami — Performance Dashboard · Draft Reports (WIP)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CAMI TOKENS — derived from the real Cami style guide (semantic
+   slots + Radix/Cami-custom scales, pixel-sampled from the PDF).
+   Purple/violet removed per Owner feedback — the shipped product
+   uses near-black for Action/primary (not a brand hue) and reserves
+   colour for the bespoke "Cami custom" accents: plum (flagship),
+   green, gold, and Radix blue ("Charts and informational"). The
+   categorical chart palette below is validated with the dataviz
+   skill's validate_palette.js (ALL CHECKS PASS, light mode).
+   Swap these to update brand-wide.
+   ============================================================ */
+:root{
+  --font: 'Manrope', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Surface (sand scale) */
+  --sand-1:#fdfdfc; --sand-2:#f9f9f8; --sand-3:#f1f0ef; --sand-4:#ecebe9;
+  --sand-5:#e4e3e0; --sand-6:#dbdad7; --sand-7:#cfceca; --sand-8:#bcbbb5;
+  --sand-9:#8d8d86; --sand-10:#82817a; --sand-11:#63625b; --sand-12:#21201c;
+
+  --bg-background:#f7f6f5;
+  --bg-card:#ffffff;
+  --text-card-foreground:var(--sand-12);
+  --bg-popover:#ffffff;
+  --bg-tooltip:#21201c;
+  --text-tooltip-foreground:#ffffff;
+
+  /* Action */
+  --bg-primary:#1c1b18;
+  --text-primary-foreground:#ffffff;
+  --bg-secondary:var(--sand-3);
+  --text-secondary-foreground:var(--sand-12);
+  --bg-accent:var(--sand-3);         /* real slot: bg-accent is sand-3, not a brand hue */
+  --text-accent-foreground:var(--sand-12);
+  --bg-destructive:#E5484D;          /* radix tomato-9 */
+  --text-destructive-foreground:#ffffff;
+
+  /* Support */
+  --bg-muted:var(--sand-3);
+  --text-muted-foreground:var(--sand-11);
+  --border-border:var(--sand-6);
+  --border-input:var(--sand-6);
+  --ring-ring:var(--sand-8);
+
+  /* Sidebar */
+  --bg-sidebar:#ffffff;
+  --text-sidebar-foreground:var(--sand-11);
+  --bg-sidebar-primary:#1c1b18;
+  --text-sidebar-primary-foreground:#ffffff;
+  --bg-sidebar-accent:var(--cami-plum-soft);
+  --text-sidebar-accent-foreground:var(--cami-plum);
+  --border-sidebar-border:var(--sand-5);
+
+  /* Cami custom accents (identity) — sampled from the real Cami style
+     guide PDF. No violet/purple: cami-violet and the dusty-lavender
+     cami-pink scale are both excluded because they read purple. */
+  --cami-plum:#651249;     --cami-plum-soft:#f7e9f1;   /* flagship brand colour — badges, links, avatar */
+  --cami-pink:#D6409F;     --cami-pink-soft:#fce8f5;   /* Radix pink-9, "decorative (avatar rings)" — chart identity */
+  --cami-green:#6EBB63;    --cami-green-soft:#e9f7e6;
+  --cami-blue:#0090FF;     --cami-blue-soft:#e5f4ff;   /* Radix blue-9, "charts and informational" */
+  --cami-gold:#BBBA25;     --cami-gold-soft:#f8f8dd;
+  --cami-sage:#82949E;     --cami-sage-soft:#eaeef0;   /* dusty blue-gray — muted/support, not chart identity */
+  --cami-gray:#898989;     --cami-gray-soft:#efefef;   /* neutral-gray — no violet cast */
+
+  /* Status (fixed — never re-themed) */
+  --status-good:#0F9D58;
+  --status-good-soft:#e6f6ee;
+  --status-warning:#C1780A;
+  --status-warning-soft:#faf1e1;
+  --status-serious:#e4652c;
+  --status-serious-soft:#fdece2;
+  --status-critical:#E5484D;
+  --status-critical-soft:#fdeaea;
+
+  /* Radius */
+  --radius-card: 14px;
+  --radius-md: 10px;
+  --radius-sm: 6px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 1px 2px rgba(28,27,24,0.04), 0 1px 1px rgba(28,27,24,0.03);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font);
+  background:var(--bg-background);
+  color:var(--sand-12);
+  font-size:14px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,p,ul,ol{margin:0;}
+button{font-family:inherit;}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  height:56px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px; background:#ffffff; border-bottom:1px solid var(--border-border);
+  position:sticky; top:0; z-index:40;
+}
+.topbar-left{display:flex; align-items:center; gap:14px;}
+.rail-toggle{color:var(--sand-9); display:flex; align-items:center;}
+.workspace-switcher{
+  display:flex; align-items:center; gap:10px; border:1px solid var(--border-border);
+  border-radius:var(--radius-md); padding:6px 10px 6px 6px; cursor:pointer; background:#fff;
+}
+.workspace-logo{
+  width:28px; height:28px; border-radius:8px;
+  background:linear-gradient(135deg,var(--cami-plum),var(--cami-pink));
+}
+.workspace-name{font-weight:700; font-size:14px; color:var(--sand-12);}
+.topbar-right{display:flex; align-items:center; gap:18px; color:var(--sand-10);}
+.avatar{
+  width:32px; height:32px; border-radius:50%; background:var(--cami-plum);
+  color:#fff; display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:12px;
+}
+
+/* ---------- Shell layout ---------- */
+.shell{display:flex; align-items:flex-start; min-height:calc(100vh - 56px);}
+
+.icon-rail{
+  width:56px; flex:0 0 56px; background:#ffffff; border-right:1px solid var(--border-border);
+  display:flex; flex-direction:column; align-items:center; padding:14px 0; gap:4px;
+  min-height:calc(100vh - 56px); position:sticky; top:56px;
+}
+.rail-btn{
+  width:36px; height:36px; border-radius:var(--radius-md); display:flex; align-items:center;
+  justify-content:center; color:var(--sand-9); cursor:pointer;
+}
+.rail-btn.active{ background:var(--bg-sidebar-primary); color:#fff; }
+.rail-spacer{flex:1;}
+
+.report-nav{
+  width:272px; flex:0 0 272px; background:#ffffff; border-right:1px solid var(--border-border);
+  min-height:calc(100vh - 56px); position:sticky; top:56px; overflow-y:auto;
+  padding:18px 12px 40px;
+}
+.report-nav-title{
+  font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--sand-9); padding:4px 10px 10px;
+}
+.report-nav-group{margin-bottom:6px;}
+.report-nav-group-head{
+  display:flex; align-items:center; justify-content:space-between; padding:8px 10px;
+  font-size:12px; font-weight:700; color:var(--sand-11); cursor:default;
+}
+.report-nav-group-head .count{
+  font-size:11px; font-weight:700; color:var(--sand-9); background:var(--sand-3);
+  border-radius:var(--radius-pill); padding:1px 7px;
+}
+.report-nav ul{list-style:none; padding:0; margin:0 0 8px;}
+.nav-item{
+  display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:var(--radius-md);
+  font-size:13px; color:var(--text-sidebar-foreground); cursor:pointer; line-height:1.3;
+}
+.nav-item:hover{background:var(--sand-3);}
+.nav-item.active{ background:var(--bg-sidebar-accent); color:var(--text-sidebar-accent-foreground); font-weight:700; }
+.nav-item .dot{width:5px; height:5px; border-radius:50%; background:var(--sand-7); flex:0 0 5px;}
+.nav-item.active .dot{background:var(--cami-plum);}
+
+.content{flex:1; min-width:0; padding:28px 32px 60px;}
+.content-inner{max-width:1360px; margin:0 auto;}
+
+/* ---------- Header / breadcrumb ---------- */
+.back-row{display:flex; align-items:center; gap:14px; margin-bottom:14px;}
+.back-btn{
+  display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--sand-12);
+  border:1px solid var(--border-border); border-radius:var(--radius-pill); padding:6px 12px; background:#fff;
+}
+.crumbs{font-size:13px; color:var(--sand-9);}
+.crumbs b{color:var(--sand-12); font-weight:600;}
+
+.page-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
+.page-title{font-size:26px; font-weight:800; display:flex; align-items:center; gap:10px; color:var(--sand-12);}
+.mvp-chip{
+  font-size:11px; font-weight:800; letter-spacing:.03em; padding:3px 9px; border-radius:var(--radius-pill);
+  background:var(--cami-plum-soft); color:var(--cami-plum); text-transform:uppercase;
+}
+.options-btn{
+  border:1px solid var(--border-border); background:#fff; border-radius:var(--radius-md);
+  padding:8px 14px; font-size:13px; font-weight:600; color:var(--sand-12); display:flex; gap:6px; align-items:center;
+}
+.page-sub{color:var(--sand-9); font-size:13.5px; margin:6px 0 18px;}
+
+.filters{display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap;}
+.pill{
+  display:flex; align-items:center; gap:8px; border:1px solid var(--border-border); background:#fff;
+  border-radius:var(--radius-pill); padding:8px 14px; font-size:13px; font-weight:600; color:var(--sand-12);
+}
+.pill svg{color:var(--sand-9);}
+
+/* ---------- Report grid & cards ---------- */
+.report-grid{display:grid; grid-template-columns:repeat(12,1fr); gap:18px; grid-auto-flow:dense;}
+
+.section-divider{
+  display:flex; align-items:baseline; gap:10px; margin:10px 0 -4px; padding-top:14px;
+  border-top:1px solid var(--sand-5);
+}
+.section-divider:first-child{border-top:none; padding-top:0; margin-top:0;}
+.section-divider .sd-label{font-size:13px; font-weight:800; color:var(--sand-12);}
+.section-divider .sd-count{font-size:11.5px; font-weight:700; color:var(--sand-9);}
+.card{
+  background:var(--bg-card); border:1px solid var(--border-border); border-radius:var(--radius-card);
+  box-shadow:var(--shadow-card); padding:20px 20px 18px;
+}
+.card-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+.card-title{font-size:15px; font-weight:700; color:var(--sand-12);}
+.card-link{font-size:12.5px; font-weight:700; color:var(--cami-plum);}
+
+.kpi-value{font-size:30px; font-weight:800; letter-spacing:-0.01em; color:var(--sand-12);}
+.kpi-row{display:flex; align-items:baseline; gap:10px; margin-bottom:14px;}
+.delta{
+  display:inline-flex; align-items:center; gap:3px; font-size:11.5px; font-weight:700;
+  padding:2px 8px; border-radius:var(--radius-pill); background:var(--sand-3); color:var(--sand-11);
+}
+.delta.up{background:var(--status-good-soft); color:var(--status-good);}
+.delta.down{background:var(--status-critical-soft); color:var(--status-critical);}
+.subcap{font-size:11.5px; color:var(--sand-9); font-weight:600;}
+
+.breakdown{list-style:none; padding:0; margin:0;}
+.breakdown li{
+  display:flex; align-items:center; justify-content:space-between; padding:8px 0;
+  border-top:1px solid var(--sand-4); font-size:13px;
+}
+.breakdown li:first-child{border-top:none;}
+.breakdown .b-label{display:flex; align-items:center; gap:8px; color:var(--sand-11); font-weight:600;}
+.breakdown .b-swatch{width:8px; height:8px; border-radius:2px;}
+.breakdown .b-val{display:flex; align-items:center; gap:8px; font-weight:700; color:var(--sand-12);}
+
+.legend{display:flex; flex-wrap:wrap; gap:14px; margin-top:12px;}
+.legend-item{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--sand-11); font-weight:600;}
+.legend-swatch{width:9px; height:9px; border-radius:2px;}
+.legend-line{width:14px; height:2px; border-radius:2px;}
+.legend-line.dashed{background:repeating-linear-gradient(90deg,var(--sand-8) 0 4px,transparent 4px 7px);}
+
+/* Tables */
+.table-wrap{overflow-x:auto;}
+table.rtable{width:100%; border-collapse:collapse; font-size:12.5px;}
+table.rtable th{
+  text-align:left; font-size:11px; font-weight:800; letter-spacing:.02em; text-transform:uppercase;
+  color:var(--sand-9); padding:0 12px 10px 0; border-bottom:1px solid var(--border-border); white-space:nowrap;
+}
+table.rtable td{
+  padding:11px 12px 11px 0; border-bottom:1px solid var(--sand-4); color:var(--sand-12); white-space:nowrap;
+  font-weight:600;
+}
+table.rtable td.muted{color:var(--sand-9); font-weight:500;}
+table.rtable tr:last-child td{border-bottom:none;}
+table.rtable td.num, table.rtable th.num{text-align:right;}
+.name-cell{display:flex; align-items:center; gap:9px;}
+.mini-avatar{
+  width:24px; height:24px; border-radius:50%; background:var(--cami-plum-soft); color:var(--cami-plum);
+  font-size:10px; font-weight:800; display:flex; align-items:center; justify-content:center; flex:0 0 24px;
+}
+.rank{
+  width:20px; height:20px; border-radius:6px; background:var(--sand-3); color:var(--sand-10); font-weight:800;
+  font-size:11px; display:flex; align-items:center; justify-content:center; flex:0 0 20px;
+}
+.badge{
+  display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:3px 9px;
+  border-radius:var(--radius-pill);
+}
+.badge.good{background:var(--status-good-soft); color:var(--status-good);}
+.badge.warn{background:var(--status-warning-soft); color:var(--status-warning);}
+.badge.serious{background:var(--status-serious-soft); color:var(--status-serious);}
+.badge.crit{background:var(--status-critical-soft); color:var(--status-critical);}
+.badge.neutral{background:var(--sand-3); color:var(--sand-11);}
+.stars{color:var(--cami-gold); font-weight:700; font-size:12px;}
+
+/* mini stat tiles row */
+.tile-row{display:grid; gap:14px;}
+.tile{
+  border:1px solid var(--border-border); border-radius:var(--radius-md); padding:14px 16px; background:var(--sand-1);
+}
+.tile-label{font-size:11.5px; font-weight:700; color:var(--sand-9); margin-bottom:6px;}
+.tile-value{font-size:20px; font-weight:800; color:var(--sand-12);}
+.tile-sub{font-size:11.5px; color:var(--sand-9); margin-top:3px; font-weight:600;}
+
+/* funnel */
+.funnel{display:flex; flex-direction:column; gap:8px;}
+.funnel-row{display:grid; grid-template-columns:130px 1fr 90px; align-items:center; gap:12px;}
+.funnel-label{font-size:12.5px; font-weight:700; color:var(--sand-11);}
+.funnel-track{background:var(--sand-3); border-radius:8px; height:30px; position:relative; overflow:hidden;}
+.funnel-fill{
+  height:100%; border-radius:8px; background:var(--cami-plum); display:flex; align-items:center;
+  padding:0 12px; color:#fff; font-size:12px; font-weight:800; white-space:nowrap;
+}
+.funnel-drop{font-size:11.5px; color:var(--status-critical); font-weight:700; text-align:right;}
+
+/* heatmap */
+.heatmap{display:grid; grid-template-columns:46px repeat(7,1fr); gap:4px; font-size:11px;}
+.heatmap .hcell{
+  height:30px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+  color:var(--sand-11); font-weight:700; font-size:10.5px;
+}
+.heatmap .hcorner{color:var(--sand-9); font-weight:700; display:flex; align-items:center; font-size:10.5px;}
+.heatmap .hday{color:var(--sand-9); font-weight:800; text-align:center; padding-bottom:2px;}
+
+/* tooltip */
+#viz-tooltip{
+  position:fixed; pointer-events:none; z-index:200; background:var(--bg-tooltip); color:#fff;
+  font-size:12px; font-weight:600; padding:8px 11px; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,.18);
+  opacity:0; transform:translate(-50%,-110%); transition:opacity .08s ease; line-height:1.5; white-space:nowrap;
+}
+#viz-tooltip .tt-title{font-weight:800; margin-bottom:2px; display:block;}
+#viz-tooltip.show{opacity:1;}
+
+/* col spans */
+.c-3{grid-column:span 3;} .c-4{grid-column:span 4;} .c-5{grid-column:span 5;}
+.c-6{grid-column:span 6;} .c-7{grid-column:span 7;} .c-8{grid-column:span 8;}
+.c-9{grid-column:span 9;} .c-12{grid-column:span 12;}
+@media (max-width:1100px){ .c-3,.c-4,.c-5,.c-6,.c-7,.c-8,.c-9{grid-column:span 12;} }
+
+.desc-note{
+  font-size:12.5px; color:var(--sand-10); background:var(--sand-2); border:1px dashed var(--sand-6);
+  border-radius:var(--radius-md); padding:8px 14px; margin-bottom:16px; grid-column:span 12; line-height:1.6;
+}
+.desc-note b{color:var(--sand-11);}
+.perm-row{display:flex; gap:6px; flex-wrap:wrap; margin-top:0;}
+.perm-chip{font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:var(--radius-pill); background:#fff; border:1px solid var(--sand-6); color:var(--sand-10);}
+
+svg text{font-family:var(--font);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="rail-toggle">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 6l6 6-6 6M5 6l6 6-6 6"/></svg>
+    </span>
+    <div class="workspace-switcher">
+      <div class="workspace-logo"></div>
+      <span class="workspace-name">Shampooch JVC</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="color:#9a998f"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v3M16 3v3"/></svg>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+    <div class="avatar">MY</div>
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="icon-rail" id="icon-rail"></nav>
+
+  <main class="content">
+    <div class="content-inner">
+      <div class="back-row">
+        <button class="back-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M15 6l-6 6 6 6"/></svg>
+          Back
+        </button>
+        <span class="crumbs">All reports · <b>Performance dashboard</b></span>
+      </div>
+
+      <div class="page-head">
+        <div class="page-title" id="report-title">Performance dashboard <span class="mvp-chip">Draft · WIP</span></div>
+        <button class="options-btn">Options
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+      </div>
+      <p class="page-sub" id="report-sub">Dashboard of your business performance. Data from 3 mins ago — scroll to see every report.</p>
+
+      <div class="filters">
+        <span class="pill">Month to date
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v3M16 3v3"/></svg>
+        </span>
+        <span class="pill">Compare to: May 16 – Jun 14, 2026</span>
+      </div>
+
+      <div class="report-grid" id="report-body"></div>
+    </div>
+  </main>
+</div>
+
+<div id="viz-tooltip"></div>
+
+<script>
+/* =========================================================================
+   ICON RAIL — matches screenshot's minimal line-icon sidebar
+   ========================================================================= */
+const RAIL_ICONS = [
+  {active:true,  d:'M3 11l9-7 9 7M5 10v9h5v-6h4v6h5v-9'},
+  {d:'M3 4h18v16H3z M3 9h18 M8 3v3 M16 3v3', box:true},
+  {d:'M4 4h16v6H4z M4 14h7v6H4z M13 14h7v6h-7z', box:true},
+  {d:'M21 11.5a8.38 8.38 0 01-8.5 8.4 8.4 8.4 0 01-4-1L3 20l1.3-4a8.4 8.4 0 01-1-4A8.38 8.38 0 0111.5 3 8.4 8.4 0 0121 11.5z'},
+  {d:'M12 2v20 M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6'},
+  {d:'M4 4.5A2.5 2.5 0 016.5 2H20v17H6.5A2.5 2.5 0 004 21.5v-17z M4 17H20', dot:true},
+  {d:'M9 2h6v4H9z M6 6h12v14a2 2 0 01-2 2H8a2 2 0 01-2-2V6z M9 11h6 M9 15h6'},
+  {d:'M17 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2 M9 11a4 4 0 100-8 4 4 0 000 8z M23 21v-2a4 4 0 00-3-3.87 M16 3.13a4 4 0 010 7.75'},
+  {d:'M3 3v18h18 M18 17V9 M13 17V5 M8 17v-4'},
+];
+const railEl = document.getElementById('icon-rail');
+RAIL_ICONS.forEach(ic=>{
+  const b = document.createElement('div');
+  b.className = 'rail-btn' + (ic.active ? ' active' : '');
+  b.innerHTML = `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ic.d}"/></svg>`;
+  railEl.appendChild(b);
+});
+const spacer = document.createElement('div'); spacer.className='rail-spacer'; railEl.appendChild(spacer);
+[{d:'M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.7 21a2 2 0 01-3.4 0'},
+ {d:'M12 8v8 M8 12h8', circle:true},
+ {d:'M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 008.6 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H2.5a2 2 0 010-4h.09A1.65 1.65 0 004.6 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V2.5a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21.5a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z'}
+].forEach(ic=>{
+  const b = document.createElement('div'); b.className='rail-btn';
+  b.innerHTML = `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ic.d}"/></svg>`;
+  railEl.appendChild(b);
+});
+</script>
+
+<script>
+/* =========================================================================
+   CAMI DRAFT — 19 report definitions, sourced from
+   "Cami Reports.xlsx" → tab "2. Dashboard WIP" (Report Section / Report /
+   Description / Sub-Metrics / Owner-Manager-Staff access columns).
+   Appointments Summary, Deposit Overrides, and Lost Revenue Opportunities
+   were dropped per Owner feedback (Aug 2026 revision). Appointment Outcomes
+   and Booked-Not-Yet-Confirmed were dropped per Owner feedback (Aug 2026,
+   second revision).
+   All figures below are illustrative placeholder data for wireframe
+   purposes only — not real merchant data.
+   ========================================================================= */
+
+// ---- shared sample series (daily trend, Jun 15 - Jul 14) -----------------
+const TREND_LABELS = ['Jun 15','Jun 18','Jun 21','Jun 24','Jun 27','Jun 30','Jul 3','Jul 6','Jul 9','Jul 12','Jul 14'];
+const SALES_TREND      = [610, 690, 580, 905, 830, 1020, 380, 470, 950, 1010, 1130, 860];
+const SALES_TREND_CMP  = [560, 650, 540, 700, 640, 780, 420, 460, 660, 700, 760, 690];
+const INQUIRY_TREND    = [18, 22, 19, 27, 24, 31, 20, 23, 29, 33, 30, 26];
+
+function makeDaily(n, base, spread){
+  const out = [];
+  for(let i=0;i<n;i++) out.push(Math.max(2, Math.round(base + Math.sin(i/2.1)*spread + (Math.random()-0.5)*spread*0.5)));
+  return out;
+}
+
+const REPORTS = [
+
+// ============================= SALES & REVENUE =============================
+{
+  id:'total-sales', section:'Sales & Revenue', name:'Total Sales',
+  source:'Fresha-style Dashboard',
+  description:'Top-of-dashboard revenue summary combining every sale line item, with a daily trend chart vs. the prior comparable period.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderStatCard(addCard(el,'c-4'), {
+      label:'Total sales', linkText:'View report', value:'AED 8,750', deltaPct:12, deltaDir:'up',
+      breakdown:[
+        {label:'Services', val:'AED 6,420'},
+        {label:'Products', val:'AED 2,140'},
+        {label:'Packages', val:'AED 190'},
+      ]
+    });
+    renderLineChart(addCard(el,'c-8','Sales over time','View report'), {series:SALES_TREND, compareSeries:SALES_TREND_CMP, labels:TREND_LABELS});
+    const legendHost = addCard(el,'c-12');
+    legendHost.style.padding = '0 4px'; legendHost.style.border='none'; legendHost.style.boxShadow='none'; legendHost.style.background='transparent';
+    legendHost.innerHTML = `<div class="legend"><span class="legend-item"><span class="legend-line" style="background:var(--cami-plum)"></span>Jun 15 – Jul 14, 2026</span><span class="legend-item"><span class="legend-line dashed"></span>May 16 – Jun 14, 2026 (comparison)</span></div>`;
+  }
+},
+{
+  id:'sales-by-payment', section:'Sales & Revenue', name:'Sales by Payment Type',
+  source:'Fresha-style Dashboard',
+  description:'Revenue split by payment method (card, cash, online/wallet, gift card).',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderDonut(addCard(el,'c-7','Sales by payment type','View report'), {unit:'AED', data:[
+      {label:'CamiPay - POS', value:5120, color:'#D6409F'},
+      {label:'CamiPay - Online', value:3480, color:'#0090FF'},
+      {label:'Cash', value:1340, color:'#BBBA25'},
+      {label:'Gift card', value:300, color:'#6EBB63'},
+    ]});
+  }
+},
+{
+  id:'sales-by-category', section:'Sales & Revenue', name:'Sales by Category',
+  source:'Fresha-style Dashboard',
+  description:'Breaks total sales down by service/product category to show which categories drive the most revenue.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderTable(addCard(el,'c-12','Sales by category','View report'), {
+      columns:[{key:'cat',label:'Category'},{key:'gross',label:'Gross revenue',num:true},{key:'disc',label:'Discounts',num:true},{key:'ref',label:'Refunds',num:true},{key:'net',label:'Net revenue',num:true}],
+      rows:[
+        {cat:'Grooming services', gross:'AED 6,820', disc:'AED 210', ref:'AED 40', net:'AED 6,570'},
+        {cat:'Retail products', gross:'AED 2,310', disc:'AED 90', ref:'AED 30', net:'AED 2,190'},
+        {cat:'Boarding & daycare', gross:'AED 980', disc:'AED 15', ref:'AED 0', net:'AED 965'},
+        {cat:'Packages', gross:'AED 210', disc:'AED 20', ref:'AED 0', net:'AED 190'},
+      ]
+    });
+  }
+},
+{
+  id:'sales-by-channel', section:'Sales & Revenue', name:'Sales by Booking Channel',
+  source:'Fresha-style Dashboard',
+  description:'Shows where booked revenue is originating so marketing/channel spend can be evaluated against actual sales.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderStatCard(addCard(el,'c-6'), {
+      label:'Channel mix', linkText:'View report', value:'7', footnote:'active channels this period',
+      breakdown:[
+        {label:'Booking Link', swatch:'#D6409F', val:'AED 3,120', delta:14},
+        {label:'Instagram', swatch:'#0090FF', val:'AED 2,040', delta:9},
+        {label:'WhatsApp', swatch:'#128C7E', val:'AED 1,860', delta:19},
+        {label:'Marketing', swatch:'#BBBA25', val:'AED 1,360', delta:-3},
+        {label:'TikTok', swatch:'#21201c', val:'AED 1,180', delta:22},
+        {label:'Walk-In', swatch:'#6EBB63', val:'AED 940', delta:2},
+        {label:'Referral', swatch:'#898989', val:'AED 430', delta:6},
+      ]
+    });
+  }
+},
+{
+  id:'sales-acquisition-channel', section:'Sales & Revenue', name:'Sales Acquisition Channel',
+  source:'Fresha-style Dashboard',
+  description:'Client Source — shows where new clients are coming from so you can see which channels are generating the most demand.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderDonut(addCard(el,'c-6','Sales by acquisition channel','View report'), {unit:'AED', data:[
+      {label:'Website', value:2860, color:'#D6409F'},
+      {label:'TikTok', value:1740, color:'#6EBB63'},
+      {label:'Instagram', value:1510, color:'#0090FF'},
+      {label:'Marketing campaigns', value:980, color:'#BBBA25'},
+      {label:'Friend referral', value:610, color:'#898989'},
+      {label:'Other (GMB, Facebook, Walk-in)', value:790, color:'#CFCECA'},
+    ]});
+    renderTable(addCard(el,'c-6','New client acquisition — detail'), {
+      columns:[{key:'src',label:'Client source'},{key:'clients',label:'New clients',num:true},{key:'rev',label:'Revenue',num:true}],
+      rows:[
+        {src:'Website', clients:'41', rev:'AED 2,860'},
+        {src:'TikTok', clients:'29', rev:'AED 1,740'},
+        {src:'Instagram', clients:'24', rev:'AED 1,510'},
+        {src:'Marketing campaigns', clients:'14', rev:'AED 980'},
+        {src:'Friend referral', clients:'9', rev:'AED 610'},
+        {src:'Google My Business', clients:'7', rev:'AED 420'},
+        {src:'Facebook', clients:'4', rev:'AED 250'},
+        {src:'Walk-in', clients:'3', rev:'AED 120'},
+      ]
+    });
+  }
+},
+{
+  id:'returning-client-rate', section:'Sales & Revenue', name:'Returning Client Rate',
+  source:'Fresha-style Dashboard',
+  description:'Tracks client retention/loyalty trend over the period, split between repeat vs. brand-new customers plus walk-ins.',
+  access:{owner:'Full', manager:'Full', staff:'Limited – own client base only'},
+  render(el){
+    renderStatCard(addCard(el,'c-5'), {
+      label:'New vs returning', linkText:'View report', value:'77%', deltaPct:3, deltaDir:'up', footnote:'returning client rate',
+      breakdown:[
+        {label:'New', val:'128'},
+        {label:'Returning', val:'423'},
+        {label:'Walk-in', val:'10'},
+      ]
+    });
+    renderLineChart(addCard(el,'c-7','Returning client rate — trend'), {series:[68,70,71,73,72,74,75,74,76,77,77,77], compareSeries:[64,65,66,68,67,69,70,69,71,72,72,73], labels:TREND_LABELS, unit:'%'});
+  }
+},
+{
+  id:'average-sale-value', section:'Sales & Revenue', name:'Average Sale Value',
+  source:'Fresha-style Dashboard',
+  description:'Secondary KPI shown alongside Total Sales — ticket size trend.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderStatCard(addCard(el,'c-4'), { label:'Average sale value', linkText:'View report', value:'AED 142', deltaPct:5, deltaDir:'up', footnote:'AED 8,750 ÷ 62 sales transactions' });
+  }
+},
+{
+  id:'top-team-leaderboard', section:'Sales & Revenue', name:'Top Team Members Leaderboard',
+  source:'Fresha-style Dashboard',
+  description:'Cross-staff leaderboard used by Owner/Manager to see who is driving revenue, retention, and client satisfaction.',
+  access:{owner:'Full', manager:'Full', staff:'Limited – own row only'},
+  render(el){
+    const rows = [
+      {n:'AL', name:'Aisha Al Marri', sales:'AED 2,860', sd:14, occ:'81%', od:5, ret:'82%', rd:6, served:34},
+      {n:'RK', name:'Ravi Kumar', sales:'AED 2,140', sd:6, occ:'74%', od:-2, ret:'71%', rd:3, served:27},
+      {n:'SM', name:'Sara Mostafa', sales:'AED 1,780', sd:11, occ:'69%', od:4, ret:'75%', rd:-1, served:24},
+      {n:'JD', name:'Jomar Dela Cruz', sales:'AED 1,410', sd:-3, occ:'62%', od:1, ret:'66%', rd:2, served:19},
+      {n:'HN', name:'Hana Noor', sales:'AED 880', sd:9, occ:'58%', od:8, ret:'60%', rd:5, served:13},
+    ];
+    renderTable(addCard(el,'c-12','Top team members leaderboard','View report'), {
+      columns:[{key:'rank',label:''},{key:'name',label:'Staff member'},{key:'sales',label:'Sales (AED)',num:true},{key:'occ',label:'Occupancy %',num:true},{key:'ret',label:'% Returning clients',num:true},{key:'served',label:'Clients serviced',num:true}],
+      rows: rows.map((r,i)=>({
+        rank:`<span class="rank">${i+1}</span>`,
+        name:`<span class="name-cell"><span class="mini-avatar">${r.n}</span>${r.name}</span>`,
+        sales:`${r.sales} <span class="delta ${r.sd>=0?'up':'down'}">${r.sd>=0?'&uarr;':'&darr;'} ${Math.abs(r.sd)}%</span>`,
+        occ:`${r.occ} <span class="delta ${r.od>=0?'up':'down'}">${r.od>=0?'&uarr;':'&darr;'} ${Math.abs(r.od)}%</span>`,
+        ret:`${r.ret} <span class="delta ${r.rd>=0?'up':'down'}">${r.rd>=0?'&uarr;':'&darr;'} ${Math.abs(r.rd)}%</span>`,
+        served: r.served,
+      }))
+    });
+  }
+},
+{
+  id:'staff-performance-detail', section:'Sales & Revenue', name:'Staff Performance Detail',
+  source:'Fresha-style Dashboard',
+  description:'Full per-staff scorecard covering revenue, utilisation, rebooking, retention, and retail attachment.',
+  access:{owner:'Full', manager:'Full', staff:'Limited – own row only'},
+  render(el){
+    renderTable(addCard(el,'c-12','Staff performance detail','View report'), {
+      columns:[{key:'name',label:'Staff member'},{key:'net',label:'Net revenue',num:true},{key:'util',label:'Utilisation %',num:true},{key:'rph',label:'Revenue / paid hr',num:true},{key:'rebook',label:'Rebooking %',num:true},{key:'newc',label:'New clients',num:true},{key:'retc',label:'Returning clients',num:true},{key:'retail',label:'Retail attach %',num:true}],
+      rows:[
+        {name:'<span class="name-cell"><span class="mini-avatar">AL</span>Aisha Al Marri</span>', net:'AED 2,860', util:'81%', rph:'AED 92', rebook:'64%', newc:'9', retc:'25', retail:'31%'},
+        {name:'<span class="name-cell"><span class="mini-avatar">RK</span>Ravi Kumar</span>', net:'AED 2,140', util:'74%', rph:'AED 78', rebook:'58%', newc:'7', retc:'19', retail:'22%'},
+        {name:'<span class="name-cell"><span class="mini-avatar">SM</span>Sara Mostafa</span>', net:'AED 1,780', util:'69%', rph:'AED 74', rebook:'61%', newc:'6', retc:'17', retail:'19%'},
+        {name:'<span class="name-cell"><span class="mini-avatar">JD</span>Jomar Dela Cruz</span>', net:'AED 1,410', util:'62%', rph:'AED 66', rebook:'49%', newc:'5', retc:'12', retail:'15%'},
+        {name:'<b>Team average</b>', net:'<b>AED 2,048</b>', util:'<b>71%</b>', rph:'<b>AED 77</b>', rebook:'<b>58%</b>', newc:'<b>7</b>', retc:'<b>18</b>', retail:'<b>22%</b>'},
+      ]
+    });
+  }
+},
+{
+  id:'inventory-performance', section:'Sales & Revenue', name:'Inventory Performance',
+  source:'Fresha-style Dashboard',
+  description:"Stock control table showing what needs reordering now, with a one-click 'Create purchase order' action.",
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderTable(addCard(el,'c-12','Inventory performance','View report'), {
+      columns:[{key:'p',label:'Product'},{key:'oh',label:'On hand',num:true},{key:'oo',label:'On order',num:true},{key:'rp',label:'Reorder point',num:true},{key:'ro',label:'Recommended order',num:true},{key:'val',label:'Inventory value',num:true},{key:'status',label:'Status',num:true}],
+      rows:[
+        {p:'Oatmeal shampoo 1L', oh:'2', oo:'0', rp:'8', ro:'20', val:'AED 90', status:badgeHtml('Low stock','warn')},
+        {p:'Deshedding brush', oh:'0', oo:'12', rp:'5', ro:'0', val:'AED 0', status:badgeHtml('Out of stock','crit')},
+        {p:'Cat calming spray', oh:'14', oo:'0', rp:'6', ro:'0', val:'AED 420', status:badgeHtml('In stock','good')},
+        {p:'Nail clipper kit', oh:'3', oo:'0', rp:'4', ro:'6', val:'AED 135', status:badgeHtml('Low stock','warn')},
+        {p:'Puppy conditioner 500ml', oh:'26', oo:'0', rp:'10', ro:'0', val:'AED 780', status:badgeHtml('Slow moving','serious')},
+      ]
+    });
+  }
+},
+{
+  id:'services-inventory-summary', section:'Sales & Revenue', name:'Services & Inventory Summary',
+  source:'Fresha-style Dashboard',
+  description:'Combined view of service economics (top services by revenue/hour) and retail stock health in one report.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderTiles(addCard(el,'c-12','Overview'), {cols:4, tiles:[
+      {label:'Service revenue', value:'AED 6,820', sub:'&uarr; 11% vs comp'},
+      {label:'Retail revenue', value:'AED 2,310', sub:'&uarr; 6% vs comp'},
+      {label:'Inventory value', value:'AED 8,940', sub:'across 42 SKUs'},
+      {label:'Reorder required', value:'6 SKUs', sub:'≈ AED 1,120 est. cost'},
+    ]});
+    renderTable(addCard(el,'c-7','Top services'), {
+      columns:[{key:'s',label:'Service'},{key:'c',label:'Completed',num:true},{key:'rev',label:'Net revenue',num:true},{key:'rph',label:'Revenue / hr',num:true}],
+      rows:[
+        {s:'Full groom — medium dog', c:'38', rev:'AED 3,040', rph:'AED 95'},
+        {s:'Bath & brush', c:'44', rev:'AED 1,760', rph:'AED 80'},
+        {s:'Nail trim', c:'61', rev:'AED 610', rph:'AED 61'},
+        {s:'Cat groom', c:'12', rev:'AED 960', rph:'AED 88'},
+      ]
+    });
+    renderTable(addCard(el,'c-5','Stock alerts'), {
+      columns:[{key:'p',label:'SKU'},{key:'oh',label:'On hand',num:true},{key:'ro',label:'Recommended',num:true}],
+      rows:[
+        {p:'Oatmeal shampoo 1L', oh:'2', ro:'20'},
+        {p:'Deshedding brush', oh:'0', ro:'12'},
+        {p:'Nail clipper kit', oh:'3', ro:'6'},
+      ]
+    });
+  }
+},
+
+// ====================== APPOINTMENT MANAGEMENT (CRM) =======================
+{
+  id:'booking-funnel-summary', section:'Appointment Management (CRM)', name:'Booking Funnel Summary',
+  source:'Cami – Owner Report',
+  description:'Top-line KPI strip showing how inbound WhatsApp/inbox conversations convert into confirmed appointments over a selected period.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderFunnel(addCard(el,'c-7','Booking funnel summary','View report'), {stages:[
+      {label:'Inbound conversations', value:186, color:'#D6409F'},
+      {label:'Booked', value:104, color:'#0090FF'},
+      {label:'Confirmed', value:88, color:'#6EBB63'},
+    ]});
+    renderTiles(addCard(el,'c-5','Conversion KPIs'), {cols:1, tiles:[
+      {label:'Booked → Confirmed', value:'85%', sub:'&uarr; 4% vs comp'},
+      {label:'Contact → Booked (directional)', value:'56%', sub:'trend only, not headline'},
+    ]});
+    renderStatCard(addCard(el,'c-5'), {
+      label:'Booked — new vs. returning', value:'104', footnote:'split of the "Booked" stage above',
+      breakdown:[
+        {label:'New customers', swatch:'#D6409F', val:'44', delta:11},
+        {label:'Returning customers', swatch:'#6EBB63', val:'60', delta:6},
+      ]
+    });
+  }
+},
+{
+  id:'capacity-heatmap', section:'Appointment Management (CRM)', name:'Capacity Heatmap',
+  source:'Fresha-style Dashboard',
+  description:'Shows exactly when the business is over- or under-booked across the week so shifts/promotions can be planned around real demand.',
+  access:{owner:'Full', manager:'Full', staff:'Limited – own schedule only'},
+  render(el){
+    const body = addCard(el,'c-12','Capacity heatmap — utilisation % by day × hour','View report');
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const hours = ['9am','10am','11am','12pm','1pm','2pm','3pm','4pm'];
+    // matrix[hourRow][dayCol]
+    const matrix = [
+      [0.3,0.4,0.3,0.5,0.6,0.8,0.5],
+      [0.4,0.5,0.4,0.6,0.7,0.9,0.6],
+      [0.5,0.6,0.4,0.7,0.8,1.0,0.6],
+      [0.6,0.7,0.5,0.8,0.9,0.95,0.5],
+      [0.4,0.5,0.4,0.6,0.8,0.9,0.4],
+      [0.5,0.6,0.5,0.7,0.9,0.85,0.4],
+      [0.6,0.7,0.5,0.8,0.9,0.8,0.3],
+      [0.3,0.4,0.3,0.5,0.7,0.6,0.2],
+    ];
+    renderHeatmap(body, {rowsLabels:hours, colsLabels:days, matrix});
+    body.insertAdjacentHTML('beforeend', `<div class="legend" style="margin-top:16px;"><span class="legend-item"><span class="legend-swatch" style="background:#c9edf3"></span>Low</span><span class="legend-item"><span class="legend-swatch" style="background:#69cbdf"></span>Moderate</span><span class="legend-item"><span class="legend-swatch" style="background:#0f86ab"></span>High</span><span class="legend-item"><span class="legend-swatch" style="background:#0a5f7d"></span>Full</span></div>`);
+  }
+},
+{
+  id:'occupancy-rate', section:'Appointment Management (CRM)', name:'Occupancy Rate',
+  source:'Fresha-style Dashboard',
+  description:'Measures how much of available staff time is actually filled with paid appointments, trended against the prior period.',
+  access:{owner:'Full', manager:'Full', staff:'Limited – own hours only'},
+  render(el){
+    renderStatCard(addCard(el,'c-5'), {
+      label:'Overall occupancy', linkText:'View report', value:'72%', deltaPct:2, deltaDir:'down',
+      breakdown:[
+        {label:'Working hours', val:'312 hrs'},
+        {label:'Booked hours', val:'225 hrs'},
+        {label:'Unbooked hours', val:'87 hrs'},
+      ]
+    });
+  }
+},
+{
+  id:'whatsapp-funnel', section:'Appointment Management (CRM)', name:'WhatsApp Conversation Funnel',
+  source:'Cami – WhatsApp Funnel',
+  description:'Tracks every WhatsApp conversation from first inquiry through to an actual salon visit, rolled up from tags/quotes/closures in the Unibox.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderFunnel(addCard(el,'c-8','WhatsApp conversation funnel','View report'), {stages:[
+      {label:'Inquiries', value:214, color:'#D6409F'},
+      {label:'Engaged', value:172, color:'#0090FF'},
+      {label:'Quoted', value:139, color:'#6EBB63'},
+      {label:'Booked', value:104, color:'#BBBA25'},
+      {label:'Visited', value:88, color:'#898989'},
+    ]});
+    renderTiles(addCard(el,'c-4','Automation'), {cols:1, tiles:[
+      {label:'Auto-Scheduled', value:'83%'},
+    ]});
+  }
+},
+{
+  id:'closed-lost-reasons', section:'Appointment Management (CRM)', name:'Closed-Lost Reasons',
+  source:'Cami – WhatsApp Funnel',
+  description:'Explains why inquiries failed to convert, clickable to filter the inbox and coach reception on follow-up gaps.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    const body = addCard(el,'c-12','Closed-lost reasons','View report');
+    const data = [
+      {label:'Price', value:38}, {label:'Unresponsive 3+', value:29}, {label:'Timing', value:21},
+      {label:'Chose competitor', value:14}, {label:'Other', value:9},
+    ];
+    const total = data.reduce((s,d)=>s+d.value,0);
+    renderTable(body, {
+      columns:[{key:'r',label:'Reason'},{key:'c',label:'Count',num:true},{key:'p',label:'% of total',num:true}],
+      rows: data.map(d=>({r:d.label, c:d.value, p: Math.round(d.value/total*100)+'%'}))
+    });
+    body.insertAdjacentHTML('beforeend', `<div class="subcap" style="margin-top:10px;">6 closed-lost conversations (5%) have no reason tagged — data-quality flag</div>`);
+  }
+},
+{
+  id:'lead-engagement-response', section:'Appointment Management (CRM)', name:'Lead Engagement & Response Times',
+  source:'Cami – Lead Engagement',
+  description:'Measures how fast reception/staff respond to and convert new leads, surfacing anything sitting unanswered too long.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderTiles(addCard(el,'c-12','Response time KPIs'), {cols:3, tiles:[
+      {label:'Avg lead time (inquiry → booked)', value:'6.4 hrs'},
+      {label:'Avg first response', value:'4.1 min'},
+      {label:'Follow-up delays (>2h open)', value:'11 convs'},
+    ]});
+    const body = addCard(el,'c-12','Open inquiries by age');
+    const data = [{label:'0–2h', value:24},{label:'2–24h', value:9},{label:'1–3d', value:4},{label:'3+d', value:2}];
+    const legend = renderBarChart(body, {data});
+    body.insertAdjacentHTML('beforeend', legend);
+  }
+},
+{
+  id:'daily-inquiry-volume', section:'Appointment Management (CRM)', name:'Daily Inquiry Volume',
+  source:'Cami – Lead Engagement',
+  description:'Trend line of incoming demand so staffing on the inbox can be matched to volume, and to track AI deflection rate.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderLineChart(addCard(el,'c-8','Daily inquiry volume — 14 day trend','View report'), {series:INQUIRY_TREND, labels:TREND_LABELS});
+    renderTiles(addCard(el,'c-4','Volume KPIs'), {cols:1, tiles:[
+      {label:'Peak day', value:'Jul 12', sub:'33 inquiries'},
+      {label:'Avg / day', value:'25.2'},
+      {label:'AI handled', value:'83%'},
+    ]});
+  }
+},
+{
+  id:'daily-close-the-loop', section:'Appointment Management (CRM)', name:'Daily Inquiries',
+  source:'Cami – Owner Report',
+  description:'Day-by-day audit table proving no inquiry falls through the cracks; every lead is either progressed or explicitly logged as lost.',
+  access:{owner:'Full', manager:'Full', staff:'No access'},
+  render(el){
+    renderTable(addCard(el,'c-12','Daily inquiries','View report'), {
+      columns:[{key:'d',label:'Date'},{key:'i',label:'Inquiries',num:true},{key:'e',label:'Engaged',num:true},{key:'q',label:'Quoted',num:true},{key:'b',label:'Booked',num:true},{key:'v',label:'Visited',num:true},{key:'l',label:'Lost',num:true},{key:'lr',label:'Lost revenue',num:true}],
+      rows:[
+        {d:'Aug 15, 2026', i:'22', e:'18', q:'14', b:'11', v:'9', l:'4', lr:'AED 610'},
+        {d:'Aug 14, 2026', i:'19', e:'16', q:'12', b:'9', v:'8', l:'3', lr:'AED 420'},
+        {d:'Aug 13, 2026', i:'27', e:'21', q:'17', b:'13', v:'10', l:'6', lr:'AED 880'},
+        {d:'Aug 12, 2026', i:'24', e:'19', q:'15', b:'12', v:'11', l:'5', lr:'AED 715'},
+        {d:'Aug 11, 2026', i:'16', e:'13', q:'10', b:'8', v:'7', l:'3', lr:'AED 390'},
+      ]
+    });
+  }
+},
+
+];
+
+</script>
+<script>
+/* =========================================================================
+   CAMI DRAFT — chart & component primitives
+   Hand-built SVG/HTML "charts" (no external chart lib) so the mockup stays
+   dependency-free. Categorical palette sourced from the real Cami style
+   guide (pixel-sampled), no violet/purple, validated with the dataviz
+   skill's validate_palette.js — ALL CHECKS PASS, light mode:
+     node scripts/validate_palette.js "#D6409F,#6EBB63,#0090FF,#BBBA25" --mode light
+   plum/pink #D6409F (Radix pink-9, "decorative/avatar rings") | green #6EBB63
+   (cami-green) | blue #0090FF (Radix blue-9, "charts and informational") |
+   gold #BBBA25 (cami-yellow). Neutral gray is reserved as the 5th "Other"
+   overflow slot, not a validated identity hue (see dataviz skill).
+   ========================================================================= */
+
+const CAT_COLORS = ['#D6409F', '#6EBB63', '#0090FF', '#BBBA25', '#898989'];
+const OTHER_COLOR = '#898989';
+
+const tooltipEl = document.getElementById('viz-tooltip');
+function showTip(evt, html){
+  tooltipEl.innerHTML = html;
+  tooltipEl.style.left = evt.clientX + 'px';
+  tooltipEl.style.top = evt.clientY + 'px';
+  tooltipEl.classList.add('show');
+}
+function moveTip(evt){
+  tooltipEl.style.left = evt.clientX + 'px';
+  tooltipEl.style.top = evt.clientY + 'px';
+}
+function hideTip(){ tooltipEl.classList.remove('show'); }
+
+function fmtAED(n){
+  return 'AED ' + Math.round(n).toLocaleString('en-US');
+}
+function fmtNum(n){ return Math.round(n).toLocaleString('en-US'); }
+function esc(s){ return String(s); }
+
+/* ---------------- KPI stat card (value + delta + breakdown list) --------- */
+function renderStatCard(el, {label, linkText, value, deltaPct, deltaDir, breakdown, footnote}){
+  const dcls = deltaDir === 'up' ? 'up' : deltaDir === 'down' ? 'down' : '';
+  const arrow = deltaDir === 'up' ? '&uarr;' : deltaDir === 'down' ? '&darr;' : '';
+  el.innerHTML = `
+    <div class="card-head">
+      <span class="card-title">${label}</span>
+      ${linkText ? `<span class="card-link">${linkText}</span>` : ''}
+    </div>
+    <div class="kpi-row">
+      <span class="kpi-value">${value}</span>
+      ${deltaPct != null ? `<span class="delta ${dcls}">${arrow} ${deltaPct}%</span><span class="subcap">vs comp period</span>` : ''}
+    </div>
+    ${breakdown ? `<ul class="breakdown">${breakdown.map(b=>`
+      <li><span class="b-label">${b.swatch ? `<span class="b-swatch" style="background:${b.swatch}"></span>`:''}${b.label}</span>
+      <span class="b-val">${b.val}${b.delta!=null?`<span class="delta ${b.delta>=0?'up':'down'}">${b.delta>=0?'&uarr;':'&darr;'} ${Math.abs(b.delta)}%</span>`:''}</span></li>`).join('')}</ul>` : ''}
+    ${footnote ? `<div class="subcap" style="margin-top:10px;">${footnote}</div>` : ''}
+  `;
+}
+
+/* ---------------- Line / area trend chart (with comparison line) --------- */
+function renderLineChart(el, {series, compareSeries, labels, unit, height=230}){
+  const w = 900, h = height, padL = 34, padR = 12, padT = 16, padB = 26;
+  const all = compareSeries ? series.concat(compareSeries) : series;
+  const max = Math.ceil(Math.max(...all) * 1.15 / 100) * 100 || 10;
+  const n = series.length;
+  const x = i => padL + (i/(n-1)) * (w - padL - padR);
+  const y = v => padT + (1 - v/max) * (h - padT - padB);
+
+  const path = arr => arr.map((v,i)=>`${i===0?'M':'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const gridLines = 4;
+  let grid = '';
+  for(let g=0; g<=gridLines; g++){
+    const gv = max * g/gridLines;
+    const gy = y(gv);
+    grid += `<line x1="${padL}" y1="${gy}" x2="${w-padR}" y2="${gy}" stroke="var(--sand-4)" stroke-width="1"/>`;
+    grid += `<text x="${padL-8}" y="${gy+4}" font-size="10.5" fill="var(--sand-9)" text-anchor="end">${fmtNum(gv)}</text>`;
+  }
+  const xTicks = labels.map((lb,i)=> i % Math.ceil(n/8) === 0 ? `<text x="${x(i)}" y="${h-6}" font-size="10.5" fill="var(--sand-9)" text-anchor="middle">${lb}</text>` : '').join('');
+
+  const dots = series.map((v,i)=>`<circle class="pt" data-i="${i}" cx="${x(i)}" cy="${y(v)}" r="9" fill="transparent"/>`).join('');
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="${height}" preserveAspectRatio="none" style="overflow:visible">
+      ${grid}
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h-padB}" stroke="var(--sand-5)"/>
+      ${compareSeries ? `<path d="${path(compareSeries)}" fill="none" stroke="var(--sand-8)" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round"/>` : ''}
+      <path d="${path(series)}" fill="none" stroke="var(--cami-plum)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${series.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="2.5" fill="var(--cami-plum)"/>`).join('')}
+      ${xTicks}
+      ${dots}
+    </svg>`;
+  const svg = el.querySelector('svg');
+  svg.querySelectorAll('.pt').forEach(pt=>{
+    pt.addEventListener('mousemove', (e)=>{
+      const i = +pt.dataset.i;
+      let html = `<span class="tt-title">${labels[i]}</span>${fmtNum(series[i])}${unit||''}`;
+      if(compareSeries) html += `<br><span style="color:#c9c8c2">comp: ${fmtNum(compareSeries[i])}${unit||''}</span>`;
+      showTip(e, html);
+    });
+    pt.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* ---------------- Vertical bar chart (single series, categorical) -------- */
+function renderBarChart(el, {data, unit, height=230}){
+  const w = 900, h = height, padL = 40, padR = 12, padT = 16, padB = 34;
+  const max = Math.ceil(Math.max(...data.map(d=>d.value)) * 1.2);
+  const n = data.length;
+  const bw = (w - padL - padR) / n;
+  const y = v => padT + (1 - v/max) * (h - padT - padB);
+  let grid = '';
+  for(let g=0; g<=4; g++){
+    const gv = max*g/4; const gy = y(gv);
+    grid += `<line x1="${padL}" y1="${gy}" x2="${w-padR}" y2="${gy}" stroke="var(--sand-4)"/>`;
+    grid += `<text x="${padL-8}" y="${gy+4}" font-size="10.5" fill="var(--sand-9)" text-anchor="end">${fmtNum(gv)}</text>`;
+  }
+  let bars = '';
+  data.forEach((d,i)=>{
+    const bx = padL + i*bw + bw*0.22;
+    const bwid = bw*0.56;
+    const by = y(d.value);
+    const color = d.color || CAT_COLORS[i % CAT_COLORS.length];
+    bars += `<rect class="bar" data-i="${i}" x="${bx}" y="${by}" width="${bwid}" height="${(h-padB)-by}" rx="4" fill="${color}"/>`;
+    bars += `<text x="${bx+bwid/2}" y="${h-14}" font-size="10.5" fill="var(--sand-9)" text-anchor="middle">${d.label}</text>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${height}" preserveAspectRatio="none" style="overflow:visible">${grid}${bars}</svg>`;
+  el.querySelectorAll('.bar').forEach(bar=>{
+    bar.addEventListener('mousemove', e=>{
+      const d = data[+bar.dataset.i];
+      showTip(e, `<span class="tt-title">${d.label}</span>${unit==='AED'?fmtAED(d.value):fmtNum(d.value)+(unit||'')}`);
+    });
+    bar.addEventListener('mouseleave', hideTip);
+  });
+  return `<div class="legend">${data.map((d,i)=>`<span class="legend-item"><span class="legend-swatch" style="background:${d.color||CAT_COLORS[i%CAT_COLORS.length]}"></span>${d.label}</span>`).join('')}</div>`;
+}
+
+/* ---------------- Donut chart ------------------------------------------- */
+function renderDonut(el, {data, unit, size=170}){
+  const total = data.reduce((s,d)=>s+d.value,0);
+  const cx = size/2, cy = size/2, r = size/2 - 12, stroke = 22;
+  let acc = -90;
+  const circumference = 2*Math.PI*r;
+  let arcs = '';
+  data.forEach((d,i)=>{
+    const frac = d.value/total;
+    const len = frac * circumference;
+    const color = d.color || CAT_COLORS[i%CAT_COLORS.length];
+    arcs += `<circle class="arc" data-i="${i}" cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}"
+      stroke-width="${stroke}" stroke-dasharray="${len} ${circumference-len}" stroke-dashoffset="${-acc/360*circumference}"
+      transform="rotate(-90 ${cx} ${cy})" stroke-linecap="butt"/>`;
+    acc += frac*360;
+  });
+  el.innerHTML = `
+    <div style="display:flex; align-items:center; gap:22px; flex-wrap:wrap;">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--sand-3)" stroke-width="${stroke}"/>
+        ${arcs}
+        <text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="20" font-weight="800" fill="var(--sand-12)">${fmtNum(total)}</text>
+        <text x="${cx}" y="${cy+14}" text-anchor="middle" font-size="10.5" fill="var(--sand-9)">total</text>
+      </svg>
+      <ul class="breakdown" style="flex:1; min-width:180px;">
+        ${data.map((d,i)=>`<li><span class="b-label"><span class="b-swatch" style="background:${d.color||CAT_COLORS[i%CAT_COLORS.length]}"></span>${d.label}</span>
+        <span class="b-val">${unit==='AED'?fmtAED(d.value):fmtNum(d.value)} <span class="subcap">${Math.round(d.value/total*100)}%</span></span></li>`).join('')}
+      </ul>
+    </div>`;
+  el.querySelectorAll('.arc').forEach(arc=>{
+    arc.addEventListener('mousemove', e=>{
+      const d = data[+arc.dataset.i];
+      showTip(e, `<span class="tt-title">${d.label}</span>${unit==='AED'?fmtAED(d.value):fmtNum(d.value)} · ${Math.round(d.value/total*100)}%`);
+    });
+    arc.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* ---------------- Funnel -------------------------------------------------- */
+function renderFunnel(el, {stages}){
+  const max = stages[0].value;
+  let rows = '';
+  stages.forEach((s,i)=>{
+    const pct = Math.max(6, Math.round(s.value/max*100));
+    const drop = i>0 ? Math.round((1 - s.value/stages[i-1].value)*100) : null;
+    rows += `
+      <div class="funnel-row">
+        <span class="funnel-label">${s.label}</span>
+        <div class="funnel-track">
+          <div class="funnel-fill" data-i="${i}" style="width:${pct}%; background:${s.color || 'var(--cami-plum)'}">${fmtNum(s.value)}</div>
+        </div>
+        <span class="funnel-drop">${drop!=null ? `-${drop}% drop-off` : ''}</span>
+      </div>`;
+  });
+  el.innerHTML = `<div class="funnel">${rows}</div>`;
+  el.querySelectorAll('.funnel-fill').forEach(f=>{
+    f.addEventListener('mousemove', e=>{
+      const s = stages[+f.dataset.i];
+      showTip(e, `<span class="tt-title">${s.label}</span>${fmtNum(s.value)}`);
+    });
+    f.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* ---------------- Heatmap grid -------------------------------------------- */
+function renderHeatmap(el, {rowsLabels, colsLabels, matrix}){
+  // matrix[row][col] = 0..1 utilisation
+  const seqRamp = v => {
+    // single-hue teal (cami-sage) sequential ramp, light -> dark — kept distinct
+    // from the violet brand accent used elsewhere so heat state reads separately.
+    const stops = ['#eaf7fa','#c9edf3','#9edfec','#69cbdf','#33add0','#0f86ab','#0a5f7d'];
+    const idx = Math.min(stops.length-1, Math.floor(v*stops.length));
+    return stops[idx];
+  };
+  let html = `<div class="heatmap"><div class="hcorner"></div>`;
+  colsLabels.forEach(c=> html += `<div class="hday">${c}</div>`);
+  rowsLabels.forEach((r,ri)=>{
+    html += `<div class="hcorner">${r}</div>`;
+    matrix[ri].forEach((v,ci)=>{
+      const color = seqRamp(v);
+      const textColor = v > 0.5 ? '#fff' : 'var(--sand-11)';
+      html += `<div class="hcell heat-cell" data-r="${ri}" data-c="${ci}" style="background:${color}; color:${textColor}">${Math.round(v*100)}</div>`;
+    });
+  });
+  html += `</div>`;
+  el.innerHTML = html;
+  el.querySelectorAll('.heat-cell').forEach(cell=>{
+    cell.addEventListener('mousemove', e=>{
+      const r = +cell.dataset.r, c = +cell.dataset.c;
+      showTip(e, `<span class="tt-title">${colsLabels[c]} · ${rowsLabels[r]}</span>${Math.round(matrix[r][c]*100)}% booked`);
+    });
+    cell.addEventListener('mouseleave', hideTip);
+  });
+}
+
+/* ---------------- Data table ---------------------------------------------- */
+function renderTable(el, {columns, rows}){
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table class="rtable">
+        <thead><tr>${columns.map(c=>`<th class="${c.num?'num':''}">${c.label}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${rows.map(r=>`<tr>${columns.map(c=>`<td class="${c.num?'num':''} ${c.muted?'muted':''}">${r[c.key] ?? ''}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+/* ---------------- Tile row (small stat tiles) ------------------------------ */
+function renderTiles(el, {tiles, cols=4}){
+  el.innerHTML = `<div class="tile-row" style="grid-template-columns:repeat(${cols},1fr)">
+    ${tiles.map(t=>`<div class="tile"><div class="tile-label">${t.label}</div><div class="tile-value">${t.value}</div>${t.sub?`<div class="tile-sub">${t.sub}</div>`:''}</div>`).join('')}
+  </div>`;
+}
+
+function badgeHtml(text, kind){ return `<span class="badge ${kind}">${text}</span>`; }
+function stars(n){ return `<span class="stars">${'&#9733;'.repeat(Math.round(n))}${'&#9734;'.repeat(5-Math.round(n))}</span> <span class="subcap">${n.toFixed(1)}</span>`; }
+
+/* ---------------- Card scaffold ------------------------------------------- */
+function addCard(parent, spanClass, title, linkText){
+  const c = document.createElement('div');
+  c.className = 'card ' + spanClass;
+  if(title){
+    c.innerHTML = `<div class="card-head"><span class="card-title">${title}</span>${linkText?`<span class="card-link">${linkText}</span>`:''}</div><div class="card-body"></div>`;
+    parent.appendChild(c);
+    return c.querySelector('.card-body');
+  }
+  parent.appendChild(c);
+  return c;
+}
+
+/* ---------------- Auto description note (metadata banner) ----------------- */
+function renderDescNote(el, r){
+  const chip = (label, level) => {
+    const kind = level === 'Full' ? 'good' : level === 'No access' ? 'crit' : 'warn';
+    return `<span class="perm-chip"><b style="color:var(--sand-11)">${label}:</b> ${level}</span>`;
+  };
+  el.innerHTML = `
+    <div class="perm-row">
+      ${chip('Owner', r.access.owner)} ${chip('Manager', r.access.manager)} ${chip('Staff', r.access.staff)}
+    </div>`;
+}
+
+</script>
+<script>
+/* =========================================================================
+   CAMI DRAFT — single continuous Performance Dashboard
+   No left-hand switcher: every report renders inline, grouped and stacked,
+   titles live inside each card (per Owner feedback). Users scroll to see
+   every report, same as the production Performance Dashboard pattern.
+   ========================================================================= */
+const bodyEl = document.getElementById('report-body');
+
+const SECTIONS = ['Sales & Revenue', 'Appointment Management (CRM)'];
+
+function renderAll(){
+  bodyEl.innerHTML = '';
+  SECTIONS.forEach(sec=>{
+    const items = REPORTS.filter(r=>r.section===sec);
+
+    const divider = document.createElement('div');
+    divider.className = 'section-divider c-12';
+    divider.innerHTML = `<span class="sd-label">${sec}</span><span class="sd-count">${items.length} reports</span>`;
+    bodyEl.appendChild(divider);
+
+    items.forEach(r=>{
+      const note = document.createElement('div');
+      note.className = 'desc-note';
+      renderDescNote(note, r);
+      bodyEl.appendChild(note);
+      r.render(bodyEl);
+    });
+  });
+}
+
+renderAll();
+
+</script>
+</body>
+</html>
