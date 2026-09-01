@@ -278,6 +278,63 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    title: "Cami HQ, terminal fleet (DSG-82)",
+    description:
+      "Cami buys the card machines and leases them out, so a terminal is an asset HQ assigns, not a device a merchant registered. Two surfaces over one fleet: this listing, which answers the question support starts from (a ticket names a serial, nobody knows whose it is), and a card on the Partner detail modal for the forward question. HQ never sees a terminal PIN, and cannot rename a unit or set its location — those describe the merchant's counter, not our asset.",
+    screens: [
+      {
+        path: "/admin/terminals",
+        label: "Fleet listing",
+        note: "Every unit Cami owns: out with Partners, in stock, returned, faulty. Serial leads each row because that is what is printed on the box; the Partner column carries the CM-#### code and the since-date. Clicking a Partner pops their detail dialog over the fleet at ?partner=<slug> rather than navigating away, so the tab and search survive. The row menu offers only what the unit's state allows.",
+      },
+      {
+        path: "/admin/terminals?q=NP5-2419-8830",
+        label: "Reverse lookup, the reason this screen exists",
+        note: "Lands with the serial off a support ticket already in the box, resolved to Shampooch JVC. Tab and search live in the URL, so a filtered fleet view is a link you can send. Search also matches pairing code, model, location, Partner name and Partner code — try CM-5107.",
+      },
+      {
+        path: "/admin/terminals?tab=in-stock",
+        label: "Stock, assignable to any Partner",
+        note: "Two units on the shelf. Assign from here picks a Partner for a known unit; the Partner card picks a unit for a known Partner. Same write, opposite starting point.",
+      },
+      {
+        path: "/admin/terminals?tab=returned",
+        label: "Returned, with Put back in stock",
+        note: 'A unit that came back when a Partner closed. The row keeps the date it returned, which is the useful half of "nobody has it".',
+      },
+      {
+        path: "/admin/terminals?tab=faulty",
+        label: "Faulty, kept as a record",
+        note: "Written-off unit, never offered for assignment again and not deleted — leased hardware written off is a thing finance asks about later.",
+      },
+      {
+        path: "/admin/businesses?business=shampooch-jvc&section=settings",
+        label: "Partner card, three units assigned",
+        note: "Active (2 signed in), No sessions, and Not set up — shipped and signed for, nobody has switched it on. Assign picks a unit from stock; the fleet listing picks a Partner for a unit. Same write, opposite starting point.",
+      },
+      {
+        path: "/admin/businesses?business=pawhaus&section=settings",
+        label: "Partner card, one blocked by HQ",
+        note: "The blocked row keeps who blocked it and when, and offers Allow terminal. Return to Cami is the destructive item, not Block: a block is undone from the same menu, a return ends the assignment and clears the pairing.",
+      },
+      {
+        path: "/admin/businesses?business=velvet-paw&section=settings",
+        label: "Partner card, nothing assigned yet",
+        note: "Onboarding Partner Cami has not shipped to. Empty state carries Assign terminal.",
+      },
+      {
+        path: "/admin/businesses?business=furry-tales&section=settings",
+        label: "Partner card, access off and archived",
+        note: "Terminal access reads off at the top of the card, so the unit in their hands cannot take payments whatever its row says. Archived on top of that, so every control is disabled. The access switch writes the same flag as CamiPay Terminal above — one flag, two views.",
+      },
+      {
+        path: "/admin/businesses?q=CM-4821",
+        label: "Roster, searched by Partner code",
+        note: "Lands with CM-4821 in the search box, resolved to Shampooch JVC — a support thread quoting the code is one paste from the Partner. The code reads inline under each business name next to the slug, and the copy chip sits in the detail modal header. Immutable by design: the slug already exists for the identifier that can change.",
+      },
+    ],
+  },
+  {
     title: "CamiPay fee visibility, Partner side (PRO-737)",
     description:
       "The other half of the rate card: what the Partner sees. A fee breakdown on every CamiPay sale, and a read-only view of their own rates. Cami's fee only, never the gateway's processing cost, and the rate is the one snapshotted at capture rather than whatever the card says today.",

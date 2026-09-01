@@ -53,6 +53,15 @@ export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
 
 export type AdminBusiness = {
   id: string
+  /**
+   * The Partner identifier a human says out loud (DSG-82), `CM-4821`. Third
+   * identifier on purpose: `id` is internal and never rendered, `slug` is
+   * public and changeable from the General tab, and support needs one that is
+   * neither. Issued once at creation and immutable — a re-issuable code is a
+   * slug with extra steps — so there is no edit affordance anywhere.
+   * Spec: docs/specs/DSG-82-hq-terminal-management.md
+   */
+  code: string
   name: string
   slug: string
   ownerName: string
@@ -89,6 +98,7 @@ export type AdminBusiness = {
 export const adminBusinesses: AdminBusiness[] = [
   {
     id: "biz_shampooch",
+    code: "CM-4821",
     name: "Shampooch JVC",
     slug: "shampooch-jvc",
     ownerName: "Maz Khan",
@@ -170,6 +180,7 @@ export const adminBusinesses: AdminBusiness[] = [
   },
   {
     id: "biz_pawhaus",
+    code: "CM-5107",
     name: "Pawhaus Boarding",
     slug: "pawhaus",
     ownerName: "Layla Saeed",
@@ -229,6 +240,7 @@ export const adminBusinesses: AdminBusiness[] = [
   },
   {
     id: "biz_velvetpaw",
+    code: "CM-6634",
     name: "Velvet Paw Spa",
     slug: "velvet-paw",
     ownerName: "Noura Al Marzooqi",
@@ -272,6 +284,7 @@ export const adminBusinesses: AdminBusiness[] = [
   },
   {
     id: "biz_doggos",
+    code: "CM-3390",
     name: "Doggos Daycare",
     slug: "doggos",
     ownerName: "Faisal Rahman",
@@ -327,6 +340,7 @@ export const adminBusinesses: AdminBusiness[] = [
   },
   {
     id: "biz_furrytales",
+    code: "CM-2748",
     name: "Furry Tales Grooming",
     slug: "furry-tales",
     ownerName: "Priya Anand",
@@ -360,6 +374,22 @@ export const adminBusinesses: AdminBusiness[] = [
     ],
   },
 ]
+
+/**
+ * Issue a merchant code for a newly created Partner. Four digits, no letters:
+ * it gets read down a phone and typed into a ticket. The digits carry no
+ * meaning — not sequential, not year-scoped — so nobody reads a ranking into
+ * them. `CM-` prefixes it so a bare number in a support thread is still
+ * recognisable as a Partner.
+ */
+export function generateMerchantCode(): string {
+  const existing = new Set(adminBusinesses.map((b) => b.code))
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const candidate = `CM-${Math.floor(1000 + Math.random() * 9000)}`
+    if (!existing.has(candidate)) return candidate
+  }
+  return `CM-${Math.floor(1000 + Math.random() * 9000)}`
+}
 
 export function findBusinessBySlug(slug: string): AdminBusiness | undefined {
   return adminBusinesses.find((b) => b.slug === slug)

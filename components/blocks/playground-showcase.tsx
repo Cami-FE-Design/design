@@ -63,10 +63,13 @@ import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
 import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
+import { TerminalStatus } from "@/components/blocks/hq-terminal-status"
+import { HqTerminalsPanel } from "@/components/blocks/hq-terminals-panel"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
 import { InvoiceDocumentView } from "@/components/blocks/invoice-document"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
+import { MerchantCode } from "@/components/blocks/merchant-code"
 import {
   type BankAccountDemoState,
   BankAccountPanel,
@@ -178,6 +181,7 @@ import { ALL_HQ_PERMISSIONS, AuthProvider, type PermissionKey } from "@/lib/auth
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { CamiPayProvider, ZERO_RATE } from "@/lib/hq-camipay/store"
+import { type HqTerminalStatus, HqTerminalsProvider } from "@/lib/hq-terminals/store"
 import { INVOICE_FIXTURES } from "@/lib/invoice/mock"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
@@ -2375,6 +2379,73 @@ export function PlaygroundShowcase() {
       </Section>
 
       <Section
+        title="Cami HQ — terminal fleet, Partner card"
+        description="DSG-82. Cami buys the card machines and leases them out, so a terminal is an asset HQ assigns, not a device a merchant registered. This is the Partner-scoped card (Settings tab of the HQ Partner detail dialog, ?section=settings); the fleet-wide listing with stock, returns and the serial → Partner lookup is /admin/terminals. Rows lead with the serial because that is what is printed on the box and quoted in a ticket. Assign picks a unit from stock; Return to Cami is the destructive item, not Block, because a block is undone from the same menu. Access sits at the top of the card as a Terminal access switch writing the same rails.terminal.enabled flag as CamiPay Terminal above it — one flag, two views, and the row says so. Assign/Block/Return ride on merchants.edit, the access switch on billing.camipay.rails.edit. One store across the rows below, so an assignment in one shows in the others."
+      >
+        <HqTerminalsProvider>
+          <CamiPayProvider>
+            <Row label="Three units: active, idle, and shipped but never switched on">
+              <HqTerminalsPanelDemo slug="shampooch-jvc" permissions={ALL_HQ_PERMISSIONS} />
+            </Row>
+            <Row label="One unit blocked by HQ, with who and when on the row">
+              <HqTerminalsPanelDemo slug="pawhaus" permissions={ALL_HQ_PERMISSIONS} />
+            </Row>
+            <Row label="Suspended Partner, device locked itself out on failed PINs">
+              <HqTerminalsPanelDemo slug="doggos" permissions={ALL_HQ_PERMISSIONS} />
+            </Row>
+            <Row label="Nothing assigned yet — empty state carries Assign">
+              <HqTerminalsPanelDemo slug="velvet-paw" permissions={ALL_HQ_PERMISSIONS} />
+            </Row>
+            <Row label="Terminal access off, so the unit in hand cannot transact">
+              <HqTerminalsPanelDemo slug="furry-tales" permissions={ALL_HQ_PERMISSIONS} />
+            </Row>
+            <Row label="View-only, merchants.view without merchants.edit">
+              <HqTerminalsPanelDemo slug="shampooch-jvc" permissions={["merchants.view"]} />
+            </Row>
+            <Row label="Archived Partner, whole tab read-only">
+              <HqTerminalsPanelDemo slug="furry-tales" permissions={ALL_HQ_PERMISSIONS} disabled />
+            </Row>
+          </CamiPayProvider>
+        </HqTerminalsProvider>
+      </Section>
+
+      <Section
+        title="Terminal status — one vocabulary, two surfaces"
+        description="DSG-82. The fleet table and the Partner card read from components/blocks/hq-terminal-status.tsx so they cannot drift. The first three are fleet states only HQ sees; Not set up, Locked, Active and No sessions are the merchant's own words from DSG-62, so HQ and the merchant looking at one device read the same status. Order is first-match-wins: where the unit physically is, then whether HQ stopped it, then what the device is doing."
+      >
+        {(
+          [
+            "in-stock",
+            "returned",
+            "faulty",
+            "not-paired",
+            "active",
+            "no-sessions",
+            "blocked",
+            "locked",
+          ] as HqTerminalStatus[]
+        ).map((status) => (
+          <Row key={status} label={status}>
+            <TerminalStatus status={status} suffix={status === "locked" ? "12 min" : null} />
+          </Row>
+        ))}
+      </Section>
+
+      <Section
+        title="Partner code — CM-####"
+        description="DSG-82. The identifier a human says out loud. `id` (biz_shampooch) is internal and never rendered; the slug is public and changeable from the General tab; this one is issued at creation and immutable, which is why there is no edit affordance anywhere. Chip variant on the detail modal header and the Terminals card, click to copy; inline variant in dense listing rows, where a button per row would be twelve buttons nobody asked for."
+      >
+        <Row label="Chip — click to copy">
+          <MerchantCode code="CM-4821" />
+        </Row>
+        <Row label="Inline — roster row, paired with the slug">
+          <span className="truncate font-mono text-xs text-muted-foreground">
+            CM-4821 · cami.app/shampooch-jvc
+          </span>
+        </Row>
+      </Section>
+
+      <Section
         title="CamiPay fee breakdown — Partner side"
         description="PRO-737. What the Partner sees on their own sale detail (/sales/sales-list, open a sale paid by CamiPay). Sale amount → Cami fee → Net, with the calculation spelled out under the fee so the number is never a black box. The gateway's processing fee is deliberately absent: the Partner pays Cami's fee and nothing else. The rate is snapshotted onto the payment at capture, so a later rate change never restates it."
       >
@@ -2826,6 +2897,31 @@ function CamiPayPanelDemo({
     <div className="w-full max-w-xl">
       <AuthProvider initialPermissions={permissions}>
         <HqCamiPayPanel business={business} disabled={disabled} />
+      </AuthProvider>
+    </div>
+  )
+}
+
+/**
+ * One HQ terminals panel, wrapped in its own AuthProvider so each row can show
+ * a different permission set. Both stores are provided once by the section
+ * above, so a block made in one row shows up in the others.
+ */
+function HqTerminalsPanelDemo({
+  slug,
+  permissions,
+  disabled,
+}: {
+  slug: string
+  permissions: PermissionKey[]
+  disabled?: boolean
+}) {
+  const business = adminBusinesses.find((b) => b.slug === slug)
+  if (!business) return null
+  return (
+    <div className="w-full max-w-xl">
+      <AuthProvider initialPermissions={permissions}>
+        <HqTerminalsPanel business={business} disabled={disabled} />
       </AuthProvider>
     </div>
   )

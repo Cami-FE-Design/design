@@ -350,7 +350,7 @@ function RateHistory({ rows }: { rows: RateRow[] }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="self-start text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+        className="w-fit cursor-pointer self-start text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
       >
         {open ? "Hide" : "Show"} rate history ({rows.length})
       </button>
