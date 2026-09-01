@@ -195,7 +195,6 @@ import { applySummaryFor, getScenario, type ImportScenarioId } from "@/lib/produ
 import { placeholderSkuRows, reviewCounts } from "@/lib/product-import/outcome"
 import type { ProductImportPreviewRow, RowOverride } from "@/lib/product-import/types"
 import {
-  CLOSED_LOST,
   HEATMAP_DAYS,
   HEATMAP_HOURS,
   HEATMAP_MATRIX,
