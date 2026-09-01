@@ -195,10 +195,10 @@ import { applySummaryFor, getScenario, type ImportScenarioId } from "@/lib/produ
 import { placeholderSkuRows, reviewCounts } from "@/lib/product-import/outcome"
 import type { ProductImportPreviewRow, RowOverride } from "@/lib/product-import/types"
 import {
-  CLOSED_LOST,
   HEATMAP_DAYS,
   HEATMAP_HOURS,
   HEATMAP_MATRIX,
+  OPEN_INQUIRY_AGE,
   SALES_BY_PAYMENT,
   SALES_BY_PAYMENT_VALUES,
   WHATSAPP_FUNNEL,
@@ -2685,10 +2685,16 @@ export function PlaygroundShowcase() {
 
         <Row label="Ranked bars" align="start">
           <div className="w-[420px] rounded-2xl border border-border/60 bg-card p-5">
-            <RankedBarChart data={CLOSED_LOST} formatValue={(n) => `${n}`} />
+            <RankedBarChart
+              data={OPEN_INQUIRY_AGE}
+              formatValue={(n) => `${n}`}
+              unit="Conversations still open, by how long"
+              orientation="column"
+            />
           </div>
           <span className="w-56 text-xs leading-snug text-muted-foreground">
-            One measure, so one hue — colour here would imply the reasons are separate series.
+            Ranked, so the order carries the ranking and the axis carries the size. Shown the way
+            the dashboard ships it — vertical columns, wrapped two-line labels.
           </span>
         </Row>
 

@@ -590,14 +590,6 @@ export const CLOSED_LOST_TABLE: SimpleTable = {
   ],
 }
 
-export const CLOSED_LOST = [
-  { label: "Price", value: 38, slot: 0 },
-  { label: "Unresponsive 3+", value: 29, slot: 1 },
-  { label: "Timing", value: 21, slot: 2 },
-  { label: "Chose competitor", value: 14, slot: 3 },
-  { label: "Other", value: 9, slot: 5 },
-]
-
 export const CLOSED_LOST_NOTE =
   "6 closed-lost conversations (5%) have no reason tagged — data-quality flag"
 

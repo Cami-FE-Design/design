@@ -107,8 +107,8 @@ export function RankedBarChart({
     return (
       <figure className="flex w-full flex-1 flex-col gap-2">
         {unit ? <figcaption className="text-xs text-muted-foreground">{unit}</figcaption> : null}
-        <div className="w-full flex-1" style={{ minHeight: 260 }}>
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full flex-1">
+          <ResponsiveContainer width="100%" height="100%" minHeight={260}>
             <BarChart
               data={data}
               margin={{ top: 8, right: 4, left: 0, bottom: 4 }}
@@ -170,11 +170,10 @@ export function RankedBarChart({
       {unit ? <figcaption className="text-xs text-muted-foreground">{unit}</figcaption> : null}
       <div
         className="w-full flex-1"
-        style={{ minHeight: data.length * 38 + 28 }}
         role="img"
         aria-label={data.map((d) => `${d.label}: ${formatValue(d.value)}`).join(", ")}
       >
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minHeight={data.length * 38 + 28}>
           <BarChart
             data={data}
             layout="vertical"
