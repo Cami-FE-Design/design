@@ -8,6 +8,7 @@
 // Anything else on this template is still behind its feature flag.
 
 import { ChartNoAxesCombinedIcon } from "lucide-react"
+import { Suspense } from "react"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { PerformanceDashboard } from "@/components/blocks/reports/dashboard/performance-dashboard"
 import { PerformanceOverTimeReport } from "@/components/blocks/reports/performance-over-time-report"
@@ -16,7 +17,15 @@ import type { ReportDef } from "@/lib/reports/types"
 
 export function DashboardReport({ report }: { report: ReportDef }) {
   if (report.id === "performance-dashboard") {
-    return <PerformanceDashboard report={report} />
+    // The dashboard reads ?state= with useSearchParams, which bails out of
+    // static prerendering unless a boundary sits above it. The boundary lives
+    // here rather than at each call site so /playground — a static page that
+    // renders this — cannot break the build again.
+    return (
+      <Suspense fallback={null}>
+        <PerformanceDashboard report={report} />
+      </Suspense>
+    )
   }
 
   if (report.id === "performance-summary") {
