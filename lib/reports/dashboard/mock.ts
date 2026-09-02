@@ -181,15 +181,21 @@ export const SALES_BY_CATEGORY: SimpleTable = {
 // 4. Sales by booking channel — 7 channels, so the 5-slot categorical palette
 // is exhausted; the tail folds into the neutral "Other" slot rather than
 // inventing hues (dataviz rule: assign in fixed order, never cycle).
+/**
+ * Booking channel is HOW the sale was booked, and today that is two values.
+ * The draft listed seven (Booking Link, Instagram, WhatsApp, Marketing, TikTok,
+ * Walk-in, Referral) but those are sources, not booking routes — Maaz confirmed
+ * they collapse to one Online channel until per-link URL tracking exists, at
+ * which point Online breaks down further. Where the client CAME from is a
+ * separate, manually maintained field: see ACQUISITION_SPLIT.
+ */
 export const SALES_BY_CHANNEL: BreakdownItem[] = [
-  { label: "Booking Link", value: "AED 3,120", deltaPct: 14 },
-  { label: "Instagram", value: "AED 2,040", deltaPct: 9 },
-  { label: "WhatsApp", value: "AED 1,860", deltaPct: 19 },
-  { label: "Marketing", value: "AED 1,360", deltaPct: -3 },
-  { label: "TikTok", value: "AED 1,180", deltaPct: 22 },
-  { label: "Walk-in", value: "AED 940", deltaPct: 2 },
-  { label: "Referral", value: "AED 430", deltaPct: 6 },
+  { label: "Online", value: "AED 6,180", deltaPct: 16 },
+  { label: "In person", value: "AED 2,570", deltaPct: 3 },
 ]
+
+export const SALES_BY_CHANNEL_NOTE =
+  "Online covers every booking link. It splits by source once link tracking ships."
 
 // Dropped from the card: "7 active channels" was a hero figure nobody acts on.
 // The ranked list underneath is what the card is for.
@@ -334,68 +340,77 @@ export const TEAM_LEADERBOARD: LeaderboardRow[] = [
 export const STAFF_PERFORMANCE: SimpleTable = {
   columns: [
     { key: "name", label: "Team member" },
+    { key: "svc", label: "Service sales", align: "right" },
+    { key: "prod", label: "Product sales", align: "right" },
     { key: "net", label: "Net revenue", align: "right" },
     { key: "util", label: "Occupancy", align: "right" },
     { key: "rph", label: "Revenue / paid hr", align: "right" },
     { key: "rebook", label: "Rebooking", align: "right" },
     { key: "newc", label: "New clients", align: "right" },
-    { key: "retc", label: "Returning", align: "right" },
-    { key: "retail", label: "Retail attach", align: "right" },
+    { key: "retc", label: "Returning clients", align: "right" },
   ],
   rows: [
     {
       name: "Aisha Al Marri",
+      svc: "AED 2,772",
+      prod: "AED 88",
       net: "AED 2,860",
       util: "81%",
       rph: "AED 92",
       rebook: "64%",
       newc: "9",
       retc: "25",
-      retail: "31%",
     },
     {
       name: "Ravi Kumar",
+      svc: "AED 2,077",
+      prod: "AED 63",
       net: "AED 2,140",
       util: "74%",
       rph: "AED 78",
       rebook: "58%",
       newc: "7",
       retc: "19",
-      retail: "22%",
     },
     {
       name: "Sara Mostafa",
+      svc: "AED 1,729",
+      prod: "AED 51",
       net: "AED 1,780",
       util: "69%",
       rph: "AED 74",
       rebook: "61%",
       newc: "6",
       retc: "17",
-      retail: "19%",
     },
     {
       name: "Jomar Dela Cruz",
+      svc: "AED 1,371",
+      prod: "AED 39",
       net: "AED 1,410",
       util: "62%",
       rph: "AED 66",
       rebook: "49%",
       newc: "5",
       retc: "12",
-      retail: "15%",
     },
     {
       name: "Team average",
+      svc: "AED 1,987",
+      prod: "AED 61",
       net: "AED 2,048",
       util: "71%",
       rph: "AED 77",
       rebook: "58%",
       newc: "7",
       retc: "18",
-      retail: "22%",
     },
   ],
   emphasiseLastRow: true,
 }
+
+export const STAFF_PERFORMANCE_NOTE =
+  "Service revenue splits by each member's contribution; product sales split evenly across the staff on the appointment."
 
 // 10. Inventory performance
 export type StockStatus = "in-stock" | "low" | "out" | "slow"
@@ -484,18 +499,25 @@ export const TOP_SERVICES: SimpleTable = {
 // ═══ APPOINTMENT MANAGEMENT (CRM) ════════════════════════════════════════════
 
 // 12. Booking funnel summary
-export const BOOKING_FUNNEL: FunnelStage[] = [
-  { label: "Inbound conversations", value: 186, slot: 0 },
-  { label: "Booked", value: 104, slot: 1 },
-  { label: "Confirmed", value: 88, slot: 2 },
-]
+/**
+ * Deliberately no longer a funnel. Its three stages were the inbound funnel's
+ * first, fourth and fifth — the same 104 and 88 printed twice on one page — and
+ * its top figure said 186 where the inbound funnel said 214, so the two cards
+ * contradicted each other in public. Maaz confirmed they are one funnel; the
+ * stages live on the inbound card and this one answers "how many, and who".
+ */
+export const BOOKED_TOTAL = {
+  value: "104",
+  deltaPct: 8,
+  footnote: "88 confirmed — 85% of booked, up 4% vs comparison",
+}
 
 // Only the change. The rate itself is already on the funnel above — a stage's
 // "−15% drop-off" and an 85% conversion are the same fact stated twice — so
 // this line carries what the funnel can't say: the movement since last period.
-export const BOOKING_FUNNEL_KPIS = [
-  { label: "Booked → Confirmed", value: "↑ 4%", sub: "vs comparison" },
-]
+// BOOKING_FUNNEL_KPIS is gone. "Booked → Confirmed ↑ 4%" was a third layout in
+// a card that already had a headline and a list, and it repeated the footnote
+// directly above it. The movement now rides in that footnote.
 
 // The draft flags Contact → Booked as "a directional trend, not a headline".
 // That caveat is a spec question — whether a booking counts on the booked date
@@ -505,10 +527,11 @@ export const BOOKING_FUNNEL_KPIS = [
 
 export const BOOKED_SPLIT = {
   caption: "Of the 104 booked",
+  /** BreakdownItem, so it renders in the same list as every other card. */
   parts: [
-    { label: "New customers", value: 44, slot: 0 },
-    { label: "Returning customers", value: 60, slot: 1 },
-  ],
+    { label: "New customers", value: "44", slot: 0 },
+    { label: "Returning customers", value: "60", slot: 1 },
+  ] as BreakdownItem[],
 }
 
 // 13. Capacity heatmap
@@ -535,8 +558,10 @@ export const OCCUPANCY: MetricValue = { value: "72%", deltaPct: -2 }
 // and leaveMinutes are always 0 in the current pass, so available == scheduled
 // today — the two rows are kept separate so the day they diverge, the card
 // already reads correctly.
+/** "Scheduled hours" sat here reading 312 beside "Available hours" reading 312
+ *  — the same figure under two names, because breaks and leave are not carved
+ *  out yet (the footnote says so). It returns when the two actually differ. */
 export const OCCUPANCY_BREAKDOWN: BreakdownItem[] = [
-  { label: "Scheduled hours", value: "312 hrs" },
   { label: "Available hours", value: "312 hrs" },
   { label: "Booked hours", value: "225 hrs" },
   { label: "Unbooked hours", value: "87 hrs" },
@@ -551,6 +576,8 @@ export const OCCUPANCY_TREND = series(
 )
 
 // 15. WhatsApp conversation funnel
+/** All inbound conversations. WhatsApp is the only source today, so this is
+ *  both funnels at once — see the widget title for why they are not twins. */
 export const WHATSAPP_FUNNEL: FunnelStage[] = [
   { label: "Inquiries", value: 214, slot: 0 },
   { label: "Engaged", value: 172, slot: 1 },
@@ -563,11 +590,13 @@ export const WHATSAPP_AUTOMATION = [
   { label: "Quoted → Booked", value: "↑ 3%", sub: "vs comparison" },
 ]
 
-/** The 83% auto-scheduled figure, as counts, so it reads against the funnel. */
+/** The 83% AI-handled figure, as counts, so it reads against the funnel.
+ *  "AI handled" and "Auto-scheduled" were the same metric under two names;
+ *  Maaz standardised on AI-handled. */
 export const WHATSAPP_HANDLING = {
   caption: "Of the 104 booked",
   parts: [
-    { label: "Auto-scheduled", value: 86, slot: 0 },
+    { label: "AI-handled", value: 86, slot: 0 },
     { label: "Handled by a person", value: 18, slot: 1 },
   ],
 }
@@ -591,7 +620,7 @@ export const CLOSED_LOST_TABLE: SimpleTable = {
 }
 
 export const CLOSED_LOST_NOTE =
-  "6 closed-lost conversations (5%) have no reason tagged — data-quality flag"
+  "Reasons are tagged by hand today; 6 conversations (5%) have none. Unresponsive 3+ is automated later."
 
 // 17. Lead engagement & response times
 export const RESPONSE_KPIS = [
@@ -616,7 +645,7 @@ export const INQUIRY_TREND = series(
 export const INQUIRY_KPIS = [
   { label: "Peak day", value: "Jul 12", sub: "33 inquiries" },
   { label: "Avg / day", value: "25.2", sub: "↑ 9% vs comparison" },
-  { label: "AI handled", value: "83%", sub: "no human touch needed" },
+  { label: "AI-handled", value: "83%", sub: "no human touch needed" },
 ]
 
 // 19. Daily inquiries (close-the-loop audit)
@@ -645,11 +674,29 @@ export const DAILY_INQUIRIES: SimpleTable = {
 // answer is above the fold and the 19 cards are the drill-down, not the entry
 // point.
 
+/**
+ * The strip earns its place by surfacing what is otherwise thousands of pixels
+ * down the page. It used to repeat four cards verbatim — Total sales, Avg sale
+ * value, Occupancy and Returning clients all appeared again within two screens,
+ * Total sales directly underneath itself — which made the strip look like a
+ * summary and behave like an echo.
+ *
+ * Total sales stays as the headline: its card adds the services/products/
+ * packages split, so the number is the answer and the card is the why. The
+ * other five now come from the CRM half of the page, which a reader would have
+ * to scroll past everything else to reach.
+ */
 export const HERO_METRICS = [
   { id: "total-sales", label: "Total sales", value: "AED 8,750", deltaPct: 12 },
-  { id: "average-sale-value", label: "Avg sale value", value: "AED 142", deltaPct: 5 },
-  { id: "booking-funnel-summary", label: "Appointments booked", value: "104", deltaPct: 8 },
   { id: "occupancy-rate", label: "Occupancy", value: "72%", deltaPct: -2 },
-  { id: "returning-client-rate", label: "Returning clients", value: "77%", deltaPct: 3 },
   { id: "whatsapp-funnel", label: "Inquiry → visit", value: "41%", deltaPct: 4 },
+  { id: "whatsapp-funnel", label: "AI-handled", value: "83%", deltaPct: 6 },
+  {
+    id: "lead-engagement-response",
+    label: "Avg first response",
+    value: "4.1 min",
+    deltaPct: -23,
+    lowerIsBetter: true,
+  },
+  { id: "services-inventory-summary", label: "Reorder required", value: "6 SKUs" },
 ]

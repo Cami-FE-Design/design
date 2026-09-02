@@ -2746,6 +2746,28 @@ export function PlaygroundShowcase() {
               formatValue={(n) => `AED ${n.toLocaleString("en-US")}`}
             />
           </div>
+          <span className="w-56 text-xs leading-snug text-muted-foreground">
+            Stacked: ring above its legend. Hovering a slice swaps the centre total for that slice —
+            no floating tooltip, because the tooltip would cover the total it is explaining.
+          </span>
+        </Row>
+
+        <Row label="Donut — wide" align="start">
+          <div className="w-[720px] rounded-2xl border border-border/60 bg-card p-5">
+            <DonutChart
+              items={SALES_BY_PAYMENT}
+              values={SALES_BY_PAYMENT_VALUES}
+              centreLabel="collected"
+              centreValue="AED 10,240"
+              formatValue={(n) => `AED ${n.toLocaleString("en-US")}`}
+              wide
+            />
+          </div>
+          <span className="w-56 text-xs leading-snug text-muted-foreground">
+            Ring beside the legend, for cards 8 columns and wider. The legend stays one column: two
+            columns truncated the longer labels and gave each column its own value edge, so the
+            amounts stopped lining up.
+          </span>
         </Row>
 
         <Row label="Funnel" align="start">
