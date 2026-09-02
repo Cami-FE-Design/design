@@ -44,7 +44,7 @@ function HeroStrip({ onJump, loading }: { onJump: (widgetId: string) => void; lo
     // while the cards below are skeletons would read as "these six are current"
     // when they are not.
     return (
-      <KpiGrid className="grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+      <KpiGrid className="grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {HERO_METRICS.map((metric) => (
           <div
             key={metric.id}
@@ -63,7 +63,7 @@ function HeroStrip({ onJump, loading }: { onJump: (widgetId: string) => void; lo
   // bespoke strip of hairline-separated cells instead, which was the only place
   // on the page not using the same card as everything else.
   return (
-    <KpiGrid className="grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
+    <KpiGrid className="grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
       {HERO_METRICS.map((metric) => (
         <KpiCard
           // Keyed on the label: two metrics can point at the same card (inquiry

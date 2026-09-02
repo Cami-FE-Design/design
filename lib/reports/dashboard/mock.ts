@@ -685,8 +685,11 @@ export const DAILY_INQUIRIES: SimpleTable = {
  * average sale value and returning clients, and filled their slots with
  * reorder counts. A morning check is not an ops audit.
  *
- * The one real complaint stands and is not fixable here: Total sales sits
- * directly above its own card, because that is Maaz's widget order.
+ * Total sales is deliberately NOT here. It is the first widget in the draft's
+ * order, so in the strip it sat directly above its own card — the one place
+ * where the repetition bought nothing, since the card is right there, larger,
+ * and carries the services/products/packages split. Every other metric's card
+ * is thousands of pixels down, which is exactly what the strip is for.
  */
 export type HeroMetric = {
   id: string
@@ -698,7 +701,6 @@ export type HeroMetric = {
 }
 
 export const HERO_METRICS: HeroMetric[] = [
-  { id: "total-sales", label: "Total sales", value: "AED 8,750", deltaPct: 12 },
   { id: "average-sale-value", label: "Avg sale value", value: "AED 142", deltaPct: 5 },
   { id: "booking-funnel-summary", label: "Appointments booked", value: "104", deltaPct: 8 },
   { id: "occupancy-rate", label: "Occupancy", value: "72%", deltaPct: -2 },
