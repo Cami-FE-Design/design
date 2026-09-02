@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import type { ImportScenarioId } from "@/lib/product-import/mock"
-import { applySummaryFor, getScenario, IMPORT_SCENARIOS } from "@/lib/product-import/mock"
-import { placeholderSkuRows } from "@/lib/product-import/outcome"
+import type { ImportScenarioId } from "@/lib/imports/mock"
+import { applySummaryFor, getScenario, IMPORT_SCENARIOS } from "@/lib/imports/mock"
+import { placeholderSkuRows } from "@/lib/imports/outcome"
 import { DonePanel } from "./done-panel"
 import { ProgressPanel } from "./progress-panel"
 import { ReviewPanel } from "./review-panel"
@@ -33,7 +33,16 @@ function withPreview(id: ImportScenarioId) {
 
 const PREVIEW_SCENARIOS = IMPORT_SCENARIOS.filter((s) => s.preview).map((s) => s.id)
 
-type Case = { name: string; render: () => ReturnType<typeof render> }
+type Case = {
+  name: string
+  render: () => ReturnType<typeof render>
+  /**
+   * The outcome step is short and deliberately does not stretch — stretching it
+   * put a large gap between its last block and its footer. It still must not be
+   * a centred narrow block.
+   */
+  fillsFrame?: boolean
+}
 
 const CASES: Case[] = [
   {
@@ -82,6 +91,7 @@ const CASES: Case[] = [
   })),
   ...PREVIEW_SCENARIOS.map((id) => ({
     name: `done — ${id}`,
+    fillsFrame: false,
     render: () => {
       const preview = withPreview(id)
       return render(
@@ -98,15 +108,22 @@ const CASES: Case[] = [
 
 describe("every panel state shares one frame", () => {
   for (const testCase of CASES) {
-    it(`${testCase.name} fills the frame and is not a centred block`, () => {
+    it(`${testCase.name} sizes itself correctly and is not a centred block`, () => {
       const { container, unmount } = testCase.render()
       const root = container.firstElementChild
       expect(root).toBeTruthy()
 
       const className = root?.className ?? ""
-      expect(className).toContain("min-h-0")
-      expect(className).toContain("flex-1")
+      // Never a centred narrow block — that is what every drifting panel was.
       expect(className).not.toContain("mx-auto")
+
+      if (testCase.fillsFrame === false) {
+        // Flows naturally, so no gap between its content and its footer.
+        expect(className).not.toContain("flex-1")
+      } else {
+        expect(className).toContain("min-h-0")
+        expect(className).toContain("flex-1")
+      }
 
       unmount()
     })
@@ -125,7 +142,7 @@ describe("a scrolling panel keeps its primary action out of the scroll", () => {
     unmount()
   })
 
-  it("Done — Go to my products is a sibling of the body, not inside it", () => {
+  it("Done — has no scroll area at all, so nothing can hide inside one", () => {
     const preview = withPreview("aya-migration")
     const { container, unmount } = render(
       <DonePanel
@@ -135,10 +152,8 @@ describe("a scrolling panel keeps its primary action out of the scroll", () => {
         onImportAnother={vi.fn()}
       />,
     )
-    const body = container.querySelector(".overflow-y-auto")
-    const action = screen.getByRole("link", { name: /Go to my products/ })
-    expect(body).toBeTruthy()
-    expect(body?.contains(action)).toBe(false)
+    expect(container.querySelectorAll(".overflow-y-auto")).toHaveLength(0)
+    expect(screen.getByRole("link", { name: /Go to my products/ })).toBeTruthy()
     unmount()
   })
 })

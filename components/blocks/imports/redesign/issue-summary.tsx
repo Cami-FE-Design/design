@@ -11,8 +11,8 @@
 
 import { AlertTriangleIcon, DownloadIcon, InfoIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { REVIEW_COPY } from "@/lib/product-import/copy"
-import { describeRows, type IssueGroup } from "@/lib/product-import/issues"
+import { REVIEW_COPY } from "@/lib/imports/copy"
+import { describeRows, type IssueGroup } from "@/lib/imports/issues"
 import { cn } from "@/lib/utils"
 
 type Props = {

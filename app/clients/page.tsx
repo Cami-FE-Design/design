@@ -5,16 +5,20 @@ import {
   ArrowUpDownIcon,
   ArrowUpIcon,
   ChevronDownIcon,
+  ImportIcon,
   PlusIcon,
   SlidersHorizontalIcon,
+  UploadIcon,
   UsersIcon,
 } from "lucide-react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo, useState } from "react"
 
 import { AppShell } from "@/components/blocks/app-shell"
 import { ClientDetailDialog, type TabId } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
+import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
@@ -27,6 +31,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SearchInput } from "@/components/ui/search-input"
+import { SegmentedToggle } from "@/components/ui/segmented-toggle"
 import {
   Table,
   TableBody,
@@ -296,19 +301,25 @@ function ClientsIndex() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Import and export sit behind one Options menu, the same pattern
+                the products list uses (DSG-84). */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" radius="full" size="sm">
-                  Mode: {hasPets ? "with pets" : "without pets"}
+                <Button variant="outline" radius="full">
+                  Options
                   <ChevronDownIcon className="size-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => handleModeChange("with-pets")}>
-                  With pets
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem asChild>
+                  <Link href="/clients/import">
+                    <ImportIcon className="size-4" />
+                    Import clients
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleModeChange("without-pets")}>
-                  Without pets
+                <DropdownMenuItem>
+                  <UploadIcon className="size-4" />
+                  Export clients
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -321,6 +332,27 @@ function ClientsIndex() {
       }
     >
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+        {/* The pet feature is an account-level flag HQ sets (`pets_enabled`), not
+            something an operator switches — it used to sit in the header next to
+            Options, which read like a product control. */}
+        <DesignRepoBar
+          label="see this list on an account with the pet feature off"
+          note={
+            hasPets
+              ? "Showing an account with pets: the Pets column is here, and the add/edit sheet asks for a pet."
+              : "Showing an account without pets: no Pets column, and nothing pet-related in the add/edit sheet."
+          }
+        >
+          <SegmentedToggle
+            ariaLabel="Which kind of account to show"
+            options={[
+              { value: "with-pets", label: "With pets" },
+              { value: "without-pets", label: "Without pets" },
+            ]}
+            value={mode}
+            onValueChange={(next) => handleModeChange(next as Mode)}
+          />
+        </DesignRepoBar>
         <TableToolbar
           tabs={
             <div className="flex items-center gap-2">

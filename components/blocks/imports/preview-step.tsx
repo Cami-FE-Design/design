@@ -21,12 +21,8 @@ import {
   PRODUCT_IMPORT_CONFIG,
   PRODUCT_STATUSES,
   STATUS_LABELS,
-} from "@/lib/product-import/config"
-import type {
-  ConfirmOverrides,
-  ProductImportPreview,
-  ProductRowStatus,
-} from "@/lib/product-import/types"
+} from "@/lib/imports/config"
+import type { ConfirmOverrides, ProductImportPreview, ProductRowStatus } from "@/lib/imports/types"
 import { PreviewRow } from "./preview-row"
 
 type StatusFilter = "all" | ProductRowStatus

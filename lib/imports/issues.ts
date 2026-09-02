@@ -15,7 +15,17 @@
 //    cause and the UI made you open all 17 to find out. Rows are collapsed by
 //    cause here so the review screen can state it once.
 
-import type { ProductImportPreview, ProductImportPreviewRow } from "./types"
+import type { ProductImportPreview } from "./types"
+
+/**
+ * The only fields the grouping engine reads. Typing to this instead of one
+ * entity's row is what lets clients, pets and products share it.
+ */
+export type IssueBearingRow = {
+  rowNumber: number
+  errors?: string[]
+  warnings?: string[]
+}
 
 export type IssueSeverity = "blocking" | "advisory"
 
@@ -39,6 +49,62 @@ export type IssueDefinition = {
 }
 
 const DEFINITIONS: IssueDefinition[] = [
+  // ── Clients and pets ─────────────────────────────────────────────────────
+  {
+    code: "LAST_NAME_REQUIRED",
+    severity: "blocking",
+    weight: 10,
+    title: "These rows have no last name",
+    rowLabel: "No last name",
+    detail:
+      "Cami needs a last name for every client. It is how your team tells two people with the same first name apart.",
+    fix: "Fill in the Last Name column for these rows, then upload the file again.",
+  },
+  {
+    code: "PHONE_UNREADABLE",
+    severity: "blocking",
+    weight: 10,
+    title: "A phone number could not be read",
+    rowLabel: "Phone unreadable",
+    detail:
+      "Something in the Phone column isn't a number Cami can use — usually a missing country code or a space in the middle.",
+    fix: "Write numbers in full, like +971501234567.",
+  },
+  {
+    code: "SPECIES_REQUIRED",
+    severity: "blocking",
+    weight: 10,
+    title: "These pets have no species",
+    rowLabel: "No species",
+    detail: "Every pet needs to be a cat, a dog, or something you name yourself.",
+    fix: "Fill in the Species column for these rows.",
+  },
+  {
+    code: "DUPLICATE_PHONE",
+    severity: "blocking",
+    weight: 10,
+    title: "A phone number is used more than once",
+    rowLabel: "Phone used twice",
+    detail:
+      "A phone number belongs to one client. These rows carry a number another row in the same file already used, under a different name — so importing both would overwrite one person with the other.",
+    fix: "Give each client their own number, or import these without one using the switch on the row.",
+  },
+  {
+    code: "SAME_CLIENT_TWICE",
+    severity: "advisory",
+    weight: 4,
+    title: "The same client appears more than once",
+    rowLabel: "Listed twice",
+    detail: "Cami will keep the last row it reads, so earlier details for that client are dropped.",
+  },
+  {
+    code: "NO_EMAIL",
+    severity: "advisory",
+    weight: 1,
+    title: "No email address",
+    rowLabel: "No email",
+    detail: "They import fine, but you won't be able to email them a booking confirmation.",
+  },
   {
     code: "SKU_REQUIRED",
     severity: "blocking",
@@ -72,7 +138,7 @@ const DEFINITIONS: IssueDefinition[] = [
     code: "DUPLICATE_BARCODE",
     severity: "blocking",
     weight: 10,
-    title: "Two rows share the same barcode",
+    title: "A barcode is used more than once",
     rowLabel: "Barcode used twice",
     detail:
       "A barcode can only belong to one product. These rows use a barcode that another row in the same file already claimed.",
@@ -122,6 +188,12 @@ const MATCHERS: { code: string; match: string }[] = [
   { code: "DUPLICATE_BARCODE", match: "Barcode duplicates another row" },
   { code: "SUPPLY_PRICE_BLANK", match: "Supply Price is blank" },
   { code: "BARCODE_BLANK", match: "Barcode is blank" },
+  { code: "LAST_NAME_REQUIRED", match: "Last Name is required" },
+  { code: "PHONE_UNREADABLE", match: "Phone could not be read" },
+  { code: "SPECIES_REQUIRED", match: "Species is required" },
+  { code: "DUPLICATE_PHONE", match: "Phone duplicates another row" },
+  { code: "SAME_CLIENT_TWICE", match: "refers to the same client" },
+  { code: "NO_EMAIL", match: "No email" },
 ]
 
 /**
@@ -159,7 +231,7 @@ export type GroupedIssues = {
 }
 
 /** Collapse every row's errors and warnings into one group per cause. */
-export function groupIssues(rows: ProductImportPreviewRow[]): GroupedIssues {
+export function groupIssues(rows: IssueBearingRow[]): GroupedIssues {
   const groups = new Map<string, IssueGroup>()
 
   const add = (sentence: string, severity: IssueSeverity, rowNumber: number) => {
@@ -190,7 +262,7 @@ export function groupIssues(rows: ProductImportPreviewRow[]): GroupedIssues {
 }
 
 /** Backend sentences this file does not yet own, for the playground to surface. */
-export function unmappedSentences(rows: ProductImportPreviewRow[]): string[] {
+export function unmappedSentences(rows: IssueBearingRow[]): string[] {
   const out = new Set<string>()
   for (const row of rows) {
     for (const s of [...(row.errors ?? []), ...(row.warnings ?? [])]) {
@@ -201,7 +273,7 @@ export function unmappedSentences(rows: ProductImportPreviewRow[]): string[] {
 }
 
 /** The blocking cause to name in a rejected row's cell. */
-export function primaryBlockingIssue(row: ProductImportPreviewRow): IssueDefinition | null {
+export function primaryBlockingIssue(row: IssueBearingRow): IssueDefinition | null {
   const first = (row.errors ?? [])[0]
   return first ? classify(first, "blocking") : null
 }

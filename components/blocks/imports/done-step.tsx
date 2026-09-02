@@ -8,8 +8,8 @@
 import { ArrowRightIcon, CheckCircle2Icon, DownloadIcon, RotateCcwIcon } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { PRODUCT_IMPORT_CONFIG } from "@/lib/product-import/config"
-import type { ProductImportApplySummary } from "@/lib/product-import/types"
+import { PRODUCT_IMPORT_CONFIG } from "@/lib/imports/config"
+import type { ProductImportApplySummary } from "@/lib/imports/types"
 
 const PRODUCT_LABELS: Record<keyof ProductImportApplySummary, string> = {
   processed: "Rows processed",

@@ -13,11 +13,11 @@
 import { ArrowLeftIcon, CheckIcon } from "lucide-react"
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { PRODUCT_IMPORT_CONFIG } from "@/lib/product-import/config"
-import { PROGRESS_COPY } from "@/lib/product-import/copy"
-import { applySummaryFor, getScenario, type ImportScenarioId } from "@/lib/product-import/mock"
-import { placeholderSkuRows } from "@/lib/product-import/outcome"
-import type { ConfirmOverrides } from "@/lib/product-import/types"
+import { PRODUCT_IMPORT_CONFIG } from "@/lib/imports/config"
+import { PROGRESS_COPY } from "@/lib/imports/copy"
+import { applySummaryFor, getScenario, type ImportScenarioId } from "@/lib/imports/mock"
+import { placeholderSkuRows } from "@/lib/imports/outcome"
+import type { ConfirmOverrides } from "@/lib/imports/types"
 import { cn } from "@/lib/utils"
 import { DonePanel } from "./done-panel"
 import { ProgressPanel } from "./progress-panel"
@@ -222,12 +222,17 @@ export function ProductImportFlow({ scenarioId, startAt }: FlowProps) {
         ))}
 
       {step === 3 && preview && (
-        <DonePanel
-          summary={applySummaryFor(preview)}
-          preview={preview}
-          placeholderSkuCount={placeholderSkuRows(preview).length}
-          onImportAnother={reset}
-        />
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-5">
+          {/* The panel itself does not stretch, so a short outcome has no gap
+            above its footer. The scroll lives here instead — without it a long
+            outcome ran off the bottom of the frame. */}
+          <DonePanel
+            summary={applySummaryFor(preview)}
+            preview={preview}
+            placeholderSkuCount={placeholderSkuRows(preview).length}
+            onImportAnother={reset}
+          />
+        </div>
       )}
     </div>
   )

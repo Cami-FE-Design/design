@@ -66,6 +66,19 @@ import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
 import { TerminalStatus } from "@/components/blocks/hq-terminal-status"
 import { HqTerminalsPanel } from "@/components/blocks/hq-terminals-panel"
 import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
+import { clientPetOutcome } from "@/components/blocks/imports/clients/client-pet-flow"
+import { ClientReviewPanel } from "@/components/blocks/imports/clients/client-review-panel"
+import {
+  CLIENT_GRID,
+  ClientReviewRow,
+  PET_GRID,
+} from "@/components/blocks/imports/clients/client-review-row"
+import { DonePanel } from "@/components/blocks/imports/redesign/done-panel"
+import { IssueSummary } from "@/components/blocks/imports/redesign/issue-summary"
+import { OutcomePanel } from "@/components/blocks/imports/redesign/outcome-panel"
+import { OutcomeStrip } from "@/components/blocks/imports/redesign/outcome-strip"
+import { ReviewPanel } from "@/components/blocks/imports/redesign/review-panel"
+import { REVIEW_GRID_TEMPLATE, ReviewRow } from "@/components/blocks/imports/redesign/review-row"
 import { InvoiceDocumentView } from "@/components/blocks/invoice-document"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
@@ -92,14 +105,6 @@ import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
 import { PetNotesFields, PetNotesList } from "@/components/blocks/pet-notes-fields"
 import { PhoneField } from "@/components/blocks/phone-field"
 import { PickupFields } from "@/components/blocks/pickup-fields"
-import { DonePanel } from "@/components/blocks/product-import/redesign/done-panel"
-import { IssueSummary } from "@/components/blocks/product-import/redesign/issue-summary"
-import { OutcomeStrip } from "@/components/blocks/product-import/redesign/outcome-strip"
-import { ReviewPanel } from "@/components/blocks/product-import/redesign/review-panel"
-import {
-  REVIEW_GRID_TEMPLATE,
-  ReviewRow,
-} from "@/components/blocks/product-import/redesign/review-row"
 import { CapacityHeatmap } from "@/components/blocks/reports/charts/capacity-heatmap"
 import { DonutChart } from "@/components/blocks/reports/charts/donut-chart"
 import { FunnelChart } from "@/components/blocks/reports/charts/funnel-chart"
@@ -182,6 +187,11 @@ import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { CamiPayProvider, ZERO_RATE } from "@/lib/hq-camipay/store"
 import { type HqTerminalStatus, HqTerminalsProvider } from "@/lib/hq-terminals/store"
+import { type ClientPetScenarioId, getClientPetScenario } from "@/lib/imports/client-pet-mock"
+import { groupIssues } from "@/lib/imports/issues"
+import { applySummaryFor, getScenario, type ImportScenarioId } from "@/lib/imports/mock"
+import { placeholderSkuRows, reviewCounts } from "@/lib/imports/outcome"
+import type { ProductImportPreviewRow, RowOverride } from "@/lib/imports/types"
 import { INVOICE_FIXTURES } from "@/lib/invoice/mock"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
@@ -194,10 +204,6 @@ import {
   examplePolicyText,
 } from "@/lib/payment-policy/types"
 import type { PetNoteEntry } from "@/lib/pet-notes"
-import { groupIssues } from "@/lib/product-import/issues"
-import { applySummaryFor, getScenario, type ImportScenarioId } from "@/lib/product-import/mock"
-import { placeholderSkuRows, reviewCounts } from "@/lib/product-import/outcome"
-import type { ProductImportPreviewRow, RowOverride } from "@/lib/product-import/types"
 import {
   HEATMAP_DAYS,
   HEATMAP_HOURS,
@@ -2720,6 +2726,74 @@ export function PlaygroundShowcase() {
       </Section>
 
       <Section
+        title="Clients and pets import — review states (DSG-84)"
+        description="The same wizard on the other two entities. Production serves all three from one component set, so these screens are the product import's parts with different counts: one CountLedger, one IssueSummary, one LookupsPanel, one OutcomePanel, and every string from lib/imports/copy.ts. What is genuinely specific is name matching — a row matched on first name alone, which products have no equivalent of — and a pet row, which carries an owner and a pet with separate outcomes. Both reference cases come from the #ui threads: Aya's 100-row client file and Maaz's 873-row pet file. Compare at /clients/import."
+      >
+        <Row label="Row anatomy" align="start">
+          <ClientRowDemo
+            scenario="aya-clients"
+            status="reject"
+            label="Blocked — no last name"
+            note="18 of Aya's rows. The cause is in the row; the grouped block above states it once."
+          />
+          <ClientRowDemo
+            scenario="aya-clients"
+            status="review"
+            label="Name match"
+            note="'In your file' against 'Already in Cami'. The third option — add as a new person — is drawn disabled: the backend models NEW_RECORD but the confirm call has no override that reaches it."
+          />
+          <ClientRowDemo
+            scenario="aya-clients"
+            status="create"
+            label="Will be added"
+            note="Nothing to say, so the Details column stays empty rather than repeating the badge."
+          />
+          <ClientRowDemo
+            scenario="maaz-pets"
+            status="create"
+            label="Pet row"
+            note="Owner and pet in one row, each with its own outcome."
+          />
+        </Row>
+
+        <Row label="Whole review step" align="start">
+          <ClientReviewStateDemo
+            scenario="aya-clients"
+            label="Aya's client import"
+            note="Opens on the 21 rows that need her — 18 missing a last name, 1 duplicate phone, 2 name matches — not on 79 identical green badges."
+          />
+          <ClientReviewStateDemo
+            scenario="maaz-pets"
+            label="Maaz's pet import"
+            note="Eleven counts and eight lists created. Owner counts are named, so '826 pets will be added' cannot be read as the owner total."
+          />
+          <ClientReviewStateDemo
+            scenario="many-name-matches"
+            label="Mostly name matches"
+            note="16 of 24 rows matched on first name alone — the volume the reported file would produce in a populated account."
+          />
+          <ClientReviewStateDemo
+            scenario="client-no-pets"
+            label="Pet feature off"
+            note="The same file on an account without pets. Nothing pet-related may appear anywhere on this screen."
+          />
+        </Row>
+
+        <Row label="Done step" align="start">
+          <ClientOutcomeDemo
+            scenario="aya-clients"
+            label="Clients, with rows left behind"
+            note="The ledger has to add up to the file: 79 added + 2 left for you to answer + 19 left behind = 100."
+          />
+          <ClientOutcomeDemo
+            scenario="maaz-pets"
+            label="Pets"
+            note="The same panel as the product Done step — the two were separate implementations and drifted apart within a day."
+          />
+        </Row>
+      </Section>
+
+      <Section
         title="Performance dashboard — chart primitives"
         description="The four marks the Performance dashboard (DSG-79) is built from, plus the categorical palette they share. Colours come from the --chart-cat-* tokens; both the light and dark sets pass the dataviz validator, so check this section in both themes."
       >
@@ -3327,6 +3401,98 @@ function DoneStateDemo({
           summary={applySummaryFor(preview)}
           preview={preview}
           placeholderSkuCount={placeholderSkuRows(preview).length}
+          onImportAnother={() => toast("Starts a new import")}
+        />
+      </div>
+    </ImportFrame>
+  )
+}
+
+/** One client or pet row, picked by the status it is meant to show. */
+function ClientRowDemo({
+  scenario,
+  status,
+  label,
+  note,
+}: {
+  scenario: ClientPetScenarioId
+  status: string
+  label: string
+  note?: string
+}) {
+  const demo = getClientPetScenario(scenario)
+  const row = demo.preview.rows.find((r) => r.status === status) ?? demo.preview.rows[0]
+  const [override, setOverride] = useState<RowOverride>({})
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <ImportFrame label={label} note={note} wide className="p-0">
+      <div className="overflow-hidden rounded-xl bg-background">
+        <div
+          className="grid gap-3 border-b border-border/60 bg-sand-3 px-3 py-2.5 text-xs font-medium text-muted-foreground"
+          style={{ gridTemplateColumns: demo.entity === "pets" ? PET_GRID : CLIENT_GRID }}
+        >
+          <span>Row</span>
+          <span>Status</span>
+          <span>Client</span>
+          {demo.entity === "pets" && <span>Pet</span>}
+          <span>Details</span>
+          <span />
+        </div>
+        <ClientReviewRow
+          row={row}
+          entity={demo.entity}
+          expanded={expanded}
+          onToggleExpand={() => setExpanded((v) => !v)}
+          override={override}
+          onOverrideChange={setOverride}
+        />
+      </div>
+    </ImportFrame>
+  )
+}
+
+/** A whole client or pet review step, in a frame tall enough to scroll in. */
+function ClientReviewStateDemo({
+  scenario,
+  label,
+  note,
+}: {
+  scenario: ClientPetScenarioId
+  label: string
+  note?: string
+}) {
+  const demo = getClientPetScenario(scenario)
+  return (
+    <ImportFrame label={label} note={note} wide>
+      <div className="flex h-160 flex-col rounded-xl bg-background p-4">
+        <ClientReviewPanel
+          preview={demo.preview}
+          entity={demo.entity}
+          onConfirm={() => toast("Imports the ready rows")}
+          onCancel={() => toast("Back to upload")}
+        />
+      </div>
+    </ImportFrame>
+  )
+}
+
+/** The shared outcome step, on a client or pet result. */
+function ClientOutcomeDemo({
+  scenario,
+  label,
+  note,
+}: {
+  scenario: ClientPetScenarioId
+  label: string
+  note?: string
+}) {
+  const demo = getClientPetScenario(scenario)
+  return (
+    <ImportFrame label={label} note={note} wide>
+      <div className="rounded-xl bg-background p-4">
+        <OutcomePanel
+          {...clientPetOutcome(demo)}
           onImportAnother={() => toast("Starts a new import")}
         />
       </div>

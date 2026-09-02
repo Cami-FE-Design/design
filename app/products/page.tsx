@@ -3,8 +3,6 @@
 import {
   ArrowDownUpIcon,
   ChevronDownIcon,
-  FileSpreadsheetIcon,
-  FileTextIcon,
   ImportIcon,
   PackageIcon,
   PencilIcon,
@@ -12,6 +10,7 @@ import {
   SlidersHorizontalIcon,
   TagIcon,
   Trash2Icon,
+  UploadIcon,
   XIcon,
 } from "lucide-react"
 import Link from "next/link"
@@ -30,8 +29,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SearchInput } from "@/components/ui/search-input"
@@ -274,15 +271,9 @@ function ProductsIndex() {
                     Import products
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel>Export</DropdownMenuLabel>
                 <DropdownMenuItem>
-                  <FileTextIcon className="size-4" />
-                  CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileSpreadsheetIcon className="size-4" />
-                  Excel
+                  <UploadIcon className="size-4" />
+                  Export products
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

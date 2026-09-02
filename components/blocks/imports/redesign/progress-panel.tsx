@@ -6,7 +6,7 @@
 
 import { AlertTriangleIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { PROGRESS_COPY } from "@/lib/product-import/copy"
+import { PROGRESS_COPY } from "@/lib/imports/copy"
 import { cn } from "@/lib/utils"
 
 type Props = {

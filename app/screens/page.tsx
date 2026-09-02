@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
+import { Fragment } from "react"
 import { ThemeToggle } from "@/components/blocks/theme-toggle"
 import { REPORTS } from "@/lib/reports/registry"
 
@@ -924,7 +925,7 @@ const SECTIONS: Section[] = [
   {
     title: "Pet Business, products (PRO-product)",
     description:
-      "Product catalog prototype. Listing page with empty/populated toggle, full-screen add-product takeover with brand, category, and supplier pickers, and the bulk-import flow (DSG-80) with its as-built counterpart alongside it for comparison.",
+      "Product catalog prototype. Listing page with empty/populated toggle, full-screen add-product takeover with brand, category, and supplier pickers, The bulk import has its own group below.",
     screens: [
       {
         path: "/products",
@@ -951,30 +952,82 @@ const SECTIONS: Section[] = [
         label: "Edit product, full-screen takeover",
         note: "Same layout as /products/new, pre-populated from a MOCK_PRODUCTS row. Try p1–p5 for different products; unknown ids render a 'Product not found' fallback.",
       },
+    ],
+  },
+  {
+    title: "Bulk import — products, clients and pets (DSG-80 / DSG-84)",
+    description:
+      "One wizard on three entities, grouped here because production serves all three from a single component set — so a change to one screen is a change to all three. One block per entity, each in step order: upload, review, outcome. Every link lands on the step it names. The reference cases are the two reported in #ui: Aya's 100-row product and client files, and Maaz's 873-row pet file. The dashed bar on each screen switches case, and on products also switches to the version that ships today. Spec: docs/specs/DSG-80-product-import.md",
+    screens: [
       {
         path: "/products/import",
-        label: "Import products — upload step",
-        note: "Redesigned step 1: file picker beside the options, asked as questions instead of named as settings. The dashed bar switches case and version.",
+        label: "Products — upload step",
+        note: "Reached from Options → Import products. File picker beside the options, asked as questions instead of named as settings.",
       },
       {
         path: "/products/import?at=review",
-        label: "Import products — review step (the ticket)",
-        note: "Aya's case. The 17 blocked rows grouped under one named cause with how to fix it, reasons in the row instead of behind a chevron. Spec: docs/specs/DSG-80-product-import.md",
+        label: "Products — review step (the ticket)",
+        note: "Aya's case. Opens on the 17 blocked rows, grouped under one named cause with how to fix it, instead of 83 identical green badges. Everything (100) is one click away.",
+      },
+      {
+        path: "/products/import?at=done",
+        label: "Products — outcome step (last step)",
+        note: "83 added, 17 left behind with the cause restated and the failed-row download.",
       },
       {
         path: "/products/import?scenario=placeholder-skus&at=review",
-        label: "Import products — after PRD-63",
+        label: "Products — review step, after PRD-63",
         note: "All 100 rows import, 17 with a SKU Cami invented — named here, invisible in the as-built view.",
       },
       {
         path: "/products/import?scenario=placeholder-skus&at=done",
-        label: "Import products — outcome step",
+        label: "Products — outcome step, after PRD-63",
         note: "'17 products need a real SKU' with a link to review them — the follow-up PRD-63 needs and today's screen does not have.",
       },
       {
         path: "/products/import?view=as-built&at=review",
-        label: "Import products — as it ships today",
-        note: "The same review screen in production: 'Skipped by mode', 'New dictionary entries', reasons hidden behind 'View changes'. The baseline.",
+        label: "Products — as it ships today (the baseline)",
+        note: "The same review screen in production: 'Skipped by mode', 'New dictionary entries', reasons hidden behind 'View changes'.",
+      },
+      {
+        path: "/clients/import",
+        label: "Clients — upload step",
+        note: "Reached from Options → Import clients. 30 MB / 7,000 rows, three modes, no price threshold.",
+      },
+      {
+        path: "/clients/import?at=review",
+        label: "Clients — review step",
+        note: "Aya's client file: 100 rows, 79 ready. Opens on the 21 that need her — 18 missing a last name, 1 duplicate phone, 2 name matches.",
+      },
+      {
+        path: "/clients/import?at=done",
+        label: "Clients — outcome step (last step)",
+        note: "The same panel as the products outcome. The ledger adds up to the file: 79 added + 2 left to answer + 19 left behind = 100.",
+      },
+      {
+        path: "/clients/import?case=many-name-matches&at=review",
+        label: "Clients — name matching at volume",
+        note: "16 of 24 rows matched an existing customer on first name alone. Both sides labelled — your file against what is already in Cami — plus the third answer the API cannot accept yet, drawn disabled.",
+      },
+      {
+        path: "/clients/import?case=client-no-pets&at=review",
+        label: "Clients — review step, pet feature off",
+        note: "The same file on an account without pets. Nothing pet-related may appear anywhere on this screen.",
+      },
+      {
+        path: "/clients/import?entity=pets",
+        label: "Pets — upload step",
+        note: "Reached from Options → Import pets on the Pets list. Only exists on an account with the pet feature on.",
+      },
+      {
+        path: "/clients/import?case=maaz-pets&at=review",
+        label: "Pets — review step",
+        note: "Maaz's case: 873 rows, 826 ready, 45 blocked. Eleven counts as one ledger, a row carrying pet and owner, eight lists created in the account.",
+      },
+      {
+        path: "/clients/import?case=maaz-pets&at=done",
+        label: "Pets — outcome step (last step)",
+        note: "Pets lead the count; their owners are reported on their own lines so the two cannot be confused.",
       },
     ],
   },
@@ -1177,6 +1230,32 @@ const SECTIONS: Section[] = [
 
 const TOTAL = SECTIONS.reduce((sum, section) => sum + section.screens.length, 0)
 
+/**
+ * A route with break opportunities at `?` and `&`.
+ *
+ * `break-all` wrapped these anywhere it ran out of room, so a case link read
+ * "…case=maaz-pets&at=revie / w". A query string has natural seams; wrap on
+ * those instead.
+ */
+function RoutePath({ path }: { path: string }) {
+  // Keyed by the path up to and including each segment, which is unique even
+  // when a query repeats a fragment.
+  const segments = path
+    .split(/(?=[?&])/)
+    .map((part, i, all) => ({ part, prefix: all.slice(0, i + 1).join("") }))
+
+  return (
+    <code className="font-mono text-xs break-words text-muted-foreground group-hover:text-foreground">
+      {segments.map(({ part, prefix }) => (
+        <Fragment key={prefix}>
+          {prefix !== part && <wbr />}
+          {part}
+        </Fragment>
+      ))}
+    </code>
+  )
+}
+
 export default function ScreensPage() {
   return (
     <main className="mx-auto w-full max-w-4xl px-6 py-10">
@@ -1221,9 +1300,7 @@ export default function ScreensPage() {
                     rel="noreferrer"
                     className="group -mx-2 grid grid-cols-[minmax(0,16rem)_1fr] items-baseline gap-6 rounded-md px-2 py-2.5 transition-colors hover:bg-foreground/[0.04]"
                   >
-                    <code className="break-all font-mono text-xs text-muted-foreground group-hover:text-foreground">
-                      {screen.path}
-                    </code>
+                    <RoutePath path={screen.path} />
                     <div className="min-w-0">
                       <span className="text-sm text-foreground underline-offset-4 group-hover:underline">
                         {screen.label}

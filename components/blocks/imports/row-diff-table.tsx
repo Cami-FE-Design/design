@@ -3,8 +3,8 @@
 // production component does not do (spec defect D18).
 
 import { formatAed } from "@/lib/format"
-import { fieldLabel } from "@/lib/product-import/config"
-import type { FieldChanges } from "@/lib/product-import/types"
+import { fieldLabel } from "@/lib/imports/config"
+import type { FieldChanges } from "@/lib/imports/types"
 
 /** Money-valued fields get AED formatting; everything else prints as-is. */
 const MONEY_FIELDS = new Set(["retailPrice", "supplyPrice"])

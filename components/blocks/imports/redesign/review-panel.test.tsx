@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
-import type { ImportScenarioId } from "@/lib/product-import/mock"
-import { getScenario } from "@/lib/product-import/mock"
+import type { ImportScenarioId } from "@/lib/imports/mock"
+import { getScenario } from "@/lib/imports/mock"
 import { ReviewPanel } from "./review-panel"
 
 function renderScenario(id: ImportScenarioId) {
@@ -35,7 +36,7 @@ describe("the review screen keeps one skeleton across outcomes", () => {
       expect(ledger).toBeTruthy()
 
       // Table toolbar: always present, so the frame never changes shape.
-      expect(screen.getByText(/^(All \d+|\d+ of \d+) rows?$/i)).toBeTruthy()
+      expect(screen.getByText(/^(All \d+ rows?|\d+ of \d+ rows?( need you .*)?)$/i)).toBeTruthy()
 
       // Table header, sticky so it survives a long scroll.
       const header = container.querySelector(".sticky.top-0")
@@ -45,6 +46,21 @@ describe("the review screen keeps one skeleton across outcomes", () => {
       unmount()
     })
   }
+})
+
+describe("the review screen opens on the rows that need a decision", () => {
+  it("shows Aya's 17 blocked rows, not all 100, and says so", () => {
+    const { unmount } = renderScenario("aya-migration")
+    expect(screen.getByText(/17 of 100 rows need you/)).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Needs you (17)" })).toBeTruthy()
+    unmount()
+  })
+
+  it("opens on every row when nothing needs a decision", () => {
+    const { unmount } = renderScenario("up-to-date")
+    expect(screen.getByText(/^All \d+ rows?$/)).toBeTruthy()
+    unmount()
+  })
 })
 
 describe("the status filter only appears when it can do something", () => {
@@ -99,8 +115,11 @@ describe("unresolved tax rates join the advisories", () => {
 })
 
 describe("a plain new product's outcome cell stays empty", () => {
-  it("never repeats its own status badge", () => {
+  it("never repeats its own status badge", async () => {
     const { unmount } = renderScenario("aya-migration")
+    // The screen opens on the 17 rows that need a decision, so the create rows
+    // are reached through the filter.
+    await userEvent.click(screen.getByRole("button", { name: "Everything (100)" }))
     // "Will be added" is the badge label; it must appear once per create row,
     // not twice (badge + outcome cell).
     const badges = screen.getAllByText("Will be added")
