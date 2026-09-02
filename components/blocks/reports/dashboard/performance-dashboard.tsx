@@ -66,13 +66,25 @@ function HeroStrip({ onJump, loading }: { onJump: (widgetId: string) => void; lo
     <KpiGrid className="grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
       {HERO_METRICS.map((metric) => (
         <KpiCard
-          key={metric.id}
+          // Keyed on the label: two metrics can point at the same card (inquiry
+          // → visit and AI-handled both live on the inbound funnel), so the id
+          // is not unique here.
+          key={metric.label}
           label={metric.label}
           onClick={() => onJump(metric.id)}
           value={
             <span className="flex flex-col gap-2">
               <span>{metric.value}</span>
-              <DeltaChip pct={metric.deltaPct} caption={null} tone="progress" />
+              {/* No chip rather than a 0% one — "unchanged" is not a movement,
+                  and a green ↑ 0% reads as good news that did not happen. */}
+              {metric.deltaPct === undefined ? null : (
+                <DeltaChip
+                  pct={metric.deltaPct}
+                  caption={null}
+                  tone="progress"
+                  lowerIsBetter={metric.lowerIsBetter}
+                />
+              )}
             </span>
           }
         />

@@ -27,12 +27,20 @@ export function DeltaChip({
   pct,
   caption = "vs comparison",
   tone = "neutral",
+  lowerIsBetter = false,
 }: {
   pct: number
   caption?: string | null
   tone?: "neutral" | "progress"
+  /**
+   * For measures where falling is the win — response time, time to book. The
+   * arrow still follows the number, only the colour flips: a 23% faster first
+   * response was being painted red, which reads as a problem to fix.
+   */
+  lowerIsBetter?: boolean
 }) {
   const Icon = pct >= 0 ? ArrowUpIcon : ArrowDownIcon
+  const good = lowerIsBetter ? pct <= 0 : pct >= 0
   return (
     <span className="inline-flex items-center gap-2">
       <span
@@ -40,9 +48,7 @@ export function DeltaChip({
           "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium tabular-nums",
           tone === "neutral" && "bg-muted text-muted-foreground",
           tone === "progress" &&
-            (pct >= 0
-              ? "bg-cami-green-2 text-cami-green-11"
-              : "bg-destructive/10 text-destructive"),
+            (good ? "bg-cami-green-2 text-cami-green-11" : "bg-destructive/10 text-destructive"),
         )}
       >
         <Icon className="size-3" aria-hidden />

@@ -116,6 +116,7 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
           centreLabel="collected"
           centreValue={formatAed(data.SALES_BY_PAYMENT_VALUES.reduce((a, b) => a + b, 0))}
           formatValue={formatAed}
+          wide
         />
       )
 
@@ -125,10 +126,11 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
     case "sales-by-channel":
       return (
         <>
-          {/* A ranked list, not a bar chart: seven channels is past the point
-              where colour carries identity, and the delta per channel is the
-              number being asked for — which a bar length can't show. */}
+          {/* A ranked list, not a bar chart: the delta per channel is the number
+              being asked for, and a bar length can't show it. Two rows today —
+              the caption says why, so the card doesn't read as broken. */}
           <BreakdownList items={data.SALES_BY_CHANNEL} />
+          <p className="text-xs text-muted-foreground">{data.SALES_BY_CHANNEL_NOTE}</p>
         </>
       )
 
@@ -178,12 +180,16 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
           <table className="w-full min-w-[640px] border-collapse text-sm">
             <thead>
               <tr>
+                {/* "Sales" here and "Net revenue" in the detail table below were
+                    the same figure under two names, and "Returning" meant a rate
+                    in one and a count in the other. Both tables now use the
+                    detail table's wording. */}
                 {[
                   "",
                   "Team member",
-                  "Sales",
+                  "Net revenue",
                   "Occupancy",
-                  "Returning clients",
+                  "Returning %",
                   "Clients served",
                 ].map((label, i) => (
                   <th
@@ -242,7 +248,14 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
       )
 
     case "staff-performance-detail":
-      return <MiniTable table={data.STAFF_PERFORMANCE} minWidth={760} />
+      return (
+        <>
+          <MiniTable table={data.STAFF_PERFORMANCE} minWidth={860} />
+          {/* Explains the split rather than warning about it, so it is a caption
+              and not a tinted notice. */}
+          <p className="text-xs text-muted-foreground">{data.STAFF_PERFORMANCE_NOTE}</p>
+        </>
+      )
 
     case "services-inventory-summary":
       return (
@@ -332,21 +345,21 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
     case "booking-funnel-summary":
       return (
         <>
-          {/* Funnel across the top, then one row of KPIs beneath it. Side by
-              side the funnel column ran out of bars long before the KPI column
-              ran out of height. */}
-          <FunnelChart stages={data.BOOKING_FUNNEL} />
-          {/* One language below the steps: a plain stat line and a plain
-              composition bar, separated by a rule. Two bordered boxes of
-              different natures, forced to equal height, left the single-figure
-              one mostly empty. */}
-          <div className="flex flex-col gap-3 border-t border-border/50 pt-4">
-            <InlineStat
-              label={data.BOOKING_FUNNEL_KPIS[0].label}
-              value={data.BOOKING_FUNNEL_KPIS[0].value}
-              sub={data.BOOKING_FUNNEL_KPIS[0].sub}
-            />
-            <CompositionBar caption={data.BOOKED_SPLIT.caption} parts={data.BOOKED_SPLIT.parts} />
+          {/* The stage bars moved out. They were the inbound funnel's stages
+              under different labels, so the page showed 104 and 88 twice and
+              disagreed with itself about the number above them. */}
+          <HeroValue
+            value={data.BOOKED_TOTAL.value}
+            deltaPct={data.BOOKED_TOTAL.deltaPct}
+            footnote={data.BOOKED_TOTAL.footnote}
+          />
+          {/* One list under one caption, sharing the right edge with every
+              other card on the page. The card previously stacked a headline, a
+              lone stat line and a captioned list — three left-aligned blocks at
+              three sizes, none of which lined up with each other. */}
+          <div className="flex flex-col gap-2 border-t border-border/50 pt-4">
+            <p className="text-xs text-muted-foreground">{data.BOOKED_SPLIT.caption}</p>
+            <BreakdownList items={data.BOOKED_SPLIT.parts} />
           </div>
         </>
       )

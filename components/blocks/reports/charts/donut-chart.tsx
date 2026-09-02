@@ -38,7 +38,7 @@ export function DonutChart({
   centreValue: string
   /** Formats a slice's raw magnitude for the centre readout. */
   formatValue: (n: number) => string
-  /** Ring beside the legend instead of above it — for full-width cards. */
+  /** Ring beside the legend instead of above it — for wider cards. */
   wide?: boolean
 }) {
   const [active, setActive] = useState<number | null>(null)
@@ -112,7 +112,12 @@ export function DonutChart({
       </div>
 
       <figcaption className="w-full min-w-0">
-        <ul className={cn("flex flex-col", wide && "sm:grid sm:grid-cols-2 sm:gap-x-10")}>
+        {/* One column, always. The wide layout used two, which truncated the
+            longer labels ("CamiPay — Onli…") and gave each column its own value
+            edge, so the amounts no longer lined up. Beside the ring there is
+            room for a single full-width column, and four rows read down as
+            fast as they read across. */}
+        <ul className="flex flex-col">
           {items.map((item, i) => (
             <li
               key={item.label}
@@ -120,11 +125,11 @@ export function DonutChart({
               onMouseLeave={() => setActive(null)}
               className={cn(
                 "-mx-2 flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm transition-colors",
-                // Dividers only in the stacked layout. In the two-column `wide`
-                // grid, `first:` matches the first item of the LIST, not of each
-                // column — so the top row of column two drew a stray rule, and
-                // the column gap chopped every line in half.
-                !wide && "border-t border-border/50 first:border-t-0",
+                // Dividers are back in every layout: they were suppressed for a
+                // two-column grid where `first:` matched the list's first item
+                // rather than each column's, drawing a stray rule. The legend
+                // is one column now, so the rule behaves.
+                "border-t border-border/50 first:border-t-0",
                 active === i && "bg-muted/60",
               )}
             >
@@ -135,9 +140,12 @@ export function DonutChart({
                 />
                 <span className="truncate">{item.label}</span>
               </span>
-              <span className="flex shrink-0 items-baseline gap-2">
+              {/* The share gets a fixed column. Right-aligning the pair let a
+                  two-digit share push the amount left of a one-digit one, so
+                  "AED 300 3%" and "AED 1,340 13%" ended on different edges. */}
+              <span className="flex shrink-0 items-baseline gap-3">
                 <span className="font-medium tabular-nums text-foreground">{item.value}</span>
-                <span className="text-xs tabular-nums text-muted-foreground">
+                <span className="w-8 text-right text-xs tabular-nums text-muted-foreground">
                   {Math.round((values[i] / total) * 100)}%
                 </span>
               </span>

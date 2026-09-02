@@ -149,7 +149,11 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     section: "sales",
     title: "Sales by payment type",
     description: "Revenue split by card, cash, online wallet and gift card.",
-    span: 6,
+    // 8 + 4 rather than 6 + 6. Booking channel collapsed to two rows once Maaz
+    // confirmed there is one Online channel today, and a two-row list beside a
+    // stacked donut left a card that was mostly empty. The donut goes wide
+    // (ring beside its legend), which is both shorter and better use of 8.
+    span: 8,
     access: { owner: "full", manager: "full", staff: "none" },
     viewReportId: "payments-summary",
     shape: "donut",
@@ -169,8 +173,8 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
     id: "sales-by-channel",
     section: "sales",
     title: "Sales by booking channel",
-    description: "Where booked revenue originates, so channel spend can be judged against sales.",
-    span: 6,
+    description: "How the sale was booked. Where the client came from is the acquisition card.",
+    span: 4,
     access: { owner: "full", manager: "full", staff: "none" },
     viewReportId: "sales-summary",
     shape: "stat",
@@ -264,13 +268,13 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
   {
     id: "booking-funnel-summary",
     section: "crm",
-    title: "Booking funnel summary",
+    title: "Appointments booked",
     description:
-      "How inbound conversations convert into confirmed appointments, with the conversion rate and the new-vs-returning split of everything booked.",
+      "How many appointments were booked, how many confirmed, and the new-vs-returning split. The stages that get there are on the inbound conversation funnel.",
     span: 7,
     access: { owner: "full", manager: "full", staff: "none" },
     viewReportId: "appointments-summary",
-    shape: "funnel",
+    shape: "stat",
   },
   {
     id: "capacity-heatmap",
@@ -298,7 +302,12 @@ export const DASHBOARD_WIDGETS: DashboardWidget[] = [
   {
     id: "whatsapp-funnel",
     section: "crm",
-    title: "WhatsApp conversation funnel",
+    // Named for the funnel, not the channel. Maaz confirmed WhatsApp is a
+    // subset of inbound conversations — but today it is the ONLY source, so a
+    // separate WhatsApp funnel would print identical figures beside this one.
+    // When IG, email and TikTok land as inbound sources, this card gains a
+    // source breakdown rather than a twin.
+    title: "Inbound conversation funnel",
     description: "Every conversation from first inquiry through to a salon visit.",
     span: 6,
     access: { owner: "full", manager: "full", staff: "none" },
