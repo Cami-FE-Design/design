@@ -15,26 +15,25 @@ import { XIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { SegmentedToggle, type SegmentedToggleOption } from "@/components/ui/segmented-toggle"
-import { PRODUCT_STATUSES } from "@/lib/product-import/config"
-import {
-  describeLookups,
-  LOOKUP_GROUP_LABELS,
-  REVIEW_COPY,
-  STATUS_COPY,
-} from "@/lib/product-import/copy"
-import { groupIssues, type IssueGroup, taxAdvisoryGroup } from "@/lib/product-import/issues"
-import { reviewCounts } from "@/lib/product-import/outcome"
-import type {
-  ConfirmOverrides,
-  ProductImportPreview,
-  ProductRowStatus,
-} from "@/lib/product-import/types"
+import { PRODUCT_STATUSES } from "@/lib/imports/config"
+import { REVIEW_COPY, STATUS_COPY } from "@/lib/imports/copy"
+import { groupIssues, type IssueGroup, taxAdvisoryGroup } from "@/lib/imports/issues"
+import { productLookupGroups } from "@/lib/imports/lookups"
+import { reviewCounts } from "@/lib/imports/outcome"
+import type { ConfirmOverrides, ProductImportPreview, ProductRowStatus } from "@/lib/imports/types"
 import { IssueSummary } from "./issue-summary"
+import { LookupsPanel } from "./lookups-panel"
 import { OutcomeStrip } from "./outcome-strip"
 import { REVIEW_GRID_TEMPLATE, ReviewRow } from "./review-row"
 
+/**
+ * `attention` is the view the screen opens on. A 100-row file put 83 identical
+ * green "Will be added" badges between the operator and the ~17 rows they have
+ * to act on, and pushed the table itself far below the fold.
+ */
 type Filter =
   | { kind: "all" }
+  | { kind: "attention" }
   | { kind: "status"; status: ProductRowStatus }
   | { kind: "issue"; code: string; label: string; rowNumbers: number[] }
 
@@ -44,8 +43,14 @@ type Props = {
   onCancel: () => void
 }
 
+/** Rows that cannot be written, or that are waiting on the operator. */
+const needsAttention = (status: ProductRowStatus) => status === "reject" || status === "flag"
+
 export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
-  const [filter, setFilter] = useState<Filter>({ kind: "all" })
+  const attentionCount = preview.rows.filter((r) => needsAttention(r.status)).length
+  const [filter, setFilter] = useState<Filter>(
+    attentionCount > 0 ? { kind: "attention" } : { kind: "all" },
+  )
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [overrides, setOverrides] = useState<ConfirmOverrides>({})
 
@@ -70,12 +75,13 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
 
   const filteredRows = useMemo(() => {
     if (filter.kind === "all") return preview.rows
+    if (filter.kind === "attention") return preview.rows.filter((r) => needsAttention(r.status))
     if (filter.kind === "status") return preview.rows.filter((r) => r.status === filter.status)
     const wanted = new Set(filter.rowNumbers)
     return preview.rows.filter((r) => wanted.has(r.rowNumber))
   }, [preview.rows, filter])
 
-  const lookupsPhrase = describeLookups(preview.lookupsToCreate)
+  const lookupGroups = productLookupGroups(preview)
   const nothingToImport = counts.willImport === 0 && counts.rescuable === 0
   const everythingBlocked = counts.blocked === counts.total && counts.total > 0
 
@@ -83,6 +89,9 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
   // showed "Skipped (0)" and "Update (0)" on every first-time import.
   const presentStatuses = PRODUCT_STATUSES.filter((s) => statusCounts[s] > 0)
   const filterOptions = [
+    ...(attentionCount > 0
+      ? [{ value: "attention", label: REVIEW_COPY.needsYou(attentionCount) }]
+      : []),
     { value: "all", label: `Everything (${preview.rows.length})` },
     ...presentStatuses.map((s) => ({
       value: s,
@@ -94,7 +103,8 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
     ...SegmentedToggleOption<string>[],
   ]
 
-  const filterValue = filter.kind === "status" ? filter.status : "all"
+  const filterValue =
+    filter.kind === "status" ? filter.status : filter.kind === "attention" ? "attention" : "all"
 
   const showIssueRows = (group: IssueGroup) => {
     setFilter((prev) =>
@@ -130,7 +140,7 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
               ? REVIEW_COPY.allBlockedTitle
               : nothingToImport
                 ? REVIEW_COPY.upToDateTitle
-                : REVIEW_COPY.headline(counts.willImport, counts.total)}
+                : REVIEW_COPY.headline(counts.willImport, counts.total, "products")}
           </h2>
           <p className="text-sm text-muted-foreground">
             {everythingBlocked
@@ -167,12 +177,6 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
           onShowRows={showIssueRows}
         />
 
-        {/* 4 — what else the import creates. A plain card, not a tint: it is
-             neutral information, and a second sage block under the advisories
-             merged with them into one slab. The names collapse, because 27
-             chips is a wall nobody reads. */}
-        {lookupsPhrase && <LookupsPanel phrase={lookupsPhrase} lookups={preview.lookupsToCreate} />}
-
         {/* 5 — the rows */}
         <div className="flex flex-col gap-3">
           {/* Always present, so the table always has the same frame. What sits
@@ -184,7 +188,9 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
             <span className="text-sm text-muted-foreground">
               {filteredRows.length === preview.rows.length
                 ? REVIEW_COPY.showingAll(preview.rows.length)
-                : REVIEW_COPY.showingFiltered(filteredRows.length, preview.rows.length)}
+                : filter.kind === "attention"
+                  ? REVIEW_COPY.showingAttention(filteredRows.length, preview.rows.length)
+                  : REVIEW_COPY.showingFiltered(filteredRows.length, preview.rows.length)}
             </span>
             {filter.kind === "issue" && (
               <button
@@ -196,7 +202,8 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
                 <XIcon className="size-3" />
               </button>
             )}
-            {presentStatuses.length > 1 && (
+            {(presentStatuses.length > 1 ||
+              (attentionCount > 0 && attentionCount < preview.rows.length)) && (
               <SegmentedToggle
                 ariaLabel="Filter rows"
                 className="ms-auto"
@@ -206,7 +213,9 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
                   setFilter(
                     v === "all"
                       ? { kind: "all" }
-                      : { kind: "status", status: v as ProductRowStatus },
+                      : v === "attention"
+                        ? { kind: "attention" }
+                        : { kind: "status", status: v as ProductRowStatus },
                   )
                 }
               />
@@ -253,7 +262,10 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
           </div>
         </div>
 
-        {/* Footer — the button carries the number, so the commitment is explicit. */}
+        {/* Last: what else the import creates. Neutral information, and it sat
+             between the operator and the table when it came first. The names
+             collapse, because 27 chips is a wall nobody reads. */}
+        <LookupsPanel groups={lookupGroups} />
       </div>
 
       {/* Pinned by the flex column, not sticky. As a sticky overlay it needed a
@@ -273,7 +285,7 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
                 </span>
               )}
               <Button radius="full" size="lg" onClick={() => onConfirm(overrides)}>
-                {REVIEW_COPY.confirm(counts.willImport)}
+                {REVIEW_COPY.confirm(counts.willImport, "product", "products")}
               </Button>
             </div>
           </>
@@ -285,61 +297,6 @@ export function ReviewPanel({ preview, onConfirm, onCancel }: Props) {
           </Button>
         )}
       </div>
-    </div>
-  )
-}
-
-/**
- * "We'll also add 2 new brands, 2 new categories and 1 new supplier", with the
- * names on the line below.
- *
- * Two earlier attempts were too big. A flat wall of 27 chips gave no way to tell
- * a brand from a category; grouping them into labelled rows fixed that but spent
- * six lines on five names — title, subtitle and a grid row per kind. The subtitle
- * only restated the title, and md-sized chips are mostly padding. Names as inline
- * text keep the grouping and fit in one line.
- */
-const LOOKUP_NAME_CAP = 5
-
-function LookupsPanel({
-  phrase,
-  lookups,
-}: {
-  phrase: string
-  lookups: ProductImportPreview["lookupsToCreate"]
-}) {
-  const [expanded, setExpanded] = useState(false)
-  const groups = (Object.keys(LOOKUP_GROUP_LABELS) as (keyof typeof LOOKUP_GROUP_LABELS)[])
-    .map((key) => ({ key, label: LOOKUP_GROUP_LABELS[key], names: lookups[key] }))
-    .filter((g) => g.names.length > 0)
-
-  const anyCapped = groups.some((g) => g.names.length > LOOKUP_NAME_CAP)
-
-  return (
-    <div className="flex flex-col gap-1 rounded-2xl border border-border/60 bg-card px-4 py-3">
-      <p className="text-sm font-medium text-foreground">{REVIEW_COPY.lookupsTitle(phrase)}</p>
-      <p className="text-sm leading-6 text-muted-foreground">
-        {groups.map((group, i) => {
-          const shown = expanded ? group.names : group.names.slice(0, LOOKUP_NAME_CAP)
-          const hidden = group.names.length - shown.length
-          return (
-            <span key={group.key}>
-              {i > 0 && <span className="px-1.5 text-border">·</span>}
-              <span className="font-medium text-foreground">{group.label}</span> {shown.join(", ")}
-              {hidden > 0 && ` +${hidden}`}
-            </span>
-          )
-        })}
-        {anyCapped && (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="ms-2 cursor-pointer font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
-          >
-            {expanded ? "Show fewer" : "Show all"}
-          </button>
-        )}
-      </p>
     </div>
   )
 }

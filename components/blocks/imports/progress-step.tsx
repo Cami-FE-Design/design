@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import type { BulkJobStatus } from "@/lib/product-import/types"
+import type { BulkJobStatus } from "@/lib/imports/types"
 import { cn } from "@/lib/utils"
 
 const STATUS_CONFIG: Record<

@@ -11,15 +11,15 @@
 import { ChevronDownIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { fieldLabel, MATCHED_BY_LABELS } from "@/lib/product-import/config"
-import { PRODUCT_OVERRIDE_LABELS, REVIEW_COPY, STATUS_COPY } from "@/lib/product-import/copy"
-import { rowOutcome } from "@/lib/product-import/outcome"
+import { fieldLabel, MATCHED_BY_LABELS } from "@/lib/imports/config"
+import { PRODUCT_OVERRIDE_LABELS, REVIEW_COPY, STATUS_COPY } from "@/lib/imports/copy"
+import { rowOutcome } from "@/lib/imports/outcome"
 import type {
   ProductImportPreview,
   ProductImportPreviewRow,
   ProductRowStatus,
   RowOverride,
-} from "@/lib/product-import/types"
+} from "@/lib/imports/types"
 import { cn } from "@/lib/utils"
 import { RowDiffTable } from "../row-diff-table"
 

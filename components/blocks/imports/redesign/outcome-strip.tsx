@@ -8,8 +8,8 @@
 // blocked count is last and tinted — it is stated here for completeness, but the
 // issue summary below is where it can be acted on.
 
-import { OUTCOME_LABELS } from "@/lib/product-import/copy"
-import type { ReviewCounts } from "@/lib/product-import/outcome"
+import { OUTCOME_LABELS } from "@/lib/imports/copy"
+import type { ReviewCounts } from "@/lib/imports/outcome"
 import { CountLedger, type LedgerEntry } from "./count-ledger"
 
 export function OutcomeStrip({ counts }: { counts: ReviewCounts }) {

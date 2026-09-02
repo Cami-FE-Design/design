@@ -19,8 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { DEFAULT_PRICE_THRESHOLD, PRODUCT_IMPORT_CONFIG } from "@/lib/product-import/config"
-import type { ProductImportMode } from "@/lib/product-import/types"
+import { DEFAULT_PRICE_THRESHOLD, PRODUCT_IMPORT_CONFIG } from "@/lib/imports/config"
+import type { ProductImportMode } from "@/lib/imports/types"
 
 const ACCEPTED =
   ".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

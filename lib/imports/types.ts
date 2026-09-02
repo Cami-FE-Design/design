@@ -113,9 +113,34 @@ export type BulkJobStatus =
   | "CANCELLED"
 
 /** Per-row override the operator submits with the confirm call. */
-export type RowOverride = Partial<Record<ProductOverrideField, boolean>> & {
-  /** Import a barcode-duplicate reject without the colliding barcode. */
-  importWithoutDuplicate?: boolean
-}
+/** Fields an operator may approve individually on a flagged client or pet row. */
+export type ClientPetOverrideField =
+  | "dob"
+  | "microchip"
+  | "species"
+  | "marketing"
+  | "notifyServiceEmail"
+  | "notifyServiceWhatsapp"
+  | "notifyMarketingEmail"
+  | "notifyMarketingWhatsapp"
+  | "phone"
+  | "email"
+
+/**
+ * One row's overrides, posted with the confirm call. All three entities share
+ * the shape; which keys are meaningful is entity- and row-specific.
+ */
+export type RowOverride = Partial<Record<ProductOverrideField, boolean>> &
+  Partial<Record<ClientPetOverrideField, boolean>> & {
+    /**
+     * Import a duplicate-rejected row without the colliding field — a product's
+     * barcode, a client's phone or email.
+     */
+    importWithoutDuplicate?: boolean
+    /** Clients and pets: how a name-only match was resolved. */
+    nameMatch?: "approve" | "skip"
+    /** The customer the row was merged into, when `nameMatch` is "approve". */
+    matchCustomerId?: string
+  }
 
 export type ConfirmOverrides = Record<number, RowOverride>

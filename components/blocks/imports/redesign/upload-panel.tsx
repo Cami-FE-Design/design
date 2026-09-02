@@ -10,15 +10,41 @@ import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { DEFAULT_PRICE_THRESHOLD, PRODUCT_IMPORT_CONFIG } from "@/lib/product-import/config"
-import { IMPORT_MODE_COPY, UPLOAD_COPY } from "@/lib/product-import/copy"
-import type { ProductImportMode } from "@/lib/product-import/types"
+import { DEFAULT_PRICE_THRESHOLD, PRODUCT_IMPORT_CONFIG } from "@/lib/imports/config"
+import { IMPORT_MODE_COPY, UPLOAD_COPY } from "@/lib/imports/copy"
+import type { ProductImportMode } from "@/lib/imports/types"
 import { cn } from "@/lib/utils"
 
 const ACCEPTED =
   ".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
-const MODE_ORDER: ProductImportMode[] = ["UPSERT", "CREATE_ONLY", "UPDATE_ONLY", "STOCK_SYNC"]
+const PRODUCT_MODE_ORDER: ProductImportMode[] = [
+  "UPSERT",
+  "CREATE_ONLY",
+  "UPDATE_ONLY",
+  "STOCK_SYNC",
+]
+
+/** What differs between the three imports. Everything else is shared. */
+export type UploadConfig = {
+  /** "products" · "clients" · "pets" — used in the copy. */
+  plural: string
+  maxFileSizeMb: number
+  maxRows: number
+  templatePaths: { csv: string; xlsx: string }
+  /** Products offer a stock-only mode and a price threshold; the others do not. */
+  modes: ProductImportMode[]
+  showPriceThreshold: boolean
+}
+
+const PRODUCT_UPLOAD: UploadConfig = {
+  plural: PRODUCT_IMPORT_CONFIG.plural,
+  maxFileSizeMb: PRODUCT_IMPORT_CONFIG.maxFileSizeMb,
+  maxRows: PRODUCT_IMPORT_CONFIG.maxRows,
+  templatePaths: PRODUCT_IMPORT_CONFIG.templatePaths,
+  modes: PRODUCT_MODE_ORDER,
+  showPriceThreshold: true,
+}
 
 /**
  * One footprint for both the empty picker and the picked file, so choosing a
@@ -35,13 +61,15 @@ function formatFileSize(bytes: number): string {
 }
 
 type Props = {
+  /** Omit for products — the default. */
+  uploadConfig?: UploadConfig
   serverError?: string | null
   busy?: boolean
   onSubmit: (params: { mode: ProductImportMode; priceChangeThresholdPct: number }) => void
 }
 
-export function UploadPanel({ serverError, busy, onSubmit }: Props) {
-  const config = PRODUCT_IMPORT_CONFIG
+export function UploadPanel({ uploadConfig, serverError, busy, onSubmit }: Props) {
+  const config = uploadConfig ?? PRODUCT_UPLOAD
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState<string | null>(null)
@@ -88,9 +116,11 @@ export function UploadPanel({ serverError, busy, onSubmit }: Props) {
     // options side by side balances it and roughly halves the height.
     <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card">
       <div className="flex shrink-0 flex-col gap-1 border-b border-border/60 px-6 py-3.5">
-        <h2 className="font-heading text-xl font-semibold text-foreground">{UPLOAD_COPY.title}</h2>
+        <h2 className="font-heading text-xl font-semibold text-foreground">
+          {UPLOAD_COPY.title(config.plural)}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          {UPLOAD_COPY.subtitle(config.maxFileSizeMb, config.maxRows)}
+          {UPLOAD_COPY.subtitle(config.plural, config.maxFileSizeMb, config.maxRows)}
         </p>
       </div>
 
@@ -187,7 +217,7 @@ export function UploadPanel({ serverError, busy, onSubmit }: Props) {
             <legend className="mb-2 text-sm font-medium text-foreground">
               {UPLOAD_COPY.modeLabel}
             </legend>
-            {MODE_ORDER.map((value) => {
+            {config.modes.map((value) => {
               const selected = mode === value
               return (
                 <label
@@ -232,8 +262,8 @@ export function UploadPanel({ serverError, busy, onSubmit }: Props) {
 
           {/* Label and field on one line: it already reads as a sentence, and
               three stacked rows for one number was the last of the height that
-              forced a scrollbar into the step. */}
-          <div className="flex flex-col gap-1.5">
+              forced a scrollbar into the step. Products only. */}
+          <div className={cn("flex flex-col gap-1.5", !config.showPriceThreshold && "hidden")}>
             <div className="flex flex-wrap items-center gap-2">
               <Label htmlFor="price-threshold" className="text-sm font-medium">
                 {UPLOAD_COPY.thresholdLabel}

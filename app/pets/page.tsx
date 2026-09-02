@@ -5,10 +5,13 @@ import {
   ArrowUpDownIcon,
   ArrowUpIcon,
   ChevronDownIcon,
+  ImportIcon,
   PawPrintIcon,
   PlusIcon,
   SlidersHorizontalIcon,
+  UploadIcon,
 } from "lucide-react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo, useState } from "react"
 
@@ -281,10 +284,35 @@ function PetsIndex() {
               {MOCK_PETS.length} {MOCK_PETS.length === 1 ? "pet" : "pets"}
             </p>
           </div>
-          <Button radius="full" onClick={() => setAddOpen(true)}>
-            <PlusIcon />
-            Add pet
-          </Button>
+          {/* Actions group. Without the wrapper, justify-between strands Options
+              in the middle of the header instead of beside Add pet. */}
+          <div className="flex items-center gap-2">
+            {/* Same Options menu as clients and products (DSG-84). */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" radius="full">
+                  Options
+                  <ChevronDownIcon className="size-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem asChild>
+                  <Link href="/clients/import?entity=pets">
+                    <ImportIcon className="size-4" />
+                    Import pets
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <UploadIcon className="size-4" />
+                  Export pets
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button radius="full" onClick={() => setAddOpen(true)}>
+              <PlusIcon />
+              Add pet
+            </Button>
+          </div>
         </div>
       }
     >

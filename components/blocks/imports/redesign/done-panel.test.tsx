@@ -1,8 +1,8 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import type { ImportScenarioId } from "@/lib/product-import/mock"
-import { applySummaryFor, getScenario } from "@/lib/product-import/mock"
-import { placeholderSkuRows } from "@/lib/product-import/outcome"
+import type { ImportScenarioId } from "@/lib/imports/mock"
+import { applySummaryFor, getScenario } from "@/lib/imports/mock"
+import { placeholderSkuRows } from "@/lib/imports/outcome"
 import { DonePanel } from "./done-panel"
 
 describe("the Done step keeps the same skeleton as Review", () => {

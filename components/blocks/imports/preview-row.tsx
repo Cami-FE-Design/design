@@ -14,12 +14,8 @@ import {
   MATCHED_BY_LABELS,
   PREVIEW_GRID_TEMPLATE,
   PRODUCT_OVERRIDE_LABELS,
-} from "@/lib/product-import/config"
-import type {
-  ProductImportPreviewRow,
-  ProductRowStatus,
-  RowOverride,
-} from "@/lib/product-import/types"
+} from "@/lib/imports/config"
+import type { ProductImportPreviewRow, ProductRowStatus, RowOverride } from "@/lib/imports/types"
 import { cn } from "@/lib/utils"
 import { RowDiffTable } from "./row-diff-table"
 
