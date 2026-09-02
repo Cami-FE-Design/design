@@ -675,28 +675,33 @@ export const DAILY_INQUIRIES: SimpleTable = {
 // point.
 
 /**
- * The strip earns its place by surfacing what is otherwise thousands of pixels
- * down the page. It used to repeat four cards verbatim — Total sales, Avg sale
- * value, Occupancy and Returning clients all appeared again within two screens,
- * Total sales directly underneath itself — which made the strip look like a
- * summary and behave like an echo.
+ * The six questions an owner asks on opening, in that order.
  *
- * Total sales stays as the headline: its card adds the services/products/
- * packages split, so the number is the answer and the card is the why. The
- * other five now come from the CRM half of the page, which a reader would have
- * to scroll past everything else to reach.
+ * These were briefly swapped for CRM metrics because four of them repeated a
+ * card further down — that was the wrong cure. Repetition is not the defect:
+ * the strip gives the ANSWER and the card gives the WHY (Total sales here,
+ * its services/products/packages split there). Optimising for "never say it
+ * twice" cost the strip the two numbers every salon owner actually asks for,
+ * average sale value and returning clients, and filled their slots with
+ * reorder counts. A morning check is not an ops audit.
+ *
+ * The one real complaint stands and is not fixable here: Total sales sits
+ * directly above its own card, because that is Maaz's widget order.
  */
-export const HERO_METRICS = [
+export type HeroMetric = {
+  id: string
+  label: string
+  value: string
+  deltaPct?: number
+  /** Response time and the like, where a fall is the win. */
+  lowerIsBetter?: boolean
+}
+
+export const HERO_METRICS: HeroMetric[] = [
   { id: "total-sales", label: "Total sales", value: "AED 8,750", deltaPct: 12 },
+  { id: "average-sale-value", label: "Avg sale value", value: "AED 142", deltaPct: 5 },
+  { id: "booking-funnel-summary", label: "Appointments booked", value: "104", deltaPct: 8 },
   { id: "occupancy-rate", label: "Occupancy", value: "72%", deltaPct: -2 },
+  { id: "returning-client-rate", label: "Returning clients", value: "77%", deltaPct: 3 },
   { id: "whatsapp-funnel", label: "Inquiry → visit", value: "41%", deltaPct: 4 },
-  { id: "whatsapp-funnel", label: "AI-handled", value: "83%", deltaPct: 6 },
-  {
-    id: "lead-engagement-response",
-    label: "Avg first response",
-    value: "4.1 min",
-    deltaPct: -23,
-    lowerIsBetter: true,
-  },
-  { id: "services-inventory-summary", label: "Reorder required", value: "6 SKUs" },
 ]
