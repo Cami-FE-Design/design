@@ -128,6 +128,13 @@ on its own. An "are you sure" would carry none of that.
    accordingly. Still to confirm with the backend: what happens when the chosen
    device signs out or drops off the network between send and settlement.
 
+3. **What does the terminal-status boolean mean?** The tile's visibility rides
+   on it. This design reads it as "the merchant has registered hardware", which
+   is why a registered-but-signed-out merchant still gets the tile and learns
+   from the picker that the machine needs signing in. If the backend instead
+   answers "a session is live", the tile disappears every morning and returns
+   at lunch, and the operator reads that as the feature breaking.
+
 ## Out of scope
 
 - Clear-added-payments confirm before routing (as-built behaviour, unchanged:
