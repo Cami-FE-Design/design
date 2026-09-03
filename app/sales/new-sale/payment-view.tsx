@@ -21,6 +21,16 @@ const METHODS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "terminal", label: "POS Terminal", icon: CreditCardIcon },
 ]
 
+/**
+ * Signed-in machines get their own tile up to this many, so the common counter
+ * — one or two registers — is a single tap. Past it the grid stops reading as
+ * a list of payment methods and starts reading as an inventory of hardware,
+ * with the merchant's own device names ("Till 2", "wfewf") sitting where Cash
+ * and Card are; so beyond the cap they collapse back to one POS Terminal tile
+ * that opens the picker.
+ */
+const MAX_TERMINAL_TILES = 3
+
 type PaymentViewProps = {
   onSelect: (id: string) => void
   /**
@@ -36,10 +46,38 @@ type PaymentViewProps = {
    * terminal that cannot pick it up regardless of what we render.
    */
   terminalAvailable?: boolean
+  /**
+   * Machines someone is signed into, i.e. the ones that can actually take the
+   * sale right now. Few enough and each becomes its own tile — the counter's
+   * registers are the payment method, and picking one shouldn't cost a second
+   * click. Selecting one calls back with `terminal:<id>`.
+   */
+  signedInTerminals?: { id: string; name: string }[]
 }
 
-export function PaymentView({ onSelect, hasGiftCard, terminalAvailable = true }: PaymentViewProps) {
-  const methods = METHODS.filter((m) => m.id !== "terminal" || terminalAvailable)
+export function PaymentView({
+  onSelect,
+  hasGiftCard,
+  terminalAvailable = true,
+  signedInTerminals = [],
+}: PaymentViewProps) {
+  // Per-machine tiles replace the generic one; the generic tile stays whenever
+  // there is no single obvious machine to name — none signed in (the picker
+  // says why) or too many to list.
+  const perMachine =
+    terminalAvailable &&
+    signedInTerminals.length > 0 &&
+    signedInTerminals.length <= MAX_TERMINAL_TILES
+  const methods = [
+    ...METHODS.filter((m) => m.id !== "terminal" || (terminalAvailable && !perMachine)),
+    ...(perMachine
+      ? signedInTerminals.map((t) => ({
+          id: `terminal:${t.id}`,
+          label: t.name,
+          icon: CreditCardIcon,
+        }))
+      : []),
+  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -76,9 +114,11 @@ export function PaymentView({ onSelect, hasGiftCard, terminalAvailable = true }:
                   disabled ? "text-muted-foreground" : "text-foreground",
                 )}
               />
+              {/* Merchant-typed device names land here beside "Cash", so the
+                  label has to survive a long one rather than blow the tile. */}
               <span
                 className={cn(
-                  "font-medium text-base",
+                  "line-clamp-2 w-full break-words font-medium text-base",
                   disabled ? "text-muted-foreground" : "text-foreground",
                 )}
               >

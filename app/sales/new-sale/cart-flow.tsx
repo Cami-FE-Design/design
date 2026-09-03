@@ -261,6 +261,10 @@ function CartFlowInner({
   // tile. Sign-in state is not part of it — a merchant whose device is simply
   // signed out still has a terminal, and the picker is where they learn that.
   const terminalAvailable = terminals.length > 0
+  // Machines that can take a sale right now. Few enough and the payment grid
+  // lists them one by one instead of a generic tile, so the receptionist taps
+  // the register in front of them once (Michelle, DSG review).
+  const signedInTerminals = terminals.filter((t) => canTakeSale(t, terminalSessions))
 
   const hasClient = attachment.type !== "none"
   const hasGiftCard = lines.some((l) => l.kind === "gift-card")
@@ -484,7 +488,12 @@ function CartFlowInner({
     else if (method === "gift-card") setRedeemOpen(true)
     // Text the client a secure link; they pay on their own phone (PRO-396).
     else if (method === "link") setSelfCheckoutOpen(true)
-    // Route the sale to the card machine — no dialog, nothing left to ask for.
+    // A machine picked straight off the grid — nothing left to ask for.
+    else if (method.startsWith("terminal:")) {
+      const target = terminals.find((t) => t.id === method.slice("terminal:".length))
+      if (target) routeToTerminal(target)
+    }
+    // The generic tile: no machine is signed in, or there are too many to list.
     else if (method === "terminal") sendToTerminal()
   }
 
@@ -545,12 +554,10 @@ function CartFlowInner({
   // live payment link does: the machine is about to charge a figure, and the
   // cart must not move underneath it. The terminal settles the whole remaining
   // balance, so there is no amount to collect here — the tile is the action.
+  // Only reached from the generic tile, which the grid shows when it can't name
+  // the machines itself: none signed in, or more than it can list.
   function sendToTerminal() {
-    // One usable machine is not a choice — send, and let the locked screen name
-    // it. Anything else (several signed in, or none) goes through the picker.
-    const usable = terminals.filter((t) => canTakeSale(t, terminalSessions))
-    if (usable.length === 1) routeToTerminal(usable[0])
-    else setTerminalPickerOpen(true)
+    setTerminalPickerOpen(true)
   }
 
   function routeToTerminal(terminal: Terminal) {
@@ -697,6 +704,7 @@ function CartFlowInner({
                       onSelect={selectPayment}
                       hasGiftCard={hasGiftCard}
                       terminalAvailable={terminalAvailable}
+                      signedInTerminals={signedInTerminals}
                     />
                   )}
                 </div>

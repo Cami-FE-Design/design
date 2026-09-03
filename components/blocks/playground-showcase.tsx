@@ -2336,9 +2336,28 @@ export function PlaygroundShowcase() {
 
       <Section
         title="New sale — POS Terminal (card present)"
-        description="The card-present twin of the payment link, adopting PRO-909's locked cart. 'POS Terminal' routes the sale to the card machine — no dialog, nothing left to ask for — and the drawer body is replaced by the locked screen, because the shipped flow leaves the operator on the payment grid with 'To pay' and 'Save unpaid' still live while the card is being charged: a receptionist looking at an unpaid sale that has already been paid, a second tap the backend refuses, and a 'Discard draft sale?' on a sale that took the money. Settlement lands on the same Payment complete screen the link flow uses. The one way out is Collect another way, whose confirm names the real risk (a card that already went through) rather than asking 'are you sure'. The tile is hidden when the merchant has no usable terminal."
+        description="The card-present twin of the payment link, adopting PRO-909's locked cart. Signed-in machines are payment methods in their own right — up to three, each gets its own tile so the receptionist taps the register in front of them once; past that, and when nothing is signed in, they collapse to one 'POS Terminal' tile that opens the picker. Choosing a machine routes the sale to it — no dialog, nothing left to ask for — and the drawer body is replaced by the locked screen, because the shipped flow leaves the operator on the payment grid with 'To pay' and 'Save unpaid' still live while the card is being charged: a receptionist looking at an unpaid sale that has already been paid, a second tap the backend refuses, and a 'Discard draft sale?' on a sale that took the money. Settlement lands on the same Payment complete screen the link flow uses. The one way out is Collect another way, whose confirm names the real risk (a card that already went through) rather than asking 'are you sure'. The tile is hidden when the merchant has no usable terminal."
       >
-        <Row label="Payment step — terminal available">
+        <Row label="Payment step — two machines, one tile each">
+          <div className="w-full max-w-xl">
+            <PaymentView
+              onSelect={(id) => toast(`Selected ${id}`)}
+              signedInTerminals={[
+                { id: "TRM-7Q4K2M", name: "Front Desk Register" },
+                { id: "TRM-3H8N5P", name: "Grooming Counter" },
+              ]}
+            />
+          </div>
+        </Row>
+        <Row label="Payment step — four machines, collapsed to one tile">
+          <div className="w-full max-w-xl">
+            <PaymentView
+              onSelect={(id) => toast(`Selected ${id}`)}
+              signedInTerminals={DEMO_TERMINALS.map((t) => ({ id: t.id, name: t.name }))}
+            />
+          </div>
+        </Row>
+        <Row label="Payment step — machines registered, none signed in">
           <div className="w-full max-w-xl">
             <PaymentView onSelect={(id) => toast(`Selected ${id}`)} />
           </div>

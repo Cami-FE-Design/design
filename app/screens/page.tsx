@@ -1070,17 +1070,17 @@ const SECTIONS: Section[] = [
       {
         path: "/sales/new-sale?terminals=one",
         label: "New sale · POS Terminal — one machine",
-        note: "Payment step with exactly one signed-in card machine. POS Terminal sends the sale straight to it — one machine is not a choice, so there is no picker — and the drawer locks: no step nav, no Save unpaid, no second tap for the backend to refuse. Collect another way is the only exit; its confirm warns about a card that already went through and returns to the payment methods with the cart intact. Mark as paid stands in for the terminal's settlement callback and lands on the usual Payment complete screen.",
+        note: "Payment step with exactly one signed-in card machine, which appears in the grid under its own name rather than as a generic POS Terminal tile. Tapping it sends the sale straight there and the drawer locks: no step nav, no Save unpaid, no second tap for the backend to refuse. Collect another way is the only exit; its confirm warns about a card that already went through and returns to the payment methods with the cart intact. Mark as paid stands in for the terminal's settlement callback and lands on the usual Payment complete screen.",
       },
       {
         path: "/sales/new-sale?terminals=two",
         label: "New sale · POS Terminal — two machines",
-        note: "Same step with two signed-in machines, which is the only difference that matters: POS Terminal now opens the Send-to-terminal picker first, so the operator says which counter takes the card. Pick one and it locks exactly as above, with the chosen device named on the locked screen. Compare against ?terminals=one to see the skip. ?terminals=none hides the tile entirely.",
+        note: "Two signed-in machines, so the grid carries both by name — the register in front of the receptionist is one tap, not a tile plus a picker (Michelle's note on the review). Up to three machines get their own tiles; past that they collapse to a single POS Terminal tile that opens the picker, because a grid of hardware names stops reading as a list of payment methods. The picker is also what a merchant with nothing signed in gets — see ?terminals=idle.",
       },
       {
         path: "/sales/new-sale?terminals=idle",
         label: "New sale · POS Terminal — registered, nobody signed in",
-        note: "The state a merchant is in every morning: the card machines are registered, but nobody has typed a PIN into one yet. The tile stays — hiding it would make the option vanish overnight and reappear at lunch, and the receptionist would read that as the feature breaking. Tapping it opens the picker with every row blocked and its reason on it, led by a notice saying nothing is signed in. Depends on what the backend's terminal-status boolean means: registered hardware (this design) or a live session (tile would be hidden instead).",
+        note: "The state a merchant is in every morning: the card machines are registered, but nobody has typed a PIN into one yet, so there is no machine to name in the grid and the generic POS Terminal tile stands in. The tile stays — hiding it would make the option vanish overnight and reappear at lunch, and the receptionist would read that as the feature breaking. Tapping it opens the picker with every row blocked and its reason on it, led by a notice saying nothing is signed in. Depends on what the backend's terminal-status boolean means: registered hardware (this design) or a live session (tile would be hidden instead).",
       },
       {
         path: "/sales/new-sale?dialog=terminal",
