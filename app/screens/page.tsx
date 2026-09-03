@@ -1070,17 +1070,22 @@ const SECTIONS: Section[] = [
       {
         path: "/sales/new-sale?terminals=one",
         label: "New sale · POS Terminal — one machine",
-        note: "Payment step with exactly one signed-in card machine. POS Terminal sends the sale straight to it — one machine is not a choice, so there is no picker — and the drawer locks: no step nav, no Save unpaid, no second tap for the backend to refuse. Collect another way is the only exit; its confirm warns about a card that already went through and returns to the payment methods with the cart intact. Mark as paid stands in for the terminal's settlement callback and lands on the usual Payment complete screen.",
+        note: "Payment step with exactly one signed-in card machine, which appears in the grid under its own name rather than as a generic POS Terminal tile. Tapping it sends the sale straight there and the drawer locks: no step nav, no Save unpaid, no second tap for the backend to refuse. Collect another way is the only exit; its confirm warns about a card that already went through and returns to the payment methods with the cart intact. Mark as paid stands in for the terminal's settlement callback and lands on the usual Payment complete screen.",
       },
       {
         path: "/sales/new-sale?terminals=two",
         label: "New sale · POS Terminal — two machines",
-        note: "Same step with two signed-in machines, which is the only difference that matters: POS Terminal now opens the Send-to-terminal picker first, so the operator says which counter takes the card. Pick one and it locks exactly as above, with the chosen device named on the locked screen. Compare against ?terminals=one to see the skip. ?terminals=none hides the tile entirely.",
+        note: "Two machines, so the grid carries both by name under a Card terminals heading — the register in front of the receptionist is one tap, not a tile plus a picker (Michelle's note on the review). The heading is there because a tile reading 'Front Desk Register' next to 'Cash' says nothing about what it is, and 'Card' already means keying a card in by hand. Up to three REGISTERED machines get tiles — counted on registration, never on who is signed in, or a four-machine business would see named tiles in the morning and one generic tile by noon. Past three, see ?terminals=many.",
       },
       {
         path: "/sales/new-sale?terminals=idle",
         label: "New sale · POS Terminal — registered, nobody signed in",
-        note: "The state a merchant is in every morning: the card machines are registered, but nobody has typed a PIN into one yet. The tile stays — hiding it would make the option vanish overnight and reappear at lunch, and the receptionist would read that as the feature breaking. Tapping it opens the picker with every row blocked and its reason on it, led by a notice saying nothing is signed in. Depends on what the backend's terminal-status boolean means: registered hardware (this design) or a live session (tile would be hidden instead).",
+        note: "The state a merchant is in every morning: the card machines are registered, but nobody has typed a PIN into one yet. Their tiles hold their places, greyed, each carrying its reason — 'Nobody signed in', or 'Locked · 12 min' after failed PINs on the device. A signed-out register that quietly vanished from the grid would read as broken hardware; greyed with a reason reads as a sign-in that hasn't happened. The tiles stay — hiding it would make the option vanish overnight and reappear at lunch, and the receptionist would read that as the feature breaking. Tapping it opens the picker with every row blocked and its reason on it, led by a notice saying nothing is signed in. Depends on what the backend's terminal-status boolean means: registered hardware (this design) or a live session (tile would be hidden instead).",
+      },
+      {
+        path: "/sales/new-sale?terminals=many",
+        label: "New sale · POS Terminal — past the tile cap",
+        note: "Six registered machines, four of them signed in. Past three the grid stops naming them: a row of merchant-typed device names ('Till 2', 'Boarding Desk') where Cash and Card sit reads as an inventory of hardware rather than a list of ways to pay, so one POS Terminal tile opens the Send-to-terminal picker instead. In the picker the usable machines sort to the top and the list scrolls inside the dialog, so the Send button stays put however many machines a business runs.",
       },
       {
         path: "/sales/new-sale?dialog=terminal",

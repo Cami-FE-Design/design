@@ -39,7 +39,7 @@ unpaid, no second tap to refuse. Settlement lands on the existing
 
 | Topic | Decision |
 | --- | --- |
-| Trigger | The **POS Terminal** tile. It opens the machine picker, unless exactly one machine is signed in — then it sends, since that is not a choice. |
+| Trigger | A **machine's own tile** in the payment grid, for a merchant with up to three registered machines. Beyond three, one **POS Terminal** tile opens the picker. |
 | Target | One chosen device. The operator picks it; the locked screen names it. |
 | Amount | The whole remaining balance. The terminal settles against the backend's outstanding figure; the amount shown is what the operator was told the client owes at the moment of sending. |
 | Cart while routed | **Locked** — same rule as a live link. |
@@ -49,12 +49,42 @@ unpaid, no second tap to refuse. Settlement lands on the existing
 | Method label | `POS Terminal` on the payment row — already how a settled terminal sale reads on the sale detail. |
 | Tile visibility | Hidden when the merchant has no registered terminal. Sign-in state is not part of that — a signed-out device is still a terminal, and the picker is where the operator learns it needs signing in. |
 
-### Why the picker is skipped for a single machine
+### Why machines are payment methods, not a picker
 
-Asking a question with one answer is a tap that teaches nothing. The locked
-screen names the device either way, so the operator still sees where the sale
-went — they just don't confirm it first. The picker returns the moment there is
-a second signed-in machine.
+The first cut put every terminal behind one tile and a picker. Michelle's note
+on review: with two machines, list them as payment methods and save the click.
+She is right, and the reason is that on a two-register counter the machine IS
+the method — "charge it on this one" is the decision, and it was costing two
+taps on the highest-frequency path in the product.
+
+They sit in their own **Card terminals** group under the method grid, not
+loose among the methods. A tile reading "Front Desk Register" beside "Cash"
+says nothing about what it is, and "Card" already means keying a card in by
+hand — the two are one bad guess apart. The heading answers it once for all of
+them, and the tiles carry the same icon the terminal rows use in Payment
+settings, so the same object looks the same in both places.
+
+A machine nobody is signed into keeps its tile, greyed, carrying its reason
+("Nobody signed in", "Locked · 12 min"). A register that quietly vanished from
+the grid reads as broken hardware; greyed with a reason reads as a sign-in that
+has not happened yet.
+
+It caps at three, counted on **registered** machines and never on how many are
+signed in at this moment. Otherwise a four-machine business sees two named
+tiles in the morning and one generic tile by noon as staff sign in — the same
+screen changing shape through the day for the same person. How many registers a
+counter has is a fact about the business; who is signed into them is not. Past that the grid stops reading as a list of ways to pay and
+starts reading as an inventory of hardware, with merchant-typed names ("Till 2")
+sitting where Cash and Card are; so the generic tile and the picker come back.
+The picker is also what a merchant with nothing signed in gets — there is no
+machine to name, and the picker is where that gets explained.
+
+### The picker, when there are many machines
+
+Past the cap the picker is the whole interface, so it carries two things the
+short list never needed: usable machines sort to the top, and the list scrolls
+inside the dialog rather than growing it — the dialog is capped by the viewport
+and clips what overflows, which would otherwise take the Send button with it.
 
 ### Why cancel returns to the grid, and does not hand off to a draft
 
@@ -76,9 +106,11 @@ on its own. An "are you sure" would carry none of that.
 
 ## Flow
 
-1. Payment step → **POS Terminal** tile → **Send to terminal** dialog, stating
-   the amount and listing the merchant's machines.
-2. Only a signed-in terminal can be picked. The other three DSG-62 states are
+1. Payment step → the machine's tile, one tap. With nothing signed in (or more
+   than three machines) → **POS Terminal** tile → **Send to terminal** dialog,
+   stating the amount and listing the merchant's machines.
+2. In the picker, only a signed-in terminal can be picked. The other three
+   DSG-62 states are
    listed rather than filtered out, each with its reason on the row — "Nobody
    signed in", "Not set up on the device yet", "Locked · 12 min". A receptionist
    whose usual register is missing needs to know it is the sign-in that is
@@ -128,12 +160,12 @@ on its own. An "are you sure" would carry none of that.
    accordingly. Still to confirm with the backend: what happens when the chosen
    device signs out or drops off the network between send and settlement.
 
-3. **What does the terminal-status boolean mean?** The tile's visibility rides
-   on it. This design reads it as "the merchant has registered hardware", which
-   is why a registered-but-signed-out merchant still gets the tile and learns
-   from the picker that the machine needs signing in. If the backend instead
-   answers "a session is live", the tile disappears every morning and returns
-   at lunch, and the operator reads that as the feature breaking.
+3. **What does the terminal-status boolean mean?** Whether the terminals appear
+   at all rides on it. This design reads it as "the merchant has registered
+   hardware", which is why a signed-out register still holds its tile with the
+   reason on it. If the backend instead answers "a session is live", the
+   terminals disappear every morning and return at lunch, and the operator
+   reads that as the feature breaking.
 
 ## Out of scope
 
