@@ -41,7 +41,9 @@ import { GiftCardDialog, newGiftCardDraft } from "@/app/sales/new-sale/gift-card
 import { PaymentLinkLockScreen } from "@/app/sales/new-sale/payment-link-lock"
 import { PaymentView } from "@/app/sales/new-sale/payment-view"
 import { RedeemGiftCardDialog } from "@/app/sales/new-sale/redeem-gift-card-dialog"
+import { SelectTerminalDialog } from "@/app/sales/new-sale/select-terminal-dialog"
 import { SelfCheckoutDialog } from "@/app/sales/new-sale/self-checkout-dialog"
+import { TerminalLockScreen } from "@/app/sales/new-sale/terminal-lock"
 import { AddTeamMemberDialog } from "@/components/blocks/add-team-member-dialog"
 import { AddressSearchField } from "@/components/blocks/address-search-field"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
@@ -216,6 +218,7 @@ import {
 import { CHART_CAT_SWATCH } from "@/lib/reports/dashboard/palette"
 import { getReport } from "@/lib/reports/registry"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
+import { DEMO_SESSIONS, DEMO_TERMINALS } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
 
 /** Fixed so the lock-screen expiry label is stable between renders. */
@@ -2332,6 +2335,43 @@ export function PlaygroundShowcase() {
       </Section>
 
       <Section
+        title="New sale — POS Terminal (card present)"
+        description="The card-present twin of the payment link, adopting PRO-909's locked cart. 'POS Terminal' routes the sale to the card machine — no dialog, nothing left to ask for — and the drawer body is replaced by the locked screen, because the shipped flow leaves the operator on the payment grid with 'To pay' and 'Save unpaid' still live while the card is being charged: a receptionist looking at an unpaid sale that has already been paid, a second tap the backend refuses, and a 'Discard draft sale?' on a sale that took the money. Settlement lands on the same Payment complete screen the link flow uses. The one way out is Collect another way, whose confirm names the real risk (a card that already went through) rather than asking 'are you sure'. The tile is hidden when the merchant has no usable terminal."
+      >
+        <Row label="Payment step — terminal available">
+          <div className="w-full max-w-xl">
+            <PaymentView onSelect={(id) => toast(`Selected ${id}`)} />
+          </div>
+        </Row>
+        <Row label="Payment step — no usable terminal (tile hidden)">
+          <div className="w-full max-w-xl">
+            <PaymentView onSelect={(id) => toast(`Selected ${id}`)} terminalAvailable={false} />
+          </div>
+        </Row>
+        <Row label="Send to terminal — picking the machine">
+          <SelectTerminalDialogDemo />
+        </Row>
+        <Row label="Send to terminal — nothing signed in">
+          <SelectTerminalDialogDemo signedIn={false} />
+        </Row>
+        <Row label="Locked cart — sale is on the machine">
+          <div className="flex min-h-96 w-full max-w-xl rounded-3xl border border-border/60 bg-background">
+            <TerminalLockScreen
+              charge={{
+                amountMinor: 15000,
+                terminalName: "Front Desk Register",
+                terminalLocation: "Downtown Clinic",
+                sentAt: NOW,
+              }}
+              firstName="Maaz"
+              onCancel={() => toast("Taken off the terminal · back to the payment methods")}
+              onMarkPaid={() => toast("Marked as paid")}
+            />
+          </div>
+        </Row>
+      </Section>
+
+      <Section
         title="Payment policy — deposit & no-show config"
         description="Payment policy (DSG-51) inside the Settings dialog (?settings=payments). Summary panel → policy editor takeover (?pp=edit), with the Customize-by-service table (?pp=services) and the client-facing terms editor (?pp=terms). Configured policy drives the Payment policy card in the appointment sheet: deposit amount from percent/fixed default + per-service overrides, hidden entirely when no policy is set. Shown here: the shared percent/AED amount input and the auto-generated client-facing example line."
       >
@@ -3044,6 +3084,32 @@ function GiftCardDialogDemo() {
           open
           onOpenChange={setOpen}
           onApply={(draft) => toast(`Gift card added · ${draft.priceMinor / 100} AED`)}
+        />
+      ) : null}
+    </>
+  )
+}
+
+/**
+ * The pick-a-machine dialog over the four DSG-62 terminal states. `signedIn`
+ * off drops the live sessions, so every row carries its blocked reason and the
+ * dialog leads with the "nothing signed in" notice.
+ */
+function SelectTerminalDialogDemo({ signedIn = true }: { signedIn?: boolean }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Button variant="outline" radius="full" onClick={() => setOpen(true)}>
+        Open Send to terminal
+      </Button>
+      {open ? (
+        <SelectTerminalDialog
+          open
+          onOpenChange={setOpen}
+          terminals={DEMO_TERMINALS}
+          sessions={signedIn ? DEMO_SESSIONS : []}
+          amountMinor={15000}
+          onSend={(terminal) => toast(`Sent to ${terminal.name}`)}
         />
       ) : null}
     </>

@@ -13,6 +13,14 @@ import { Suspense, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import {
+  locationName,
+  type Terminal,
+  type TerminalSession,
+  TYPICAL_SESSIONS,
+  TYPICAL_TERMINALS,
+  useTerminals,
+} from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
 import { CardAmountDialog } from "./card-amount-dialog"
 import { CartDiscountDialog } from "./cart-discount-dialog"
@@ -30,8 +38,10 @@ import { PaymentView } from "./payment-view"
 import { RedeemGiftCardDialog } from "./redeem-gift-card-dialog"
 import { SaleNoteDialog } from "./sale-note-dialog"
 import { SelectPaymentModal } from "./select-payment-modal"
+import { canTakeSale, SelectTerminalDialog } from "./select-terminal-dialog"
 import { type PaymentLinkDetails, SelfCheckoutDialog } from "./self-checkout-dialog"
 import { SplitPaymentView } from "./split-payment-view"
+import { type ActiveTerminalCharge, TerminalLockScreen } from "./terminal-lock"
 import { TipView, tipForPreset } from "./tip-view"
 import type {
   AppointmentItem,
@@ -78,6 +88,41 @@ function seedCheckoutLines(): CartLine[] {
       categoryId: svc.categoryId,
     },
   ]
+}
+
+/**
+ * Fixed terminal setups behind ?terminals=, so a review link is the same on
+ * every machine: `none` hides the POS Terminal tile, `one` sends straight to
+ * the locked screen (one signed-in machine is not a choice), `two` opens the
+ * picker. Anything else — including no param — falls through to the store.
+ */
+function terminalScenario(
+  key: string | null,
+): { terminals: Terminal[]; sessions: TerminalSession[] } | null {
+  if (key === "none") return { terminals: [], sessions: [] }
+  if (key === "one")
+    return {
+      terminals: [TYPICAL_TERMINALS[0]],
+      sessions: TYPICAL_SESSIONS.filter((s) => s.terminalId === TYPICAL_TERMINALS[0].id),
+    }
+  if (key === "two")
+    return {
+      terminals: TYPICAL_TERMINALS,
+      sessions: [
+        ...TYPICAL_SESSIONS,
+        // The typical demo set only signs anyone into the first terminal, so
+        // the second machine needs a session of its own to be pickable.
+        {
+          ...TYPICAL_SESSIONS[0],
+          id: "SES-DEMO-2",
+          terminalId: TYPICAL_TERMINALS[1].id,
+          device: "iPad (9th gen)",
+          app: "Cami POS 1.4.0 · iPadOS 17",
+          ip: "196.20.14.11",
+        },
+      ],
+    }
+  return null
 }
 
 const STEPS = ["cart", "tip", "payment"] as const
@@ -127,9 +172,15 @@ function CartFlowInner({
   // surfaces have a real balance to act on.
   const deepDialog = controlled ? null : searchParams.get("dialog")
   const deepStep = controlled ? null : searchParams.get("step")
+  // ?terminals=none|one|two pins the terminal setup for review, so a link shows
+  // the same thing on every machine regardless of what the reviewer has
+  // registered in Payment settings. Without it the checkout reads the store.
+  const deepTerminals = controlled ? null : searchParams.get("terminals")
   const seedCheckout =
     deepDialog === "redeem" ||
     deepDialog === "payment-link" ||
+    deepDialog === "terminal" ||
+    deepTerminals !== null ||
     deepStep === "tip" ||
     deepStep === "payment"
 
@@ -144,7 +195,11 @@ function CartFlowInner({
   const [editingUid, setEditingUid] = useState<string | null>(null)
   const [step, setStep] = useState<Step>(
     initialStep ??
-      (deepStep === "payment" || deepDialog === "redeem" || deepDialog === "payment-link"
+      (deepStep === "payment" ||
+      deepTerminals !== null ||
+      deepDialog === "redeem" ||
+      deepDialog === "payment-link" ||
+      deepDialog === "terminal"
         ? "payment"
         : deepStep === "tip"
           ? "tip"
@@ -174,9 +229,32 @@ function CartFlowInner({
   const [selfCheckoutOpen, setSelfCheckoutOpen] = useState(deepDialog === "payment-link")
   // A live payment link locks the cart until it is paid or cancelled (PRO-909).
   const [paymentLink, setPaymentLink] = useState<ActivePaymentLink | null>(null)
+  // A sale routed to the card machine locks the cart the same way a live link
+  // does — see ./terminal-lock.tsx.
+  const [terminalCharge, setTerminalCharge] = useState<ActiveTerminalCharge | null>(null)
+  // Which machine to send it to, asked only when there is a choice to make.
+  const [terminalPickerOpen, setTerminalPickerOpen] = useState(false)
   // Add-a-gift-card-to-cart dialog. Normally opened from the item picker; also
   // deep-linkable via ?dialog=gift-card on the route page.
   const [giftCardAddOpen, setGiftCardAddOpen] = useState(deepDialog === "gift-card")
+
+  // Registered terminals come from the same store Payment settings writes to
+  // (DSG-62), so a device registered there is the device offered here. The
+  // store starts empty — a merchant's real first-run state — which would leave
+  // checkout with no terminal to demo, so an unconfigured store falls back to
+  // the two-terminal demo set rather than hiding the flow from review.
+  const terminalStore = useTerminals()
+  const scenario = terminalScenario(deepTerminals)
+  const terminals =
+    scenario?.terminals ??
+    (terminalStore.terminals.length ? terminalStore.terminals : TYPICAL_TERMINALS)
+  const terminalSessions =
+    scenario?.sessions ??
+    (terminalStore.terminals.length ? terminalStore.sessions : TYPICAL_SESSIONS)
+  // Mirrors the real build's one backend boolean: no registered hardware, no
+  // tile. Sign-in state is not part of it — a merchant whose device is simply
+  // signed out still has a terminal, and the picker is where they learn that.
+  const terminalAvailable = terminals.length > 0
 
   const hasClient = attachment.type !== "none"
   const hasGiftCard = lines.some((l) => l.kind === "gift-card")
@@ -207,6 +285,7 @@ function CartFlowInner({
     setClientEditing(false)
     setConfirmed(false)
     setPaymentLink(null)
+    setTerminalCharge(null)
   }
 
   // `to` forces a navigation even when the cart is controlled — used when the
@@ -221,6 +300,31 @@ function CartFlowInner({
     if (to) router.push(to)
     else if (!controlled) router.push("/sales/sales-list")
   }
+
+  // ?dialog=terminal lands directly on the locked screen — the seeded cart is
+  // already priced, so the routed amount is the balance it opens with.
+  //
+  // Waits for the terminals store, which hydrates from localStorage in its own
+  // effect: firing on mount would name whichever device the pre-hydration
+  // fallback held, and the deep link would disagree with Payment settings for
+  // the rest of the session. Once-only, so cancelling doesn't re-lock.
+  const [deepTerminalDone, setDeepTerminalDone] = useState(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once the store resolves
+  useEffect(() => {
+    if (deepDialog !== "terminal" || deepTerminalDone) return
+    // Same source the real flow uses, so the deep link can't name a device the
+    // merchant doesn't have — a signed-in one if there is one, else the first
+    // registered.
+    const target = terminals.find((t) => canTakeSale(t, terminalSessions)) ?? terminals[0]
+    if (!target) return
+    setDeepTerminalDone(true)
+    setTerminalCharge({
+      amountMinor: totals(seedCheckoutLines()).totalMinor,
+      terminalName: target.name,
+      terminalLocation: locationName(target.locationId),
+      sentAt: Date.now(),
+    })
+  }, [terminals, terminalSessions, deepTerminalDone])
 
   // Auto-close the drawer a moment after the confirmation shows.
   // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when `confirmed` flips
@@ -374,6 +478,8 @@ function CartFlowInner({
     else if (method === "gift-card") setRedeemOpen(true)
     // Text the client a secure link; they pay on their own phone (PRO-396).
     else if (method === "link") setSelfCheckoutOpen(true)
+    // Route the sale to the card machine — no dialog, nothing left to ask for.
+    else if (method === "terminal") sendToTerminal()
   }
 
   function addPayment(method: Payment["method"], amountMinor: number, receivedBy?: string) {
@@ -427,6 +533,44 @@ function CartFlowInner({
     setConfirmed(true)
   }
 
+  // ─── POS Terminal ────────────────────────────────────────────────────────
+
+  // Routing a sale to the card machine locks the cart for the same reason a
+  // live payment link does: the machine is about to charge a figure, and the
+  // cart must not move underneath it. The terminal settles the whole remaining
+  // balance, so there is no amount to collect here — the tile is the action.
+  function sendToTerminal() {
+    // One usable machine is not a choice — send, and let the locked screen name
+    // it. Anything else (several signed in, or none) goes through the picker.
+    const usable = terminals.filter((t) => canTakeSale(t, terminalSessions))
+    if (usable.length === 1) routeToTerminal(usable[0])
+    else setTerminalPickerOpen(true)
+  }
+
+  function routeToTerminal(terminal: Terminal) {
+    setTerminalCharge({
+      amountMinor: leftToPayMinor,
+      terminalName: terminal.name,
+      terminalLocation: locationName(terminal.locationId),
+      sentAt: Date.now(),
+    })
+  }
+
+  // Unlike a cancelled link — which leaves a draft sale behind to hand off to —
+  // the operator is standing at the counter with the client in front of them.
+  // So this returns them to the payment grid with the cart intact, ready to
+  // take cash or another card, rather than closing the drawer.
+  function cancelTerminalCharge() {
+    setTerminalCharge(null)
+  }
+
+  function settleTerminalCharge() {
+    if (!terminalCharge) return
+    addPayment("terminal", terminalCharge.amountMinor)
+    setTerminalCharge(null)
+    setConfirmed(true)
+  }
+
   // ─── Exit / draft ────────────────────────────────────────────────────────
 
   function requestClose() {
@@ -439,8 +583,14 @@ function CartFlowInner({
 
   const blockedReason = CLIENT_REQUIRED && !hasClient ? "Attach a client to continue" : undefined
 
+  // A locked sale — link out, or routed to the card machine — has no dismissal.
+  // Escape and the overlay are the last two ways the "Discard draft sale?"
+  // prompt could still reach a sale that has already been paid, which is one of
+  // the three defects this pattern exists to close. Cancel is the only exit.
+  const locked = Boolean(paymentLink || terminalCharge)
+
   return (
-    <Sheet open={open} onOpenChange={(next) => !next && requestClose()}>
+    <Sheet open={open} onOpenChange={(next) => !next && !locked && requestClose()}>
       <SheetContent
         side="right"
         showCloseButton={false}
@@ -462,6 +612,15 @@ function CartFlowInner({
             link={paymentLink}
             onCancelLink={cancelPaymentLink}
             onMarkPaid={settlePaymentLink}
+          />
+        ) : terminalCharge ? (
+          // Same lock, card-present. The drawer is the one place to be while
+          // the machine has the sale, and where the settlement lands.
+          <TerminalLockScreen
+            charge={terminalCharge}
+            firstName={firstName}
+            onCancel={cancelTerminalCharge}
+            onMarkPaid={settleTerminalCharge}
           />
         ) : (
           <>
@@ -528,7 +687,11 @@ function CartFlowInner({
                       onRemovePayment={removePayment}
                     />
                   ) : (
-                    <PaymentView onSelect={selectPayment} hasGiftCard={hasGiftCard} />
+                    <PaymentView
+                      onSelect={selectPayment}
+                      hasGiftCard={hasGiftCard}
+                      terminalAvailable={terminalAvailable}
+                    />
                   )}
                 </div>
               </div>
@@ -864,6 +1027,19 @@ function CartFlowInner({
           defaultName={attachment.type === "client" ? attachment.client.name : undefined}
           defaultPhone={attachment.type === "client" ? attachment.client.phone : undefined}
           onSend={sendPaymentLink}
+        />
+      ) : null}
+
+      {/* Remounted per open so the pre-selection is recomputed — which machine
+          is signed in can change between two sends. */}
+      {terminalPickerOpen ? (
+        <SelectTerminalDialog
+          open
+          onOpenChange={setTerminalPickerOpen}
+          terminals={terminals}
+          sessions={terminalSessions}
+          amountMinor={leftToPayMinor}
+          onSend={routeToTerminal}
         />
       ) : null}
 
