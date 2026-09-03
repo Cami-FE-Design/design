@@ -1075,12 +1075,17 @@ const SECTIONS: Section[] = [
       {
         path: "/sales/new-sale?terminals=two",
         label: "New sale · POS Terminal — two machines",
-        note: "Two signed-in machines, so the grid carries both by name — the register in front of the receptionist is one tap, not a tile plus a picker (Michelle's note on the review). Up to three machines get their own tiles; past that they collapse to a single POS Terminal tile that opens the picker, because a grid of hardware names stops reading as a list of payment methods. The picker is also what a merchant with nothing signed in gets — see ?terminals=idle.",
+        note: "Two machines, so the grid carries both by name under a Card terminals heading — the register in front of the receptionist is one tap, not a tile plus a picker (Michelle's note on the review). The heading is there because a tile reading 'Front Desk Register' next to 'Cash' says nothing about what it is, and 'Card' already means keying a card in by hand. Up to three REGISTERED machines get tiles — counted on registration, never on who is signed in, or a four-machine business would see named tiles in the morning and one generic tile by noon. Past three, see ?terminals=many.",
       },
       {
         path: "/sales/new-sale?terminals=idle",
         label: "New sale · POS Terminal — registered, nobody signed in",
-        note: "The state a merchant is in every morning: the card machines are registered, but nobody has typed a PIN into one yet, so there is no machine to name in the grid and the generic POS Terminal tile stands in. The tile stays — hiding it would make the option vanish overnight and reappear at lunch, and the receptionist would read that as the feature breaking. Tapping it opens the picker with every row blocked and its reason on it, led by a notice saying nothing is signed in. Depends on what the backend's terminal-status boolean means: registered hardware (this design) or a live session (tile would be hidden instead).",
+        note: "The state a merchant is in every morning: the card machines are registered, but nobody has typed a PIN into one yet. Their tiles hold their places, greyed, each carrying its reason — 'Nobody signed in', or 'Locked · 12 min' after failed PINs on the device. A signed-out register that quietly vanished from the grid would read as broken hardware; greyed with a reason reads as a sign-in that hasn't happened. The tiles stay — hiding it would make the option vanish overnight and reappear at lunch, and the receptionist would read that as the feature breaking. Tapping it opens the picker with every row blocked and its reason on it, led by a notice saying nothing is signed in. Depends on what the backend's terminal-status boolean means: registered hardware (this design) or a live session (tile would be hidden instead).",
+      },
+      {
+        path: "/sales/new-sale?terminals=many",
+        label: "New sale · POS Terminal — past the tile cap",
+        note: "Six registered machines, four of them signed in. Past three the grid stops naming them: a row of merchant-typed device names ('Till 2', 'Boarding Desk') where Cash and Card sit reads as an inventory of hardware rather than a list of ways to pay, so one POS Terminal tile opens the Send-to-terminal picker instead. In the picker the usable machines sort to the top and the list scrolls inside the dialog, so the Send button stays put however many machines a business runs.",
       },
       {
         path: "/sales/new-sale?dialog=terminal",

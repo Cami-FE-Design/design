@@ -38,7 +38,11 @@ import { PaymentView } from "./payment-view"
 import { RedeemGiftCardDialog } from "./redeem-gift-card-dialog"
 import { SaleNoteDialog } from "./sale-note-dialog"
 import { SelectPaymentModal } from "./select-payment-modal"
-import { canTakeSale, SelectTerminalDialog } from "./select-terminal-dialog"
+import {
+  canTakeSale,
+  SelectTerminalDialog,
+  blockedReason as terminalBlockedReason,
+} from "./select-terminal-dialog"
 import { type PaymentLinkDetails, SelfCheckoutDialog } from "./self-checkout-dialog"
 import { SplitPaymentView } from "./split-payment-view"
 import { type ActiveTerminalCharge, TerminalLockScreen } from "./terminal-lock"
@@ -93,9 +97,10 @@ function seedCheckoutLines(): CartLine[] {
 /**
  * Fixed terminal setups behind ?terminals=, so a review link is the same on
  * every machine: `none` hides the POS Terminal tile, `idle` keeps it (the
- * machines exist, nobody has signed in yet), `one` sends straight to the locked
- * screen (one signed-in machine is not a choice), `two` opens the picker.
- * Anything else — including no param — falls through to the store.
+ * machines exist, nobody has signed in yet), `one` and `two` put the machines
+ * in the grid as their own tiles, `many` is past the tile cap and falls back
+ * to one tile plus the picker. Anything else — including no param — falls
+ * through to the store.
  */
 function terminalScenario(
   key: string | null,
@@ -111,6 +116,27 @@ function terminalScenario(
       terminals: [TYPICAL_TERMINALS[0]],
       sessions: TYPICAL_SESSIONS.filter((s) => s.terminalId === TYPICAL_TERMINALS[0].id),
     }
+  // Past MAX_TERMINAL_TILES, so the grid stops naming machines and the picker
+  // takes over — six of them, two signed out, which is what the picker's
+  // ordering and its scroll are for.
+  if (key === "many") {
+    const extra = Array.from({ length: 4 }, (_, i) => ({
+      ...TYPICAL_TERMINALS[0],
+      id: `TRM-DEMO-${i + 1}`,
+      name: ["Reception iPad", "Grooming Room 2", "Boarding Desk", "Mobile Van"][i],
+      locationId: i === 3 ? "field-team" : TYPICAL_TERMINALS[0].locationId,
+    }))
+    const all = [...TYPICAL_TERMINALS, ...extra]
+    return {
+      terminals: all,
+      // Everything signed in except the last two, so the list has both kinds.
+      sessions: all.slice(0, all.length - 2).map((t, i) => ({
+        ...TYPICAL_SESSIONS[0],
+        id: `SES-DEMO-${i}`,
+        terminalId: t.id,
+      })),
+    }
+  }
   if (key === "two")
     return {
       terminals: TYPICAL_TERMINALS,
@@ -261,10 +287,15 @@ function CartFlowInner({
   // tile. Sign-in state is not part of it — a merchant whose device is simply
   // signed out still has a terminal, and the picker is where they learn that.
   const terminalAvailable = terminals.length > 0
-  // Machines that can take a sale right now. Few enough and the payment grid
-  // lists them one by one instead of a generic tile, so the receptionist taps
-  // the register in front of them once (Michelle, DSG review).
-  const signedInTerminals = terminals.filter((t) => canTakeSale(t, terminalSessions))
+  // Every registered machine, each carrying why it can't be used if it can't.
+  // The grid lists them one by one instead of a generic tile, so the
+  // receptionist taps the register in front of them once (Michelle, DSG
+  // review) — and a signed-out one still holds its place, greyed.
+  const machines = terminals.map((t) => ({
+    id: t.id,
+    name: t.name,
+    blockedReason: terminalBlockedReason(t, terminalSessions),
+  }))
 
   const hasClient = attachment.type !== "none"
   const hasGiftCard = lines.some((l) => l.kind === "gift-card")
@@ -704,7 +735,7 @@ function CartFlowInner({
                       onSelect={selectPayment}
                       hasGiftCard={hasGiftCard}
                       terminalAvailable={terminalAvailable}
-                      signedInTerminals={signedInTerminals}
+                      machines={machines}
                     />
                   )}
                 </div>

@@ -23,12 +23,18 @@ const METHODS: { id: string; label: string; icon: LucideIcon }[] = [
 ]
 
 /**
- * Signed-in machines get their own tile up to this many, so the common counter
- * — one or two registers — is a single tap. Past it the grid stops reading as
- * a list of payment methods and starts reading as an inventory of hardware,
- * with the merchant's own device names ("Till 2", "wfewf") sitting where Cash
- * and Card are; so beyond the cap they collapse back to one POS Terminal tile
- * that opens the picker.
+ * A merchant's machines get their own tiles up to this many, so the common
+ * counter — one or two registers — is a single tap. Past it the grid stops
+ * reading as a list of payment methods and starts reading as an inventory of
+ * hardware, with the merchant's own device names ("Till 2") sitting where Cash
+ * and Card are; so beyond the cap they collapse to one POS Terminal tile that
+ * opens the picker.
+ *
+ * Counted on REGISTERED machines, never on how many are signed in right now.
+ * Otherwise a four-machine business would see two named tiles in the morning
+ * and a single POS Terminal tile by noon as staff signed in — the same screen
+ * changing shape through the day, for the same person. How many registers a
+ * counter has is a fact about the business; who is signed into them is not.
  */
 const MAX_TERMINAL_TILES = 3
 
@@ -48,27 +54,27 @@ type PaymentViewProps = {
    */
   terminalAvailable?: boolean
   /**
-   * Machines someone is signed into, i.e. the ones that can actually take the
-   * sale right now. Few enough and each becomes its own tile — the counter's
-   * registers are the payment method, and picking one shouldn't cost a second
-   * click. Selecting one calls back with `terminal:<id>`.
+   * The merchant's registered machines. Few enough and each becomes its own
+   * tile — the counter's registers ARE the payment method, and picking one
+   * shouldn't cost a second click. A machine that can't take the sale is still
+   * shown, greyed, carrying the reason: the grid stays the same shape all day,
+   * and "Grooming Counter · Nobody signed in" is more use to a receptionist
+   * than a tile that quietly isn't there. Selecting one calls back with
+   * `terminal:<id>`.
    */
-  signedInTerminals?: { id: string; name: string }[]
+  machines?: { id: string; name: string; blockedReason: string | null }[]
 }
 
 export function PaymentView({
   onSelect,
   hasGiftCard,
   terminalAvailable = true,
-  signedInTerminals = [],
+  machines = [],
 }: PaymentViewProps) {
-  // Per-machine tiles replace the generic one; the generic tile stays whenever
-  // there is no single obvious machine to name — none signed in (the picker
-  // says why) or too many to list.
+  // Per-machine tiles replace the generic one. The generic tile is what a
+  // merchant past the cap gets — there the picker does the naming.
   const perMachine =
-    terminalAvailable &&
-    signedInTerminals.length > 0 &&
-    signedInTerminals.length <= MAX_TERMINAL_TILES
+    terminalAvailable && machines.length > 0 && machines.length <= MAX_TERMINAL_TILES
   const methods = METHODS.filter((m) => m.id !== "terminal" || (terminalAvailable && !perMachine))
 
   return (
@@ -109,12 +115,14 @@ export function PaymentView({
         <div className="flex flex-col gap-3">
           <h2 className="font-medium text-muted-foreground text-sm leading-5">Card terminals</h2>
           <div className="grid grid-cols-3 gap-3">
-            {signedInTerminals.map((terminal) => (
+            {machines.map((machine) => (
               <MethodTile
-                key={terminal.id}
-                label={terminal.name}
+                key={machine.id}
+                label={machine.name}
+                caption={machine.blockedReason ?? undefined}
                 icon={MonitorSmartphoneIcon}
-                onClick={() => onSelect(`terminal:${terminal.id}`)}
+                disabled={machine.blockedReason !== null}
+                onClick={() => onSelect(`terminal:${machine.id}`)}
               />
             ))}
           </div>
@@ -126,11 +134,14 @@ export function PaymentView({
 
 function MethodTile({
   label,
+  caption,
   icon: Icon,
   disabled = false,
   onClick,
 }: {
   label: string
+  /** Why a machine can't be used — sits under its name, greyed with it. */
+  caption?: string
   icon: LucideIcon
   disabled?: boolean
   onClick: () => void
@@ -161,6 +172,9 @@ function MethodTile({
       >
         {label}
       </span>
+      {caption ? (
+        <span className="-mt-2 text-muted-foreground text-xs leading-4">{caption}</span>
+      ) : null}
     </button>
   )
 }

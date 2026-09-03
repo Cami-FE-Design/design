@@ -2342,22 +2342,32 @@ export function PlaygroundShowcase() {
           <div className="w-full max-w-xl">
             <PaymentView
               onSelect={(id) => toast(`Selected ${id}`)}
-              signedInTerminals={[
-                { id: "TRM-7Q4K2M", name: "Front Desk Register" },
-                { id: "TRM-3H8N5P", name: "Grooming Counter" },
+              machines={[
+                { id: "TRM-7Q4K2M", name: "Front Desk Register", blockedReason: null },
+                { id: "TRM-3H8N5P", name: "Grooming Counter", blockedReason: null },
               ]}
             />
           </div>
         </Row>
-        <Row label="Payment step — four machines, collapsed to one tile">
+        {/* One row, not two: past the cap and nothing-signed-in produce the
+            same grid — a single POS Terminal tile. What separates them is what
+            the picker says when it opens, which is the pair of rows below. */}
+        <Row label="Payment step — two machines, one of them signed out">
           <div className="w-full max-w-xl">
             <PaymentView
               onSelect={(id) => toast(`Selected ${id}`)}
-              signedInTerminals={DEMO_TERMINALS.map((t) => ({ id: t.id, name: t.name }))}
+              machines={[
+                { id: "TRM-7Q4K2M", name: "Front Desk Register", blockedReason: null },
+                {
+                  id: "TRM-3H8N5P",
+                  name: "Grooming Counter",
+                  blockedReason: "Nobody signed in",
+                },
+              ]}
             />
           </div>
         </Row>
-        <Row label="Payment step — machines registered, none signed in">
+        <Row label="Payment step — past the tile cap, one POS Terminal tile">
           <div className="w-full max-w-xl">
             <PaymentView onSelect={(id) => toast(`Selected ${id}`)} />
           </div>

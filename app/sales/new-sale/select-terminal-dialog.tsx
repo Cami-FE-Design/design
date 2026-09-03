@@ -29,8 +29,8 @@ export function canTakeSale(terminal: Terminal, sessions: TerminalSession[]): bo
   return terminalStatus(terminal, sessions) === "active"
 }
 
-/** Why this row can't be picked, or null when it can. */
-function blockedReason(terminal: Terminal, sessions: TerminalSession[]): string | null {
+/** Why this machine can't take the sale, or null when it can. */
+export function blockedReason(terminal: Terminal, sessions: TerminalSession[]): string | null {
   const status = terminalStatus(terminal, sessions)
   if (status === "active") return null
   if (status === "locked")
@@ -58,6 +58,13 @@ export function SelectTerminalDialog({
   onSend,
 }: SelectTerminalDialogProps) {
   const available = terminals.filter((t) => canTakeSale(t, sessions))
+  // Usable machines first. On a short list the order barely matters; on the
+  // long one — which is the only reason this dialog exists, since three or
+  // fewer are tiles in the grid — it is the difference between picking the
+  // register in front of you and reading past four you can't use.
+  const ordered = [...terminals].sort(
+    (a, b) => Number(canTakeSale(b, sessions)) - Number(canTakeSale(a, sessions)),
+  )
   // Pre-select when there is exactly one usable machine, so the dialog is a
   // confirmation rather than a task. The caller skips it entirely in that case
   // for a merchant with a single terminal; this covers "one of four is signed
@@ -88,8 +95,11 @@ export function SelectTerminalDialog({
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-2">
-          {terminals.map((terminal) => {
+        {/* Scrolls rather than growing: the dialog is capped by the viewport
+            and clips what overflows, so a merchant with eight machines would
+            otherwise lose the rows AND the Send button off the bottom. */}
+        <div className="-mx-1 flex max-h-72 flex-col gap-2 overflow-y-auto px-1">
+          {ordered.map((terminal) => {
             const reason = blockedReason(terminal, sessions)
             const disabled = reason !== null
             const isSelected = terminal.id === selectedId
