@@ -1068,6 +1068,21 @@ const SECTIONS: Section[] = [
         note: "Seeds a demo cart on the Payment step with the Send-payment-link dialog open. Operator confirms client name + mobile (prefilled from the attached client), reads the 3-step 'How it works', sends. Sending creates a draft sale and locks the cart: the drawer body is replaced by the Payment-link-sent screen showing recipient, amount and a 12-hour expiry. No progress beats — the operator can't act on them. Cancel payment link invalidates the link (never edits it), closes the cart, and hands off to the draft sale it created — Checkout there resumes at the Tip step; Mark as paid settles to the Payment complete screen. The client's half of this is /[slug]/pay/[token].",
       },
       {
+        path: "/sales/new-sale?terminals=one",
+        label: "New sale · POS Terminal — one machine",
+        note: "Payment step with exactly one signed-in card machine. POS Terminal sends the sale straight to it — one machine is not a choice, so there is no picker — and the drawer locks: no step nav, no Save unpaid, no second tap for the backend to refuse. Collect another way is the only exit; its confirm warns about a card that already went through and returns to the payment methods with the cart intact. Mark as paid stands in for the terminal's settlement callback and lands on the usual Payment complete screen.",
+      },
+      {
+        path: "/sales/new-sale?terminals=two",
+        label: "New sale · POS Terminal — two machines",
+        note: "Same step with two signed-in machines, which is the only difference that matters: POS Terminal now opens the Send-to-terminal picker first, so the operator says which counter takes the card. Pick one and it locks exactly as above, with the chosen device named on the locked screen. Compare against ?terminals=one to see the skip. ?terminals=none hides the tile entirely.",
+      },
+      {
+        path: "/sales/new-sale?dialog=terminal",
+        label: "New sale · POS Terminal (card present)",
+        note: "Opens straight onto the locked screen a sale sits in once it's routed to the card machine — the card-present adoption of PRO-909's locked cart. Shipped behaviour leaves the operator on the payment grid while the terminal charges, so the sale reads unpaid after it's paid, a second tap is refused by the backend, and closing offers to discard a sale that took the money. Here the drawer body is replaced instead: no step nav, no Save unpaid, and the settlement lands on the same Payment complete screen the link flow uses (Mark as paid stands in for the terminal callback). Collect another way is the only exit — its confirm warns about a card that already went through rather than asking 'are you sure', and returns to the payment methods with the cart intact, since the client is standing at the counter. The tile itself is on /sales/new-sale?step=payment — it opens the Send-to-terminal picker, which lists the merchant's machines and lets only a signed-in one be chosen (the other DSG-62 states carry their reason on the row: nobody signed in, not set up yet, locked out). One signed-in machine skips the picker, since that isn't a choice; the locked screen names the device either way.",
+      },
+      {
         path: "/sales/new-sale?dialog=redeem",
         label: "New sale · Redeem gift card at checkout",
         note: "Seeds a demo (non-gift-card) cart on the Payment step with the Redeem gift card dialog open: find by code (QM4KTRZA / ZTP3RG84 = active with balance, YYOSNPHO = not active, anything else = typo error), then apply the balance as a Gift card payment line.",
