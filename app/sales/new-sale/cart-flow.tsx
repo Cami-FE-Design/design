@@ -92,14 +92,20 @@ function seedCheckoutLines(): CartLine[] {
 
 /**
  * Fixed terminal setups behind ?terminals=, so a review link is the same on
- * every machine: `none` hides the POS Terminal tile, `one` sends straight to
- * the locked screen (one signed-in machine is not a choice), `two` opens the
- * picker. Anything else — including no param — falls through to the store.
+ * every machine: `none` hides the POS Terminal tile, `idle` keeps it (the
+ * machines exist, nobody has signed in yet), `one` sends straight to the locked
+ * screen (one signed-in machine is not a choice), `two` opens the picker.
+ * Anything else — including no param — falls through to the store.
  */
 function terminalScenario(
   key: string | null,
 ): { terminals: Terminal[]; sessions: TerminalSession[] } | null {
   if (key === "none") return { terminals: [], sessions: [] }
+  // Registered but nobody signed in — the state a merchant is in every morning
+  // before the first PIN goes into a machine. The tile stays: hiding it would
+  // make the option vanish overnight and come back at lunch, so the picker
+  // explains instead.
+  if (key === "idle") return { terminals: TYPICAL_TERMINALS, sessions: [] }
   if (key === "one")
     return {
       terminals: [TYPICAL_TERMINALS[0]],
