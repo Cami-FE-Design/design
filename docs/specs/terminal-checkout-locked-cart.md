@@ -57,6 +57,13 @@ She is right, and the reason is that on a two-register counter the machine IS
 the method — "charge it on this one" is the decision, and it was costing two
 taps on the highest-frequency path in the product.
 
+They sit in their own **Card terminals** group under the method grid, not
+loose among the methods. A tile reading "Front Desk Register" beside "Cash"
+says nothing about what it is, and "Card" already means keying a card in by
+hand — the two are one bad guess apart. The heading answers it once for all of
+them, and the tiles carry the same icon the terminal rows use in Payment
+settings, so the same object looks the same in both places.
+
 It caps at three. Past that the grid stops reading as a list of ways to pay and
 starts reading as an inventory of hardware, with merchant-typed names ("Till 2")
 sitting where Cash and Card are; so the generic tile and the picker come back.

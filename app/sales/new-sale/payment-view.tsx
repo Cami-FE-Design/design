@@ -6,6 +6,7 @@ import {
   GiftIcon,
   InfoIcon,
   type LucideIcon,
+  MonitorSmartphoneIcon,
   SmartphoneIcon,
   SplitIcon,
   WalletIcon,
@@ -68,16 +69,7 @@ export function PaymentView({
     terminalAvailable &&
     signedInTerminals.length > 0 &&
     signedInTerminals.length <= MAX_TERMINAL_TILES
-  const methods = [
-    ...METHODS.filter((m) => m.id !== "terminal" || (terminalAvailable && !perMachine)),
-    ...(perMachine
-      ? signedInTerminals.map((t) => ({
-          id: `terminal:${t.id}`,
-          label: t.name,
-          icon: CreditCardIcon,
-        }))
-      : []),
-  ]
+  const methods = METHODS.filter((m) => m.id !== "terminal" || (terminalAvailable && !perMachine))
 
   return (
     <div className="flex flex-col gap-6">
@@ -95,39 +87,80 @@ export function PaymentView({
       ) : null}
 
       <div className="grid grid-cols-3 gap-3">
-        {methods.map((method) => {
-          const disabled = method.id === "gift-card" && Boolean(hasGiftCard)
-          return (
-            <button
-              key={method.id}
-              type="button"
-              disabled={disabled}
-              onClick={() => onSelect(method.id)}
-              className={cn(
-                "flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card px-4 py-8 text-center transition-colors",
-                disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/40",
-              )}
-            >
-              <method.icon
-                className={cn(
-                  "size-6 stroke-[1.5]",
-                  disabled ? "text-muted-foreground" : "text-foreground",
-                )}
-              />
-              {/* Merchant-typed device names land here beside "Cash", so the
-                  label has to survive a long one rather than blow the tile. */}
-              <span
-                className={cn(
-                  "line-clamp-2 w-full break-words font-medium text-base",
-                  disabled ? "text-muted-foreground" : "text-foreground",
-                )}
-              >
-                {method.label}
-              </span>
-            </button>
-          )
-        })}
+        {methods.map((method) => (
+          <MethodTile
+            key={method.id}
+            label={method.label}
+            icon={method.icon}
+            disabled={method.id === "gift-card" && Boolean(hasGiftCard)}
+            onClick={() => onSelect(method.id)}
+          />
+        ))}
       </div>
+
+      {/* The machines get their own group rather than sitting loose among the
+          methods. A tile reading "Front Desk Register" next to "Cash" and
+          "Card" says nothing about what it is — and "Card" already means
+          keying a card in by hand, so the two are easy to confuse. The heading
+          answers it once, for all of them, and keeps the tiles themselves as
+          short as the names allow. Icon matches the terminal rows in Payment
+          settings, so the same object looks the same in both places. */}
+      {perMachine ? (
+        <div className="flex flex-col gap-3">
+          <h2 className="font-medium text-muted-foreground text-sm leading-5">Card terminals</h2>
+          <div className="grid grid-cols-3 gap-3">
+            {signedInTerminals.map((terminal) => (
+              <MethodTile
+                key={terminal.id}
+                label={terminal.name}
+                icon={MonitorSmartphoneIcon}
+                onClick={() => onSelect(`terminal:${terminal.id}`)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
+  )
+}
+
+function MethodTile({
+  label,
+  icon: Icon,
+  disabled = false,
+  onClick,
+}: {
+  label: string
+  icon: LucideIcon
+  disabled?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card px-4 py-8 text-center transition-colors",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/40",
+      )}
+    >
+      <Icon
+        className={cn(
+          "size-6 stroke-[1.5]",
+          disabled ? "text-muted-foreground" : "text-foreground",
+        )}
+      />
+      {/* Merchant-typed device names land here beside "Cash", so the label has
+          to survive a long one rather than blow the tile. */}
+      <span
+        className={cn(
+          "line-clamp-2 w-full break-words font-medium text-base",
+          disabled ? "text-muted-foreground" : "text-foreground",
+        )}
+      >
+        {label}
+      </span>
+    </button>
   )
 }
