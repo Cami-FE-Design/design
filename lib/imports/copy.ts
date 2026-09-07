@@ -37,13 +37,26 @@ export const CLIENT_PET_STATUS_COPY: Record<
   create: { label: "Will be added", filter: "Adding", variant: "success" },
   update: { label: "Will be updated", filter: "Updating", variant: "primary-soft" },
   review: { label: "Who is this?", filter: "Needs your answer", variant: "warning" },
+  // A pet whose row carries no phone and no email. The pet is written, nobody is
+  // created for it — so this is neither "added" (it has no owner) nor "left out"
+  // (it is imported). It needs its own word or the operator reads a successful
+  // import as a failed one.
+  standalone: { label: "Pet only", filter: "Pet only", variant: "primary-soft" },
   noop: { label: "Already up to date", filter: "No change needed", variant: "muted" },
   skip: { label: "Left out", filter: "Left out", variant: "muted" },
   reject: { label: "Can't import", filter: "Can't import", variant: "destructive" },
 }
 
 /** The order the status filter offers them in. */
-export const CLIENT_PET_STATUSES = ["create", "update", "review", "noop", "skip", "reject"] as const
+export const CLIENT_PET_STATUSES = [
+  "create",
+  "update",
+  "standalone",
+  "review",
+  "noop",
+  "skip",
+  "reject",
+] as const
 
 /**
  * Per-field approval switches. The as-built labels say "Apply retail-price

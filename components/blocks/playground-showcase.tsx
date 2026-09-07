@@ -74,6 +74,7 @@ import {
   CLIENT_GRID,
   ClientReviewRow,
   PET_GRID,
+  rowStatusKey,
 } from "@/components/blocks/imports/clients/client-review-row"
 import { DonePanel } from "@/components/blocks/imports/redesign/done-panel"
 import { IssueSummary } from "@/components/blocks/imports/redesign/issue-summary"
@@ -2823,6 +2824,12 @@ export function PlaygroundShowcase() {
             label="Pet row"
             note="Owner and pet in one row, each with its own outcome."
           />
+          <ClientRowDemo
+            scenario="maaz-pets"
+            status="standalone"
+            label="Pet with no owner"
+            note="No phone and no email, so the backend imports the pet on its own and creates nobody. The owner side is skipped, but badging the row 'Left out' would say the pet never arrived — so the pet's outcome names the row."
+          />
         </Row>
 
         <Row label="Whole review step" align="start">
@@ -2835,6 +2842,11 @@ export function PlaygroundShowcase() {
             scenario="maaz-pets"
             label="Maaz's pet import"
             note="Eleven counts and eight lists created. Owner counts are named, so '826 pets will be added' cannot be read as the owner total."
+          />
+          <ClientReviewStateDemo
+            scenario="pets-no-owner"
+            label="No contact details anywhere"
+            note="120 rows, every pet standalone, not one client created. The commit button counts pets on a pet import for this file: counting owners read 'nothing to import' over an import of 120 pets."
           />
           <ClientReviewStateDemo
             scenario="many-name-matches"
@@ -2858,6 +2870,11 @@ export function PlaygroundShowcase() {
             scenario="maaz-pets"
             label="Pets"
             note="The same panel as the product Done step — the two were separate implementations and drifted apart within a day."
+          />
+          <ClientOutcomeDemo
+            scenario="pets-no-owner"
+            label="Pets, none with an owner"
+            note="'120 pets added' with 0 owners under it — the ledger keeps the standalone pets on their own line rather than folding them into the added count."
           />
         </Row>
       </Section>
@@ -3516,7 +3533,9 @@ function ClientRowDemo({
   note?: string
 }) {
   const demo = getClientPetScenario(scenario)
-  const row = demo.preview.rows.find((r) => r.status === status) ?? demo.preview.rows[0]
+  // Keyed the way the table badges and filters rows, so a standalone pet — whose
+  // client status is `skip` — is reachable here by the name it is shown under.
+  const row = demo.preview.rows.find((r) => rowStatusKey(r) === status) ?? demo.preview.rows[0]
   const [override, setOverride] = useState<RowOverride>({})
   const [expanded, setExpanded] = useState(false)
 

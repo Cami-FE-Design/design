@@ -28,6 +28,19 @@ export const PET_GRID = "3rem 8.5rem minmax(0,1fr) minmax(0,0.9fr) minmax(0,1.1f
 
 const STATUS = CLIENT_PET_STATUS_COPY
 
+/**
+ * The key a row is badged and filtered under.
+ *
+ * Usually the client status, but a pet with no resolvable owner is its own
+ * outcome: the row's client side is left out while the pet is still written.
+ * Badging that row "Left out" tells the operator nothing arrived, which is the
+ * opposite of what happens — so the pet's action wins when it is `standalone`.
+ */
+export function rowStatusKey(row: ClientImportRow | PetImportRow): string {
+  const pet = "pet" in row ? row.pet : null
+  return pet?.action === "standalone" && row.status !== "reject" ? "standalone" : row.status
+}
+
 const fullName = (first?: string | null, last?: string | null) =>
   [first, last].filter(Boolean).join(" ") || "No name"
 
@@ -49,6 +62,7 @@ export function ClientReviewRow({
   onOverrideChange,
 }: Props) {
   const pet = "pet" in row ? row.pet : null
+  const isStandalone = rowStatusKey(row) === "standalone"
   const isReview = row.status === "review"
   const isReject = row.status === "reject"
   const candidates = row.client.nameCandidates ?? []
@@ -65,17 +79,19 @@ export function ClientReviewRow({
         ? STATUS.skip
         : rescued
           ? STATUS.create
-          : STATUS[row.status]
+          : STATUS[rowStatusKey(row)]
 
   const detail = isReject
     ? (primaryBlockingIssue(row)?.rowLabel ?? "Can't import")
-    : isReview && !resolvedTo
-      ? "Same first name as someone you have"
-      : resolvedTo === "approve"
-        ? "You picked an existing person"
-        : resolvedTo === "skip"
-          ? "You left this row out"
-          : ""
+    : isStandalone
+      ? "No phone or email — the pet arrives without an owner"
+      : isReview && !resolvedTo
+        ? "Same first name as someone you have"
+        : resolvedTo === "approve"
+          ? "You picked an existing person"
+          : resolvedTo === "skip"
+            ? "You left this row out"
+            : ""
 
   const sentences = [...(row.errors ?? []), ...(row.warnings ?? [])]
   const hasDetails = sentences.length > 0

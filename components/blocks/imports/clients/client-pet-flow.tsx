@@ -120,7 +120,9 @@ export function clientPetOutcome(scenario: ClientPetScenario) {
     { value: p.rejectedCount, label: DONE_LABELS.rejected, tone: "text-destructive" },
   ]
 
-  const created = pets ? pets.petsToCreate : p.clientsToCreate
+  // A standalone pet is still a pet that arrived, so the headline counts it —
+  // the ledger below keeps the two apart.
+  const created = pets ? pets.petsToCreate + pets.standalonePets : p.clientsToCreate
   const updated = pets ? pets.petsToUpdate : p.clientsToUpdate
 
   return {
