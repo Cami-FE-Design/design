@@ -36,7 +36,7 @@ import {
 import { groupIssues, type IssueGroup } from "@/lib/imports/issues"
 import { clientPetLookupGroups } from "@/lib/imports/lookups"
 import type { ConfirmOverrides } from "@/lib/imports/types"
-import { CLIENT_GRID, ClientReviewRow, PET_GRID } from "./client-review-row"
+import { CLIENT_GRID, ClientReviewRow, PET_GRID, rowStatusKey } from "./client-review-row"
 
 type Props = {
   preview: ClientImportPreview | PetImportPreview
@@ -102,12 +102,21 @@ export function ClientReviewPanel({ preview, entity, onConfirm, onCancel }: Prop
   // duplicate will be written after all — so both move the totals.
   const resolvedMatches = Object.values(overrides).filter((o) => o.nameMatch).length
   const rescued = Object.values(overrides).filter((o) => o.importWithoutDuplicate).length
-  const willImport = preview.clientsToCreate + preview.clientsToUpdate + resolvedMatches + rescued
+  // What the button commits is what the file writes — pets on a pet import, not
+  // owners. Counting owners meant a file with no contact details anywhere read
+  // "nothing to import" while every pet in it was about to be created.
+  const willWrite = isPet(preview)
+    ? preview.petsToCreate + preview.petsToUpdate + preview.standalonePets
+    : preview.clientsToCreate + preview.clientsToUpdate
+  const willImport = willWrite + resolvedMatches + rescued
   const willSkip = preview.rejectedCount - rescued
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {}
-    for (const row of rows) counts[row.status] = (counts[row.status] ?? 0) + 1
+    for (const row of rows) {
+      const key = rowStatusKey(row)
+      counts[key] = (counts[key] ?? 0) + 1
+    }
     return counts
   }, [rows])
 
@@ -131,7 +140,7 @@ export function ClientReviewPanel({ preview, entity, onConfirm, onCancel }: Prop
     filter.kind === "issue"
       ? rows.filter((r) => filter.rowNumbers.includes(r.rowNumber))
       : filter.kind === "status"
-        ? rows.filter((r) => r.status === filter.status)
+        ? rows.filter((r) => rowStatusKey(r) === filter.status)
         : filter.kind === "attention"
           ? rows.filter((r) => needsAttention(r.status))
           : rows

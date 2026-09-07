@@ -1022,7 +1022,17 @@ const SECTIONS: Section[] = [
       {
         path: "/clients/import?case=maaz-pets&at=review",
         label: "Pets — review step",
-        note: "Maaz's case: 873 rows, 826 ready, 45 blocked. Eleven counts as one ledger, a row carrying pet and owner, eight lists created in the account.",
+        note: "Maaz's case: 873 rows, 45 blocked, 60 pets with no owner details. Eleven counts as one ledger, a row carrying pet and owner, eight lists created in the account.",
+      },
+      {
+        path: "/clients/import?case=pets-no-owner&at=review",
+        label: "Pets — no contact details in the file",
+        note: "120 rows with a pet and an owner's name and nothing else. Since the September backend hotfix every one of them imports the pet on its own and creates no client — look at the 'Pet only' badge and at the commit button, which counts pets rather than owners.",
+      },
+      {
+        path: "/clients/import?case=pets-no-owner&at=done",
+        label: "Pets — outcome, none with an owner",
+        note: "'120 pets added' with zero owners under it. The standalone pets keep their own ledger line instead of being folded into the added count.",
       },
       {
         path: "/clients/import?case=maaz-pets&at=done",

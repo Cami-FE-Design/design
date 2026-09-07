@@ -80,12 +80,24 @@ export type ClientBlock = {
   nameCandidates?: NameCandidate[]
 }
 
+/**
+ * The pet's own outcome. It is *not* the client row status: the backend also
+ * sends `standalone` — a pet whose owner could not be resolved, imported on its
+ * own with no client created (Case A).
+ *
+ * Production typed this field as the client status and nothing else, so the
+ * preview stopped parsing the day `standalone` became common and the screen said
+ * "We couldn't load the preview" for files that import cleanly (cami-business
+ * 46db32d6). Unknown values pass through as plain strings for the same reason.
+ */
+export type PetAction = ClientPetRowStatus | "standalone" | (string & {})
+
 /** The pet half of a row. Pet imports only, and nullable even there. */
 export type PetBlock = {
   name: string | null
   speciesName: string | null
   /** The pet's own outcome, which can differ from the owner's. */
-  action: ClientPetRowStatus
+  action: PetAction
   matchedPetUuid: string | null
   fieldChanges?: FieldChanges
   flagged?: {

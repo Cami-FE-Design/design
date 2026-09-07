@@ -98,6 +98,16 @@ const DEFINITIONS: IssueDefinition[] = [
     detail: "Cami will keep the last row it reads, so earlier details for that client are dropped.",
   },
   {
+    code: "PET_NO_OWNER",
+    severity: "advisory",
+    weight: 6,
+    title: "These pets arrive without an owner",
+    rowLabel: "No owner",
+    detail:
+      "Their row has no phone and no email, so there is nobody to attach them to. The pets are added on their own and you can link them to a client later.",
+    fix: "Add a phone or an email to the row if you want the owner created too.",
+  },
+  {
     code: "NO_EMAIL",
     severity: "advisory",
     weight: 1,
@@ -193,6 +203,9 @@ const MATCHERS: { code: string; match: string }[] = [
   { code: "SPECIES_REQUIRED", match: "Species is required" },
   { code: "DUPLICATE_PHONE", match: "Phone duplicates another row" },
   { code: "SAME_CLIENT_TWICE", match: "refers to the same client" },
+  // Must precede NO_EMAIL: this sentence mentions an email too, and the first
+  // matcher wins.
+  { code: "PET_NO_OWNER", match: "the pet is added on its own" },
   { code: "NO_EMAIL", match: "No email" },
 ]
 

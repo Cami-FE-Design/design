@@ -29,6 +29,7 @@ const ERR_DUPLICATE_PHONE =
   "Phone duplicates another row in this file that refers to a different person."
 const WARN_MISSING_EMAIL = "No email — this client cannot receive email notifications."
 const WARN_INTRAFILE_CLIENT = "Another row in this file refers to the same client."
+const WARN_PET_NO_OWNER = "No phone or email for the owner, so the pet is added on its own."
 
 /** A row whose only identifier is a first name. The file's normal case. */
 const FIRST_NAMES = [
@@ -158,6 +159,37 @@ const candidatesFor = (name: string, index: number): NameCandidate[] => [
   },
 ]
 
+/**
+ * Case A: the row names an owner but carries no phone and no email.
+ *
+ * The backend used to invent a client out of the name alone; since the September
+ * hotfix it imports the pet on its own and creates nobody (cami-business
+ * 46db32d6). That made `standalone` the common outcome for any file whose
+ * contact columns are empty — which is every file this ticket was opened about —
+ * so the review has to have a word for it. The owner side is written off, the
+ * pet is still created.
+ */
+function standalonePetRow(rowNumber: number, index: number): PetImportRow {
+  return {
+    rowNumber,
+    status: "skip",
+    warnings: [WARN_PET_NO_OWNER],
+    client: {
+      phoneE164: null,
+      firstName: FIRST_NAMES[index % FIRST_NAMES.length],
+      lastName: null,
+      matchedBy: null,
+      matchedCustomerUuid: null,
+    },
+    pet: {
+      name: PET_NAMES[index % PET_NAMES.length],
+      speciesName: SPECIES[index % SPECIES.length],
+      action: "standalone",
+      matchedPetUuid: null,
+    },
+  }
+}
+
 // ─── Aya's client import: 100 rows, 79 arrive, 21 need her ───────────────────
 
 function buildAyaClientPreview(): ClientImportPreview {
@@ -228,6 +260,9 @@ function buildMaazPetPreview(): PetImportPreview {
   const blocked = new Set(Array.from({ length: 42 }, (_, n) => 3 + n * 20))
   const review = new Set([64, 860])
   const noSpecies = new Set([210, 640])
+  // 60 rows carry a pet and an owner's first name, nothing else. None of the
+  // 20-step blocked indices are even, so these never collide with them.
+  const noOwner = new Set(Array.from({ length: 60 }, (_, n) => 6 + n * 14))
 
   for (let index = 0; index < total; index += 1) {
     const rowNumber = index + 2
@@ -237,6 +272,11 @@ function buildMaazPetPreview(): PetImportPreview {
       speciesName: species,
       action: "create" as ClientPetRowStatus,
       matchedPetUuid: null,
+    }
+
+    if (noOwner.has(index)) {
+      rows.push(standalonePetRow(rowNumber, index))
+      continue
     }
 
     if (review.has(index)) {
@@ -279,6 +319,7 @@ function buildMaazPetPreview(): PetImportPreview {
   const petsCreating = rows.filter(
     (r) => r.pet?.action === "create" && (r.status === "create" || r.status === "update"),
   ).length
+  const standalone = rows.filter((r) => r.pet?.action === "standalone").length
 
   return {
     importMode: "UPSERT",
@@ -290,11 +331,14 @@ function buildMaazPetPreview(): PetImportPreview {
     clientsToUpdate: 0,
     clientsNoChange: 0,
     clientsToReview: count("review"),
+    // A standalone row's owner side is skipped, but not by the import option —
+    // counting it here would read as "you left 60 rows out" on a screen that is
+    // about to import all 60 pets.
     skippedByMode: 0,
     petsToCreate: petsCreating,
     petsToUpdate: 0,
     petsNoChange: 0,
-    standalonePets: 0,
+    standalonePets: standalone,
     flaggedCount: 0,
     lookupsToCreate: {
       clientTags: ["List 4"],
@@ -346,12 +390,55 @@ function buildManyNameMatchesPreview(): ClientImportPreview {
   }
 }
 
+// ─── A pet file with no contact details at all ──────────────────────────────
+// The file the September hotfix turned into a new case: a grooming list with
+// pet, owner name and nothing else. Every row imports, and not one client is
+// created — the degenerate shape the review has to stay honest about, because
+// counting owners here reads as "nothing to import".
+
+function buildPetsNoOwnerPreview(): PetImportPreview {
+  const rows: PetImportRow[] = []
+  for (let index = 0; index < 120; index += 1) {
+    rows.push(standalonePetRow(index + 2, index))
+  }
+
+  return {
+    importMode: "UPSERT",
+    rowCount: rows.length,
+    normalizedCount: rows.length,
+    rejectedCount: 0,
+    intraFileConflicts: 0,
+    clientsToCreate: 0,
+    clientsToUpdate: 0,
+    clientsNoChange: 0,
+    clientsToReview: 0,
+    skippedByMode: 0,
+    petsToCreate: 0,
+    petsToUpdate: 0,
+    petsNoChange: 0,
+    standalonePets: rows.length,
+    flaggedCount: 0,
+    lookupsToCreate: {
+      clientTags: [],
+      sources: [],
+      species: [...SPECIES],
+      breeds: BREEDS.slice(0, 4),
+      coatTypes: [],
+      appearances: [],
+      reproductiveStatuses: [],
+      petTags: [],
+    },
+    rows,
+  }
+}
+
 // ─── Registry ───────────────────────────────────────────────────────────────
 
 export type ClientPetScenarioId =
   | "aya-clients"
   | "client-no-pets"
   | "maaz-pets"
+  | "pets-no-owner"
   | "many-name-matches"
 
 export type ClientPetScenario = {
@@ -385,9 +472,17 @@ export const CLIENT_PET_SCENARIOS: ClientPetScenario[] = [
     id: "maaz-pets",
     entity: "pets",
     label: "Maaz's pet import (the reported case)",
-    note: "873 rows · 826 arrive · 45 blocked · 2 name matches. Eleven counts, and eight lists created in the account.",
+    note: "873 rows · 45 blocked · 2 name matches · 60 pets whose row has no phone or email, so they arrive without an owner. Eleven counts, and eight lists created in the account.",
     hasPets: true,
     preview: buildMaazPetPreview(),
+  },
+  {
+    id: "pets-no-owner",
+    entity: "pets",
+    label: "Pet import with no contact details",
+    note: "120 rows, none with a phone or an email. Every pet is imported on its own and no client is created — the case that broke the preview in production.",
+    hasPets: true,
+    preview: buildPetsNoOwnerPreview(),
   },
   {
     id: "many-name-matches",
