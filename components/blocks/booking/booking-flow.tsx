@@ -20,6 +20,7 @@ import {
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
 
+import { AddressSearchField } from "@/components/blocks/address-search-field"
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
 import { PetNotesFields } from "@/components/blocks/pet-notes-fields"
@@ -44,6 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { addressPlaceRef, EMPTY_ADDRESS, hasPrecisePoint, type PlaceRef } from "@/lib/address"
 import {
   BOOKING_DAYS,
   BOOKING_STAFF,
@@ -57,6 +59,7 @@ import {
   type PickupDetails,
   type ReturningClient,
   resolvePickupAddress,
+  resolvePickupPlace,
   serviceTotals,
 } from "@/lib/booking"
 import { type PetNoteEntry, petNoteLabel, petNotesComplete } from "@/lib/pet-notes"
@@ -236,6 +239,12 @@ export type Customer = {
    * being the only reason we ever ask for an address.
    */
   address: string
+  /**
+   * What the map search knew about `address` (PRD-144). Picking the address
+   * rather than typing it is what lets a mobile groomer navigate to it later,
+   * so the pin is stored on the profile alongside the text.
+   */
+  addressPlace?: PlaceRef
 }
 
 /** Dial code + number as one displayable string. */
@@ -301,11 +310,14 @@ function PickupAndNotesFields({
   pickup,
   onPickup,
   savedAddress,
+  savedPlace,
   addressSource = "profile",
 }: {
   pickup: PickupDetails
   onPickup: (p: PickupDetails) => void
   savedAddress?: string
+  /** Place ref for `savedAddress`, if that address was picked from the map. */
+  savedPlace?: PlaceRef
   /**
    * Where `savedAddress` came from — the account on file, or the address the
    * caller just typed into their details above. Only changes the wording.
@@ -343,20 +355,42 @@ function PickupAndNotesFields({
           ) : null}
 
           {pickup.useSavedAddress && savedAddress ? (
-            <div className="flex items-start gap-2 rounded-xl bg-cami-sage-2 p-3 text-sm text-cami-sage-12">
-              <MapPinIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-              {savedAddress}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-start gap-2 rounded-xl bg-cami-sage-2 p-3 text-sm text-cami-sage-12">
+                <MapPinIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+                {savedAddress}
+              </div>
+              {/* Consumer wording for the same fact the staff sheet states: the
+                  parent is the only one who can still turn a typed address into
+                  a pinned one. Says "us", never "your groomer" — this flow also
+                  serves vet, daycare and boarding businesses, and even at a
+                  grooming business the person who collects the pet is often a
+                  driver. Naming a role the copy cannot guarantee is the same
+                  mistake as saying "your building" when it may be a villa.
+                  No warning colour either — a typed address is normal, not wrong. */}
+              {!hasPrecisePoint(savedPlace) ? (
+                <p className="text-xs leading-5 text-muted-foreground">
+                  Not pinned on the map. Search for it below if your building is hard to find.
+                </p>
+              ) : null}
             </div>
           ) : null}
 
           {showAddressInput ? (
-            <div className="group flex flex-col gap-1.5">
-              <Label htmlFor="pickup-address">Your Pet Address</Label>
-              <Input
-                id="pickup-address"
-                placeholder="Villa / apartment, street, area"
-                value={pickup.address}
-                onChange={(e) => set({ address: e.target.value })}
+            <div className="flex flex-col gap-1.5">
+              <AddressSearchField
+                singleLine
+                className="max-w-none"
+                label="Your Pet Address"
+                placeholder="Search villa / apartment, street, area"
+                helper="Pick from the list if it's there — it helps us find you."
+                value={{
+                  ...EMPTY_ADDRESS,
+                  line: pickup.address,
+                  placeId: pickup.place?.placeId,
+                  point: pickup.place?.point,
+                }}
+                onChange={(parts) => set({ address: parts.line, place: addressPlaceRef(parts) })}
               />
             </div>
           ) : null}
@@ -707,6 +741,7 @@ function IdentifyStep({
           pickup={pickup}
           onPickup={onPickup}
           savedAddress={resolved?.address}
+          savedPlace={resolved?.addressPlace}
         />
       </div>
     )
@@ -767,15 +802,22 @@ function IdentifyStep({
         />
       </div>
       <div className="group flex flex-col gap-1.5">
-        <Label htmlFor="address">
-          Address <span className="font-normal text-muted-foreground">(optional)</span>
-        </Label>
-        <Input
-          id="address"
-          autoComplete="street-address"
-          placeholder="Villa / apartment, street, area"
-          value={customer.address}
-          onChange={(e) => set({ address: e.target.value })}
+        <AddressSearchField
+          singleLine
+          className="max-w-none"
+          label={
+            <>
+              Address <span className="font-normal text-muted-foreground">(optional)</span>
+            </>
+          }
+          placeholder="Search villa / apartment, street, area"
+          value={{
+            ...EMPTY_ADDRESS,
+            line: customer.address,
+            placeId: customer.addressPlace?.placeId,
+            point: customer.addressPlace?.point,
+          }}
+          onChange={(parts) => set({ address: parts.line, addressPlace: addressPlaceRef(parts) })}
         />
         <p className="text-xs text-muted-foreground">
           Saved to your account. We use it if you ask us to collect your pet.
@@ -796,6 +838,7 @@ function IdentifyStep({
         pickup={pickup}
         onPickup={onPickup}
         savedAddress={customer.address.trim() || undefined}
+        savedPlace={customer.address.trim() ? customer.addressPlace : undefined}
         addressSource="details"
       />
     </div>
@@ -825,6 +868,7 @@ function ConfirmStep({
   petLabel,
   customerLabel,
   pickupAddress,
+  pickupPinned = false,
   petNotes,
 }: {
   business: PublicBusiness
@@ -834,6 +878,12 @@ function ConfirmStep({
   petLabel?: string
   customerLabel: string
   pickupAddress?: string
+  /**
+   * Whether the pickup address carries a map pin (PRD-144). Surfaced on the
+   * review step because this is the parent's last look before the booking is
+   * placed, and the only person who can still pin it is them.
+   */
+  pickupPinned?: boolean
   petNotes?: ReadonlyArray<PetNoteEntry>
 }) {
   const total = services.reduce((n, s) => n + s.priceAed, 0)
@@ -880,6 +930,12 @@ function ConfirmStep({
         {petLabel ? <SummaryRow label="Pet" value={petLabel} /> : null}
         <SummaryRow label="Booked by" value={customerLabel} />
         {pickupAddress ? <SummaryRow label="Pet Address" value={pickupAddress} /> : null}
+        {pickupAddress && !pickupPinned ? (
+          <p className="py-2 text-xs leading-5 text-muted-foreground">
+            This address isn&apos;t pinned on the map — we&apos;ll search for it. You can pin it
+            from your account if it&apos;s hard to find.
+          </p>
+        ) : null}
         {petNotes?.length
           ? petNotes.map((note) => (
               <SummaryRow
@@ -1125,7 +1181,13 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
   // caller, or the one a new caller just typed into their details.
   const profileAddress =
     findClientByPhone(customer.phone)?.address ?? (customer.address.trim() || undefined)
+  const profileAddressPlace =
+    findClientByPhone(customer.phone)?.addressPlace ??
+    (customer.address.trim() ? customer.addressPlace : undefined)
   const pickupAddressLabel = resolvePickupAddress(pickup, profileAddress) ?? undefined
+  // Same arguments as the line above, deliberately — the pin has to describe
+  // the address that was actually resolved, not the other one.
+  const pickupPlaceRef = resolvePickupPlace(pickup, profileAddress, profileAddressPlace)
   const customerLabel = [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim()
 
   const canContinue =
@@ -1204,6 +1266,7 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
         petLabel={petLabel}
         customerLabel={customerLabel || "You"}
         pickupAddress={pickupAddressLabel}
+        pickupPinned={hasPrecisePoint(pickupPlaceRef)}
         petNotes={pickup.petNotes.filter((n) => n.detail.trim().length > 0)}
       />
     ) : null

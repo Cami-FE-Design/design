@@ -6,6 +6,7 @@
 // back-calculated for display), reusing public-business as the source of truth.
 
 import type { AvatarSpecies } from "@/components/ui/avatar"
+import type { PlaceRef } from "@/lib/address"
 import type { PetNoteEntry } from "@/lib/pet-notes"
 import type { PublicBusiness, PublicService } from "@/lib/public-business"
 
@@ -336,6 +337,8 @@ export type ReturningClient = {
   email: string
   /** Saved address on the account — pre-fills the pickup address. */
   address?: string
+  /** What the map search knew about it, if it was picked rather than typed. */
+  addressPlace?: PlaceRef
   pets: ReadonlyArray<BookingPet>
 }
 
@@ -344,6 +347,8 @@ export const RETURNING_CLIENT: ReturningClient = {
   lastName: "You",
   email: "michelle@email.com",
   address: "Villa 12, Street 4B, Jumeirah 1, Dubai",
+  // Left un-pinned on purpose: the returning demo caller's address is a villa
+  // cluster typed by hand, which is the case Navigate has to degrade for.
   pets: RETURNING_PETS,
 }
 
@@ -362,6 +367,12 @@ export type PickupDetails = {
   needsPickup: boolean
   useSavedAddress: boolean
   address: string
+  /**
+   * What the map search knew about `address` (PRD-144). Absent when it was
+   * typed, which is why the navigate links fall back to a text query rather
+   * than requiring one.
+   */
+  place?: PlaceRef
   petNotes: PetNoteEntry[]
 }
 
@@ -377,6 +388,22 @@ export function resolvePickupAddress(pickup: PickupDetails, savedAddress?: strin
   if (!pickup.needsPickup) return null
   if (pickup.useSavedAddress && savedAddress) return savedAddress
   return pickup.address.trim() || null
+}
+
+/**
+ * The place ref belonging to whichever address `resolvePickupAddress` returned.
+ * Kept as a separate function rather than folded into that one so its existing
+ * callers — review row, confirmation email, summary — stay unchanged; the two
+ * must be read with the same arguments or the pin describes the other address.
+ */
+export function resolvePickupPlace(
+  pickup: PickupDetails,
+  savedAddress?: string,
+  savedPlace?: PlaceRef,
+): PlaceRef | undefined {
+  if (!pickup.needsPickup) return undefined
+  if (pickup.useSavedAddress && savedAddress) return savedPlace
+  return pickup.address.trim() ? pickup.place : undefined
 }
 
 // Demo resolver: a mobile ending in an EVEN digit is a returning client on file;
@@ -430,6 +457,8 @@ export type BookingDetail = {
   customerName: string
   /** Set when the parent asked us to collect the pet. */
   pickupAddress?: string
+  /** Place ref for `pickupAddress`, when it was picked from the map search. */
+  pickupPlace?: PlaceRef
   /** Pet notes the parent left at booking time. */
   petNotes?: PetNoteEntry[]
 }
@@ -459,6 +488,7 @@ export function resolveBooking(business: PublicBusiness, ref: string): BookingDe
     petName: businessHasPets(business) ? RETURNING_PETS[0]!.name : undefined,
     customerName: "Michelle You",
     pickupAddress: withPickup ? RETURNING_CLIENT.address : undefined,
+    pickupPlace: withPickup ? RETURNING_CLIENT.addressPlace : undefined,
     petNotes: withPickup
       ? [
           { category: "behavior", detail: "Anxious in the van — needs the crate, not a harness." },

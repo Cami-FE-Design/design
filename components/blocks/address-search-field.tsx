@@ -46,12 +46,24 @@ const LIST_MAX_HEIGHT = 288
 
 const UAE = "United Arab Emirates"
 
+//
+// Each entry carries the `placeId` + `point` a Places response would return
+// alongside the text (PRD-144). They are what makes a picked address navigable
+// rather than merely printable — see `lib/address.ts`. The ids are placeholders
+// shaped like real ones; production gets them from the same call that replaces
+// this constant.
 const PLACES: PlaceSuggestion[] = [
   {
     id: "jvc-ghozlan",
     primary: "Al Ghozlan 4",
     secondary: "Jumeirah Village Circle, Dubai, United Arab Emirates",
-    parts: { line: "Al Ghozlan 4, Jumeirah Village Circle\nDubai", postcode: "", country: UAE },
+    parts: {
+      line: "Al Ghozlan 4, Jumeirah Village Circle\nDubai",
+      postcode: "",
+      country: UAE,
+      placeId: "ChIJdemo_jvc_ghozlan_4",
+      point: { lat: 25.0568, lng: 55.2094 },
+    },
   },
   {
     id: "jlt-indigo",
@@ -61,6 +73,8 @@ const PLACES: PlaceSuggestion[] = [
       line: "Indigo Tower, Cluster D, Jumeirah Lakes Towers\nOffice 504\nDubai",
       postcode: "",
       country: UAE,
+      placeId: "ChIJdemo_jlt_indigo_tower",
+      point: { lat: 25.0715, lng: 55.1403 },
     },
   },
   {
@@ -71,6 +85,8 @@ const PLACES: PlaceSuggestion[] = [
       line: "Bay Square Building 3, Business Bay\nUnit 12\nDubai",
       postcode: "",
       country: UAE,
+      placeId: "ChIJdemo_bay_square_3",
+      point: { lat: 25.1858, lng: 55.276 },
     },
   },
   {
@@ -81,6 +97,8 @@ const PLACES: PlaceSuggestion[] = [
       line: "Warehouse 7, Street 6, Al Quoz Industrial Area 3\nDubai",
       postcode: "",
       country: UAE,
+      placeId: "ChIJdemo_al_quoz_wh7",
+      point: { lat: 25.131, lng: 55.228 },
     },
   },
   {
@@ -91,13 +109,21 @@ const PLACES: PlaceSuggestion[] = [
       line: "Addax Tower, Al Reem Island\nOffice 2201\nAbu Dhabi",
       postcode: "",
       country: UAE,
+      placeId: "ChIJdemo_addax_tower",
+      point: { lat: 24.498, lng: 54.4062 },
     },
   },
   {
     id: "sharjah-majaz",
     primary: "Al Majaz Tower 2",
     secondary: "Al Majaz 3, Sharjah, United Arab Emirates",
-    parts: { line: "Al Majaz Tower 2, Al Majaz 3\nSharjah", postcode: "", country: UAE },
+    parts: {
+      line: "Al Majaz Tower 2, Al Majaz 3\nSharjah",
+      postcode: "",
+      country: UAE,
+      placeId: "ChIJdemo_al_majaz_tower_2",
+      point: { lat: 25.329, lng: 55.381 },
+    },
   },
 ]
 
@@ -113,12 +139,26 @@ export function AddressSearchField({
   label = "Registered address",
   helper,
   className,
+  placeholder = "Search address",
+  singleLine = false,
 }: {
   value: AddressParts
   onChange: (parts: AddressParts) => void
-  label?: string
+  /**
+   * Falsy renders no label at all, for callers that already have one of their
+   * own above the field (the booking form's "Address (optional)"). A node
+   * rather than a string so those callers can keep their own markup.
+   */
+  label?: React.ReactNode
   helper?: string
   className?: string
+  placeholder?: string
+  /**
+   * Collapse a picked place onto one row. A registered address prints as a
+   * block, but a pickup address is read at a glance on a calendar block and in
+   * a popover, where a three-line address is three lines of noise.
+   */
+  singleLine?: boolean
 }) {
   const listId = useId()
   const [query, setQuery] = useState(() => (isAddressEmpty(value) ? "" : addressToLine(value)))
@@ -146,19 +186,29 @@ export function AddressSearchField({
   }
 
   const pick = (place: PlaceSuggestion) => {
+    const flat = place.parts.line.split("\n").join(", ")
     // The postal code the merchant already entered survives a re-pick — a map
     // result rarely carries one in the UAE, so taking the place's empty value
     // would silently wipe what they typed.
-    onChange({ ...place.parts, postcode: value.postcode })
-    setQuery(place.parts.line.split("\n").join(", "))
+    onChange({
+      ...place.parts,
+      postcode: value.postcode,
+      line: singleLine ? flat : place.parts.line,
+    })
+    setQuery(flat)
     close()
   }
 
   // Whatever is in the box is the address. Typing is not a fallback mode to
   // fail your way into — plenty of registered addresses are not in any index.
+  //
+  // Editing the text drops the place reference the pick left behind. Keeping it
+  // would leave a record whose coordinates describe the address it *used* to
+  // hold, and the navigate links trust coordinates over text — so a driver would
+  // be routed to the previous place with the new one on screen.
   const typeIn = (text: string) => {
     setQuery(text)
-    onChange({ ...value, line: text })
+    onChange({ ...value, line: text, placeId: undefined, point: undefined })
   }
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -188,7 +238,9 @@ export function AddressSearchField({
       <div className="flex flex-col gap-1.5">
         {/* biome-ignore lint/a11y/noLabelWithoutControl: the control is the child */}
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
+          {label ? (
+            <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
+          ) : null}
           <div ref={boxRef} className="relative">
             <MapPinIcon
               className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -196,7 +248,7 @@ export function AddressSearchField({
             />
             <Input
               value={query}
-              placeholder="Search address"
+              placeholder={placeholder}
               autoComplete="off"
               role="combobox"
               aria-expanded={open}

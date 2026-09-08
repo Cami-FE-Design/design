@@ -30,6 +30,13 @@ export type AddressParts = {
   postcode: string
   /** From Business details, never from the address form. */
   country: string
+  /**
+   * Set only when the address was picked from the search, and cleared the
+   * moment the line is edited by hand — a reference that outlives the text it
+   * described would point a driver at the previous address. See `PlaceRef`.
+   */
+  placeId?: string
+  point?: GeoPoint
 }
 
 export const EMPTY_ADDRESS: AddressParts = {
@@ -70,4 +77,70 @@ export function addressToLine(parts: AddressParts): string {
  */
 export function isAddressEmpty(parts: AddressParts): boolean {
   return !parts.line.trim()
+}
+
+// ─── Where the address actually is (PRD-144) ──────────────────────────────────
+// A pickup address is the one address in the product that someone has to *drive
+// to*. Text is enough to print an invoice and not enough to navigate: "Villa 12,
+// Street 4B, Jumeirah 1" resolves to the middle of a villa cluster, and a
+// mobile groomer standing outside the wrong gate is the failure this exists to
+// prevent.
+//
+// So a picked address carries what the places index knew about it, and the
+// navigate links below prefer that over the string. Typed addresses have no
+// reference and fall back to a text query — degraded, never broken, because
+// plenty of real addresses are in no index at all.
+
+/** Coordinates as a places index returns them. */
+export type GeoPoint = { lat: number; lng: number }
+
+/**
+ * What the places index knew about a picked address. Absent on anything typed
+ * by hand, which is the common case for new buildings and villa clusters.
+ */
+export type PlaceRef = {
+  /** Places id — the most precise handle, survives the place being renamed. */
+  placeId?: string
+  point?: GeoPoint
+}
+
+/** True when we can drop a pin rather than run a text search. */
+export function hasPrecisePoint(place?: PlaceRef): boolean {
+  return Boolean(place?.point || place?.placeId)
+}
+
+/** The place ref carried by an address record, if it was picked from search. */
+export function addressPlaceRef(parts: AddressParts): PlaceRef | undefined {
+  if (!parts.placeId && !parts.point) return undefined
+  return { placeId: parts.placeId, point: parts.point }
+}
+
+// Coordinates beat the string when we have them: Maps takes the pin literally,
+// where a text query re-guesses an address we already resolved once.
+function destination(address: string, place?: PlaceRef): string {
+  const point = place?.point
+  return point ? `${point.lat},${point.lng}` : address.trim()
+}
+
+/**
+ * Maps link that *shows* the address — the read-only rendering on an
+ * appointment, where the reader wants to see where it is.
+ */
+export function mapsSearchHref(address: string, place?: PlaceRef): string {
+  const params = new URLSearchParams({ api: "1", query: destination(address, place) })
+  // Only meaningful alongside `query`, which is why it is appended and not
+  // substituted for it.
+  if (place?.placeId) params.set("query_place_id", place.placeId)
+  return `https://www.google.com/maps/search/?${params.toString()}`
+}
+
+/**
+ * Maps link that *routes* to the address, from wherever the device is. This is
+ * the one a driver taps: it opens the native app on a phone with the trip
+ * already loaded, rather than a pin they then have to press Directions on.
+ */
+export function mapsDirectionsHref(address: string, place?: PlaceRef): string {
+  const params = new URLSearchParams({ api: "1", destination: destination(address, place) })
+  if (place?.placeId) params.set("destination_place_id", place.placeId)
+  return `https://www.google.com/maps/dir/?${params.toString()}`
 }
