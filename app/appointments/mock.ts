@@ -288,6 +288,10 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     pickupAddress: "Apt 1804, Marina Heights Tower, Dubai Marina",
     // Picked from the map search, so the van gets a pin.
     pickupPlace: { placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } },
+    // The one booking that carries every section at once, so a single URL shows
+    // the whole sheet: three services, a membership, a pinned address, pet
+    // notes, a payment policy — and now an appointment note too.
+    notes: "Owner is collecting late, around 6pm. Call before the van leaves.",
     petNotes: [
       { category: "handling", detail: "Muzzle for nail work." },
       { category: "behavior", detail: "Reactive to other dogs in the van." },

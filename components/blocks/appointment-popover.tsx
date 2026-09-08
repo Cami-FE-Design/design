@@ -399,10 +399,20 @@ export function AppointmentQuickPanel({
             </div>
           </section>
         ) : null}
+        {/* Labelled like every other group on this card. It used to be a bare
+            italic line with no heading — the only unlabelled thing here — so it
+            read as a stray sentence rather than as the pet's notes. The italic
+            went with the label: nothing else on the card is italic, and
+            `formatPetNotes` already writes the category into the text. */}
         {booking.petNotes?.length ? (
-          <p className="line-clamp-1 text-[11px] text-muted-foreground italic">
-            {formatPetNotes(booking.petNotes)}
-          </p>
+          <section data-slot="pet-notes-section" className="flex flex-col gap-1">
+            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Pet notes
+            </div>
+            <p className="line-clamp-1 text-[11px] leading-snug text-foreground">
+              {formatPetNotes(booking.petNotes)}
+            </p>
+          </section>
         ) : null}
 
         <Separator />
