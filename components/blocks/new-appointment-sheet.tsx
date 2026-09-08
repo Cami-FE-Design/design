@@ -46,6 +46,7 @@ import {
   type WhatsAppTemplate,
 } from "@/app/appointments/mock"
 import type { CartLine, CatalogClient } from "@/app/sales/new-sale/types"
+import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { DatePicker } from "@/components/blocks/date-picker"
 import { EditServicePanel } from "@/components/blocks/edit-service-panel"
@@ -89,6 +90,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import type { PlaceRef } from "@/lib/address"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
 import { depositForServices, examplePolicyText } from "@/lib/payment-policy/types"
@@ -132,6 +134,12 @@ type SelectedClient = {
   phone: string
   /** Saved address on the client profile — pre-fills the pet address. */
   address?: string
+  /**
+   * What the map search knew about `address`, when the profile address was
+   * picked rather than typed (PRD-144). Carried through so reusing the saved
+   * address reuses its pin too, instead of downgrading to a text search.
+   */
+  addressPlace?: PlaceRef
 }
 
 // Mock client directory used by the demo client picker. Searchable by name
@@ -148,6 +156,7 @@ const MOCK_CLIENTS: SelectedClient[] = [
     name: "Maaz Test You",
     phone: "+971 50 963 6445",
     address: "Apt 1804, Marina Heights Tower, Dubai Marina",
+    addressPlace: { placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } },
   },
   { id: "demo-profile", name: "Demo Profile", phone: "+1 234 567 8901" },
   {
@@ -155,6 +164,7 @@ const MOCK_CLIENTS: SelectedClient[] = [
     name: "Aaesha Al Ali",
     phone: "+971 50 374 5511",
     address: "Villa 7, Al Barsha 2, Dubai",
+    addressPlace: { placeId: "ChIJdemo_al_barsha_villa_7", point: { lat: 25.1107, lng: 55.1985 } },
   },
   { id: "aaliyah-hazari", name: "Aaliyah Hazari", phone: "+971 52 692 6368" },
 ]
@@ -341,8 +351,12 @@ export function NewAppointmentSheet({
   const [needsPickup, setNeedsPickup] = useState(false)
   const [useSavedAddress, setUseSavedAddress] = useState(true)
   const [customPickupAddress, setCustomPickupAddress] = useState("")
+  // Set when the address above was picked from the map search, cleared when it
+  // is edited by hand — the field owns that rule, this only stores the result.
+  const [customPickupPlace, setCustomPickupPlace] = useState<PlaceRef | undefined>(undefined)
   const [petNotes, setPetNotes] = useState<PetNoteEntry[]>([])
   const savedAddress = selectedClient?.address
+  const savedAddressPlace = selectedClient?.addressPlace
   const [messageTemplate, setMessageTemplate] = useState<WhatsAppTemplate | null>(null)
   const [petPendingDelete, setPetPendingDelete] = useState<string | null>(null)
   const [petBeingEdited, setPetBeingEdited] = useState<string | null>(null)
@@ -804,6 +818,12 @@ export function NewAppointmentSheet({
                 previewFor={(t) => resolveTemplate(t.body, messageTokens)}
               />
 
+              {/* DZ-209: client notes surface while the booking is being made,
+                  not only once it exists — a package balance or "always asks
+                  for Aya" changes what gets booked. Renders nothing until a
+                  client with notes is selected. */}
+              <ClientNoteBanner clientId={selectedClient?.id} />
+
               <section data-slot="services-section" className="flex flex-col gap-3">
                 <h2 className="text-lg font-semibold leading-7 text-foreground">Services</h2>
                 {hasPets ? (
@@ -870,7 +890,10 @@ export function NewAppointmentSheet({
                   onUseSavedAddress={setUseSavedAddress}
                   address={customPickupAddress}
                   onAddress={setCustomPickupAddress}
+                  place={customPickupPlace}
+                  onPlace={setCustomPickupPlace}
                   savedAddress={savedAddress}
+                  savedPlace={savedAddressPlace}
                   clientName={selectedClient?.name}
                 />
               </section>
@@ -889,7 +912,15 @@ export function NewAppointmentSheet({
 
               {note !== null ? (
                 <section data-slot="notes-section" className="flex flex-col gap-3">
-                  <h2 className="text-lg font-semibold leading-7 text-foreground">Notes</h2>
+                  {/* "Appointment note", not "Notes": it sits directly under
+                      "Pet notes", and DZ-209 is precisely about being able to
+                      tell the three note kinds apart — this one is the
+                      occasion, pet notes are the animal, client notes are the
+                      person. A bare "Notes" next to "Pet notes" reads as the
+                      same thing twice. */}
+                  <h2 className="text-lg font-semibold leading-7 text-foreground">
+                    Appointment note
+                  </h2>
                   <div className="group/note relative min-h-24 rounded-2xl border border-border/60 bg-card p-4 transition-colors hover:bg-muted/30">
                     <button
                       type="button"

@@ -47,10 +47,7 @@ import { TerminalLockScreen } from "@/app/sales/new-sale/terminal-lock"
 import { AddTeamMemberDialog } from "@/components/blocks/add-team-member-dialog"
 import { AddressSearchField } from "@/components/blocks/address-search-field"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
-import {
-  AppointmentDetailPanel,
-  AppointmentQuickPanel,
-} from "@/components/blocks/appointment-popover"
+import { AppointmentQuickPanel } from "@/components/blocks/appointment-popover"
 import { AppointmentsToolbar } from "@/components/blocks/appointments-toolbar"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
 import { BoardingDetailSheet } from "@/components/blocks/boarding/booking-detail-sheet"
@@ -59,6 +56,7 @@ import { BusinessNotificationsSection } from "@/components/blocks/business-detai
 import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
+import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
 import { CommsTemplatesPanel } from "@/components/blocks/comms-templates-panel"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
 import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
@@ -99,6 +97,7 @@ import { MoneyFeesView } from "@/components/blocks/money/money-fees"
 import { MoneySummaryView } from "@/components/blocks/money/money-summary"
 import { RailBadge } from "@/components/blocks/money/rail-badge"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
+import { NavigateToAddress } from "@/components/blocks/navigate-to-address"
 import { NotificationsSettingsPanel } from "@/components/blocks/notifications-settings-panel"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
@@ -183,7 +182,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { type AddressParts, addressToLines, EMPTY_ADDRESS } from "@/lib/address"
+import { type AddressParts, addressToLines, EMPTY_ADDRESS, type PlaceRef } from "@/lib/address"
 import { adminBusinesses } from "@/lib/admin-businesses"
 import { ALL_HQ_PERMISSIONS, AuthProvider, type PermissionKey } from "@/lib/auth-mock"
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
@@ -317,6 +316,51 @@ const PICKUP_DEMO_BOOKING: MockBooking = {
   notes: "Owner asked for extra paw moisturizer last visit.",
 }
 
+// Same booking with a pinned address (PRD-144). The pair is the point: one was
+// picked from the map search and gets "Navigate", the other was typed and can
+// only offer "Search in Maps".
+// Three services by two groomers, one with duration modifiers, one drawn from a
+// membership — the shape the as-built popup shows and ours could not.
+const MULTI_SERVICE_DEMO_BOOKING: MockBooking = {
+  ...PICKUP_DEMO_BOOKING,
+  id: "pg-multi-service",
+  items: [
+    {
+      id: "pg-i1",
+      name: "Wash & Blow Dry MD",
+      priceMinor: 14000,
+      durationMin: 60,
+      staffName: "Aya Hassan",
+      extraTimes: [
+        { type: "processing", durationMin: 10 },
+        { type: "blocked", durationMin: 10 },
+      ],
+    },
+    {
+      id: "pg-i2",
+      name: "Nail clipping",
+      priceMinor: 4000,
+      durationMin: 15,
+      staffName: "Aya Hassan",
+    },
+    {
+      id: "pg-i3",
+      name: "Deshedding MD",
+      priceMinor: 18000,
+      durationMin: 45,
+      staffName: "Lena Petrov",
+      membership: { label: "Included in membership", grossPriceMinor: 18000 },
+    },
+  ],
+}
+
+const PICKUP_PINNED_DEMO_BOOKING: MockBooking = {
+  ...PICKUP_DEMO_BOOKING,
+  id: "pg-pickup-pinned",
+  pickupAddress: "Apt 1804, Marina Heights Tower, Dubai Marina",
+  pickupPlace: { placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } },
+}
+
 // Every reachable state of the pickup block, each one live so the checkboxes
 // can be toggled in place.
 const PICKUP_FIELD_STATES: Array<{
@@ -325,6 +369,8 @@ const PICKUP_FIELD_STATES: Array<{
   needsPickup: boolean
   useSavedAddress: boolean
   savedAddress?: string
+  /** Set on the state whose saved address was picked from the map search. */
+  savedPlace?: PlaceRef
   clientName?: string
 }> = [
   { key: "off", label: "Off (default)", needsPickup: false, useSavedAddress: true },
@@ -336,7 +382,16 @@ const PICKUP_FIELD_STATES: Array<{
   },
   {
     key: "saved",
-    label: "On · reusing the saved address",
+    label: "On · reusing the saved address (pinned)",
+    needsPickup: true,
+    useSavedAddress: true,
+    savedAddress: "Apt 1804, Marina Heights Tower, Dubai Marina",
+    savedPlace: { placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } },
+    clientName: "Maaz Test You",
+  },
+  {
+    key: "saved-unpinned",
+    label: "On · saved address typed, never pinned",
     needsPickup: true,
     useSavedAddress: true,
     savedAddress: "Villa 12, Street 4B, Jumeirah 1, Dubai",
@@ -363,6 +418,10 @@ function PickupFieldsDemo({ state }: { state: (typeof PICKUP_FIELD_STATES)[numbe
   const [needsPickup, setNeedsPickup] = useState(state.needsPickup)
   const [useSavedAddress, setUseSavedAddress] = useState(state.useSavedAddress)
   const [address, setAddress] = useState("")
+  // Held next to the string exactly as the appointment sheet holds it: pick a
+  // suggestion and the note under the field flips to "Pinned"; edit the text
+  // afterwards and it flips back, because the field drops the stale pin.
+  const [place, setPlace] = useState<PlaceRef | undefined>(undefined)
 
   return (
     <PickupFields
@@ -373,7 +432,10 @@ function PickupFieldsDemo({ state }: { state: (typeof PICKUP_FIELD_STATES)[numbe
       onUseSavedAddress={setUseSavedAddress}
       address={address}
       onAddress={setAddress}
+      place={place}
+      onPlace={setPlace}
       savedAddress={state.savedAddress}
+      savedPlace={state.savedPlace}
       clientName={state.clientName}
     />
   )
@@ -1769,7 +1831,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Address search field"
-        description="Search first, structured fields second. The repo's older address blocks put a decorative 'Search address' box above a grid the merchant still filled in by hand; here picking a place fills the grid, and the grid stays editable because a places result is a starting point and the trade licence is what has to match. Manual entry is the first row of the dropdown, not a fallback reached by failing — plenty of registered addresses (new buildings, free-zone desks, PO boxes) are in no index at all. Arrow keys and Enter work the dropdown. The suggestions stand in for a Places Autocomplete response; production swaps the constant for the call. Field set matches the benchmark's billing form rather than a full postal schema — no emirate, because in the UAE it repeats the city on almost every address, and blank optional fields collapse instead of leaving a gap in the invoice's issuer block."
+        description="Search first, structured fields second. The repo's older address blocks put a decorative 'Search address' box above a grid the merchant still filled in by hand; here picking a place fills the grid, and the grid stays editable because a places result is a starting point and the trade licence is what has to match. Manual entry is the first row of the dropdown, not a fallback reached by failing — plenty of registered addresses (new buildings, free-zone desks, PO boxes) are in no index at all. Arrow keys and Enter work the dropdown. The suggestions stand in for a Places Autocomplete response; production swaps the constant for the call. PRD-144 added the pin: a picked place carries its placeId and coordinates onto the record, and editing the text afterwards drops them — a reference that outlived the text it described would route a driver to the previous address. Field set matches the benchmark's billing form rather than a full postal schema — no emirate, because in the UAE it repeats the city on almost every address, and blank optional fields collapse instead of leaving a gap in the invoice's issuer block."
       >
         <Row label="Empty — search only">
           <AddressSearchFieldDemo />
@@ -2166,12 +2228,79 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Appointments — pickup & pet notes"
-        description="Pet-address capture on the staff appointment sheet (<PickupFields>) and the read-only rendering on the calendar popover. Copy is deliberately service-agnostic — 'pickup' does not apply to mobile grooming, where the groomer always travels to the pet. The tick is off by default: most appointments are self-drop, and defaulting it on would put a car icon on every block. When it is on, the saved address is reused billing/shipping style so nothing has to be typed in the common case. Pet notes deliberately sit outside the checkbox: allergies and handling matter on every appointment. Every field state is live below — tick and untick them."
+        description="Pet-address capture on the staff appointment sheet (<PickupFields>) and the read-only rendering on the calendar popover. Copy is deliberately service-agnostic — 'pickup' does not apply to mobile grooming, where the groomer always travels to the pet. The tick is off by default: most appointments are self-drop, and defaulting it on would put a car icon on every block. When it is on, the saved address is reused billing/shipping style so nothing has to be typed in the common case. Pet notes deliberately sit outside the checkbox: allergies and handling matter on every appointment. PRD-144: the address is entered through the same <AddressSearchField> as the billing address, so picking it from the map search stores a pin on the booking — that is what the Navigate link on the popover and detail sheet routes to. Typing still works and still saves; the line under the field says whether this one is pinned, because the only person who can still fix it is the one doing the booking. Every field state is live below — pick a suggestion, then edit the text, and watch the note flip back. The card below carries the DZ-209 note rows too: client notes under the client, the appointment note as the closing band with the same glyph the calendar card uses. There is now ONE card, not two. PRO-68 shipped a hover card and a 380px click card, and the click card led nowhere — no route to the detail sheet, and the grid it lived on is only mounted in the playground, so the calendar could never reach an appointment at all. The as-built app has two artefacts: hover opens this card, click opens <AppointmentDetailSheet>. So this card absorbed what the click card showed (identity once, every service with its own performer / duration / price / duration-modifier pills / membership chip, a service-count-and-total footer) and everything that CHANGES the appointment moved to the sheet — status dropdown, add service, add tag, pay, and the unsigned-agreement banner, whose dismissal now outlives the surface it was made on. A hover card is read, not operated. The tinted note band belongs to THIS surface only: the hover card has no headings and is read by scanning, so a strip at a fixed position is the right instrument. The detail sheet renders the same note as a plain h2 + card section, last in its body, because there every other section is one too."
       >
         <PickupFieldsStates />
-        <Row label="Popover — pickup + notes">
+        <Row label="Hover card — pinned address (Navigate)">
+          <AppointmentQuickPanel booking={PICKUP_PINNED_DEMO_BOOKING} />
+        </Row>
+        <Row label="Hover card — typed address (Search in Maps)">
           <AppointmentQuickPanel booking={PICKUP_DEMO_BOOKING} />
-          <AppointmentDetailPanel booking={PICKUP_DEMO_BOOKING} />
+        </Row>
+        <Row label="Hover card — three services, two groomers, one on a membership">
+          <AppointmentQuickPanel booking={MULTI_SERVICE_DEMO_BOOKING} />
+        </Row>
+      </Section>
+
+      <Section
+        title="Client notes (Staff Alert)"
+        description="DZ-209 — three note kinds now share these surfaces, and telling them apart is the point. Client notes (Fresha's Staff Alert) travel with the person: packages and credits left, preferences, imported history, and they resurface on every appointment for that client. The appointment note is the occasion. Pet notes travel with the animal. Mirrors the as-built ClientNoteBanner in cami-business, including why it is shaped this way: it is a PREVIEW, not the archive, and the bound is on the CONTENT rather than the container — two notes at two lines each, one note at one line on glance surfaces, nothing scrolls, nothing is cut mid-glyph. Earlier passes bounded the box instead (by note count, by characters, by a fixed scrolling height) and each one sliced text at a container edge or could not fit a single long note. It is deliberately NOT an amber slab with a warning triangle: ClientNote carries no severity field, so that treatment marked every client who had ever been written about as a hazard. The DZ-209 marker is a muted outline glyph instead — enough for reception to spot in a second, and the same glyph the calendar card carries so the marker and the thing it marks read as one feature. Karen Dougall has four notes on one afternoon, which is exactly the case that forces the per-note timestamp: without the time they collapse into four identical attribution lines. The rows below show the standalone card, which keeps its own label and marker. On the appointment detail sheet it renders with `hideLabel` instead, under an h2 like every other section there — The icon is the SAME on every surface, because it says what the card is — only its position follows the surface: leading inside a sheet card (matching the pin on Your Pet Address and the card on Payment policy), trailing on a glance card where a leading icon costs a word per line. An earlier pass dropped the glyph from the sheet entirely on the theory that a heading replaces it, which was wrong twice over: it broke the recognition someone builds on the calendar, and the sheet's own Pet Address and Payment policy cards already carry an icon under a heading."
+      >
+        <Row label="Full (detail sheet) — heading outside, marker leading">
+          <section className="flex w-full max-w-md flex-col gap-3">
+            <h2 className="text-lg font-semibold leading-7 text-foreground">Client notes</h2>
+            <ClientNoteBanner hideLabel clientId="karen-dougall" className="p-4" />
+          </section>
+        </Row>
+        <Row label="Full — a single note, no author on the row">
+          <div className="w-full max-w-md">
+            <ClientNoteBanner clientId="tom-cassidy" />
+          </div>
+        </Row>
+        <Row label="Compact (hover card) — a labelled group, not a card">
+          <div className="flex w-[320px] flex-col gap-2.5 rounded-xl bg-popover p-3 shadow-overlay">
+            <ClientNoteBanner compact clientId="karen-dougall" />
+            {/* Neighbours included on purpose: the whole point of the compact
+                rendering is that its label row matches theirs. */}
+            <div className="flex flex-col gap-1">
+              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Your Pet Address
+              </div>
+              <div className="rounded-md bg-cami-sage-2 px-2 py-1.5 text-[11px] text-cami-sage-12">
+                Apt 1804, Marina Heights Tower, Dubai Marina
+              </div>
+            </div>
+          </div>
+        </Row>
+        <Row label="No notes on file — renders nothing">
+          <div className="w-full max-w-md rounded-2xl border border-dashed border-border/60 p-4 text-xs text-muted-foreground">
+            <ClientNoteBanner clientId="aaliyah-hazari" />
+            Nothing above this line: the banner returns null rather than an empty card, so a client
+            with no notes costs no vertical space on any surface.
+          </div>
+        </Row>
+      </Section>
+
+      <Section
+        title="Navigate to address"
+        description="The driver's half of PRD-144, used wherever a pet address is shown read-only. Opens Google Maps in directions mode rather than search mode: on a phone that hands off to the native app with the trip already loaded, one tap fewer than a pin you then press Directions on. Where the address was picked from the map search it routes to the stored coordinates; where it was typed it falls back to a text query and says 'Search in Maps' instead of 'Navigate', because a text query that lands on the wrong side of a villa cluster should not look like a promise. Two renderings — compact for the calendar popover, default for the detail sheet — and it renders nothing at all when there is no address."
+      >
+        <Row label="Pinned — routes to coordinates">
+          <NavigateToAddress
+            address="Apt 1804, Marina Heights Tower, Dubai Marina"
+            place={{ placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } }}
+          />
+        </Row>
+        <Row label="Typed — text query only">
+          <NavigateToAddress address="Villa 12, Street 4B, Jumeirah 1, Dubai" />
+        </Row>
+        <Row label="Compact (popover rendering)">
+          <NavigateToAddress
+            size="compact"
+            address="Apt 1804, Marina Heights Tower, Dubai Marina"
+            place={{ placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } }}
+          />
+          <NavigateToAddress size="compact" address="Villa 12, Street 4B, Jumeirah 1, Dubai" />
         </Row>
       </Section>
 
