@@ -23,6 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { mapsSearchHref } from "@/lib/address"
 import { BOOKING_DAYS, type BookingDetail, type BookingStatus, calendarLinks } from "@/lib/booking"
 import { petNoteLabel } from "@/lib/pet-notes"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
@@ -89,7 +90,12 @@ export function ManageBooking({
   const [when, setWhen] = useState({ day: booking.dayLabel, time: booking.timeLabel })
 
   const fullAddress = [business.street, business.city, business.emirate].filter(Boolean).join(", ")
-  const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
+  // Built by `mapsSearchHref` rather than by hand — PRD-144 added that helper
+  // and this line was the string it was modelled on. Search mode, not
+  // directions: this is the SALON's address shown to a pet parent who may not
+  // be travelling from where they are standing now, unlike the pet address on
+  // the staff side where a route is the whole point.
+  const mapsHref = mapsSearchHref(fullAddress)
 
   const calendar = calendarLinks({
     ref: booking.ref,

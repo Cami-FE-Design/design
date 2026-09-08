@@ -1,4 +1,5 @@
 import type { AvatarSpecies } from "@/components/ui/avatar"
+import type { PlaceRef } from "@/lib/address"
 import type { PetNoteEntry } from "@/lib/pet-notes"
 
 export type MockBookingStatus =
@@ -33,7 +34,21 @@ export type MockBooking = {
   status: MockBookingStatus
   serviceCategory: MockServiceCategory
   serviceName: string
+  /**
+   * Every service on the booking. Optional — `serviceItemsOf` derives a
+   * one-item list from `serviceName` / `priceMinor` / `durationMin` when it is
+   * absent, so only the bookings that need to demo a multi-service appointment
+   * carry it.
+   */
+  items?: ReadonlyArray<MockServiceItem>
   clientName: string
+  /**
+   * Client-level identity, used to look up client notes (DZ-209). Optional on
+   * the mock: `clientIdOf` derives it from the name when it is absent, which is
+   * safe here because demo client names are unique. Production carries a real
+   * customer id and never derives one.
+   */
+  clientId?: string
   petName?: string
   petSpecies?: AvatarSpecies
   priceMinor: number
@@ -72,6 +87,14 @@ export type MockBooking = {
    * its own copy so editing the client profile later doesn't rewrite history.
    */
   pickupAddress?: string
+  /**
+   * What the map search knew about `pickupAddress`, when it was picked rather
+   * than typed (PRD-144). Drives the Navigate link on the popover and detail
+   * sheet: with a point it routes to the pin, without one it can only run a
+   * text search. Copied onto the booking for the same reason the address is —
+   * so re-pinning the profile later does not move a past appointment.
+   */
+  pickupPlace?: PlaceRef
   /**
    * Pet-related notes (allergies, behavior, handling). Deliberately separate
    * from `notes` — those are booking-specific, these travel with the pet and
@@ -176,6 +199,9 @@ export const MOCK_BOOKINGS: MockBooking[] = [
       { category: "handling", detail: "Sensitive ears — no water near the head." },
     ],
     needsPickup: true,
+    // Deliberately left un-pinned: a villa cluster typed by hand is the case the
+    // Navigate link has to degrade gracefully for, and both states should be
+    // reachable in the demo calendar.
     pickupAddress: "Villa 12, Street 4B, Jumeirah 1, Dubai",
     agreementSigned: true,
     intakeFormSubmitted: true,
@@ -221,6 +247,38 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     status: "confirmed",
     serviceCategory: "grooming",
     serviceName: "Deshedding LG",
+    // The multi-service case, and the only booking that carries it: three items
+    // by two groomers, one with duration modifiers, one drawn from a package.
+    // Every other booking in this file derives a single item from the flat
+    // fields, which is what `serviceItemsOf` is for.
+    items: [
+      {
+        id: "b-004-i1",
+        name: "Deshedding LG",
+        priceMinor: 25000,
+        durationMin: 60,
+        staffName: "Aya Hassan",
+        extraTimes: [
+          { type: "processing", durationMin: 10 },
+          { type: "blocked", durationMin: 10 },
+        ],
+      },
+      {
+        id: "b-004-i2",
+        name: "Nail clipping",
+        priceMinor: 4000,
+        durationMin: 15,
+        staffName: "Aya Hassan",
+      },
+      {
+        id: "b-004-i3",
+        name: "Wash & Blow Dry LG",
+        priceMinor: 18000,
+        durationMin: 45,
+        staffName: "Lena Petrov",
+        membership: { label: "Included in membership", grossPriceMinor: 18000 },
+      },
+    ],
     clientName: "Luke Tan",
     petName: "Rocky",
     petSpecies: "dog",
@@ -228,6 +286,8 @@ export const MOCK_BOOKINGS: MockBooking[] = [
     hasSafetyFlag: true,
     needsPickup: true,
     pickupAddress: "Apt 1804, Marina Heights Tower, Dubai Marina",
+    // Picked from the map search, so the van gets a pin.
+    pickupPlace: { placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } },
     petNotes: [
       { category: "handling", detail: "Muzzle for nail work." },
       { category: "behavior", detail: "Reactive to other dogs in the van." },
@@ -1083,3 +1143,85 @@ export function templatesForBooking(
 // settings-side template editor (DSG-83) and the appointments drawer read one
 // list. Re-exported here because the drawer callers import them from this mock.
 export { resolveTemplate, type TemplateTokens } from "@/lib/comms/tokens"
+
+/**
+ * The client id a booking's notes hang off (DZ-209).
+ *
+ * Prefers the explicit field; otherwise slugifies the display name, which holds
+ * on demo data because the names in this file are unique. Production reads the
+ * real customer id off the booking — a derived slug would collide the first
+ * time two clients share a name, which is why this fallback stays confined to
+ * the mock rather than moving into `lib/client-notes`.
+ */
+export function clientIdOf(booking: MockBooking): string {
+  if (booking.clientId) return booking.clientId
+  return booking.clientName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+}
+
+// ─── Service items on a booking ───────────────────────────────────────────────
+// A booking is a list of services, not one service. `serviceName` / `priceMinor`
+// / `durationMin` on MockBooking describe the FIRST one and are what the
+// calendar card reads; the popover and the sheet need the whole list, with the
+// per-item detail the as-built EventDetailPopup shows: who is performing each
+// one, how long it takes, and the duration modifiers that make an appointment
+// longer than the sum of its services.
+//
+// `items` is optional so the 26 curated bookings in this file stay valid —
+// `serviceItemsOf` synthesises the single-item list from the flat fields when
+// it is absent. Same trick as `clientIdOf`: one derivation in one place beats
+// editing every row.
+
+/** A duration modifier, rendered as a pill under the service it belongs to. */
+export type ExtraTimeType = "extra-servicing" | "processing" | "blocked"
+
+export const EXTRA_TIME_LABEL: Record<ExtraTimeType, string> = {
+  "extra-servicing": "extra servicing",
+  processing: "processing",
+  blocked: "blocked",
+}
+
+export type MockServiceItem = {
+  id: string
+  name: string
+  priceMinor: number
+  durationMin: number
+  /** Who performs this item. Items on one booking can differ. */
+  staffName?: string
+  extraTimes?: ReadonlyArray<{ type: ExtraTimeType; durationMin: number }>
+  /**
+   * Covered by a client package or membership. `grossPriceMinor` is what it
+   * would have cost — struck through next to a net price of zero, which is how
+   * the as-built popup shows a session being drawn down.
+   */
+  membership?: { label: string; grossPriceMinor: number }
+}
+
+/**
+ * The booking's services, always at least one.
+ *
+ * Falls back to the flat `serviceName` / `priceMinor` / `durationMin` triple so
+ * every existing booking reads as a one-service appointment without carrying an
+ * `items` array of its own.
+ */
+export function serviceItemsOf(booking: MockBooking): ReadonlyArray<MockServiceItem> {
+  if (booking.items?.length) return booking.items
+  return [
+    {
+      id: `${booking.id}-item-1`,
+      name: booking.serviceName,
+      priceMinor: booking.priceMinor,
+      durationMin: booking.durationMin,
+    },
+  ]
+}
+
+/** Sum of every item's price. Matches what the sheet charges. */
+export function serviceItemsTotalMinor(booking: MockBooking): number {
+  return serviceItemsOf(booking).reduce(
+    (sum, item) => sum + (item.membership ? 0 : item.priceMinor),
+    0,
+  )
+}

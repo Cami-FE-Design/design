@@ -4,7 +4,16 @@
 // where a naive join produces something that reads as a software bug.
 
 import { describe, expect, it } from "vitest"
-import { addressToLine, addressToLines, EMPTY_ADDRESS, isAddressEmpty } from "./address"
+import {
+  addressPlaceRef,
+  addressToLine,
+  addressToLines,
+  EMPTY_ADDRESS,
+  hasPrecisePoint,
+  isAddressEmpty,
+  mapsDirectionsHref,
+  mapsSearchHref,
+} from "./address"
 
 const DUBAI = {
   line: "Regina Tower, Jumeirah Village Circle\nAl Barsha South\nDubai",
@@ -81,5 +90,78 @@ describe("isAddressEmpty", () => {
     expect(isAddressEmpty({ line: "  \n ", postcode: "", country: "United Arab Emirates" })).toBe(
       true,
     )
+  })
+})
+
+// ─── Navigating to an address (PRD-144) ───────────────────────────────────────
+// The pickup address is the one a mobile groomer drives to, so the interesting
+// cases are the two ways a link can silently mislead: routing to a stale pin
+// after the text changed, and claiming precision it does not have.
+
+const PINNED = {
+  ...EMPTY_ADDRESS,
+  line: "Apt 1804, Marina Heights Tower, Dubai Marina",
+  placeId: "ChIJdemo_marina_heights",
+  point: { lat: 25.0805, lng: 55.1403 },
+}
+
+describe("hasPrecisePoint", () => {
+  it("is false for a typed address", () => {
+    expect(hasPrecisePoint(undefined)).toBe(false)
+    expect(hasPrecisePoint({})).toBe(false)
+  })
+
+  it("accepts either handle on its own", () => {
+    expect(hasPrecisePoint({ point: { lat: 25, lng: 55 } })).toBe(true)
+    expect(hasPrecisePoint({ placeId: "ChIJx" })).toBe(true)
+  })
+})
+
+describe("addressPlaceRef", () => {
+  it("is undefined for a record that was typed, not picked", () => {
+    expect(addressPlaceRef({ ...EMPTY_ADDRESS, line: "Villa 12, Street 4B" })).toBeUndefined()
+  })
+
+  it("carries both handles off a picked record", () => {
+    expect(addressPlaceRef(PINNED)).toEqual({
+      placeId: PINNED.placeId,
+      point: PINNED.point,
+    })
+  })
+})
+
+describe("maps links", () => {
+  it("routes to the pin, not the text, when there is one", () => {
+    const href = mapsDirectionsHref(PINNED.line, addressPlaceRef(PINNED))
+    expect(href).toContain("destination=25.0805%2C55.1403")
+    expect(href).toContain("destination_place_id=ChIJdemo_marina_heights")
+  })
+
+  it("falls back to a text query for a typed address", () => {
+    const href = mapsDirectionsHref("Villa 12, Street 4B, Jumeirah 1, Dubai")
+    expect(href).toContain("destination=Villa+12%2C+Street+4B%2C+Jumeirah+1%2C+Dubai")
+    expect(href).not.toContain("destination_place_id")
+  })
+
+  it("keeps query alongside the place id in search mode", () => {
+    // query_place_id is ignored by Maps unless `query` is present too.
+    const href = mapsSearchHref(PINNED.line, { placeId: "ChIJx" })
+    expect(href).toContain("query=Apt+1804")
+    expect(href).toContain("query_place_id=ChIJx")
+  })
+
+  it("does not carry a pin the address no longer describes", () => {
+    // The record after someone edits a picked address by hand: the field clears
+    // the refs, so the link degrades to a search of the new text rather than
+    // routing to the old building.
+    const edited = {
+      ...PINNED,
+      line: "Apt 2110, some other tower",
+      placeId: undefined,
+      point: undefined,
+    }
+    const href = mapsDirectionsHref(edited.line, addressPlaceRef(edited))
+    expect(href).toContain("destination=Apt+2110")
+    expect(href).not.toContain("25.0805")
   })
 })

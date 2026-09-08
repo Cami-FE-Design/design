@@ -7,34 +7,34 @@ import {
   CheckIcon,
   ChevronDownIcon,
   Clock3Icon,
-  CreditCardIcon,
-  ExternalLinkIcon,
   EyeOffIcon,
+  FileTextIcon,
   type LucideIcon,
   MapPinIcon,
-  MoreHorizontalIcon,
   PhoneIcon,
   PlusIcon,
-  RepeatIcon,
   ThumbsUpIcon,
   XIcon,
 } from "lucide-react"
-import { useState } from "react"
 
 import {
+  clientIdOf,
+  EXTRA_TIME_LABEL,
   formatAed,
   formatTimeRange,
   type MockBooking,
   type MockBookingStatus,
+  type MockServiceItem,
+  serviceItemsOf,
 } from "@/app/appointments/mock"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
+import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
+import { NavigateToAddress } from "@/components/blocks/navigate-to-address"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
-import { formatPetNotes, petNoteLabel } from "@/lib/pet-notes"
+import { formatPetNotes } from "@/lib/pet-notes"
 import { cn } from "@/lib/utils"
 
 // Status metadata. Tailwind classes use the closest available cami- token
@@ -170,7 +170,21 @@ type IdentityBlockProps = {
 function IdentityBlock({ booking, hasPets, compact = false }: IdentityBlockProps) {
   const showsPet = hasPets && booking.petName
   const primaryName = showsPet ? booking.petName! : booking.clientName
+  // Pet first, owner beneath — the same resolution the as-built EventDetailPopup
+  // uses (`titleName = petName ?? clientLabel`). The "Owner ·" prefix stays
+  // because this panel also shows a phone number, and an unlabelled second name
+  // above a phone reads as the phone's owner.
   const secondaryLine = showsPet ? `Owner · ${booking.clientName}` : booking.clientPhone
+  // Pet facts and the intake badge used to live in a second identity card that
+  // opened the services group. That card restated the pet the panel had already
+  // introduced, and once client notes and the pet address landed between the
+  // two, the repeat read as a stray fragment. The as-built popup shows the
+  // identity exactly once, so this one absorbed what the card was carrying.
+  const petFacts = showsPet
+    ? [booking.petBreed, booking.petWeight, booking.petCoat, booking.petSpayed ? "Spayed" : null]
+        .filter(Boolean)
+        .join(" · ")
+    : ""
   return (
     <div data-slot="appointment-identity" className="flex items-center gap-2.5">
       <Avatar
@@ -193,7 +207,15 @@ function IdentityBlock({ booking, hasPets, compact = false }: IdentityBlockProps
             {booking.clientPhone}
           </div>
         ) : null}
+        {!compact && petFacts ? (
+          <div className="truncate text-[10px] leading-tight text-muted-foreground">{petFacts}</div>
+        ) : null}
       </div>
+      {!compact && booking.intakeFormSubmitted ? (
+        <Badge variant="muted" size="sm" title="Intake form signed" className="shrink-0">
+          Intake
+        </Badge>
+      ) : null}
     </div>
   )
 }
@@ -253,68 +275,51 @@ function StaffAlertBlock({ message, note }: StaffAlertBlockProps) {
   )
 }
 
-type ServiceRowProps = {
-  serviceName: string
-  durationMin: number
-  priceMinor: number
-  staffName?: string
-  startTime?: string
-}
-
-function ServiceRow({
-  serviceName,
-  durationMin,
-  priceMinor,
-  staffName,
-  startTime,
-}: ServiceRowProps) {
+/**
+ * One service on the booking, with everything that makes it different from its
+ * siblings: who performs it, how long it runs, what it costs, the duration
+ * modifiers that stretch the appointment past the sum of its services, and the
+ * membership chip when a session is being drawn down rather than charged.
+ *
+ * Mirrors the as-built row in EventDetailPopup. A covered item prints a net of
+ * zero with the gross struck through — the price is not simply hidden, because
+ * "free" and "already paid for" are different facts at the counter.
+ */
+function ServiceItemRow({ item }: { item: MockServiceItem }) {
+  const meta = [`${item.durationMin} mins`, item.staffName].filter(Boolean).join(" · ")
+  const covered = Boolean(item.membership)
   return (
-    <div data-slot="appointment-service-row" className="flex items-start justify-between gap-2">
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[12px] font-medium">{serviceName}</div>
-        <div className="truncate text-[10px] text-muted-foreground">
-          {startTime ? `${startTime} · ` : null}
-          {durationMin} mins
-          {staffName ? ` · ${staffName}` : null}
+    <div data-slot="appointment-service-item" className="flex flex-col gap-1">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[12px] font-medium">{item.name}</div>
+          {meta ? <div className="truncate text-[10px] text-muted-foreground">{meta}</div> : null}
+        </div>
+        <div className="flex shrink-0 flex-col items-end leading-tight tabular-nums">
+          <span className="text-[11px] font-medium">
+            {formatAed(covered ? 0 : item.priceMinor)}
+          </span>
+          {item.membership ? (
+            <span className="text-[10px] text-muted-foreground line-through">
+              {formatAed(item.membership.grossPriceMinor)}
+            </span>
+          ) : null}
         </div>
       </div>
-      <div className="shrink-0 text-[11px] font-medium tabular-nums">{formatAed(priceMinor)}</div>
-    </div>
-  )
-}
-
-type AgreementBannerProps = {
-  onCheckDetails?: () => void
-  onDismiss?: () => void
-}
-
-function AgreementBanner({ onCheckDetails, onDismiss }: AgreementBannerProps) {
-  return (
-    <div
-      data-slot="agreement-banner"
-      className="flex items-center justify-between gap-2 border-cami-pink-7 border-b bg-cami-pink-2 px-3 py-1.5 text-[11px] text-cami-pink-12"
-    >
-      <div className="flex items-center gap-1.5">
-        <AlertTriangleIcon className="size-3" aria-hidden />
-        <span>
-          Agreement hasn't been signed.{" "}
-          <button
-            type="button"
-            className="cursor-pointer font-medium underline"
-            onClick={onCheckDetails}
-          >
-            Check details
-          </button>
-        </span>
-      </div>
-      <button
-        type="button"
-        className="text-cami-pink-11 hover:text-cami-pink-12"
-        onClick={onDismiss}
-        aria-label="Dismiss agreement banner"
-      >
-        <XIcon className="size-3" aria-hidden />
-      </button>
+      {item.membership ? (
+        <Badge variant="primary-soft" size="sm" className="w-fit">
+          {item.membership.label}
+        </Badge>
+      ) : null}
+      {item.extraTimes?.length ? (
+        <div className="flex flex-wrap gap-1">
+          {item.extraTimes.map((extra) => (
+            <Badge key={extra.type} variant="outline" size="sm">
+              +{extra.durationMin}min {EXTRA_TIME_LABEL[extra.type]}
+            </Badge>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -334,274 +339,125 @@ export function AppointmentQuickPanel({
   hasPets = true,
   className,
 }: AppointmentQuickPanelProps) {
+  const serviceItems = serviceItemsOf(booking)
+  // Membership-covered items settle at zero, so the footer total is what is
+  // actually payable rather than the sum of the list prices above it.
+  const total = serviceItems.reduce((sum, item) => sum + (item.membership ? 0 : item.priceMinor), 0)
   return (
     <div
       data-slot="appointment-quick-panel"
       className={cn(
-        "flex w-[280px] flex-col overflow-hidden rounded-xl bg-popover text-popover-foreground shadow-overlay",
+        // 320px, matching the as-built popup. 280 was sized for a card showing
+        // one service; it cannot hold a service list without wrapping every
+        // price onto its own line.
+        //
+        // No cap on the card: the services list below carries the scroll, so
+        // the card's height is already bounded and nothing can be clipped
+        // mid-line. See the note above this component.
+        "flex w-[320px] flex-col overflow-hidden rounded-xl bg-popover text-popover-foreground shadow-overlay",
         className,
       )}
     >
+      {/* Status is read here and changed on the sheet — the as-built popup
+          shows a flat label and keeps the dropdown for the drawer. */}
       <StatusHeaderBar
         status={booking.status}
         start={booking.start}
         durationMin={booking.durationMin}
+        className="shrink-0"
       />
-      <div className="flex flex-col gap-2 p-3">
-        <IdentityBlock booking={booking} hasPets={hasPets} compact />
-        <TagRow booking={booking} />
-        {booking.hasSafetyFlag ? <StaffAlertBlock message="Behavior flag on file" /> : null}
-        <Separator />
-        <ServiceRow
-          serviceName={booking.serviceName}
-          durationMin={booking.durationMin}
-          priceMinor={booking.priceMinor}
-        />
-        {booking.petNotes?.length ? (
-          <p className="line-clamp-1 text-[11px] text-muted-foreground italic">
-            {formatPetNotes(booking.petNotes)}
-          </p>
-        ) : null}
-        {booking.notes ? (
-          <p className="line-clamp-1 text-[11px] text-muted-foreground italic">{booking.notes}</p>
-        ) : null}
-        {booking.needsPickup ? (
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <MapPinIcon className="size-2.5 shrink-0" aria-hidden />
-            <span className="min-w-0 truncate">
-              Pet address
-              {booking.pickupAddress ? ` · ${booking.pickupAddress}` : null}
-            </span>
-          </div>
-        ) : null}
-        {booking.hasDeposit ? (
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <CreditCardIcon className="size-2.5" aria-hidden />
-            Deposit paid
-            {booking.depositAmountMinor ? ` · ${formatAed(booking.depositAmountMinor)}` : null}
-          </div>
-        ) : null}
-        <div className="flex items-center justify-end pt-1 text-[10px] text-muted-foreground">
-          Click for details
-          <ExternalLinkIcon className="ml-1 size-2.5" aria-hidden />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Detail Panel (click)
-// Sub-drawers (activity log, edit repeating, payment policy) and the
-// Comments & Notes 3-tab split are stubbed for this slice — the structural
-// shell is complete; sub-features land in follow-up passes.
-// ─────────────────────────────────────────────────────────────────────────
-
-type AppointmentDetailPanelProps = {
-  booking: MockBooking
-  hasPets?: boolean
-  onClose?: () => void
-  className?: string
-}
-
-export function AppointmentDetailPanel({
-  booking,
-  hasPets = true,
-  onClose,
-  className,
-}: AppointmentDetailPanelProps) {
-  const [agreementBannerOpen, setAgreementBannerOpen] = useState(true)
-  const meta = STATUS_META[booking.status]
-  const showAgreement = hasPets && booking.agreementSigned === false && agreementBannerOpen
-
-  return (
-    <div
-      data-slot="appointment-detail-panel"
-      className={cn(
-        "flex w-[380px] flex-col overflow-hidden rounded-xl bg-popover text-popover-foreground shadow-overlay",
-        className,
-      )}
-    >
-      <StatusHeaderBar
-        status={booking.status}
-        start={booking.start}
-        durationMin={booking.durationMin}
-        interactive
-      />
-      {booking.bookingRef ? (
-        <div className="px-3 pt-1.5 text-[10px] text-muted-foreground">
-          Booking #{booking.bookingRef}
-        </div>
-      ) : null}
-      {showAgreement ? <AgreementBanner onDismiss={() => setAgreementBannerOpen(false)} /> : null}
-      <div className="flex flex-col gap-3 p-3">
+      <div className="flex flex-col gap-2.5 p-3">
         <IdentityBlock booking={booking} hasPets={hasPets} />
-        <TagRow booking={booking} withAddTag />
-        {booking.hasSafetyFlag ? (
-          <StaffAlertBlock
-            message="Behavior flag on file"
-            note="Pet flagged for reactivity; review intake before service."
-          />
-        ) : null}
-
-        <Separator />
-
-        <section data-slot="services-section" className="flex flex-col gap-2">
-          {hasPets && booking.petName ? (
-            <PetCardHeader booking={booking} />
-          ) : (
-            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              Services
-            </div>
-          )}
-          <ServiceRow
-            serviceName={booking.serviceName}
-            durationMin={booking.durationMin}
-            priceMinor={booking.priceMinor}
-            startTime={booking.start}
-          />
-          <button
-            type="button"
-            className="self-start text-[11px] text-muted-foreground hover:text-foreground"
-          >
-            + Add service
-          </button>
-        </section>
-
-        {booking.petNotes?.length ? (
-          <section data-slot="pet-notes-section" className="flex flex-col gap-1">
-            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              Pet notes
-            </div>
-            <ul className="flex flex-col gap-1 rounded-md bg-muted px-2 py-1.5 text-[11px]">
-              {booking.petNotes.map((note) => (
-                <li key={note.category}>
-                  <span className="font-medium">{petNoteLabel(note.category)}:</span> {note.detail}
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        {booking.notes ? (
-          <section data-slot="notes-section" className="flex flex-col gap-1">
-            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              Notes
-            </div>
-            <p className="rounded-md bg-cami-yellow-2 px-2 py-1.5 text-[11px]">{booking.notes}</p>
-          </section>
-        ) : null}
-
+        <TagRow booking={booking} />
+        {/* DZ-209 parity with cami-business: client notes sit directly under the
+            client, compact on a glance surface. Above the staff alert, because
+            the alert is one boolean and these are the actual context. */}
+        <ClientNoteBanner compact clientId={clientIdOf(booking)} />
+        {booking.hasSafetyFlag ? <StaffAlertBlock message="Behavior flag on file" /> : null}
+        {/* With the client, not at the foot of the panel: this is where the
+            appointment is, and it is read together with who it is for. Carries
+            its own Navigate action (PRD-144) — a mobile groomer scanning the
+            day should not have to open the sheet to get a route. */}
         {booking.needsPickup ? (
           <section data-slot="pickup-section" className="flex flex-col gap-1">
             <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               Your Pet Address
             </div>
-            <div className="flex items-start gap-1.5 rounded-md bg-cami-sage-2 px-2 py-1.5 text-[11px] text-cami-sage-12">
-              <MapPinIcon className="mt-px size-3 shrink-0" aria-hidden />
-              <span className="min-w-0 flex-1">
-                {booking.pickupAddress ?? "No pet address on file"}
-              </span>
+            <div className="flex flex-col gap-1 rounded-md bg-cami-sage-2 px-2 py-1.5 text-[11px] text-cami-sage-12">
+              <div className="flex items-start gap-1.5">
+                <MapPinIcon className="mt-px size-3 shrink-0" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  {booking.pickupAddress ?? "No pet address on file"}
+                </span>
+              </div>
+              <NavigateToAddress
+                size="compact"
+                address={booking.pickupAddress}
+                place={booking.pickupPlace}
+                className="pl-4.5"
+              />
             </div>
           </section>
         ) : null}
+        {booking.petNotes?.length ? (
+          <p className="line-clamp-1 text-[11px] text-muted-foreground italic">
+            {formatPetNotes(booking.petNotes)}
+          </p>
+        ) : null}
 
-        <section data-slot="payment-section" className="flex flex-col gap-1">
-          {booking.hasDeposit ? (
-            <div className="flex items-center gap-1.5 text-[11px]">
-              <CreditCardIcon className="size-3 text-muted-foreground" aria-hidden />
-              <span>
-                Deposit paid
-                {booking.depositAmountMinor ? ` · ${formatAed(booking.depositAmountMinor)}` : null}
-              </span>
-            </div>
-          ) : null}
-          <div className="flex items-center justify-between text-[12px]">
-            <span className="text-muted-foreground">Total</span>
-            <span className="font-medium tabular-nums">{formatAed(booking.priceMinor)}</span>
+        <Separator />
+
+        <section data-slot="services-section" className="flex flex-col gap-2">
+          {/* The label stays outside the scroller — a heading that scrolls away
+              leaves an unlabelled list of prices. */}
+          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            Services
+          </div>
+          {/* 7.5rem holds two rows comfortably and scrolls from the third, which
+              is where the list stops being glanceable. `pr-1` keeps the
+              scrollbar off the prices. */}
+          <div className="flex max-h-30 flex-col gap-2.5 overflow-y-auto pr-1">
+            {serviceItems.map((item) => (
+              <ServiceItemRow key={item.id} item={item} />
+            ))}
           </div>
         </section>
-
-        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-          {booking.isRecurring ? (
-            <>
-              <RepeatIcon className="size-3" aria-hidden />
-              Repeats
-            </>
-          ) : (
-            "Doesn't repeat"
-          )}
-          {booking.groomingFrequency ? <span>· every {booking.groomingFrequency}</span> : null}
-        </div>
       </div>
-
-      <Separator />
-
       <footer
-        data-slot="appointment-detail-actions"
-        className="flex items-center gap-2 bg-card px-3 py-2"
+        data-slot="appointment-quick-footer"
+        className="flex shrink-0 items-center justify-between gap-2 border-t border-border/60 bg-card px-3 py-2"
       >
-        <Button variant="ghost" size="icon" aria-label="More actions">
-          <MoreHorizontalIcon className="size-4" aria-hidden />
-        </Button>
-        {meta.forwardActionLabel ? (
-          <Button variant="default" size="sm" className="flex-1">
-            {meta.forwardActionLabel}
-          </Button>
-        ) : (
-          <span className="flex-1 text-center text-[11px] text-muted-foreground">
-            Booking complete
-          </span>
-        )}
-        {onClose ? (
-          <Button variant="ghost" size="icon" aria-label="Close" onClick={onClose}>
-            <XIcon className="size-4" aria-hidden />
-          </Button>
-        ) : null}
+        <span className="text-[12px] font-semibold text-foreground">
+          {serviceItems.length} {serviceItems.length === 1 ? "service" : "services"}
+        </span>
+        <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+          {formatAed(total)}
+        </span>
       </footer>
-    </div>
-  )
-}
-
-function PetCardHeader({ booking }: { booking: MockBooking }) {
-  return (
-    <div data-slot="pet-card-header" className="flex flex-col gap-1">
-      <div className="flex items-center gap-2">
-        <Avatar
-          name={booking.petName ?? ""}
-          fallback="species"
-          species={booking.petSpecies}
-          size="md"
-        />
-        <div className="flex flex-1 flex-col">
-          <div className="text-[12px] font-semibold leading-tight">{booking.petName}</div>
-          {(booking.petBreed || booking.petWeight || booking.petCoat) && (
-            <div className="text-[10px] text-muted-foreground leading-tight">
-              {[
-                booking.petBreed,
-                booking.petWeight,
-                booking.petCoat,
-                booking.petSpayed ? "Spayed" : null,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </div>
-          )}
+      {/* THE LAST THING ON THE CARD. Service count above it, note below —
+          that order is the requirement, and it is the order Fresha uses. The
+          note is free text of unknown length, so anything placed after it
+          moves by an unpredictable amount; the count and total are fixed-width
+          facts and belong above it. Outside the scroll area, so it stays put
+          while the services list scrolls. */}
+      {booking.notes ? (
+        <div
+          data-slot="notes-section"
+          className="flex shrink-0 items-start gap-1.5 border-t border-border/60 bg-cami-violet-2 px-3 py-2"
+        >
+          <p className="line-clamp-2 min-w-0 flex-1 text-[11px] leading-snug text-foreground">
+            <span className="font-semibold">Note: </span>
+            {booking.notes}
+          </p>
+          <FileTextIcon className="mt-px size-3 shrink-0 text-muted-foreground" aria-hidden />
         </div>
-        <div className="flex items-center gap-1">
-          {booking.intakeFormSubmitted ? (
-            <Badge variant="muted" size="sm" title="Intake form signed">
-              Intake
-            </Badge>
-          ) : null}
-        </div>
-      </div>
+      ) : null}
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Wrapper: orchestrates HoverCard (Quick) + Popover (Detail) around the block
+// Wrapper: hover shows the card, click opens the detail sheet the caller owns
 // ─────────────────────────────────────────────────────────────────────────
 
 type AppointmentBlockPopoverProps = {
@@ -609,6 +465,12 @@ type AppointmentBlockPopoverProps = {
   top: number
   height: number
   hasPets?: boolean
+  /**
+   * Clicking the block opens the appointment's detail sheet. The sheet is not
+   * mounted here: one drawer per grid, owned by the grid, rather than one per
+   * booking block — 26 mounted sheets is 26 copies of a form.
+   */
+  onOpenDetail?: (booking: MockBooking) => void
 }
 
 export function AppointmentBlockPopover({
@@ -616,47 +478,27 @@ export function AppointmentBlockPopover({
   top,
   height,
   hasPets = true,
+  onOpenDetail,
 }: AppointmentBlockPopoverProps) {
-  const [detailOpen, setDetailOpen] = useState(false)
-
   return (
-    <Popover open={detailOpen} onOpenChange={setDetailOpen}>
-      <HoverCard openDelay={200} closeDelay={120}>
-        <PopoverAnchor asChild>
-          <HoverCardTrigger asChild>
-            <AppointmentBlock
-              booking={booking}
-              top={top}
-              height={height}
-              hasPets={hasPets}
-              onClick={() => setDetailOpen(true)}
-            />
-          </HoverCardTrigger>
-        </PopoverAnchor>
-        {/* HoverCard suppresses itself while the detail popover is open so they don't stack */}
-        {detailOpen ? null : (
-          <HoverCardContent
-            side="right"
-            align="start"
-            sideOffset={8}
-            className="w-auto border-none bg-transparent p-0 shadow-none"
-          >
-            <AppointmentQuickPanel booking={booking} hasPets={hasPets} />
-          </HoverCardContent>
-        )}
-      </HoverCard>
-      <PopoverContent
+    <HoverCard openDelay={200} closeDelay={120}>
+      <HoverCardTrigger asChild>
+        <AppointmentBlock
+          booking={booking}
+          top={top}
+          height={height}
+          hasPets={hasPets}
+          onClick={() => onOpenDetail?.(booking)}
+        />
+      </HoverCardTrigger>
+      <HoverCardContent
         side="right"
         align="start"
         sideOffset={8}
         className="w-auto border-none bg-transparent p-0 shadow-none"
       >
-        <AppointmentDetailPanel
-          booking={booking}
-          hasPets={hasPets}
-          onClose={() => setDetailOpen(false)}
-        />
-      </PopoverContent>
-    </Popover>
+        <AppointmentQuickPanel booking={booking} hasPets={hasPets} />
+      </HoverCardContent>
+    </HoverCard>
   )
 }

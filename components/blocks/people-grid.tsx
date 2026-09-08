@@ -1,6 +1,6 @@
 "use client"
 
-import type * as React from "react"
+import { useState } from "react"
 
 import {
   COLUMN_HEADER_HEIGHT,
@@ -13,6 +13,7 @@ import {
   PX_PER_MIN,
   TIME_AXIS_WIDTH,
 } from "@/app/appointments/mock"
+import { AppointmentDetailSheet } from "@/components/blocks/appointment-detail-sheet"
 import { AppointmentBlockPopover } from "@/components/blocks/appointment-popover"
 import { Avatar } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
@@ -38,6 +39,10 @@ export function PeopleGrid({
   const bodyHeight = totalMinutes * PX_PER_MIN
   const hourLabels = Array.from({ length: totalHours + 1 }, (_, i) => DAY_START_HOUR + i)
   const bookingsByStaff = groupByStaff(bookings)
+  // One sheet for the whole grid, opened by whichever block was clicked. The
+  // click used to open a second popover that led nowhere, so the calendar could
+  // never reach an appointment's details at all — this is that missing route.
+  const [detailBooking, setDetailBooking] = useState<MockBooking | null>(null)
 
   return (
     <div
@@ -63,6 +68,7 @@ export function PeopleGrid({
               member={member}
               bookings={bookingsByStaff.get(member.id) ?? []}
               hasPets={hasPets}
+              onOpenDetail={setDetailBooking}
             />
           ))}
           {nowMinutes != null && nowMinutes >= 0 && nowMinutes <= totalMinutes ? (
@@ -70,6 +76,15 @@ export function PeopleGrid({
           ) : null}
         </div>
       </div>
+
+      <AppointmentDetailSheet
+        open={detailBooking !== null}
+        onOpenChange={(open) => {
+          if (!open) setDetailBooking(null)
+        }}
+        booking={detailBooking}
+        staff={staff}
+      />
     </div>
   )
 }
@@ -128,9 +143,10 @@ type StaffColumnProps = {
   member: MockStaff
   bookings: MockBooking[]
   hasPets: boolean
+  onOpenDetail: (booking: MockBooking) => void
 }
 
-function StaffColumn({ member: _member, bookings, hasPets }: StaffColumnProps) {
+function StaffColumn({ member: _member, bookings, hasPets, onOpenDetail }: StaffColumnProps) {
   return (
     <div data-slot="staff-column" className="relative border-l border-border/40">
       <ColumnGridLines />
@@ -143,6 +159,7 @@ function StaffColumn({ member: _member, bookings, hasPets }: StaffColumnProps) {
             top={minutes * PX_PER_MIN}
             height={booking.durationMin * PX_PER_MIN}
             hasPets={hasPets}
+            onOpenDetail={onOpenDetail}
           />
         )
       })}

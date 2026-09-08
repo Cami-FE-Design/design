@@ -6,6 +6,22 @@
 **Inherits from**: `PRO-68-appointment-foundations.md` (state machine, booking entity, safety vocab, relationship pills, service categories + colors)
 **Blocks**: PRO-227 (E4-5 Appointment Card — already in Slice 2), PRO-232 (E4-10 Payment Section), PRO-233 (E4-11 View Pet Parent profile from appointment)
 
+## ⚠️ Partly superseded by PRD-167 (2026-09-08)
+
+The **two-surface model below is no longer what ships.** [PRD-167](https://linear.app/getcami/issue/PRD-167/appointment-notes-on-the-calendar-ui) collapsed it to match the as-built app, where `onEventHover` opens a popup and `onEventClick` opens `AppointmentDetailSheet` — there is no click-popover in between.
+
+| This spec says | What ships now |
+|---|---|
+| Two anchored popovers: Quick Panel (280px, hover) + Detail Panel (380px, click) | **One** hover card at 320px. Click opens the detail sheet |
+| Surface 2: Detail Panel | Deleted. Everything that changes an appointment (status dropdown, `+ Add tag`, `+ Add service`, pay) moved to the sheet |
+| Quick Panel shows **one** service line plus a "+2 more" count | Every service, each with performer, duration, price, duration-modifier pills and membership chip |
+| Quick Panel height adapts to content | One height. The service list scrolls; nothing else does |
+| Notes section, editable, mid-panel | Appointment note is last on every surface, and read-only outside the create sheet |
+
+Still accurate: the status header bar, identity block, tag row, staff alert block, service row, the status vocabulary, and *Why popover, not Dialog* for the hover surface. Read the sections below for those; read `PRD-167-appointment-notes.md` for the current structure.
+
+---
+
 ## Status
 
 First-pass spec from Fresha screenshots only (without-pets baseline). The pet-additive layer is stubbed in the With-Pets Layer section below; full Moego pass arrives in a second batch and gets layered in before sign-off.

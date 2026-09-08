@@ -2,6 +2,7 @@
 
 import {
   AlertOctagonIcon,
+  AlertTriangleIcon,
   ArrowLeftIcon,
   CalendarClockIcon,
   CalendarXIcon,
@@ -9,7 +10,9 @@ import {
   ChevronDownIcon,
   ChevronsRightIcon,
   ChevronUpIcon,
+  CreditCardIcon,
   EyeOffIcon,
+  FileTextIcon,
   FlagIcon,
   HeartPulseIcon,
   type LucideIcon,
@@ -24,18 +27,25 @@ import {
   TagIcon,
   ThumbsUpIcon,
   UsersIcon,
+  XIcon,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import {
+  clientIdOf,
+  EXTRA_TIME_LABEL,
   formatAed,
   formatDuration,
   type MockBooking,
   type MockBookingStatus,
   type MockStaff,
   SERVICE_CATEGORY_ACCENT,
+  serviceItemsOf,
+  serviceItemsTotalMinor,
 } from "@/app/appointments/mock"
 import { CancelAppointmentDialog } from "@/components/blocks/cancel-appointment-dialog"
+import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
+import { NavigateToAddress } from "@/components/blocks/navigate-to-address"
 import { PetNotesList } from "@/components/blocks/pet-notes-fields"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -54,6 +64,8 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet"
+import type { PlaceRef } from "@/lib/address"
+import { clientNotesFor } from "@/lib/client-notes"
 import { useNotifications } from "@/lib/notifications/store"
 import {
   CHANNEL_LABEL,
@@ -63,6 +75,8 @@ import {
   type NotificationChannel,
   type NotificationStatus,
 } from "@/lib/notifications/types"
+import { usePaymentPolicy } from "@/lib/payment-policy/store"
+import { depositForServices } from "@/lib/payment-policy/types"
 import type { PetNoteEntry } from "@/lib/pet-notes"
 import { cn } from "@/lib/utils"
 
@@ -442,9 +456,26 @@ function ClientCard({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button type="button" variant="outline" size="sm" radius="full" onClick={onViewProfile}>
-              View profile
-            </Button>
+            {/* Only when the host can actually act on it. Every caller used to
+                pass `onViewProfile`, so this rendered unconditionally; the
+                calendar grid is a newer host that does not, and an outline
+                button wired to `undefined` is a control that looks live and
+                does nothing.
+
+                Opening the profile from the calendar is PRD-141, being built
+                in cami-business — this repo will mirror it from there once it
+                deploys. Until then the button is absent rather than dead. */}
+            {onViewProfile ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                radius="full"
+                onClick={onViewProfile}
+              >
+                View profile
+              </Button>
+            ) : null}
           </div>
         </div>
         {client.unpaidMinor || client.isFirstVisit || (client.extraTags?.length ?? 0) > 0 ? (
@@ -474,39 +505,248 @@ function ClientCard({
   )
 }
 
+// ─── Client notes ─────────────────────────────────────────────────────────────
+
+function ClientNotesSection({ clientId }: { clientId?: string }) {
+  // The banner returns null when the client has no notes, and an empty section
+  // would leave a heading with nothing under it.
+  if (clientNotesFor(clientId).length === 0) return null
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-lg font-semibold leading-7 text-foreground">Client notes</h2>
+      <ClientNoteBanner hideLabel clientId={clientId} className="p-4" />
+    </section>
+  )
+}
+
+// ─── Payment policy ───────────────────────────────────────────────────────────
+// What the client was asked to pay to hold the slot, which is a different
+// question from what the appointment costs (the sale total below it). Front
+// desk needs both: "AED 24.50 deposit requested" is why a booking sits at
+// Booked rather than Confirmed, and it is the first thing asked when a client
+// disputes a no-show charge.
+//
+// Reads the business's live policy from the same store the create sheet uses,
+// so a policy change in Settings shows up here rather than being restated as a
+// constant. No policy configured renders nothing.
+
+function PaymentPolicySection({ booking }: { booking: MockBooking }) {
+  const { policy } = usePaymentPolicy()
+  // NOTE: `serviceId` here is the booking item's own id, not a catalog service
+  // id — bookings in app/appointments/mock.ts carry no catalog ids at all. So
+  // the policy's per-service overrides can never match and every item falls
+  // back to the business-wide deposit. That is correct for every demo booking
+  // (the default policy has no overrides) but it is NOT the production
+  // behaviour: wiring this up properly needs a real serviceId on the item.
+  const depositMinor = depositForServices(
+    policy,
+    serviceItemsOf(booking).map((item) => ({
+      serviceId: item.id,
+      priceMinor: item.priceMinor,
+    })),
+  )
+  if (policy.type !== "deposit" || depositMinor === 0) return null
+
+  // Markup copied from the create sheet's Payment policy card rather than
+  // written fresh: same 5-size icon, same semibold title, and the same
+  // colour-coded deposit line — gold for money still owed, green for money in.
+  // The first pass invented a flatter variant of this card with the paid state
+  // as grey text after a middot, so the same fact looked like two different
+  // features depending on which sheet you opened.
+  //
+  // The one thing not carried over is the "…" menu (Send reminder / Show
+  // policy): that is a create-flow action, and this sheet already has its own
+  // Quick actions in the footer.
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-lg font-semibold leading-7 text-foreground">Payment policy</h2>
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <CreditCardIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="flex min-w-0 flex-col">
+            <span className="text-sm font-semibold text-foreground">Requires confirmation</span>
+            {booking.hasDeposit ? (
+              <span className="text-xs font-medium text-cami-green-11">
+                {formatAed(depositMinor)} deposit paid
+              </span>
+            ) : (
+              <span className="text-xs font-medium text-gold-11">
+                {formatAed(depositMinor)} deposit requested
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Unsigned agreement ───────────────────────────────────────────────────────
+// Moved here from the calendar's click popover, which no longer exists — click
+// opens this sheet now, matching the as-built app. The banner belongs on a
+// sheet rather than a hover card for two reasons: "Check details" is an action,
+// and a dismissal has to outlive the surface it was made on. Dismissing a
+// banner inside a hover card only lasted until the pointer left the block, so
+// the same warning greeted you on every hover.
+
+function AgreementBanner({
+  onCheckDetails,
+  onDismiss,
+}: {
+  onCheckDetails?: () => void
+  onDismiss?: () => void
+}) {
+  return (
+    <div
+      data-slot="agreement-banner"
+      className="flex shrink-0 items-center justify-between gap-2 border-b border-cami-pink-7 bg-cami-pink-2 px-6 py-2 text-sm text-cami-pink-12"
+    >
+      <div className="flex items-center gap-2">
+        <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
+        <span>
+          Agreement hasn&apos;t been signed.{" "}
+          <button
+            type="button"
+            className="cursor-pointer font-medium underline"
+            onClick={onCheckDetails}
+          >
+            Check details
+          </button>
+        </span>
+      </div>
+      <button
+        type="button"
+        className="text-cami-pink-11 hover:text-cami-pink-12"
+        onClick={onDismiss}
+        aria-label="Dismiss agreement banner"
+      >
+        <XIcon className="size-4" aria-hidden />
+      </button>
+    </div>
+  )
+}
+
+// ─── Appointment note (DZ-209) ────────────────────────────────────────────────
+// The booking's own note, which this sheet did not render at all before — it
+// existed on the data and only surfaced on the calendar popover, so anyone
+// working from the sheet never saw it.
+//
+// Two designs were tried here and the second is the one that holds:
+//
+//   1. A flush tinted band above the footer, copied from the calendar hover
+//      card. It satisfied "the note is always last" but spoke a different
+//      visual language from the six sections above it — every one of those is
+//      an `h2` outside a plain card, and the band was the only tinted,
+//      edge-to-edge, heading-less thing on the sheet. It read as a system
+//      message rather than as this appointment's note.
+//   2. A normal section, placed LAST in the body, after the sale total. Still
+//      always last, still nothing after it — and now it matches its own
+//      surface. It also makes this sheet and the create sheet siblings: both
+//      are `h2` + card, and the only difference left is that one of them can
+//      be typed into, which is a difference that should show.
+//
+// The band survives on the hover card, where it belongs: that surface has no
+// headings at all and is read by scanning, so a tinted strip at a fixed
+// position is exactly the right instrument. Full sheets label, glance cards
+// mark — but the GLYPH ITSELF is the same everywhere, because it says what the
+// card is. Only its position follows the surface: leading inside a sheet card
+// (as on Your Pet Address and Payment policy), trailing on a glance card where
+// a leading icon would cost a word per line.
+//
+// Titled "Appointment note" because the sheet carries three note kinds and the
+// reader has to tell them apart: this one is the occasion, Client notes are the
+// person, Pet notes are the animal.
+
+function AppointmentNoteSection({ note }: { note: string }) {
+  return (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-lg font-semibold leading-7 text-foreground">Appointment note</h2>
+      <div className="flex items-start gap-2.5 rounded-2xl border border-border/60 bg-card p-4">
+        {/* Same glyph the calendar card and the hover card use, leading here
+            like the pin on Your Pet Address. The icon identifies the card, so
+            it is the same on every surface; only its position follows the
+            surface — leading in a sheet, trailing on a glance card. */}
+        <FileTextIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <p className="min-w-0 flex-1 text-sm leading-relaxed text-foreground">{note}</p>
+      </div>
+    </section>
+  )
+}
+
 // ─── Services section (view-only, mirrors new-appointment-sheet shape) ────────
 
+// Every service on the booking, not just the first. The sheet rendered one row
+// off the flat `serviceName` / `priceMinor` / `durationMin` fields while the
+// popover listed the whole `items` array, so a three-service appointment
+// disagreed with itself depending on which surface you opened. Both now read
+// `serviceItemsOf`.
+//
+// `staffName` is the booking's assigned member and stays the fallback: items
+// can name their own performer, and on a multi-service booking they often
+// differ — the second groomer is exactly the fact a per-item line has to carry.
+
 function ServicesSection({ booking, staffName }: { booking: MockBooking; staffName: string }) {
+  const items = serviceItemsOf(booking)
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold leading-7 text-foreground">Services</h2>
       <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
         <ul className="-mx-3 flex flex-col gap-1">
-          <li className="flex gap-3 rounded-2xl px-3 py-2">
-            <span
-              aria-hidden
-              className={cn(
-                "w-1 shrink-0 self-stretch rounded-full",
-                SERVICE_CATEGORY_ACCENT[booking.serviceCategory],
-              )}
-            />
-            <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
-              <div className="flex min-w-0 items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                  <span className="text-base font-semibold text-foreground">
-                    {booking.serviceName}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    {formatTime(booking.start)} · {formatDuration(booking.durationMin)} ·{" "}
-                    {staffName}
-                  </span>
+          {items.map((item, index) => {
+            const covered = Boolean(item.membership)
+            return (
+              <li key={item.id} className="flex gap-3 rounded-2xl px-3 py-2">
+                <span
+                  aria-hidden
+                  className={cn(
+                    "w-1 shrink-0 self-stretch rounded-full",
+                    SERVICE_CATEGORY_ACCENT[booking.serviceCategory],
+                  )}
+                />
+                <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
+                  <div className="flex min-w-0 items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                      <span className="text-base font-semibold text-foreground">{item.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {/* Only the first item states a clock time: the rest run
+                            after it, and stamping each with the booking's start
+                            would claim three services began at once. */}
+                        {index === 0 ? `${formatTime(booking.start)} · ` : null}
+                        {formatDuration(item.durationMin)} · {item.staffName ?? staffName}
+                      </span>
+                    </div>
+                    <span className="flex shrink-0 flex-col items-end leading-tight tabular-nums">
+                      <span className="text-base font-semibold text-foreground">
+                        {formatAed(covered ? 0 : item.priceMinor)}
+                      </span>
+                      {item.membership ? (
+                        <span className="text-sm font-normal text-muted-foreground line-through">
+                          {formatAed(item.membership.grossPriceMinor)}
+                        </span>
+                      ) : null}
+                    </span>
+                  </div>
+                  {item.membership ? (
+                    <span className="w-fit rounded-full bg-cami-violet-3 px-2.5 py-0.5 text-xs font-medium text-cami-violet-11">
+                      {item.membership.label}
+                    </span>
+                  ) : null}
+                  {item.extraTimes?.length ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.extraTimes.map((extra) => (
+                        <span
+                          key={extra.type}
+                          className="rounded-full border border-border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground"
+                        >
+                          +{extra.durationMin}min {EXTRA_TIME_LABEL[extra.type]}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
-                <span className="shrink-0 text-base font-semibold leading-tight tabular-nums text-foreground">
-                  {formatAed(booking.priceMinor)}
-                </span>
-              </div>
-            </div>
-          </li>
+              </li>
+            )
+          })}
         </ul>
       </div>
     </section>
@@ -519,15 +759,21 @@ function ServicesSection({ booking, staffName }: { booking: MockBooking; staffNa
 // while pet notes (allergies, behavior, handling) travel with the pet and matter
 // on every appointment.
 
-function PickupSection({ address }: { address?: string }) {
+function PickupSection({ address, place }: { address?: string; place?: PlaceRef }) {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="text-lg font-semibold leading-7 text-foreground">Your Pet Address</h2>
-      <div className="flex items-start gap-2.5 rounded-2xl border border-border/60 bg-card p-4">
-        <MapPinIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-        <span className="min-w-0 flex-1 text-sm text-foreground">
-          {address ?? "No pet address on file"}
-        </span>
+      <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
+        <div className="flex items-start gap-2.5">
+          <MapPinIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <span className="min-w-0 flex-1 text-sm text-foreground">
+            {address ?? "No pet address on file"}
+          </span>
+        </div>
+        {/* PRD-144: the sheet is where a groomer opens the appointment before
+            setting off, so the route is one tap from here rather than a
+            retyped address. Renders nothing when there is no address. */}
+        <NavigateToAddress address={address} place={place} />
       </div>
     </section>
   )
@@ -753,6 +999,8 @@ type AppointmentDetailSheetProps = {
   onViewProfile?: () => void
   /** Fired when "View sale" in the Quick actions popover is clicked. */
   onViewSale?: () => void
+  /** Fired by the footer's primary action. Takes the sale to checkout. */
+  onCheckout?: () => void
   /**
    * Which panel the sheet opens on. The activity timeline was only reachable by
    * opening the sheet and finding the footer ⋮, so it couldn't be linked to for
@@ -771,9 +1019,14 @@ export function AppointmentDetailSheet({
   staff,
   onViewProfile,
   onViewSale,
+  onCheckout,
   initialMode,
 }: AppointmentDetailSheetProps) {
   const [status, setStatus] = useState<MockBookingStatus>(booking?.status ?? "booked")
+  const [agreementBannerOpen, setAgreementBannerOpen] = useState(true)
+  // Only for partners that manage pets: the agreement is the pet-handling
+  // consent form, so a salon booking has nothing to sign.
+  const showAgreement = booking?.agreementSigned === false && agreementBannerOpen
   const [mode, setMode] = useState<SheetMode>(initialMode ?? "detail")
   // Read above the `!booking` early return — hooks can't sit behind it.
   const { log: notificationLog } = useNotifications()
@@ -854,7 +1107,11 @@ export function AppointmentDetailSheet({
   const isTerminal = status === "cancelled" || status === "completed" || status === "no-show"
   const totalLabel = isTerminal ? "To pay" : "Sale total"
 
-  const total = booking.priceMinor
+  // Sum of the services actually listed above, not the booking's headline price:
+  // on a three-service appointment `priceMinor` is only the first item, so the
+  // sale total contradicted the list it was sitting under. Membership-covered
+  // items settle at zero, which `serviceItemsTotalMinor` already accounts for.
+  const total = serviceItemsTotalMinor(booking)
   const totals: AppointmentTotals = {
     subtotal: total,
     tax: 0,
@@ -928,13 +1185,43 @@ export function AppointmentDetailSheet({
                 </div>
               </header>
 
+              {showAgreement ? (
+                <AgreementBanner onDismiss={() => setAgreementBannerOpen(false)} />
+              ) : null}
+
               {/* Scrollable body — same bg-sand-2, padding (gap-6 px-6 py-5), and section h2 style as new-appointment-sheet */}
               <div className="flex flex-1 flex-col gap-6 overflow-y-auto bg-sand-2 px-6 py-5">
                 <ClientCard client={client} onViewProfile={onViewProfile} />
+                {/* Its own SECTION, a sibling of Client — not nested inside the
+                    client card. That is where the as-built sheet puts the
+                    banner, and the reason holds: these notes are about the
+                    person but they are not part of their contact record, and
+                    burying them inside the client card made them read as one
+                    more attribute of the name above them rather than something
+                    to act on.
+
+                    The heading lives out here like every other section's, so
+                    the banner drops its own internal label and its marker —
+                    see `hideLabel`. Full preview, not the compact one: this is
+                    the sheet you open before serving the client, so two notes
+                    at two lines each is the budget the block was sized for. */}
+                <ClientNotesSection clientId={clientIdOf(booking)} />
+                {/* Above Services, matching the calendar popover: the address
+                    is read with the client, not hunted for below three note
+                    blocks by someone about to drive to it. */}
+                {booking.needsPickup ? (
+                  <PickupSection address={booking.pickupAddress} place={booking.pickupPlace} />
+                ) : null}
                 <ServicesSection booking={booking} staffName={staffName} />
-                {booking.needsPickup ? <PickupSection address={booking.pickupAddress} /> : null}
                 {booking.petNotes?.length ? <PetNotesSection notes={booking.petNotes} /> : null}
+                <PaymentPolicySection booking={booking} />
                 <SaleTotalSection totals={totals} label={totalLabel} />
+                {/* Last section in the body. The note is free text of unknown
+                    length, so anything after it moves by an unpredictable
+                    amount — and the total above it is the fixed-width fact that
+                    belongs there. Same order as the hover card: count/total,
+                    then note. */}
+                {booking.notes ? <AppointmentNoteSection note={booking.notes} /> : null}
               </div>
 
               {/* Footer — vertical dots on the left, status-keyed actions on the right
@@ -944,19 +1231,19 @@ export function AppointmentDetailSheet({
                   onViewActivity={() => setMode("activity")}
                   onViewSale={onViewSale}
                 />
+                {/* One primary action, named for where it goes. "Pay now" +
+                    "Complete now" side by side asked the front desk to decide
+                    between two words for the same errand; the as-built sheet
+                    ships a single Checkout, and checkout is what settles a
+                    sale and completes the appointment together. */}
                 {isTerminal ? (
                   <Button type="button" variant="outline" radius="full" className="flex-1">
                     Done
                   </Button>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" radius="full">
-                      Pay now
-                    </Button>
-                    <Button type="button" radius="full">
-                      Complete now
-                    </Button>
-                  </div>
+                  <Button type="button" radius="full" className="flex-1" onClick={onCheckout}>
+                    Checkout
+                  </Button>
                 )}
               </footer>
             </>

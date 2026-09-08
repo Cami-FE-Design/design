@@ -3,6 +3,7 @@
 import {
   CarFrontIcon,
   CreditCardIcon,
+  FileTextIcon,
   type LucideIcon,
   RotateCwIcon,
   ShieldAlertIcon,
@@ -10,12 +11,14 @@ import {
 } from "lucide-react"
 
 import {
+  clientIdOf,
   formatAed,
   formatTimeRange,
   type MockBooking,
   type MockBookingStatus,
   type MockServiceCategory,
 } from "@/app/appointments/mock"
+import { clientNotesFor } from "@/lib/client-notes"
 import { cn } from "@/lib/utils"
 
 type CategoryStyle = {
@@ -218,6 +221,12 @@ function BlockIconRow({ booking, subtleClass, tight }: BlockIconRowProps) {
   if (booking.isRecurring) icons.push({ key: "recurring", Icon: RotateCwIcon })
   if (booking.linkCount && booking.linkCount > 0) icons.push({ key: "links", Icon: UsersIcon })
   if (booking.hasSafetyFlag) icons.push({ key: "safety", Icon: ShieldAlertIcon })
+  // DZ-209: the card marker. Reception scans the grid and has to see which
+  // appointments carry a note without hovering every one of them — that is the
+  // whole ask on the ticket. One glyph for either note kind: the card has room
+  // for a marker, not for a taxonomy, and the popover it opens says which.
+  const hasNote = Boolean(booking.notes) || clientNotesFor(clientIdOf(booking)).length > 0
+  if (hasNote) icons.push({ key: "note", Icon: FileTextIcon })
   if (icons.length === 0 && !booking.needsPickup) return null
   return (
     <div
