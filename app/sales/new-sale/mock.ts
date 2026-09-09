@@ -257,7 +257,125 @@ export const SERVICES: ServiceItem[] = [
     durationMin: 60,
     priceMinor: 18000,
   },
+  // ── Combos ─────────────────────────────────────────────────────────────
+  // Sold as one entry, priced under the sum of their parts; the cart holds
+  // them as their component lines with the difference shown as a discount.
+  {
+    id: "nails-and-style-combo",
+    categoryId: "nails",
+    name: "Nails & Style Combo",
+    durationMin: 135,
+    priceMinor: 42000,
+    isCombo: true,
+    componentNames: ["Biab with Nail Extensions", "Blow Dry & Style"],
+  },
+  {
+    id: "massage-duo-combo",
+    categoryId: "massage",
+    name: "Massage Duo Combo",
+    durationMin: 150,
+    priceMinor: 45000,
+    isCombo: true,
+    componentNames: ["Swedish Massage 60min", "Deep Tissue Massage"],
+  },
 ]
+
+/**
+ * Split a combo into the cart lines it is sold as (PRD-143).
+ *
+ * The cart never holds a combo as one line — the same rule the appointment
+ * sheet follows. The combo's price is split across its components in
+ * proportion to what they cost alone (remainder on the last line, so the lines
+ * always sum to the combo's price), and each keeps its list price so the row
+ * can strike it through and the footer can name the difference.
+ */
+export function comboCartLines(
+  combo: ServiceItem,
+  catalog: ServiceItem[],
+  uid: (prefix: string) => string,
+  staffName = "Any",
+): CartLine[] {
+  const names = combo.componentNames ?? []
+  if (names.length === 0) return []
+
+  const groupId = `combo-${combo.id}-${Date.now()}`
+  const components = names.map((name) => {
+    const match = catalog.find((s) => !s.isCombo && s.name === name)
+    return {
+      name,
+      sourceId: match?.id ?? `${combo.id}-${name}`,
+      categoryId: match?.categoryId ?? combo.categoryId,
+      durationMin: match?.durationMin ?? Math.round(combo.durationMin / names.length),
+      listMinor: match?.priceMinor ?? Math.round(combo.priceMinor / names.length),
+    }
+  })
+
+  const listTotal = components.reduce((sum, c) => sum + c.listMinor, 0)
+  let allocated = 0
+
+  return components.map((component, i) => {
+    const share =
+      i === components.length - 1
+        ? combo.priceMinor - allocated
+        : listTotal > 0
+          ? Math.round((combo.priceMinor * component.listMinor) / listTotal)
+          : Math.round(combo.priceMinor / components.length)
+    allocated += share
+
+    return {
+      uid: uid("svc"),
+      kind: "service" as const,
+      name: `${combo.name} - ${component.name}`,
+      priceMinor: share,
+      durationMin: component.durationMin,
+      staffName,
+      qty: 1,
+      sourceId: component.sourceId,
+      categoryId: component.categoryId,
+      comboGroupId: groupId,
+      comboName: combo.name,
+      listPriceMinor: component.listMinor,
+    }
+  })
+}
+
+/** Per-line bundle discounts, in cart order — one footer row each. */
+export function bundleDiscounts(lines: CartLine[]): Array<{ uid: string; amountMinor: number }> {
+  return lines
+    .filter((l) => l.listPriceMinor && l.listPriceMinor > l.priceMinor)
+    .map((l) => ({ uid: l.uid, amountMinor: (l.listPriceMinor ?? 0) - l.priceMinor }))
+}
+
+/** Cart total before any bundle discount — what the parts cost alone. */
+export function grossTotalMinor(lines: CartLine[]): number {
+  return lines.reduce((sum, l) => sum + (l.listPriceMinor ?? l.priceMinor) * l.qty, 0)
+}
+
+/**
+ * Map a combo created on the service menu into a POS catalog entry (PRD-143).
+ *
+ * Its merchant category has no equivalent in this demo catalog's four, so the
+ * accent falls back to the first — the category only tints the row's rail
+ * here, and the alternative is inventing a category the rest of the picker
+ * would have to explain.
+ */
+export function createdComboToServiceItem(combo: {
+  id: string
+  name: string
+  price: number
+  duration: number
+  components?: Array<{ name: string }>
+}): ServiceItem {
+  return {
+    id: combo.id,
+    categoryId: SERVICE_CATEGORIES[0].id,
+    name: combo.name,
+    durationMin: combo.duration,
+    priceMinor: Math.round(combo.price * 100),
+    isCombo: true,
+    componentNames: (combo.components ?? []).map((c) => c.name),
+  }
+}
 
 export function serviceCountLabel(categoryId: string): number {
   return SERVICES.filter((s) => s.categoryId === categoryId).length

@@ -12,6 +12,7 @@ import {
   Trash2Icon,
 } from "lucide-react"
 import { useState } from "react"
+import { ComboLineIcon } from "@/components/blocks/combo-badge"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,8 +26,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils"
 import {
   APPOINTMENTS,
+  bundleDiscounts,
   formatAedDecimal,
   formatDuration,
+  grossTotalMinor,
   HAS_PETS,
   money,
   totals,
@@ -144,18 +147,29 @@ function ServiceLineRow({
       <div className="flex min-w-0 flex-1 py-1.5">
         <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col">
-            <span
-              className="truncate font-semibold text-base text-foreground leading-6"
-              title={line.name}
-            >
-              {line.name}
-            </span>
+            <div className="flex min-w-0 items-center gap-1.5">
+              {/* A combo enters the cart as its component lines, each named
+                  "Combo name - Service name" — the glyph is the marker, the
+                  name says which combo (PRD-143). */}
+              {line.comboName ? <ComboLineIcon className="size-4" /> : null}
+              <span
+                className="truncate font-semibold text-base text-foreground leading-6"
+                title={line.name}
+              >
+                {line.name}
+              </span>
+            </div>
             {meta ? (
               <span className="truncate text-muted-foreground text-sm leading-5">{meta}</span>
             ) : null}
           </div>
           <RowActions
             value={money(line.priceMinor)}
+            strikeValue={
+              line.listPriceMinor && line.listPriceMinor > line.priceMinor
+                ? money(line.listPriceMinor)
+                : undefined
+            }
             name={line.name}
             onEdit={onEdit}
             onRemove={onRemove}
@@ -261,25 +275,35 @@ function GiftCardLineRow({
 // on row hover/focus. With no controls it renders the price alone.
 function RowActions({
   value,
+  strikeValue,
   name,
   onEdit,
   onRemove,
 }: {
   value: string
+  /** What the line costs outside a bundle — struck through under the price. */
+  strikeValue?: string
   name: string
   onEdit?: () => void
   onRemove?: () => void
 }) {
+  const price = (
+    <span className="flex flex-col items-end leading-tight tabular-nums">
+      <span className="font-semibold text-base text-foreground">{value}</span>
+      {strikeValue ? (
+        <span className="font-normal text-muted-foreground text-sm line-through">
+          {strikeValue}
+        </span>
+      ) : null}
+    </span>
+  )
+
   if (!onEdit && !onRemove) {
-    return (
-      <span className="shrink-0 font-semibold text-base text-foreground tabular-nums">{value}</span>
-    )
+    return <span className="shrink-0">{price}</span>
   }
   return (
     <div className="relative flex shrink-0 items-center">
-      <span className="font-semibold text-base text-foreground tabular-nums transition-opacity group-hover/service:invisible">
-        {value}
-      </span>
+      <span className="transition-opacity group-hover/service:invisible">{price}</span>
       <div className="absolute inset-y-0 right-0 flex items-center gap-1.5 opacity-0 transition-opacity group-focus-within/service:opacity-100 group-hover/service:opacity-100">
         {onEdit ? (
           <Tooltip>
@@ -377,6 +401,11 @@ export function CartFooter({
   const { totalMinor } = totals(lines)
   // Discount reduces the gross; To pay is the discounted total.
   const discountedMinor = Math.max(0, totalMinor - discountMinor)
+  // A combo's saving is already inside each line's price, so the footer states
+  // it rather than subtracting it again: gross first, one row per discounted
+  // line, then To pay — the same breakdown the as-built cart shows.
+  const bundles = bundleDiscounts(lines)
+  const grossMinor = grossTotalMinor(lines)
 
   // Empty cart → no CTA (ticket: "Continue to payment" is hidden).
   if (lines.length === 0) return null
@@ -384,7 +413,19 @@ export function CartFooter({
   return (
     <footer className="border-border border-t bg-card px-6 py-4">
       <div className="mb-3 flex flex-col gap-1">
-        <BreakdownRow label="Total" value={formatAedDecimal(totalMinor)} muted />
+        <BreakdownRow
+          label={bundles.length > 0 ? "Total amount (excl. discounts)" : "Total"}
+          value={formatAedDecimal(bundles.length > 0 ? grossMinor : totalMinor)}
+          muted
+        />
+        {bundles.map((b) => (
+          <BreakdownRow
+            key={b.uid}
+            label={`${formatAedDecimal(b.amountMinor)} off · Bundle discount`}
+            value={`- ${formatAedDecimal(b.amountMinor)}`}
+            muted
+          />
+        ))}
         {discountMinor > 0 ? (
           <BreakdownRow label="Discount" value={`- ${formatAedDecimal(discountMinor)}`} muted />
         ) : null}

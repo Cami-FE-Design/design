@@ -31,6 +31,13 @@ export type ServiceItem = {
   durationMin: number
   /** Tax-inclusive unit price in fils. */
   priceMinor: number
+  /**
+   * A combo — a bundle sold as one catalog entry (PRD-143). Picked as a unit,
+   * but it enters the cart as its component services.
+   */
+  isCombo?: boolean
+  /** The services this combo bundles. Set only when `isCombo`. */
+  componentNames?: string[]
 }
 
 export type ProductCategory = {
@@ -139,6 +146,19 @@ export type CartLine = {
   categoryId?: string
   /** Non-blocking warnings shown as pills under the line. */
   warnings?: string[]
+  /**
+   * Set on the lines a combo expanded into (PRD-143). Every component of one
+   * pick shares the id, so removing any of them removes the combo — the price
+   * covers the bundle, and half a bundle is not what it covers.
+   */
+  comboGroupId?: string
+  /** The combo this line came out of, for the line's marker. */
+  comboName?: string
+  /**
+   * What this line costs outside the bundle. Struck through next to the
+   * charged price, and the difference is the line's Bundle Discount.
+   */
+  listPriceMinor?: number
   /** Set when this line was snapshotted from an appointment — one appointment per cart. */
   apptId?: string
   /** Gift-card payload — present only when `kind === "gift-card"`. */

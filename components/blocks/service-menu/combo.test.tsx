@@ -5,6 +5,12 @@ import {
   type MockServiceCatalogItem,
   serviceItemLabel,
 } from "@/app/appointments/mock"
+import {
+  bundleDiscounts,
+  comboCartLines,
+  grossTotalMinor,
+  SERVICES,
+} from "@/app/sales/new-sale/mock"
 import { expandCombo } from "@/components/blocks/new-appointment-sheet"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import {
@@ -159,5 +165,33 @@ describe("picking a combo on the appointment sheet", () => {
     const groups = new Set(rows.map((r) => r.comboGroupId))
     expect(groups.size).toBe(1)
     expect([...groups][0]).toBeTruthy()
+  })
+})
+
+describe("adding a combo to the POS cart", () => {
+  const combo = SERVICES.find((s) => s.id === "nails-and-style-combo")
+  if (!combo) throw new Error("POS combo seed missing")
+
+  let seq = 0
+  const lines = comboCartLines(combo, SERVICES, (prefix) => `${prefix}-${++seq}`)
+
+  it("adds a line per component, named after the combo", () => {
+    expect(lines.map((l) => l.name)).toEqual([
+      "Nails & Style Combo - Biab with Nail Extensions",
+      "Nails & Style Combo - Blow Dry & Style",
+    ])
+  })
+
+  it("charges the combo's price, not the sum of the parts", () => {
+    expect(lines.reduce((sum, l) => sum + l.priceMinor, 0)).toBe(combo.priceMinor)
+    expect(grossTotalMinor(lines)).toBe(50500)
+  })
+
+  it("names the saving once per discounted line", () => {
+    const discounts = bundleDiscounts(lines)
+    expect(discounts).toHaveLength(2)
+    expect(discounts.reduce((sum, d) => sum + d.amountMinor, 0)).toBe(
+      grossTotalMinor(lines) - combo.priceMinor,
+    )
   })
 })

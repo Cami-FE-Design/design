@@ -2,8 +2,8 @@
 
 import { useMemo } from "react"
 import { MOCK_SERVICE_CATALOG, type MockServiceCatalogItem } from "@/app/appointments/mock"
-import { seedServices } from "@/lib/service-catalog/mock-data"
-import { useServiceCategories, useServices } from "@/lib/service-catalog/store"
+import { useCreatedCombos } from "@/lib/service-catalog/created-combos"
+import { useServiceCategories } from "@/lib/service-catalog/store"
 import { APPOINTMENT_COLORS } from "@/lib/service-catalog/types"
 
 /**
@@ -18,16 +18,10 @@ import { APPOINTMENT_COLORS } from "@/lib/service-catalog/types"
  * the six demo categories.
  */
 export function useAppointmentServiceCatalog(): MockServiceCatalogItem[] {
-  const { data: services } = useServices()
+  const created = useCreatedCombos()
   const { data: categories } = useServiceCategories()
 
   return useMemo(() => {
-    const created = (services ?? []).filter(
-      (s) =>
-        s.serviceType === "combo" &&
-        s.isActive !== false &&
-        !seedServices.some((seed) => seed.id === s.id),
-    )
     if (created.length === 0) return MOCK_SERVICE_CATALOG
 
     const bridged = created.map<MockServiceCatalogItem>((combo) => {
@@ -48,5 +42,5 @@ export function useAppointmentServiceCatalog(): MockServiceCatalogItem[] {
     })
 
     return [...MOCK_SERVICE_CATALOG, ...bridged]
-  }, [services, categories])
+  }, [created, categories])
 }

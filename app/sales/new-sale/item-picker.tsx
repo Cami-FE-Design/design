@@ -12,6 +12,7 @@ import {
   SearchXIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
+import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
@@ -30,6 +31,12 @@ import {
 import type { AppointmentItem, GiftCardDraft, PickerView, ProductItem, ServiceItem } from "./types"
 
 type ItemPickerProps = {
+  /**
+   * The services on offer. The cart passes its own list — this demo catalog
+   * plus any combo created on the service menu — so a combo built a minute ago
+   * is sellable; `SERVICES` is the fallback for standalone mounts.
+   */
+  services?: ServiceItem[]
   onAddService: (service: ServiceItem) => void
   onAddProduct: (product: ProductItem) => void
   onAddAppointment: (appt: AppointmentItem) => void
@@ -52,6 +59,7 @@ const ROOT_TILES: {
 ]
 
 export function ItemPicker({
+  services = SERVICES,
   onAddService,
   onAddProduct,
   onAddAppointment,
@@ -64,7 +72,7 @@ export function ItemPicker({
   const searching = view === "root" && rootQuery.trim().length > 0
 
   if (view === "services") {
-    return <ServicesView onBack={() => setView("root")} onAdd={onAddService} />
+    return <ServicesView services={services} onBack={() => setView("root")} onAdd={onAddService} />
   }
   if (view === "products") {
     return <ProductsView onBack={() => setView("root")} onAdd={onAddProduct} />
@@ -105,6 +113,7 @@ export function ItemPicker({
       {searching ? (
         <GlobalSearchResults
           query={rootQuery.trim()}
+          catalog={services}
           onAddService={onAddService}
           onAddProduct={onAddProduct}
         />
@@ -175,14 +184,16 @@ function DrilldownHeader({ onBack }: { onBack: () => void }) {
 // ─── Services drilldown ───────────────────────────────────────────────────────
 
 function ServicesView({
+  services,
   onBack,
   onAdd,
 }: {
+  services: ServiceItem[]
   onBack: () => void
   onAdd: (service: ServiceItem) => void
 }) {
   const [query, setQuery] = useState("")
-  const filtered = useMemo(() => filterServices(query), [query])
+  const filtered = useMemo(() => filterServices(query, services), [query, services])
 
   return (
     <div className="flex flex-col gap-5">
@@ -213,9 +224,15 @@ function ServiceRow({ service, onAdd }: { service: ServiceItem; onAdd: () => voi
       <div className="flex min-w-0 items-stretch gap-3">
         <span className={cn("w-1 shrink-0 self-stretch", accent)} />
         <div className="flex min-w-0 flex-col py-3">
-          <span className="truncate text-sm font-medium text-foreground">{service.name}</span>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-sm font-medium text-foreground">{service.name}</span>
+            {service.isCombo ? <ComboBadge size="sm" /> : null}
+          </div>
           <span className="text-xs text-muted-foreground">
             {formatDuration(service.durationMin)}
+            {service.componentNames?.length
+              ? ` · ${comboServicesLabel(service.componentNames.length)}`
+              : ""}
           </span>
         </div>
       </div>
@@ -475,14 +492,16 @@ function AddedBadge() {
 
 function GlobalSearchResults({
   query,
+  catalog,
   onAddService,
   onAddProduct,
 }: {
   query: string
+  catalog: ServiceItem[]
   onAddService: (service: ServiceItem) => void
   onAddProduct: (product: ProductItem) => void
 }) {
-  const services = useMemo(() => filterServices(query), [query])
+  const services = useMemo(() => filterServices(query, catalog), [query, catalog])
   const products = useMemo(() => filterProducts(query), [query])
 
   if (services.length === 0 && products.length === 0) {
@@ -541,10 +560,10 @@ function startMinutes(start: string): number {
   return hour * 60 + Number(m[2])
 }
 
-function filterServices(query: string): ServiceItem[] {
+function filterServices(query: string, services: ServiceItem[] = SERVICES): ServiceItem[] {
   const q = query.trim().toLowerCase()
-  if (!q) return SERVICES
-  return SERVICES.filter((s) => s.name.toLowerCase().includes(q))
+  if (!q) return services
+  return services.filter((s) => s.name.toLowerCase().includes(q))
 }
 
 function filterProducts(query: string): ProductItem[] {
