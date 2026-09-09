@@ -38,3 +38,16 @@ export function ComboBadge({
 export function comboServicesLabel(count: number): string {
   return `${count} service${count === 1 ? "" : "s"}`
 }
+
+/**
+ * The same layers glyph as the badge, sized to lead a line of text.
+ *
+ * A booked combo names itself in the line ("Combo - Service", as the as-built
+ * app does), so the badge's word would be said twice — but dropping the mark
+ * entirely left the appointment surfaces with no glyph at all, while the
+ * pickers a minute earlier had one. The icon carries the recognition across;
+ * the prefix carries which combo.
+ */
+export function ComboLineIcon({ className }: { className?: string }) {
+  return <LayersIcon aria-hidden className={cn("shrink-0 text-cami-violet-11", className)} />
+}
