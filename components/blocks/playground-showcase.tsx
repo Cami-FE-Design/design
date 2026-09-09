@@ -27,7 +27,7 @@ import {
   StethoscopeIcon,
   SunIcon,
 } from "lucide-react"
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -231,6 +231,12 @@ const NOW = new Date("2026-07-20T10:00:00Z").getTime()
 type SectionProps = {
   title: string
   description?: string
+  /**
+   * Defer the demo until it is scrolled near. For the sections whose content is
+   * expensive — report views, the PDF viewer, the people grid, the invoice and
+   * import frames. The heading and anchor always render.
+   */
+  lazy?: boolean
   children: React.ReactNode
 }
 
@@ -244,7 +250,178 @@ function sectionSlug(title: string): string {
     .replace(/^-|-$/g, "")
 }
 
-function Section({ title, description, children }: SectionProps) {
+/**
+ * The lanes the sections are grouped into. Read by the index at the top of the
+ * page and by <Lane> itself, so the two can't drift.
+ *
+ * 67 sections in one flat scroll had no legend: a primitive, a ticket demo and
+ * an HQ surface sat next to each other, and the only way to reach one was to
+ * know it was there. Titles stay the anchors — the lanes are what makes them
+ * findable.
+ */
+const LANES: Array<{ id: string; label: string; sections: string[] }> = [
+  {
+    id: "primitives",
+    label: "Primitives",
+    sections: [
+      "Button",
+      "Badge",
+      "Avatar",
+      "Input and Textarea",
+      "Checkbox, Radio, Switch",
+      "Search input",
+      "Segmented toggle",
+      "Select",
+      "Tabs",
+      "Card",
+      "Separator",
+      "Dialog",
+      "Sheet, Popover, Dropdown, Tooltip",
+    ],
+  },
+  {
+    id: "blocks",
+    label: "Building blocks",
+    sections: [
+      "Empty state",
+      "Recency badge",
+      "Avatar stack",
+      "Linked entity chip",
+      "Note callout",
+      "Pickable card grid",
+      "Timeline row",
+      "Section card",
+      "KPI card and grid",
+      "Settings row",
+      "Sectioned sheet shell",
+      "Address search field",
+      "Add a signature dialog",
+      "PDF viewer",
+    ],
+  },
+  {
+    id: "detail-views",
+    label: "Detail views & takeovers",
+    sections: [
+      "Client detail dialog",
+      "Pet detail dialog",
+      "Team member detail dialog",
+      "Boarding & daycare booking drawers",
+      "My profile (settings panel)",
+      "Add / Edit takeovers",
+      "Global search takeover",
+    ],
+  },
+  {
+    id: "business",
+    label: "Business app features",
+    sections: [
+      "Appointments — booking block",
+      "Appointments — toolbar and people grid",
+      "Appointments — pickup & pet notes",
+      "Client notes (Staff Alert)",
+      "Pet notes — structured categories",
+      "Navigate to address",
+      "Service menu — cards & sidebar",
+      "Combos across surfaces",
+      "New sale — Gift cards in checkout",
+      "New sale — Payment link (self checkout)",
+      "New sale — POS Terminal (card present)",
+      "Payment policy — deposit & no-show config",
+      "Terminals (DSG-62)",
+      "Notifications settings",
+      "Communication templates",
+      "Merchant money surfaces — account summary (DSG-77)",
+      "Merchant money surfaces — activity and detail (DSG-78)",
+      "Merchant money surfaces — bank account (DSG-75)",
+      "Merchant money surfaces — invoices and fees (DSG-76)",
+      "Merchant money surfaces — billing details (DSG-74)",
+      "CamiPay fee breakdown — Partner side",
+      "Invoice document — A4 downloadable",
+      "Invoice document — share & email actions",
+      "Product import — review states (DSG-80)",
+      "Clients and pets import — review states (DSG-84)",
+      "Performance dashboard — chart primitives",
+      "Reporting module (DSG-43 / PRO-703)",
+    ],
+  },
+  {
+    id: "hq",
+    label: "Cami HQ",
+    sections: [
+      "Cami HQ — CamiPay settlement config",
+      "Cami HQ — terminal fleet, Partner card",
+      "Terminal status — one vocabulary, two surfaces",
+      "Partner code — CM-####",
+      "Notifications, Cami HQ control plane",
+      "Impersonation banner",
+    ],
+  },
+]
+
+function Lane({
+  id,
+  label,
+  blurb,
+  children,
+}: {
+  id: string
+  label: string
+  blurb: string
+  children: React.ReactNode
+}) {
+  return (
+    <div id={`lane-${id}`} className="scroll-mt-6">
+      <div className="flex flex-col gap-1 border-b-2 border-foreground/15 pt-10 pb-2">
+        <h2 className="font-heading text-xl font-semibold text-foreground">{label}</h2>
+        <p className="text-xs text-muted-foreground">{blurb}</p>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+/**
+ * Mounts its children only once they are near the viewport.
+ *
+ * The page rendered every section eagerly — five full report views, the PDF
+ * viewer, sixteen invoice previews, two import frames — which is why one URL
+ * shipped 2.7 MB of HTML and took over a second to render. The heavy sections
+ * keep their heading and anchor (so a deep link still lands and scrolls); only
+ * the demo inside waits until it is scrolled to.
+ */
+function LazyMount({ minHeight, children }: { minHeight: number; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null)
+  const [shown, setShown] = useState(false)
+
+  useEffect(() => {
+    if (shown) return
+    const el = ref.current
+    if (!el) return
+    // No IntersectionObserver (older browser, jsdom) → render immediately
+    // rather than leaving the section permanently empty.
+    if (typeof IntersectionObserver === "undefined") {
+      setShown(true)
+      return
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setShown(true)
+      },
+      { rootMargin: "600px" },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [shown])
+
+  return (
+    <div ref={ref} style={shown ? undefined : { minHeight }}>
+      {shown ? children : null}
+    </div>
+  )
+}
+
+function Section({ title, description, lazy, children }: SectionProps) {
   const slug = sectionSlug(title)
   return (
     <section
@@ -259,7 +436,7 @@ function Section({ title, description, children }: SectionProps) {
         </h2>
         {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       </div>
-      {children}
+      {lazy ? <LazyMount minHeight={420}>{children}</LazyMount> : children}
     </section>
   )
 }
@@ -617,2612 +794,2633 @@ export function PlaygroundShowcase() {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <Section
-        title="Reporting module (DSG-43 / PRO-703)"
-        description="The shared view templates that render every report from lib/reports/registry.ts. Config-driven — columns, group-by, filters and date control come from each report's definition. All amounts AED."
-      >
-        {reportPaymentsSummary ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Table View — Payments summary (Total row, Cami payment methods)
-            </p>
-            <TableReport report={reportPaymentsSummary} />
+      {/* Index. Deep links were already possible — the anchors have been there
+          since the sections were added — but nothing listed them, so finding a
+          section meant scrolling 67 of them. */}
+      <nav aria-label="Sections" className="flex flex-col gap-5">
+        {LANES.map((lane) => (
+          <div key={lane.id} className="flex flex-col gap-1.5">
+            <div className="flex items-baseline gap-2">
+              <a
+                href={`#lane-${lane.id}`}
+                className="text-sm font-medium text-foreground hover:underline"
+              >
+                {lane.label}
+              </a>
+              <span className="text-xs tabular-nums text-muted-foreground">
+                {lane.sections.length}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1">
+              {lane.sections.map((title) => (
+                <a
+                  key={title}
+                  href={`#${sectionSlug(title)}`}
+                  className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  {title}
+                </a>
+              ))}
+            </div>
           </div>
-        ) : null}
-        {reportFinanceSummary ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Detailed Table View — Finance summary (section-grouped metric × period matrix)
-            </p>
-            <DetailedTableReport report={reportFinanceSummary} />
-          </div>
-        ) : null}
-        {reportPerformanceDashboard ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Dashboard View — Performance dashboard (6 Cami metrics + comparison chart +
-              drill-downs)
-            </p>
-            <DashboardReport report={reportPerformanceDashboard} />
-          </div>
-        ) : null}
-        {reportPerformanceSummary ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Matrix View — Performance summary (metric × team-member, section subtotals, Total
-              column)
-            </p>
-            <DashboardReport report={reportPerformanceSummary} />
-          </div>
-        ) : null}
-        {reportPerformanceOverTime ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Over-time Matrix — Performance over time (live pills recompute a recharts bar chart +
-              entity × time-period table)
-            </p>
-            <DashboardReport report={reportPerformanceOverTime} />
-          </div>
-        ) : null}
-      </Section>
-      <Section
-        title="Button"
-        description="Variants, sizes, with icon, and disabled. Hover and focus are live."
-      >
-        <Row label="Variant">
-          <Button>Default</Button>
-          <Button variant="secondary">Secondary</Button>
-          <Button variant="outline">Outline</Button>
-          <Button variant="ghost">Ghost</Button>
-          <Button variant="link">Link</Button>
-          <Button variant="destructive">Destructive</Button>
-        </Row>
-        <Row label="Size">
-          <Button size="xs">Extra small</Button>
-          <Button size="sm">Small</Button>
-          <Button>Default</Button>
-          <Button size="lg">Large</Button>
-          <Button size="xl">Extra large</Button>
-          <Button size="icon" aria-label="Add">
-            <PlusIcon />
-          </Button>
-          <Button size="icon-xl" aria-label="Add">
-            <PlusIcon />
-          </Button>
-        </Row>
-        <Row label="Radius">
-          <Button>Default (rounded-xl)</Button>
-          <Button radius="full">Full (rounded-full)</Button>
-          <Button variant="outline" size="icon-lg" radius="full" aria-label="Add">
-            <PlusIcon />
-          </Button>
-        </Row>
-        <Row label="With icon">
-          <Button>
-            <MailIcon /> Email
-          </Button>
-          <Button variant="outline">
-            Options <ChevronDownIcon />
-          </Button>
-        </Row>
-        <Row label="Disabled">
-          <Button disabled>Default</Button>
-          <Button variant="outline" disabled>
-            Outline
-          </Button>
-          <Button variant="destructive" disabled>
-            Destructive
-          </Button>
-        </Row>
-      </Section>
+        ))}
+      </nav>
 
-      <Section title="Badge" description="Compact inline labels for status, counts, and tags.">
-        <Row label="Variant">
-          <Badge>New</Badge>
-          <Badge variant="secondary">3</Badge>
-          <Badge variant="outline">Beta</Badge>
-          <Badge variant="destructive">Error</Badge>
-          <Badge variant="primary-soft">Active</Badge>
-          <Badge variant="muted">Off</Badge>
-          {/* The two tone-on-tone status variants. `success` was added for
+      <Lane
+        id="primitives"
+        label="Primitives"
+        blurb="The installed ui/ components in every state. Hover, focus and keyboard are live."
+      >
+        <Section
+          title="Button"
+          description="Variants, sizes, with icon, and disabled. Hover and focus are live."
+        >
+          <Row label="Variant">
+            <Button>Default</Button>
+            <Button variant="secondary">Secondary</Button>
+            <Button variant="outline">Outline</Button>
+            <Button variant="ghost">Ghost</Button>
+            <Button variant="link">Link</Button>
+            <Button variant="destructive">Destructive</Button>
+          </Row>
+          <Row label="Size">
+            <Button size="xs">Extra small</Button>
+            <Button size="sm">Small</Button>
+            <Button>Default</Button>
+            <Button size="lg">Large</Button>
+            <Button size="xl">Extra large</Button>
+            <Button size="icon" aria-label="Add">
+              <PlusIcon />
+            </Button>
+            <Button size="icon-xl" aria-label="Add">
+              <PlusIcon />
+            </Button>
+          </Row>
+          <Row label="Radius">
+            <Button>Default (rounded-xl)</Button>
+            <Button radius="full">Full (rounded-full)</Button>
+            <Button variant="outline" size="icon-lg" radius="full" aria-label="Add">
+              <PlusIcon />
+            </Button>
+          </Row>
+          <Row label="With icon">
+            <Button>
+              <MailIcon /> Email
+            </Button>
+            <Button variant="outline">
+              Options <ChevronDownIcon />
+            </Button>
+          </Row>
+          <Row label="Disabled">
+            <Button disabled>Default</Button>
+            <Button variant="outline" disabled>
+              Outline
+            </Button>
+            <Button variant="destructive" disabled>
+              Destructive
+            </Button>
+          </Row>
+        </Section>
+        <Section title="Badge" description="Compact inline labels for status, counts, and tags.">
+          <Row label="Variant">
+            <Badge>New</Badge>
+            <Badge variant="secondary">3</Badge>
+            <Badge variant="outline">Beta</Badge>
+            <Badge variant="destructive">Error</Badge>
+            <Badge variant="primary-soft">Active</Badge>
+            <Badge variant="muted">Off</Badge>
+            {/* The two tone-on-tone status variants. `success` was added for
               DSG-75's "Verified": before it, anything confirmed-good fell back
               to the flat grey `secondary`, which reads as switched off — and
               the green was being hand-rolled at the call site instead. */}
-          <Badge variant="warning">Needs attention</Badge>
-          <Badge variant="success">Verified</Badge>
-        </Row>
-        <Row label="Money surfaces">
-          {/* One mark for one fact (DSG-73, G3): the RAIL always rides in a
+            <Badge variant="warning">Needs attention</Badge>
+            <Badge variant="success">Verified</Badge>
+          </Row>
+          <Row label="Money surfaces">
+            {/* One mark for one fact (DSG-73, G3): the RAIL always rides in a
               chip, the custodian is always named in words beside it. */}
-          <RailBadge rail="online" />
-          <RailBadge rail="terminal" />
-        </Row>
-        <Row label="Size">
-          <Badge size="sm">Small</Badge>
-          <Badge size="default">Default</Badge>
-          <Badge size="default" variant="primary-soft">
-            Default · soft
-          </Badge>
-        </Row>
-      </Section>
-
-      <Section
-        title="Avatar"
-        description="Person, pet, and business avatars. Photo wins when present; otherwise renders a deterministic fallback (initials, character face, or species icon) on a hashed pastel background."
-      >
-        <Row label="Size">
-          <Avatar size="xs" name="Sarah Johnson" />
-          <Avatar size="sm" name="Sarah Johnson" />
-          <Avatar size="md" name="Sarah Johnson" />
-          <Avatar size="lg" name="Sarah Johnson" />
-          <Avatar size="xl" name="Sarah Johnson" />
-        </Row>
-        <Row label="Initials · hash">
-          <Avatar name="Sarah Johnson" />
-          <Avatar name="Luke Williams" />
-          <Avatar name="Amy Chen" />
-          <Avatar name="Maeve Madden" />
-          <Avatar name="Violetta Pérez" />
-          <Avatar name="Kiren Matharu" />
-        </Row>
-        <Row label="Character · all faces">
-          <Avatar fallback="character" hashSeed="0" />
-          <Avatar fallback="character" hashSeed="1" />
-          <Avatar fallback="character" hashSeed="2" />
-          <Avatar fallback="character" hashSeed="3" />
-          <Avatar fallback="character" hashSeed="4" />
-          <Avatar fallback="character" hashSeed="5" />
-        </Row>
-        <Row label="Character · directory">
-          <Avatar fallback="character" name="Sarah Johnson" />
-          <Avatar fallback="character" name="Luke Williams" />
-          <Avatar fallback="character" name="Amy Chen" />
-          <Avatar fallback="character" name="Maeve Madden" />
-          <Avatar fallback="character" name="Violetta Pérez" />
-          <Avatar fallback="character" name="Kiren Matharu" />
-        </Row>
-        <Row label="Species · pets">
-          <Avatar fallback="species" species="dog" hashSeed="bobo" />
-          <Avatar fallback="species" species="cat" hashSeed="mochi" />
-          <Avatar fallback="species" species="bird" hashSeed="kiwi" />
-          <Avatar fallback="species" species="rabbit" hashSeed="pip" />
-          <Avatar fallback="species" species="other" hashSeed="nemo" />
-        </Row>
-        <Row label="Shape · business">
-          <Avatar shape="square" name="Sota Salon" />
-          <Avatar shape="square" size="lg" name="Sota Salon" />
-          <Avatar shape="square" size="xl" name="Sota Salon" />
-        </Row>
-        <Row label="Photo">
-          <Avatar
-            size="lg"
-            name="Aaliyah Hazari"
-            src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=128&h=128&fit=crop&crop=faces"
-            alt="Aaliyah Hazari"
-          />
-          <Avatar
-            size="lg"
-            shape="square"
-            name="Sota Salon"
-            src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=128&h=128&fit=crop"
-            alt="Sota Salon"
-          />
-        </Row>
-        <Row label="With overlay">
-          <Avatar size="xl" fallback="character" name="Millie Cassidy">
-            <button
-              type="button"
-              aria-label="Edit avatar"
-              className="absolute right-0 bottom-0 inline-flex size-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground"
-            >
-              <PencilIcon className="size-3" />
-            </button>
-          </Avatar>
-        </Row>
-      </Section>
-
-      <Section title="Input and Textarea" description="Text inputs with label and error state.">
-        <Row label="Default">
-          <div className="grid w-full max-w-sm gap-2">
-            <Label htmlFor="pg-email">Email</Label>
-            <Input id="pg-email" type="email" placeholder="name@example.com" />
-          </div>
-        </Row>
-        <Row label="Disabled">
-          <div className="group grid w-full max-w-sm gap-2" data-disabled="true">
-            <Label htmlFor="pg-email-disabled">Email</Label>
-            <Input id="pg-email-disabled" type="email" placeholder="name@example.com" disabled />
-          </div>
-        </Row>
-        <Row label="Error">
-          <div className="group grid w-full max-w-sm gap-2" data-error="true">
-            <Label htmlFor="pg-email-error">Email</Label>
-            <Input id="pg-email-error" type="email" defaultValue="nope" aria-invalid />
-            <p className="text-xs text-destructive">Enter a valid email.</p>
-          </div>
-        </Row>
-        <Row label="Textarea">
-          <Textarea className="w-full max-w-sm" placeholder="Notes" />
-        </Row>
-        <Row label="Phone field">
-          <div className="w-full max-w-sm">
-            <PhoneField
-              id="pg-phone"
-              label="Mobile number"
-              code={phoneCode}
-              number={phoneNumber}
-              onCodeChange={setPhoneCode}
-              onNumberChange={setPhoneNumber}
+            <RailBadge rail="online" />
+            <RailBadge rail="terminal" />
+          </Row>
+          <Row label="Size">
+            <Badge size="sm">Small</Badge>
+            <Badge size="default">Default</Badge>
+            <Badge size="default" variant="primary-soft">
+              Default · soft
+            </Badge>
+          </Row>
+        </Section>
+        <Section
+          title="Avatar"
+          description="Person, pet, and business avatars. Photo wins when present; otherwise renders a deterministic fallback (initials, character face, or species icon) on a hashed pastel background."
+        >
+          <Row label="Size">
+            <Avatar size="xs" name="Sarah Johnson" />
+            <Avatar size="sm" name="Sarah Johnson" />
+            <Avatar size="md" name="Sarah Johnson" />
+            <Avatar size="lg" name="Sarah Johnson" />
+            <Avatar size="xl" name="Sarah Johnson" />
+          </Row>
+          <Row label="Initials · hash">
+            <Avatar name="Sarah Johnson" />
+            <Avatar name="Luke Williams" />
+            <Avatar name="Amy Chen" />
+            <Avatar name="Maeve Madden" />
+            <Avatar name="Violetta Pérez" />
+            <Avatar name="Kiren Matharu" />
+          </Row>
+          <Row label="Character · all faces">
+            <Avatar fallback="character" hashSeed="0" />
+            <Avatar fallback="character" hashSeed="1" />
+            <Avatar fallback="character" hashSeed="2" />
+            <Avatar fallback="character" hashSeed="3" />
+            <Avatar fallback="character" hashSeed="4" />
+            <Avatar fallback="character" hashSeed="5" />
+          </Row>
+          <Row label="Character · directory">
+            <Avatar fallback="character" name="Sarah Johnson" />
+            <Avatar fallback="character" name="Luke Williams" />
+            <Avatar fallback="character" name="Amy Chen" />
+            <Avatar fallback="character" name="Maeve Madden" />
+            <Avatar fallback="character" name="Violetta Pérez" />
+            <Avatar fallback="character" name="Kiren Matharu" />
+          </Row>
+          <Row label="Species · pets">
+            <Avatar fallback="species" species="dog" hashSeed="bobo" />
+            <Avatar fallback="species" species="cat" hashSeed="mochi" />
+            <Avatar fallback="species" species="bird" hashSeed="kiwi" />
+            <Avatar fallback="species" species="rabbit" hashSeed="pip" />
+            <Avatar fallback="species" species="other" hashSeed="nemo" />
+          </Row>
+          <Row label="Shape · business">
+            <Avatar shape="square" name="Sota Salon" />
+            <Avatar shape="square" size="lg" name="Sota Salon" />
+            <Avatar shape="square" size="xl" name="Sota Salon" />
+          </Row>
+          <Row label="Photo">
+            <Avatar
+              size="lg"
+              name="Aaliyah Hazari"
+              src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=128&h=128&fit=crop&crop=faces"
+              alt="Aaliyah Hazari"
             />
-          </div>
-        </Row>
-        <Row label="Phone · verified">
-          <div className="flex w-full max-w-sm flex-col gap-1.5">
-            <PhoneField
-              id="pg-phone-locked"
-              label="Mobile number"
-              code="+971"
-              number="50 123 4567"
-              onCodeChange={() => undefined}
-              onNumberChange={() => undefined}
-              disabled
+            <Avatar
+              size="lg"
+              shape="square"
+              name="Sota Salon"
+              src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=128&h=128&fit=crop"
+              alt="Sota Salon"
             />
-            <p className="text-xs text-muted-foreground">
-              Verified. We send your confirmation and reminders here on Email / SMS / WhatsApp.
-            </p>
-          </div>
-        </Row>
-      </Section>
-
-      <Section title="Checkbox, Radio, Switch" description="Selection controls.">
-        <Row label="Checkbox">
-          <div className="flex items-center gap-2">
-            <Checkbox id="pg-cb-1" checked={checked} onCheckedChange={(v) => setChecked(v)} />
-            <Label htmlFor="pg-cb-1">Interactive</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox id="pg-cb-2" defaultChecked disabled />
-            <Label htmlFor="pg-cb-2">Checked, disabled</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox id="pg-cb-3" disabled />
-            <Label htmlFor="pg-cb-3">Unchecked, disabled</Label>
-          </div>
-        </Row>
-        <Row label="Checkbox · lg">
-          <div className="flex items-center gap-3">
-            <Checkbox id="pg-cb-lg-1" size="lg" defaultChecked />
-            <Label htmlFor="pg-cb-lg-1" className="text-base font-medium">
-              Can view billing data
-            </Label>
-          </div>
-          <div className="flex items-center gap-3">
-            <Checkbox id="pg-cb-lg-2" size="lg" />
-            <Label htmlFor="pg-cb-lg-2" className="text-base font-medium">
-              Can issue refunds
-            </Label>
-          </div>
-        </Row>
-        <Row label="Radio">
-          <RadioGroup value={radio} onValueChange={setRadio} className="flex gap-4">
-            {["option-1", "option-2", "option-3"].map((id) => (
-              <div key={id} className="flex items-center gap-2">
-                <RadioGroupItem id={id} value={id} />
-                <Label htmlFor={id}>{id.replace("-", " ")}</Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </Row>
-        <Row label="Switch">
-          <div className="flex items-center gap-2">
-            <Switch id="pg-sw-1" checked={switchOn} onCheckedChange={setSwitchOn} />
-            <Label htmlFor="pg-sw-1">Notifications</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch id="pg-sw-2" defaultChecked disabled />
-            <Label htmlFor="pg-sw-2">On, disabled</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Switch id="pg-sw-3" disabled />
-            <Label htmlFor="pg-sw-3">Off, disabled</Label>
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Search input"
-        description="Search field with clearable value. Three sizes for different surfaces."
-      >
-        <Row label="Default">
-          <SearchInput placeholder="Search…" aria-label="Search" />
-        </Row>
-        <Row label="Large">
-          <div className="w-full max-w-md">
-            <SearchInput size="lg" placeholder="Search settings…" aria-label="Search settings" />
-          </div>
-        </Row>
-        <Row label="Hero (xl)">
-          <div className="w-full max-w-2xl">
-            <SearchInput
-              size="xl"
-              placeholder="Search permissions"
-              aria-label="Search permissions"
-            />
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Segmented toggle"
-        description="Pill toggle with sliding active capsule. Neutral default + primary tone (cami-violet pill on dark track) for switch-style on/off."
-      >
-        <Row label="Neutral">
-          <SegmentedToggle
-            value={segmentedNeutral}
-            onValueChange={setSegmentedNeutral}
-            options={[
-              { value: "ios", label: "iOS" },
-              { value: "web", label: "Web" },
-            ]}
-            ariaLabel="Platform"
-          />
-        </Row>
-        <Row label="Primary on/off">
-          <SegmentedToggle
-            value={segmentedPrimary}
-            onValueChange={setSegmentedPrimary}
-            options={[
-              { value: "off", label: "Off" },
-              { value: "on", label: "On", activeTone: "primary" },
-            ]}
-            ariaLabel="Permission area state"
-          />
-        </Row>
-        <Row label="Disabled">
-          <SegmentedToggle
-            value="off"
-            onValueChange={() => {}}
-            disabled
-            options={[
-              { value: "off", label: "Off" },
-              { value: "on", label: "On", activeTone: "primary" },
-            ]}
-            ariaLabel="Disabled toggle"
-          />
-        </Row>
-      </Section>
-
-      <Section title="Select" description="Single-select dropdown.">
-        <Row label="Default">
-          <Select defaultValue="weekly">
-            <SelectTrigger className="w-56">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="daily">Daily</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-            </SelectContent>
-          </Select>
-        </Row>
-        <Row label="Disabled">
-          <Select disabled>
-            <SelectTrigger className="w-56">
-              <SelectValue placeholder="Pick one" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="a">A</SelectItem>
-            </SelectContent>
-          </Select>
-        </Row>
-      </Section>
-
-      <Section title="Tabs" description="Segmented content switcher with four variants.">
-        <div className="flex flex-col gap-6">
-          <Row label="default">
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList>
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
-                <TabsTrigger value="settings">Settings</TabsTrigger>
-              </TabsList>
-              <TabsContent value="overview" className="pt-4 text-sm text-muted-foreground">
-                Filled segmented control. Use for top-level page tabs.
-              </TabsContent>
-            </Tabs>
           </Row>
-          <Row label="ghost">
-            <Tabs defaultValue="all" className="w-full">
-              <TabsList variant="ghost">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="active">Active</TabsTrigger>
-                <TabsTrigger value="archived">Archived</TabsTrigger>
-              </TabsList>
-              <TabsContent value="all" className="pt-4 text-sm text-muted-foreground">
-                Pill-shaped, transparent. Use for table toolbars (filter tabs).
-              </TabsContent>
-            </Tabs>
+          <Row label="With overlay">
+            <Avatar size="xl" fallback="character" name="Millie Cassidy">
+              <button
+                type="button"
+                aria-label="Edit avatar"
+                className="absolute right-0 bottom-0 inline-flex size-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground shadow-sm hover:text-foreground"
+              >
+                <PencilIcon className="size-3" />
+              </button>
+            </Avatar>
           </Row>
-          <Row label="line">
-            <Tabs defaultValue="general" className="w-full">
-              <TabsList variant="line">
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="team">Team</TabsTrigger>
-                <TabsTrigger value="security">Security</TabsTrigger>
-              </TabsList>
-              <TabsContent value="general" className="pt-4 text-sm text-muted-foreground">
-                Underline floats 5px below the tab. Use when tabs sit above whitespace.
-              </TabsContent>
-            </Tabs>
+        </Section>
+        <Section title="Input and Textarea" description="Text inputs with label and error state.">
+          <Row label="Default">
+            <div className="grid w-full max-w-sm gap-2">
+              <Label htmlFor="pg-email">Email</Label>
+              <Input id="pg-email" type="email" placeholder="name@example.com" />
+            </div>
           </Row>
-          <Row label="underline">
-            <Tabs defaultValue="general" className="w-full">
-              <TabsList variant="underline">
-                <TabsTrigger value="general">General</TabsTrigger>
-                <TabsTrigger value="team">Team</TabsTrigger>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
-                <TabsTrigger value="manage">Manage</TabsTrigger>
-              </TabsList>
-              <TabsContent value="general" className="pt-4 text-sm text-muted-foreground">
-                Underline sits at the tab's baseline. Use when the tab row marks a surface seam,
-                e.g. between a tinted header zone and a white content zone in a detail dialog.
-              </TabsContent>
-            </Tabs>
+          <Row label="Disabled">
+            <div className="group grid w-full max-w-sm gap-2" data-disabled="true">
+              <Label htmlFor="pg-email-disabled">Email</Label>
+              <Input id="pg-email-disabled" type="email" placeholder="name@example.com" disabled />
+            </div>
           </Row>
-        </div>
-      </Section>
-
-      <Section title="Card">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Weekly summary</CardTitle>
-            <CardDescription>Your activity for the past seven days.</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            42 events, 12 contacts added, 3 pending follow-ups.
-          </CardContent>
-        </Card>
-      </Section>
-
-      <Section
-        title="Sectioned sheet shell"
-        description="Two-column layout for sectioned add/edit takeovers (FullScreenEditDialog). Vertical sidenav left, scrollable content right. Optional leading slot above the nav for cases where you want identity context (e.g. Edit). Detail surfaces use a different pattern — see the next section."
-      >
-        <Row label="Leading slot">
-          <SegmentedToggle
-            value={shellMode}
-            onValueChange={(v) => {
-              const next = v as "add" | "detail"
-              setShellMode(next)
-              setShellSection(next === "add" ? "profile" : "profile")
-            }}
-            options={[
-              { value: "add", label: "None (Add)" },
-              { value: "detail", label: "Identity (Edit)" },
-            ]}
-            ariaLabel="Leading slot variant"
-          />
-        </Row>
-        <div className="mt-4 rounded-2xl border border-border/60 bg-muted/30 p-6">
-          <SectionedSheetShell
-            groups={
-              [
-                {
-                  label: "Personal",
-                  items: [
-                    { id: "profile", label: "Profile", icon: CircleUserIcon },
-                    { id: "addresses", label: "Addresses", icon: MapPinIcon },
-                    { id: "emergency", label: "Emergency contacts", icon: PhoneIcon },
-                  ],
-                },
-                {
-                  label: "Settings",
-                  items: [{ id: "settings", label: "Notifications", icon: SettingsIcon }],
-                },
-              ] satisfies SectionGroup[]
-            }
-            activeId={shellSection}
-            onActiveChange={setShellSection}
-            leading={
-              shellMode === "detail" ? (
-                <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-background p-5 text-center">
-                  <Avatar size="xl" fallback="character" name="Millie Cassidy" />
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-base font-semibold">Millie Cassidy</span>
-                    <span className="text-sm text-muted-foreground">+971 58 509 9313</span>
-                  </div>
-                  <div className="flex w-full gap-2">
-                    <Button variant="outline" size="sm" radius="full" className="flex-1">
-                      Actions
-                    </Button>
-                    <Button size="sm" radius="full" className="flex-1">
-                      Book now
-                    </Button>
-                  </div>
-                </div>
-              ) : null
-            }
-          >
-            <div className="flex min-h-[260px] flex-col gap-3 rounded-2xl border border-border/60 bg-background p-6">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Section content
-              </span>
-              <h3 className="font-heading text-2xl font-semibold capitalize">
-                {shellSection.replace(/-/g, " ")}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                Form fields for this section render here. Save persists; Close discards.
+          <Row label="Error">
+            <div className="group grid w-full max-w-sm gap-2" data-error="true">
+              <Label htmlFor="pg-email-error">Email</Label>
+              <Input id="pg-email-error" type="email" defaultValue="nope" aria-invalid />
+              <p className="text-xs text-destructive">Enter a valid email.</p>
+            </div>
+          </Row>
+          <Row label="Textarea">
+            <Textarea className="w-full max-w-sm" placeholder="Notes" />
+          </Row>
+          <Row label="Phone field">
+            <div className="w-full max-w-sm">
+              <PhoneField
+                id="pg-phone"
+                label="Mobile number"
+                code={phoneCode}
+                number={phoneNumber}
+                onCodeChange={setPhoneCode}
+                onNumberChange={setPhoneNumber}
+              />
+            </div>
+          </Row>
+          <Row label="Phone · verified">
+            <div className="flex w-full max-w-sm flex-col gap-1.5">
+              <PhoneField
+                id="pg-phone-locked"
+                label="Mobile number"
+                code="+971"
+                number="50 123 4567"
+                onCodeChange={() => undefined}
+                onNumberChange={() => undefined}
+                disabled
+              />
+              <p className="text-xs text-muted-foreground">
+                Verified. We send your confirmation and reminders here on Email / SMS / WhatsApp.
               </p>
             </div>
-          </SectionedSheetShell>
-        </div>
-      </Section>
-
-      <Section
-        title="Recency badge"
-        description="Recency indicator next to client / pet names. Common labels: 'New' (≤14d since first visit), relative time like '4 weeks' (between), '90+ days' (>90d since last visit)."
-      >
-        <Row label="Labels">
-          <RecencyBadge>New</RecencyBadge>
-          <RecencyBadge>4 weeks</RecencyBadge>
-          <RecencyBadge>90+ days</RecencyBadge>
-        </Row>
-        <Row label="Inline with name">
-          <div className="flex items-center gap-2">
-            <span className="font-medium">Sarah Johnson</span>
-            <RecencyBadge>New</RecencyBadge>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">Luke Williams</span>
-            <RecencyBadge>4 weeks</RecencyBadge>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium">Aamena Fatta</span>
-            <RecencyBadge>90+ days</RecencyBadge>
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="KPI card and grid"
-        description="Static metric tiles for Overview-style headers. KpiGrid is 2-col by default; override className to change."
-      >
-        <div className="max-w-md">
-          <KpiGrid>
-            <KpiCard
-              label="Upcoming"
-              value="0"
-              info="Count of bookings in the future for this client."
-            />
-            <KpiCard
-              label="Total appts"
-              value="4"
-              info="Lifetime appointment count, including no-shows and cancellations."
-            />
-            <KpiCard label="Total sales" value="AED 0" info="Lifetime revenue from this client." />
-            <KpiCard label="No-shows" value="0" info="Lifetime count of no-shows." />
-          </KpiGrid>
-        </div>
-      </Section>
-
-      <Section
-        title="Section card"
-        description="Section panel used inside detail surfaces. Title + optional right-aligned action + body."
-      >
-        <div className="flex max-w-md flex-col gap-3">
-          <SectionCard
-            title="Profile"
-            action={
-              <Button variant="secondary" size="sm" radius="full">
-                Edit
-              </Button>
-            }
-          >
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-xs uppercase text-muted-foreground">Full name</span>
-                <span>Millie Cassidy</span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="text-xs uppercase text-muted-foreground">Phone</span>
-                <span>+971 58 509 9313</span>
-              </div>
+          </Row>
+        </Section>
+        <Section title="Checkbox, Radio, Switch" description="Selection controls.">
+          <Row label="Checkbox">
+            <div className="flex items-center gap-2">
+              <Checkbox id="pg-cb-1" checked={checked} onCheckedChange={(v) => setChecked(v)} />
+              <Label htmlFor="pg-cb-1">Interactive</Label>
             </div>
-          </SectionCard>
-          <SectionCard
-            title="Notes"
-            action={
-              <Button variant="secondary" size="sm" radius="full">
-                <PlusIcon />
-                Add note
-              </Button>
-            }
-          >
-            <p className="text-sm text-muted-foreground">No notes yet.</p>
-          </SectionCard>
-        </div>
-      </Section>
-
-      <Section
-        title="Avatar stack"
-        description="Stacked avatars with overlap + an overflow indicator. Hover any avatar to see the name; the +N chip lists the rest. Used for family / staff / contributor lists where vertical space is tight."
-      >
-        <Row label="Few (2)">
-          <AvatarStack
-            items={[
-              { id: "millie", name: "Millie Cassidy", fallback: "character", hashSeed: "millie" },
-              { id: "tom", name: "Tom Cassidy", fallback: "character", hashSeed: "tom" },
-            ]}
-          />
-        </Row>
-        <Row label="At max (3)">
-          <AvatarStack
-            items={[
-              { id: "millie", name: "Millie Cassidy", fallback: "character", hashSeed: "millie" },
-              { id: "tom", name: "Tom Cassidy", fallback: "character", hashSeed: "tom" },
-              { id: "sarah", name: "Sarah Johnson", fallback: "character", hashSeed: "sarah" },
-            ]}
-          />
-        </Row>
-        <Row label="Overflow (12)">
-          <AvatarStack
-            items={Array.from({ length: 12 }, (_, i) => ({
-              id: `person-${i}`,
-              name:
-                [
-                  "Brent J",
-                  "Sarah I",
-                  "Tara T",
-                  "Luke W",
-                  "Amy C",
-                  "Maeve M",
-                  "Violetta P",
-                  "Kiren M",
-                  "Aaesha A",
-                  "Aaishah V",
-                  "Aaliyah H",
-                  "Aaliyah P",
-                ][i] ?? `Person ${i}`,
-              fallback: "character",
-              hashSeed: `person-${i}`,
-            }))}
-          />
-        </Row>
-        <Row label="Sizes">
-          <AvatarStack
-            size="xs"
-            items={[
-              { id: "1", name: "Millie", fallback: "character", hashSeed: "1" },
-              { id: "2", name: "Tom", fallback: "character", hashSeed: "2" },
-              { id: "3", name: "Sarah", fallback: "character", hashSeed: "3" },
-              { id: "4", name: "Luke", fallback: "character", hashSeed: "4" },
-              { id: "5", name: "Amy", fallback: "character", hashSeed: "5" },
-            ]}
-          />
-          <AvatarStack
-            size="sm"
-            items={[
-              { id: "1", name: "Millie", fallback: "character", hashSeed: "1" },
-              { id: "2", name: "Tom", fallback: "character", hashSeed: "2" },
-              { id: "3", name: "Sarah", fallback: "character", hashSeed: "3" },
-              { id: "4", name: "Luke", fallback: "character", hashSeed: "4" },
-              { id: "5", name: "Amy", fallback: "character", hashSeed: "5" },
-            ]}
-          />
-          <AvatarStack
-            size="md"
-            items={[
-              { id: "1", name: "Millie", fallback: "character", hashSeed: "1" },
-              { id: "2", name: "Tom", fallback: "character", hashSeed: "2" },
-              { id: "3", name: "Sarah", fallback: "character", hashSeed: "3" },
-              { id: "4", name: "Luke", fallback: "character", hashSeed: "4" },
-              { id: "5", name: "Amy", fallback: "character", hashSeed: "5" },
-            ]}
-          />
-        </Row>
-      </Section>
-
-      <Section
-        title="Linked entity chip"
-        description="Small avatar + name pill, clickable. Used for Owners list on Pet detail and similar navigation chips."
-      >
-        <Row label="Person">
-          <LinkedEntityChip
-            name="Millie Cassidy"
-            avatar={{ fallback: "character", hashSeed: "millie" }}
-          />
-          <LinkedEntityChip
-            name="Tom Cassidy"
-            avatar={{ fallback: "character", hashSeed: "tom" }}
-          />
-          <LinkedEntityChip
-            name="Sarah Johnson"
-            avatar={{ fallback: "character", hashSeed: "sarah" }}
-          />
-        </Row>
-        <Row label="Pet">
-          <LinkedEntityChip
-            name="Bobo"
-            avatar={{ fallback: "species", species: "dog", hashSeed: "bobo" }}
-          />
-          <LinkedEntityChip
-            name="Mochi"
-            avatar={{ fallback: "species", species: "cat", hashSeed: "mochi" }}
-          />
-        </Row>
-      </Section>
-
-      <Section
-        title="Empty state"
-        description="Centered placeholder for sections with no data. variant='plain' (default) is the borderless, muted in-section treatment. variant='card' wraps the same light line-icon and muted title in a dashed self-framed card — the full-page listing look used by the sales / clients / pets / products / appointments tables when a search or filter returns nothing."
-      >
-        <div className="grid max-w-3xl gap-3 sm:grid-cols-2">
-          <div className="rounded-2xl border border-border/60 bg-card">
-            <EmptyState icon={FolderIcon} title="Create a new folder to get started organizing." />
+            <div className="flex items-center gap-2">
+              <Checkbox id="pg-cb-2" defaultChecked disabled />
+              <Label htmlFor="pg-cb-2">Checked, disabled</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox id="pg-cb-3" disabled />
+              <Label htmlFor="pg-cb-3">Unchecked, disabled</Label>
+            </div>
+          </Row>
+          <Row label="Checkbox · lg">
+            <div className="flex items-center gap-3">
+              <Checkbox id="pg-cb-lg-1" size="lg" defaultChecked />
+              <Label htmlFor="pg-cb-lg-1" className="text-base font-medium">
+                Can view billing data
+              </Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Checkbox id="pg-cb-lg-2" size="lg" />
+              <Label htmlFor="pg-cb-lg-2" className="text-base font-medium">
+                Can issue refunds
+              </Label>
+            </div>
+          </Row>
+          <Row label="Radio">
+            <RadioGroup value={radio} onValueChange={setRadio} className="flex gap-4">
+              {["option-1", "option-2", "option-3"].map((id) => (
+                <div key={id} className="flex items-center gap-2">
+                  <RadioGroupItem id={id} value={id} />
+                  <Label htmlFor={id}>{id.replace("-", " ")}</Label>
+                </div>
+              ))}
+            </RadioGroup>
+          </Row>
+          <Row label="Switch">
+            <div className="flex items-center gap-2">
+              <Switch id="pg-sw-1" checked={switchOn} onCheckedChange={setSwitchOn} />
+              <Label htmlFor="pg-sw-1">Notifications</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="pg-sw-2" defaultChecked disabled />
+              <Label htmlFor="pg-sw-2">On, disabled</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch id="pg-sw-3" disabled />
+              <Label htmlFor="pg-sw-3">Off, disabled</Label>
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Search input"
+          description="Search field with clearable value. Three sizes for different surfaces."
+        >
+          <Row label="Default">
+            <SearchInput placeholder="Search…" aria-label="Search" />
+          </Row>
+          <Row label="Large">
+            <div className="w-full max-w-md">
+              <SearchInput size="lg" placeholder="Search settings…" aria-label="Search settings" />
+            </div>
+          </Row>
+          <Row label="Hero (xl)">
+            <div className="w-full max-w-2xl">
+              <SearchInput
+                size="xl"
+                placeholder="Search permissions"
+                aria-label="Search permissions"
+              />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Segmented toggle"
+          description="Pill toggle with sliding active capsule. Neutral default + primary tone (cami-violet pill on dark track) for switch-style on/off."
+        >
+          <Row label="Neutral">
+            <SegmentedToggle
+              value={segmentedNeutral}
+              onValueChange={setSegmentedNeutral}
+              options={[
+                { value: "ios", label: "iOS" },
+                { value: "web", label: "Web" },
+              ]}
+              ariaLabel="Platform"
+            />
+          </Row>
+          <Row label="Primary on/off">
+            <SegmentedToggle
+              value={segmentedPrimary}
+              onValueChange={setSegmentedPrimary}
+              options={[
+                { value: "off", label: "Off" },
+                { value: "on", label: "On", activeTone: "primary" },
+              ]}
+              ariaLabel="Permission area state"
+            />
+          </Row>
+          <Row label="Disabled">
+            <SegmentedToggle
+              value="off"
+              onValueChange={() => {}}
+              disabled
+              options={[
+                { value: "off", label: "Off" },
+                { value: "on", label: "On", activeTone: "primary" },
+              ]}
+              ariaLabel="Disabled toggle"
+            />
+          </Row>
+        </Section>
+        <Section title="Select" description="Single-select dropdown.">
+          <Row label="Default">
+            <Select defaultValue="weekly">
+              <SelectTrigger className="w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+          <Row label="Disabled">
+            <Select disabled>
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Pick one" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="a">A</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+        </Section>
+        <Section title="Tabs" description="Segmented content switcher with four variants.">
+          <div className="flex flex-col gap-6">
+            <Row label="default">
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="activity">Activity</TabsTrigger>
+                  <TabsTrigger value="settings">Settings</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="pt-4 text-sm text-muted-foreground">
+                  Filled segmented control. Use for top-level page tabs.
+                </TabsContent>
+              </Tabs>
+            </Row>
+            <Row label="ghost">
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList variant="ghost">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="active">Active</TabsTrigger>
+                  <TabsTrigger value="archived">Archived</TabsTrigger>
+                </TabsList>
+                <TabsContent value="all" className="pt-4 text-sm text-muted-foreground">
+                  Pill-shaped, transparent. Use for table toolbars (filter tabs).
+                </TabsContent>
+              </Tabs>
+            </Row>
+            <Row label="line">
+              <Tabs defaultValue="general" className="w-full">
+                <TabsList variant="line">
+                  <TabsTrigger value="general">General</TabsTrigger>
+                  <TabsTrigger value="team">Team</TabsTrigger>
+                  <TabsTrigger value="security">Security</TabsTrigger>
+                </TabsList>
+                <TabsContent value="general" className="pt-4 text-sm text-muted-foreground">
+                  Underline floats 5px below the tab. Use when tabs sit above whitespace.
+                </TabsContent>
+              </Tabs>
+            </Row>
+            <Row label="underline">
+              <Tabs defaultValue="general" className="w-full">
+                <TabsList variant="underline">
+                  <TabsTrigger value="general">General</TabsTrigger>
+                  <TabsTrigger value="team">Team</TabsTrigger>
+                  <TabsTrigger value="activity">Activity</TabsTrigger>
+                  <TabsTrigger value="manage">Manage</TabsTrigger>
+                </TabsList>
+                <TabsContent value="general" className="pt-4 text-sm text-muted-foreground">
+                  Underline sits at the tab's baseline. Use when the tab row marks a surface seam,
+                  e.g. between a tinted header zone and a white content zone in a detail dialog.
+                </TabsContent>
+              </Tabs>
+            </Row>
           </div>
-          <div className="rounded-2xl border border-border/60 bg-card">
-            <EmptyState
-              icon={CalendarIcon}
-              title="No appointments yet."
-              description="Bookings will appear here once they're created."
+        </Section>
+        <Section title="Card">
+          <Card className="max-w-md">
+            <CardHeader>
+              <CardTitle>Weekly summary</CardTitle>
+              <CardDescription>Your activity for the past seven days.</CardDescription>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              42 events, 12 contacts added, 3 pending follow-ups.
+            </CardContent>
+          </Card>
+        </Section>
+        <Section title="Separator">
+          <div className="max-w-md">
+            <p className="text-sm text-foreground">Above</p>
+            <Separator className="my-4" />
+            <p className="text-sm text-foreground">Below</p>
+          </div>
+        </Section>
+        <Section
+          title="Dialog"
+          description="Centered modal. Per cami terminology, Detail surfaces use this; Add / Edit use the full-screen takeover instead."
+        >
+          <Row label="Basic">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">Open dialog</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Confirm action</DialogTitle>
+                  <DialogDescription>
+                    This will do the thing you asked. You can undo within ten seconds.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="ghost">Cancel</Button>
+                  </DialogClose>
+                  <Button>Confirm</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </Row>
+          <Row label="Destructive confirm">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">Delete client</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete this client?</DialogTitle>
+                  <DialogDescription>
+                    Millie Cassidy and her 2 pets will be removed. This cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="ghost">Cancel</Button>
+                  </DialogClose>
+                  <Button variant="destructive">Delete</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </Row>
+          <Row label="With form body">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">Add note</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add a note</DialogTitle>
+                  <DialogDescription>
+                    Private to your business. Visible to all staff.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-3 py-2">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="dialog-note-title">Title</Label>
+                    <Input id="dialog-note-title" placeholder="e.g. Prefers morning slots" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="dialog-note-body">Note</Label>
+                    <Textarea id="dialog-note-body" placeholder="Add details…" rows={3} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="ghost">Cancel</Button>
+                  </DialogClose>
+                  <Button>Save note</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </Row>
+          <Row label="Title only">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">Minimal dialog</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Heads up</DialogTitle>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button>Got it</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </Row>
+        </Section>
+        <Section title="Sheet, Popover, Dropdown, Tooltip">
+          <Row label="Sheet">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline">Open sheet</Button>
+              </SheetTrigger>
+              <SheetContent>
+                <SheetHeader>
+                  <SheetTitle>Quick settings</SheetTitle>
+                  <SheetDescription>Slide-in panel for secondary navigation.</SheetDescription>
+                </SheetHeader>
+              </SheetContent>
+            </Sheet>
+          </Row>
+          <Row label="Popover">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline">
+                  <SettingsIcon /> Settings
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 text-sm">
+                Quick settings panel content.
+              </PopoverContent>
+            </Popover>
+          </Row>
+          <Row label="Dropdown">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  Actions <ChevronDownIcon />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-48">
+                <DropdownMenuLabel>My account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <CheckIcon /> Mark done
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <BellIcon /> Notifications
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </Row>
+          <Row label="Tooltip">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" aria-label="Info">
+                  <BellIcon />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Notifications</TooltipContent>
+            </Tooltip>
+          </Row>
+          <Row label="Toast">
+            <Button
+              variant="outline"
+              onClick={() => toast("Event created", { description: "Sunday at 2pm" })}
+            >
+              Fire toast
+            </Button>
+          </Row>
+        </Section>
+      </Lane>
+      <Lane
+        id="blocks"
+        label="Building blocks"
+        blurb="Presentational blocks assembled from the primitives, shared across screens."
+      >
+        <Section
+          title="Empty state"
+          description="Centered placeholder for sections with no data. variant='plain' (default) is the borderless, muted in-section treatment. variant='card' wraps the same light line-icon and muted title in a dashed self-framed card — the full-page listing look used by the sales / clients / pets / products / appointments tables when a search or filter returns nothing."
+        >
+          <div className="grid max-w-3xl gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-border/60 bg-card">
+              <EmptyState
+                icon={FolderIcon}
+                title="Create a new folder to get started organizing."
+              />
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-card">
+              <EmptyState
+                icon={CalendarIcon}
+                title="No appointments yet."
+                description="Bookings will appear here once they're created."
+                action={
+                  <Button variant="secondary" size="sm" radius="full">
+                    <PlusIcon />
+                    Book appointment
+                  </Button>
+                }
+              />
+            </div>
+          </div>
+        </Section>
+        <Section
+          title="Recency badge"
+          description="Recency indicator next to client / pet names. Common labels: 'New' (≤14d since first visit), relative time like '4 weeks' (between), '90+ days' (>90d since last visit)."
+        >
+          <Row label="Labels">
+            <RecencyBadge>New</RecencyBadge>
+            <RecencyBadge>4 weeks</RecencyBadge>
+            <RecencyBadge>90+ days</RecencyBadge>
+          </Row>
+          <Row label="Inline with name">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Sarah Johnson</span>
+              <RecencyBadge>New</RecencyBadge>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Luke Williams</span>
+              <RecencyBadge>4 weeks</RecencyBadge>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">Aamena Fatta</span>
+              <RecencyBadge>90+ days</RecencyBadge>
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Avatar stack"
+          description="Stacked avatars with overlap + an overflow indicator. Hover any avatar to see the name; the +N chip lists the rest. Used for family / staff / contributor lists where vertical space is tight."
+        >
+          <Row label="Few (2)">
+            <AvatarStack
+              items={[
+                { id: "millie", name: "Millie Cassidy", fallback: "character", hashSeed: "millie" },
+                { id: "tom", name: "Tom Cassidy", fallback: "character", hashSeed: "tom" },
+              ]}
+            />
+          </Row>
+          <Row label="At max (3)">
+            <AvatarStack
+              items={[
+                { id: "millie", name: "Millie Cassidy", fallback: "character", hashSeed: "millie" },
+                { id: "tom", name: "Tom Cassidy", fallback: "character", hashSeed: "tom" },
+                { id: "sarah", name: "Sarah Johnson", fallback: "character", hashSeed: "sarah" },
+              ]}
+            />
+          </Row>
+          <Row label="Overflow (12)">
+            <AvatarStack
+              items={Array.from({ length: 12 }, (_, i) => ({
+                id: `person-${i}`,
+                name:
+                  [
+                    "Brent J",
+                    "Sarah I",
+                    "Tara T",
+                    "Luke W",
+                    "Amy C",
+                    "Maeve M",
+                    "Violetta P",
+                    "Kiren M",
+                    "Aaesha A",
+                    "Aaishah V",
+                    "Aaliyah H",
+                    "Aaliyah P",
+                  ][i] ?? `Person ${i}`,
+                fallback: "character",
+                hashSeed: `person-${i}`,
+              }))}
+            />
+          </Row>
+          <Row label="Sizes">
+            <AvatarStack
+              size="xs"
+              items={[
+                { id: "1", name: "Millie", fallback: "character", hashSeed: "1" },
+                { id: "2", name: "Tom", fallback: "character", hashSeed: "2" },
+                { id: "3", name: "Sarah", fallback: "character", hashSeed: "3" },
+                { id: "4", name: "Luke", fallback: "character", hashSeed: "4" },
+                { id: "5", name: "Amy", fallback: "character", hashSeed: "5" },
+              ]}
+            />
+            <AvatarStack
+              size="sm"
+              items={[
+                { id: "1", name: "Millie", fallback: "character", hashSeed: "1" },
+                { id: "2", name: "Tom", fallback: "character", hashSeed: "2" },
+                { id: "3", name: "Sarah", fallback: "character", hashSeed: "3" },
+                { id: "4", name: "Luke", fallback: "character", hashSeed: "4" },
+                { id: "5", name: "Amy", fallback: "character", hashSeed: "5" },
+              ]}
+            />
+            <AvatarStack
+              size="md"
+              items={[
+                { id: "1", name: "Millie", fallback: "character", hashSeed: "1" },
+                { id: "2", name: "Tom", fallback: "character", hashSeed: "2" },
+                { id: "3", name: "Sarah", fallback: "character", hashSeed: "3" },
+                { id: "4", name: "Luke", fallback: "character", hashSeed: "4" },
+                { id: "5", name: "Amy", fallback: "character", hashSeed: "5" },
+              ]}
+            />
+          </Row>
+        </Section>
+        <Section
+          title="Linked entity chip"
+          description="Small avatar + name pill, clickable. Used for Owners list on Pet detail and similar navigation chips."
+        >
+          <Row label="Person">
+            <LinkedEntityChip
+              name="Millie Cassidy"
+              avatar={{ fallback: "character", hashSeed: "millie" }}
+            />
+            <LinkedEntityChip
+              name="Tom Cassidy"
+              avatar={{ fallback: "character", hashSeed: "tom" }}
+            />
+            <LinkedEntityChip
+              name="Sarah Johnson"
+              avatar={{ fallback: "character", hashSeed: "sarah" }}
+            />
+          </Row>
+          <Row label="Pet">
+            <LinkedEntityChip
+              name="Bobo"
+              avatar={{ fallback: "species", species: "dog", hashSeed: "bobo" }}
+            />
+            <LinkedEntityChip
+              name="Mochi"
+              avatar={{ fallback: "species", species: "cat", hashSeed: "mochi" }}
+            />
+          </Row>
+        </Section>
+        <Section
+          title="Note callout"
+          description="Notion-style note pill. Lightbulb on a soft sand background. Used inside edit dialogs to flag side-effects ('Once saved...')."
+        >
+          <Row label="Default">
+            <div className="flex w-full max-w-xl items-start gap-3 rounded-2xl bg-sand-3 px-4 py-3">
+              <LightbulbIcon className="mt-0.5 size-4 shrink-0 fill-sand-9 text-sand-11" />
+              <p className="text-sm leading-5 text-foreground">
+                Once saved, changes will automatically apply to all products and services which are
+                already assigned to default taxes
+              </p>
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Pickable card grid"
+          description="Multi-select cards with icon, label, and a check indicator. Used for picking business types in the Edit business type dialog."
+        >
+          <Row label="Default">
+            <div className="grid w-full max-w-xl grid-cols-2 gap-3 sm:grid-cols-3">
+              {PICKABLE_TYPES.map(({ id, label, Icon }) => {
+                const isSelected = pickedTypes.has(id)
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => togglePick(id)}
+                    aria-pressed={isSelected}
+                    className={cn(
+                      "relative flex flex-col items-start gap-3 rounded-xl border bg-background p-4 text-left transition-colors",
+                      isSelected
+                        ? "border-transparent bg-cami-violet-3 outline-2 outline-cami-violet-8 -outline-offset-2"
+                        : "border-border/60 hover:bg-muted/30",
+                    )}
+                  >
+                    <span
+                      aria-hidden
+                      className={cn(
+                        "absolute top-2 right-2 inline-flex size-5 items-center justify-center rounded-full",
+                        isSelected
+                          ? "bg-cami-violet-8 text-white"
+                          : "border border-border text-transparent",
+                      )}
+                    >
+                      <CheckIcon className="size-3" />
+                    </span>
+                    <Icon className="size-6 text-foreground" />
+                    <span className="text-sm font-medium text-foreground">{label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Timeline row"
+          description="Vertical timeline used by Appointments / Visit history. Date / leading slot on the left, thin connector with a small dot, card on the right. Layout inspired by Luma's event list."
+        >
+          <div className="max-w-lg">
+            <ul className="flex flex-col">
+              <TimelineRow leading={<TimelineDate dayMonth="May 22" weekday="Friday" />}>
+                <div className="rounded-2xl border border-border/60 bg-card p-4">
+                  <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
+                    <span className="font-semibold text-foreground">10:00am</span>
+                    <span className="truncate text-muted-foreground">· Shampooch JVC</span>
+                  </div>
+                </div>
+              </TimelineRow>
+              <TimelineRow leading={<TimelineDate dayMonth="Apr 8" weekday="Wednesday" />}>
+                <div className="rounded-2xl border border-border/60 bg-card p-4">
+                  <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
+                    <span className="font-semibold text-foreground">2:30pm</span>
+                    <span className="truncate text-muted-foreground">· Shampooch JVC</span>
+                  </div>
+                </div>
+              </TimelineRow>
+              <TimelineRow isLast leading={<TimelineDate dayMonth="Mar 4" weekday="Monday" />}>
+                <div className="rounded-2xl border border-border/60 bg-card p-4">
+                  <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
+                    <span className="font-semibold text-foreground">11:00am</span>
+                    <span className="truncate text-muted-foreground">· Shampooch JVC</span>
+                  </div>
+                </div>
+              </TimelineRow>
+            </ul>
+          </div>
+
+          {/* Leading-less variant: no date gutter (grouped under a month header
+            instead), used by the gift-card activity timeline. A lone row still
+            shows the connector so it reads as a timeline. */}
+          <div className="max-w-lg">
+            <p className="mb-2 text-sm text-muted-foreground">May</p>
+            <ul className="flex flex-col">
+              <TimelineRow isLast>
+                <div className="rounded-2xl border border-border/60 bg-card p-4">
+                  <span className="font-semibold text-foreground">Gift card purchased</span>
+                  <p className="text-xs text-muted-foreground">Yesterday at 3:33pm by Husain NGI</p>
+                </div>
+              </TimelineRow>
+            </ul>
+          </div>
+        </Section>
+        <Section
+          title="Section card"
+          description="Section panel used inside detail surfaces. Title + optional right-aligned action + body."
+        >
+          <div className="flex max-w-md flex-col gap-3">
+            <SectionCard
+              title="Profile"
+              action={
+                <Button variant="secondary" size="sm" radius="full">
+                  Edit
+                </Button>
+              }
+            >
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs uppercase text-muted-foreground">Full name</span>
+                  <span>Millie Cassidy</span>
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs uppercase text-muted-foreground">Phone</span>
+                  <span>+971 58 509 9313</span>
+                </div>
+              </div>
+            </SectionCard>
+            <SectionCard
+              title="Notes"
               action={
                 <Button variant="secondary" size="sm" radius="full">
                   <PlusIcon />
-                  Book appointment
+                  Add note
                 </Button>
               }
-            />
+            >
+              <p className="text-sm text-muted-foreground">No notes yet.</p>
+            </SectionCard>
           </div>
-        </div>
-      </Section>
-
-      <Section
-        title="Timeline row"
-        description="Vertical timeline used by Appointments / Visit history. Date / leading slot on the left, thin connector with a small dot, card on the right. Layout inspired by Luma's event list."
-      >
-        <div className="max-w-lg">
-          <ul className="flex flex-col">
-            <TimelineRow leading={<TimelineDate dayMonth="May 22" weekday="Friday" />}>
-              <div className="rounded-2xl border border-border/60 bg-card p-4">
-                <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
-                  <span className="font-semibold text-foreground">10:00am</span>
-                  <span className="truncate text-muted-foreground">· Shampooch JVC</span>
-                </div>
-              </div>
-            </TimelineRow>
-            <TimelineRow leading={<TimelineDate dayMonth="Apr 8" weekday="Wednesday" />}>
-              <div className="rounded-2xl border border-border/60 bg-card p-4">
-                <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
-                  <span className="font-semibold text-foreground">2:30pm</span>
-                  <span className="truncate text-muted-foreground">· Shampooch JVC</span>
-                </div>
-              </div>
-            </TimelineRow>
-            <TimelineRow isLast leading={<TimelineDate dayMonth="Mar 4" weekday="Monday" />}>
-              <div className="rounded-2xl border border-border/60 bg-card p-4">
-                <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
-                  <span className="font-semibold text-foreground">11:00am</span>
-                  <span className="truncate text-muted-foreground">· Shampooch JVC</span>
-                </div>
-              </div>
-            </TimelineRow>
-          </ul>
-        </div>
-
-        {/* Leading-less variant: no date gutter (grouped under a month header
-            instead), used by the gift-card activity timeline. A lone row still
-            shows the connector so it reads as a timeline. */}
-        <div className="max-w-lg">
-          <p className="mb-2 text-sm text-muted-foreground">May</p>
-          <ul className="flex flex-col">
-            <TimelineRow isLast>
-              <div className="rounded-2xl border border-border/60 bg-card p-4">
-                <span className="font-semibold text-foreground">Gift card purchased</span>
-                <p className="text-xs text-muted-foreground">Yesterday at 3:33pm by Husain NGI</p>
-              </div>
-            </TimelineRow>
-          </ul>
-        </div>
-      </Section>
-
-      <Section
-        title="Global search takeover"
-        description="Full-screen search opened from the topbar magnifier (or Cmd/Ctrl+K). Reuses <FullScreenEditDialog> (same sticky header + pill Close as add/edit takeovers) with an xl <SearchInput>. Searches clients by name, mobile, email, or pet, and bookings by client name or booking reference (try 'B-77342'). Empty query shows Upcoming appointments + Clients (recently added). Clicking a client opens <ClientDetailDialog>; clicking an appointment opens <AppointmentDetailSheet> — both stack over the takeover."
-      >
-        <Row label="Open">
-          <Button onClick={() => setGlobalSearchOpen(true)}>Open global search</Button>
-        </Row>
-        <GlobalSearchDialog open={globalSearchOpen} onOpenChange={setGlobalSearchOpen} />
-      </Section>
-
-      <Section
-        title="Client detail dialog"
-        description="Centered Dialog modeled on <BusinessDetailDialog>. ~630px wide; sticky header with avatar + name + meta + Book now + Actions + Close; horizontal underline tabs with a 'More' overflow dropdown for less-used sections (Documents, Settings). Skeleton — each tab renders a placeholder; real content arrives per section."
-      >
-        <Row label="Pets">
-          <SegmentedToggle
-            value={detailHasPets ? "yes" : "no"}
-            onValueChange={(v) => setDetailHasPets(v === "yes")}
-            options={[
-              { value: "yes", label: "With pets" },
-              { value: "no", label: "Without pets" },
-            ]}
-            ariaLabel="Whether the partner manages pets"
-          />
-        </Row>
-        <Row label="Open">
-          <Button onClick={() => setDetailOpen(true)}>Open client detail</Button>
-        </Row>
-        <ClientDetailDialog
-          open={detailOpen}
-          onOpenChange={setDetailOpen}
-          client={{
-            id: "millie-cassidy-1",
-            name: "Millie Cassidy",
-            phone: "+971 58 509 9313",
-            recencyLabel: "First visit",
-          }}
-          hasPets={detailHasPets}
-          isOwner
-          onBookNow={() => toast("Book (stubbed)")}
-          onMerge={() => toast("Merge profiles (stubbed)")}
-          onDelete={() => toast.error("Delete client (stubbed)")}
-        />
-      </Section>
-
-      <Section
-        title="Boarding & daycare booking drawers"
-        description="Right-side Sheet detail drawers modeled on <AppointmentDetailSheet>. Boarding is night-based (rate/night, check-in/out, N Nights, Subtotal by nights); daycare is duration-based (plan label 'Full Day · Up to 8 hours', time range, Subtotal by minutes). Both share: collapsible customer card, pet card, editable status pill (Booked → Checked in → Checked out → No-show/Canceled), add-on chips + Add menu (Primary Service/Add-on/Product/Custom Item), Late check out fee toggle, notes, sticky Check Out. The New boarding stay create sheet mirrors the add-appointment shell."
-      >
-        <Row label="Boarding">
-          <div className="flex gap-2">
-            <Button onClick={() => setBoardingDrawerOpen(true)}>Open booking detail</Button>
-            <Button variant="outline" radius="full" onClick={() => setBoardingCreateOpen(true)}>
-              New boarding stay
-            </Button>
+        </Section>
+        <Section
+          title="KPI card and grid"
+          description="Static metric tiles for Overview-style headers. KpiGrid is 2-col by default; override className to change."
+        >
+          <div className="max-w-md">
+            <KpiGrid>
+              <KpiCard
+                label="Upcoming"
+                value="0"
+                info="Count of bookings in the future for this client."
+              />
+              <KpiCard
+                label="Total appts"
+                value="4"
+                info="Lifetime appointment count, including no-shows and cancellations."
+              />
+              <KpiCard
+                label="Total sales"
+                value="AED 0"
+                info="Lifetime revenue from this client."
+              />
+              <KpiCard label="No-shows" value="0" info="Lifetime count of no-shows." />
+            </KpiGrid>
           </div>
-        </Row>
-        <Row label="Daycare">
-          <Button onClick={() => setDaycareDrawerOpen(true)}>Open booking detail</Button>
-        </Row>
-        <BoardingDetailSheet
-          open={boardingDrawerOpen}
-          onOpenChange={setBoardingDrawerOpen}
-          stay={BOARDING_STAYS[0]}
-        />
-        <NewBoardingSheet
-          open={boardingCreateOpen}
-          onOpenChange={setBoardingCreateOpen}
-          date={BOARDING_TODAY}
-        />
-        <DaycareDetailSheet
-          open={daycareDrawerOpen}
-          onOpenChange={setDaycareDrawerOpen}
-          session={DAYCARE_SESSIONS[3]}
-        />
-      </Section>
-
-      <Section
-        title="Pet detail dialog"
-        description="Same shell as Client detail. Stacks over the client dialog when opened from inside it. Tabs: Overview · Family · Visit history · Pet details · Documents. Multi-owner aware — chip row in the header. Actions menu has Edit pet details + Delete pet."
-      >
-        <Row label="Open">
-          <Button onClick={() => setPetDetailOpen(true)}>Open pet detail</Button>
-        </Row>
-        <PetDetailDialog
-          open={petDetailOpen}
-          onOpenChange={setPetDetailOpen}
-          pet={{ id: "bobo", name: "Bobo", species: "dog", breed: "French Bulldog" }}
-          owners={[
-            { id: "millie-cassidy", name: "Millie Cassidy", phone: "+971 58 509 9313" },
-            { id: "tom-cassidy", name: "Tom Cassidy", phone: "+971 50 222 1133" },
-          ]}
-          isOwner
-        />
-      </Section>
-
-      <Section
-        title="Team member detail dialog"
-        description="Same centered Dialog shell as Client / Pet detail. Sticky header (avatar + name + permission access · email · phone + Edit + Actions + Close), underline tabs: Overview (KPIs, Works at, Services, Notes) · Details (Profile, Settings incl. permission role, Addresses, Emergency contacts). Owner rows lock profile/role edits; a pending invite shows an empty Overview. Opened from a row on /settings/team; Add uses the full-screen takeover."
-      >
-        <Row label="Status">
-          <SegmentedToggle
-            value={teamDetailStatus}
-            onValueChange={(v) => setTeamDetailStatus(v as "active" | "pending")}
-            options={[
-              { value: "active", label: "Active" },
-              { value: "pending", label: "Pending invite" },
-            ]}
-            ariaLabel="Team member status"
-          />
-        </Row>
-        <Row label="Detail">
-          <Button onClick={() => setTeamDetailOpen(true)}>Open team member detail</Button>
-        </Row>
-        <Row label="Add takeover">
-          <Button variant="outline" radius="full" onClick={() => setTeamAddOpen(true)}>
-            Open Add team member
-          </Button>
-        </Row>
-        <TeamMemberDetailDialog
-          open={teamDetailOpen}
-          onOpenChange={setTeamDetailOpen}
-          member={TEAM_DEMO_MEMBERS[teamDetailStatus]}
-          onEditProfile={() => toast("Edit profile (stubbed)")}
-          onEditRoles={() => toast("Edit roles & permissions (stubbed)")}
-          onEditServices={() => toast("Edit services (stubbed)")}
-          onEditSchedule={() => toast("Edit schedule (stubbed)")}
-          onResendInvitation={() => toast("Resend invitation (stubbed)")}
-          onRemove={() => toast.error("Remove from business (stubbed)")}
-        />
-        <AddTeamMemberDialog
-          open={teamAddOpen}
-          onOpenChange={setTeamAddOpen}
-          onAdd={() => toast.success("Team member added (stubbed)")}
-          businessName="Shampooch"
-        />
-      </Section>
-
-      <Section
-        title="My profile (settings panel)"
-        description="Personal info panel for the signed-in user (Settings → Account → My profile), scoped exactly to DSG-63 'view and edit contact details': one Contact card (Business-details pattern) with Legal name + masked mobile/email and a single Edit → full-screen takeover. Name saves directly; new mobile number → 6-digit OTP dialog (any 6 digits in the demo, shared OtpInput boxes); new email → 'Check your inbox' dialog (Resend with 30s cooldown / Cancel; the link click itself is simulated by a subtle bottom-right 'Demo: open confirmation link' control in the settings panel). Pending changes show as a neutral 'Pending' badge inline on the affected row that reopens the matching dialog; duplicates of team-member values blocked inline."
-      >
-        <div className="max-w-2xl rounded-2xl border border-border/60 bg-muted/20 p-6">
-          <MyProfilePanel />
-        </div>
-      </Section>
-
-      <Section
-        title="Add a signature dialog"
-        description="Standalone signature-capture modal: full name + Title, a Type / Draw segmented toggle — Type renders the scripted preview + Signature ID, Draw is a pointer canvas pad with Clear. Sign is disabled until valid. The public signer flow (/sign) now captures the signature inline in its split layout rather than in this modal; kept here for reuse elsewhere."
-      >
-        <Row label="Open">
-          <Button onClick={() => setSignatureOpen(true)}>Add a signature</Button>
-        </Row>
-        {signatureResult ? (
-          <Row label="Captured">
-            <SignaturePreview
-              businessName="Shampooch"
-              fullName={signatureResult.fullName}
-              signatureId={signatureResult.signatureId}
-              drawingDataUrl={signatureResult.drawingDataUrl}
+        </Section>
+        <Section
+          title="Settings row"
+          description="Icon + label/value stack used inside settings summary cards. When the value is null the row collapses into a subtle 'Add {label}' pill."
+        >
+          <Row label="Filled">
+            <div className="flex w-full max-w-md flex-col gap-5">
+              <SettingsRow icon={Building2Icon} label="Business name" value="Shampooch JVC" />
+              <SettingsRow icon={FlagIcon} label="Country" value="United Arab Emirates" />
+              <SettingsRow icon={BanknoteIcon} label="Currency" value="AED" />
+              <SettingsRow
+                icon={PercentIcon}
+                label="Tax calculation"
+                value="Retail prices include tax"
+              />
+            </div>
+          </Row>
+          <Row label="Empty (Add)">
+            <div className="flex w-full max-w-md flex-col gap-5">
+              <SettingsRow
+                icon={FacebookGlyphIcon}
+                label="Facebook"
+                value={null}
+                onAdd={() => toast("Open editor focused on Facebook")}
+              />
+              <SettingsRow
+                icon={XGlyphIcon}
+                label="X (Twitter)"
+                value={null}
+                onAdd={() => toast("Open editor focused on X")}
+              />
+              <SettingsRow
+                icon={InstagramGlyphIcon}
+                label="Instagram"
+                value={null}
+                onAdd={() => toast("Open editor focused on Instagram")}
+              />
+              <SettingsRow icon={GlobeIcon} label="Website" value="www.shampooch.ae" />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Sectioned sheet shell"
+          description="Two-column layout for sectioned add/edit takeovers (FullScreenEditDialog). Vertical sidenav left, scrollable content right. Optional leading slot above the nav for cases where you want identity context (e.g. Edit). Detail surfaces use a different pattern — see the next section."
+        >
+          <Row label="Leading slot">
+            <SegmentedToggle
+              value={shellMode}
+              onValueChange={(v) => {
+                const next = v as "add" | "detail"
+                setShellMode(next)
+                setShellSection(next === "add" ? "profile" : "profile")
+              }}
+              options={[
+                { value: "add", label: "None (Add)" },
+                { value: "detail", label: "Identity (Edit)" },
+              ]}
+              ariaLabel="Leading slot variant"
             />
           </Row>
-        ) : null}
-        <SignatureDialog
-          open={signatureOpen}
-          onOpenChange={setSignatureOpen}
-          businessName="Shampooch"
-          defaultFullName="Michelle You"
-          onSign={setSignatureResult}
-        />
-      </Section>
-
-      <Section
-        title="PDF viewer"
-        description="<PdfViewer> renders PDFs in-app on a canvas (react-pdf / pdf.js) inside our own themed, scrolling container — no native viewer chrome. Pages fit the container width (= 100% zoom); a floating dark toolbar carries zoom (−/+, 50–250%) and page navigation (Prev · Page X/Y · Next, tracked as you scroll). Loaded client-only (dynamic, ssr:false). Used by the public signer flow (/sign), the operator 'View form' split layout, and the Files → Preview action. Here it shows a consent PDF built client-side from copy."
-      >
-        <Row label="Document">
-          <div className="w-full max-w-xl">
-            {demoPdfUrl ? (
-              <PdfViewer file={demoPdfUrl} />
-            ) : (
-              <div className="flex h-60 items-center justify-center rounded-2xl border border-border/60 bg-muted/30 text-sm text-muted-foreground">
-                Preparing document…
+          <div className="mt-4 rounded-2xl border border-border/60 bg-muted/30 p-6">
+            <SectionedSheetShell
+              groups={
+                [
+                  {
+                    label: "Personal",
+                    items: [
+                      { id: "profile", label: "Profile", icon: CircleUserIcon },
+                      { id: "addresses", label: "Addresses", icon: MapPinIcon },
+                      { id: "emergency", label: "Emergency contacts", icon: PhoneIcon },
+                    ],
+                  },
+                  {
+                    label: "Settings",
+                    items: [{ id: "settings", label: "Notifications", icon: SettingsIcon }],
+                  },
+                ] satisfies SectionGroup[]
+              }
+              activeId={shellSection}
+              onActiveChange={setShellSection}
+              leading={
+                shellMode === "detail" ? (
+                  <div className="flex flex-col items-center gap-3 rounded-2xl border border-border/60 bg-background p-5 text-center">
+                    <Avatar size="xl" fallback="character" name="Millie Cassidy" />
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-base font-semibold">Millie Cassidy</span>
+                      <span className="text-sm text-muted-foreground">+971 58 509 9313</span>
+                    </div>
+                    <div className="flex w-full gap-2">
+                      <Button variant="outline" size="sm" radius="full" className="flex-1">
+                        Actions
+                      </Button>
+                      <Button size="sm" radius="full" className="flex-1">
+                        Book now
+                      </Button>
+                    </div>
+                  </div>
+                ) : null
+              }
+            >
+              <div className="flex min-h-[260px] flex-col gap-3 rounded-2xl border border-border/60 bg-background p-6">
+                <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Section content
+                </span>
+                <h3 className="font-heading text-2xl font-semibold capitalize">
+                  {shellSection.replace(/-/g, " ")}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Form fields for this section render here. Save persists; Close discards.
+                </p>
               </div>
-            )}
+            </SectionedSheetShell>
           </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Add / Edit takeovers"
-        description="<FullScreenEditDialog> + sectioned sidenav. Quick-create rule: only the first name (client) or name + species (pet) are required. Edit mode pre-populates fields and deep-links to the relevant section."
-      >
-        <Row label="Add client">
-          <Button onClick={() => setClientEditOpen(true)}>Open Add client</Button>
-        </Row>
-        <Row label="Add pet">
-          <Button onClick={() => setPetEditOpen(true)}>Open Add pet</Button>
-        </Row>
-        <ClientEditSheet open={clientEditOpen} onOpenChange={setClientEditOpen} mode="add" />
-        <PetEditSheet open={petEditOpen} onOpenChange={setPetEditOpen} mode="add" />
-      </Section>
-
-      <Section
-        title="Dialog"
-        description="Centered modal. Per cami terminology, Detail surfaces use this; Add / Edit use the full-screen takeover instead."
-      >
-        <Row label="Basic">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">Open dialog</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Confirm action</DialogTitle>
-                <DialogDescription>
-                  This will do the thing you asked. You can undo within ten seconds.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="ghost">Cancel</Button>
-                </DialogClose>
-                <Button>Confirm</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </Row>
-        <Row label="Destructive confirm">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">Delete client</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Delete this client?</DialogTitle>
-                <DialogDescription>
-                  Millie Cassidy and her 2 pets will be removed. This cannot be undone.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="ghost">Cancel</Button>
-                </DialogClose>
-                <Button variant="destructive">Delete</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </Row>
-        <Row label="With form body">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">Add note</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add a note</DialogTitle>
-                <DialogDescription>
-                  Private to your business. Visible to all staff.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col gap-3 py-2">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="dialog-note-title">Title</Label>
-                  <Input id="dialog-note-title" placeholder="e.g. Prefers morning slots" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="dialog-note-body">Note</Label>
-                  <Textarea id="dialog-note-body" placeholder="Add details…" rows={3} />
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="ghost">Cancel</Button>
-                </DialogClose>
-                <Button>Save note</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </Row>
-        <Row label="Title only">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">Minimal dialog</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Heads up</DialogTitle>
-              </DialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button>Got it</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </Row>
-      </Section>
-
-      <Section title="Sheet, Popover, Dropdown, Tooltip">
-        <Row label="Sheet">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline">Open sheet</Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Quick settings</SheetTitle>
-                <SheetDescription>Slide-in panel for secondary navigation.</SheetDescription>
-              </SheetHeader>
-            </SheetContent>
-          </Sheet>
-        </Row>
-        <Row label="Popover">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline">
-                <SettingsIcon /> Settings
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 text-sm">Quick settings panel content.</PopoverContent>
-          </Popover>
-        </Row>
-        <Row label="Dropdown">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                Actions <ChevronDownIcon />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-48">
-              <DropdownMenuLabel>My account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <CheckIcon /> Mark done
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon /> Notifications
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </Row>
-        <Row label="Tooltip">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Info">
-                <BellIcon />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Notifications</TooltipContent>
-          </Tooltip>
-        </Row>
-        <Row label="Toast">
-          <Button
-            variant="outline"
-            onClick={() => toast("Event created", { description: "Sunday at 2pm" })}
-          >
-            Fire toast
-          </Button>
-        </Row>
-      </Section>
-
-      <Section title="Separator">
-        <div className="max-w-md">
-          <p className="text-sm text-foreground">Above</p>
-          <Separator className="my-4" />
-          <p className="text-sm text-foreground">Below</p>
-        </div>
-      </Section>
-
-      <Section
-        title="Merchant money surfaces — account summary (DSG-77)"
-        description="Split custody made legible: terminal money is held and paid by NeoPay, online money by Cami. Every figure is derived from one ledger (lib/money), so the breakdown arrives at the headline instead of asserting it — the defect the benchmark shows at 9.3x. D6 is undecided, so both layouts are here."
-      >
-        <Row label="Two rails">
-          <MoneySummaryDemo variant="two-rail" />
-        </Row>
-        <Row label="Blended">
-          <MoneySummaryDemo variant="blended" />
-        </Row>
-        <Row label="Payouts paused">
-          <MoneySummaryDemo variant="two-rail" block="destination-unverified" />
-        </Row>
-        <Row label="Below minimum">
-          <MoneySummaryDemo variant="two-rail" block="below-minimum" />
-        </Row>
-        <Row label="Terminal only">
-          <MoneySummaryDemo variant="two-rail" rails={{ online: false, terminal: true }} />
-        </Row>
-        <Row label="Zero activity">
-          <MoneySummaryDemo variant="two-rail" empty />
-        </Row>
-      </Section>
-
-      <Section
-        title="Merchant money surfaces — activity and detail (DSG-78)"
-        description="The itemised feed under the number. Day groups carry a NET subtotal rather than takings, so a heavy fee day cannot read as a good one. Rows carry direction in the icon and colour before the sign. Open any row for the detail panel; open a payout row to drill into what it carried and watch the contents sum to the payout figure."
-      >
-        <Row label="Both rails">
-          <MoneyActivityDemo />
-        </Row>
-        <Row label="Terminal only">
-          <MoneyActivityDemo rails={{ online: false, terminal: true }} />
-        </Row>
-        <Row label="Empty">
-          <MoneyActivityDemo empty />
-        </Row>
-      </Section>
-
-      <Section
-        title="Merchant money surfaces — bank account (DSG-75)"
-        description="The one control that can redirect every dirham the business takes, so changing it is a multi-step flow and never an inline edit. The reference version is a masked account and an Edit button; this one adds a verification state, both senders shown against the single account they pay into, and a permanent change log that keeps failed attempts. The state worth clicking is the gateway failure — it must leave the old account untouched and say so."
-      >
-        <Row label="Verified">
-          <BankAccountDemo state="verified" />
-        </Row>
-        <Row label="Unverified">
-          <BankAccountDemo state="unverified" />
-        </Row>
-        <Row label="Gateway failed">
-          <BankAccountDemo state="gateway-failed" />
-        </Row>
-        <Row label="Read-only">
-          <BankAccountDemo state="read-only" />
-        </Row>
-        <Row label="Terminal only">
-          <BankAccountDemo state="terminal-only" />
-        </Row>
-      </Section>
-
-      <Section
-        title="Merchant money surfaces — invoices and fees (DSG-76)"
-        description="What Cami charged, per period, with the current month pending. Cami's statement is a different document from the benchmark's: no subscription line (the OS is free), the rate stated on the screen rather than only inside a download, and every fee expandable to the sale that caused it with the working shown. Each line renders the rate snapshotted at capture, so a past statement never re-rates after a renegotiation."
-      >
-        <Row label="NeoPay deducts">
-          <MoneyFeesDemo terminalModel="gateway-deducts" />
-        </Row>
-        <Row label="Cami invoices">
-          <MoneyFeesDemo terminalModel="cami-invoices" />
-        </Row>
-        <Row label="Online only">
-          <MoneyFeesDemo
-            terminalModel="gateway-deducts"
-            rails={{ online: true, terminal: false }}
+        </Section>
+        <Section
+          title="Address search field"
+          description="Search first, structured fields second. The repo's older address blocks put a decorative 'Search address' box above a grid the merchant still filled in by hand; here picking a place fills the grid, and the grid stays editable because a places result is a starting point and the trade licence is what has to match. Manual entry is the first row of the dropdown, not a fallback reached by failing — plenty of registered addresses (new buildings, free-zone desks, PO boxes) are in no index at all. Arrow keys and Enter work the dropdown. The suggestions stand in for a Places Autocomplete response; production swaps the constant for the call. PRD-144 added the pin: a picked place carries its placeId and coordinates onto the record, and editing the text afterwards drops them — a reference that outlived the text it described would route a driver to the previous address. Field set matches the benchmark's billing form rather than a full postal schema — no emirate, because in the UAE it repeats the city on almost every address, and blank optional fields collapse instead of leaving a gap in the invoice's issuer block."
+        >
+          <Row label="Empty — search only">
+            <AddressSearchFieldDemo />
+          </Row>
+          <Row label="Prefilled — fields already open">
+            <AddressSearchFieldDemo initial={DEMO_BILLING_DETAILS.address} />
+          </Row>
+        </Section>
+        <Section
+          title="Add a signature dialog"
+          description="Standalone signature-capture modal: full name + Title, a Type / Draw segmented toggle — Type renders the scripted preview + Signature ID, Draw is a pointer canvas pad with Clear. Sign is disabled until valid. The public signer flow (/sign) now captures the signature inline in its split layout rather than in this modal; kept here for reuse elsewhere."
+        >
+          <Row label="Open">
+            <Button onClick={() => setSignatureOpen(true)}>Add a signature</Button>
+          </Row>
+          {signatureResult ? (
+            <Row label="Captured">
+              <SignaturePreview
+                businessName="Shampooch"
+                fullName={signatureResult.fullName}
+                signatureId={signatureResult.signatureId}
+                drawingDataUrl={signatureResult.drawingDataUrl}
+              />
+            </Row>
+          ) : null}
+          <SignatureDialog
+            open={signatureOpen}
+            onOpenChange={setSignatureOpen}
+            businessName="Shampooch"
+            defaultFullName="Michelle You"
+            onSign={setSignatureResult}
           />
-        </Row>
-      </Section>
-
-      <Section
-        title="Merchant money surfaces — billing details (DSG-74)"
-        description="Four values, held once, printed on every tax invoice the merchant sends and every invoice Cami sends them. Missing fields collapse into an Add pill rather than a blank row, and the no-TRN state names its consequence: ordinary invoices with no tax wording. Edit opens the standard takeover, which says changes apply forward only, and takes the registered address through the address search field below rather than a free-text box."
-      >
-        <Row label="Complete">
-          <BillingDetailsDemo state="complete" />
-        </Row>
-        <Row label="No TRN">
-          <BillingDetailsDemo state="no-trn" />
-        </Row>
-        <Row label="Nothing filled in">
-          <BillingDetailsDemo state="empty" />
-        </Row>
-      </Section>
-
-      <Section
-        title="Address search field"
-        description="Search first, structured fields second. The repo's older address blocks put a decorative 'Search address' box above a grid the merchant still filled in by hand; here picking a place fills the grid, and the grid stays editable because a places result is a starting point and the trade licence is what has to match. Manual entry is the first row of the dropdown, not a fallback reached by failing — plenty of registered addresses (new buildings, free-zone desks, PO boxes) are in no index at all. Arrow keys and Enter work the dropdown. The suggestions stand in for a Places Autocomplete response; production swaps the constant for the call. PRD-144 added the pin: a picked place carries its placeId and coordinates onto the record, and editing the text afterwards drops them — a reference that outlived the text it described would route a driver to the previous address. Field set matches the benchmark's billing form rather than a full postal schema — no emirate, because in the UAE it repeats the city on almost every address, and blank optional fields collapse instead of leaving a gap in the invoice's issuer block."
-      >
-        <Row label="Empty — search only">
-          <AddressSearchFieldDemo />
-        </Row>
-        <Row label="Prefilled — fields already open">
-          <AddressSearchFieldDemo initial={DEMO_BILLING_DETAILS.address} />
-        </Row>
-      </Section>
-
-      <Section
-        title="Settings row"
-        description="Icon + label/value stack used inside settings summary cards. When the value is null the row collapses into a subtle 'Add {label}' pill."
-      >
-        <Row label="Filled">
-          <div className="flex w-full max-w-md flex-col gap-5">
-            <SettingsRow icon={Building2Icon} label="Business name" value="Shampooch JVC" />
-            <SettingsRow icon={FlagIcon} label="Country" value="United Arab Emirates" />
-            <SettingsRow icon={BanknoteIcon} label="Currency" value="AED" />
-            <SettingsRow
-              icon={PercentIcon}
-              label="Tax calculation"
-              value="Retail prices include tax"
-            />
-          </div>
-        </Row>
-        <Row label="Empty (Add)">
-          <div className="flex w-full max-w-md flex-col gap-5">
-            <SettingsRow
-              icon={FacebookGlyphIcon}
-              label="Facebook"
-              value={null}
-              onAdd={() => toast("Open editor focused on Facebook")}
-            />
-            <SettingsRow
-              icon={XGlyphIcon}
-              label="X (Twitter)"
-              value={null}
-              onAdd={() => toast("Open editor focused on X")}
-            />
-            <SettingsRow
-              icon={InstagramGlyphIcon}
-              label="Instagram"
-              value={null}
-              onAdd={() => toast("Open editor focused on Instagram")}
-            />
-            <SettingsRow icon={GlobeIcon} label="Website" value="www.shampooch.ae" />
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Terminals (DSG-62)"
-        description="Add card machines, issue their credentials, and manage sign-in sessions — Business Settings > Payments > Terminals. Replaces the merchant-level shared-PIN model. Each terminal is added from the dashboard with a name and a location, and comes back with two credentials that do different jobs: a pairing code (TRM-XXXXXX, typed into the hardware once, never changes) and a 6-digit sign-in PIN (typed every sign-in, readable from the row any time, regenerated whenever the merchant wants). Both are shown together because that is how a device gets set up, but labelled apart because their lifecycles differ. Per-device rather than merchant-wide, so regenerating a PIN or a failed-attempt lockout hits that terminal alone. Status is a precedence, first match wins: Locked · 12 min, Not paired, Active, No sessions — the middle two are states the source mockup had no room for and cover most of a working morning. Row menu: Show code & PIN, Rename terminal, Change location (split apart because 'Edit' didn't say what it edits), N devices signed in, Regenerate PIN, Unlock now while locked, Remove terminal. Sessions open as a modal per terminal rather than a second listing, showing device model, app build, IP, signed in and expires, with Revoke per session — a session belongs to hardware, not a person, since the PIN is shared by whoever works that counter. Nothing is capped: as many terminals as there is hardware for, as many concurrent sessions as staff open. Three instances below are live; the faint controls at the bottom stand in for the two things that happen on the hardware (pairing a device, signing in) and swap the demo data."
-      >
-        <Row label="Empty (nothing added yet)">
-          <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
-            <TerminalsPanel
-              onBack={() => toast("Back to Payments")}
-              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
-            />
-          </div>
-        </Row>
-        <Row label="Typical (2 terminals)">
-          <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
-            <TerminalsPanel
-              onBack={() => toast("Back to Payments")}
-              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
-              initialState="typical"
-            />
-          </div>
-        </Row>
-        <Row label="All statuses">
-          <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
-            <TerminalsPanel
-              onBack={() => toast("Back to Payments")}
-              breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
-              initialState="full"
-            />
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Notifications settings"
-        description="Sender ID, reminder channels, and per-message usage — Business Settings > Notifications. Follow-on to the Notifications & Reminders sign-off, which excluded all of this. The Sender ID is one state machine rather than three timelines (not-submitted → submitted → approved | rejected), with CAMI as the fallback in three of the four states — so the short-term 'just enable SMS in UAE' ask is satisfied by not-submitted working properly, not by an interim screen. It states that once: the field carries the registered value and the line beneath it renders only in the two states where what customers see differs from what was entered, since in the other two the field already says it. Merchant intent and the Cami HQ channel grant stay separate fields and are never merged: an ungranted channel locks its column and keeps one 'not enabled for your business' notice rather than hiding the column, because a missing column reads as a missing feature, and re-enabling at HQ restores exactly what the merchant had switched on. Reminders event labels link into their Communication templates editor, underlined on hover only. Usage leads with a share-of-cost bar — SMS is 81% of the bill on fewer sends than email, and three right-aligned figures made you compute that — plus a straight-line month-end estimate under the total, suppressed early in a month where one day extrapolated over thirty-one is noise. Per-message cost is stamped at send time rather than derived from the current rate, so an HQ rate change can't retroactively rewrite last month's consumption. The Log tab groups by day with a per-day count and puts its rows in one bordered card rather than a card each, and reads real ISO timestamps so the grouping has a date to bucket on. One live instance below, not three: the demo controls write to the shared store, so parallel copies would fight over it. Walk the four Sender ID states and the WhatsApp grant with the faint controls bottom-right — both stand in for decisions taken in Cami HQ. A third control, 'WhatsApp unused / consuming', is there for coverage rather than for anything HQ decides: the shipped default has WhatsApp at zero cost, so without it the share bar's three-segment state could not be seen at all."
-      >
-        <Row label="Live (Settings + Log tabs)">
-          <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
-            {/* The panel reads its deep-link params with useSearchParams, which
-                bails out of prerendering unless a boundary sits above it —
-                /playground is a static page, so the boundary lives here. */}
-            <Suspense fallback={null}>
-              <NotificationsSettingsPanel />
-            </Suspense>
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Notifications, Cami HQ control plane"
-        description="The HQ half of the notification spec — a Notifications tab on the partner record (Cami HQ > Partners > any partner). Three sections in the order someone debugging a partner asks about them. Channels: master switches, where turning one off locks that column in the merchant's own settings without clearing their intent, so turning it back on restores exactly what they had. Sender ID: the registered name, the Approve / Reject decision (Reject requires a reason, because it renders verbatim in the merchant's settings and a rejection with no reason strands them with nothing to fix), and — only when it differs from the registered name — what customers actually see; approved, the two are the same word, so showing both was one fact in two labelled boxes. Rates: blank means inherited, which is what the card always claimed and the field never did, with the placeholder carrying the inherited number; clearing the field or typing the global value back returns the partner to inheriting, where before touching the field made them overridden with no way out. Both rate editors bind to the typed string rather than the number — parsing each keystroke with Number ate the decimal point as it was typed, so a decimal rate was untypeable and digits accumulated into AED 2266 per message — and both warn above AED 1.00, eight times the highest real rate, while staying quiet at 0.24 because that is a legitimate doubled SMS segment. Only a pending registration has a decision to take: approving or rejecting anything else would name an action that already happened. The four rows below are the states that matter, each reading a different demo partner; edits are local to the row so they don't fight each other. Furry Tales carries no config at all, which is also the state where the Sender ID card's null guard earns its keep."
-      >
-        <Row label="Approved Sender ID, global rates (Shampooch)">
-          <div className="w-full max-w-2xl">
-            <HqNotificationsDemo slug="shampooch-jvc" />
-          </div>
-        </Row>
-        <Row label="Pending Sender ID + SMS rate override (Pawhaus)">
-          <div className="w-full max-w-2xl">
-            <HqNotificationsDemo slug="pawhaus" />
-          </div>
-        </Row>
-        <Row label="Rejected Sender ID, SMS switched off (Doggos)">
-          <div className="w-full max-w-2xl">
-            <HqNotificationsDemo slug="doggos" />
-          </div>
-        </Row>
-        <Row label="No config at all — inherits every default (Furry Tales)">
-          <div className="w-full max-w-2xl">
-            <HqNotificationsDemo slug="furry-tales" />
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Communication templates"
-        description="What each automated message actually says, per channel — Business Settings > Communication templates (DSG-83). The companion to the Notifications panel above: that one decides whether an event sends, this decides its wording, and there is deliberately no toggle here because two switches for one fact drift apart. Templates key on the same ReminderEvent list the Reminders matrix uses rather than a list of their own, so the two surfaces can never disagree about which messages exist. Only overrides are stored, never a full copy of every default — so 'Reset to default' is a delete, and a default the design team improves later still reaches every merchant who never touched it. Four things to walk: click any row's Edit for the full-screen editor (form left, sticky live preview right, both resolving placeholders against sample values); type a nonsense {{token}} to see the unrecognised-placeholder warning, since a typo sends as written rather than being silently dropped; open the WhatsApp tab, where nothing is switched on yet and the card header says so once instead of dimming all seven rows; then switch a few WhatsApp events on under Notifications and come back, where the rest carry an 'Off' badge and stay editable. Row text is resolved and drops the shared 'Hi {{client}}' opener — six of seven WhatsApp bodies start identically, so a raw excerpt spent its first third saying nothing. SMS is absent on purpose: the ticket names email and WhatsApp, and that exclusion is documented on /screens and in the spec rather than in the panel."
-      >
-        <Row label="Live (Email + WhatsApp tabs)">
-          <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
-            {/* Same reason as the notifications panel: the panel reads its
-                deep-link params with useSearchParams, which bails out of
-                prerendering unless a boundary sits above it. */}
-            <Suspense fallback={null}>
-              <CommsTemplatesPanel />
-            </Suspense>
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Note callout"
-        description="Notion-style note pill. Lightbulb on a soft sand background. Used inside edit dialogs to flag side-effects ('Once saved...')."
-      >
-        <Row label="Default">
-          <div className="flex w-full max-w-xl items-start gap-3 rounded-2xl bg-sand-3 px-4 py-3">
-            <LightbulbIcon className="mt-0.5 size-4 shrink-0 fill-sand-9 text-sand-11" />
-            <p className="text-sm leading-5 text-foreground">
-              Once saved, changes will automatically apply to all products and services which are
-              already assigned to default taxes
-            </p>
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Pickable card grid"
-        description="Multi-select cards with icon, label, and a check indicator. Used for picking business types in the Edit business type dialog."
-      >
-        <Row label="Default">
-          <div className="grid w-full max-w-xl grid-cols-2 gap-3 sm:grid-cols-3">
-            {PICKABLE_TYPES.map(({ id, label, Icon }) => {
-              const isSelected = pickedTypes.has(id)
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => togglePick(id)}
-                  aria-pressed={isSelected}
-                  className={cn(
-                    "relative flex flex-col items-start gap-3 rounded-xl border bg-background p-4 text-left transition-colors",
-                    isSelected
-                      ? "border-transparent bg-cami-violet-3 outline-2 outline-cami-violet-8 -outline-offset-2"
-                      : "border-border/60 hover:bg-muted/30",
-                  )}
-                >
-                  <span
-                    aria-hidden
-                    className={cn(
-                      "absolute top-2 right-2 inline-flex size-5 items-center justify-center rounded-full",
-                      isSelected
-                        ? "bg-cami-violet-8 text-white"
-                        : "border border-border text-transparent",
-                    )}
-                  >
-                    <CheckIcon className="size-3" />
-                  </span>
-                  <Icon className="size-6 text-foreground" />
-                  <span className="text-sm font-medium text-foreground">{label}</span>
-                </button>
-              )
-            })}
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Impersonation banner"
-        description="Bottom-anchored pill on the Partner portal during a Cami HQ impersonation session. Yellow active state, tomato expiring/expired states, plus a collapsed toggle that doubles as a re-open affordance."
-      >
-        <Row label="Active">
-          <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
-            <ImpersonationBanner
-              ownerName="Maz Khan"
-              businessName="Shampooch JVC"
-              onExit={() => toast.success("Impersonation stopped")}
-            />
-          </div>
-        </Row>
-        <Row label="Expiring (5 min)">
-          <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
-            <ImpersonationBanner
-              ownerName="Maz Khan"
-              businessName="Shampooch JVC"
-              durationSeconds={4 * 60}
-              expiringThresholdSeconds={5 * 60}
-              onExit={() => toast.success("Impersonation stopped")}
-            />
-          </div>
-        </Row>
-        <Row label="Expired (terminal)">
-          <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
-            <ImpersonationBanner
-              ownerName="Maz Khan"
-              businessName="Shampooch JVC"
-              durationSeconds={0}
-              onExit={() => toast.success("Window closed")}
-            />
-          </div>
-        </Row>
-        <Row label="Collapsed">
-          <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
-            <ImpersonationBanner
-              ownerName="Maz Khan"
-              businessName="Shampooch JVC"
-              defaultCollapsed
-              onExit={() => toast.success("Impersonation stopped")}
-            />
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Appointments — booking block"
-        description="Booking card rendered on the People grid. Color carries service category, fill saturation and border style overlay status. All content elements (time, price, name, service, icons) render at every size; truncation handles the squeeze."
-      >
-        <Row label="Sizes (15/30/60/180 min)">
-          {[15, 30, 60, 180].map((min) => (
-            <div
-              key={min}
-              className="relative w-[148px] border border-border/40 bg-muted/20"
-              style={{ height: Math.max(28, min * (95 / 60)) }}
-            >
-              <AppointmentBlock
-                booking={{
-                  id: `demo-${min}`,
-                  staffId: "demo",
-                  start: "10:00",
-                  durationMin: min,
-                  status: "confirmed",
-                  serviceCategory: "grooming",
-                  serviceName: min < 30 ? "Nails Clip" : "Wash & Blow Dry SM",
-                  clientName: "Tom Cassidy",
-                  petName: "Luna",
-                  petSpecies: "cat",
-                  priceMinor: min < 30 ? 3000 : 14000,
-                  hasDeposit: min >= 60,
-                }}
-                top={0}
-                height={Math.max(24, min * (95 / 60))}
-              />
+        </Section>
+        <Section
+          lazy
+          title="PDF viewer"
+          description="<PdfViewer> renders PDFs in-app on a canvas (react-pdf / pdf.js) inside our own themed, scrolling container — no native viewer chrome. Pages fit the container width (= 100% zoom); a floating dark toolbar carries zoom (−/+, 50–250%) and page navigation (Prev · Page X/Y · Next, tracked as you scroll). Loaded client-only (dynamic, ssr:false). Used by the public signer flow (/sign), the operator 'View form' split layout, and the Files → Preview action. Here it shows a consent PDF built client-side from copy."
+        >
+          <Row label="Document">
+            <div className="w-full max-w-xl">
+              {demoPdfUrl ? (
+                <PdfViewer file={demoPdfUrl} />
+              ) : (
+                <div className="flex h-60 items-center justify-center rounded-2xl border border-border/60 bg-muted/30 text-sm text-muted-foreground">
+                  Preparing document…
+                </div>
+              )}
             </div>
-          ))}
-        </Row>
-        <Row label="Status variants">
-          {(
-            [
-              "booked",
-              "confirmed",
-              "checked-in",
-              "ready-for-pickup",
-              "completed",
-              "cancelled",
-              "no-show",
-            ] as MockBookingStatus[]
-          ).map((status) => (
-            <div
-              key={status}
-              className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20"
-            >
-              <AppointmentBlock
-                booking={{
-                  id: `demo-${status}`,
-                  staffId: "demo",
-                  start: "10:00",
-                  durationMin: 60,
-                  status,
-                  serviceCategory: "grooming",
-                  serviceName: "Full Grooming SM",
-                  clientName: "Karen Dougall",
-                  petName: "Willow",
-                  petSpecies: "dog",
-                  priceMinor: 21000,
-                }}
-                top={0}
-                height={95}
-              />
+          </Row>
+        </Section>
+      </Lane>
+      <Lane
+        id="detail-views"
+        label="Detail views & takeovers"
+        blurb="The drawers, dialogs and full-screen takeovers a row opens into."
+      >
+        <Section
+          title="Client detail dialog"
+          description="Centered Dialog modeled on <BusinessDetailDialog>. ~630px wide; sticky header with avatar + name + meta + Book now + Actions + Close; horizontal underline tabs with a 'More' overflow dropdown for less-used sections (Documents, Settings). Skeleton — each tab renders a placeholder; real content arrives per section."
+        >
+          <Row label="Pets">
+            <SegmentedToggle
+              value={detailHasPets ? "yes" : "no"}
+              onValueChange={(v) => setDetailHasPets(v === "yes")}
+              options={[
+                { value: "yes", label: "With pets" },
+                { value: "no", label: "Without pets" },
+              ]}
+              ariaLabel="Whether the partner manages pets"
+            />
+          </Row>
+          <Row label="Open">
+            <Button onClick={() => setDetailOpen(true)}>Open client detail</Button>
+          </Row>
+          <ClientDetailDialog
+            open={detailOpen}
+            onOpenChange={setDetailOpen}
+            client={{
+              id: "millie-cassidy-1",
+              name: "Millie Cassidy",
+              phone: "+971 58 509 9313",
+              recencyLabel: "First visit",
+            }}
+            hasPets={detailHasPets}
+            isOwner
+            onBookNow={() => toast("Book (stubbed)")}
+            onMerge={() => toast("Merge profiles (stubbed)")}
+            onDelete={() => toast.error("Delete client (stubbed)")}
+          />
+        </Section>
+        <Section
+          title="Pet detail dialog"
+          description="Same shell as Client detail. Stacks over the client dialog when opened from inside it. Tabs: Overview · Family · Visit history · Pet details · Documents. Multi-owner aware — chip row in the header. Actions menu has Edit pet details + Delete pet."
+        >
+          <Row label="Open">
+            <Button onClick={() => setPetDetailOpen(true)}>Open pet detail</Button>
+          </Row>
+          <PetDetailDialog
+            open={petDetailOpen}
+            onOpenChange={setPetDetailOpen}
+            pet={{ id: "bobo", name: "Bobo", species: "dog", breed: "French Bulldog" }}
+            owners={[
+              { id: "millie-cassidy", name: "Millie Cassidy", phone: "+971 58 509 9313" },
+              { id: "tom-cassidy", name: "Tom Cassidy", phone: "+971 50 222 1133" },
+            ]}
+            isOwner
+          />
+        </Section>
+        <Section
+          title="Team member detail dialog"
+          description="Same centered Dialog shell as Client / Pet detail. Sticky header (avatar + name + permission access · email · phone + Edit + Actions + Close), underline tabs: Overview (KPIs, Works at, Services, Notes) · Details (Profile, Settings incl. permission role, Addresses, Emergency contacts). Owner rows lock profile/role edits; a pending invite shows an empty Overview. Opened from a row on /settings/team; Add uses the full-screen takeover."
+        >
+          <Row label="Status">
+            <SegmentedToggle
+              value={teamDetailStatus}
+              onValueChange={(v) => setTeamDetailStatus(v as "active" | "pending")}
+              options={[
+                { value: "active", label: "Active" },
+                { value: "pending", label: "Pending invite" },
+              ]}
+              ariaLabel="Team member status"
+            />
+          </Row>
+          <Row label="Detail">
+            <Button onClick={() => setTeamDetailOpen(true)}>Open team member detail</Button>
+          </Row>
+          <Row label="Add takeover">
+            <Button variant="outline" radius="full" onClick={() => setTeamAddOpen(true)}>
+              Open Add team member
+            </Button>
+          </Row>
+          <TeamMemberDetailDialog
+            open={teamDetailOpen}
+            onOpenChange={setTeamDetailOpen}
+            member={TEAM_DEMO_MEMBERS[teamDetailStatus]}
+            onEditProfile={() => toast("Edit profile (stubbed)")}
+            onEditRoles={() => toast("Edit roles & permissions (stubbed)")}
+            onEditServices={() => toast("Edit services (stubbed)")}
+            onEditSchedule={() => toast("Edit schedule (stubbed)")}
+            onResendInvitation={() => toast("Resend invitation (stubbed)")}
+            onRemove={() => toast.error("Remove from business (stubbed)")}
+          />
+          <AddTeamMemberDialog
+            open={teamAddOpen}
+            onOpenChange={setTeamAddOpen}
+            onAdd={() => toast.success("Team member added (stubbed)")}
+            businessName="Shampooch"
+          />
+        </Section>
+        <Section
+          lazy
+          title="Boarding & daycare booking drawers"
+          description="Right-side Sheet detail drawers modeled on <AppointmentDetailSheet>. Boarding is night-based (rate/night, check-in/out, N Nights, Subtotal by nights); daycare is duration-based (plan label 'Full Day · Up to 8 hours', time range, Subtotal by minutes). Both share: collapsible customer card, pet card, editable status pill (Booked → Checked in → Checked out → No-show/Canceled), add-on chips + Add menu (Primary Service/Add-on/Product/Custom Item), Late check out fee toggle, notes, sticky Check Out. The New boarding stay create sheet mirrors the add-appointment shell."
+        >
+          <Row label="Boarding">
+            <div className="flex gap-2">
+              <Button onClick={() => setBoardingDrawerOpen(true)}>Open booking detail</Button>
+              <Button variant="outline" radius="full" onClick={() => setBoardingCreateOpen(true)}>
+                New boarding stay
+              </Button>
             </div>
-          ))}
-        </Row>
-        <Row label="Service categories">
-          {(
-            [
-              { cat: "grooming", svc: "Wash & Blow Dry" },
-              { cat: "vet", svc: "Vaccination" },
-              { cat: "daycare", svc: "Day Care · 12 pets" },
-              { cat: "boarding", svc: "Boarding Stay" },
-              { cat: "details", svc: "Nails Clip" },
-              { cat: "welcome", svc: "Meet & Greet" },
-            ] as Array<{ cat: MockServiceCategory; svc: string }>
-          ).map(({ cat, svc }) => (
-            <div
-              key={cat}
-              className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20"
-            >
-              <AppointmentBlock
-                booking={{
-                  id: `demo-${cat}`,
-                  staffId: "demo",
-                  start: "10:00",
-                  durationMin: 60,
-                  status: "confirmed",
-                  serviceCategory: cat,
-                  serviceName: svc,
-                  clientName: "Frances",
-                  petName: "Duke",
-                  petSpecies: "dog",
-                  priceMinor: 14000,
-                }}
-                top={0}
-                height={95}
-              />
-            </div>
-          ))}
-        </Row>
-        <Row label="Flag icons (pickup leads the row)">
-          {(
-            [
-              { key: "pickup", label: "Pet address only", flags: { needsPickup: true } },
-              { key: "deposit", label: "Deposit only", flags: { hasDeposit: true } },
-              {
-                key: "pickup-safety",
-                label: "Pet address + safety flag",
-                flags: { needsPickup: true, hasSafetyFlag: true },
-              },
-              {
-                key: "all",
-                label: "All four",
-                flags: {
-                  needsPickup: true,
-                  hasDeposit: true,
-                  isRecurring: true,
-                  hasSafetyFlag: true,
-                },
-              },
-            ] as Array<{ key: string; label: string; flags: Partial<MockBooking> }>
-          ).map(({ key, label, flags }) => (
-            <div key={key} className="flex flex-col gap-1.5">
-              <div className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20">
+          </Row>
+          <Row label="Daycare">
+            <Button onClick={() => setDaycareDrawerOpen(true)}>Open booking detail</Button>
+          </Row>
+          <BoardingDetailSheet
+            open={boardingDrawerOpen}
+            onOpenChange={setBoardingDrawerOpen}
+            stay={BOARDING_STAYS[0]}
+          />
+          <NewBoardingSheet
+            open={boardingCreateOpen}
+            onOpenChange={setBoardingCreateOpen}
+            date={BOARDING_TODAY}
+          />
+          <DaycareDetailSheet
+            open={daycareDrawerOpen}
+            onOpenChange={setDaycareDrawerOpen}
+            session={DAYCARE_SESSIONS[3]}
+          />
+        </Section>
+        <Section
+          title="My profile (settings panel)"
+          description="Personal info panel for the signed-in user (Settings → Account → My profile), scoped exactly to DSG-63 'view and edit contact details': one Contact card (Business-details pattern) with Legal name + masked mobile/email and a single Edit → full-screen takeover. Name saves directly; new mobile number → 6-digit OTP dialog (any 6 digits in the demo, shared OtpInput boxes); new email → 'Check your inbox' dialog (Resend with 30s cooldown / Cancel; the link click itself is simulated by a subtle bottom-right 'Demo: open confirmation link' control in the settings panel). Pending changes show as a neutral 'Pending' badge inline on the affected row that reopens the matching dialog; duplicates of team-member values blocked inline."
+        >
+          <div className="max-w-2xl rounded-2xl border border-border/60 bg-muted/20 p-6">
+            <MyProfilePanel />
+          </div>
+        </Section>
+        <Section
+          title="Add / Edit takeovers"
+          description="<FullScreenEditDialog> + sectioned sidenav. Quick-create rule: only the first name (client) or name + species (pet) are required. Edit mode pre-populates fields and deep-links to the relevant section."
+        >
+          <Row label="Add client">
+            <Button onClick={() => setClientEditOpen(true)}>Open Add client</Button>
+          </Row>
+          <Row label="Add pet">
+            <Button onClick={() => setPetEditOpen(true)}>Open Add pet</Button>
+          </Row>
+          <ClientEditSheet open={clientEditOpen} onOpenChange={setClientEditOpen} mode="add" />
+          <PetEditSheet open={petEditOpen} onOpenChange={setPetEditOpen} mode="add" />
+        </Section>
+        <Section
+          lazy
+          title="Global search takeover"
+          description="Full-screen search opened from the topbar magnifier (or Cmd/Ctrl+K). Reuses <FullScreenEditDialog> (same sticky header + pill Close as add/edit takeovers) with an xl <SearchInput>. Searches clients by name, mobile, email, or pet, and bookings by client name or booking reference (try 'B-77342'). Empty query shows Upcoming appointments + Clients (recently added). Clicking a client opens <ClientDetailDialog>; clicking an appointment opens <AppointmentDetailSheet> — both stack over the takeover."
+        >
+          <Row label="Open">
+            <Button onClick={() => setGlobalSearchOpen(true)}>Open global search</Button>
+          </Row>
+          <GlobalSearchDialog open={globalSearchOpen} onOpenChange={setGlobalSearchOpen} />
+        </Section>
+      </Lane>
+      <Lane
+        id="business"
+        label="Business app features"
+        blurb="Ticketed work on the operator's surfaces, newest thinking first."
+      >
+        <Section
+          title="Appointments — booking block"
+          description="Booking card rendered on the People grid. Color carries service category, fill saturation and border style overlay status. All content elements (time, price, name, service, icons) render at every size; truncation handles the squeeze."
+        >
+          <Row label="Sizes (15/30/60/180 min)">
+            {[15, 30, 60, 180].map((min) => (
+              <div
+                key={min}
+                className="relative w-[148px] border border-border/40 bg-muted/20"
+                style={{ height: Math.max(28, min * (95 / 60)) }}
+              >
                 <AppointmentBlock
                   booking={{
-                    id: `demo-flags-${key}`,
+                    id: `demo-${min}`,
+                    staffId: "demo",
+                    start: "10:00",
+                    durationMin: min,
+                    status: "confirmed",
+                    serviceCategory: "grooming",
+                    serviceName: min < 30 ? "Nails Clip" : "Wash & Blow Dry SM",
+                    clientName: "Tom Cassidy",
+                    petName: "Luna",
+                    petSpecies: "cat",
+                    priceMinor: min < 30 ? 3000 : 14000,
+                    hasDeposit: min >= 60,
+                  }}
+                  top={0}
+                  height={Math.max(24, min * (95 / 60))}
+                />
+              </div>
+            ))}
+          </Row>
+          <Row label="Status variants">
+            {(
+              [
+                "booked",
+                "confirmed",
+                "checked-in",
+                "ready-for-pickup",
+                "completed",
+                "cancelled",
+                "no-show",
+              ] as MockBookingStatus[]
+            ).map((status) => (
+              <div
+                key={status}
+                className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20"
+              >
+                <AppointmentBlock
+                  booking={{
+                    id: `demo-${status}`,
                     staffId: "demo",
                     start: "10:00",
                     durationMin: 60,
-                    status: "confirmed",
+                    status,
                     serviceCategory: "grooming",
                     serviceName: "Full Grooming SM",
                     clientName: "Karen Dougall",
                     petName: "Willow",
                     petSpecies: "dog",
                     priceMinor: 21000,
-                    ...flags,
                   }}
                   top={0}
                   height={95}
                 />
               </div>
-              <span className="text-xs text-muted-foreground">{label}</span>
-            </div>
-          ))}
-        </Row>
-      </Section>
-
-      <Section
-        title="Appointments — pickup & pet notes"
-        description="Pet-address capture on the staff appointment sheet (<PickupFields>) and the read-only rendering on the calendar popover. Copy is deliberately service-agnostic — 'pickup' does not apply to mobile grooming, where the groomer always travels to the pet. The tick is off by default: most appointments are self-drop, and defaulting it on would put a car icon on every block. When it is on, the saved address is reused billing/shipping style so nothing has to be typed in the common case. Pet notes deliberately sit outside the checkbox: allergies and handling matter on every appointment. PRD-144: the address is entered through the same <AddressSearchField> as the billing address, so picking it from the map search stores a pin on the booking — that is what the Navigate link on the popover and detail sheet routes to. Typing still works and still saves; the line under the field says whether this one is pinned, because the only person who can still fix it is the one doing the booking. Every field state is live below — pick a suggestion, then edit the text, and watch the note flip back. The card below carries the DZ-209 note rows too: client notes under the client, the appointment note as the closing band with the same glyph the calendar card uses. There is now ONE card, not two. PRO-68 shipped a hover card and a 380px click card, and the click card led nowhere — no route to the detail sheet, and the grid it lived on is only mounted in the playground, so the calendar could never reach an appointment at all. The as-built app has two artefacts: hover opens this card, click opens <AppointmentDetailSheet>. So this card absorbed what the click card showed (identity once, every service with its own performer / duration / price / duration-modifier pills / membership chip, a service-count-and-total footer) and everything that CHANGES the appointment moved to the sheet — status dropdown, add service, add tag, pay, and the unsigned-agreement banner, whose dismissal now outlives the surface it was made on. A hover card is read, not operated. The tinted note band belongs to THIS surface only: the hover card has no headings and is read by scanning, so a strip at a fixed position is the right instrument. The detail sheet renders the same note as a plain h2 + card section, last in its body, because there every other section is one too."
-      >
-        <PickupFieldsStates />
-        <Row label="Hover card — pinned address (Navigate)">
-          <AppointmentQuickPanel booking={PICKUP_PINNED_DEMO_BOOKING} />
-        </Row>
-        <Row label="Hover card — typed address (Search in Maps)">
-          <AppointmentQuickPanel booking={PICKUP_DEMO_BOOKING} />
-        </Row>
-        <Row label="Hover card — three services, two groomers, one on a membership">
-          <AppointmentQuickPanel booking={MULTI_SERVICE_DEMO_BOOKING} />
-        </Row>
-      </Section>
-
-      <Section
-        title="Combos across surfaces"
-        description="PRD-143 — a combo is a bundle sold as one catalog entry, and it travels in the same lists as single services. Where it is still being CHOSEN — the service menu card, both appointment service pickers, the selected-services list on the appointment sheet — the row carries the shared <ComboBadge />: cami-violet tint (the membership chip's treatment), a layers icon, the word, and a bundled-services count under the name where there is room. Once it is PICKED it stops being one row: the combo expands into its component services there and then — a row each, back-to-back from the combo's start, the combo's price split across them in proportion to what they cost alone with the standalone price struck through, and all of them in one group so removing any row removes the combo. That mirrors the as-built AddAppointmentSheet, and it is what keeps the create sheet and the booked appointment the same shape; before it, the same appointment was one row on one surface and three on the other. From there on the marker changes shape rather than disappearing: booking a combo books its component services, so the appointment holds one line per component and each is prefixed 'Combo - Service' (the as-built format) with the pre-discount price struck through the way a drawn-down membership session is, led by the badge's layers glyph on its own — on the appointment sheet's selected-services list and on the booked appointment alike. The full badge would say 'Combo' twice on a line that already names the combo — but dropping the mark altogether left the appointment surfaces with no glyph at all, a minute after the picker had one, so the icon carries the recognition across and the prefix carries which combo. The pet-parent booking flow follows it too — a combo is one card there, badged, and the summary and Review step list the components it books as. The POS cart follows the same rule (row below): adding a combo drops its component lines in, each with its list price struck through, and the footer states the saving as a Bundle discount line rather than subtracting it twice. Combos created on the service menu are bridged into the appointment pickers AND the POS picker (see /catalogs/service-menu → Add → Combo), so a combo an operator just built is bookable and sellable; expanding it into its components on selection, the shared combo group, and combo pricing are still not wired in this repo. The service-menu card lives in the 'Service menu — cards & sidebar' section above."
-      >
-        <Row label="Appointment service picker (clipped to 520px)" align="start">
-          <div className="h-130 w-full max-w-md overflow-hidden rounded-2xl border border-border/60">
-            {/* Search 'combo' to bring both bundles side by side. */}
-            <ServicePickerPanel onBack={() => {}} onSelectService={() => {}} />
-          </div>
-        </Row>
-        <Row label="Booked lines — hover card ('Combo - Service')">
-          <AppointmentQuickPanel booking={COMBO_DEMO_BOOKING} />
-        </Row>
-        <Row label="Pet-parent picker — combo card (Grooming)" align="start">
-          <div className="w-full max-w-md">
-            {/* The public flow badges a combo the same way the staff pickers do;
-                picking it books its component services. */}
-            <BookingComboPickerDemo />
-          </div>
-        </Row>
-        <Row label="POS cart — component lines + bundle discount" align="start">
-          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/60 bg-card">
-            <CartContent
-              lines={COMBO_CART_LINES}
-              hasClient={false}
-              onRemove={() => {}}
-              onSetQty={() => {}}
-            />
-            <CartFooter
-              lines={COMBO_CART_LINES}
-              onContinue={() => {}}
-              onAddTip={() => {}}
-              onAddCartDiscount={() => {}}
-              onAddSaleNote={() => {}}
-              onSaveDraft={() => {}}
-              onCancelSale={() => {}}
-            />
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Client notes (Staff Alert)"
-        description="DZ-209 — three note kinds now share these surfaces, and telling them apart is the point. Client notes (Fresha's Staff Alert) travel with the person: packages and credits left, preferences, imported history, and they resurface on every appointment for that client. The appointment note is the occasion. Pet notes travel with the animal. Mirrors the as-built ClientNoteBanner in cami-business, including why it is shaped this way: it is a PREVIEW, not the archive, and the bound is on the CONTENT rather than the container — two notes at two lines each, one note at one line on glance surfaces, nothing scrolls, nothing is cut mid-glyph. Earlier passes bounded the box instead (by note count, by characters, by a fixed scrolling height) and each one sliced text at a container edge or could not fit a single long note. It is deliberately NOT an amber slab with a warning triangle: ClientNote carries no severity field, so that treatment marked every client who had ever been written about as a hazard. The DZ-209 marker is a muted outline glyph instead — enough for reception to spot in a second, and the same glyph the calendar card carries so the marker and the thing it marks read as one feature. Karen Dougall has four notes on one afternoon, which is exactly the case that forces the per-note timestamp: without the time they collapse into four identical attribution lines. The rows below show the standalone card, which keeps its own label and marker. On the appointment detail sheet it renders with `hideLabel` instead, under an h2 like every other section there — The icon is the SAME on every surface, because it says what the card is — only its position follows the surface: leading inside a sheet card (matching the pin on Your Pet Address and the card on Payment policy), trailing on a glance card where a leading icon costs a word per line. An earlier pass dropped the glyph from the sheet entirely on the theory that a heading replaces it, which was wrong twice over: it broke the recognition someone builds on the calendar, and the sheet's own Pet Address and Payment policy cards already carry an icon under a heading."
-      >
-        <Row label="Full (detail sheet) — heading outside, marker leading">
-          <section className="flex w-full max-w-md flex-col gap-3">
-            <h2 className="text-lg font-semibold leading-7 text-foreground">Client notes</h2>
-            <ClientNoteBanner hideLabel clientId="karen-dougall" className="p-4" />
-          </section>
-        </Row>
-        <Row label="Full — a single note, no author on the row">
-          <div className="w-full max-w-md">
-            <ClientNoteBanner clientId="tom-cassidy" />
-          </div>
-        </Row>
-        <Row label="Compact (hover card) — a labelled group, not a card">
-          <div className="flex w-[320px] flex-col gap-2.5 rounded-xl bg-popover p-3 shadow-overlay">
-            <ClientNoteBanner compact clientId="karen-dougall" />
-            {/* Neighbours included on purpose: the whole point of the compact
-                rendering is that its label row matches theirs. */}
-            <div className="flex flex-col gap-1">
-              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                Your Pet Address
-              </div>
-              <div className="rounded-md bg-cami-sage-2 px-2 py-1.5 text-[11px] text-cami-sage-12">
-                Apt 1804, Marina Heights Tower, Dubai Marina
-              </div>
-            </div>
-          </div>
-        </Row>
-        <Row label="No notes on file — renders nothing">
-          <div className="w-full max-w-md rounded-2xl border border-dashed border-border/60 p-4 text-xs text-muted-foreground">
-            <ClientNoteBanner clientId="aaliyah-hazari" />
-            Nothing above this line: the banner returns null rather than an empty card, so a client
-            with no notes costs no vertical space on any surface.
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Navigate to address"
-        description="The driver's half of PRD-144, used wherever a pet address is shown read-only. Opens Google Maps in directions mode rather than search mode: on a phone that hands off to the native app with the trip already loaded, one tap fewer than a pin you then press Directions on. Where the address was picked from the map search it routes to the stored coordinates; where it was typed it falls back to a text query and says 'Search in Maps' instead of 'Navigate', because a text query that lands on the wrong side of a villa cluster should not look like a promise. Two renderings — compact for the calendar popover, default for the detail sheet — and it renders nothing at all when there is no address."
-      >
-        <Row label="Pinned — routes to coordinates">
-          <NavigateToAddress
-            address="Apt 1804, Marina Heights Tower, Dubai Marina"
-            place={{ placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } }}
-          />
-        </Row>
-        <Row label="Typed — text query only">
-          <NavigateToAddress address="Villa 12, Street 4B, Jumeirah 1, Dubai" />
-        </Row>
-        <Row label="Compact (popover rendering)">
-          <NavigateToAddress
-            size="compact"
-            address="Apt 1804, Marina Heights Tower, Dubai Marina"
-            place={{ placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } }}
-          />
-          <NavigateToAddress size="compact" address="Villa 12, Street 4B, Jumeirah 1, Dubai" />
-        </Row>
-      </Section>
-
-      <Section
-        title="Pet notes — structured categories"
-        description="Replaces the single free-text box. A blank box gets skipped or filled with prose nobody can filter on; tapping categories keeps it fast for the parent and gives groomers comparable data. Multi-select, and the specifics field is required once a chip is on — a selected chip with nothing typed is no better than the blank box it replaced, so it blocks Continue. 'Other' is a genuine fallback, not the default catch-all. Same component on the public booking flow and the staff appointment sheet."
-      >
-        <Row label="Empty">
-          <PetNotesFieldsDemo initial={[]} idPrefix="pg-notes-empty" />
-        </Row>
-        <Row label="Two categories picked">
-          <PetNotesFieldsDemo
-            initial={[
-              { category: "allergies", detail: "Chicken, and oatmeal shampoo" },
-              { category: "handling", detail: "Sensitive paws — needs a muzzle for nails" },
-            ]}
-            idPrefix="pg-notes-filled"
-          />
-        </Row>
-        <Row label="Picked, specifics still blank">
-          <PetNotesFieldsDemo
-            initial={[{ category: "behavior", detail: "" }]}
-            idPrefix="pg-notes-blank"
-          />
-        </Row>
-        <Row label="Read-only rendering">
-          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-4">
-            <PetNotesList entries={PICKUP_DEMO_BOOKING.petNotes ?? []} />
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Appointments — toolbar and people grid"
-        description="Calendar toolbar (Today, date, view mode, filters, new) above an 11-column staff × time grid. Right-side filters are placeholders pending tighter Figma reference."
-      >
-        <Row label="Toolbar">
-          <div className="w-full max-w-5xl rounded-2xl border border-border/60 bg-card">
-            <AppointmentsToolbar date="2026-05-11" viewMode="day" />
-          </div>
-        </Row>
-        <Row label="People grid (clipped to 600px)">
-          <div className="h-150 w-full">
-            <PeopleGrid
-              staff={MOCK_STAFF}
-              bookings={MOCK_BOOKINGS}
-              nowMinutes={(11 - 7) * 60 + 30}
-            />
-          </div>
-        </Row>
-      </Section>
-
-      {/* ── Service catalog ──────────────────────────────────────────────── */}
-      <Section
-        title="Service menu — cards & sidebar"
-        description="Presentational building blocks for the catalog screens. Full interactive screens (drag-reorder, add/edit, archive) live at /catalogs/service-menu and /catalogs/categories. Prices render in AED. Combos come back from the same endpoint as single services, so the card marks them with a tinted Combo badge (layers icon) plus a count of the services they bundle — PRD-143."
-      >
-        <Row label="Service card, default">
-          <div className="w-full max-w-xl">
-            <ServiceCardInner
-              service={seedServices[0]}
-              category={seedCategories.find((c) => c.id === seedServices[0].categoryId)!}
-              canManage
-              withHandle={false}
-              onDelete={() => {}}
-              onEdit={() => {}}
-            />
-          </div>
-        </Row>
-        <Row label="Service card, archived">
-          <div className="w-full max-w-xl">
-            <ServiceCardInner
-              service={{ ...seedServices[1], isActive: false }}
-              category={seedCategories.find((c) => c.id === seedServices[1].categoryId)!}
-              canManage
-              withHandle={false}
-              onDelete={() => {}}
-              onUnarchive={() => {}}
-            />
-          </div>
-        </Row>
-        <Row label="Service card, dragging">
-          <div className="w-full max-w-xl">
-            <ServiceCardInner
-              service={seedServices[2]}
-              category={seedCategories.find((c) => c.id === seedServices[2].categoryId)!}
-              dragging
-              withHandle={false}
-              onDelete={() => {}}
-            />
-          </div>
-        </Row>
-        <Row label="Service card, combo">
-          <div className="w-full max-w-xl">
-            {/* PRD-143 — combos share the list with single services, so the row
-                carries a tinted Combo badge and a component count. */}
-            <ServiceCardInner
-              service={seedServices.find((s) => s.id === "svc-8")!}
-              category={seedCategories.find((c) => c.id === "cat-1")!}
-              canManage
-              withHandle={false}
-              onDelete={() => {}}
-              onEdit={() => {}}
-            />
-          </div>
-        </Row>
-        <Row label="Service card, combo (archived)">
-          <div className="w-full max-w-xl">
-            <ServiceCardInner
-              service={{ ...seedServices.find((s) => s.id === "svc-9")!, isActive: false }}
-              category={seedCategories.find((c) => c.id === "cat-2")!}
-              canManage
-              withHandle={false}
-              onDelete={() => {}}
-              onUnarchive={() => {}}
-            />
-          </div>
-        </Row>
-        <Row label="Category sidebar">
-          <CategorySidebar
-            categories={seedCategories.filter((c) => !c.isSystemManaged)}
-            selectedId={null}
-            counts={seedCategories
-              .filter((c) => !c.isSystemManaged)
-              .reduce<Record<string, number>>((acc, c) => {
-                acc[c.id] = seedServices.filter((s) => s.categoryId === c.id).length
-                return acc
-              }, {})}
-            totalCount={
-              seedServices.filter((s) =>
-                seedCategories.some((c) => !c.isSystemManaged && c.id === s.categoryId),
-              ).length
-            }
-            onSelect={() => {}}
-            onAddCategory={() => {}}
-            onAddService={() => {}}
-            onDeleteCategory={() => {}}
-          />
-        </Row>
-      </Section>
-
-      <Section
-        title="New sale — Gift cards in checkout"
-        description="Selling a gift card from the POS drawer (/sales/new-sale → Gift cards). The Add/Edit gift card dialog sets value, price, expiration, an optional custom code, the is-a-gift + confirmation-email toggles, and the attributed team member. On the payment step a notice blocks paying for a gift card with another gift card; the Gift card method otherwise opens a redeem-by-code dialog."
-      >
-        <Row label="Add gift card dialog">
-          <GiftCardDialogDemo />
-        </Row>
-        <Row label="Payment step — gift card in cart">
-          <div className="w-full max-w-xl">
-            {/* Real PaymentView with a gift card present: notice shown, Gift card tile disabled. */}
-            <PaymentView onSelect={(id) => toast(`Selected ${id}`)} hasGiftCard />
-          </div>
-        </Row>
-        <Row label="Redeem gift card dialog">
-          <RedeemGiftCardDialogDemo />
-        </Row>
-      </Section>
-
-      <Section
-        title="New sale — Payment link (self checkout)"
-        description="The operator half of CamiPay (PRO-396, reworked in PRO-909). From the Payment step, 'Payment link' texts the client a secure link; they pay on their own phone at /[slug]/pay/[token]. Sending the link creates a draft sale and locks the cart — amount and method are frozen so the link and the sale can't drift apart — so the drawer body is replaced by the lock screen rather than narrating progress the operator can't act on. Links live 12 hours. Cancel invalidates the link (never edits it) and hands off to the draft sale it created; Checkout on that draft resumes the journey at Tip. Mark as paid is the manual settle path."
-      >
-        <Row label="Payment step — method grid">
-          <div className="w-full max-w-xl">
-            {/* Payment link leads the grid, ahead of the take-payment-here methods. */}
-            <PaymentView onSelect={(id) => toast(`Selected ${id}`)} />
-          </div>
-        </Row>
-        <Row label="Send payment link dialog">
-          <SelfCheckoutDialogDemo />
-        </Row>
-        <Row label="Locked cart — link is live">
-          <div className="flex min-h-96 w-full max-w-xl rounded-3xl border border-border/60 bg-background">
-            <PaymentLinkLockScreen
-              link={{
-                name: "Maaz Test",
-                phone: "50 963 6445",
-                amountMinor: 5700,
-                sentAt: NOW,
-                draftRef: "C9B3A77D",
-              }}
-              onCancelLink={() => toast("Link cancelled · opens the draft sale")}
-              onMarkPaid={() => toast("Marked as paid")}
-            />
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="New sale — POS Terminal (card present)"
-        description="The card-present twin of the payment link, adopting PRO-909's locked cart. Signed-in machines are payment methods in their own right — up to three, each gets its own tile so the receptionist taps the register in front of them once; past that, and when nothing is signed in, they collapse to one 'POS Terminal' tile that opens the picker. Choosing a machine routes the sale to it — no dialog, nothing left to ask for — and the drawer body is replaced by the locked screen, because the shipped flow leaves the operator on the payment grid with 'To pay' and 'Save unpaid' still live while the card is being charged: a receptionist looking at an unpaid sale that has already been paid, a second tap the backend refuses, and a 'Discard draft sale?' on a sale that took the money. Settlement lands on the same Payment complete screen the link flow uses. The one way out is Collect another way, whose confirm names the real risk (a card that already went through) rather than asking 'are you sure'. The tile is hidden when the merchant has no usable terminal."
-      >
-        <Row label="Payment step — two machines, one tile each">
-          <div className="w-full max-w-xl">
-            <PaymentView
-              onSelect={(id) => toast(`Selected ${id}`)}
-              machines={[
-                { id: "TRM-7Q4K2M", name: "Front Desk Register", blockedReason: null },
-                { id: "TRM-3H8N5P", name: "Grooming Counter", blockedReason: null },
-              ]}
-            />
-          </div>
-        </Row>
-        {/* One row, not two: past the cap and nothing-signed-in produce the
-            same grid — a single POS Terminal tile. What separates them is what
-            the picker says when it opens, which is the pair of rows below. */}
-        <Row label="Payment step — two machines, one of them signed out">
-          <div className="w-full max-w-xl">
-            <PaymentView
-              onSelect={(id) => toast(`Selected ${id}`)}
-              machines={[
-                { id: "TRM-7Q4K2M", name: "Front Desk Register", blockedReason: null },
-                {
-                  id: "TRM-3H8N5P",
-                  name: "Grooming Counter",
-                  blockedReason: "Nobody signed in",
-                },
-              ]}
-            />
-          </div>
-        </Row>
-        <Row label="Payment step — past the tile cap, one POS Terminal tile">
-          <div className="w-full max-w-xl">
-            <PaymentView onSelect={(id) => toast(`Selected ${id}`)} />
-          </div>
-        </Row>
-        <Row label="Payment step — no usable terminal (tile hidden)">
-          <div className="w-full max-w-xl">
-            <PaymentView onSelect={(id) => toast(`Selected ${id}`)} terminalAvailable={false} />
-          </div>
-        </Row>
-        <Row label="Send to terminal — picking the machine">
-          <SelectTerminalDialogDemo />
-        </Row>
-        <Row label="Send to terminal — nothing signed in">
-          <SelectTerminalDialogDemo signedIn={false} />
-        </Row>
-        <Row label="Locked cart — sale is on the machine">
-          <div className="flex min-h-96 w-full max-w-xl rounded-3xl border border-border/60 bg-background">
-            <TerminalLockScreen
-              charge={{
-                amountMinor: 15000,
-                terminalName: "Front Desk Register",
-                terminalLocation: "Downtown Clinic",
-                sentAt: NOW,
-              }}
-              firstName="Maaz"
-              onCancel={() => toast("Taken off the terminal · back to the payment methods")}
-              onMarkPaid={() => toast("Marked as paid")}
-            />
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Payment policy — deposit & no-show config"
-        description="Payment policy (DSG-51) inside the Settings dialog (?settings=payments). Summary panel → policy editor takeover (?pp=edit), with the Customize-by-service table (?pp=services) and the client-facing terms editor (?pp=terms). Configured policy drives the Payment policy card in the appointment sheet: deposit amount from percent/fixed default + per-service overrides, hidden entirely when no policy is set. Shown here: the shared percent/AED amount input and the auto-generated client-facing example line."
-      >
-        <Row label="Amount input — percent mode (deposit default)">
-          <AmountInputDemo initial={{ mode: "percent", value: 25 }} />
-        </Row>
-        <Row label="Amount input — fixed AED mode (no-show fee)">
-          <AmountInputDemo initial={{ mode: "fixed", value: 150 }} />
-        </Row>
-        <Row label="Amount input — disabled (row on Default in the per-service table)">
-          <AmountInput
-            value={{ mode: "percent", value: 25 }}
-            onChange={() => {}}
-            disabled
-            className="w-64"
-          />
-        </Row>
-        <Row label="Example policy — auto-generated client-facing line">
-          <div className="w-full max-w-xl rounded-xl bg-cami-violet-2 px-4 py-3 text-sm text-foreground">
-            {examplePolicyText(DEFAULT_PAYMENT_POLICY, "Sota Salon")}
-          </div>
-        </Row>
-        <Row label="Example policy — no payment policy state">
-          <div className="w-full max-w-xl rounded-xl bg-cami-violet-2 px-4 py-3 text-sm text-foreground">
-            {examplePolicyText({ ...DEFAULT_PAYMENT_POLICY, type: "none" }, "Sota Salon")}
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Cami HQ — CamiPay settlement config"
-        description="PRO-737. The Settings tab of the HQ Partner detail dialog (/admin/businesses?business=…). One card, one section per rail: whether it is on, where it routes, and what Cami charges on it. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off (Shampooch Online, Pawhaus Online). Rates are append-only, so the only write is Change, which adds a row with an effective-from date; past rows have no edit or delete affordance on purpose. A live rail with no rate row earns Cami nothing and says so (Doggos Online). The switch and gateway are gated by billing.camipay.rails.edit, Change by billing.camipay.rates.edit, separately. One store is shared across the rows below, so a change made in one row shows up in the others."
-      >
-        <CamiPayProvider>
-          <Row label="Live Partner, full edit rights">
-            <CamiPayPanelDemo slug="shampooch-jvc" permissions={ALL_HQ_PERMISSIONS} />
+            ))}
           </Row>
-          <Row label="Scheduled rate, split gateways per rail">
-            <CamiPayPanelDemo slug="pawhaus" permissions={ALL_HQ_PERMISSIONS} />
-          </Row>
-          <Row label="Onboarding, rails off and no rate card">
-            <CamiPayPanelDemo slug="velvet-paw" permissions={ALL_HQ_PERMISSIONS} />
-          </Row>
-          <Row label="View-only, billing.read without CamiPay edit">
-            <CamiPayPanelDemo slug="shampooch-jvc" permissions={["billing.read"]} />
-          </Row>
-          <Row label="Archived Partner, whole tab read-only">
-            <CamiPayPanelDemo slug="furry-tales" permissions={ALL_HQ_PERMISSIONS} disabled />
-          </Row>
-        </CamiPayProvider>
-      </Section>
-
-      <Section
-        title="Cami HQ — terminal fleet, Partner card"
-        description="DSG-82. Cami buys the card machines and leases them out, so a terminal is an asset HQ assigns, not a device a merchant registered. This is the Partner-scoped card (Settings tab of the HQ Partner detail dialog, ?section=settings); the fleet-wide listing with stock, returns and the serial → Partner lookup is /admin/terminals. Rows lead with the serial because that is what is printed on the box and quoted in a ticket. Assign picks a unit from stock; Return to Cami is the destructive item, not Block, because a block is undone from the same menu. Access sits at the top of the card as a Terminal access switch writing the same rails.terminal.enabled flag as CamiPay Terminal above it — one flag, two views, and the row says so. Assign/Block/Return ride on merchants.edit, the access switch on billing.camipay.rails.edit. One store across the rows below, so an assignment in one shows in the others."
-      >
-        <HqTerminalsProvider>
-          <CamiPayProvider>
-            <Row label="Three units: active, idle, and shipped but never switched on">
-              <HqTerminalsPanelDemo slug="shampooch-jvc" permissions={ALL_HQ_PERMISSIONS} />
-            </Row>
-            <Row label="One unit blocked by HQ, with who and when on the row">
-              <HqTerminalsPanelDemo slug="pawhaus" permissions={ALL_HQ_PERMISSIONS} />
-            </Row>
-            <Row label="Suspended Partner, device locked itself out on failed PINs">
-              <HqTerminalsPanelDemo slug="doggos" permissions={ALL_HQ_PERMISSIONS} />
-            </Row>
-            <Row label="Nothing assigned yet — empty state carries Assign">
-              <HqTerminalsPanelDemo slug="velvet-paw" permissions={ALL_HQ_PERMISSIONS} />
-            </Row>
-            <Row label="Terminal access off, so the unit in hand cannot transact">
-              <HqTerminalsPanelDemo slug="furry-tales" permissions={ALL_HQ_PERMISSIONS} />
-            </Row>
-            <Row label="View-only, merchants.view without merchants.edit">
-              <HqTerminalsPanelDemo slug="shampooch-jvc" permissions={["merchants.view"]} />
-            </Row>
-            <Row label="Archived Partner, whole tab read-only">
-              <HqTerminalsPanelDemo slug="furry-tales" permissions={ALL_HQ_PERMISSIONS} disabled />
-            </Row>
-          </CamiPayProvider>
-        </HqTerminalsProvider>
-      </Section>
-
-      <Section
-        title="Terminal status — one vocabulary, two surfaces"
-        description="DSG-82. The fleet table and the Partner card read from components/blocks/hq-terminal-status.tsx so they cannot drift. The first three are fleet states only HQ sees; Not set up, Locked, Active and No sessions are the merchant's own words from DSG-62, so HQ and the merchant looking at one device read the same status. Order is first-match-wins: where the unit physically is, then whether HQ stopped it, then what the device is doing."
-      >
-        {(
-          [
-            "in-stock",
-            "returned",
-            "faulty",
-            "not-paired",
-            "active",
-            "no-sessions",
-            "blocked",
-            "locked",
-          ] as HqTerminalStatus[]
-        ).map((status) => (
-          <Row key={status} label={status}>
-            <TerminalStatus status={status} suffix={status === "locked" ? "12 min" : null} />
-          </Row>
-        ))}
-      </Section>
-
-      <Section
-        title="Partner code — CM-####"
-        description="DSG-82. The identifier a human says out loud. `id` (biz_shampooch) is internal and never rendered; the slug is public and changeable from the General tab; this one is issued at creation and immutable, which is why there is no edit affordance anywhere. Chip variant on the detail modal header and the Terminals card, click to copy; inline variant in dense listing rows, where a button per row would be twelve buttons nobody asked for."
-      >
-        <Row label="Chip — click to copy">
-          <MerchantCode code="CM-4821" />
-        </Row>
-        <Row label="Inline — roster row, paired with the slug">
-          <span className="truncate font-mono text-xs text-muted-foreground">
-            CM-4821 · cami.app/shampooch-jvc
-          </span>
-        </Row>
-      </Section>
-
-      <Section
-        title="CamiPay fee breakdown — Partner side"
-        description="PRO-737. What the Partner sees on their own sale detail (/sales/sales-list, open a sale paid by CamiPay). Sale amount → Cami fee → Net, with the calculation spelled out under the fee so the number is never a black box. The gateway's processing fee is deliberately absent: the Partner pays Cami's fee and nothing else. The rate is snapshotted onto the payment at capture, so a later rate change never restates it."
-      >
-        <Row label="Percentage only">
-          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
-            <CamiPayFeeBreakdown
-              rail="terminal"
-              rate={{ percent: 1.8, fixedMinor: 0, fixedBelowMinor: null }}
-              amountMinor={5400}
-              capturedOnLabel="25 May 2026"
-            />
-          </div>
-        </Row>
-        <Row label="Percentage + fixed, under the bracket so the fixed applies">
-          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
-            <CamiPayFeeBreakdown
-              rail="online"
-              rate={{ percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 }}
-              amountMinor={3040}
-              capturedOnLabel="25 May 2026"
-            />
-          </div>
-        </Row>
-        <Row label="Same rate above the bracket, so the fixed drops off">
-          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
-            <CamiPayFeeBreakdown
-              rail="online"
-              rate={{ percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 }}
-              amountMinor={1050000}
-              capturedOnLabel="01 Jun 2026"
-            />
-          </div>
-        </Row>
-        <Row label="No rate configured, so no fee">
-          <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
-            <CamiPayFeeBreakdown
-              rail="terminal"
-              rate={ZERO_RATE}
-              amountMinor={4200}
-              capturedOnLabel="25 May 2026"
-            />
-          </div>
-        </Row>
-      </Section>
-
-      <Section
-        title="Invoice document — A4 downloadable"
-        description="DSG-72. One component renders the PDF download, the email attachment and the unique invoice link, so field order is identical across the three by construction. Paper, not app chrome: it stays white-with-dark-ink in dark mode and carries no badge chips — payment state is carried by the numbers (Balance), and only Refunded and Voided get a line of prose under the document date. Previews are scaled to 34%; open /sales/invoice-document?state=<id> for full size and the Print action."
-      >
-        <Row label="Status — carried by the numbers, no chips">
-          <InvoicePreview id="completed" note="Split tender, per-tender timestamps, Balance 0.00" />
-          <InvoicePreview id="part-paid" note="Cart discount, Balance outstanding" />
-          <InvoicePreview
-            id="unpaid"
-            note="Named promotion. Explicit 'No payments received' row, not a bare gap"
-          />
-        </Row>
-        <Row label="Exceptional states — prose, plus a watermark for void">
-          <InvoicePreview
-            id="credit-note"
-            note="Own number, references the original, and reverses the VAT the benchmark omits"
-          />
-          <InvoicePreview
-            id="voided"
-            note="Subtitle carries the timestamp, watermark carries the at-a-glance signal"
-          />
-        </Row>
-        <Row label="Document type — three-way, one layout">
-          <InvoicePreview
-            id="tax-full"
-            note="Recipient TRN captured, so per-line tax columns render"
-          />
-          <InvoicePreview
-            id="plain"
-            note="No business TRN: no tax column, no tax summary, no tax wording anywhere"
-          />
-          <InvoicePreview id="recipient-minimal" note="Recipient collapses to a single name line" />
-        </Row>
-        <Row label="Money edge cases">
-          <InvoicePreview
-            id="tip"
-            note="EC-39. A tip splits taxable gross from amount due — both rows always render"
-          />
-          <InvoicePreview
-            id="zero-value"
-            note="Package redemption at AED 0.00 is still a valid, fully itemised invoice"
-          />
-          <InvoicePreview
-            id="zero-value-tip"
-            note="Live Sale 387. Package covers the service, customer tips 5.00 — production folds that 5.00 into Total unlabelled, where it is indistinguishable from 5% VAT"
-          />
-          <InvoicePreview
-            id="credit-note-tip"
-            note="A refund returns the tip too, but the reversed VAT stays on the line only"
-          />
-          <InvoicePreview
-            id="overtender"
-            note="Change goes back across the counter and does not count as collected"
-          />
-        </Row>
-        <Row label="Identity, overflow and pagination">
-          <InvoicePreview
-            id="logo"
-            note="Logo slot filled. With none it collapses, no placeholder box"
-          />
-          <InvoicePreview
-            id="overflow"
-            note="Long legal name wraps to two lines; long description wraps in-column"
-          />
-          <InvoicePreview
-            id="multi-page"
-            note="30 lines. Condensed identity + column headers repeat, page N of M"
-          />
-        </Row>
-      </Section>
-
-      <Section
-        title="Invoice document — share & email actions"
-        description="DSG-72. The two modals behind the sale detail dialog's actions, matched to the shipped implementation in cami-business rather than to a screenshot. Neither navigates away from the sale — that is the shape every production action on this dialog shares. Share invoice hands out the unique invoice link, which renders the same document as the PDF and the email attachment."
-      >
-        <Row label="Share invoice — the link is fetched, so it has three states">
-          <ShareDialogDemo
-            linkState="ready"
-            label="Ready"
-            note="Link arrived. Copy shows a tick that reverts after 2s. Gmail also copies the link and toasts, because Gmail's compose URL drops a prefilled body often enough that the operator would otherwise send an empty email; WhatsApp's text param is reliable and does neither."
-          />
-          <ShareDialogDemo
-            linkState="loading"
-            label="Loading"
-            note="Dialog opens before the backend has minted the share token. Skeleton in place of the URL, every action disabled."
-          />
-          <ShareDialogDemo
-            linkState="error"
-            label="Failed"
-            note="Token request failed. 'Failed to generate link' in place of the URL, Gmail drops to a non-interactive row rather than a dead link."
-          />
-        </Row>
-        <Row label="Email invoice">
-          <EmailDialogDemo
-            label="Client on file"
-            note="Prefilled and focused. Send is disabled until the address is valid."
-          />
-          <EmailDialogDemo
-            walkIn
-            label="Walk-in"
-            note="No client record, so no address to prefill — an extra line says so instead of leaving an empty field unexplained."
-          />
-          <EmailDialogDemo
-            invalid
-            label="Validation"
-            note="The error appears on a failed Send, never while typing: 'Email address is required' when empty, 'Enter a valid email address' otherwise."
-          />
-        </Row>
-      </Section>
-
-      <Section
-        title="Product import — review states (DSG-80)"
-        description="The redesigned bulk-import review. Aya's migration from the Slack thread is the reference case: 100 rows, 83 added, 17 blocked for a missing SKU. The complaint was that those 17 rows shared one cause and the shipped UI made you expand each one to find it, so causes are now grouped and stated once and the table's last column says what happens in words rather than counting errors. Every frame reads the real mock payload; compare against what ships today at /products/import via the compare bar."
-      >
-        <Row label="Grouped causes" align="start">
-          <IssueSummaryDemo
-            scenario="mixed"
-            severity="blocking"
-            label="Blocking — two causes"
-            note="Ordered by how many rows each hit. Each states the rule, the rows, and the fix."
-          />
-          <IssueSummaryDemo
-            scenario="aya-migration"
-            severity="advisory"
-            label="Advisory"
-            note="Weighted down: one line and a count, no row list, no fix line."
-          />
-        </Row>
-
-        <Row label="Outcome strip" align="start">
-          <OutcomeStripDemo
-            scenario="aya-migration"
-            label="First import"
-            note="Additions lead. Blocked rows are counted here but acted on in the summary above."
-          />
-          <OutcomeStripDemo
-            scenario="mixed"
-            label="Re-import"
-            note="Updates lead; needs-your-OK is tinted because it is the count that stalls."
-          />
-        </Row>
-
-        <Row label="Row anatomy" align="start">
-          <ReviewRowDemo
-            scenario="aya-migration"
-            status="reject"
-            label="Blocked"
-            note="The cause sits in the row. Expand for the checker's own sentences."
-          />
-          <ReviewRowDemo
-            scenario="mixed"
-            status="update"
-            label="Update"
-            note="Names the fields that change, so the diff is optional."
-          />
-          <ReviewRowDemo
-            scenario="mixed"
-            status="flag"
-            label="Needs your OK"
-            note="Per-field switch, off by default."
-          />
-          <ReviewRowDemo
-            scenario="mixed"
-            status="skip"
-            label="Left out"
-            note="The option the operator chose, not 'Skipped by mode'."
-          />
-          <ReviewRowDemo
-            scenario="duplicate-barcodes"
-            status="reject"
-            label="Blocked, but rescuable"
-            note="The one rejection that can be undone in place."
-          />
-          <ReviewRowDemo
-            scenario="placeholder-skus"
-            status="create"
-            label="Generated SKU"
-            note="Imports cleanly, but says the code is ours."
-          />
-        </Row>
-
-        <Row label="Whole review step" align="start">
-          <ReviewStateDemo
-            scenario="aya-migration"
-            label="The reported case"
-            note="83 ready, 17 blocked. Clicking a cause filters the table to those rows."
-          />
-          <ReviewStateDemo
-            scenario="mixed"
-            label="Every status at once"
-            note="Plus an unrecognised tax rate. The filter appears because several statuses are present."
-          />
-          <ReviewStateDemo
-            scenario="all-rejected"
-            label="Nothing importable"
-            note="No disabled primary button and no filter — one way out instead."
-          />
-          <ReviewStateDemo
-            scenario="up-to-date"
-            label="Already up to date"
-            note="Confirm is gone; the headline is the answer."
-          />
-          <ReviewStateDemo
-            scenario="placeholder-skus"
-            label="After PRD-63"
-            note="All 100 import; the advisory names the 17 generated SKUs."
-          />
-        </Row>
-
-        <Row label="Done step" align="start">
-          <DoneStateDemo
-            scenario="mixed"
-            label="With rows left behind"
-            note="Offers the failed-row download, not just a count."
-          />
-          <DoneStateDemo
-            scenario="placeholder-skus"
-            label="After PRD-63"
-            note="'17 products need a real SKU', linking to them. This is what makes PRD-63 safe to ship."
-          />
-          <DoneStateDemo
-            scenario="duplicate-barcodes"
-            label="Clean import"
-            note="Follow-up blocks appear only when there is something to chase."
-          />
-        </Row>
-      </Section>
-
-      <Section
-        title="Clients and pets import — review states (DSG-84)"
-        description="The same wizard on the other two entities. Production serves all three from one component set, so these screens are the product import's parts with different counts: one CountLedger, one IssueSummary, one LookupsPanel, one OutcomePanel, and every string from lib/imports/copy.ts. What is genuinely specific is name matching — a row matched on first name alone, which products have no equivalent of — and a pet row, which carries an owner and a pet with separate outcomes. Both reference cases come from the #ui threads: Aya's 100-row client file and Maaz's 873-row pet file. Compare at /clients/import."
-      >
-        <Row label="Row anatomy" align="start">
-          <ClientRowDemo
-            scenario="aya-clients"
-            status="reject"
-            label="Blocked — no last name"
-            note="18 of Aya's rows. The cause is in the row; the grouped block above states it once."
-          />
-          <ClientRowDemo
-            scenario="aya-clients"
-            status="review"
-            label="Name match"
-            note="'In your file' against 'Already in Cami'. The third option — add as a new person — is drawn disabled: the backend models NEW_RECORD but the confirm call has no override that reaches it."
-          />
-          <ClientRowDemo
-            scenario="aya-clients"
-            status="create"
-            label="Will be added"
-            note="Nothing to say, so the Details column stays empty rather than repeating the badge."
-          />
-          <ClientRowDemo
-            scenario="maaz-pets"
-            status="create"
-            label="Pet row"
-            note="Owner and pet in one row, each with its own outcome."
-          />
-          <ClientRowDemo
-            scenario="maaz-pets"
-            status="standalone"
-            label="Pet with no owner"
-            note="No phone and no email, so the backend imports the pet on its own and creates nobody. The owner side is skipped, but badging the row 'Left out' would say the pet never arrived — so the pet's outcome names the row."
-          />
-        </Row>
-
-        <Row label="Whole review step" align="start">
-          <ClientReviewStateDemo
-            scenario="aya-clients"
-            label="Aya's client import"
-            note="Opens on the 21 rows that need her — 18 missing a last name, 1 duplicate phone, 2 name matches — not on 79 identical green badges."
-          />
-          <ClientReviewStateDemo
-            scenario="maaz-pets"
-            label="Maaz's pet import"
-            note="Eleven counts and eight lists created. Owner counts are named, so '826 pets will be added' cannot be read as the owner total."
-          />
-          <ClientReviewStateDemo
-            scenario="pets-no-owner"
-            label="No contact details anywhere"
-            note="120 rows, every pet standalone, not one client created. The commit button counts pets on a pet import for this file: counting owners read 'nothing to import' over an import of 120 pets."
-          />
-          <ClientReviewStateDemo
-            scenario="many-name-matches"
-            label="Mostly name matches"
-            note="16 of 24 rows matched on first name alone — the volume the reported file would produce in a populated account."
-          />
-          <ClientReviewStateDemo
-            scenario="client-no-pets"
-            label="Pet feature off"
-            note="The same file on an account without pets. Nothing pet-related may appear anywhere on this screen."
-          />
-        </Row>
-
-        <Row label="Done step" align="start">
-          <ClientOutcomeDemo
-            scenario="aya-clients"
-            label="Clients, with rows left behind"
-            note="The ledger has to add up to the file: 79 added + 2 left for you to answer + 19 left behind = 100."
-          />
-          <ClientOutcomeDemo
-            scenario="maaz-pets"
-            label="Pets"
-            note="The same panel as the product Done step — the two were separate implementations and drifted apart within a day."
-          />
-          <ClientOutcomeDemo
-            scenario="pets-no-owner"
-            label="Pets, none with an owner"
-            note="'120 pets added' with 0 owners under it — the ledger keeps the standalone pets on their own line rather than folding them into the added count."
-          />
-        </Row>
-      </Section>
-
-      <Section
-        title="Performance dashboard — chart primitives"
-        description="The four marks the Performance dashboard (DSG-79) is built from, plus the categorical palette they share. Colours come from the --chart-cat-* tokens; both the light and dark sets pass the dataviz validator, so check this section in both themes."
-      >
-        <Row label="Categorical palette" align="start">
-          <div className="flex flex-wrap gap-3">
-            {CHART_CAT_SWATCH.map((swatch, i) => (
-              <div key={swatch} className="flex items-center gap-2">
-                <span className={cn("size-4 rounded-sm", swatch)} />
-                <span className="text-xs text-muted-foreground">
-                  {i === CHART_CAT_SWATCH.length - 1 ? "Other (overflow)" : `Slot ${i + 1}`}
-                </span>
+          <Row label="Service categories">
+            {(
+              [
+                { cat: "grooming", svc: "Wash & Blow Dry" },
+                { cat: "vet", svc: "Vaccination" },
+                { cat: "daycare", svc: "Day Care · 12 pets" },
+                { cat: "boarding", svc: "Boarding Stay" },
+                { cat: "details", svc: "Nails Clip" },
+                { cat: "welcome", svc: "Meet & Greet" },
+              ] as Array<{ cat: MockServiceCategory; svc: string }>
+            ).map(({ cat, svc }) => (
+              <div
+                key={cat}
+                className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20"
+              >
+                <AppointmentBlock
+                  booking={{
+                    id: `demo-${cat}`,
+                    staffId: "demo",
+                    start: "10:00",
+                    durationMin: 60,
+                    status: "confirmed",
+                    serviceCategory: cat,
+                    serviceName: svc,
+                    clientName: "Frances",
+                    petName: "Duke",
+                    petSpecies: "dog",
+                    priceMinor: 14000,
+                  }}
+                  top={0}
+                  height={95}
+                />
               </div>
             ))}
-          </div>
-        </Row>
-
-        <Row label="Donut" align="start">
-          <div className="w-[420px] rounded-2xl border border-border/60 bg-card p-5">
-            <DonutChart
-              items={SALES_BY_PAYMENT}
-              values={SALES_BY_PAYMENT_VALUES}
-              centreLabel="collected"
-              centreValue="AED 10,240"
-              formatValue={(n) => `AED ${n.toLocaleString("en-US")}`}
+          </Row>
+          <Row label="Flag icons (pickup leads the row)">
+            {(
+              [
+                { key: "pickup", label: "Pet address only", flags: { needsPickup: true } },
+                { key: "deposit", label: "Deposit only", flags: { hasDeposit: true } },
+                {
+                  key: "pickup-safety",
+                  label: "Pet address + safety flag",
+                  flags: { needsPickup: true, hasSafetyFlag: true },
+                },
+                {
+                  key: "all",
+                  label: "All four",
+                  flags: {
+                    needsPickup: true,
+                    hasDeposit: true,
+                    isRecurring: true,
+                    hasSafetyFlag: true,
+                  },
+                },
+              ] as Array<{ key: string; label: string; flags: Partial<MockBooking> }>
+            ).map(({ key, label, flags }) => (
+              <div key={key} className="flex flex-col gap-1.5">
+                <div className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20">
+                  <AppointmentBlock
+                    booking={{
+                      id: `demo-flags-${key}`,
+                      staffId: "demo",
+                      start: "10:00",
+                      durationMin: 60,
+                      status: "confirmed",
+                      serviceCategory: "grooming",
+                      serviceName: "Full Grooming SM",
+                      clientName: "Karen Dougall",
+                      petName: "Willow",
+                      petSpecies: "dog",
+                      priceMinor: 21000,
+                      ...flags,
+                    }}
+                    top={0}
+                    height={95}
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground">{label}</span>
+              </div>
+            ))}
+          </Row>
+        </Section>
+        <Section
+          lazy
+          title="Appointments — toolbar and people grid"
+          description="Calendar toolbar (Today, date, view mode, filters, new) above an 11-column staff × time grid. Right-side filters are placeholders pending tighter Figma reference."
+        >
+          <Row label="Toolbar">
+            <div className="w-full max-w-5xl rounded-2xl border border-border/60 bg-card">
+              <AppointmentsToolbar date="2026-05-11" viewMode="day" />
+            </div>
+          </Row>
+          <Row label="People grid (clipped to 600px)">
+            <div className="h-150 w-full">
+              <PeopleGrid
+                staff={MOCK_STAFF}
+                bookings={MOCK_BOOKINGS}
+                nowMinutes={(11 - 7) * 60 + 30}
+              />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Appointments — pickup & pet notes"
+          description="Pet-address capture on the staff appointment sheet (<PickupFields>) and the read-only rendering on the calendar popover. Copy is deliberately service-agnostic — 'pickup' does not apply to mobile grooming, where the groomer always travels to the pet. The tick is off by default: most appointments are self-drop, and defaulting it on would put a car icon on every block. When it is on, the saved address is reused billing/shipping style so nothing has to be typed in the common case. Pet notes deliberately sit outside the checkbox: allergies and handling matter on every appointment. PRD-144: the address is entered through the same <AddressSearchField> as the billing address, so picking it from the map search stores a pin on the booking — that is what the Navigate link on the popover and detail sheet routes to. Typing still works and still saves; the line under the field says whether this one is pinned, because the only person who can still fix it is the one doing the booking. Every field state is live below — pick a suggestion, then edit the text, and watch the note flip back. The card below carries the DZ-209 note rows too: client notes under the client, the appointment note as the closing band with the same glyph the calendar card uses. There is now ONE card, not two. PRO-68 shipped a hover card and a 380px click card, and the click card led nowhere — no route to the detail sheet, and the grid it lived on is only mounted in the playground, so the calendar could never reach an appointment at all. The as-built app has two artefacts: hover opens this card, click opens <AppointmentDetailSheet>. So this card absorbed what the click card showed (identity once, every service with its own performer / duration / price / duration-modifier pills / membership chip, a service-count-and-total footer) and everything that CHANGES the appointment moved to the sheet — status dropdown, add service, add tag, pay, and the unsigned-agreement banner, whose dismissal now outlives the surface it was made on. A hover card is read, not operated. The tinted note band belongs to THIS surface only: the hover card has no headings and is read by scanning, so a strip at a fixed position is the right instrument. The detail sheet renders the same note as a plain h2 + card section, last in its body, because there every other section is one too."
+        >
+          <PickupFieldsStates />
+          <Row label="Hover card — pinned address (Navigate)">
+            <AppointmentQuickPanel booking={PICKUP_PINNED_DEMO_BOOKING} />
+          </Row>
+          <Row label="Hover card — typed address (Search in Maps)">
+            <AppointmentQuickPanel booking={PICKUP_DEMO_BOOKING} />
+          </Row>
+          <Row label="Hover card — three services, two groomers, one on a membership">
+            <AppointmentQuickPanel booking={MULTI_SERVICE_DEMO_BOOKING} />
+          </Row>
+        </Section>
+        <Section
+          title="Client notes (Staff Alert)"
+          description="DZ-209 — three note kinds now share these surfaces, and telling them apart is the point. Client notes (Fresha's Staff Alert) travel with the person: packages and credits left, preferences, imported history, and they resurface on every appointment for that client. The appointment note is the occasion. Pet notes travel with the animal. Mirrors the as-built ClientNoteBanner in cami-business, including why it is shaped this way: it is a PREVIEW, not the archive, and the bound is on the CONTENT rather than the container — two notes at two lines each, one note at one line on glance surfaces, nothing scrolls, nothing is cut mid-glyph. Earlier passes bounded the box instead (by note count, by characters, by a fixed scrolling height) and each one sliced text at a container edge or could not fit a single long note. It is deliberately NOT an amber slab with a warning triangle: ClientNote carries no severity field, so that treatment marked every client who had ever been written about as a hazard. The DZ-209 marker is a muted outline glyph instead — enough for reception to spot in a second, and the same glyph the calendar card carries so the marker and the thing it marks read as one feature. Karen Dougall has four notes on one afternoon, which is exactly the case that forces the per-note timestamp: without the time they collapse into four identical attribution lines. The rows below show the standalone card, which keeps its own label and marker. On the appointment detail sheet it renders with `hideLabel` instead, under an h2 like every other section there — The icon is the SAME on every surface, because it says what the card is — only its position follows the surface: leading inside a sheet card (matching the pin on Your Pet Address and the card on Payment policy), trailing on a glance card where a leading icon costs a word per line. An earlier pass dropped the glyph from the sheet entirely on the theory that a heading replaces it, which was wrong twice over: it broke the recognition someone builds on the calendar, and the sheet's own Pet Address and Payment policy cards already carry an icon under a heading."
+        >
+          <Row label="Full (detail sheet) — heading outside, marker leading">
+            <section className="flex w-full max-w-md flex-col gap-3">
+              <h2 className="text-lg font-semibold leading-7 text-foreground">Client notes</h2>
+              <ClientNoteBanner hideLabel clientId="karen-dougall" className="p-4" />
+            </section>
+          </Row>
+          <Row label="Full — a single note, no author on the row">
+            <div className="w-full max-w-md">
+              <ClientNoteBanner clientId="tom-cassidy" />
+            </div>
+          </Row>
+          <Row label="Compact (hover card) — a labelled group, not a card">
+            <div className="flex w-[320px] flex-col gap-2.5 rounded-xl bg-popover p-3 shadow-overlay">
+              <ClientNoteBanner compact clientId="karen-dougall" />
+              {/* Neighbours included on purpose: the whole point of the compact
+                rendering is that its label row matches theirs. */}
+              <div className="flex flex-col gap-1">
+                <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Your Pet Address
+                </div>
+                <div className="rounded-md bg-cami-sage-2 px-2 py-1.5 text-[11px] text-cami-sage-12">
+                  Apt 1804, Marina Heights Tower, Dubai Marina
+                </div>
+              </div>
+            </div>
+          </Row>
+          <Row label="No notes on file — renders nothing">
+            <div className="w-full max-w-md rounded-2xl border border-dashed border-border/60 p-4 text-xs text-muted-foreground">
+              <ClientNoteBanner clientId="aaliyah-hazari" />
+              Nothing above this line: the banner returns null rather than an empty card, so a
+              client with no notes costs no vertical space on any surface.
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Pet notes — structured categories"
+          description="Replaces the single free-text box. A blank box gets skipped or filled with prose nobody can filter on; tapping categories keeps it fast for the parent and gives groomers comparable data. Multi-select, and the specifics field is required once a chip is on — a selected chip with nothing typed is no better than the blank box it replaced, so it blocks Continue. 'Other' is a genuine fallback, not the default catch-all. Same component on the public booking flow and the staff appointment sheet."
+        >
+          <Row label="Empty">
+            <PetNotesFieldsDemo initial={[]} idPrefix="pg-notes-empty" />
+          </Row>
+          <Row label="Two categories picked">
+            <PetNotesFieldsDemo
+              initial={[
+                { category: "allergies", detail: "Chicken, and oatmeal shampoo" },
+                { category: "handling", detail: "Sensitive paws — needs a muzzle for nails" },
+              ]}
+              idPrefix="pg-notes-filled"
             />
-          </div>
-          <span className="w-56 text-xs leading-snug text-muted-foreground">
-            Stacked: ring above its legend. Hovering a slice swaps the centre total for that slice —
-            no floating tooltip, because the tooltip would cover the total it is explaining.
-          </span>
-        </Row>
-
-        <Row label="Donut — wide" align="start">
-          <div className="w-[720px] rounded-2xl border border-border/60 bg-card p-5">
-            <DonutChart
-              items={SALES_BY_PAYMENT}
-              values={SALES_BY_PAYMENT_VALUES}
-              centreLabel="collected"
-              centreValue="AED 10,240"
-              formatValue={(n) => `AED ${n.toLocaleString("en-US")}`}
-              wide
+          </Row>
+          <Row label="Picked, specifics still blank">
+            <PetNotesFieldsDemo
+              initial={[{ category: "behavior", detail: "" }]}
+              idPrefix="pg-notes-blank"
             />
-          </div>
-          <span className="w-56 text-xs leading-snug text-muted-foreground">
-            Ring beside the legend, for cards 8 columns and wider. The legend stays one column: two
-            columns truncated the longer labels and gave each column its own value edge, so the
-            amounts stopped lining up.
-          </span>
-        </Row>
-
-        <Row label="Funnel" align="start">
-          <div className="w-[420px] rounded-2xl border border-border/60 bg-card p-5">
-            <FunnelChart stages={WHATSAPP_FUNNEL} />
-          </div>
-        </Row>
-
-        <Row label="Ranked bars" align="start">
-          <div className="w-[420px] rounded-2xl border border-border/60 bg-card p-5">
-            <RankedBarChart
-              data={OPEN_INQUIRY_AGE}
-              formatValue={(n) => `${n}`}
-              unit="Conversations still open, by how long"
-              orientation="column"
+          </Row>
+          <Row label="Read-only rendering">
+            <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-4">
+              <PetNotesList entries={PICKUP_DEMO_BOOKING.petNotes ?? []} />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Navigate to address"
+          description="The driver's half of PRD-144, used wherever a pet address is shown read-only. Opens Google Maps in directions mode rather than search mode: on a phone that hands off to the native app with the trip already loaded, one tap fewer than a pin you then press Directions on. Where the address was picked from the map search it routes to the stored coordinates; where it was typed it falls back to a text query and says 'Search in Maps' instead of 'Navigate', because a text query that lands on the wrong side of a villa cluster should not look like a promise. Two renderings — compact for the calendar popover, default for the detail sheet — and it renders nothing at all when there is no address."
+        >
+          <Row label="Pinned — routes to coordinates">
+            <NavigateToAddress
+              address="Apt 1804, Marina Heights Tower, Dubai Marina"
+              place={{ placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } }}
             />
-          </div>
-          <span className="w-56 text-xs leading-snug text-muted-foreground">
-            Ranked, so the order carries the ranking and the axis carries the size. Shown the way
-            the dashboard ships it — vertical columns, wrapped two-line labels.
-          </span>
-        </Row>
-
-        <Row label="Capacity heatmap" align="start">
-          <div className="w-[620px] rounded-2xl border border-border/60 bg-card p-5">
-            <CapacityHeatmap
-              rowLabels={HEATMAP_HOURS}
-              colLabels={HEATMAP_DAYS}
-              matrix={HEATMAP_MATRIX}
+          </Row>
+          <Row label="Typed — text query only">
+            <NavigateToAddress address="Villa 12, Street 4B, Jumeirah 1, Dubai" />
+          </Row>
+          <Row label="Compact (popover rendering)">
+            <NavigateToAddress
+              size="compact"
+              address="Apt 1804, Marina Heights Tower, Dubai Marina"
+              place={{ placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } }}
             />
-          </div>
-          <span className="w-56 text-xs leading-snug text-muted-foreground">
-            Sequential blue ramp, never the categorical slots. The number is printed in every cell
-            so the reading never depends on colour.
-          </span>
-        </Row>
-      </Section>
+            <NavigateToAddress size="compact" address="Villa 12, Street 4B, Jumeirah 1, Dubai" />
+          </Row>
+        </Section>
+        <Section
+          title="Service menu — cards & sidebar"
+          description="Presentational building blocks for the catalog screens. Full interactive screens (drag-reorder, add/edit, archive) live at /catalogs/service-menu and /catalogs/categories. Prices render in AED. Combos come back from the same endpoint as single services, so the card marks them with a tinted Combo badge (layers icon) plus a count of the services they bundle — PRD-143."
+        >
+          <Row label="Service card, default">
+            <div className="w-full max-w-xl">
+              <ServiceCardInner
+                service={seedServices[0]}
+                category={seedCategories.find((c) => c.id === seedServices[0].categoryId)!}
+                canManage
+                withHandle={false}
+                onDelete={() => {}}
+                onEdit={() => {}}
+              />
+            </div>
+          </Row>
+          <Row label="Service card, archived">
+            <div className="w-full max-w-xl">
+              <ServiceCardInner
+                service={{ ...seedServices[1], isActive: false }}
+                category={seedCategories.find((c) => c.id === seedServices[1].categoryId)!}
+                canManage
+                withHandle={false}
+                onDelete={() => {}}
+                onUnarchive={() => {}}
+              />
+            </div>
+          </Row>
+          <Row label="Service card, dragging">
+            <div className="w-full max-w-xl">
+              <ServiceCardInner
+                service={seedServices[2]}
+                category={seedCategories.find((c) => c.id === seedServices[2].categoryId)!}
+                dragging
+                withHandle={false}
+                onDelete={() => {}}
+              />
+            </div>
+          </Row>
+          <Row label="Service card, combo">
+            <div className="w-full max-w-xl">
+              {/* PRD-143 — combos share the list with single services, so the row
+                carries a tinted Combo badge and a component count. */}
+              <ServiceCardInner
+                service={seedServices.find((s) => s.id === "svc-8")!}
+                category={seedCategories.find((c) => c.id === "cat-1")!}
+                canManage
+                withHandle={false}
+                onDelete={() => {}}
+                onEdit={() => {}}
+              />
+            </div>
+          </Row>
+          <Row label="Service card, combo (archived)">
+            <div className="w-full max-w-xl">
+              <ServiceCardInner
+                service={{ ...seedServices.find((s) => s.id === "svc-9")!, isActive: false }}
+                category={seedCategories.find((c) => c.id === "cat-2")!}
+                canManage
+                withHandle={false}
+                onDelete={() => {}}
+                onUnarchive={() => {}}
+              />
+            </div>
+          </Row>
+          <Row label="Category sidebar">
+            <CategorySidebar
+              categories={seedCategories.filter((c) => !c.isSystemManaged)}
+              selectedId={null}
+              counts={seedCategories
+                .filter((c) => !c.isSystemManaged)
+                .reduce<Record<string, number>>((acc, c) => {
+                  acc[c.id] = seedServices.filter((s) => s.categoryId === c.id).length
+                  return acc
+                }, {})}
+              totalCount={
+                seedServices.filter((s) =>
+                  seedCategories.some((c) => !c.isSystemManaged && c.id === s.categoryId),
+                ).length
+              }
+              onSelect={() => {}}
+              onAddCategory={() => {}}
+              onAddService={() => {}}
+              onDeleteCategory={() => {}}
+            />
+          </Row>
+        </Section>
+        <Section
+          title="Combos across surfaces"
+          description="PRD-143 — a combo is a bundle sold as one catalog entry, and it travels in the same lists as single services. Where it is still being CHOSEN — the service menu card, both appointment service pickers, the selected-services list on the appointment sheet — the row carries the shared <ComboBadge />: cami-violet tint (the membership chip's treatment), a layers icon, the word, and a bundled-services count under the name where there is room. Once it is PICKED it stops being one row: the combo expands into its component services there and then — a row each, back-to-back from the combo's start, the combo's price split across them in proportion to what they cost alone with the standalone price struck through, and all of them in one group so removing any row removes the combo. That mirrors the as-built AddAppointmentSheet, and it is what keeps the create sheet and the booked appointment the same shape; before it, the same appointment was one row on one surface and three on the other. From there on the marker changes shape rather than disappearing: booking a combo books its component services, so the appointment holds one line per component and each is prefixed 'Combo - Service' (the as-built format) with the pre-discount price struck through the way a drawn-down membership session is, led by the badge's layers glyph on its own — on the appointment sheet's selected-services list and on the booked appointment alike. The full badge would say 'Combo' twice on a line that already names the combo — but dropping the mark altogether left the appointment surfaces with no glyph at all, a minute after the picker had one, so the icon carries the recognition across and the prefix carries which combo. The pet-parent booking flow follows it too — a combo is one card there, badged, and the summary and Review step list the components it books as. The POS cart follows the same rule (row below): adding a combo drops its component lines in, each with its list price struck through, and the footer states the saving as a Bundle discount line rather than subtracting it twice. Combos created on the service menu are bridged into the appointment pickers AND the POS picker (see /catalogs/service-menu → Add → Combo), so a combo an operator just built is bookable and sellable; expanding it into its components on selection, the shared combo group, and combo pricing are still not wired in this repo. The service-menu card lives in the 'Service menu — cards & sidebar' section above."
+        >
+          <Row label="Appointment service picker (clipped to 520px)" align="start">
+            <div className="h-130 w-full max-w-md overflow-hidden rounded-2xl border border-border/60">
+              {/* Search 'combo' to bring both bundles side by side. */}
+              <ServicePickerPanel onBack={() => {}} onSelectService={() => {}} />
+            </div>
+          </Row>
+          <Row label="Booked lines — hover card ('Combo - Service')">
+            <AppointmentQuickPanel booking={COMBO_DEMO_BOOKING} />
+          </Row>
+          <Row label="Pet-parent picker — combo card (Grooming)" align="start">
+            <div className="w-full max-w-md">
+              {/* The public flow badges a combo the same way the staff pickers do;
+                picking it books its component services. */}
+              <BookingComboPickerDemo />
+            </div>
+          </Row>
+          <Row label="POS cart — component lines + bundle discount" align="start">
+            <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <CartContent
+                lines={COMBO_CART_LINES}
+                hasClient={false}
+                onRemove={() => {}}
+                onSetQty={() => {}}
+              />
+              <CartFooter
+                lines={COMBO_CART_LINES}
+                onContinue={() => {}}
+                onAddTip={() => {}}
+                onAddCartDiscount={() => {}}
+                onAddSaleNote={() => {}}
+                onSaveDraft={() => {}}
+                onCancelSale={() => {}}
+              />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="New sale — Gift cards in checkout"
+          description="Selling a gift card from the POS drawer (/sales/new-sale → Gift cards). The Add/Edit gift card dialog sets value, price, expiration, an optional custom code, the is-a-gift + confirmation-email toggles, and the attributed team member. On the payment step a notice blocks paying for a gift card with another gift card; the Gift card method otherwise opens a redeem-by-code dialog."
+        >
+          <Row label="Add gift card dialog">
+            <GiftCardDialogDemo />
+          </Row>
+          <Row label="Payment step — gift card in cart">
+            <div className="w-full max-w-xl">
+              {/* Real PaymentView with a gift card present: notice shown, Gift card tile disabled. */}
+              <PaymentView onSelect={(id) => toast(`Selected ${id}`)} hasGiftCard />
+            </div>
+          </Row>
+          <Row label="Redeem gift card dialog">
+            <RedeemGiftCardDialogDemo />
+          </Row>
+        </Section>
+        <Section
+          title="New sale — Payment link (self checkout)"
+          description="The operator half of CamiPay (PRO-396, reworked in PRO-909). From the Payment step, 'Payment link' texts the client a secure link; they pay on their own phone at /[slug]/pay/[token]. Sending the link creates a draft sale and locks the cart — amount and method are frozen so the link and the sale can't drift apart — so the drawer body is replaced by the lock screen rather than narrating progress the operator can't act on. Links live 12 hours. Cancel invalidates the link (never edits it) and hands off to the draft sale it created; Checkout on that draft resumes the journey at Tip. Mark as paid is the manual settle path."
+        >
+          <Row label="Payment step — method grid">
+            <div className="w-full max-w-xl">
+              {/* Payment link leads the grid, ahead of the take-payment-here methods. */}
+              <PaymentView onSelect={(id) => toast(`Selected ${id}`)} />
+            </div>
+          </Row>
+          <Row label="Send payment link dialog">
+            <SelfCheckoutDialogDemo />
+          </Row>
+          <Row label="Locked cart — link is live">
+            <div className="flex min-h-96 w-full max-w-xl rounded-3xl border border-border/60 bg-background">
+              <PaymentLinkLockScreen
+                link={{
+                  name: "Maaz Test",
+                  phone: "50 963 6445",
+                  amountMinor: 5700,
+                  sentAt: NOW,
+                  draftRef: "C9B3A77D",
+                }}
+                onCancelLink={() => toast("Link cancelled · opens the draft sale")}
+                onMarkPaid={() => toast("Marked as paid")}
+              />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="New sale — POS Terminal (card present)"
+          description="The card-present twin of the payment link, adopting PRO-909's locked cart. Signed-in machines are payment methods in their own right — up to three, each gets its own tile so the receptionist taps the register in front of them once; past that, and when nothing is signed in, they collapse to one 'POS Terminal' tile that opens the picker. Choosing a machine routes the sale to it — no dialog, nothing left to ask for — and the drawer body is replaced by the locked screen, because the shipped flow leaves the operator on the payment grid with 'To pay' and 'Save unpaid' still live while the card is being charged: a receptionist looking at an unpaid sale that has already been paid, a second tap the backend refuses, and a 'Discard draft sale?' on a sale that took the money. Settlement lands on the same Payment complete screen the link flow uses. The one way out is Collect another way, whose confirm names the real risk (a card that already went through) rather than asking 'are you sure'. The tile is hidden when the merchant has no usable terminal."
+        >
+          <Row label="Payment step — two machines, one tile each">
+            <div className="w-full max-w-xl">
+              <PaymentView
+                onSelect={(id) => toast(`Selected ${id}`)}
+                machines={[
+                  { id: "TRM-7Q4K2M", name: "Front Desk Register", blockedReason: null },
+                  { id: "TRM-3H8N5P", name: "Grooming Counter", blockedReason: null },
+                ]}
+              />
+            </div>
+          </Row>
+          {/* One row, not two: past the cap and nothing-signed-in produce the
+            same grid — a single POS Terminal tile. What separates them is what
+            the picker says when it opens, which is the pair of rows below. */}
+          <Row label="Payment step — two machines, one of them signed out">
+            <div className="w-full max-w-xl">
+              <PaymentView
+                onSelect={(id) => toast(`Selected ${id}`)}
+                machines={[
+                  { id: "TRM-7Q4K2M", name: "Front Desk Register", blockedReason: null },
+                  {
+                    id: "TRM-3H8N5P",
+                    name: "Grooming Counter",
+                    blockedReason: "Nobody signed in",
+                  },
+                ]}
+              />
+            </div>
+          </Row>
+          <Row label="Payment step — past the tile cap, one POS Terminal tile">
+            <div className="w-full max-w-xl">
+              <PaymentView onSelect={(id) => toast(`Selected ${id}`)} />
+            </div>
+          </Row>
+          <Row label="Payment step — no usable terminal (tile hidden)">
+            <div className="w-full max-w-xl">
+              <PaymentView onSelect={(id) => toast(`Selected ${id}`)} terminalAvailable={false} />
+            </div>
+          </Row>
+          <Row label="Send to terminal — picking the machine">
+            <SelectTerminalDialogDemo />
+          </Row>
+          <Row label="Send to terminal — nothing signed in">
+            <SelectTerminalDialogDemo signedIn={false} />
+          </Row>
+          <Row label="Locked cart — sale is on the machine">
+            <div className="flex min-h-96 w-full max-w-xl rounded-3xl border border-border/60 bg-background">
+              <TerminalLockScreen
+                charge={{
+                  amountMinor: 15000,
+                  terminalName: "Front Desk Register",
+                  terminalLocation: "Downtown Clinic",
+                  sentAt: NOW,
+                }}
+                firstName="Maaz"
+                onCancel={() => toast("Taken off the terminal · back to the payment methods")}
+                onMarkPaid={() => toast("Marked as paid")}
+              />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Payment policy — deposit & no-show config"
+          description="Payment policy (DSG-51) inside the Settings dialog (?settings=payments). Summary panel → policy editor takeover (?pp=edit), with the Customize-by-service table (?pp=services) and the client-facing terms editor (?pp=terms). Configured policy drives the Payment policy card in the appointment sheet: deposit amount from percent/fixed default + per-service overrides, hidden entirely when no policy is set. Shown here: the shared percent/AED amount input and the auto-generated client-facing example line."
+        >
+          <Row label="Amount input — percent mode (deposit default)">
+            <AmountInputDemo initial={{ mode: "percent", value: 25 }} />
+          </Row>
+          <Row label="Amount input — fixed AED mode (no-show fee)">
+            <AmountInputDemo initial={{ mode: "fixed", value: 150 }} />
+          </Row>
+          <Row label="Amount input — disabled (row on Default in the per-service table)">
+            <AmountInput
+              value={{ mode: "percent", value: 25 }}
+              onChange={() => {}}
+              disabled
+              className="w-64"
+            />
+          </Row>
+          <Row label="Example policy — auto-generated client-facing line">
+            <div className="w-full max-w-xl rounded-xl bg-cami-violet-2 px-4 py-3 text-sm text-foreground">
+              {examplePolicyText(DEFAULT_PAYMENT_POLICY, "Sota Salon")}
+            </div>
+          </Row>
+          <Row label="Example policy — no payment policy state">
+            <div className="w-full max-w-xl rounded-xl bg-cami-violet-2 px-4 py-3 text-sm text-foreground">
+              {examplePolicyText({ ...DEFAULT_PAYMENT_POLICY, type: "none" }, "Sota Salon")}
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Terminals (DSG-62)"
+          description="Add card machines, issue their credentials, and manage sign-in sessions — Business Settings > Payments > Terminals. Replaces the merchant-level shared-PIN model. Each terminal is added from the dashboard with a name and a location, and comes back with two credentials that do different jobs: a pairing code (TRM-XXXXXX, typed into the hardware once, never changes) and a 6-digit sign-in PIN (typed every sign-in, readable from the row any time, regenerated whenever the merchant wants). Both are shown together because that is how a device gets set up, but labelled apart because their lifecycles differ. Per-device rather than merchant-wide, so regenerating a PIN or a failed-attempt lockout hits that terminal alone. Status is a precedence, first match wins: Locked · 12 min, Not paired, Active, No sessions — the middle two are states the source mockup had no room for and cover most of a working morning. Row menu: Show code & PIN, Rename terminal, Change location (split apart because 'Edit' didn't say what it edits), N devices signed in, Regenerate PIN, Unlock now while locked, Remove terminal. Sessions open as a modal per terminal rather than a second listing, showing device model, app build, IP, signed in and expires, with Revoke per session — a session belongs to hardware, not a person, since the PIN is shared by whoever works that counter. Nothing is capped: as many terminals as there is hardware for, as many concurrent sessions as staff open. Three instances below are live; the faint controls at the bottom stand in for the two things that happen on the hardware (pairing a device, signing in) and swap the demo data."
+        >
+          <Row label="Empty (nothing added yet)">
+            <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
+              <TerminalsPanel
+                onBack={() => toast("Back to Payments")}
+                breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+              />
+            </div>
+          </Row>
+          <Row label="Typical (2 terminals)">
+            <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
+              <TerminalsPanel
+                onBack={() => toast("Back to Payments")}
+                breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+                initialState="typical"
+              />
+            </div>
+          </Row>
+          <Row label="All statuses">
+            <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
+              <TerminalsPanel
+                onBack={() => toast("Back to Payments")}
+                breadcrumbRoot={{ label: "Payments", icon: CreditCardIcon }}
+                initialState="full"
+              />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Notifications settings"
+          description="Sender ID, reminder channels, and per-message usage — Business Settings > Notifications. Follow-on to the Notifications & Reminders sign-off, which excluded all of this. The Sender ID is one state machine rather than three timelines (not-submitted → submitted → approved | rejected), with CAMI as the fallback in three of the four states — so the short-term 'just enable SMS in UAE' ask is satisfied by not-submitted working properly, not by an interim screen. It states that once: the field carries the registered value and the line beneath it renders only in the two states where what customers see differs from what was entered, since in the other two the field already says it. Merchant intent and the Cami HQ channel grant stay separate fields and are never merged: an ungranted channel locks its column and keeps one 'not enabled for your business' notice rather than hiding the column, because a missing column reads as a missing feature, and re-enabling at HQ restores exactly what the merchant had switched on. Reminders event labels link into their Communication templates editor, underlined on hover only. Usage leads with a share-of-cost bar — SMS is 81% of the bill on fewer sends than email, and three right-aligned figures made you compute that — plus a straight-line month-end estimate under the total, suppressed early in a month where one day extrapolated over thirty-one is noise. Per-message cost is stamped at send time rather than derived from the current rate, so an HQ rate change can't retroactively rewrite last month's consumption. The Log tab groups by day with a per-day count and puts its rows in one bordered card rather than a card each, and reads real ISO timestamps so the grouping has a date to bucket on. One live instance below, not three: the demo controls write to the shared store, so parallel copies would fight over it. Walk the four Sender ID states and the WhatsApp grant with the faint controls bottom-right — both stand in for decisions taken in Cami HQ. A third control, 'WhatsApp unused / consuming', is there for coverage rather than for anything HQ decides: the shipped default has WhatsApp at zero cost, so without it the share bar's three-segment state could not be seen at all."
+        >
+          <Row label="Live (Settings + Log tabs)">
+            <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
+              {/* The panel reads its deep-link params with useSearchParams, which
+                bails out of prerendering unless a boundary sits above it —
+                /playground is a static page, so the boundary lives here. */}
+              <Suspense fallback={null}>
+                <NotificationsSettingsPanel />
+              </Suspense>
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Communication templates"
+          description="What each automated message actually says, per channel — Business Settings > Communication templates (DSG-83). The companion to the Notifications panel above: that one decides whether an event sends, this decides its wording, and there is deliberately no toggle here because two switches for one fact drift apart. Templates key on the same ReminderEvent list the Reminders matrix uses rather than a list of their own, so the two surfaces can never disagree about which messages exist. Only overrides are stored, never a full copy of every default — so 'Reset to default' is a delete, and a default the design team improves later still reaches every merchant who never touched it. Four things to walk: click any row's Edit for the full-screen editor (form left, sticky live preview right, both resolving placeholders against sample values); type a nonsense {{token}} to see the unrecognised-placeholder warning, since a typo sends as written rather than being silently dropped; open the WhatsApp tab, where nothing is switched on yet and the card header says so once instead of dimming all seven rows; then switch a few WhatsApp events on under Notifications and come back, where the rest carry an 'Off' badge and stay editable. Row text is resolved and drops the shared 'Hi {{client}}' opener — six of seven WhatsApp bodies start identically, so a raw excerpt spent its first third saying nothing. SMS is absent on purpose: the ticket names email and WhatsApp, and that exclusion is documented on /screens and in the spec rather than in the panel."
+        >
+          <Row label="Live (Email + WhatsApp tabs)">
+            <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
+              {/* Same reason as the notifications panel: the panel reads its
+                deep-link params with useSearchParams, which bails out of
+                prerendering unless a boundary sits above it. */}
+              <Suspense fallback={null}>
+                <CommsTemplatesPanel />
+              </Suspense>
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Merchant money surfaces — account summary (DSG-77)"
+          description="Split custody made legible: terminal money is held and paid by NeoPay, online money by Cami. Every figure is derived from one ledger (lib/money), so the breakdown arrives at the headline instead of asserting it — the defect the benchmark shows at 9.3x. D6 is undecided, so both layouts are here."
+        >
+          <Row label="Two rails">
+            <MoneySummaryDemo variant="two-rail" />
+          </Row>
+          <Row label="Blended">
+            <MoneySummaryDemo variant="blended" />
+          </Row>
+          <Row label="Payouts paused">
+            <MoneySummaryDemo variant="two-rail" block="destination-unverified" />
+          </Row>
+          <Row label="Below minimum">
+            <MoneySummaryDemo variant="two-rail" block="below-minimum" />
+          </Row>
+          <Row label="Terminal only">
+            <MoneySummaryDemo variant="two-rail" rails={{ online: false, terminal: true }} />
+          </Row>
+          <Row label="Zero activity">
+            <MoneySummaryDemo variant="two-rail" empty />
+          </Row>
+        </Section>
+        <Section
+          title="Merchant money surfaces — activity and detail (DSG-78)"
+          description="The itemised feed under the number. Day groups carry a NET subtotal rather than takings, so a heavy fee day cannot read as a good one. Rows carry direction in the icon and colour before the sign. Open any row for the detail panel; open a payout row to drill into what it carried and watch the contents sum to the payout figure."
+        >
+          <Row label="Both rails">
+            <MoneyActivityDemo />
+          </Row>
+          <Row label="Terminal only">
+            <MoneyActivityDemo rails={{ online: false, terminal: true }} />
+          </Row>
+          <Row label="Empty">
+            <MoneyActivityDemo empty />
+          </Row>
+        </Section>
+        <Section
+          title="Merchant money surfaces — bank account (DSG-75)"
+          description="The one control that can redirect every dirham the business takes, so changing it is a multi-step flow and never an inline edit. The reference version is a masked account and an Edit button; this one adds a verification state, both senders shown against the single account they pay into, and a permanent change log that keeps failed attempts. The state worth clicking is the gateway failure — it must leave the old account untouched and say so."
+        >
+          <Row label="Verified">
+            <BankAccountDemo state="verified" />
+          </Row>
+          <Row label="Unverified">
+            <BankAccountDemo state="unverified" />
+          </Row>
+          <Row label="Gateway failed">
+            <BankAccountDemo state="gateway-failed" />
+          </Row>
+          <Row label="Read-only">
+            <BankAccountDemo state="read-only" />
+          </Row>
+          <Row label="Terminal only">
+            <BankAccountDemo state="terminal-only" />
+          </Row>
+        </Section>
+        <Section
+          title="Merchant money surfaces — invoices and fees (DSG-76)"
+          description="What Cami charged, per period, with the current month pending. Cami's statement is a different document from the benchmark's: no subscription line (the OS is free), the rate stated on the screen rather than only inside a download, and every fee expandable to the sale that caused it with the working shown. Each line renders the rate snapshotted at capture, so a past statement never re-rates after a renegotiation."
+        >
+          <Row label="NeoPay deducts">
+            <MoneyFeesDemo terminalModel="gateway-deducts" />
+          </Row>
+          <Row label="Cami invoices">
+            <MoneyFeesDemo terminalModel="cami-invoices" />
+          </Row>
+          <Row label="Online only">
+            <MoneyFeesDemo
+              terminalModel="gateway-deducts"
+              rails={{ online: true, terminal: false }}
+            />
+          </Row>
+        </Section>
+        <Section
+          title="Merchant money surfaces — billing details (DSG-74)"
+          description="Four values, held once, printed on every tax invoice the merchant sends and every invoice Cami sends them. Missing fields collapse into an Add pill rather than a blank row, and the no-TRN state names its consequence: ordinary invoices with no tax wording. Edit opens the standard takeover, which says changes apply forward only, and takes the registered address through the address search field below rather than a free-text box."
+        >
+          <Row label="Complete">
+            <BillingDetailsDemo state="complete" />
+          </Row>
+          <Row label="No TRN">
+            <BillingDetailsDemo state="no-trn" />
+          </Row>
+          <Row label="Nothing filled in">
+            <BillingDetailsDemo state="empty" />
+          </Row>
+        </Section>
+        <Section
+          title="CamiPay fee breakdown — Partner side"
+          description="PRO-737. What the Partner sees on their own sale detail (/sales/sales-list, open a sale paid by CamiPay). Sale amount → Cami fee → Net, with the calculation spelled out under the fee so the number is never a black box. The gateway's processing fee is deliberately absent: the Partner pays Cami's fee and nothing else. The rate is snapshotted onto the payment at capture, so a later rate change never restates it."
+        >
+          <Row label="Percentage only">
+            <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
+              <CamiPayFeeBreakdown
+                rail="terminal"
+                rate={{ percent: 1.8, fixedMinor: 0, fixedBelowMinor: null }}
+                amountMinor={5400}
+                capturedOnLabel="25 May 2026"
+              />
+            </div>
+          </Row>
+          <Row label="Percentage + fixed, under the bracket so the fixed applies">
+            <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
+              <CamiPayFeeBreakdown
+                rail="online"
+                rate={{ percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 }}
+                amountMinor={3040}
+                capturedOnLabel="25 May 2026"
+              />
+            </div>
+          </Row>
+          <Row label="Same rate above the bracket, so the fixed drops off">
+            <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
+              <CamiPayFeeBreakdown
+                rail="online"
+                rate={{ percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 }}
+                amountMinor={1050000}
+                capturedOnLabel="01 Jun 2026"
+              />
+            </div>
+          </Row>
+          <Row label="No rate configured, so no fee">
+            <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
+              <CamiPayFeeBreakdown
+                rail="terminal"
+                rate={ZERO_RATE}
+                amountMinor={4200}
+                capturedOnLabel="25 May 2026"
+              />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          lazy
+          title="Invoice document — A4 downloadable"
+          description="DSG-72. One component renders the PDF download, the email attachment and the unique invoice link, so field order is identical across the three by construction. Paper, not app chrome: it stays white-with-dark-ink in dark mode and carries no badge chips — payment state is carried by the numbers (Balance), and only Refunded and Voided get a line of prose under the document date. Previews are scaled to 34%; open /sales/invoice-document?state=<id> for full size and the Print action."
+        >
+          <Row label="Status — carried by the numbers, no chips">
+            <InvoicePreview
+              id="completed"
+              note="Split tender, per-tender timestamps, Balance 0.00"
+            />
+            <InvoicePreview id="part-paid" note="Cart discount, Balance outstanding" />
+            <InvoicePreview
+              id="unpaid"
+              note="Named promotion. Explicit 'No payments received' row, not a bare gap"
+            />
+          </Row>
+          <Row label="Exceptional states — prose, plus a watermark for void">
+            <InvoicePreview
+              id="credit-note"
+              note="Own number, references the original, and reverses the VAT the benchmark omits"
+            />
+            <InvoicePreview
+              id="voided"
+              note="Subtitle carries the timestamp, watermark carries the at-a-glance signal"
+            />
+          </Row>
+          <Row label="Document type — three-way, one layout">
+            <InvoicePreview
+              id="tax-full"
+              note="Recipient TRN captured, so per-line tax columns render"
+            />
+            <InvoicePreview
+              id="plain"
+              note="No business TRN: no tax column, no tax summary, no tax wording anywhere"
+            />
+            <InvoicePreview
+              id="recipient-minimal"
+              note="Recipient collapses to a single name line"
+            />
+          </Row>
+          <Row label="Money edge cases">
+            <InvoicePreview
+              id="tip"
+              note="EC-39. A tip splits taxable gross from amount due — both rows always render"
+            />
+            <InvoicePreview
+              id="zero-value"
+              note="Package redemption at AED 0.00 is still a valid, fully itemised invoice"
+            />
+            <InvoicePreview
+              id="zero-value-tip"
+              note="Live Sale 387. Package covers the service, customer tips 5.00 — production folds that 5.00 into Total unlabelled, where it is indistinguishable from 5% VAT"
+            />
+            <InvoicePreview
+              id="credit-note-tip"
+              note="A refund returns the tip too, but the reversed VAT stays on the line only"
+            />
+            <InvoicePreview
+              id="overtender"
+              note="Change goes back across the counter and does not count as collected"
+            />
+          </Row>
+          <Row label="Identity, overflow and pagination">
+            <InvoicePreview
+              id="logo"
+              note="Logo slot filled. With none it collapses, no placeholder box"
+            />
+            <InvoicePreview
+              id="overflow"
+              note="Long legal name wraps to two lines; long description wraps in-column"
+            />
+            <InvoicePreview
+              id="multi-page"
+              note="30 lines. Condensed identity + column headers repeat, page N of M"
+            />
+          </Row>
+        </Section>
+        <Section
+          lazy
+          title="Invoice document — share & email actions"
+          description="DSG-72. The two modals behind the sale detail dialog's actions, matched to the shipped implementation in cami-business rather than to a screenshot. Neither navigates away from the sale — that is the shape every production action on this dialog shares. Share invoice hands out the unique invoice link, which renders the same document as the PDF and the email attachment."
+        >
+          <Row label="Share invoice — the link is fetched, so it has three states">
+            <ShareDialogDemo
+              linkState="ready"
+              label="Ready"
+              note="Link arrived. Copy shows a tick that reverts after 2s. Gmail also copies the link and toasts, because Gmail's compose URL drops a prefilled body often enough that the operator would otherwise send an empty email; WhatsApp's text param is reliable and does neither."
+            />
+            <ShareDialogDemo
+              linkState="loading"
+              label="Loading"
+              note="Dialog opens before the backend has minted the share token. Skeleton in place of the URL, every action disabled."
+            />
+            <ShareDialogDemo
+              linkState="error"
+              label="Failed"
+              note="Token request failed. 'Failed to generate link' in place of the URL, Gmail drops to a non-interactive row rather than a dead link."
+            />
+          </Row>
+          <Row label="Email invoice">
+            <EmailDialogDemo
+              label="Client on file"
+              note="Prefilled and focused. Send is disabled until the address is valid."
+            />
+            <EmailDialogDemo
+              walkIn
+              label="Walk-in"
+              note="No client record, so no address to prefill — an extra line says so instead of leaving an empty field unexplained."
+            />
+            <EmailDialogDemo
+              invalid
+              label="Validation"
+              note="The error appears on a failed Send, never while typing: 'Email address is required' when empty, 'Enter a valid email address' otherwise."
+            />
+          </Row>
+        </Section>
+        <Section
+          lazy
+          title="Product import — review states (DSG-80)"
+          description="The redesigned bulk-import review. Aya's migration from the Slack thread is the reference case: 100 rows, 83 added, 17 blocked for a missing SKU. The complaint was that those 17 rows shared one cause and the shipped UI made you expand each one to find it, so causes are now grouped and stated once and the table's last column says what happens in words rather than counting errors. Every frame reads the real mock payload; compare against what ships today at /products/import via the compare bar."
+        >
+          <Row label="Grouped causes" align="start">
+            <IssueSummaryDemo
+              scenario="mixed"
+              severity="blocking"
+              label="Blocking — two causes"
+              note="Ordered by how many rows each hit. Each states the rule, the rows, and the fix."
+            />
+            <IssueSummaryDemo
+              scenario="aya-migration"
+              severity="advisory"
+              label="Advisory"
+              note="Weighted down: one line and a count, no row list, no fix line."
+            />
+          </Row>
+
+          <Row label="Outcome strip" align="start">
+            <OutcomeStripDemo
+              scenario="aya-migration"
+              label="First import"
+              note="Additions lead. Blocked rows are counted here but acted on in the summary above."
+            />
+            <OutcomeStripDemo
+              scenario="mixed"
+              label="Re-import"
+              note="Updates lead; needs-your-OK is tinted because it is the count that stalls."
+            />
+          </Row>
+
+          <Row label="Row anatomy" align="start">
+            <ReviewRowDemo
+              scenario="aya-migration"
+              status="reject"
+              label="Blocked"
+              note="The cause sits in the row. Expand for the checker's own sentences."
+            />
+            <ReviewRowDemo
+              scenario="mixed"
+              status="update"
+              label="Update"
+              note="Names the fields that change, so the diff is optional."
+            />
+            <ReviewRowDemo
+              scenario="mixed"
+              status="flag"
+              label="Needs your OK"
+              note="Per-field switch, off by default."
+            />
+            <ReviewRowDemo
+              scenario="mixed"
+              status="skip"
+              label="Left out"
+              note="The option the operator chose, not 'Skipped by mode'."
+            />
+            <ReviewRowDemo
+              scenario="duplicate-barcodes"
+              status="reject"
+              label="Blocked, but rescuable"
+              note="The one rejection that can be undone in place."
+            />
+            <ReviewRowDemo
+              scenario="placeholder-skus"
+              status="create"
+              label="Generated SKU"
+              note="Imports cleanly, but says the code is ours."
+            />
+          </Row>
+
+          <Row label="Whole review step" align="start">
+            <ReviewStateDemo
+              scenario="aya-migration"
+              label="The reported case"
+              note="83 ready, 17 blocked. Clicking a cause filters the table to those rows."
+            />
+            <ReviewStateDemo
+              scenario="mixed"
+              label="Every status at once"
+              note="Plus an unrecognised tax rate. The filter appears because several statuses are present."
+            />
+            <ReviewStateDemo
+              scenario="all-rejected"
+              label="Nothing importable"
+              note="No disabled primary button and no filter — one way out instead."
+            />
+            <ReviewStateDemo
+              scenario="up-to-date"
+              label="Already up to date"
+              note="Confirm is gone; the headline is the answer."
+            />
+            <ReviewStateDemo
+              scenario="placeholder-skus"
+              label="After PRD-63"
+              note="All 100 import; the advisory names the 17 generated SKUs."
+            />
+          </Row>
+
+          <Row label="Done step" align="start">
+            <DoneStateDemo
+              scenario="mixed"
+              label="With rows left behind"
+              note="Offers the failed-row download, not just a count."
+            />
+            <DoneStateDemo
+              scenario="placeholder-skus"
+              label="After PRD-63"
+              note="'17 products need a real SKU', linking to them. This is what makes PRD-63 safe to ship."
+            />
+            <DoneStateDemo
+              scenario="duplicate-barcodes"
+              label="Clean import"
+              note="Follow-up blocks appear only when there is something to chase."
+            />
+          </Row>
+        </Section>
+        <Section
+          lazy
+          title="Clients and pets import — review states (DSG-84)"
+          description="The same wizard on the other two entities. Production serves all three from one component set, so these screens are the product import's parts with different counts: one CountLedger, one IssueSummary, one LookupsPanel, one OutcomePanel, and every string from lib/imports/copy.ts. What is genuinely specific is name matching — a row matched on first name alone, which products have no equivalent of — and a pet row, which carries an owner and a pet with separate outcomes. Both reference cases come from the #ui threads: Aya's 100-row client file and Maaz's 873-row pet file. Compare at /clients/import."
+        >
+          <Row label="Row anatomy" align="start">
+            <ClientRowDemo
+              scenario="aya-clients"
+              status="reject"
+              label="Blocked — no last name"
+              note="18 of Aya's rows. The cause is in the row; the grouped block above states it once."
+            />
+            <ClientRowDemo
+              scenario="aya-clients"
+              status="review"
+              label="Name match"
+              note="'In your file' against 'Already in Cami'. The third option — add as a new person — is drawn disabled: the backend models NEW_RECORD but the confirm call has no override that reaches it."
+            />
+            <ClientRowDemo
+              scenario="aya-clients"
+              status="create"
+              label="Will be added"
+              note="Nothing to say, so the Details column stays empty rather than repeating the badge."
+            />
+            <ClientRowDemo
+              scenario="maaz-pets"
+              status="create"
+              label="Pet row"
+              note="Owner and pet in one row, each with its own outcome."
+            />
+            <ClientRowDemo
+              scenario="maaz-pets"
+              status="standalone"
+              label="Pet with no owner"
+              note="No phone and no email, so the backend imports the pet on its own and creates nobody. The owner side is skipped, but badging the row 'Left out' would say the pet never arrived — so the pet's outcome names the row."
+            />
+          </Row>
+
+          <Row label="Whole review step" align="start">
+            <ClientReviewStateDemo
+              scenario="aya-clients"
+              label="Aya's client import"
+              note="Opens on the 21 rows that need her — 18 missing a last name, 1 duplicate phone, 2 name matches — not on 79 identical green badges."
+            />
+            <ClientReviewStateDemo
+              scenario="maaz-pets"
+              label="Maaz's pet import"
+              note="Eleven counts and eight lists created. Owner counts are named, so '826 pets will be added' cannot be read as the owner total."
+            />
+            <ClientReviewStateDemo
+              scenario="pets-no-owner"
+              label="No contact details anywhere"
+              note="120 rows, every pet standalone, not one client created. The commit button counts pets on a pet import for this file: counting owners read 'nothing to import' over an import of 120 pets."
+            />
+            <ClientReviewStateDemo
+              scenario="many-name-matches"
+              label="Mostly name matches"
+              note="16 of 24 rows matched on first name alone — the volume the reported file would produce in a populated account."
+            />
+            <ClientReviewStateDemo
+              scenario="client-no-pets"
+              label="Pet feature off"
+              note="The same file on an account without pets. Nothing pet-related may appear anywhere on this screen."
+            />
+          </Row>
+
+          <Row label="Done step" align="start">
+            <ClientOutcomeDemo
+              scenario="aya-clients"
+              label="Clients, with rows left behind"
+              note="The ledger has to add up to the file: 79 added + 2 left for you to answer + 19 left behind = 100."
+            />
+            <ClientOutcomeDemo
+              scenario="maaz-pets"
+              label="Pets"
+              note="The same panel as the product Done step — the two were separate implementations and drifted apart within a day."
+            />
+            <ClientOutcomeDemo
+              scenario="pets-no-owner"
+              label="Pets, none with an owner"
+              note="'120 pets added' with 0 owners under it — the ledger keeps the standalone pets on their own line rather than folding them into the added count."
+            />
+          </Row>
+        </Section>
+        <Section
+          lazy
+          title="Performance dashboard — chart primitives"
+          description="The four marks the Performance dashboard (DSG-79) is built from, plus the categorical palette they share. Colours come from the --chart-cat-* tokens; both the light and dark sets pass the dataviz validator, so check this section in both themes."
+        >
+          <Row label="Categorical palette" align="start">
+            <div className="flex flex-wrap gap-3">
+              {CHART_CAT_SWATCH.map((swatch, i) => (
+                <div key={swatch} className="flex items-center gap-2">
+                  <span className={cn("size-4 rounded-sm", swatch)} />
+                  <span className="text-xs text-muted-foreground">
+                    {i === CHART_CAT_SWATCH.length - 1 ? "Other (overflow)" : `Slot ${i + 1}`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Row>
+
+          <Row label="Donut" align="start">
+            <div className="w-[420px] rounded-2xl border border-border/60 bg-card p-5">
+              <DonutChart
+                items={SALES_BY_PAYMENT}
+                values={SALES_BY_PAYMENT_VALUES}
+                centreLabel="collected"
+                centreValue="AED 10,240"
+                formatValue={(n) => `AED ${n.toLocaleString("en-US")}`}
+              />
+            </div>
+            <span className="w-56 text-xs leading-snug text-muted-foreground">
+              Stacked: ring above its legend. Hovering a slice swaps the centre total for that slice
+              — no floating tooltip, because the tooltip would cover the total it is explaining.
+            </span>
+          </Row>
+
+          <Row label="Donut — wide" align="start">
+            <div className="w-[720px] rounded-2xl border border-border/60 bg-card p-5">
+              <DonutChart
+                items={SALES_BY_PAYMENT}
+                values={SALES_BY_PAYMENT_VALUES}
+                centreLabel="collected"
+                centreValue="AED 10,240"
+                formatValue={(n) => `AED ${n.toLocaleString("en-US")}`}
+                wide
+              />
+            </div>
+            <span className="w-56 text-xs leading-snug text-muted-foreground">
+              Ring beside the legend, for cards 8 columns and wider. The legend stays one column:
+              two columns truncated the longer labels and gave each column its own value edge, so
+              the amounts stopped lining up.
+            </span>
+          </Row>
+
+          <Row label="Funnel" align="start">
+            <div className="w-[420px] rounded-2xl border border-border/60 bg-card p-5">
+              <FunnelChart stages={WHATSAPP_FUNNEL} />
+            </div>
+          </Row>
+
+          <Row label="Ranked bars" align="start">
+            <div className="w-[420px] rounded-2xl border border-border/60 bg-card p-5">
+              <RankedBarChart
+                data={OPEN_INQUIRY_AGE}
+                formatValue={(n) => `${n}`}
+                unit="Conversations still open, by how long"
+                orientation="column"
+              />
+            </div>
+            <span className="w-56 text-xs leading-snug text-muted-foreground">
+              Ranked, so the order carries the ranking and the axis carries the size. Shown the way
+              the dashboard ships it — vertical columns, wrapped two-line labels.
+            </span>
+          </Row>
+
+          <Row label="Capacity heatmap" align="start">
+            <div className="w-[620px] rounded-2xl border border-border/60 bg-card p-5">
+              <CapacityHeatmap
+                rowLabels={HEATMAP_HOURS}
+                colLabels={HEATMAP_DAYS}
+                matrix={HEATMAP_MATRIX}
+              />
+            </div>
+            <span className="w-56 text-xs leading-snug text-muted-foreground">
+              Sequential blue ramp, never the categorical slots. The number is printed in every cell
+              so the reading never depends on colour.
+            </span>
+          </Row>
+        </Section>
+        <Section
+          lazy
+          title="Reporting module (DSG-43 / PRO-703)"
+          description="The shared view templates that render every report from lib/reports/registry.ts. Config-driven — columns, group-by, filters and date control come from each report's definition. All amounts AED."
+        >
+          {reportPaymentsSummary ? (
+            <div className="py-3">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Table View — Payments summary (Total row, Cami payment methods)
+              </p>
+              <TableReport report={reportPaymentsSummary} />
+            </div>
+          ) : null}
+          {reportFinanceSummary ? (
+            <div className="py-3">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Detailed Table View — Finance summary (section-grouped metric × period matrix)
+              </p>
+              <DetailedTableReport report={reportFinanceSummary} />
+            </div>
+          ) : null}
+          {reportPerformanceDashboard ? (
+            <div className="py-3">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Dashboard View — Performance dashboard (6 Cami metrics + comparison chart +
+                drill-downs)
+              </p>
+              <DashboardReport report={reportPerformanceDashboard} />
+            </div>
+          ) : null}
+          {reportPerformanceSummary ? (
+            <div className="py-3">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Matrix View — Performance summary (metric × team-member, section subtotals, Total
+                column)
+              </p>
+              <DashboardReport report={reportPerformanceSummary} />
+            </div>
+          ) : null}
+          {reportPerformanceOverTime ? (
+            <div className="py-3">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Over-time Matrix — Performance over time (live pills recompute a recharts bar chart
+                + entity × time-period table)
+              </p>
+              <DashboardReport report={reportPerformanceOverTime} />
+            </div>
+          ) : null}
+        </Section>
+      </Lane>
+      <Lane id="hq" label="Cami HQ" blurb="Our own control plane over Partners.">
+        <Section
+          title="Cami HQ — CamiPay settlement config"
+          description="PRO-737. The Settings tab of the HQ Partner detail dialog (/admin/businesses?business=…). One card, one section per rail: whether it is on, where it routes, and what Cami charges on it. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off (Shampooch Online, Pawhaus Online). Rates are append-only, so the only write is Change, which adds a row with an effective-from date; past rows have no edit or delete affordance on purpose. A live rail with no rate row earns Cami nothing and says so (Doggos Online). The switch and gateway are gated by billing.camipay.rails.edit, Change by billing.camipay.rates.edit, separately. One store is shared across the rows below, so a change made in one row shows up in the others."
+        >
+          <CamiPayProvider>
+            <Row label="Live Partner, full edit rights">
+              <CamiPayPanelDemo slug="shampooch-jvc" permissions={ALL_HQ_PERMISSIONS} />
+            </Row>
+            <Row label="Scheduled rate, split gateways per rail">
+              <CamiPayPanelDemo slug="pawhaus" permissions={ALL_HQ_PERMISSIONS} />
+            </Row>
+            <Row label="Onboarding, rails off and no rate card">
+              <CamiPayPanelDemo slug="velvet-paw" permissions={ALL_HQ_PERMISSIONS} />
+            </Row>
+            <Row label="View-only, billing.read without CamiPay edit">
+              <CamiPayPanelDemo slug="shampooch-jvc" permissions={["billing.read"]} />
+            </Row>
+            <Row label="Archived Partner, whole tab read-only">
+              <CamiPayPanelDemo slug="furry-tales" permissions={ALL_HQ_PERMISSIONS} disabled />
+            </Row>
+          </CamiPayProvider>
+        </Section>
+        <Section
+          title="Cami HQ — terminal fleet, Partner card"
+          description="DSG-82. Cami buys the card machines and leases them out, so a terminal is an asset HQ assigns, not a device a merchant registered. This is the Partner-scoped card (Settings tab of the HQ Partner detail dialog, ?section=settings); the fleet-wide listing with stock, returns and the serial → Partner lookup is /admin/terminals. Rows lead with the serial because that is what is printed on the box and quoted in a ticket. Assign picks a unit from stock; Return to Cami is the destructive item, not Block, because a block is undone from the same menu. Access sits at the top of the card as a Terminal access switch writing the same rails.terminal.enabled flag as CamiPay Terminal above it — one flag, two views, and the row says so. Assign/Block/Return ride on merchants.edit, the access switch on billing.camipay.rails.edit. One store across the rows below, so an assignment in one shows in the others."
+        >
+          <HqTerminalsProvider>
+            <CamiPayProvider>
+              <Row label="Three units: active, idle, and shipped but never switched on">
+                <HqTerminalsPanelDemo slug="shampooch-jvc" permissions={ALL_HQ_PERMISSIONS} />
+              </Row>
+              <Row label="One unit blocked by HQ, with who and when on the row">
+                <HqTerminalsPanelDemo slug="pawhaus" permissions={ALL_HQ_PERMISSIONS} />
+              </Row>
+              <Row label="Suspended Partner, device locked itself out on failed PINs">
+                <HqTerminalsPanelDemo slug="doggos" permissions={ALL_HQ_PERMISSIONS} />
+              </Row>
+              <Row label="Nothing assigned yet — empty state carries Assign">
+                <HqTerminalsPanelDemo slug="velvet-paw" permissions={ALL_HQ_PERMISSIONS} />
+              </Row>
+              <Row label="Terminal access off, so the unit in hand cannot transact">
+                <HqTerminalsPanelDemo slug="furry-tales" permissions={ALL_HQ_PERMISSIONS} />
+              </Row>
+              <Row label="View-only, merchants.view without merchants.edit">
+                <HqTerminalsPanelDemo slug="shampooch-jvc" permissions={["merchants.view"]} />
+              </Row>
+              <Row label="Archived Partner, whole tab read-only">
+                <HqTerminalsPanelDemo
+                  slug="furry-tales"
+                  permissions={ALL_HQ_PERMISSIONS}
+                  disabled
+                />
+              </Row>
+            </CamiPayProvider>
+          </HqTerminalsProvider>
+        </Section>
+        <Section
+          title="Terminal status — one vocabulary, two surfaces"
+          description="DSG-82. The fleet table and the Partner card read from components/blocks/hq-terminal-status.tsx so they cannot drift. The first three are fleet states only HQ sees; Not set up, Locked, Active and No sessions are the merchant's own words from DSG-62, so HQ and the merchant looking at one device read the same status. Order is first-match-wins: where the unit physically is, then whether HQ stopped it, then what the device is doing."
+        >
+          {(
+            [
+              "in-stock",
+              "returned",
+              "faulty",
+              "not-paired",
+              "active",
+              "no-sessions",
+              "blocked",
+              "locked",
+            ] as HqTerminalStatus[]
+          ).map((status) => (
+            <Row key={status} label={status}>
+              <TerminalStatus status={status} suffix={status === "locked" ? "12 min" : null} />
+            </Row>
+          ))}
+        </Section>
+        <Section
+          title="Partner code — CM-####"
+          description="DSG-82. The identifier a human says out loud. `id` (biz_shampooch) is internal and never rendered; the slug is public and changeable from the General tab; this one is issued at creation and immutable, which is why there is no edit affordance anywhere. Chip variant on the detail modal header and the Terminals card, click to copy; inline variant in dense listing rows, where a button per row would be twelve buttons nobody asked for."
+        >
+          <Row label="Chip — click to copy">
+            <MerchantCode code="CM-4821" />
+          </Row>
+          <Row label="Inline — roster row, paired with the slug">
+            <span className="truncate font-mono text-xs text-muted-foreground">
+              CM-4821 · cami.app/shampooch-jvc
+            </span>
+          </Row>
+        </Section>
+        <Section
+          title="Notifications, Cami HQ control plane"
+          description="The HQ half of the notification spec — a Notifications tab on the partner record (Cami HQ > Partners > any partner). Three sections in the order someone debugging a partner asks about them. Channels: master switches, where turning one off locks that column in the merchant's own settings without clearing their intent, so turning it back on restores exactly what they had. Sender ID: the registered name, the Approve / Reject decision (Reject requires a reason, because it renders verbatim in the merchant's settings and a rejection with no reason strands them with nothing to fix), and — only when it differs from the registered name — what customers actually see; approved, the two are the same word, so showing both was one fact in two labelled boxes. Rates: blank means inherited, which is what the card always claimed and the field never did, with the placeholder carrying the inherited number; clearing the field or typing the global value back returns the partner to inheriting, where before touching the field made them overridden with no way out. Both rate editors bind to the typed string rather than the number — parsing each keystroke with Number ate the decimal point as it was typed, so a decimal rate was untypeable and digits accumulated into AED 2266 per message — and both warn above AED 1.00, eight times the highest real rate, while staying quiet at 0.24 because that is a legitimate doubled SMS segment. Only a pending registration has a decision to take: approving or rejecting anything else would name an action that already happened. The four rows below are the states that matter, each reading a different demo partner; edits are local to the row so they don't fight each other. Furry Tales carries no config at all, which is also the state where the Sender ID card's null guard earns its keep."
+        >
+          <Row label="Approved Sender ID, global rates (Shampooch)">
+            <div className="w-full max-w-2xl">
+              <HqNotificationsDemo slug="shampooch-jvc" />
+            </div>
+          </Row>
+          <Row label="Pending Sender ID + SMS rate override (Pawhaus)">
+            <div className="w-full max-w-2xl">
+              <HqNotificationsDemo slug="pawhaus" />
+            </div>
+          </Row>
+          <Row label="Rejected Sender ID, SMS switched off (Doggos)">
+            <div className="w-full max-w-2xl">
+              <HqNotificationsDemo slug="doggos" />
+            </div>
+          </Row>
+          <Row label="No config at all — inherits every default (Furry Tales)">
+            <div className="w-full max-w-2xl">
+              <HqNotificationsDemo slug="furry-tales" />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Impersonation banner"
+          description="Bottom-anchored pill on the Partner portal during a Cami HQ impersonation session. Yellow active state, tomato expiring/expired states, plus a collapsed toggle that doubles as a re-open affordance."
+        >
+          <Row label="Active">
+            <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
+              <ImpersonationBanner
+                ownerName="Maz Khan"
+                businessName="Shampooch JVC"
+                onExit={() => toast.success("Impersonation stopped")}
+              />
+            </div>
+          </Row>
+          <Row label="Expiring (5 min)">
+            <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
+              <ImpersonationBanner
+                ownerName="Maz Khan"
+                businessName="Shampooch JVC"
+                durationSeconds={4 * 60}
+                expiringThresholdSeconds={5 * 60}
+                onExit={() => toast.success("Impersonation stopped")}
+              />
+            </div>
+          </Row>
+          <Row label="Expired (terminal)">
+            <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
+              <ImpersonationBanner
+                ownerName="Maz Khan"
+                businessName="Shampooch JVC"
+                durationSeconds={0}
+                onExit={() => toast.success("Window closed")}
+              />
+            </div>
+          </Row>
+          <Row label="Collapsed">
+            <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
+              <ImpersonationBanner
+                ownerName="Maz Khan"
+                businessName="Shampooch JVC"
+                defaultCollapsed
+                onExit={() => toast.success("Impersonation stopped")}
+              />
+            </div>
+          </Row>
+        </Section>
+      </Lane>
     </TooltipProvider>
   )
 }
