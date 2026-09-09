@@ -1,6 +1,11 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import { serviceItemLabel } from "@/app/appointments/mock"
+import {
+  MOCK_SERVICE_CATALOG,
+  type MockServiceCatalogItem,
+  serviceItemLabel,
+} from "@/app/appointments/mock"
+import { expandCombo } from "@/components/blocks/new-appointment-sheet"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import {
   ServiceCatalogProvider,
@@ -115,5 +120,44 @@ describe("a booked combo line", () => {
     expect(
       serviceItemLabel({ id: "i2", name: "Nails Clip", priceMinor: 4000, durationMin: 15 }),
     ).toBe("Nails Clip")
+  })
+})
+
+describe("picking a combo on the appointment sheet", () => {
+  // Booking a combo books its component services, so the pick expands into a
+  // row per component — the same shape the booked appointment shows.
+  const combo: MockServiceCatalogItem = {
+    id: "wash-and-nails-combo",
+    category: "details",
+    name: "Wash & Nails Combo",
+    durationMin: 60,
+    priceMinor: 20000,
+    isCombo: true,
+    componentNames: ["Wash & Blow Dry SM", "Nails Clip"],
+  }
+
+  const rows = expandCombo(combo, MOCK_SERVICE_CATALOG, { startTime: "10:00" })
+
+  it("adds one row per component, named after the combo", () => {
+    expect(rows.map((r) => r.catalog.name)).toEqual([
+      "Wash & Nails Combo - Wash & Blow Dry SM",
+      "Wash & Nails Combo - Nails Clip",
+    ])
+  })
+
+  it("runs them back-to-back from the combo's start", () => {
+    expect(rows.map((r) => r.startTime)).toEqual(["10:00", "10:45"])
+  })
+
+  it("splits the combo price across the rows, to the last fils", () => {
+    expect(rows.reduce((sum, r) => sum + r.catalog.priceMinor, 0)).toBe(combo.priceMinor)
+    // Each row still carries what it costs alone, for the struck-through price.
+    expect(rows.map((r) => r.comboOriginalPriceMinor)).toEqual([18000, 4000])
+  })
+
+  it("keeps them in one group, so removing one removes the combo", () => {
+    const groups = new Set(rows.map((r) => r.comboGroupId))
+    expect(groups.size).toBe(1)
+    expect([...groups][0]).toBeTruthy()
   })
 })

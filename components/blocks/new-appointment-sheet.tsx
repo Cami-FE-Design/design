@@ -46,7 +46,7 @@ import {
 } from "@/app/appointments/mock"
 import type { CartLine, CatalogClient } from "@/app/sales/new-sale/types"
 import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
-import { ComboBadge } from "@/components/blocks/combo-badge"
+import { ComboLineIcon } from "@/components/blocks/combo-badge"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { DatePicker } from "@/components/blocks/date-picker"
 import { EditServicePanel } from "@/components/blocks/edit-service-panel"
@@ -92,6 +92,7 @@ import {
 } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { PlaceRef } from "@/lib/address"
+import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
 import { depositForServices, examplePolicyText } from "@/lib/payment-policy/types"
@@ -110,7 +111,7 @@ type SelectedPet = {
 // A service the operator has added to the new appointment. Wraps the catalog
 // item with per-instance overrides (start time, staff). Time defaults to the
 // appointment's start; staff defaults to "any" (renders as a stub for now).
-type SelectedService = {
+export type SelectedService = {
   uid: string
   catalog: MockServiceCatalogItem
   startTime: string
@@ -118,6 +119,98 @@ type SelectedService = {
   /** Soft warnings rendered as amber pills below the service row.
    *  E.g. "Team member doesn't provide service", "Not available on this day". */
   warnings?: string[]
+  /**
+   * Set on the rows a combo expanded into (PRD-143). All components of one
+   * pick share the id, so removing any of them removes the combo — a combo is
+   * sold as a unit, and half of one is not a thing the price covers.
+   */
+  comboGroupId?: string
+  /** The combo this row came out of, for the row's marker. */
+  comboName?: string
+  /** What this component costs on its own, struck through next to its share. */
+  comboOriginalPriceMinor?: number
+}
+
+/**
+ * Booking a combo books its component services (PRD-143), so picking one adds
+ * a row per component rather than a single combo row — mirroring the as-built
+ * AddAppointmentSheet, which expands a combo the moment it is chosen.
+ *
+ * Each component keeps its own duration and runs back-to-back from the
+ * combo's start. The combo's price is split across the components in
+ * proportion to what they cost alone (remainder on the last row, so the rows
+ * always sum to the combo's price), and the standalone price rides along to be
+ * struck through.
+ */
+export function expandCombo(
+  combo: MockServiceCatalogItem,
+  catalog: MockServiceCatalogItem[],
+  opts: { startTime: string; staffName?: string },
+): SelectedService[] {
+  const names = combo.componentNames ?? []
+  if (names.length === 0) return []
+
+  const groupId = `combo-${combo.id}-${Date.now()}`
+  const components = names.map((name) => {
+    const match = catalog.find((c) => !c.isCombo && c.name === name)
+    return {
+      name,
+      // A bridged combo can bundle services this picker has never heard of, so
+      // fall back to an even share of the combo's own duration and price.
+      durationMin: match?.durationMin ?? Math.round(combo.durationMin / names.length),
+      standaloneMinor: match?.priceMinor ?? Math.round(combo.priceMinor / names.length),
+      category: match?.category ?? combo.category,
+      categoryLabel: match?.categoryLabel ?? combo.categoryLabel,
+      accentHex: match?.accentHex ?? combo.accentHex,
+    }
+  })
+
+  const standaloneTotal = components.reduce((sum, c) => sum + c.standaloneMinor, 0)
+  let allocated = 0
+  let cursor = hhmmToMinutes(opts.startTime)
+
+  return components.map((component, i) => {
+    const isLast = i === components.length - 1
+    const share = isLast
+      ? combo.priceMinor - allocated
+      : standaloneTotal > 0
+        ? Math.round((combo.priceMinor * component.standaloneMinor) / standaloneTotal)
+        : Math.round(combo.priceMinor / components.length)
+    allocated += share
+
+    const startTime = minutesToHhmm(cursor)
+    cursor += component.durationMin
+
+    return {
+      uid: `${groupId}-${i}`,
+      catalog: {
+        id: `${groupId}-${i}`,
+        category: component.category,
+        categoryLabel: component.categoryLabel,
+        accentHex: component.accentHex,
+        // The as-built label: "Combo name - Service name".
+        name: `${combo.name} - ${component.name}`,
+        durationMin: component.durationMin,
+        priceMinor: share,
+      },
+      startTime,
+      staffName: opts.staffName,
+      comboGroupId: groupId,
+      comboName: combo.name,
+      comboOriginalPriceMinor: component.standaloneMinor,
+    }
+  })
+}
+
+function hhmmToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":")
+  return Number(h) * 60 + Number(m ?? 0)
+}
+
+function minutesToHhmm(min: number): string {
+  const h = Math.floor(min / 60) % 24
+  const m = min % 60
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
 }
 
 // Mock pet pool used by the demo "+ Add pet" affordance. Real implementation
@@ -344,6 +437,9 @@ export function NewAppointmentSheet({
   const [status, setStatus] = useState<MockBookingStatus>(isEdit ? initialStatus : "booked")
   const [selectedClient, setSelectedClient] = useState<SelectedClient | null>(null)
   const [pets, setPets] = useState<SelectedPet[]>(() => defaultPets(startTime))
+  // Same list the pickers show, so a combo expands against the services the
+  // operator just saw — including any combo created on the service menu.
+  const serviceCatalog = useAppointmentServiceCatalog()
   const availablePets = computeAvailablePets(selectedClient, pets)
   const [note, setNote] = useState<string | null>(null)
   const [noteDialogOpen, setNoteDialogOpen] = useState(false)
@@ -492,21 +588,13 @@ export function NewAppointmentSheet({
     }
     const targetUid = activePetUid ?? pets[0]?.uid
     if (!targetUid) return
+    // A combo comes in as its component services, not as one row.
+    const added: SelectedService[] = catalog.isCombo
+      ? expandCombo(catalog, serviceCatalog, { startTime })
+      : [{ uid: `${catalog.id}-${Date.now()}`, catalog, startTime }]
     setPets((prev) =>
       prev.map((pet) =>
-        pet.uid === targetUid
-          ? {
-              ...pet,
-              services: [
-                ...pet.services,
-                {
-                  uid: `${catalog.id}-${Date.now()}`,
-                  catalog,
-                  startTime,
-                },
-              ],
-            }
-          : pet,
+        pet.uid === targetUid ? { ...pet, services: [...pet.services, ...added] } : pet,
       ),
     )
     setMode("appointment")
@@ -514,9 +602,19 @@ export function NewAppointmentSheet({
 
   function handleRemoveService(petUid: string, serviceUid: string) {
     setPets((prev) => {
+      // Removing one component of a combo removes the combo: the price covers
+      // the bundle, so a leftover half-combo would be charged as one.
+      const groupId = prev
+        .find((p) => p.uid === petUid)
+        ?.services.find((s) => s.uid === serviceUid)?.comboGroupId
       const updated = prev.map((pet) =>
         pet.uid === petUid
-          ? { ...pet, services: pet.services.filter((s) => s.uid !== serviceUid) }
+          ? {
+              ...pet,
+              services: pet.services.filter((s) =>
+                groupId ? s.comboGroupId !== groupId : s.uid !== serviceUid,
+              ),
+            }
           : pet,
       )
       // A detached pet with no services left isn't worth keeping around.
@@ -625,11 +723,17 @@ export function NewAppointmentSheet({
         species: pet.species,
         breed: pet.breed,
         weight: pet.weight,
-        services: services.map((catalog) => ({
-          uid: `${catalog.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          catalog,
-          startTime,
-        })),
+        services: services.flatMap((catalog) =>
+          catalog.isCombo
+            ? expandCombo(catalog, serviceCatalog, { startTime })
+            : [
+                {
+                  uid: `${catalog.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                  catalog,
+                  startTime,
+                },
+              ],
+        ),
       },
     ])
     // Auto-attach the pet's owner if no client is set yet.
@@ -1444,9 +1548,12 @@ function ServiceRowList({
           <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                <div className="flex min-w-0 items-center gap-2">
+                {/* A combo has already expanded into its component rows by the
+                    time it lands here, so the row reads like a booked one: the
+                    glyph, then "Combo name - Service name". */}
+                <div className="flex min-w-0 items-center gap-1.5">
+                  {s.comboName ? <ComboLineIcon className="size-4" /> : null}
                   <span className="text-base font-semibold text-foreground">{s.catalog.name}</span>
-                  {s.catalog.isCombo ? <ComboBadge /> : null}
                 </div>
                 <span className="text-sm text-muted-foreground">
                   {formatTime(s.startTime)} · {formatDuration(s.catalog.durationMin)} ·{" "}
@@ -1454,8 +1561,16 @@ function ServiceRowList({
                 </span>
               </div>
               <div className="relative flex shrink-0 items-center leading-tight">
-                <span className="text-base font-semibold leading-tight tabular-nums text-foreground transition-opacity group-hover/service:invisible">
-                  {formatAed(s.catalog.priceMinor)}
+                <span className="flex flex-col items-end leading-tight tabular-nums transition-opacity group-hover/service:invisible">
+                  <span className="text-base font-semibold text-foreground">
+                    {formatAed(s.catalog.priceMinor)}
+                  </span>
+                  {s.comboOriginalPriceMinor &&
+                  s.comboOriginalPriceMinor !== s.catalog.priceMinor ? (
+                    <span className="text-sm font-normal text-muted-foreground line-through">
+                      {formatAed(s.comboOriginalPriceMinor)}
+                    </span>
+                  ) : null}
                 </span>
                 <div className="absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover/service:opacity-100 group-focus-within/service:opacity-100">
                   <Tooltip>
