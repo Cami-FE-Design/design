@@ -17,7 +17,13 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { seedCategories, seedServices, seedTeamMembers, type TeamMember } from "./mock-data"
-import type { AddCategoryInput, AddServiceInput, Service, ServiceCategory } from "./types"
+import type {
+  AddCategoryInput,
+  AddComboInput,
+  AddServiceInput,
+  Service,
+  ServiceCategory,
+} from "./types"
 
 export type { TeamMember }
 
@@ -41,6 +47,7 @@ type CatalogContextValue = {
   archiveCategory: (id: string) => void
   unarchiveCategory: (id: string) => void
   createService: (input: AddServiceInput) => Service
+  createCombo: (input: AddComboInput) => Service
   updateService: (id: string, patch: Partial<AddServiceInput>) => void
   deleteService: (id: string) => void
   reorderServices: (reordered: Service[]) => void
@@ -144,6 +151,31 @@ export function ServiceCatalogProvider({ children }: { children: React.ReactNode
           isActive: true,
           variants: (input.variants ?? []) as Service["variants"],
           extraTimes: input.extraTimes ?? [],
+        }
+        setServices((prev) => [...prev, created])
+        return created
+      },
+      // A combo is stored as a service with `serviceType: "combo"`, so it lands
+      // in the same list and renders through the same card — only the badge and
+      // the component count tell it apart (PRD-143).
+      createCombo: (input) => {
+        const inCategory = services.filter((s) => s.categoryId === input.categoryId)
+        const created: Service = {
+          id: genId("combo"),
+          name: input.name,
+          serviceType: "combo",
+          components: input.components,
+          categoryId: input.categoryId,
+          categoryName: nameFor(input.categoryId),
+          description: input.description,
+          priceType: input.priceType,
+          price: input.price,
+          duration: input.duration,
+          order: inCategory.length,
+          teamMemberIds: [],
+          isActive: true,
+          variants: [],
+          extraTimes: [],
         }
         setServices((prev) => [...prev, created])
         return created
@@ -346,6 +378,10 @@ export function useServiceCatalogMutations() {
     (input) => c.createService(input),
     "Service added",
   )
+  const createCombo = makeMutation<Service, AddComboInput>(
+    (input) => c.createCombo(input),
+    "Combo added",
+  )
   const updateService = makeMutation<void, { id: string; patch: Partial<AddServiceInput> }>(
     ({ id, patch }) => c.updateService(id, patch),
     "Service updated",
@@ -369,6 +405,7 @@ export function useServiceCatalogMutations() {
     archiveCategory,
     unarchiveCategory,
     createService,
+    createCombo,
     updateService,
     deleteService,
     reorderServices,

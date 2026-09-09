@@ -705,7 +705,12 @@ function PaymentMethodsOrderDialog({
         </>
       }
     >
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        id="sales-settings-order"
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
         <SortableContext items={ordered.map((m) => m.id)} strategy={verticalListSortingStrategy}>
           <ul className="flex flex-col gap-3">
             {ordered.map((method) => (

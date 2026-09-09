@@ -263,12 +263,15 @@ export const MOCK_BOOKINGS: MockBooking[] = [
           { type: "blocked", durationMin: 10 },
         ],
       },
+      // These two were booked as one combo, so each line names it (PRD-143).
       {
         id: "b-004-i2",
         name: "Nail clipping",
         priceMinor: 4000,
         durationMin: 15,
         staffName: "Aya Hassan",
+        comboName: "Wash & Nails Combo",
+        comboGrossPriceMinor: 5000,
       },
       {
         id: "b-004-i3",
@@ -277,6 +280,7 @@ export const MOCK_BOOKINGS: MockBooking[] = [
         durationMin: 45,
         staffName: "Lena Petrov",
         membership: { label: "Included in membership", grossPriceMinor: 18000 },
+        comboName: "Wash & Nails Combo",
       },
     ],
     clientName: "Luke Tan",
@@ -838,6 +842,29 @@ export type MockServiceCatalogItem = {
    *  Used to surface eligibility issues (e.g. selected team member doesn't
    *  provide this service, service not available on this day). */
   warnings?: string[]
+  /**
+   * A combo — a bundle sold as one catalog entry (PRD-143). Combos sit in the
+   * same picker lists as single services, so the row carries the shared
+   * <ComboBadge /> and names what it bundles in `componentNames`. Booking a
+   * combo splits it into its component lines in the as-built app; here the
+   * flag is presentational only.
+   */
+  isCombo?: boolean
+  /** The services this combo bundles. Set only when `isCombo`. */
+  componentNames?: string[]
+  /**
+   * Group heading for an item bridged in from the service catalog, whose
+   * category is a merchant category rather than one of the six demo ones.
+   * Falls back to `SERVICE_CATEGORY_LABEL[category]`.
+   */
+  categoryLabel?: string
+  /** Rail color for a bridged item, as hex — see `categoryLabel`. */
+  accentHex?: string
+}
+
+/** The heading an item groups under in the pickers. */
+export function serviceGroupLabel(item: MockServiceCatalogItem): string {
+  return item.categoryLabel ?? SERVICE_CATEGORY_LABEL[item.category]
 }
 
 export const MOCK_SERVICE_CATALOG: MockServiceCatalogItem[] = [
@@ -924,6 +951,26 @@ export const MOCK_SERVICE_CATALOG: MockServiceCatalogItem[] = [
     warnings: ["Team member doesn't provide this service"],
   },
   { id: "meet-greet", category: "welcome", name: "Meet & Greet", durationMin: 30, priceMinor: 0 },
+  // ── Combos ─────────────────────────────────────────────────────────────
+  // Priced under the sum of their parts, which is the point of a bundle.
+  {
+    id: "groom-and-go-bundle",
+    category: "grooming",
+    name: "Groom & Go Bundle",
+    durationMin: 120,
+    priceMinor: 26000,
+    isCombo: true,
+    componentNames: ["Full Grooming MD", "Nails Clip", "Ear Clean"],
+  },
+  {
+    id: "wash-and-nails-combo",
+    category: "details",
+    name: "Wash & Nails Combo",
+    durationMin: 60,
+    priceMinor: 20000,
+    isCombo: true,
+    componentNames: ["Wash & Blow Dry SM", "Nails Clip"],
+  },
 ]
 
 export const SERVICE_CATEGORY_LABEL: Record<MockServiceCategory, string> = {
@@ -1201,6 +1248,28 @@ export type MockServiceItem = {
    * the as-built popup shows a session being drawn down.
    */
   membership?: { label: string; grossPriceMinor: number }
+  /**
+   * The combo this line came out of (PRD-143). Booking a combo books its
+   * component services, so the appointment carries one line per component —
+   * the combo itself is only visible if each line says where it came from.
+   */
+  comboName?: string
+  /**
+   * What this component cost before the combo's discount, struck through next
+   * to the charged price — the same treatment `membership` gets, and what the
+   * as-built app shows on a combo line.
+   */
+  comboGrossPriceMinor?: number
+}
+
+/**
+ * How a booked service reads on the appointment surfaces: a line that came out
+ * of a combo is prefixed with the combo's name, matching the "Combo - Service"
+ * format the as-built calendar and sale sheets use. The prefix, not a badge, is
+ * the marker here — the line is already carrying its own price and performer.
+ */
+export function serviceItemLabel(item: MockServiceItem): string {
+  return item.comboName ? `${item.comboName} - ${item.name}` : item.name
 }
 
 /**

@@ -8,7 +8,7 @@ import {
   type LucideIcon,
   MoreVerticalIcon,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   type ComboService,
   formatDuration,
@@ -33,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useServiceCategories, useServices } from "@/lib/service-catalog/store"
+import { APPOINTMENT_COLORS } from "@/lib/service-catalog/types"
 import { cn } from "@/lib/utils"
 
 // ─── Local helpers ────────────────────────────────────────────────────────────
@@ -73,19 +75,13 @@ function FieldRow({ children }: { children: React.ReactNode }) {
   return <div className="grid gap-2">{children}</div>
 }
 
+/** Category swatch colors are stored as palette keys ("purple"), not hex. */
+function colorHexOf(colorValue: string | undefined): string {
+  return APPOINTMENT_COLORS.find((c) => c.value === colorValue)?.hex ?? "#93c5fd"
+}
+
 const SELECT_TRIGGER =
   "data-[size=default]:h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium"
-
-// ─── Mock categories ────────────────────────────────────────────────────────────
-
-const CATEGORIES: Array<{ id: string; name: string; color: string }> = [
-  { id: "grooming", name: "Grooming", color: "#5eead4" },
-  { id: "bathing", name: "Bathing", color: "#93c5fd" },
-  { id: "nail-paw", name: "Nail & paw care", color: "#fdba74" },
-  { id: "addons", name: "Add-ons", color: "#86efac" },
-  { id: "spa", name: "Spa & wellness", color: "#c4b5fd" },
-  { id: "cats", name: "Cats", color: "#f9a8d4" },
-]
 
 const PRICE_TYPES = [
   { value: "service", label: "Service pricing", hint: undefined },
@@ -98,6 +94,22 @@ type PriceType = (typeof PRICE_TYPES)[number]["value"]
 
 // ─── Sections ─────────────────────────────────────────────────────────────────
 
+/**
+ * What the form has, in the shape the catalog needs to store it. Reported
+ * upward on every change so the page's Save button can commit it without the
+ * form owning navigation or the store.
+ */
+export type ComboDraft = {
+  name: string
+  categoryId: string
+  description: string
+  /** Combo total after the price type is applied, in AED. */
+  price: number
+  /** Sequence sums the components, parallel takes the longest. */
+  durationMin: number
+  components: Array<{ id: string; name: string }>
+}
+
 export type ComboSectionId = "basics" | "online" | "portfolio"
 
 export const COMBO_SECTIONS: Array<{ id: ComboSectionId; label: string; icon: LucideIcon }> = [
@@ -108,10 +120,42 @@ export const COMBO_SECTIONS: Array<{ id: ComboSectionId; label: string; icon: Lu
 
 // ─── Component ──────────────────────────────────────────────────────────────────
 
-export function ComboForm({ section }: { section?: ComboSectionId }) {
+export function ComboForm({
+  section,
+  onDraftChange,
+}: {
+  section?: ComboSectionId
+  /** Fires whenever the draft changes; the page keeps the latest for Save. */
+  onDraftChange?: (draft: ComboDraft) => void
+}) {
   const showBasics = !section || section === "basics"
   const showOnline = !section || section === "online"
   const showPortfolio = !section || section === "portfolio"
+
+  // The real catalog, not a private mock: a combo has to land in a category
+  // that exists and bundle services that exist, or Save has nowhere to put it.
+  const { data: rawCategories } = useServiceCategories()
+  const categories = useMemo(
+    () => (rawCategories ?? []).filter((c) => !c.isSystemManaged && c.isActive !== false),
+    [rawCategories],
+  )
+
+  const { data: rawServices } = useServices()
+  const catalogServices = useMemo<ComboService[]>(
+    () =>
+      (rawServices ?? [])
+        // A combo can't contain another combo.
+        .filter((s) => s.serviceType !== "combo" && s.isActive !== false)
+        .map((s) => ({
+          id: s.id,
+          name: s.name,
+          duration: s.duration,
+          price: s.price,
+          category: s.categoryName ?? "Services",
+          color: colorHexOf(categories.find((c) => c.id === s.categoryId)?.color),
+        })),
+    [rawServices, categories],
+  )
 
   const [name, setName] = useState("")
   const [category, setCategory] = useState("")
@@ -200,6 +244,19 @@ export function ComboForm({ section }: { section?: ComboSectionId }) {
     }
   }, [noServices, priceType])
 
+  // Report the draft upward on every change. Kept as an effect rather than
+  // threaded through every setter so adding a field can't silently miss it.
+  useEffect(() => {
+    onDraftChange?.({
+      name: name.trim(),
+      categoryId: category,
+      description: description.trim(),
+      price: comboTotal,
+      durationMin: totalDuration,
+      components: services.map((s) => ({ id: s.id, name: s.name })),
+    })
+  }, [onDraftChange, name, category, description, comboTotal, totalDuration, services])
+
   return (
     <>
       {showBasics && (
@@ -223,11 +280,11 @@ export function ComboForm({ section }: { section?: ComboSectionId }) {
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
+                  {categories.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       <span
                         className="size-2.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: c.color }}
+                        style={{ backgroundColor: colorHexOf(c.color) }}
                       />
                       {c.name}
                     </SelectItem>
@@ -523,6 +580,7 @@ export function ComboForm({ section }: { section?: ComboSectionId }) {
         onOpenChange={setServicesOpen}
         selectedIds={services.map((s) => s.id)}
         onToggle={toggleService}
+        services={catalogServices}
       />
     </>
   )

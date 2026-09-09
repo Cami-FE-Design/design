@@ -98,6 +98,7 @@ import { MoneySummaryView } from "@/components/blocks/money/money-summary"
 import { RailBadge } from "@/components/blocks/money/rail-badge"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
 import { NavigateToAddress } from "@/components/blocks/navigate-to-address"
+import { ServicePickerPanel } from "@/components/blocks/new-appointment-service-picker"
 import { NotificationsSettingsPanel } from "@/components/blocks/notifications-settings-panel"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
@@ -321,6 +322,41 @@ const PICKUP_DEMO_BOOKING: MockBooking = {
 // only offer "Search in Maps".
 // Three services by two groomers, one with duration modifiers, one drawn from a
 // membership — the shape the as-built popup shows and ours could not.
+// PRD-143 — booking a combo books its component services, so the appointment
+// carries one line per component and each names the combo it came from.
+const COMBO_DEMO_BOOKING: MockBooking = {
+  ...PICKUP_DEMO_BOOKING,
+  id: "pg-combo",
+  serviceName: "Wash & Blow Dry MD",
+  items: [
+    {
+      id: "pg-c1",
+      name: "Wash & Blow Dry MD",
+      priceMinor: 12000,
+      durationMin: 60,
+      staffName: "Aya Hassan",
+      comboName: "Wash & Nails Combo",
+      comboGrossPriceMinor: 20000,
+    },
+    {
+      id: "pg-c2",
+      name: "Nails Clip",
+      priceMinor: 8000,
+      durationMin: 15,
+      staffName: "Aya Hassan",
+      comboName: "Wash & Nails Combo",
+      comboGrossPriceMinor: 10000,
+    },
+    {
+      id: "pg-c3",
+      name: "Ear Clean",
+      priceMinor: 4000,
+      durationMin: 15,
+      staffName: "Lena Petrov",
+    },
+  ],
+}
+
 const MULTI_SERVICE_DEMO_BOOKING: MockBooking = {
   ...PICKUP_DEMO_BOOKING,
   id: "pg-multi-service",
@@ -2243,6 +2279,21 @@ export function PlaygroundShowcase() {
       </Section>
 
       <Section
+        title="Combos across surfaces"
+        description="PRD-143 — a combo is a bundle sold as one catalog entry, and it travels in the same lists as single services. Where it is still being CHOSEN — the service menu card, both appointment service pickers, the selected-services list on the appointment sheet — the row carries the shared <ComboBadge />: cami-violet tint (the membership chip's treatment), a layers icon, the word, and a bundled-services count under the name where there is room. Once it is BOOKED the marker changes, because the as-built app already has one: booking a combo books its component services, so the appointment holds one line per component and each is prefixed 'Combo - Service', with the pre-discount price struck through the way a drawn-down membership session is. A badge there would say the same thing twice. Combos created on the service menu are bridged into the pickers (see /catalogs/service-menu → Add → Combo), so a combo an operator just built is bookable; expanding it into its components on selection, the shared combo group, and combo pricing are still not wired in this repo. The service-menu card lives in the 'Service menu — cards & sidebar' section above."
+      >
+        <Row label="Appointment service picker (clipped to 520px)" align="start">
+          <div className="h-130 w-full max-w-md overflow-hidden rounded-2xl border border-border/60">
+            {/* Search 'combo' to bring both bundles side by side. */}
+            <ServicePickerPanel onBack={() => {}} onSelectService={() => {}} />
+          </div>
+        </Row>
+        <Row label="Booked lines — hover card ('Combo - Service')">
+          <AppointmentQuickPanel booking={COMBO_DEMO_BOOKING} />
+        </Row>
+      </Section>
+
+      <Section
         title="Client notes (Staff Alert)"
         description="DZ-209 — three note kinds now share these surfaces, and telling them apart is the point. Client notes (Fresha's Staff Alert) travel with the person: packages and credits left, preferences, imported history, and they resurface on every appointment for that client. The appointment note is the occasion. Pet notes travel with the animal. Mirrors the as-built ClientNoteBanner in cami-business, including why it is shaped this way: it is a PREVIEW, not the archive, and the bound is on the CONTENT rather than the container — two notes at two lines each, one note at one line on glance surfaces, nothing scrolls, nothing is cut mid-glyph. Earlier passes bounded the box instead (by note count, by characters, by a fixed scrolling height) and each one sliced text at a container edge or could not fit a single long note. It is deliberately NOT an amber slab with a warning triangle: ClientNote carries no severity field, so that treatment marked every client who had ever been written about as a hazard. The DZ-209 marker is a muted outline glyph instead — enough for reception to spot in a second, and the same glyph the calendar card carries so the marker and the thing it marks read as one feature. Karen Dougall has four notes on one afternoon, which is exactly the case that forces the per-note timestamp: without the time they collapse into four identical attribution lines. The rows below show the standalone card, which keeps its own label and marker. On the appointment detail sheet it renders with `hideLabel` instead, under an h2 like every other section there — The icon is the SAME on every surface, because it says what the card is — only its position follows the surface: leading inside a sheet card (matching the pin on Your Pet Address and the card on Payment policy), trailing on a glance card where a leading icon costs a word per line. An earlier pass dropped the glyph from the sheet entirely on the theory that a heading replaces it, which was wrong twice over: it broke the recognition someone builds on the calendar, and the sheet's own Pet Address and Payment policy cards already carry an icon under a heading."
       >
@@ -2356,7 +2407,7 @@ export function PlaygroundShowcase() {
       {/* ── Service catalog ──────────────────────────────────────────────── */}
       <Section
         title="Service menu — cards & sidebar"
-        description="Presentational building blocks for the catalog screens. Full interactive screens (drag-reorder, add/edit, archive) live at /catalogs/service-menu and /catalogs/categories. Prices render in AED."
+        description="Presentational building blocks for the catalog screens. Full interactive screens (drag-reorder, add/edit, archive) live at /catalogs/service-menu and /catalogs/categories. Prices render in AED. Combos come back from the same endpoint as single services, so the card marks them with a tinted Combo badge (layers icon) plus a count of the services they bundle — PRD-143."
       >
         <Row label="Service card, default">
           <div className="w-full max-w-xl">
@@ -2390,6 +2441,32 @@ export function PlaygroundShowcase() {
               dragging
               withHandle={false}
               onDelete={() => {}}
+            />
+          </div>
+        </Row>
+        <Row label="Service card, combo">
+          <div className="w-full max-w-xl">
+            {/* PRD-143 — combos share the list with single services, so the row
+                carries a tinted Combo badge and a component count. */}
+            <ServiceCardInner
+              service={seedServices.find((s) => s.id === "svc-8")!}
+              category={seedCategories.find((c) => c.id === "cat-1")!}
+              canManage
+              withHandle={false}
+              onDelete={() => {}}
+              onEdit={() => {}}
+            />
+          </div>
+        </Row>
+        <Row label="Service card, combo (archived)">
+          <div className="w-full max-w-xl">
+            <ServiceCardInner
+              service={{ ...seedServices.find((s) => s.id === "svc-9")!, isActive: false }}
+              category={seedCategories.find((c) => c.id === "cat-2")!}
+              canManage
+              withHandle={false}
+              onDelete={() => {}}
+              onUnarchive={() => {}}
             />
           </div>
         </Row>

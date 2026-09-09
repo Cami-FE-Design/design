@@ -6,17 +6,16 @@ import { useMemo, useState } from "react"
 import {
   formatAed,
   formatDuration,
-  MOCK_SERVICE_CATALOG,
   type MockServiceCatalogItem,
-  type MockServiceCategory,
-  SERVICE_CATEGORY_ACCENT,
-  SERVICE_CATEGORY_LABEL,
+  serviceGroupLabel,
 } from "@/app/appointments/mock"
+import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { ServiceAccentRail } from "@/components/blocks/service-accent-rail"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
-import { cn } from "@/lib/utils"
+import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
 
 type ServicePickerPanelProps = {
   onBack: () => void
@@ -31,18 +30,20 @@ type ServicePickerPanelProps = {
  */
 export function ServicePickerPanel({ onBack, onSelectService }: ServicePickerPanelProps) {
   const [search, setSearch] = useState("")
+  const catalog = useAppointmentServiceCatalog()
 
   const grouped = useMemo(() => {
     const q = search.trim().toLowerCase()
-    const byCategory = new Map<MockServiceCategory, MockServiceCatalogItem[]>()
-    for (const item of MOCK_SERVICE_CATALOG) {
+    const byCategory = new Map<string, MockServiceCatalogItem[]>()
+    for (const item of catalog) {
       if (q && !item.name.toLowerCase().includes(q)) continue
-      const list = byCategory.get(item.category) ?? []
+      const label = serviceGroupLabel(item)
+      const list = byCategory.get(label) ?? []
       list.push(item)
-      byCategory.set(item.category, list)
+      byCategory.set(label, list)
     }
     return Array.from(byCategory.entries())
-  }, [search])
+  }, [search, catalog])
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -62,10 +63,10 @@ export function ServicePickerPanel({ onBack, onSelectService }: ServicePickerPan
           {grouped.length === 0 ? (
             <EmptyState icon={SearchXIcon} title={`No services match “${search}”.`} />
           ) : (
-            grouped.map(([category, items]) => (
+            grouped.map(([label, items]) => (
               <ServiceCategoryGroup
-                key={category}
-                category={category}
+                key={label}
+                label={label}
                 items={items}
                 onPick={onSelectService}
               />
@@ -87,18 +88,18 @@ function ServiceWarningPill({ text }: { text: string }) {
 }
 
 function ServiceCategoryGroup({
-  category,
+  label,
   items,
   onPick,
 }: {
-  category: MockServiceCategory
+  label: string
   items: MockServiceCatalogItem[]
   onPick: (item: MockServiceCatalogItem) => void
 }) {
   return (
     <section className="flex flex-col gap-2">
       <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
-        {SERVICE_CATEGORY_LABEL[category]}
+        {label}
         <Badge variant="muted" className="rounded-full">
           {items.length}
         </Badge>
@@ -111,21 +112,21 @@ function ServiceCategoryGroup({
               onClick={() => onPick(item)}
               className="group/service flex w-full gap-3 rounded-2xl px-3 py-2 text-start transition-colors hover:bg-muted/50"
             >
-              <span
-                aria-hidden
-                className={cn(
-                  "w-1 shrink-0 self-stretch rounded-full",
-                  SERVICE_CATEGORY_ACCENT[item.category],
-                )}
-              />
+              <ServiceAccentRail item={item} />
               <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
                 <div className="flex min-w-0 items-start justify-between gap-3">
                   <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                    <span className="truncate text-base font-semibold text-foreground">
-                      {item.name}
-                    </span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-base font-semibold text-foreground">
+                        {item.name}
+                      </span>
+                      {item.isCombo ? <ComboBadge /> : null}
+                    </div>
                     <span className="text-sm text-muted-foreground">
                       {formatDuration(item.durationMin)}
+                      {item.componentNames?.length
+                        ? ` · ${comboServicesLabel(item.componentNames.length)}`
+                        : ""}
                     </span>
                   </div>
                   <span className="shrink-0 text-base font-semibold leading-tight tabular-nums text-foreground">

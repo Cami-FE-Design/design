@@ -135,9 +135,32 @@ export const ServiceVariantUiSchema = z.object({
 
 export type ServiceVariantUi = z.infer<typeof ServiceVariantUiSchema>
 
+/**
+ * A service bundled inside a combo. Only the identity is carried — the row on
+ * the service card needs a count and, on hover, the names; price and duration
+ * come from the combo itself.
+ */
+export const ComboComponentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+})
+
+export type ComboComponent = z.infer<typeof ComboComponentSchema>
+
+/**
+ * Combos sit in the same list as single services (the backend returns both
+ * from the services endpoint), so the row has to say which it is. Absent means
+ * "standard" — only combos ever set this.
+ */
+export const SERVICE_TYPES = ["standard", "combo"] as const
+export type ServiceType = (typeof SERVICE_TYPES)[number]
+
 export const ServiceSchema = z.object({
   id: z.string(),
   name: z.string(),
+  serviceType: z.enum(SERVICE_TYPES).optional(),
+  /** Populated only for `serviceType: "combo"` — the services it bundles. */
+  components: z.array(ComboComponentSchema).optional(),
   categoryId: z.string(),
   categoryName: z.string().nullable().optional(),
   description: z.string().optional(),
@@ -222,6 +245,24 @@ export const AddServiceInputSchema = z
 
 export type AddServiceInput = z.infer<typeof AddServiceInputSchema>
 
+/**
+ * What the combo builder submits. A combo is stored as a service with
+ * `serviceType: "combo"` — same list, same card — so this is deliberately the
+ * subset of a service that a bundle actually has: no variants, no extra time,
+ * and a price/duration already resolved from its components and price type.
+ */
+export const AddComboInputSchema = z.object({
+  name: z.string().min(1, "Combo name is required").max(255),
+  categoryId: z.string().min(1, "Category is required"),
+  description: z.string().max(1000).optional(),
+  priceType: z.enum(PRICE_TYPES).default("Fixed"),
+  price: z.number().min(0).default(0),
+  duration: z.number().int().min(0).default(0),
+  components: z.array(ComboComponentSchema).min(1, "Add at least one service"),
+})
+
+export type AddComboInput = z.infer<typeof AddComboInputSchema>
+
 // ── API response shapes ────────────────────────────────────────────────────
 // These mirror the backend DTOs exactly. Adapter functions in the service
 // layer map them to the UI-facing ServiceCategory / Service types above.
@@ -274,6 +315,8 @@ export const ApiServiceSchema = z.object({
   id: z.string(),
   slug: z.string(),
   name: z.string(),
+  serviceType: z.enum(SERVICE_TYPES).optional(),
+  components: z.array(ComboComponentSchema).optional(),
   description: z.string().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
   price: z.string(),

@@ -174,6 +174,12 @@ type SelectServicesDialogProps = {
   /** IDs already added to the combo — rendered selected. */
   selectedIds: string[]
   onToggle: (service: ComboService) => void
+  /**
+   * The services on offer. The combo builder passes the real service catalog so
+   * a saved combo bundles services that actually exist; `MOCK_SERVICES` stays
+   * the default for standalone/demo mounts.
+   */
+  services?: ComboService[]
 }
 
 export function SelectServicesDialog({
@@ -181,14 +187,13 @@ export function SelectServicesDialog({
   onOpenChange,
   selectedIds,
   onToggle,
+  services = MOCK_SERVICES,
 }: SelectServicesDialogProps) {
   const [query, setQuery] = useState("")
 
   const grouped = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const matches = q
-      ? MOCK_SERVICES.filter((s) => s.name.toLowerCase().includes(q))
-      : MOCK_SERVICES
+    const matches = q ? services.filter((s) => s.name.toLowerCase().includes(q)) : services
     const map = new Map<string, ComboService[]>()
     for (const s of matches) {
       const list = map.get(s.category) ?? []
@@ -196,7 +201,7 @@ export function SelectServicesDialog({
       map.set(s.category, list)
     }
     return [...map.entries()]
-  }, [query])
+  }, [query, services])
 
   function handleOpenChange(next: boolean) {
     if (!next) setQuery("")

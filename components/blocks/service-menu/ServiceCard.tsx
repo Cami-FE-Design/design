@@ -2,6 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable"
 import { GripVerticalIcon, MoreHorizontalIcon } from "lucide-react"
+import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
 import {
   Button,
   DropdownMenu,
@@ -141,6 +142,8 @@ export function ServiceCardInner({
   const currency = "AED"
 
   const isArchived = service.isActive === false
+  const isCombo = service.serviceType === "combo"
+  const componentCount = service.components?.length ?? 0
 
   // Show multi-variant layout only when 2 or more variants exist; a single variant
   // keeps the same compact single-row layout as a plain service.
@@ -191,9 +194,12 @@ export function ServiceCardInner({
           <>
             {/* Header row */}
             <div className="flex flex-1 items-center gap-4 px-4 py-4">
-              <p className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">
-                {service.name}
-              </p>
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <p className="min-w-0 truncate text-base font-semibold text-foreground">
+                  {service.name}
+                </p>
+                {isCombo && <ComboBadge />}
+              </div>
               {menu}
             </div>
 
@@ -215,9 +221,13 @@ export function ServiceCardInner({
           /* No variants — single row: name + total duration | price + menu */
           <div className="flex flex-1 items-center gap-4 px-4 py-4">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-base font-semibold text-foreground">{service.name}</p>
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="truncate text-base font-semibold text-foreground">{service.name}</p>
+                {isCombo && <ComboBadge />}
+              </div>
               <p className="text-sm text-muted-foreground">
                 {minutesToLabel(totalMin(service.duration, service.extraTimes))}
+                {isCombo && componentCount > 0 ? ` · ${comboServicesLabel(componentCount)}` : ""}
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-3">

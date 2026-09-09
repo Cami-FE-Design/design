@@ -25,6 +25,7 @@ import {
   type MockBooking,
   type MockBookingStatus,
   type MockServiceItem,
+  serviceItemLabel,
   serviceItemsOf,
 } from "@/app/appointments/mock"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
@@ -292,7 +293,7 @@ function ServiceItemRow({ item }: { item: MockServiceItem }) {
     <div data-slot="appointment-service-item" className="flex flex-col gap-1">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[12px] font-medium">{item.name}</div>
+          <div className="truncate text-[12px] font-medium">{serviceItemLabel(item)}</div>
           {meta ? <div className="truncate text-[10px] text-muted-foreground">{meta}</div> : null}
         </div>
         <div className="flex shrink-0 flex-col items-end leading-tight tabular-nums">
@@ -302,6 +303,10 @@ function ServiceItemRow({ item }: { item: MockServiceItem }) {
           {item.membership ? (
             <span className="text-[10px] text-muted-foreground line-through">
               {formatAed(item.membership.grossPriceMinor)}
+            </span>
+          ) : item.comboGrossPriceMinor ? (
+            <span className="text-[10px] text-muted-foreground line-through">
+              {formatAed(item.comboGrossPriceMinor)}
             </span>
           ) : null}
         </div>
