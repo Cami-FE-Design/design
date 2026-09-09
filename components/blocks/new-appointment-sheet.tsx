@@ -137,7 +137,8 @@ export type SelectedService = {
  * AddAppointmentSheet, which expands a combo the moment it is chosen.
  *
  * Each component keeps its own duration and runs back-to-back from the
- * combo's start. The combo's price is split across the components in
+ * combo's start — or all at the same time, when the combo is set to be booked
+ * in parallel. The combo's price is split across the components in
  * proportion to what they cost alone (remainder on the last row, so the rows
  * always sum to the combo's price), and the standalone price rides along to be
  * struck through.
@@ -166,8 +167,10 @@ export function expandCombo(
   })
 
   const standaloneTotal = components.reduce((sum, c) => sum + c.standaloneMinor, 0)
+  const parallel = combo.comboScheduleType === "parallel"
+  const baseStart = hhmmToMinutes(opts.startTime)
   let allocated = 0
-  let cursor = hhmmToMinutes(opts.startTime)
+  let cursor = baseStart
 
   return components.map((component, i) => {
     const isLast = i === components.length - 1
@@ -178,8 +181,10 @@ export function expandCombo(
         : Math.round(combo.priceMinor / components.length)
     allocated += share
 
-    const startTime = minutesToHhmm(cursor)
-    cursor += component.durationMin
+    // A parallel combo's components all start together — different team
+    // members working at once, which is the whole point of that setting.
+    const startTime = minutesToHhmm(parallel ? baseStart : cursor)
+    if (!parallel) cursor += component.durationMin
 
     return {
       uid: `${groupId}-${i}`,
@@ -635,7 +640,11 @@ export function NewAppointmentSheet({
         pet.uid === editingPetUid
           ? {
               ...pet,
-              services: pet.services.map((s) => (s.uid === updated.uid ? updated : s)),
+              // Spread the existing row first: the edit panel rebuilds the
+              // service from its own fields, so a plain replace dropped
+              // comboGroupId / comboName / the struck-through price and
+              // detached a combo component from its combo.
+              services: pet.services.map((s) => (s.uid === updated.uid ? { ...s, ...updated } : s)),
             }
           : pet,
       ),

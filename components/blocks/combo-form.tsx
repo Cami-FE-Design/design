@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useServiceCategories, useServices } from "@/lib/service-catalog/store"
-import { APPOINTMENT_COLORS } from "@/lib/service-catalog/types"
+import { APPOINTMENT_COLORS, type ComboScheduleType } from "@/lib/service-catalog/types"
 import { cn } from "@/lib/utils"
 
 // ─── Local helpers ────────────────────────────────────────────────────────────
@@ -107,6 +107,8 @@ export type ComboDraft = {
   price: number
   /** Sequence sums the components, parallel takes the longest. */
   durationMin: number
+  /** How the components sit on the calendar once booked. */
+  scheduleType: ComboScheduleType
   components: Array<{ id: string; name: string }>
 }
 
@@ -253,9 +255,19 @@ export function ComboForm({
       description: description.trim(),
       price: comboTotal,
       durationMin: totalDuration,
+      scheduleType: scheduleType === "parallel" ? "parallel" : "sequence",
       components: services.map((s) => ({ id: s.id, name: s.name })),
     })
-  }, [onDraftChange, name, category, description, comboTotal, totalDuration, services])
+  }, [
+    onDraftChange,
+    name,
+    category,
+    description,
+    comboTotal,
+    totalDuration,
+    scheduleType,
+    services,
+  ])
 
   return (
     <>

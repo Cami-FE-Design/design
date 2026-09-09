@@ -165,6 +165,7 @@ export function ServiceCatalogProvider({ children }: { children: React.ReactNode
           name: input.name,
           serviceType: "combo",
           components: input.components,
+          scheduleType: input.scheduleType,
           categoryId: input.categoryId,
           categoryName: nameFor(input.categoryId),
           description: input.description,

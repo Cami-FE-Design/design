@@ -48,6 +48,7 @@ export default function NewComboPage() {
       price: draft.price,
       duration: draft.durationMin,
       components: draft.components,
+      scheduleType: draft.scheduleType,
     })
     router.push("/catalogs/service-menu")
   }

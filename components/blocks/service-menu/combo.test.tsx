@@ -77,6 +77,7 @@ describe("saving a combo", () => {
               priceType: "Fixed",
               price: 60,
               duration: 75,
+              scheduleType: "sequence",
               components: [
                 { id: "svc-6", name: "Classic Manicure" },
                 { id: "svc-7", name: "Gel Manicure" },
@@ -193,5 +194,25 @@ describe("adding a combo to the POS cart", () => {
     expect(discounts.reduce((sum, d) => sum + d.amountMinor, 0)).toBe(
       grossTotalMinor(lines) - combo.priceMinor,
     )
+  })
+})
+
+describe("a parallel combo", () => {
+  // "Booked in parallel" means different team members work at once, so the
+  // components share one start time instead of queueing.
+  const parallelCombo: MockServiceCatalogItem = {
+    id: "parallel-combo",
+    category: "grooming",
+    name: "Parallel Combo",
+    durationMin: 60,
+    priceMinor: 20000,
+    isCombo: true,
+    comboScheduleType: "parallel",
+    componentNames: ["Wash & Blow Dry SM", "Nails Clip"],
+  }
+
+  it("starts every component together", () => {
+    const rows = expandCombo(parallelCombo, MOCK_SERVICE_CATALOG, { startTime: "10:00" })
+    expect(rows.map((r) => r.startTime)).toEqual(["10:00", "10:00"])
   })
 })

@@ -38,6 +38,7 @@ export function useAppointmentServiceCatalog(): MockServiceCatalogItem[] {
         priceMinor: Math.round(combo.price * 100),
         isCombo: true,
         componentNames: (combo.components ?? []).map((c) => c.name),
+        comboScheduleType: combo.scheduleType,
       }
     })
 

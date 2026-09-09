@@ -164,7 +164,9 @@ export function ServiceCardInner({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {canManage && <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>}
-        <DropdownMenuItem disabled>Duplicate</DropdownMenuItem>
+        {/* A combo has no duplicate: it is a bundle of other services, and the
+            as-built menu hides the action rather than failing it. */}
+        {!isCombo && <DropdownMenuItem disabled>Duplicate</DropdownMenuItem>}
         <DropdownMenuItem disabled>Quick booking link</DropdownMenuItem>
         {canManage &&
           (isArchived ? (

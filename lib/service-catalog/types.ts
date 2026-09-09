@@ -155,12 +155,22 @@ export type ComboComponent = z.infer<typeof ComboComponentSchema>
 export const SERVICE_TYPES = ["standard", "combo"] as const
 export type ServiceType = (typeof SERVICE_TYPES)[number]
 
+/**
+ * How a combo's components are scheduled when it is booked: back-to-back, or
+ * all at once by different team members. Booking has to honour it — a parallel
+ * combo whose components are queued in sequence books the wrong slot.
+ */
+export const COMBO_SCHEDULE_TYPES = ["sequence", "parallel"] as const
+export type ComboScheduleType = (typeof COMBO_SCHEDULE_TYPES)[number]
+
 export const ServiceSchema = z.object({
   id: z.string(),
   name: z.string(),
   serviceType: z.enum(SERVICE_TYPES).optional(),
   /** Populated only for `serviceType: "combo"` — the services it bundles. */
   components: z.array(ComboComponentSchema).optional(),
+  /** Combos only — how the components are laid out on the calendar. */
+  scheduleType: z.enum(COMBO_SCHEDULE_TYPES).optional(),
   categoryId: z.string(),
   categoryName: z.string().nullable().optional(),
   description: z.string().optional(),
@@ -259,6 +269,7 @@ export const AddComboInputSchema = z.object({
   price: z.number().min(0).default(0),
   duration: z.number().int().min(0).default(0),
   components: z.array(ComboComponentSchema).min(1, "Add at least one service"),
+  scheduleType: z.enum(COMBO_SCHEDULE_TYPES).default("sequence"),
 })
 
 export type AddComboInput = z.infer<typeof AddComboInputSchema>
