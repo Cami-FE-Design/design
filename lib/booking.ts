@@ -73,6 +73,32 @@ export type CatalogService = {
   description?: string
   /** Small qualifier shown next to duration, e.g. "Up to 10kg". */
   tag?: string
+  /**
+   * A combo — a bundle a parent picks as one card (PRD-143). It books as its
+   * component services, so the summary lists those rather than the combo.
+   */
+  isCombo?: boolean
+  /** Ids of the services this combo bundles. Set only when `isCombo`. */
+  componentIds?: ReadonlyArray<string>
+  /** "parallel" runs the components at once; absent means back-to-back. */
+  comboScheduleType?: "sequence" | "parallel"
+}
+
+/**
+ * One line in a booking summary. A combo contributes a line per component,
+ * named "Combo - Service" with its share of the combo's price — the same
+ * treatment the staff-side surfaces use, so a parent and a groomer are looking
+ * at the same booking.
+ */
+export type BookingLine = {
+  id: string
+  name: string
+  durationMinutes: number
+  priceAed: number
+  /** The combo this line came out of, if any. */
+  comboName?: string
+  /** What the component costs on its own, when that differs from the share. */
+  listPriceAed?: number
 }
 
 export type ServiceCategory = {
@@ -116,6 +142,17 @@ export const SERVICE_CATEGORIES: ReadonlyArray<ServiceCategory> = [
         durationMinutes: 90,
         priceAed: 210,
         description: "Reduce shedding up to 90% with a coat-specific de-shed system.",
+      },
+      // A combo, bookable online like any other card — it just books as the
+      // services it bundles (PRD-143).
+      {
+        id: "groom-and-nails-combo",
+        name: "Full groom & nails",
+        durationMinutes: 135,
+        priceAed: 270,
+        description: "A full groom with a nail trim, booked back-to-back and priced together.",
+        isCombo: true,
+        componentIds: ["full-groom", "nail-trim"],
       },
     ],
   },
@@ -200,6 +237,18 @@ export const SERVICE_CATEGORIES: ReadonlyArray<ServiceCategory> = [
       },
       { id: "cologne", name: "Finishing cologne & bow", durationMinutes: 10, priceAed: 25 },
       { id: "gland", name: "Gland expression", durationMinutes: 15, priceAed: 45 },
+      // Set to run in parallel: the two add-ons happen together, so the slot is
+      // the longer of them rather than the sum.
+      {
+        id: "spa-pamper-combo",
+        name: "Spa pamper duo",
+        durationMinutes: 30,
+        priceAed: 60,
+        description: "Blueberry facial and teeth brushing, done together.",
+        isCombo: true,
+        componentIds: ["facial", "teeth"],
+        comboScheduleType: "parallel",
+      },
     ],
   },
   {
@@ -268,6 +317,66 @@ export function findCatalogService(id: string): CatalogService | undefined {
   return ALL_SERVICES.find((s) => s.id === id)
 }
 
+/**
+ * Expand a picked combo into its component lines, splitting its price in
+ * proportion to what the components cost alone (remainder on the last line, so
+ * the lines always sum to the combo's price).
+ */
+function comboLines(combo: CatalogService): BookingLine[] {
+  const components = (combo.componentIds ?? [])
+    .map(findCatalogService)
+    .filter((c): c is CatalogService => Boolean(c))
+  if (components.length === 0) {
+    return [
+      {
+        id: combo.id,
+        name: combo.name,
+        durationMinutes: combo.durationMinutes,
+        priceAed: combo.priceAed,
+      },
+    ]
+  }
+
+  const listTotal = components.reduce((sum, c) => sum + c.priceAed, 0)
+  let allocated = 0
+
+  return components.map((component, i) => {
+    const share =
+      i === components.length - 1
+        ? combo.priceAed - allocated
+        : listTotal > 0
+          ? Math.round((combo.priceAed * component.priceAed) / listTotal)
+          : Math.round(combo.priceAed / components.length)
+    allocated += share
+
+    return {
+      id: `${combo.id}-${component.id}`,
+      name: `${combo.name} - ${component.name}`,
+      durationMinutes: component.durationMinutes,
+      priceAed: share,
+      comboName: combo.name,
+      listPriceAed: component.priceAed === share ? undefined : component.priceAed,
+    }
+  })
+}
+
+/** The lines a selection books as — combos expanded, plain services as-is. */
+export function bookingLines(ids: ReadonlyArray<string>): BookingLine[] {
+  return ids.flatMap((id) => {
+    const service = findCatalogService(id)
+    if (!service) return []
+    if (service.isCombo) return comboLines(service)
+    return [
+      {
+        id: service.id,
+        name: service.name,
+        durationMinutes: service.durationMinutes,
+        priceAed: service.priceAed,
+      },
+    ]
+  })
+}
+
 export function serviceTotals(ids: ReadonlyArray<string>): {
   count: number
   durationMinutes: number
@@ -275,7 +384,10 @@ export function serviceTotals(ids: ReadonlyArray<string>): {
 } {
   const chosen = ids.map(findCatalogService).filter(Boolean) as CatalogService[]
   return {
-    count: chosen.length,
+    // A combo is several services to the parent — the count follows the lines,
+    // while duration and price come from the combo itself (it already carries
+    // the bundle's slot length and its discounted total).
+    count: bookingLines(ids).length,
     durationMinutes: chosen.reduce((n, s) => n + s.durationMinutes, 0),
     priceAed: chosen.reduce((n, s) => n + s.priceAed, 0),
   }

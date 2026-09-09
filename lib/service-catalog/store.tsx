@@ -48,6 +48,7 @@ type CatalogContextValue = {
   unarchiveCategory: (id: string) => void
   createService: (input: AddServiceInput) => Service
   createCombo: (input: AddComboInput) => Service
+  updateCombo: (id: string, input: AddComboInput) => void
   updateService: (id: string, patch: Partial<AddServiceInput>) => void
   deleteService: (id: string) => void
   reorderServices: (reordered: Service[]) => void
@@ -165,6 +166,9 @@ export function ServiceCatalogProvider({ children }: { children: React.ReactNode
           name: input.name,
           serviceType: "combo",
           components: input.components,
+          scheduleType: input.scheduleType,
+          comboPriceType: input.comboPriceType,
+          comboDiscountPercent: input.comboDiscountPercent,
           categoryId: input.categoryId,
           categoryName: nameFor(input.categoryId),
           description: input.description,
@@ -179,6 +183,28 @@ export function ServiceCatalogProvider({ children }: { children: React.ReactNode
         }
         setServices((prev) => [...prev, created])
         return created
+      },
+      updateCombo: (id, input) => {
+        setServices((prev) =>
+          prev.map((s) =>
+            s.id === id
+              ? {
+                  ...s,
+                  name: input.name,
+                  categoryId: input.categoryId,
+                  categoryName: nameFor(input.categoryId),
+                  description: input.description,
+                  priceType: input.priceType,
+                  price: input.price,
+                  duration: input.duration,
+                  components: input.components,
+                  scheduleType: input.scheduleType,
+                  comboPriceType: input.comboPriceType,
+                  comboDiscountPercent: input.comboDiscountPercent,
+                }
+              : s,
+          ),
+        )
       },
       updateService: (id, patch) => {
         setServices((prev) =>
@@ -382,6 +408,10 @@ export function useServiceCatalogMutations() {
     (input) => c.createCombo(input),
     "Combo added",
   )
+  const updateCombo = makeMutation<void, { id: string; input: AddComboInput }>(
+    ({ id, input }) => c.updateCombo(id, input),
+    "Combo updated",
+  )
   const updateService = makeMutation<void, { id: string; patch: Partial<AddServiceInput> }>(
     ({ id, patch }) => c.updateService(id, patch),
     "Service updated",
@@ -406,6 +436,7 @@ export function useServiceCatalogMutations() {
     unarchiveCategory,
     createService,
     createCombo,
+    updateCombo,
     updateService,
     deleteService,
     reorderServices,

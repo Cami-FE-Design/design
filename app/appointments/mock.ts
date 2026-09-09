@@ -853,6 +853,12 @@ export type MockServiceCatalogItem = {
   /** The services this combo bundles. Set only when `isCombo`. */
   componentNames?: string[]
   /**
+   * How the components sit on the calendar: "sequence" runs them back-to-back,
+   * "parallel" starts them all together (different team members). Absent means
+   * sequence, which is what the combo builder defaults to.
+   */
+  comboScheduleType?: "sequence" | "parallel"
+  /**
    * Group heading for an item bridged in from the service catalog, whose
    * category is a merchant category rather than one of the six demo ones.
    * Falls back to `SERVICE_CATEGORY_LABEL[category]`.

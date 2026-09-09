@@ -9,10 +9,11 @@ import {
   XIcon,
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { useCreatedCombos } from "@/lib/service-catalog/created-combos"
 import {
   locationName,
   type Terminal,
@@ -32,7 +33,15 @@ import { CustomTipDialog } from "./custom-tip-dialog"
 import { EditLineDialog, type LinePatch } from "./edit-line-dialog"
 import { GiftCardDialog, newGiftCardDraft } from "./gift-card-dialog"
 import { ItemPicker } from "./item-picker"
-import { CLIENT_REQUIRED, CLIENTS, formatAedDecimal, SERVICES, totals } from "./mock"
+import {
+  CLIENT_REQUIRED,
+  CLIENTS,
+  comboCartLines,
+  createdComboToServiceItem,
+  formatAedDecimal,
+  SERVICES,
+  totals,
+} from "./mock"
 import { type ActivePaymentLink, PaymentLinkLockScreen } from "./payment-link-lock"
 import { PaymentView } from "./payment-view"
 import { RedeemGiftCardDialog } from "./redeem-gift-card-dialog"
@@ -219,6 +228,14 @@ function CartFlowInner({
   const [attachment, setAttachment] = useState<ClientAttachment>(
     initialAttachment ?? (seedCheckout ? { type: "client", client: CLIENTS[1] } : { type: "none" }),
   )
+  // The picker's list: this demo catalog plus any combo created on the service
+  // menu, so a combo an operator just built can actually be sold.
+  const createdCombos = useCreatedCombos()
+  const serviceCatalog = useMemo(
+    () => [...SERVICES, ...createdCombos.map(createdComboToServiceItem)],
+    [createdCombos],
+  )
+
   const [lines, setLines] = useState<CartLine[]>(
     initialLines ?? (seedCheckout ? seedCheckoutLines() : []),
   )
@@ -378,20 +395,23 @@ function CartFlowInner({
   // ─── Cart mutations ──────────────────────────────────────────────────────
 
   function addService(service: ServiceItem, staffName = "Any") {
-    setLines((prev) => [
-      ...prev,
-      {
-        uid: nextUid("svc"),
-        kind: "service",
-        name: service.name,
-        priceMinor: service.priceMinor,
-        durationMin: service.durationMin,
-        staffName,
-        qty: 1,
-        sourceId: service.id,
-        categoryId: service.categoryId,
-      },
-    ])
+    // A combo enters the cart as its component services, never as one line.
+    const added: CartLine[] = service.isCombo
+      ? comboCartLines(service, serviceCatalog, nextUid, staffName)
+      : [
+          {
+            uid: nextUid("svc"),
+            kind: "service",
+            name: service.name,
+            priceMinor: service.priceMinor,
+            durationMin: service.durationMin,
+            staffName,
+            qty: 1,
+            sourceId: service.id,
+            categoryId: service.categoryId,
+          },
+        ]
+    setLines((prev) => [...prev, ...added])
   }
 
   function addProduct(product: ProductItem) {
@@ -432,6 +452,10 @@ function CartFlowInner({
           staffName: line.staffName,
           qty: 1,
           sourceId: line.serviceId,
+          // A combo booked on the appointment keeps its marker and its saving
+          // when the sale is built from it (PRD-143).
+          comboName: line.comboName,
+          listPriceMinor: line.listPriceMinor,
           categoryId: SERVICES.find((s) => s.id === line.serviceId)?.categoryId,
           warnings: line.warnings,
           apptId: appt.id,
@@ -485,7 +509,12 @@ function CartFlowInner({
   }
 
   function removeLine(uid: string) {
-    setLines((prev) => prev.filter((l) => l.uid !== uid))
+    setLines((prev) => {
+      // Removing one component of a combo removes the combo: its price is the
+      // bundle's, so a leftover component would be charged at a bundle rate.
+      const groupId = prev.find((l) => l.uid === uid)?.comboGroupId
+      return prev.filter((l) => (groupId ? l.comboGroupId !== groupId : l.uid !== uid))
+    })
   }
 
   function setQty(uid: string, qty: number) {
@@ -710,6 +739,7 @@ function CartFlowInner({
                 <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
                   {step === "cart" ? (
                     <ItemPicker
+                      services={serviceCatalog}
                       onAddService={(s) => addService(s)}
                       onAddProduct={addProduct}
                       onAddAppointment={addAppointment}

@@ -27,6 +27,14 @@ export type CheckoutLine = {
   qty: number
   /** Tax-inclusive line price, fils. */
   priceMinor: number
+  /**
+   * The combo this line came out of (PRD-143). A combo is paid for as the
+   * services it bundles, so the payer sees the same lines the operator does —
+   * with what each would cost alone struck through.
+   */
+  comboName?: string
+  /** The line's price outside the bundle, when it differs. */
+  listPriceMinor?: number
 }
 
 /** Lightweight package upsell surfaced inline. Not the focal action. */
@@ -115,20 +123,24 @@ export const MOCK_SALE: CheckoutSale = {
     {
       id: "l1",
       kind: "service",
-      name: "Full groom",
+      name: "Full groom & nails - Full groom",
       petName: "Bella",
       staff: "Lena",
       qty: 1,
       priceMinor: 16_000,
+      comboName: "Full groom & nails",
+      listPriceMinor: 18_000,
     },
     {
       id: "l2",
       kind: "service",
-      name: "Nail trim",
+      name: "Full groom & nails - Nail trim",
       petName: "Bella",
       staff: "Lena",
       qty: 1,
-      priceMinor: 3_500,
+      priceMinor: 3_000,
+      comboName: "Full groom & nails",
+      listPriceMinor: 3_500,
     },
     {
       id: "l3",

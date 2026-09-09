@@ -8,7 +8,7 @@ import {
   type LucideIcon,
   MoreVerticalIcon,
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   type ComboService,
   formatDuration,
@@ -34,7 +34,11 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useServiceCategories, useServices } from "@/lib/service-catalog/store"
-import { APPOINTMENT_COLORS } from "@/lib/service-catalog/types"
+import {
+  APPOINTMENT_COLORS,
+  type ComboPriceType,
+  type ComboScheduleType,
+} from "@/lib/service-catalog/types"
 import { cn } from "@/lib/utils"
 
 // ─── Local helpers ────────────────────────────────────────────────────────────
@@ -107,6 +111,12 @@ export type ComboDraft = {
   price: number
   /** Sequence sums the components, parallel takes the longest. */
   durationMin: number
+  /** How the components sit on the calendar once booked. */
+  scheduleType: ComboScheduleType
+  /** Which pricing rule produced `price`. */
+  priceType: ComboPriceType
+  /** The percentage off, when `priceType` is "percentage". */
+  discountPercent?: number
   components: Array<{ id: string; name: string }>
 }
 
@@ -120,11 +130,28 @@ export const COMBO_SECTIONS: Array<{ id: ComboSectionId; label: string; icon: Lu
 
 // ─── Component ──────────────────────────────────────────────────────────────────
 
+/** What the edit route hands back to the form to reopen a saved combo. */
+export type ComboFormInitial = {
+  name: string
+  categoryId: string
+  description?: string
+  componentIds: string[]
+  scheduleType?: ComboScheduleType
+  priceType?: ComboPriceType
+  /** Only meaningful when `priceType` is "custom". */
+  retailPrice?: number
+  /** Only meaningful when `priceType` is "percentage". */
+  discountPercent?: number
+}
+
 export function ComboForm({
   section,
+  initial,
   onDraftChange,
 }: {
   section?: ComboSectionId
+  /** Reopen the form on a saved combo (the edit route). Read once, on mount. */
+  initial?: ComboFormInitial
   /** Fires whenever the draft changes; the page keeps the latest for Save. */
   onDraftChange?: (draft: ComboDraft) => void
 }) {
@@ -157,17 +184,36 @@ export function ComboForm({
     [rawServices, categories],
   )
 
-  const [name, setName] = useState("")
-  const [category, setCategory] = useState("")
-  const [description, setDescription] = useState("")
+  const [name, setName] = useState(initial?.name ?? "")
+  const [category, setCategory] = useState(initial?.categoryId ?? "")
+  const [description, setDescription] = useState(initial?.description ?? "")
 
   const [services, setServices] = useState<ComboService[]>([])
   const [servicesOpen, setServicesOpen] = useState(false)
-  const [scheduleType, setScheduleType] = useState("sequence")
+  const [scheduleType, setScheduleType] = useState<string>(initial?.scheduleType ?? "sequence")
 
-  const [priceType, setPriceType] = useState<PriceType>("service")
-  const [retailPrice, setRetailPrice] = useState("")
-  const [discountPct, setDiscountPct] = useState("10")
+  const [priceType, setPriceType] = useState<PriceType>(initial?.priceType ?? "service")
+  const [retailPrice, setRetailPrice] = useState(
+    initial?.retailPrice != null ? String(initial.retailPrice) : "",
+  )
+  const [discountPct, setDiscountPct] = useState(
+    initial?.discountPercent != null ? String(initial.discountPercent) : "10",
+  )
+
+  // The saved combo stores component IDs; their prices and durations live in
+  // the catalog, which arrives a render later than the form mounts.
+  const seededComponents = useRef(false)
+  useEffect(() => {
+    if (seededComponents.current) return
+    const ids = initial?.componentIds
+    if (!ids?.length || catalogServices.length === 0) return
+    const resolved = ids
+      .map((id) => catalogServices.find((c) => c.id === id))
+      .filter((c): c is ComboService => Boolean(c))
+    if (resolved.length === 0) return
+    seededComponents.current = true
+    setServices(resolved)
+  }, [initial?.componentIds, catalogServices])
 
   const [onlineBooking, setOnlineBooking] = useState(true)
   const [availableFor, setAvailableFor] = useState("all")
@@ -253,9 +299,23 @@ export function ComboForm({
       description: description.trim(),
       price: comboTotal,
       durationMin: totalDuration,
+      scheduleType: scheduleType === "parallel" ? "parallel" : "sequence",
+      priceType,
+      discountPercent: priceType === "percentage" ? pct : undefined,
       components: services.map((s) => ({ id: s.id, name: s.name })),
     })
-  }, [onDraftChange, name, category, description, comboTotal, totalDuration, services])
+  }, [
+    onDraftChange,
+    name,
+    category,
+    description,
+    comboTotal,
+    totalDuration,
+    scheduleType,
+    priceType,
+    pct,
+    services,
+  ])
 
   return (
     <>

@@ -115,7 +115,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shampooch-jvc/pay/demo-token",
         label: "Unpaid · full flow",
-        note: "Bill (pet-aware lines) → fixed tip presets (No tip / 5 / 10 / 15, 'Most common' on 10, live readout) → flat ledger + hero total → payment method radio (Apple Pay / saved card) → single contextual CTA. Membership upsell as inline ledger link.",
+        note: "Bill (pet-aware lines) → fixed tip presets (No tip / 5 / 10 / 15, 'Most common' on 10, live readout) → flat ledger + hero total → payment method radio (Apple Pay / saved card) → single contextual CTA. Membership upsell as inline ledger link. PRD-143: the demo bill is a combo, so the payer sees the same lines the operator does — 'Combo - Service' led by the layers glyph, each with what it would cost alone struck through.",
       },
       {
         path: "/shampooch-jvc/pay/demo-paid",
@@ -889,7 +889,7 @@ const SECTIONS: Section[] = [
       {
         path: "/appointments",
         label: "New booking sheet · Combo services",
-        note: "PRD-143 — 'New booking' → Add service. Two combos sit in the picker alongside the single services ('Groom & Go Bundle' under Grooming, 'Wash & Nails Combo' under Details; search 'combo' to see both): each row carries the tinted Combo badge with a layers icon and a '3 services' count under the name. Picking one expands it into its component services on the spot — a row each, back-to-back from the combo's start, the combo price split across them with each component's standalone price struck through, all in one group so removing any row removes the combo (mirrors the as-built sheet). Those rows read the same as a booked appointment's: layers glyph + 'Combo - Service'. The badge stays on the pet-level picker too, used when the appointment has more than one pet. Anything created at /catalogs/service-menu → Add → Combo is bridged in here too — it groups under its own merchant category with that category's rail color — so a combo an operator just built is immediately bookable (the catalog provider now sits at the root layout, not under /catalogs, which is what makes that possible). Combo pricing beyond the proportional split, and the shared combo group travelling to checkout, are still not wired.",
+        note: "PRD-143 — 'New booking' → Add service. Two combos sit in the picker alongside the single services ('Groom & Go Bundle' under Grooming, 'Wash & Nails Combo' under Details; search 'combo' to see both): each row carries the tinted Combo badge with a layers icon and a '3 services' count under the name. Picking one expands it into its component services on the spot — a row each, back-to-back from the combo's start, the combo price split across them with each component's standalone price struck through, all in one group so removing any row removes the combo (mirrors the as-built sheet). Those rows read the same as a booked appointment's: layers glyph + 'Combo - Service'. The badge stays on the pet-level picker too, used when the appointment has more than one pet. Anything created at /catalogs/service-menu → Add → Combo is bridged in here too — it groups under its own merchant category with that category's rail color — so a combo an operator just built is immediately bookable (the catalog provider now sits at the root layout, not under /catalogs, which is what makes that possible). A combo set to 'Booked in parallel' starts every component at the same time rather than queueing them, and editing a component keeps it attached to its combo. Combos have no Duplicate action (they are a bundle of other services) and still no edit route, so a combo card's kebab → Edit opens the single-service editor.",
       },
       {
         path: "/appointments",
@@ -1069,6 +1069,11 @@ const SECTIONS: Section[] = [
     screens: [
       {
         path: "/sales/new-sale",
+        label: "New sale · Combo in the cart",
+        note: "PRD-143 — Services in the item picker carries two combos ('Nails & Style Combo', 'Massage Duo Combo'), badged with the layers icon and a bundled-services count. Adding one drops its component services into the cart as separate lines — each named 'Combo - Service', led by the glyph, with its standalone price struck through under the charged share — and the footer reads 'Total amount (excl. discounts)' with a 'Bundle discount' row per line, then To pay. The combo's price is split across the components in proportion to what they cost alone, so the lines always sum to the combo's price; removing any one line removes the whole combo. Combos created at /catalogs/service-menu → Add → Combo show up in this picker too. Appointments → Bilal Haddad / Rex is booked as a combo, so snapshotting it into the cart keeps the component lines, the glyph and the saving rather than flattening them.",
+      },
+      {
+        path: "/sales/new-sale",
         label: "New sale · Add to cart (PRO-395)",
         note: "Right-side POS drawer (wide, like the appointment sheet) with two panes: left item picker (global search + Appointments / Services / Products / Gift cards drilldowns, Memberships disabled), right cart pane in the appointment-sheet aesthetic — Add client card, Services section, pinned dark Continue-to-payment CTA with expandable VAT breakdown. Client attach: search 2+ chars, Add new client, Walk-In, selected card with Actions. Add services (staff dropdown, stack duplicates), products (qty +/-), or snapshot an appointment (auto-attaches client, replace-confirm if another client is attached). Gift cards: preset-value + custom-amount grid opens an Add gift card dialog (value, price, disabled discounts, expiration, custom code, This-is-a-gift, confirmation email, team member); the cart line shows 'AED value · valid for … · team member' and re-opens the dialog to edit. Payment step shows a 'Gift cards can't be used to purchase another gift card' notice + a disabled Gift card method when a gift card is in the cart; finishing without full payment opens an 'Unpaid sale' confirm (gift cards stay inactive until fully paid). Redeem at checkout: on a non-gift-card sale, the Gift card payment method opens a 'Redeem gift card' dialog — find by code (try YYOSNPHO = not active, QM4KTRZA / ZTP3RG84 = active with balance, anything else = typo error), then apply the balance as a Gift card payment line (capped at the lesser of card balance and amount owed; surplus stays on the card). Footer back-calculates tax-inclusive Subtotal/Tax from Total. Closing with items prompts Save as draft / Discard.",
       },
@@ -1195,6 +1200,11 @@ const SECTIONS: Section[] = [
         note: "Category sidebar + grouped service list. Drag service rows to reorder within a category or move them between categories. 'Add' menu creates a single service (full-screen takeover), a category (dialog), or a combo (own page). 'Order' / Options → 'Set menu order' opens the reorder sheet. Search filters by service name. Per-card and per-category kebabs offer Edit / Archive / Delete. All mutations update local state live. PRD-143: combos share this list with single services, so their rows now carry a tinted 'Combo' badge (layers icon) plus a count of the services they bundle — see 'Colour & Cut Combo' under Color treatments and 'Wash, Treat & Style' under Hair & styling; the same badge marks them in the Set-menu-order sheet.",
       },
       {
+        path: "/catalogs/service-menu/combos/svc-8/edit",
+        label: "Edit combo",
+        note: "PRD-143 — a combo card's kebab → Edit lands here, not in the single-service takeover, which had no field for components, schedule type or combo pricing. Opens the builder on the saved combo: name, category, description, its bundled services resolved back out of the catalog, Booked in sequence/parallel, and the price type it was saved with (service pricing / custom / percentage / free) with the percentage or retail price filled in. Save writes back to the same combo. This link opens the seeded 'Colour & Cut Combo'; a combo you create yourself edits from its own row.",
+      },
+      {
         path: "/catalogs/service-menu/combos/new",
         label: "New combo",
         note: "The combo builder reached from 'Add' → Combo: name/category/description, a Select-services dialog for the bundled services, sequence vs parallel scheduling, and the four price types (service pricing, custom, percentage discount, free) with a live total. Save now commits: the Category select and the Select-services dialog both read the real catalog (so a combo lands in a category that exists and bundles services that exist), and Save stores it as a service with serviceType 'combo' and drops you back on the Service menu with its Combo-badged row in place. Name, category and at least one service are required — Save toasts the missing one rather than failing silently. Duration follows the schedule type (sequence sums the components, parallel takes the longest). Online booking and Portfolio images are still presentational.",
@@ -1235,6 +1245,11 @@ const SECTIONS: Section[] = [
         path: "/purr-palace/book",
         label: "Booking flow · second business",
         note: "Confirms the flow is data-driven off the public business",
+      },
+      {
+        path: "/shampooch-jvc/book",
+        label: "Booking flow · Combo services",
+        note: "PRD-143 — Grooming carries 'Full groom & nails' and Spa add-ons carries 'Spa pamper duo', each a single card badged Combo with a bundled-services count. Picking one books the services it bundles: the sticky summary and the Review step list them as 'Combo - Service' rows led by the layers glyph, each showing its share of the combo price with what it would cost alone struck through. The footer counts the components (2 services) but keeps the combo's own duration and total, so a parent sees the bundle's slot and price, not the sum of the parts. 'Spa pamper duo' is set to run in parallel, which is why its slot is the longer add-on rather than both added up.",
       },
       {
         path: "/shampooch-jvc/booking/CAMI-4821",

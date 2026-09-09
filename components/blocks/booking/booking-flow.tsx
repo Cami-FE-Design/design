@@ -23,6 +23,7 @@ import { useEffect, useRef, useState } from "react"
 import { AddressSearchField } from "@/components/blocks/address-search-field"
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
+import { ComboLineIcon } from "@/components/blocks/combo-badge"
 import { PetNotesFields } from "@/components/blocks/pet-notes-fields"
 import { PhoneField } from "@/components/blocks/phone-field"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
@@ -49,6 +50,7 @@ import { addressPlaceRef, EMPTY_ADDRESS, hasPrecisePoint, type PlaceRef } from "
 import {
   BOOKING_DAYS,
   BOOKING_STAFF,
+  bookingLines,
   bookingRef,
   businessHasPets,
   type CatalogService,
@@ -888,6 +890,7 @@ function ConfirmStep({
 }) {
   const total = services.reduce((n, s) => n + s.priceAed, 0)
   const duration = services.reduce((n, s) => n + s.durationMinutes, 0)
+  const lines = bookingLines(services.map((s) => s.id))
   const subtotal = Math.round(total / 1.05)
   const vat = total - subtotal
 
@@ -913,16 +916,28 @@ function ConfirmStep({
       </div>
 
       <div className="flex flex-col divide-y divide-border/60 border-y border-border/60">
-        {services.map((s) => (
-          <div key={s.id} className="flex items-start justify-between gap-3 py-2.5">
+        {/* A combo books as the services it bundles, so the review lists those
+            — "Combo - Service", with what each costs alone struck through. */}
+        {lines.map((line) => (
+          <div key={line.id} className="flex items-start justify-between gap-3 py-2.5">
             <div className="flex min-w-0 flex-col leading-tight">
-              <span className="text-sm font-medium text-foreground">{s.name}</span>
+              <div className="flex min-w-0 items-center gap-1.5">
+                {line.comboName ? <ComboLineIcon className="size-3.5" /> : null}
+                <span className="text-sm font-medium text-foreground">{line.name}</span>
+              </div>
               <span className="text-xs text-muted-foreground">
-                {formatDuration(s.durationMinutes)}
+                {formatDuration(line.durationMinutes)}
               </span>
             </div>
-            <span className="shrink-0 text-sm font-medium tabular-nums text-foreground">
-              {formatPriceAed(s.priceAed)}
+            <span className="flex shrink-0 flex-col items-end tabular-nums">
+              <span className="text-sm font-medium text-foreground">
+                {formatPriceAed(line.priceAed)}
+              </span>
+              {line.listPriceAed ? (
+                <span className="text-xs text-muted-foreground line-through">
+                  {formatPriceAed(line.listPriceAed)}
+                </span>
+              ) : null}
             </span>
           </div>
         ))}
@@ -1051,6 +1066,8 @@ function DesktopSummary({
   isLast: boolean
   onCta: () => void
 }) {
+  const lines = bookingLines(services.map((s) => s.id))
+
   const address = [business.street, business.city, business.emirate].filter(Boolean).join(", ")
 
   return (
@@ -1075,17 +1092,27 @@ function DesktopSummary({
       <div className="border-border/60 border-t pt-4">
         {services.length > 0 ? (
           <div className="flex flex-col divide-y divide-border/60">
-            {services.map((s) => (
-              <div key={s.id} className="flex items-start justify-between gap-3 py-2.5">
+            {lines.map((line) => (
+              <div key={line.id} className="flex items-start justify-between gap-3 py-2.5">
                 <div className="flex min-w-0 flex-col leading-tight">
-                  <span className="text-sm font-medium text-foreground">{s.name}</span>
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    {line.comboName ? <ComboLineIcon className="size-3.5" /> : null}
+                    <span className="text-sm font-medium text-foreground">{line.name}</span>
+                  </div>
                   <span className="text-muted-foreground text-xs">
-                    {formatDuration(s.durationMinutes)}
+                    {formatDuration(line.durationMinutes)}
                     {hasSlot ? ` · ${whenLabel}` : ""}
                   </span>
                 </div>
-                <span className="shrink-0 font-medium text-foreground text-sm tabular-nums">
-                  {formatPriceAed(s.priceAed)}
+                <span className="flex shrink-0 flex-col items-end tabular-nums">
+                  <span className="font-medium text-foreground text-sm">
+                    {formatPriceAed(line.priceAed)}
+                  </span>
+                  {line.listPriceAed ? (
+                    <span className="text-muted-foreground text-xs line-through">
+                      {formatPriceAed(line.listPriceAed)}
+                    </span>
+                  ) : null}
                 </span>
               </div>
             ))}
