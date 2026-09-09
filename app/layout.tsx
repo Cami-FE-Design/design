@@ -10,6 +10,7 @@ import { DemoFilesProvider } from "@/lib/demo-files"
 import { HqNotificationsProvider } from "@/lib/notifications/hq-store"
 import { NotificationsProvider } from "@/lib/notifications/store"
 import { PaymentPolicyProvider } from "@/lib/payment-policy/store"
+import { ServiceCatalogProvider } from "@/lib/service-catalog/store"
 import { TerminalsProvider } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
 import "./globals.css"
@@ -45,22 +46,27 @@ export default function RootLayout({
               <DemoBusinessProvider>
                 <DemoFilesProvider>
                   <PaymentPolicyProvider>
-                    <TerminalsProvider>
-                      <NotificationsProvider>
-                        {/* Root, not the admin layout: HQ sets the rates but
-                            both portals read them — a merchant sees the price
-                            they're billed at. */}
-                        <HqNotificationsProvider>
-                          {/* Inside NotificationsProvider: a template row dims
-                              when the Reminders matrix has that channel off, so
-                              the panel reads both stores. */}
-                          <CommsTemplatesProvider>
-                            {children}
-                            <Toaster />
-                          </CommsTemplatesProvider>
-                        </HqNotificationsProvider>
-                      </NotificationsProvider>
-                    </TerminalsProvider>
+                    {/* Root, not /catalogs: a combo created on the service menu
+                        has to turn up in the appointment service pickers, so
+                        both sides of the app read one catalog. */}
+                    <ServiceCatalogProvider>
+                      <TerminalsProvider>
+                        <NotificationsProvider>
+                          {/* Root, not the admin layout: HQ sets the rates but
+                              both portals read them — a merchant sees the price
+                              they're billed at. */}
+                          <HqNotificationsProvider>
+                            {/* Inside NotificationsProvider: a template row dims
+                                when the Reminders matrix has that channel off, so
+                                the panel reads both stores. */}
+                            <CommsTemplatesProvider>
+                              {children}
+                              <Toaster />
+                            </CommsTemplatesProvider>
+                          </HqNotificationsProvider>
+                        </NotificationsProvider>
+                      </TerminalsProvider>
+                    </ServiceCatalogProvider>
                   </PaymentPolicyProvider>
                 </DemoFilesProvider>
               </DemoBusinessProvider>

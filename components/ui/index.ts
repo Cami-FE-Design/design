@@ -4,6 +4,7 @@
 // exists so the ported developer-repo components compile without rewriting
 // every import. Add to it as needed.
 
+export { Badge } from "./badge"
 export { Button } from "./button"
 export { Checkbox } from "./checkbox"
 export {

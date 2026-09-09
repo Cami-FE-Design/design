@@ -22,6 +22,7 @@ import {
 } from "@dnd-kit/sortable"
 import { ChevronDownIcon } from "lucide-react"
 import { useMemo, useState } from "react"
+import { ComboBadge } from "@/components/blocks/combo-badge"
 import {
   Button,
   DropdownMenu,
@@ -235,6 +236,7 @@ export function SetMenuOrderSheet({
           {/* DnD list */}
           <div className="mt-6">
             <DndContext
+              id="set-menu-order"
               sensors={sensors}
               collisionDetection={collisionDetection}
               onDragStart={handleDragStart}
@@ -404,6 +406,7 @@ function ServiceRow({
           <DotsGrid />
         </button>
         <span className="text-sm font-medium text-foreground">{service.name}</span>
+        {service.serviceType === "combo" && <ComboBadge size="sm" />}
       </div>
     </div>
   )

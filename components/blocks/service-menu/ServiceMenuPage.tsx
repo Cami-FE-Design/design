@@ -538,6 +538,11 @@ export function ServiceMenuPage({
 
           <div className="min-w-0 flex-1">
             <DndContext
+              // Explicit id: dnd-kit otherwise names its aria description off a
+              // module-level counter, which differs between the server (bumped
+              // by every earlier render in the process) and a fresh client —
+              // a hydration mismatch on every sortable's aria-describedby.
+              id="service-menu-services"
               sensors={sensors}
               collisionDetection={closestCorners}
               onDragStart={handleDragStart}

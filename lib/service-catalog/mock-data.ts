@@ -265,6 +265,51 @@ export const seedServices: Service[] = [
     variants: [],
     extraTimes: [],
   },
+
+  // ── Combos ───────────────────────────────────────────────────────────────
+  // Combos come back from the same services endpoint as single services, so
+  // they sit in this list too — the card tells them apart via `serviceType`.
+  {
+    id: "svc-8",
+    name: "Colour & Cut Combo",
+    serviceType: "combo",
+    components: [
+      { id: "svc-1", name: "Hair Color" },
+      { id: "svc-2", name: "Haircut" },
+    ],
+    categoryId: "cat-1",
+    categoryName: "Color treatments",
+    description: "Full colour followed by a precision cut",
+    priceType: "Fixed",
+    price: 85,
+    duration: 120,
+    order: 2,
+    teamMemberIds: ["tm-1", "tm-2"],
+    isActive: true,
+    variants: [],
+    extraTimes: [],
+  },
+  {
+    id: "svc-9",
+    name: "Wash, Treat & Style",
+    serviceType: "combo",
+    components: [
+      { id: "svc-5", name: "Deep Conditioning" },
+      { id: "svc-4", name: "Blow Dry" },
+      { id: "svc-3", name: "Brazilian Blowout" },
+    ],
+    categoryId: "cat-2",
+    categoryName: "Hair & styling",
+    description: "Conditioning treatment, smoothing and a finishing blowout",
+    priceType: "From",
+    price: 165,
+    duration: 155,
+    order: 3,
+    teamMemberIds: ["tm-2", "tm-3"],
+    isActive: true,
+    variants: [],
+    extraTimes: [],
+  },
 ]
 
 export const seedTeamMembers: TeamMember[] = [

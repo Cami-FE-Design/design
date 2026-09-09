@@ -41,12 +41,12 @@ import {
   type MockBookingStatus,
   type MockServiceCatalogItem,
   resolveTemplate,
-  SERVICE_CATEGORY_ACCENT,
   templatesForBooking,
   type WhatsAppTemplate,
 } from "@/app/appointments/mock"
 import type { CartLine, CatalogClient } from "@/app/sales/new-sale/types"
 import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
+import { ComboBadge } from "@/components/blocks/combo-badge"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { DatePicker } from "@/components/blocks/date-picker"
 import { EditServicePanel } from "@/components/blocks/edit-service-panel"
@@ -61,6 +61,7 @@ import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
 import { PetNotesFields } from "@/components/blocks/pet-notes-fields"
 import { PickupFields } from "@/components/blocks/pickup-fields"
 import { SendMessageDialog } from "@/components/blocks/send-message-dialog"
+import { ServiceAccentRail } from "@/components/blocks/service-accent-rail"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -1439,17 +1440,14 @@ function ServiceRowList({
           key={s.uid}
           className="group/service flex gap-3 rounded-2xl px-3 py-2 transition-colors hover:bg-muted/50"
         >
-          <span
-            aria-hidden
-            className={cn(
-              "w-1 shrink-0 self-stretch rounded-full",
-              SERVICE_CATEGORY_ACCENT[s.catalog.category],
-            )}
-          />
+          <ServiceAccentRail item={s.catalog} />
           <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
             <div className="flex min-w-0 items-start justify-between gap-3">
               <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                <span className="text-base font-semibold text-foreground">{s.catalog.name}</span>
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="text-base font-semibold text-foreground">{s.catalog.name}</span>
+                  {s.catalog.isCombo ? <ComboBadge /> : null}
+                </div>
                 <span className="text-sm text-muted-foreground">
                   {formatTime(s.startTime)} · {formatDuration(s.catalog.durationMin)} ·{" "}
                   {s.staffName ?? "Any team member"}

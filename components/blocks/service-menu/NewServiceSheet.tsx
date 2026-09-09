@@ -1085,6 +1085,7 @@ function BasicDetailsSection({
 
             {showVariantList && (
               <DndContext
+                id="new-service-variants"
                 sensors={sensors}
                 collisionDetection={closestCenter}
                 onDragEnd={handleDragEnd}

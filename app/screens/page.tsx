@@ -869,7 +869,7 @@ const SECTIONS: Section[] = [
       {
         path: "/appointments",
         label: "Toolbar + sheets",
-        note: "Header toolbar (date, Day/Week, filters, New booking) over a demo body. The people grid itself is not mounted on this route yet — it renders in /playground under 'Appointments — toolbar and people grid', which is also the only place the booking blocks and their hover card can be exercised. Clicking a block there now opens <AppointmentDetailSheet>: PRO-68 shipped a hover card plus a second 380px click popover that had no route to the sheet at all, so the calendar could never reach an appointment's details. The click card is gone and the two-artefact model of the as-built app is in place — hover reads, click opens the drawer.",
+        note: "Header toolbar (date, Day/Week, filters, New booking) over a demo body. PRD-143: a booked combo shows up as one line per component service, each prefixed 'Combo - Service' with the pre-discount price struck through, matching the as-built calendar — see Luke Tan / Rocky (b-004), whose Nail clipping and Wash & Blow Dry LG lines both come from 'Wash & Nails Combo', on the hover card and in the detail sheet's Services section. The people grid itself is not mounted on this route yet — it renders in /playground under 'Appointments — toolbar and people grid', which is also the only place the booking blocks and their hover card can be exercised. Clicking a block there now opens <AppointmentDetailSheet>: PRO-68 shipped a hover card plus a second 380px click popover that had no route to the sheet at all, so the calendar could never reach an appointment's details. The click card is gone and the two-artefact model of the as-built app is in place — hover reads, click opens the drawer.",
       },
       {
         path: "/appointments",
@@ -885,6 +885,11 @@ const SECTIONS: Section[] = [
         path: "/playground",
         label: "Navigate to address (playground)",
         note: "PRD-144, under 'Navigate to address' and 'Appointments — pickup & pet notes'. The pickup field states are live: pick a map suggestion and the note flips to 'Pinned', edit the text and it flips back. Two popover/detail pairs sit below them — one booking with a pinned address (Navigate) and one typed (Search in Maps) — which is the only place both read-only renderings can be compared side by side.",
+      },
+      {
+        path: "/appointments",
+        label: "New booking sheet · Combo services",
+        note: "PRD-143 — 'New booking' → Add service. Two combos sit in the picker alongside the single services ('Groom & Go Bundle' under Grooming, 'Wash & Nails Combo' under Details; search 'combo' to see both): each row carries the tinted Combo badge with a layers icon and a '3 services' count under the name. Picking one keeps the badge on the selected-services row in the sheet, and the same badge appears on the pet-level picker used when the appointment has more than one pet. Anything created at /catalogs/service-menu → Add → Combo is bridged in here too — it groups under its own merchant category with that category's rail color — so a combo an operator just built is immediately bookable (the catalog provider now sits at the root layout, not under /catalogs, which is what makes that possible). Selecting a combo still does not expand it into its component services, which is how the as-built app books it.",
       },
       {
         path: "/appointments",
@@ -1187,7 +1192,12 @@ const SECTIONS: Section[] = [
       {
         path: "/catalogs/service-menu",
         label: "Service menu",
-        note: "Category sidebar + grouped service list. Drag service rows to reorder within a category or move them between categories. 'Add' menu creates a single service (full-screen takeover) or a category (dialog); 'Order' / Options → 'Set menu order' opens the reorder sheet. Search filters by service name. Per-card and per-category kebabs offer Edit / Archive / Delete. All mutations update local state live.",
+        note: "Category sidebar + grouped service list. Drag service rows to reorder within a category or move them between categories. 'Add' menu creates a single service (full-screen takeover), a category (dialog), or a combo (own page). 'Order' / Options → 'Set menu order' opens the reorder sheet. Search filters by service name. Per-card and per-category kebabs offer Edit / Archive / Delete. All mutations update local state live. PRD-143: combos share this list with single services, so their rows now carry a tinted 'Combo' badge (layers icon) plus a count of the services they bundle — see 'Colour & Cut Combo' under Color treatments and 'Wash, Treat & Style' under Hair & styling; the same badge marks them in the Set-menu-order sheet.",
+      },
+      {
+        path: "/catalogs/service-menu/combos/new",
+        label: "New combo",
+        note: "The combo builder reached from 'Add' → Combo: name/category/description, a Select-services dialog for the bundled services, sequence vs parallel scheduling, and the four price types (service pricing, custom, percentage discount, free) with a live total. Save now commits: the Category select and the Select-services dialog both read the real catalog (so a combo lands in a category that exists and bundles services that exist), and Save stores it as a service with serviceType 'combo' and drops you back on the Service menu with its Combo-badged row in place. Name, category and at least one service are required — Save toasts the missing one rather than failing silently. Duration follows the schedule type (sequence sums the components, parallel takes the longest). Online booking and Portfolio images are still presentational.",
       },
       {
         path: "/catalogs/service-menu?new=1",

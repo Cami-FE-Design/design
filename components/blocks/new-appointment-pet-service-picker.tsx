@@ -6,12 +6,11 @@ import { useMemo, useState } from "react"
 import {
   formatAed,
   formatDuration,
-  MOCK_SERVICE_CATALOG,
   type MockServiceCatalogItem,
-  type MockServiceCategory,
-  SERVICE_CATEGORY_ACCENT,
-  SERVICE_CATEGORY_LABEL,
+  serviceGroupLabel,
 } from "@/app/appointments/mock"
+import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
+import { ServiceAccentRail } from "@/components/blocks/service-accent-rail"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -22,6 +21,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
 import { cn } from "@/lib/utils"
 
 export type PetOption = {
@@ -46,19 +46,22 @@ export function PetAndServicePickerPanel({
   const [selectedPet, setSelectedPet] = useState<PetOption | null>(availablePets[0] ?? null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
+  const catalog = useAppointmentServiceCatalog()
+
   const grouped = useMemo(() => {
-    const byCategory = new Map<MockServiceCategory, MockServiceCatalogItem[]>()
-    for (const item of MOCK_SERVICE_CATALOG) {
-      const list = byCategory.get(item.category) ?? []
+    const byCategory = new Map<string, MockServiceCatalogItem[]>()
+    for (const item of catalog) {
+      const label = serviceGroupLabel(item)
+      const list = byCategory.get(label) ?? []
       list.push(item)
-      byCategory.set(item.category, list)
+      byCategory.set(label, list)
     }
     return Array.from(byCategory.entries())
-  }, [])
+  }, [catalog])
 
   const selectedServices = useMemo(
-    () => MOCK_SERVICE_CATALOG.filter((s) => selectedIds.has(s.id)),
-    [selectedIds],
+    () => catalog.filter((s) => selectedIds.has(s.id)),
+    [selectedIds, catalog],
   )
 
   function toggleService(id: string, checked: boolean) {
@@ -94,10 +97,10 @@ export function PetAndServicePickerPanel({
         <PetSelector available={availablePets} selected={selectedPet} onSelect={setSelectedPet} />
 
         <div className="flex flex-col gap-6">
-          {grouped.map(([category, items]) => (
+          {grouped.map(([label, items]) => (
             <ServiceCheckGroup
-              key={category}
-              category={category}
+              key={label}
+              label={label}
               items={items}
               selectedIds={selectedIds}
               onToggle={toggleService}
@@ -216,12 +219,12 @@ function PickerWarningPill({ text }: { text: string }) {
 }
 
 function ServiceCheckGroup({
-  category,
+  label,
   items,
   selectedIds,
   onToggle,
 }: {
-  category: MockServiceCategory
+  label: string
   items: MockServiceCatalogItem[]
   selectedIds: Set<string>
   onToggle: (id: string, checked: boolean) => void
@@ -229,7 +232,7 @@ function ServiceCheckGroup({
   return (
     <section className="flex flex-col gap-2">
       <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
-        {SERVICE_CATEGORY_LABEL[category]}
+        {label}
         <Badge variant="muted" className="rounded-full">
           {items.length}
         </Badge>
@@ -254,21 +257,21 @@ function ServiceCheckGroup({
                   checked={checked}
                   onCheckedChange={(v) => onToggle(item.id, v === true)}
                 />
-                <span
-                  aria-hidden
-                  className={cn(
-                    "w-1 shrink-0 self-stretch rounded-full",
-                    SERVICE_CATEGORY_ACCENT[item.category],
-                  )}
-                />
+                <ServiceAccentRail item={item} />
                 <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                      <span className="truncate text-base font-semibold text-foreground">
-                        {item.name}
-                      </span>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-base font-semibold text-foreground">
+                          {item.name}
+                        </span>
+                        {item.isCombo ? <ComboBadge /> : null}
+                      </div>
                       <span className="text-sm text-muted-foreground">
                         {formatDuration(item.durationMin)}
+                        {item.componentNames?.length
+                          ? ` · ${comboServicesLabel(item.componentNames.length)}`
+                          : ""}
                       </span>
                     </div>
                     <span className="shrink-0 text-base font-semibold leading-tight tabular-nums text-foreground">

@@ -40,6 +40,7 @@ import {
   type MockBookingStatus,
   type MockStaff,
   SERVICE_CATEGORY_ACCENT,
+  serviceItemLabel,
   serviceItemsOf,
   serviceItemsTotalMinor,
 } from "@/app/appointments/mock"
@@ -706,7 +707,9 @@ function ServicesSection({ booking, staffName }: { booking: MockBooking; staffNa
                 <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                      <span className="text-base font-semibold text-foreground">{item.name}</span>
+                      <span className="text-base font-semibold text-foreground">
+                        {serviceItemLabel(item)}
+                      </span>
                       <span className="text-sm text-muted-foreground">
                         {/* Only the first item states a clock time: the rest run
                             after it, and stamping each with the booking's start
@@ -719,9 +722,15 @@ function ServicesSection({ booking, staffName }: { booking: MockBooking; staffNa
                       <span className="text-base font-semibold text-foreground">
                         {formatAed(covered ? 0 : item.priceMinor)}
                       </span>
+                      {/* One struck-through gross, whichever applies: a session
+                          drawn down, or a combo's discount. */}
                       {item.membership ? (
                         <span className="text-sm font-normal text-muted-foreground line-through">
                           {formatAed(item.membership.grossPriceMinor)}
+                        </span>
+                      ) : item.comboGrossPriceMinor ? (
+                        <span className="text-sm font-normal text-muted-foreground line-through">
+                          {formatAed(item.comboGrossPriceMinor)}
                         </span>
                       ) : null}
                     </span>
