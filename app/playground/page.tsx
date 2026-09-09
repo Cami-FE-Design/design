@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { BackToTop } from "@/components/blocks/back-to-top"
 import { PlaygroundShowcase } from "@/components/blocks/playground-showcase"
 import { ThemeToggle } from "@/components/blocks/theme-toggle"
 
@@ -21,6 +22,7 @@ export default function PlaygroundPage() {
         <ThemeToggle />
       </header>
       <PlaygroundShowcase />
+      <BackToTop />
     </main>
   )
 }

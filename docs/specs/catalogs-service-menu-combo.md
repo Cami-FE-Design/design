@@ -81,3 +81,98 @@ matches the product create takeover so catalog create flows feel consistent. Ent
 - PRO ticket number for this work (doc named by feature until assigned).
 - Currency: hardcoded AED for now (matches product form); pull from business settings later.
 - Categories source — reuse service categories store once it exists; mocked for now.
+
+---
+
+## PRD-143 — telling a combo apart, everywhere it appears
+
+> Shipped on `prd-143-add-icon-for-combo-items-in-service-list`. The ask was one
+> icon in the service list; the icon exposed that a combo was unrecognisable —
+> and in places unusable — on every other surface it travelled to.
+
+### Why an icon was not enough on its own
+
+Combos come back from the same endpoint as single services and sit in the same
+lists, so before this the only tell was the name. Adding a badge to the service
+menu made the gap obvious: a combo could be saved but not booked, booked but
+not sold, sold but not seen by the payer. The rules below are what makes a
+combo read as the same thing from the catalog through to the customer's bill.
+
+### The two marks, and when each applies
+
+- **Being chosen** — the row carries a tinted badge (cami-violet, the same
+  treatment as the membership chip), a layers icon, the word *Combo*, and a
+  bundled-services count where the row has room. Used on the service-menu card,
+  the reorder sheet, both appointment service pickers, the POS item picker, and
+  the pet-parent booking card.
+- **Chosen or booked** — the combo is no longer one row, so the badge's word
+  would be said twice. Each line is named `Combo name - Service name` (the
+  as-built format, matching `SalesAppointmentDetailSheet` and the calendar in
+  cami-business) and led by the layers glyph alone. Used on the appointment
+  sheet's selected-services list, the booked appointment, the calendar hover
+  card, the POS cart, the pet-parent summary and Review step, and the payer's
+  bill.
+
+An earlier pass dropped the mark entirely once a combo was booked, on the
+grounds that the name already says it. That left the appointment surfaces with
+no glyph a minute after the picker had one, which is the exact complaint the
+ticket opened with.
+
+### Booking a combo books its components
+
+Picking a combo expands it on the spot — a row per component — rather than
+adding a single combo line. This mirrors the as-built `AddAppointmentSheet`,
+and it is what keeps the create sheet and the booked appointment the same
+shape; before it, one appointment was one row on one surface and three on
+another.
+
+- Components run back-to-back from the combo's start, **or all at the same
+  time** when the combo's schedule type is `parallel` — different team members
+  working at once is the point of that setting, and a parallel combo queued in
+  sequence books the wrong slot.
+- The combo's price is split across components in proportion to what they cost
+  alone, with the remainder on the last line, so the lines always sum to the
+  combo's price. Each line keeps its standalone price, struck through.
+- Every component shares one `comboGroupId`. Removing any line removes the
+  combo: the price covers the bundle, and half a bundle is not what it covers.
+- Editing a component keeps it attached. The edit panel rebuilds a service from
+  its own fields, so the row is spread over rather than replaced — a plain
+  replace dropped the group id and detached the component.
+
+### Money on the POS cart
+
+The saving already sits inside each line's price, so the footer **states** it
+rather than subtracting it twice: `Total amount (excl. discounts)`, one
+`Bundle discount` row per discounted line, then `To pay`.
+
+### What a combo stores
+
+Beyond the service fields, a combo carries `serviceType: "combo"`, its
+`components`, its `scheduleType`, and the pricing rule it was saved with
+(`comboPriceType` plus `comboDiscountPercent`). The last two exist so the
+builder can be reopened on the same choice — without them an edit had only a
+total to guess from, and a percentage combo silently became a fixed one.
+
+### Editing
+
+A combo edits at `/catalogs/service-menu/combos/[id]/edit`, not in the
+single-service takeover, which has no field for components, schedule type or
+combo pricing — editing a combo through it quietly flattened it into a service.
+Combos have no **Duplicate** action, matching the as-built menu.
+
+### Deliberately excluded
+
+- **Packages.** A package counts sessions against individual services, and a
+  combo already prices its own bundle, so the package builder's service picker
+  omits combos — the as-built `SelectPackageServicesDialog` filters them out
+  for the same reason.
+- **Invoices.** The printed document carries the combo in the line description
+  (`Combo - Service`); the violet glyph has no business on an A4 PDF.
+- **Boarding / daycare.** Those drawers have their own service catalogs;
+  combos are a grooming-side product.
+
+### Not wired in this repo
+
+Combo pricing beyond the proportional split, the combo group travelling into
+the invoice payload, and the builder's Online booking / Portfolio images
+sections.

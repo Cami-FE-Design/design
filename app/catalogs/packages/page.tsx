@@ -209,9 +209,10 @@ export default function PackagesPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem asChild>
-                  <Link href="/catalogs/packages/sold">View sold packages</Link>
-                </DropdownMenuItem>
+                {/* /catalogs/packages/sold is not routed yet, so this went to a
+                    404. Disabled rather than removed: the action belongs in the
+                    menu, it just has nowhere to go until that page exists. */}
+                <DropdownMenuItem disabled>View sold packages</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
