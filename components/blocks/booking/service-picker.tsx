@@ -3,6 +3,7 @@
 import { CheckIcon, ListIcon, PlusIcon } from "lucide-react"
 import { useState } from "react"
 
+import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,9 +34,15 @@ function ServiceCard({
       )}
     >
       <div className="flex flex-col gap-1">
-        <span className="font-medium text-foreground text-sm">{service.name}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="font-medium text-foreground text-sm">{service.name}</span>
+          {service.isCombo ? <ComboBadge size="sm" /> : null}
+        </div>
         <span className="text-muted-foreground text-xs">
           {formatDuration(service.durationMinutes)}
+          {service.componentIds?.length
+            ? ` · ${comboServicesLabel(service.componentIds.length)}`
+            : ""}
           {service.tag ? ` · ${service.tag}` : ""}
         </span>
         {service.description ? (

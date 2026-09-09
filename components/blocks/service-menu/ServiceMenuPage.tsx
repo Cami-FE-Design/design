@@ -200,6 +200,13 @@ export function ServiceMenuPage({
   }
 
   const handleOpenEditService = (id: string) => {
+    // A combo is stored as a service but is not shaped like one — components,
+    // schedule type, its own pricing rules — so it edits in the combo builder,
+    // not the single-service takeover.
+    if (services.find((s) => s.id === id)?.serviceType === "combo") {
+      router.push(`/catalogs/service-menu/combos/${id}/edit`)
+      return
+    }
     setEditServiceTargetId(id)
   }
 

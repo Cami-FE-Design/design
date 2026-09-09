@@ -12,6 +12,7 @@ import {
   SERVICES,
 } from "@/app/sales/new-sale/mock"
 import { expandCombo } from "@/components/blocks/new-appointment-sheet"
+import { bookingLines, serviceTotals } from "@/lib/booking"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import {
   ServiceCatalogProvider,
@@ -78,6 +79,7 @@ describe("saving a combo", () => {
               price: 60,
               duration: 75,
               scheduleType: "sequence",
+              comboPriceType: "service",
               components: [
                 { id: "svc-6", name: "Classic Manicure" },
                 { id: "svc-7", name: "Gel Manicure" },
@@ -214,5 +216,31 @@ describe("a parallel combo", () => {
   it("starts every component together", () => {
     const rows = expandCombo(parallelCombo, MOCK_SERVICE_CATALOG, { startTime: "10:00" })
     expect(rows.map((r) => r.startTime)).toEqual(["10:00", "10:00"])
+  })
+})
+
+describe("a combo booked by a pet parent", () => {
+  // The public flow books a combo as the services it bundles, so the summary
+  // reads the same as the staff side.
+  it("expands into component lines, priced to the combo's total", () => {
+    const lines = bookingLines(["groom-and-nails-combo"])
+    expect(lines.map((l) => l.name)).toEqual([
+      "Full groom & nails - Full groom",
+      "Full groom & nails - Nail trim",
+    ])
+    expect(lines.reduce((sum, l) => sum + l.priceAed, 0)).toBe(270)
+    // Each line says what it would cost alone.
+    expect(lines.map((l) => l.listPriceAed)).toEqual([260, 35])
+  })
+
+  it("counts the components but keeps the combo's own duration and price", () => {
+    const totals = serviceTotals(["groom-and-nails-combo"])
+    expect(totals.count).toBe(2)
+    expect(totals.durationMinutes).toBe(135)
+    expect(totals.priceAed).toBe(270)
+  })
+
+  it("leaves a plain service as one line", () => {
+    expect(bookingLines(["full-groom"])).toHaveLength(1)
   })
 })

@@ -54,6 +54,7 @@ import { AppointmentsToolbar } from "@/components/blocks/appointments-toolbar"
 import { AvatarStack } from "@/components/blocks/avatar-stack"
 import { BoardingDetailSheet } from "@/components/blocks/boarding/booking-detail-sheet"
 import { NewBoardingSheet } from "@/components/blocks/boarding/new-boarding-sheet"
+import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { BusinessNotificationsSection } from "@/components/blocks/business-detail-dialog"
 import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
@@ -324,6 +325,20 @@ const PICKUP_DEMO_BOOKING: MockBooking = {
 // only offer "Search in Maps".
 // Three services by two groomers, one with duration modifiers, one drawn from a
 // membership — the shape the as-built popup shows and ours could not.
+// PRD-143 — the pet-parent picker, opened on the category that carries a combo
+// so the badge and its "2 services" count are on screen without scrolling.
+function BookingComboPickerDemo() {
+  const [selected, setSelected] = useState<string[]>(["groom-and-nails-combo"])
+  return (
+    <ServicePicker
+      selectedIds={selected}
+      onToggle={(id) =>
+        setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+      }
+    />
+  )
+}
+
 // PRD-143 — the POS cart holds a combo the same way: its component lines, each
 // with the list price struck through, and the saving named in the footer.
 let comboUidSeq = 0
@@ -2291,7 +2306,7 @@ export function PlaygroundShowcase() {
 
       <Section
         title="Combos across surfaces"
-        description="PRD-143 — a combo is a bundle sold as one catalog entry, and it travels in the same lists as single services. Where it is still being CHOSEN — the service menu card, both appointment service pickers, the selected-services list on the appointment sheet — the row carries the shared <ComboBadge />: cami-violet tint (the membership chip's treatment), a layers icon, the word, and a bundled-services count under the name where there is room. Once it is PICKED it stops being one row: the combo expands into its component services there and then — a row each, back-to-back from the combo's start, the combo's price split across them in proportion to what they cost alone with the standalone price struck through, and all of them in one group so removing any row removes the combo. That mirrors the as-built AddAppointmentSheet, and it is what keeps the create sheet and the booked appointment the same shape; before it, the same appointment was one row on one surface and three on the other. From there on the marker changes shape rather than disappearing: booking a combo books its component services, so the appointment holds one line per component and each is prefixed 'Combo - Service' (the as-built format) with the pre-discount price struck through the way a drawn-down membership session is, led by the badge's layers glyph on its own — on the appointment sheet's selected-services list and on the booked appointment alike. The full badge would say 'Combo' twice on a line that already names the combo — but dropping the mark altogether left the appointment surfaces with no glyph at all, a minute after the picker had one, so the icon carries the recognition across and the prefix carries which combo. The POS cart follows the same rule (row below): adding a combo drops its component lines in, each with its list price struck through, and the footer states the saving as a Bundle discount line rather than subtracting it twice. Combos created on the service menu are bridged into the appointment pickers AND the POS picker (see /catalogs/service-menu → Add → Combo), so a combo an operator just built is bookable and sellable; expanding it into its components on selection, the shared combo group, and combo pricing are still not wired in this repo. The service-menu card lives in the 'Service menu — cards & sidebar' section above."
+        description="PRD-143 — a combo is a bundle sold as one catalog entry, and it travels in the same lists as single services. Where it is still being CHOSEN — the service menu card, both appointment service pickers, the selected-services list on the appointment sheet — the row carries the shared <ComboBadge />: cami-violet tint (the membership chip's treatment), a layers icon, the word, and a bundled-services count under the name where there is room. Once it is PICKED it stops being one row: the combo expands into its component services there and then — a row each, back-to-back from the combo's start, the combo's price split across them in proportion to what they cost alone with the standalone price struck through, and all of them in one group so removing any row removes the combo. That mirrors the as-built AddAppointmentSheet, and it is what keeps the create sheet and the booked appointment the same shape; before it, the same appointment was one row on one surface and three on the other. From there on the marker changes shape rather than disappearing: booking a combo books its component services, so the appointment holds one line per component and each is prefixed 'Combo - Service' (the as-built format) with the pre-discount price struck through the way a drawn-down membership session is, led by the badge's layers glyph on its own — on the appointment sheet's selected-services list and on the booked appointment alike. The full badge would say 'Combo' twice on a line that already names the combo — but dropping the mark altogether left the appointment surfaces with no glyph at all, a minute after the picker had one, so the icon carries the recognition across and the prefix carries which combo. The pet-parent booking flow follows it too — a combo is one card there, badged, and the summary and Review step list the components it books as. The POS cart follows the same rule (row below): adding a combo drops its component lines in, each with its list price struck through, and the footer states the saving as a Bundle discount line rather than subtracting it twice. Combos created on the service menu are bridged into the appointment pickers AND the POS picker (see /catalogs/service-menu → Add → Combo), so a combo an operator just built is bookable and sellable; expanding it into its components on selection, the shared combo group, and combo pricing are still not wired in this repo. The service-menu card lives in the 'Service menu — cards & sidebar' section above."
       >
         <Row label="Appointment service picker (clipped to 520px)" align="start">
           <div className="h-130 w-full max-w-md overflow-hidden rounded-2xl border border-border/60">
@@ -2301,6 +2316,13 @@ export function PlaygroundShowcase() {
         </Row>
         <Row label="Booked lines — hover card ('Combo - Service')">
           <AppointmentQuickPanel booking={COMBO_DEMO_BOOKING} />
+        </Row>
+        <Row label="Pet-parent picker — combo card (Grooming)" align="start">
+          <div className="w-full max-w-md">
+            {/* The public flow badges a combo the same way the staff pickers do;
+                picking it books its component services. */}
+            <BookingComboPickerDemo />
+          </div>
         </Row>
         <Row label="POS cart — component lines + bundle discount" align="start">
           <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/60 bg-card">

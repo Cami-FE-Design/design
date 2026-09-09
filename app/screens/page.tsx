@@ -1200,6 +1200,11 @@ const SECTIONS: Section[] = [
         note: "Category sidebar + grouped service list. Drag service rows to reorder within a category or move them between categories. 'Add' menu creates a single service (full-screen takeover), a category (dialog), or a combo (own page). 'Order' / Options → 'Set menu order' opens the reorder sheet. Search filters by service name. Per-card and per-category kebabs offer Edit / Archive / Delete. All mutations update local state live. PRD-143: combos share this list with single services, so their rows now carry a tinted 'Combo' badge (layers icon) plus a count of the services they bundle — see 'Colour & Cut Combo' under Color treatments and 'Wash, Treat & Style' under Hair & styling; the same badge marks them in the Set-menu-order sheet.",
       },
       {
+        path: "/catalogs/service-menu/combos/svc-8/edit",
+        label: "Edit combo",
+        note: "PRD-143 — a combo card's kebab → Edit lands here, not in the single-service takeover, which had no field for components, schedule type or combo pricing. Opens the builder on the saved combo: name, category, description, its bundled services resolved back out of the catalog, Booked in sequence/parallel, and the price type it was saved with (service pricing / custom / percentage / free) with the percentage or retail price filled in. Save writes back to the same combo. This link opens the seeded 'Colour & Cut Combo'; a combo you create yourself edits from its own row.",
+      },
+      {
         path: "/catalogs/service-menu/combos/new",
         label: "New combo",
         note: "The combo builder reached from 'Add' → Combo: name/category/description, a Select-services dialog for the bundled services, sequence vs parallel scheduling, and the four price types (service pricing, custom, percentage discount, free) with a live total. Save now commits: the Category select and the Select-services dialog both read the real catalog (so a combo lands in a category that exists and bundles services that exist), and Save stores it as a service with serviceType 'combo' and drops you back on the Service menu with its Combo-badged row in place. Name, category and at least one service are required — Save toasts the missing one rather than failing silently. Duration follows the schedule type (sequence sums the components, parallel takes the longest). Online booking and Portfolio images are still presentational.",
@@ -1240,6 +1245,11 @@ const SECTIONS: Section[] = [
         path: "/purr-palace/book",
         label: "Booking flow · second business",
         note: "Confirms the flow is data-driven off the public business",
+      },
+      {
+        path: "/shampooch-jvc/book",
+        label: "Booking flow · Combo services",
+        note: "PRD-143 — Grooming carries 'Full groom & nails' and Spa add-ons carries 'Spa pamper duo', each a single card badged Combo with a bundled-services count. Picking one books the services it bundles: the sticky summary and the Review step list them as 'Combo - Service' rows led by the layers glyph, each showing its share of the combo price with what it would cost alone struck through. The footer counts the components (2 services) but keeps the combo's own duration and total, so a parent sees the bundle's slot and price, not the sum of the parts. 'Spa pamper duo' is set to run in parallel, which is why its slot is the longer add-on rather than both added up.",
       },
       {
         path: "/shampooch-jvc/booking/CAMI-4821",
