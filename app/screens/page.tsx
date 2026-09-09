@@ -115,7 +115,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shampooch-jvc/pay/demo-token",
         label: "Unpaid · full flow",
-        note: "Bill (pet-aware lines) → fixed tip presets (No tip / 5 / 10 / 15, 'Most common' on 10, live readout) → flat ledger + hero total → payment method radio (Apple Pay / saved card) → single contextual CTA. Membership upsell as inline ledger link.",
+        note: "Bill (pet-aware lines) → fixed tip presets (No tip / 5 / 10 / 15, 'Most common' on 10, live readout) → flat ledger + hero total → payment method radio (Apple Pay / saved card) → single contextual CTA. Membership upsell as inline ledger link. PRD-143: the demo bill is a combo, so the payer sees the same lines the operator does — 'Combo - Service' led by the layers glyph, each with what it would cost alone struck through.",
       },
       {
         path: "/shampooch-jvc/pay/demo-paid",
@@ -1070,7 +1070,7 @@ const SECTIONS: Section[] = [
       {
         path: "/sales/new-sale",
         label: "New sale · Combo in the cart",
-        note: "PRD-143 — Services in the item picker carries two combos ('Nails & Style Combo', 'Massage Duo Combo'), badged with the layers icon and a bundled-services count. Adding one drops its component services into the cart as separate lines — each named 'Combo - Service', led by the glyph, with its standalone price struck through under the charged share — and the footer reads 'Total amount (excl. discounts)' with a 'Bundle discount' row per line, then To pay. The combo's price is split across the components in proportion to what they cost alone, so the lines always sum to the combo's price; removing any one line removes the whole combo. Combos created at /catalogs/service-menu → Add → Combo show up in this picker too.",
+        note: "PRD-143 — Services in the item picker carries two combos ('Nails & Style Combo', 'Massage Duo Combo'), badged with the layers icon and a bundled-services count. Adding one drops its component services into the cart as separate lines — each named 'Combo - Service', led by the glyph, with its standalone price struck through under the charged share — and the footer reads 'Total amount (excl. discounts)' with a 'Bundle discount' row per line, then To pay. The combo's price is split across the components in proportion to what they cost alone, so the lines always sum to the combo's price; removing any one line removes the whole combo. Combos created at /catalogs/service-menu → Add → Combo show up in this picker too. Appointments → Bilal Haddad / Rex is booked as a combo, so snapshotting it into the cart keeps the component lines, the glyph and the saving rather than flattening them.",
       },
       {
         path: "/sales/new-sale",

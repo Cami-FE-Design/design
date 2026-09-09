@@ -71,6 +71,14 @@ export type AppointmentLine = {
   priceMinor: number
   /** Non-blocking warnings, e.g. "Team member doesn't provide this service". */
   warnings?: string[]
+  /**
+   * The combo this booked line came out of (PRD-143). Carried into the cart on
+   * snapshot so a combo paid for through the appointment route reads the same
+   * as one added straight to the cart.
+   */
+  comboName?: string
+  /** What the component costs outside the bundle — struck through in the cart. */
+  listPriceMinor?: number
 }
 
 export type AppointmentPetSpecies = "dog" | "cat" | "bird" | "rabbit" | "other"

@@ -452,6 +452,10 @@ function CartFlowInner({
           staffName: line.staffName,
           qty: 1,
           sourceId: line.serviceId,
+          // A combo booked on the appointment keeps its marker and its saving
+          // when the sale is built from it (PRD-143).
+          comboName: line.comboName,
+          listPriceMinor: line.listPriceMinor,
           categoryId: SERVICES.find((s) => s.id === line.serviceId)?.categoryId,
           warnings: line.warnings,
           apptId: appt.id,

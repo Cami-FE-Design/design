@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 
+import { ComboLineIcon } from "@/components/blocks/combo-badge"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -87,7 +88,8 @@ function LineRow({ line, hasPets }: { line: CheckoutLine; hasPets: boolean }) {
   return (
     <div className="flex items-start justify-between gap-3 py-1.5">
       <div className="flex min-w-0 flex-1 flex-col leading-tight">
-        <span className="text-sm font-medium text-foreground">
+        <span className="flex min-w-0 items-center gap-1.5 text-sm font-medium text-foreground">
+          {line.comboName ? <ComboLineIcon className="size-3.5" /> : null}
           {line.qty > 1 ? <span className="text-muted-foreground">{line.qty}× </span> : null}
           {line.name}
           {hasPets && line.petName ? (
@@ -98,8 +100,15 @@ function LineRow({ line, hasPets }: { line: CheckoutLine; hasPets: boolean }) {
         </span>
         {meta ? <span className="text-xs text-muted-foreground">{meta}</span> : null}
       </div>
-      <span className="shrink-0 text-sm font-medium tabular-nums text-foreground">
-        {formatAedDecimal(line.priceMinor * line.qty)}
+      <span className="flex shrink-0 flex-col items-end tabular-nums">
+        <span className="text-sm font-medium text-foreground">
+          {formatAedDecimal(line.priceMinor * line.qty)}
+        </span>
+        {line.listPriceMinor && line.listPriceMinor > line.priceMinor ? (
+          <span className="text-xs text-muted-foreground line-through">
+            {formatAedDecimal(line.listPriceMinor * line.qty)}
+          </span>
+        ) : null}
       </span>
     </div>
   )
