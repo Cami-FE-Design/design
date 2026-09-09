@@ -523,3 +523,48 @@ concept of which one it is.
 - **Sender ID reserved words.** Only `CAMI` is rejected today. Carriers maintain
   longer reserved lists; if one exists for the UAE, it belongs in
   `validateSenderId` so a merchant fails at input time rather than days later.
+
+---
+
+## Log tab — why it is shaped this way
+
+Moved off the `/screens` entry, which had grown into an essay. The screen is at
+`/shell-demo?settings=notifications&nt=log`.
+
+The log answers a business-wide question the per-appointment timeline
+structurally cannot: *did today's reminders actually go out?*
+
+- **Grouped by day**, like the money activity feed, with a per-day count on the
+  header. Ungrouped, a reader had to compare every row's time to find the
+  boundary between days.
+- **One bordered card with divided rows**, not a card per row. Per-row borders
+  cost a frame, a radius and 16px of padding to separate what a 1px rule
+  already separates — and eight demo rows are not the case to design for when a
+  real month is hundreds.
+- `sentAt` is a **real ISO timestamp**, not the pre-formatted "Yesterday 10:15"
+  it started as: grouping needs a date to bucket on, and parsing the day back
+  out of a display string works right up until the copy changes. Grouping is
+  string arithmetic on the ISO value rather than `Date` parsing, so a 23:30
+  +04:00 send cannot land on the previous day for a reviewer in another
+  timezone, and a fixed demo "today" keeps screenshots reproducible instead of
+  re-bucketing every midnight. One send sits on 25 Aug so the absolute-date
+  label renders and not just Today/Yesterday.
+- **Failure reasons render inline**, not behind a tooltip — a failed send is the
+  one row type someone is actively hunting for. The demo carries two: a landline
+  that cannot take SMS, and a hard-bounced mailbox.
+- The footer says "your most recent sends" rather than claiming to be the whole
+  period, so it cannot look like it disagrees with the Usage totals, which come
+  from a period aggregate rather than from summing the paginated log.
+
+## Notification events in the appointment activity timeline
+
+Sends are **events in the existing activity timeline**, not a new surface:
+channel icon on the timeline dot, delivery-status pill, recipient in the meta
+line, body as the event body. A failed send is the only activity event that
+tints, because it is the only one that means the customer heard nothing.
+
+The timeline reads the same store as the log tab, filtered by the booking id —
+so the two cannot disagree, and an appointment with no sends shows none instead
+of borrowing another booking's messages. Four bookings carry demo sends
+(b-002 Luna, b-003 Willow, b-004 Rocky, b-005 Mochi); every other timeline is
+notification-free, which is the honest state.
