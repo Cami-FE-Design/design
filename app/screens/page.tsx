@@ -59,6 +59,21 @@ type Section = {
   screens: Screen[]
 }
 
+/**
+ * Collapse a group's rows onto one entry per route, in the order the routes
+ * first appear. A route that carries several things to look at gets one path
+ * cell and a list of them, rather than the same path printed five times.
+ */
+function groupByPath(screens: Screen[]): Array<{ path: string; screens: Screen[] }> {
+  const groups: Array<{ path: string; screens: Screen[] }> = []
+  for (const screen of screens) {
+    const existing = groups.find((g) => g.path === screen.path)
+    if (existing) existing.screens.push(screen)
+    else groups.push({ path: screen.path, screens: [screen] })
+  }
+  return groups
+}
+
 /** Stable anchor for a group, so a single group can be linked into a thread. */
 function sectionSlug(title: string): string {
   return title
@@ -474,7 +489,7 @@ const SECTIONS: Section[] = [
       {
         path: "/catalogs/packages",
         label: "Packages",
-        note: "Sortable table of packages (name, services, sessions, validity, price) with search, a Filters dialog, and a row click that opens the package detail dialog. 'Add package' opens the create takeover; the Options menu links to sold packages. Note: that 'View sold packages' link points at /catalogs/packages/sold, which is not routed yet — it 404s.",
+        note: "Sortable table of packages (name, services, sessions, validity, price) with search, a Filters dialog, and a row click that opens the package detail dialog. 'Add package' opens the create takeover; the Options menu links to sold packages. The Options menu's 'View sold packages' is disabled: that page is not routed yet, and the item pointed at a 404.",
       },
       {
         path: "/catalogs/packages/new",
@@ -759,7 +774,7 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Reporting and analytics (DSG-43 / PRO-703)",
     description:
-      "Config-driven reporting module — all 23 reports render from lib/reports/registry.ts through shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix). Every report is listed below (generated from the registry, so nothing goes stale). Adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list; Performance over time is the one remaining placeholder. The Performance dashboard is the DSG-79 revamp — start there.",
+      "Config-driven reporting module — all 23 reports render from lib/reports/registry.ts through shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix). Every report is listed below (generated from the registry, so nothing goes stale). Adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list. The Performance dashboard is the DSG-79 revamp — start there.",
     screens: REPORT_SCREENS,
   },
   {
@@ -1421,11 +1436,6 @@ const SECTIONS: Section[] = [
         label: "Global search takeover",
         note: "Click the topbar magnifier (or Cmd/Ctrl+K) on any shell page. Full-screen search over clients + bookings; try 'B-77342' for a booking ref. Rows open the client dialog / appointment sheet on top. Also demoed in the playground.",
       },
-      {
-        path: "/style-guide",
-        label: "Design foundations",
-        note: "Color (semantic slots, Radix / Cami / neutral-gray scales), type, radius, elevation, pattern utilities, spacing. Values are read from the live CSS custom properties at runtime rather than copied, so the page cannot drift from globals.css. Click a swatch to copy its utility.",
-      },
     ],
   },
 ]
@@ -1539,41 +1549,37 @@ export default function ScreensPage() {
                     </span>
                   </div>
 
-                  <ul className="flex flex-col">
-                    {/* Keyed by path AND label: a section deliberately lists the
-                        same route more than once when there are different things
-                        to look at on it (the activity feed and the detail panel
-                        behind a row, say), and a path-only key collides. */}
-                    {section.screens.map((screen, index) => (
-                      <li key={`${screen.path}|${screen.label}`}>
-                        <Link
-                          href={screen.path}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="group -mx-2 grid grid-cols-[minmax(0,16rem)_1fr] items-baseline gap-6 rounded-md px-2 py-2.5 transition-colors hover:bg-foreground/[0.04]"
-                        >
-                          {/* One route often has several things worth looking
-                              at, so the path repeats down the column and reads
-                              as duplication. Print it once per run and mark the
-                              rest as continuations. */}
-                          {index === 0 || section.screens[index - 1].path !== screen.path ? (
-                            <RoutePath path={screen.path} />
-                          ) : (
-                            <span className="pl-3 font-mono text-xs text-muted-foreground/50">
-                              ↳
-                            </span>
-                          )}
-                          <div className="min-w-0">
-                            <span className="text-sm text-foreground underline-offset-4 group-hover:underline">
-                              {screen.label}
-                            </span>
-                            {screen.note ? (
-                              <span className="ml-2 text-xs text-muted-foreground">
-                                {screen.note}
-                              </span>
-                            ) : null}
-                          </div>
-                        </Link>
+                  {/* Grouped by route, not listed in write order: one route
+                      often has several things worth looking at, and printing
+                      its path against every one of them read as duplication —
+                      worse when the rows for one route were split apart by
+                      another. Each route appears once, with its variants under
+                      it. */}
+                  <ul className="flex flex-col gap-1">
+                    {groupByPath(section.screens).map((group) => (
+                      <li key={group.path} className="grid grid-cols-[minmax(0,16rem)_1fr] gap-6">
+                        <RoutePath path={group.path} />
+                        <ul className="flex min-w-0 flex-col">
+                          {group.screens.map((screen) => (
+                            <li key={screen.label}>
+                              <Link
+                                href={screen.path}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group -mx-2 block rounded-md px-2 py-2 transition-colors hover:bg-foreground/[0.04]"
+                              >
+                                <span className="text-sm text-foreground underline-offset-4 group-hover:underline">
+                                  {screen.label}
+                                </span>
+                                {screen.note ? (
+                                  <span className="ml-2 text-xs text-muted-foreground">
+                                    {screen.note}
+                                  </span>
+                                ) : null}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
                       </li>
                     ))}
                   </ul>

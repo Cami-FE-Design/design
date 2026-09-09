@@ -27,16 +27,16 @@ export function BackToTop({ showAfter = 600 }: { showAfter?: number }) {
   return (
     <Button
       type="button"
-      variant="outline"
       radius="full"
-      size="sm"
-      // Respects a reduced-motion preference: the browser honours
-      // `scroll-behavior: smooth` from CSS, so this stays an instant jump.
+      // Filled, not outline: on an off-white page an outline pill on a card
+      // background was easy to miss entirely — the same treatment the sticky
+      // Checkout CTA uses, so it reads as the page's one floating action.
       onClick={() => window.scrollTo({ top: 0 })}
-      className="fixed right-6 bottom-6 z-50 gap-1.5 bg-card shadow-lg"
+      aria-label="Back to top"
+      className="fixed right-6 bottom-6 z-50 gap-1.5 px-5 shadow-xl ring-2 ring-background animate-in fade-in slide-in-from-bottom-2"
     >
       <ArrowUpIcon className="size-4" aria-hidden />
-      Top
+      Back to top
     </Button>
   )
 }
