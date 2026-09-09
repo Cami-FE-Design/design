@@ -30,6 +30,7 @@ import {
 } from "@/app/appointments/mock"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
 import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
+import { ComboLineIcon } from "@/components/blocks/combo-badge"
 import { NavigateToAddress } from "@/components/blocks/navigate-to-address"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -293,7 +294,10 @@ function ServiceItemRow({ item }: { item: MockServiceItem }) {
     <div data-slot="appointment-service-item" className="flex flex-col gap-1">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[12px] font-medium">{serviceItemLabel(item)}</div>
+          <div className="flex min-w-0 items-center gap-1 text-[12px] font-medium">
+            {item.comboName ? <ComboLineIcon className="size-3" /> : null}
+            <span className="truncate">{serviceItemLabel(item)}</span>
+          </div>
           {meta ? <div className="truncate text-[10px] text-muted-foreground">{meta}</div> : null}
         </div>
         <div className="flex shrink-0 flex-col items-end leading-tight tabular-nums">

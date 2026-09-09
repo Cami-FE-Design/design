@@ -46,6 +46,7 @@ import {
 } from "@/app/appointments/mock"
 import { CancelAppointmentDialog } from "@/components/blocks/cancel-appointment-dialog"
 import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
+import { ComboLineIcon } from "@/components/blocks/combo-badge"
 import { NavigateToAddress } from "@/components/blocks/navigate-to-address"
 import { PetNotesList } from "@/components/blocks/pet-notes-fields"
 import { Avatar } from "@/components/ui/avatar"
@@ -707,7 +708,8 @@ function ServicesSection({ booking, staffName }: { booking: MockBooking; staffNa
                 <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
                   <div className="flex min-w-0 items-start justify-between gap-3">
                     <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                      <span className="text-base font-semibold text-foreground">
+                      <span className="flex min-w-0 items-center gap-1.5 text-base font-semibold text-foreground">
+                        {item.comboName ? <ComboLineIcon className="size-4" /> : null}
                         {serviceItemLabel(item)}
                       </span>
                       <span className="text-sm text-muted-foreground">
