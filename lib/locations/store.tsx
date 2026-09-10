@@ -391,9 +391,11 @@ export function LocationsProvider({
           vatNumber: "",
           invoiceNote: "",
         },
-        // Draft, not live: created is not the same as trading, and an owner
-        // still has hours and staff to set before it takes a booking.
-        status: "draft",
+        // Created trading, which is what the built product does — a venue is
+        // created active and `suspend`/`archive` are transitions away from it.
+        // An owner who is not ready can suspend it, and that state already
+        // means "not bookable yet" without inventing a fourth one.
+        status: "live",
         // Starts on the business default, which is what inheriting means — an
         // owner adjusts the days this branch actually differs on rather than
         // filling in a week from empty (R01).

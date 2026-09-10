@@ -175,16 +175,9 @@ export function ServiceLocationsSection({
                     the two the toggle is about. */}
                 {loc.status !== "live" ? (
                   <span className="text-sm text-muted-foreground">
-                    {/* Three states, three sentences. "Reopens" was being said
-                        to a draft branch, which has never opened — a branch
-                        being set up and a branch that stopped trading are not
-                        the same fact, and the one word that distinguishes them
-                        was the wrong one. */}
                     {loc.status === "archived"
                       ? "This location is archived and takes no bookings. Its menu is kept for its history."
-                      : loc.status === "draft"
-                        ? "This location is still being set up, so nothing is bookable here yet. This applies from its first day."
-                        : "This location is paused, so nothing is bookable here yet. This applies when it reopens."}
+                      : "This location is paused, so nothing is bookable here yet. This applies when it reopens."}
                   </span>
                 ) : null}
               </div>

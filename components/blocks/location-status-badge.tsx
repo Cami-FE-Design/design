@@ -23,10 +23,6 @@ const STYLES: Record<Exclude<LocationStatus, "live">, { label: string; className
     label: "Archived",
     className: "bg-muted text-muted-foreground",
   },
-  draft: {
-    label: "Draft",
-    className: "bg-cami-violet-3 text-cami-violet-11",
-  },
 }
 
 export function LocationStatusBadge({

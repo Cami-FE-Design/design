@@ -54,18 +54,33 @@ export type Invoicing = {
 }
 
 /**
- * A location's lifecycle state (R01, R12).
+ * A location's lifecycle state (R01, R12), and it is the built product's.
  *
- * - `draft`      created, not yet trading.
- * - `live`       trading.
+ * `cami-business` exposes one endpoint — `PATCH /merchant/venues/{id}/state`
+ * — with four transitions over three states:
+ *
+ *     suspend    active → suspended    (reason required; archived → 409)
+ *     unsuspend  suspended → previous  (reason optional)
+ *     archive    active → archived     (reason required; suspended → 409)
+ *     restore    archived → previous   (reason optional)
+ *
+ * - `live`       trading. The as-built calls this `active`; the word here is
+ *                the one the UI says, and the mapping is one to one.
  * - `suspended`  public booking page hidden and calendar disabled. Bookings,
- *                services and staff assignments stay intact, and the owner can
- *                re-enable any time. A pause, not a close-out (SU1.5).
+ *                services and staff assignments stay intact (SU1.5).
  * - `archived`   accepts no new operational write. History, receipts, reports
- *                and issued stored value stay readable, and it is never deleted.
- *                Soft-deletes for 90 days before the slug frees up (SU1.4, R12).
+ *                and issued stored value stay readable, and it is never
+ *                deleted (R12). **Restorable**, because the built product has a
+ *                `restore` transition and R12 forbids deletion, not recovery.
+ *
+ * There is no fourth state. An earlier version of this file had a `draft` —
+ * "created is not the same as trading" — which is nowhere in R01, nowhere in
+ * the PRD, and nowhere in the built product. It cost every surface a branch it
+ * did not need and produced a real defect: the service catalog told a draft
+ * branch its menu would apply "when it reopens", to a branch that had never
+ * opened. A new venue is created active, as the as-built creates it.
  */
-export type LocationStatus = "draft" | "live" | "suspended" | "archived"
+export type LocationStatus = "live" | "suspended" | "archived"
 
 export type Location = {
   id: string

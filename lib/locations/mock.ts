@@ -263,9 +263,9 @@ const EXTRA_BRANCHES: ReadonlyArray<{
   // emirate line is what makes per-branch tax identity (R23) matter.
   { district: "Al Reem", city: "Abu Dhabi", state: "Abu Dhabi" },
   { district: "Al Majaz", city: "Sharjah", state: "Sharjah", hours: JUMEIRAH_HOURS },
-  // Standing up, not trading yet: the state a chain is in most of the time
-  // while it grows (R01).
-  { district: "Yas Island", city: "Abu Dhabi", state: "Abu Dhabi", status: "draft" },
+  // A second non-trading branch, so the nine-branch estate has more than one
+  // exception to look at.
+  { district: "Yas Island", city: "Abu Dhabi", state: "Abu Dhabi", status: "suspended" },
 ]
 
 export const NINE_BRANCH_ESTATE: ReadonlyArray<Location> = [

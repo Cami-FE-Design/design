@@ -2588,7 +2588,7 @@ export function PlaygroundShowcase() {
           description="SCR-01's state half (R01, R12). Four states, and the consequence of each is what the badge is for: paused means the booking page is hidden and the calendar is off, archived means no new writes ever again. Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find. The full panel, with the Suspend / Reactivate / Archive actions and the archive confirmation, is at /shell-demo?settings=locations."
         >
           <Row label="Status badge">
-            {(["live", "draft", "suspended", "archived"] as const).map((status) => (
+            {(["live", "suspended", "archived"] as const).map((status) => (
               <span key={status} className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">{status}</span>
                 <LocationStatusBadge status={status} />

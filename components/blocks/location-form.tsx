@@ -221,8 +221,11 @@ export function LocationForm() {
  * worse than a rejection here: the owner cannot tell which of the nine landed,
  * and retrying duplicates the ones that did.
  *
- * Branches land as `draft`, not `live`. Created is not trading — hours and
- * staff still have to be set before a branch can take a booking.
+ * Branches land trading, as the built product creates them — a venue is created
+ * active and suspend/archive are transitions away from it. An owner who is not
+ * ready suspends the branch, which already means "not bookable yet"; an earlier
+ * version of this repo invented a fourth `draft` state for that and it was in
+ * neither R01 nor the product.
  */
 export function AddLocationsTakeover({
   open,

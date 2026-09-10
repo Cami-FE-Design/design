@@ -120,8 +120,14 @@ nothing. Both work now, and one copy line was wrong: Delete said data is
 deleted and its history stays readable forever. Only the **slug** frees up. The
 action is now called Archive, and the confirmation says what survives it.
 
-Archiving is one-way in this build. It is not a soft delete waiting to be
-undone; history is permanent, so there is nothing to restore to.
+Archiving is **reversible**, because the built product has a `restore`
+transition and R12 forbids deletion rather than recovery. An earlier version of
+this document asserted it was one-way, which was an invention that contradicted
+the endpoint for no requirement's sake.
+
+The lifecycle is the as-built's: `PATCH /merchant/venues/{id}/state` with
+suspend, unsuspend, archive and restore over three states. There is no `draft` —
+see [What the cross-check found](#what-the-cross-check-found).
 
 **Deliberately not invented:** what happens to a branch's future appointments
 and unsettled sales when it is archived. That disposition is undecided (PRD
@@ -1092,6 +1098,81 @@ facts. The built model has no "not stocked here" — a product is business-wide
 and every branch has a count — so zero is the honest answer today. Whether
 products get per-branch enablement the way services did (DW3.3) is a product
 question.
+
+## What the cross-check found
+
+Hussain asked for the whole of `cami-business` to be read against everything
+built here — on the suspicion that some of it rested on assumptions or was
+overthought when the answer already existed. It did. Five things were wrong and
+three are engineering gaps worth reporting.
+
+### Wrong here, now fixed
+
+**`draft` was invented.** R01 lists "create, configure, suspend, archive" and an
+"active state" — three. The built product agrees:
+`PATCH /merchant/venues/{id}/state` takes suspend, unsuspend, archive, restore.
+`draft` appears nowhere in the PRD and nowhere in the product. It cost every
+surface a state it did not need and produced a real defect — the service catalog
+telling a draft branch its menu applied "when it reopens", to a branch that had
+never opened. Removed. A new venue is created **active**, and an owner who is
+not ready suspends it, which already means "not bookable yet".
+
+**Archive was described as one-way.** It is not: there is a `restore`
+transition, and R12 forbids *deletion*, not recovery. The assertion was an
+invention that contradicted the endpoint for no requirement's sake.
+
+**The as-built's hours were described wrongly**, and that description was part
+of the argument for the new model. `VenueOperatingHour` is
+`{ dayOfWeek: 0–6, startTime, endTime }` in an **array** — so several rows per
+day are already expressible, which is shifts. The commit that introduced
+`lib/locations/hours.ts` said the venue "carries a single startTime/endTime for
+the whole week". Wrong. The model landed on the right shape; one of its three
+reasons was false.
+
+**There are two tax models here, and the second one renamed the product's
+fields.** `Location.invoicing` matches `VenueInvoiceDetails` — `companyName`,
+`address`, `vatNumber`, `invoiceNotes`, per venue, and it ships. Then
+`tax-identity.ts` introduced `legalName`, `trn` and `receiptPrefix` for the same
+facts the product calls `companyName` and `vatNumber`. The receipt prefix is
+genuinely new (R23/R25 have no counterpart in the product), but two of the three
+names were a rename of something that already existed.
+
+**`SelectTrigger` styling was hand-rolled** in three of my components when the
+repo's idiom for a Select among Inputs already existed — and `h-12` silently
+does nothing on a trigger, so they were taller and outlined. Fixed where I made
+it and in three pre-existing cases.
+
+### Right here, and confirmed as new work
+
+Worth stating so nobody looks for a counterpart that does not exist:
+
+| Built here | In `cami-business` |
+| --- | --- |
+| Three-way scope: one / subset / all granted | **Required.** R03 is a Must and says "one Location, a subset, or all granted" |
+| Per-branch service pricing (R06) | Nothing. `service-catalog.ts` has no venue dimension at all |
+| Per-branch WhatsApp number (R21) | Nothing. Only per-customer notification preferences |
+| Receipt prefix and per-branch sequence (R23, R25) | Nothing anywhere |
+| Per-branch VAT defaults | Nothing. `taxRate` is per invoice line and per package |
+| Per-branch stock (R16) | The **product** model ships (`trackStock`, `currentStock`, `lowStockLevel`, `reorderQty`); the location dimension is new |
+| Per-branch roster (DW2.3) | Shifts already carry `venueId`, and `ShiftsTable` reads the active venue |
+
+### Engineering gaps, for the implementation side
+
+**`x-venue-id` is a single id, and R03 and R11 both require a set.** The header
+is set from `activeVenueId` in `interceptors.ts`, one value. R03 asks for "one
+Location, a **subset**, or all granted", and R11 for "an explicit Location **or
+an explicit granted Location set**". A subset cannot be expressed in a request
+today, so an all-branches roll-up is either N requests or an unbounded
+business-wide one — and the second loses the grant bound R18 depends on.
+
+**Moving an appointment between branches is an unguarded PATCH.**
+`UpdateAppointmentSchema.venueId` is optional, so a move is a field change with
+no rules attached. R17's guardrails — the deposit stays credited where it was
+taken, both branches on the sale, an unresolvable payment rejects the whole
+move — exist only in this repo's `cross-branch-move.ts`. Nothing enforces them.
+
+**The default-branch fallback**, already described above:
+`useCalendarPage.ts:492` and `shifts.service.ts:76`.
 
 ## Corrections after reading the built product again
 
