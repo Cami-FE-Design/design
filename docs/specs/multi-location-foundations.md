@@ -958,7 +958,7 @@ loading, and error, with the single-branch case showing no switcher at all".
 | SCR-15 money by branch | **built** — side by side, roll-up as a sum, grant-bounded |
 | SCR-07 client record, visits elsewhere | **blocked** — the readable field set is undecided |
 | SCR-10 branch roster | **blocked** — one unified timeline or one roster per branch is undecided |
-| SCR-11 branch stock | **not started** — there is no stock quantity in the product model to make per-branch |
+| SCR-11 branch stock | **not started, and not blocked** — the shipped product has the stock model; see the correction below |
 | SCR-16 CamiHQ chain view | **built** — a Locations tab on the partner, reusing the owner's estate and money roll-up; chain badged in the list; no HQ write path |
 
 ### Blocked on a decision
@@ -971,6 +971,74 @@ inventing the answer to a question somebody else owns.
 | **SCR-07** visits elsewhere | R13 fixes the readable field set as *uniform* across branches but does not say what is in it. Does branch A see what branch B charged this client, and B's notes, or only that the visits happened? It is a revenue-integrity call (EC-4), **Maaz's**, and PRD §16 lists it. Guessing narrow hides money from an owner; guessing wide leaks a branch's pricing. |
 | **SCR-10** branch roster | Does a staff member working two sites in a day get one unified timeline or one roster per branch? DW2.3 assumes per-branch, DW2.4 assumes the roster is authoritative. **Michelle's**, with a chain ops lead. The two answers produce different screens, not different styling. |
 | **SCR-11** branch stock | Not blocked on a decision — blocked on a feature. `Product` in components/blocks/products-table.tsx carries no quantity at all, so there is no stock to make per-branch. R16's content (per-branch balances, business total derived and never stored) is a page of inventory work first. |
+
+## Corrections after reading the built product again
+
+Two claims in earlier versions of this document were wrong, both because they
+were made from this repo rather than from `cami-business`. Reading the built
+product is the standing rule for a reason.
+
+### SCR-11 is not blocked on a missing feature
+
+This said "there is no stock quantity in the product model to make per-branch".
+The **design repo's** `Product` has no stock fields — but the built one does,
+and the shipped Products list renders the column today ("Unlimited", "-2 in
+stock"). `cami-business` `src/types/product.ts`:
+
+| Field | Meaning |
+| --- | --- |
+| `trackStock` | false is **Unlimited** — the product is not counted at all |
+| `currentStock` | on hand, and it is allowed to go negative |
+| `lowStockLevel` | the threshold below which it is low |
+| `reorderQty` | how many to order |
+| `lowStockNotif` | whether to notify |
+
+R16 wants exactly these resolving **per Location**, with the business quantity
+derived and never stored. So SCR-11 is unblocked design work, and the gap was in
+this repo's model rather than in the product.
+
+### A default-branch fallback exists, and here it is
+
+R11 says an operational write names one branch with **no default, ever**, and
+the PRD's release criterion is blunter: *"the default-branch fallback removed
+from the repo rather than flagged off"*. It is in the repo, in two places:
+
+```
+src/modules/calendar/hooks/useCalendarPage.ts:492
+  // Derive venueId from the calendar API response (first member's first venue)
+  for (const entry of members) {
+    if (entry.venues.length > 0) return entry.venues[0]?.id;
+  }
+
+src/services/shifts.service.ts:76
+  const venueId = data.venue?.id ?? data.members[0]?.venues?.[0]?.id ?? null;
+```
+
+Every appointment created from the calendar is attributed to **the first venue
+of the first staff member who has one**. `CreateAppointmentSchema.venueId` is
+required, so the write cannot happen without a branch — and this is where the
+branch comes from. The shifts one at least falls through to `null`.
+
+That is the concrete answer to the release criterion, and it is the reason R11's
+"no default" needs a switcher that actually dispatches: `activeVenueId` is read
+in six places and **set in none** — `setActiveVenue` and `setVenueList` have no
+dispatch site outside the slice that defines them. So the fallback is not a
+belt-and-braces default, it is the only source.
+
+### The as-built already carries more of the location dimension than expected
+
+Worth knowing before designing against it:
+
+- **Team members have assigned locations.** `TeamMemberDetailAssignedLocation`
+  is `{ id, venueId, venueName }` — R05's data half ships. This repo's
+  `locationGrants` is the same idea under a different name.
+- **Shifts carry `venueId`.** So **D2** (one unified timeline or one roster per
+  branch) is a presentation question, not a modelling one — the record is
+  already per-venue, which narrows what Michelle has to decide.
+- **Appointments require `venueId`; sales do not.** `CreateAppointmentSchema`
+  has it as `z.string()`, while `ComposePaymentLinkSchema` has it nullable and
+  optional. Two write paths, two different rules, which is R11 and R20 pulling
+  in opposite directions inside the built product.
 
 ## Where the blueprint is stale
 
@@ -1002,8 +1070,8 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   If the v0 line changes, that footnote and the seed's business-level payout
   rows change with it. **Confirm with Michelle before designing anything else in
   payments.**
-- **SCR-13 has no host flow**, and SCR-11 has no feature to attach to. Both are
-  described in Screen coverage rather than pretended to be done.
+- **SCR-13 has no host flow** — no package redemption at checkout to attach the
+  warning to. Described in Screen coverage rather than pretended to be done.
 - **The full test suite needs `--no-file-parallelism` on this machine.** Running
   `npm test` alongside the dev server exhausted V8's heap mid-run and reported a
   partial pass (12 of 21 files) with errors, which looks like a failure and is

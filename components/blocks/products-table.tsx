@@ -26,6 +26,18 @@ export type Product = {
   supplyPrice: number
   retailPrice: number
   status: "active" | "archived"
+  /**
+   * Whether this product is counted at all (R16). False is **Unlimited**, not
+   * zero — a shampoo bottle that is counted and a consumable that never is are
+   * different things, and showing the second as "0 in stock" reads as an
+   * outage. The name and the behaviour are the built product's
+   * (`cami-business`, `Product.trackStock`), which already ships this column.
+   *
+   * The balance itself is not here: it resolves per location, and the business
+   * quantity is derived from those and never stored (R16). See
+   * lib/inventory/branch-stock.ts.
+   */
+  trackStock: boolean
   /** Seed strings for placeholder tiles in the detail dialog. Empty/undefined hides the photos card. */
   photos?: string[]
 }
@@ -42,6 +54,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 450,
     retailPrice: 750,
     status: "active",
+    trackStock: true,
     photos: ["a", "b", "c", "d", "e"],
   },
   {
@@ -54,6 +67,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 1200,
     retailPrice: 1800,
     status: "active",
+    trackStock: true,
     photos: ["a", "b"],
   },
   {
@@ -67,6 +81,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 320,
     retailPrice: 550,
     status: "active",
+    trackStock: true,
   },
   {
     id: "p4",
@@ -77,6 +92,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 3500,
     retailPrice: 5200,
     status: "archived",
+    trackStock: true,
     photos: ["a", "b", "c"],
   },
   {
@@ -89,6 +105,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 280,
     retailPrice: 450,
     status: "archived",
+    trackStock: false,
     photos: ["a"],
   },
 ]

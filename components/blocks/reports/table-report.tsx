@@ -340,6 +340,10 @@ function TableReportInner({ report }: { report: ReportDef }) {
         supplyPrice: Number(row.avgCost ?? row.totalCost ?? 0),
         retailPrice: Number(row.retailPrice ?? 0),
         status: "active",
+        // A report row carries no stock flag, and a report is not the place to
+        // guess one — counted is the ordinary case for a product that appears
+        // in a sales report at all.
+        trackStock: true,
       })
     },
     saleNo: (row) => {
