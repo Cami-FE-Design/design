@@ -2490,7 +2490,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — per-branch hours"
-          description="SCR-01's hours half (R01, R19). Every branch keeps its own week and its own timezone: JVC closes Sunday, Jumeirah trades seven days and later at the weekend, Al Quoz shuts over the middle of the day. That last one is why a day holds shifts rather than one open and one close — pinned to a Tuesday mid-afternoon below, Al Quoz reads Closed now while both others are open, and the public card says 'opens 4pm' rather than naming tomorrow. Editable at /shell-demo?settings=locations → a branch → Hours, and the edit survives a reload. The public branch page resolves its hours from the same definition rather than a copy, though an edit does not reach it yet — that page renders on the server from the seed."
+          description="SCR-01's hours half (R01, R19). Every branch keeps its own week and its own timezone: JVC closes Sunday, Jumeirah trades seven days and later at the weekend, Al Quoz shuts over the middle of the day. That last one is why a day holds shifts rather than one open and one close — pinned to a Tuesday mid-afternoon below, Al Quoz reads Closed now while both others are open, and the public card says 'opens 4pm' rather than naming tomorrow. Editable at /shell-demo?settings=locations → a branch → Hours, and the edit survives a reload and reaches the client page: change JVC's Monday and /shampooch-jvc says so, as does the chain picker's row for it."
         >
           <Row label="The seeded estate" align="start">
             <LocationsProvider persist={false}>

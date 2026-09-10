@@ -2,16 +2,12 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { PublicAbout } from "@/components/blocks/public-about"
-import { PublicBookingCard } from "@/components/blocks/public-booking-card"
-import { PublicBranchPicker } from "@/components/blocks/public-branch-picker"
+import { PublicBranchLive, PublicChainPickerLive } from "@/components/blocks/public-branch-live"
 import { PublicCover } from "@/components/blocks/public-cover"
 import { PublicFooter } from "@/components/blocks/public-footer"
-import { PublicHours } from "@/components/blocks/public-hours"
 import { PublicLocation } from "@/components/blocks/public-location"
-import { PublicServices } from "@/components/blocks/public-services"
 import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
 import { branchAsBusiness, listPublicPageSlugs, resolvePublicView } from "@/lib/public-business"
-import { publicMenuForLocation } from "@/lib/public-offering"
 
 type Params = Promise<{ slug: string }>
 
@@ -82,7 +78,7 @@ export default async function PublicBusinessPage({ params }: { params: Params })
         <PublicTopGradient />
         <div className="relative flex w-full max-w-[560px] flex-col gap-8">
           <PublicCover business={view.business} />
-          <PublicBranchPicker business={view.business} branches={view.branches} />
+          <PublicChainPickerLive business={view.business} branches={view.branches} />
           <PublicAbout business={view.business} />
           <PublicFooter />
         </div>
@@ -117,26 +113,17 @@ export default async function PublicBusinessPage({ params }: { params: Params })
               </Link>
             ) : null}
           </div>
-          <div className="[grid-area:card] lg:sticky lg:top-12 lg:self-start">
-            <PublicBookingCard business={business} />
-          </div>
           <div className="[grid-area:about]">
             <PublicAbout business={business} />
-          </div>
-          <div className="[grid-area:services]">
-            {/* Grouped by category for a branch of the chain, so the price list
-                reads the same way the booking flow does. */}
-            <PublicServices
-              business={business}
-              groups={view.branch.services ? undefined : publicMenuForLocation(view.branch.id)}
-            />
           </div>
           <div className="[grid-area:location]">
             <PublicLocation business={business} />
           </div>
-          <div className="[grid-area:hours]">
-            <PublicHours business={business} />
-          </div>
+          {/* The booking card, the menu and the hours re-resolve on the client
+              against what the operator has saved, and land in their own grid
+              areas. Everything else on this page is the same static HTML it
+              was. See the component's note for why the seam is here. */}
+          <PublicBranchLive business={view.business} branch={view.branch} />
         </div>
         <PublicFooter />
       </div>

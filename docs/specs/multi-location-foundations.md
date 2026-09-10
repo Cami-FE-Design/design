@@ -163,6 +163,38 @@ obvious behaviour is the wrong one:
   address.** A copy would silently stop following when the address changed,
   which is the one thing ticking it promised.
 
+### The round trip to the client page
+
+The operator side and the client side already shared one definition — a branch's
+hours live in `lib/locations`, its menu in the service catalog, and the public
+page resolved both rather than carrying copies. What it did not have was the
+round trip: `/{branchSlug}` is a static server component, so it rendered the
+seed. An operator could change a price or an opening time, see it in settings,
+and find the client page unchanged. That is the shape of bug where the screen
+looks like it works.
+
+`branchAsBusiness()` and `publicMenuForLocation()` now take the live values as
+an argument instead of reading them. Omitted, both fall back to the seed, which
+is exactly what a server render has — so the static HTML is byte-identical for a
+branch nobody has edited.
+
+`PublicBranchLive` supplies them. Only the three sections an operator can edit
+sit inside it (booking card, menu, hours); cover, about, address and the page
+metadata stay on the server, and because the sections land in their own
+`[grid-area:...]` slots the layout does not care that they arrive together. Both
+stores seed from the module the server read, so the first client render matches
+the server byte for byte and the saved values arrive on the effect after — no
+mismatch, no flash.
+
+The chain page's picker gets the same treatment. Each row states that branch's
+hours today, and comparing branches on stale hours is exactly the comparison the
+picker exists to get right.
+
+**This wrapper is scaffolding, not the design.** A real client's browser holds
+none of the operator's storage; in the product the page reads an API. It exists
+so a reviewer can check the thing they could not check before — edit in
+settings, open the client page, see it.
+
 ### Per-branch hours and timezone (SCR-01)
 
 `HoursTab()` used to take no location and print "9:00 AM – 9:00 PM, Time zone
@@ -209,11 +241,8 @@ branch resolves its hours from `lib/locations` rather than carrying a copy, so
 there is one place a branch's week is defined. Only a business with no location
 record still carries its own.
 
-That is the definition, not yet the round trip. `/{branchSlug}` is a server
-component reading the module seed, so an hours **edit** made in settings does
-not reach the public page — exactly the gap the per-branch service overrides
-have. Both want the public page reading a client-side store, which is one slice
-covering both rather than two.
+And now the round trip too, in one slice covering hours and service overrides
+together — see [The round trip to the client page](#the-round-trip-to-the-client-page).
 
 ### Branch access grants (SCR-03)
 
@@ -722,15 +751,13 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   per branch and read everywhere they are displayed, but availability and date
   bucketing still run on one clock. R19's display half is done; its scheduling
   half needs the booking engine, which is not a design surface.
-- **An operator's per-branch edit does not reach the client page yet — hours
-  and service overrides both.**
-  The offerings round-trip on the operator side —
-  `lib/service-catalog/offerings-store.tsx` reads them into the service sheet
-  and writes them back on save, persisted. But `publicMenuForLocation()` runs
-  in a server component, so `/{branchSlug}` renders the module seed rather than
-  the store. The seeded deviation (Jumeirah's higher wash price, no daycare) is
-  what a client sees; a fresh edit is not. Making it end-to-end means the public
-  page reading a client-side store, which is its own slice.
+- **A branch's street address and phone are still a second copy.**
+  `PublicBranch` in `lib/public-business.ts` carries its own `street`, `city`,
+  `emirate` and `phone`, so an address edited in settings does not change the
+  public page — the hours and the menu resolve from `lib/locations`, these do
+  not. It is the same collapse the menu and the hours already had, one field
+  set later, and it is why the round trip below covers three sections and not
+  five.
 - **Three dialogs still do not save: tax defaults, receipt sequencing and
   tipping.** Not an oversight of the same kind as the profile tabs — these
   resolve from a business default with a per-field override (R23), so saving one

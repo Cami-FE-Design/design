@@ -1,6 +1,7 @@
 import { CLOSED_DAY, type DaySchedule, openFor, type WeekSchedule } from "@/lib/locations/hours"
 import { locationHours } from "@/lib/locations/mock"
 import { publicServicesForLocation } from "@/lib/public-offering"
+import type { LocationOffering } from "@/lib/service-catalog/offerings"
 
 // Hours are location-configuration (blueprint §02), so they live with the
 // location. Re-exported here because every client-facing surface already
@@ -414,7 +415,24 @@ export function resolvePublicView(slug: string): PublicView | undefined {
  * is also what the real thing does — resolve the location, then render its
  * offering (R15: "both paths yield that Location's offering").
  */
-export function branchAsBusiness(business: PublicBusiness, branch: PublicBranch): PublicBusiness {
+/**
+ * What a branch page reads that an operator can change while looking at it.
+ *
+ * Passed in rather than read here, because this function runs on both sides:
+ * the server render has the seed and nothing else, and only a client can know
+ * what the operator has since saved. Omitted, both fall back to the seed, which
+ * is exactly the server's answer — so the static HTML is unchanged.
+ */
+export type BranchLiveData = {
+  hours?: WeekSchedule
+  offerings?: ReadonlyArray<LocationOffering>
+}
+
+export function branchAsBusiness(
+  business: PublicBusiness,
+  branch: PublicBranch,
+  live?: BranchLiveData,
+): PublicBusiness {
   // A chain's branch page has to name the branch. `displayName` is what the
   // booking card, the cover and the page title all read, so overriding only
   // `businessName` left every branch page titled "Shampooch" — identical
@@ -448,10 +466,10 @@ export function branchAsBusiness(business: PublicBusiness, branch: PublicBranch)
     emirate: branch.emirate,
     phone: branch.phone,
     // Resolved from the branch's own record unless it carries its own list.
-    hours: branch.hours ?? locationHours(branch.id) ?? business.hours,
+    hours: branch.hours ?? live?.hours ?? locationHours(branch.id) ?? business.hours,
     // Resolved from the catalog unless the branch carries its own list. Was
     // `branch.services`, a copy that had to be kept in step by hand.
-    services: branch.services ?? publicServicesForLocation(branch.id),
+    services: branch.services ?? publicServicesForLocation(branch.id, live?.offerings),
   }
 }
 

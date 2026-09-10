@@ -1,6 +1,6 @@
 import { ChevronRightIcon, MapPinIcon } from "lucide-react"
 import Link from "next/link"
-
+import type { WeekSchedule } from "@/lib/locations/hours"
 import { locationHours } from "@/lib/locations/mock"
 import {
   formatDayHours,
@@ -48,11 +48,18 @@ export function PublicBranchPicker({
   branches,
   now = new Date(),
   intent = "view",
+  hoursFor = locationHours,
 }: {
   business: PublicBusiness
   branches: ReadonlyArray<PublicBranch>
   /** Injectable so the demo and any test can pin "open now". */
   now?: Date
+  /**
+   * Where a branch's hours come from. Defaults to the seed, which is all a
+   * server render has; the chain page passes the store's resolver so a row
+   * shows the hours an operator has actually saved.
+   */
+  hoursFor?: (branchId: string) => WeekSchedule | undefined
   /**
    * What the client came to do. `book` sends each row straight into that
    * branch's booking flow instead of its page — a client who arrived at
@@ -77,7 +84,7 @@ export function PublicBranchPicker({
         {branches.map((branch) => {
           // Resolved from the branch's own record, like the branch page does —
           // so the hours a client compares are the hours an operator set.
-          const hours = branch.hours ?? locationHours(branch.id)
+          const hours = branch.hours ?? hoursFor(branch.id)
           const today = hours ? formatDayHours(hours[getDayIdFromDate(now)]) : null
           const open = hours ? isOpenNow(hours, now) : false
           return (

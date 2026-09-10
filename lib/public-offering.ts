@@ -1,6 +1,10 @@
 import { SERVICE_CATEGORIES } from "@/lib/booking"
 import type { PublicService } from "@/lib/public-business"
-import { findOffering, resolveOffering } from "@/lib/service-catalog/offerings"
+import {
+  findOffering,
+  type LocationOffering,
+  resolveOffering,
+} from "@/lib/service-catalog/offerings"
 
 /**
  * What a branch actually offers, as a client sees it (R06, R15, DW3.3).
@@ -47,7 +51,15 @@ export type PublicServiceGroup = {
  * daycare should not show an empty "Daycare" heading, which reads as an
  * omission rather than a decision.
  */
-export function publicMenuForLocation(locationId: string): PublicServiceGroup[] {
+export function publicMenuForLocation(
+  locationId: string,
+  /**
+   * The offerings to resolve against. Defaults to the module seed, which is
+   * what a server render has; a client passes the store's, so an operator's
+   * override reaches the page it is about.
+   */
+  offerings?: ReadonlyArray<LocationOffering>,
+): PublicServiceGroup[] {
   return SERVICE_CATEGORIES.map((category) => ({
     id: category.id,
     name: category.name,
@@ -56,7 +68,7 @@ export function publicMenuForLocation(locationId: string): PublicServiceGroup[] 
       // A combo books as its components, which are listed individually.
       .filter((service) => !service.isCombo)
       .map((service) => {
-        const offering = findOffering(service.id, locationId)
+        const offering = findOffering(service.id, locationId, offerings)
         const resolved = resolveOffering(
           {
             priceType: "Fixed",
@@ -82,6 +94,9 @@ export function publicMenuForLocation(locationId: string): PublicServiceGroup[] 
 }
 
 /** The same menu flattened, for surfaces that do not group. */
-export function publicServicesForLocation(locationId: string): PublicService[] {
-  return publicMenuForLocation(locationId).flatMap((group) => group.services)
+export function publicServicesForLocation(
+  locationId: string,
+  offerings?: ReadonlyArray<LocationOffering>,
+): PublicService[] {
+  return publicMenuForLocation(locationId, offerings).flatMap((group) => group.services)
 }
