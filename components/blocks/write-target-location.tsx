@@ -61,6 +61,8 @@ export function WriteTargetLocation({
     acceptsWrites(location.status),
   )
   const only = inScope.length === 1 ? inScope[0] : undefined
+  /** In view but not a target, which is why the counts differ from the read surfaces. */
+  const excluded = (scopedLocations.length > 0 ? scopedLocations : granted).length - inScope.length
 
   // Resolving is a state change, so it happens after render rather than during
   // it. Also clears a choice that has gone out of scope — a branch picked and
@@ -123,9 +125,15 @@ export function WriteTargetLocation({
           ))}
         </SelectContent>
       </Select>
+      {/* No bare count. This said "you are looking at 2" while the card behind
+          it said 3 locations — true of both (a paused branch takes no new
+          entries, so it is not a target) and impossible to reconcile from the
+          outside. The reason, not the number. */}
       <p className="text-xs leading-5 text-muted-foreground">
-        {action} belongs to one location. You are looking at {inScope.length}, so it cannot be
-        picked for you.
+        {action} belongs to one location, so it cannot be picked for you.
+        {excluded > 0
+          ? ` ${excluded === 1 ? "One location is" : `${excluded} locations are`} not listed: a paused or archived location keeps its history and takes no new entries.`
+          : ""}
       </p>
     </div>
   )

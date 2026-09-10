@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { businessQuantity } from "@/lib/inventory/branch-stock"
-import { BRANCH_STOCK } from "@/lib/inventory/mock"
+import { useBranchStock } from "@/lib/inventory/store"
 import { useLocations } from "@/lib/locations/store"
 
 // ─── Field ────────────────────────────────────────────────────────────────────
@@ -87,15 +87,14 @@ export function ProductDetailDialog({
   const [removeStockOpen, setRemoveStockOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const { scopedLocations, granted, isMultiLocation } = useLocations()
+  const { stock, adjust, setThresholds } = useBranchStock()
   const inScopeIds = (scopedLocations.length > 0 ? scopedLocations : granted).map((l) => l.id)
 
   if (!product) return null
 
   // Derived from the branches in scope, never stored (R16). This was a
   // hardcoded 0, so the dialog reported an empty shelf for every product.
-  const stockOnHand = product.trackStock
-    ? businessQuantity(BRANCH_STOCK, product.id, inScopeIds)
-    : 0
+  const stockOnHand = product.trackStock ? businessQuantity(stock, product.id, inScopeIds) : 0
 
   function handleEdit() {
     onOpenChange(false)
@@ -291,7 +290,13 @@ export function ProductDetailDialog({
                     was nowhere to go and see which. */}
                 {isMultiLocation ? (
                   <SectionCard title="Stock by location">
-                    <ProductBranchStock product={product} />
+                    <ProductBranchStock
+                      product={product}
+                      stock={stock}
+                      onThresholds={(locationId, patch) =>
+                        setThresholds(product.id, locationId, patch)
+                      }
+                    />
                   </SectionCard>
                 ) : null}
               </TabsContent>
@@ -332,12 +337,17 @@ export function ProductDetailDialog({
         onOpenChange={setAddStockOpen}
         productName={product.name}
         stockOnHand={stockOnHand}
+        onSave={(qty, _supplyPrice, _reason, locationId) => adjust(product.id, locationId, qty)}
       />
       <RemoveStockDialog
         open={removeStockOpen}
         onOpenChange={setRemoveStockOpen}
         productName={product.name}
         stockOnHand={stockOnHand}
+        // Negative: a removal reduces the branch it happened at, and nothing
+        // clamps at zero — the built product allows a negative balance, and
+        // hiding it loses the fact that more went out than came in.
+        onSave={(qty, _reason, locationId) => adjust(product.id, locationId, -qty)}
       />
       <DeleteProductDialog
         open={deleteOpen}

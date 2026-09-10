@@ -40,6 +40,8 @@ import { AlertTriangleIcon, PackageIcon } from "lucide-react"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   type BranchStock,
   type BranchStockLevel,
@@ -56,10 +58,20 @@ import { cn } from "@/lib/utils"
 export function ProductBranchStock({
   product,
   stock = BRANCH_STOCK,
+  onThresholds,
 }: {
   product: StockedProduct
   /** Injectable so a showcase can pin the states without touching the seed. */
   stock?: ReadonlyArray<BranchStock>
+  /**
+   * Change one branch's reorder configuration. Omitted makes the fields
+   * read-only — a card that shows a threshold it cannot change is honest, one
+   * that offers an input and drops the value is not.
+   */
+  onThresholds?: (
+    locationId: string,
+    patch: { lowStockLevel?: number; reorderQty?: number },
+  ) => void
 }) {
   // The granted set, not the estate. A branch manager sees their own shelf and
   // no one else's, and the bound is read here rather than passed so no caller
@@ -144,24 +156,26 @@ export function ProductBranchStock({
               {/* Per branch, because R16 puts reorder configuration on the
                   location — a busy branch and a quiet one do not reorder at the
                   same threshold, and one shared number would make the busy one
-                  run out or the quiet one overstock. */}
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                <span>
-                  Low at{" "}
-                  {row.lowStockLevel === undefined ? (
-                    <span className="text-foreground">not set</span>
-                  ) : (
-                    <span className="text-foreground">{row.lowStockLevel}</span>
-                  )}
-                </span>
-                <span>
-                  Reorder{" "}
-                  {row.reorderQty === undefined ? (
-                    <span className="text-foreground">not set</span>
-                  ) : (
-                    <span className="text-foreground">{row.reorderQty}</span>
-                  )}
-                </span>
+                  run out or the quiet one overstock.
+                  Editable here, and only here: the product form used to carry
+                  one pair of fields with no location while telling the operator
+                  that each location sets its own, which is a claim with nowhere
+                  to act on it. */}
+              <div className="flex flex-wrap items-end gap-3">
+                <ThresholdField
+                  id={`low-${row.locationId}`}
+                  label="Low at"
+                  value={row.lowStockLevel}
+                  onChange={(next) => onThresholds?.(row.locationId, { lowStockLevel: next })}
+                  readOnly={!onThresholds}
+                />
+                <ThresholdField
+                  id={`reorder-${row.locationId}`}
+                  label="Reorder"
+                  value={row.reorderQty}
+                  onChange={(next) => onThresholds?.(row.locationId, { reorderQty: next })}
+                  readOnly={!onThresholds}
+                />
               </div>
             </li>
           )
@@ -196,6 +210,52 @@ export function ProductBranchStock({
         </Button>
       ) : null}
     </div>
+  )
+}
+
+/**
+ * One threshold, editable in place.
+ *
+ * Empty is `undefined` rather than 0 — no opinion, not "low at zero" — which is
+ * the same distinction the model makes and the reason a branch with no
+ * threshold is never reported as low.
+ */
+function ThresholdField({
+  id,
+  label,
+  value,
+  onChange,
+  readOnly,
+}: {
+  id: string
+  label: string
+  value: number | undefined
+  onChange: (next: number | undefined) => void
+  readOnly?: boolean
+}) {
+  if (readOnly) {
+    return (
+      <span className="text-xs text-muted-foreground">
+        {label} <span className="text-foreground">{value ?? "not set"}</span>
+      </span>
+    )
+  }
+  return (
+    <span className="flex flex-col gap-1">
+      <Label htmlFor={id} className="text-xs font-normal text-muted-foreground">
+        {label}
+      </Label>
+      <Input
+        id={id}
+        type="number"
+        min={0}
+        inputMode="numeric"
+        placeholder="Not set"
+        value={value === undefined ? "" : String(value)}
+        onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))}
+        className="h-9 w-24 rounded-xl px-3 text-sm"
+      />
+    </span>
   )
 }
 

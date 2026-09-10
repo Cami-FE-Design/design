@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { needsAttention, stockForProduct, stockLevel } from "@/lib/inventory/branch-stock"
-import { BRANCH_STOCK } from "@/lib/inventory/mock"
+import { useBranchStock } from "@/lib/inventory/store"
 import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
@@ -62,13 +62,14 @@ export type Product = {
  */
 function QuantityCell({ product }: { product: Product }) {
   const { scopedLocations, granted, isMultiLocation } = useLocations()
+  const { stock } = useBranchStock()
   const inScope = (scopedLocations.length > 0 ? scopedLocations : granted).map((l) => l.id)
 
   if (!product.trackStock) {
     return <span className="text-sm text-muted-foreground">Unlimited</span>
   }
 
-  const rows = stockForProduct(BRANCH_STOCK, product.id, inScope)
+  const rows = stockForProduct(stock, product.id, inScope)
   const total = rows.reduce((sum, row) => sum + row.quantity, 0)
   const attention = needsAttention(rows)
   const worst = attention[0] ? stockLevel(attention[0]) : "ok"

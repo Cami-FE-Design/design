@@ -180,7 +180,7 @@ export const PRODUCT_SECTIONS: Array<{
 }> = [
   { id: "basics", label: "Basic info", icon: InfoIcon },
   { id: "pricing", label: "Pricing", icon: BadgeDollarSignIcon },
-  { id: "inventory", label: "Inventory", icon: BoxesIcon, badge: "WIP" },
+  { id: "inventory", label: "Inventory", icon: BoxesIcon },
   { id: "photos", label: "Photos", icon: ImageIcon },
 ]
 
@@ -674,35 +674,41 @@ export function ProductForm({
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FieldRow>
-                    <Label htmlFor="low-stock-level">Low stock level</Label>
-                    <Input
-                      id="low-stock-level"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={lowStockLevel}
-                      onChange={(e) => setLowStockLevel(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      The level to get notified to reorder
-                    </p>
-                  </FieldRow>
+                {/* Hidden for a chain: these are per branch, and one pair of
+                    fields with no location beside copy saying "each location
+                    sets its own" is the claim without the path. The card in the
+                    product detail is where they are set. */}
+                {isMultiLocation && isEdit ? null : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <FieldRow>
+                      <Label htmlFor="low-stock-level">Low stock level</Label>
+                      <Input
+                        id="low-stock-level"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={lowStockLevel}
+                        onChange={(e) => setLowStockLevel(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        The level to get notified to reorder
+                      </p>
+                    </FieldRow>
 
-                  <FieldRow>
-                    <Label htmlFor="reorder-qty">Reorder quantity</Label>
-                    <Input
-                      id="reorder-qty"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={reorderQty}
-                      onChange={(e) => setReorderQty(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">The default amount to order</p>
-                  </FieldRow>
-                </div>
+                    <FieldRow>
+                      <Label htmlFor="reorder-qty">Reorder quantity</Label>
+                      <Input
+                        id="reorder-qty"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={reorderQty}
+                        onChange={(e) => setReorderQty(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">The default amount to order</p>
+                    </FieldRow>
+                  </div>
+                )}
 
                 <SwitchRow
                   id="low-stock-notif"
