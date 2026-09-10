@@ -20,6 +20,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import {
   ArrowDownIcon,
   ArrowUpIcon,
+  BuildingIcon,
   CalendarIcon,
   CheckIcon,
   FileTextIcon,
@@ -44,6 +45,7 @@ import {
 } from "react-hook-form"
 import { toast } from "sonner"
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
+import { ServiceLocationsSection } from "@/components/blocks/service-menu/ServiceLocationsSection"
 import {
   Checkbox,
   DropdownMenu,
@@ -68,6 +70,8 @@ import {
   Textarea,
 } from "@/components/ui"
 import { SegmentedToggle } from "@/components/ui/segmented-toggle"
+import type { LocationOffering } from "@/lib/service-catalog/offerings"
+import { useLocationOfferings } from "@/lib/service-catalog/offerings-store"
 import { type TeamMember, useDeleteVariant, useTeamMembers } from "@/lib/service-catalog/store"
 import {
   type AddServiceInput,
@@ -96,11 +100,12 @@ type NewServiceSheetProps = {
   onClose: () => void
 }
 
-type NavSection = "basic" | "team" | "online-booking" | "portfolio" | "settings"
+type NavSection = "basic" | "team" | "locations" | "online-booking" | "portfolio" | "settings"
 
 const NAV_ITEMS: { id: NavSection; label: string; icon: LucideIcon }[] = [
   { id: "basic", label: "Basic details", icon: FileTextIcon },
   { id: "team", label: "Team members", icon: UsersIcon },
+  { id: "locations", label: "Locations", icon: BuildingIcon },
   { id: "online-booking", label: "Online booking", icon: CalendarIcon },
   { id: "portfolio", label: "Portfolio images", icon: ImageIcon },
   { id: "settings", label: "Settings", icon: SettingsIcon },
@@ -271,6 +276,11 @@ export function NewServiceSheet({
         variants: variantsToSend,
         imageDataUrl: imageDataUrl ?? undefined,
       })
+      // After the service itself, so a failed save does not leave per-branch
+      // config for a service that was never stored.
+      if (service?.id) {
+        setOfferingsFor(service.id, offerings)
+      }
       onClose()
     } catch (err) {
       const message = err instanceof Error ? err.message : "Something went wrong. Please try again."
@@ -308,8 +318,30 @@ export function NewServiceSheet({
 
   const teamCount = selectedTeamMemberIds.length
 
+  /**
+   * Per-branch configuration for this service (SCR-09, R06).
+   *
+   * Read from the shared store and written on save. It was local state
+   * initialised to `[]`, which meant turning a service off at a branch,
+   * saving, and reopening showed every branch on again — the decision was
+   * never written and the section always started blank.
+   *
+   * Only branches that differ are stored; see lib/service-catalog/offerings.ts
+   * for why a full copy per branch would break DW3.1.
+   */
+  const { offeringsFor, setOfferingsFor } = useLocationOfferings()
+  const [offerings, setOfferings] = useState<LocationOffering[]>([])
+
+  // Load this service's offerings when the sheet opens on it, and reload if the
+  // sheet is reused for a different service.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the service, not on the store's identity
+  useEffect(() => {
+    setOfferings(service?.id ? offeringsFor(service.id) : [])
+  }, [service?.id])
+
   function getNavBadge(section: NavSection) {
     if (section === "team") return teamCount > 0 ? teamCount : undefined
+    if (section === "locations") return offerings.length > 0 ? offerings.length : undefined
     if (section === "portfolio") return imageDataUrl ? 1 : undefined
     return undefined
   }
@@ -389,6 +421,28 @@ export function NewServiceSheet({
                 onToggle={toggleTeamMember}
               />
             )}
+            {activeSection === "locations" &&
+              // A new service has no id to key its offerings on, and inventing
+              // one ("new-service") would attach them to a service that does
+              // not exist and never get them back. So the section says when it
+              // becomes available rather than accepting input it would drop.
+              (service?.id ? (
+                <ServiceLocationsSection
+                  serviceId={service.id}
+                  defaults={{
+                    priceType: form.watch("priceType"),
+                    price: form.watch("price") ?? 0,
+                    duration: form.watch("duration") ?? 60,
+                  }}
+                  offerings={offerings}
+                  onChange={setOfferings}
+                />
+              ) : (
+                <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
+                  Save this service first, then reopen it to set its price, duration and
+                  availability per location.
+                </p>
+              ))}
             {activeSection === "online-booking" && <OnlineBookingSection />}
             {activeSection === "portfolio" && (
               <PortfolioSection imageDataUrl={imageDataUrl} onImageChange={setImageDataUrl} />
