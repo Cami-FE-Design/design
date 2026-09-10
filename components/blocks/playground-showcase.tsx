@@ -115,6 +115,10 @@ import {
   PackageBranchWarning,
   type PackageDecision,
 } from "@/components/blocks/package-branch-warning"
+import {
+  PackageRedemptionPanel,
+  type RedeemableLine,
+} from "@/components/blocks/package-redemption-panel"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
@@ -255,7 +259,9 @@ import type { LocationOffering, ServiceDefaults } from "@/lib/service-catalog/of
 import {
   type BranchServiceTerms,
   checkPackageAtBranch,
+  type PackageEntitlement,
 } from "@/lib/service-catalog/package-branch-check"
+import { eligibilityFor } from "@/lib/service-catalog/package-eligibility"
 import { TEAM_MEMBERS } from "@/lib/team/mock"
 import { roleById } from "@/lib/team/roles"
 import { DEMO_SESSIONS, DEMO_TERMINALS } from "@/lib/terminals/store"
@@ -356,6 +362,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Multi-location — branch lifecycle",
       "Multi-location — per-branch hours",
       "Multi-location — per-branch availability",
+      "Multi-location — package redemption at checkout",
       "Multi-location — branch roster",
       "Multi-location — per-branch stock",
       "Multi-location — nine branches (D5)",
@@ -921,6 +928,79 @@ function BranchAvailabilityDemo() {
         )
       })}
     </div>
+  )
+}
+
+/**
+ * The redemption panel against the four verdicts and the three mismatches, on
+ * one cart line each — so the states sit side by side rather than needing a
+ * sale built up by hand.
+ */
+function PackageRedemptionDemo({
+  terms,
+}: {
+  terms: "same" | "dearer" | "notOffered" | "unusable"
+}) {
+  const [applied, setApplied] = useState<string[]>([])
+  const entitlement: PackageEntitlement = {
+    packageId: "pkg-1",
+    serviceId: "bath-small",
+    soldAtLocationId: "shampooch-jvc",
+    soldPriceMinor: 6000,
+    soldDurationMin: 45,
+    remainingSessions: 3,
+  }
+  const branchTerms: Record<string, BranchServiceTerms> = {
+    same: { offered: true, priceMinor: 6000, durationMin: 45 },
+    dearer: { offered: true, priceMinor: 7500, durationMin: 45 },
+    notOffered: { offered: false, priceMinor: 0, durationMin: 0 },
+    unusable: { offered: true, priceMinor: 6000, durationMin: 45 },
+  }
+
+  const lines: RedeemableLine[] =
+    terms === "unusable"
+      ? [
+          {
+            uid: "l1",
+            serviceId: "bath-small",
+            serviceName: "Bath & brush, small dog",
+            priceMinor: 6000,
+            soldAtLocationId: "shampooch-jvc",
+            eligibility: eligibilityFor(
+              "bath-small",
+              { ...entitlement, remainingSessions: 0 },
+              branchTerms.unusable!,
+            ),
+          },
+          {
+            uid: "l2",
+            serviceId: "full-groom",
+            serviceName: "Full groom",
+            priceMinor: 26000,
+            soldAtLocationId: "shampooch-jvc",
+            eligibility: eligibilityFor("full-groom", entitlement, branchTerms.unusable!, {
+              expired: true,
+            }),
+          },
+        ]
+      : [
+          {
+            uid: "l1",
+            serviceId: "bath-small",
+            serviceName: "Bath & brush, small dog",
+            priceMinor: branchTerms[terms]!.priceMinor,
+            soldAtLocationId: "shampooch-jvc",
+            eligibility: eligibilityFor("bath-small", entitlement, branchTerms[terms]!),
+          },
+        ]
+
+  return (
+    <PackageRedemptionPanel
+      lines={lines}
+      applied={applied}
+      onApply={(uid) => setApplied((current) => [...current, uid])}
+      onRemove={(uid) => setApplied((current) => current.filter((id) => id !== uid))}
+    />
   )
 }
 
@@ -2617,6 +2697,39 @@ export function PlaygroundShowcase() {
             <LocationsProvider persist={false}>
               <BranchAvailabilityDemo />
             </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — package redemption at checkout"
+          description="SCR-13's host, which the rule and the warning never had (R08, KC1.5, R11). The contract exists in cami-business and no UI calls it: eligibility returns a verdict per service — covered, exhausted, expired, not_covered — with the package's sessions, and redeem consumes one session. So the verdicts and the counting here are taken rather than invented. What the contract has no room for is the branch, and that is deliberate: a branch-shaped verdict would block the redemption KC1.5 insists must complete, so a mismatch rides alongside a covered verdict and Apply stays reachable. An unusable verdict is a different thing and reads differently — a sentence a receptionist can repeat, and no button. A redemption resolves to one location before it can happen (R11), and the operator's decision is recorded on the sale so an owner reading a discount can see why."
+        >
+          <Row label="Covered, terms match" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false}>
+                <PackageRedemptionDemo terms="same" />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Covered, dearer here" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false}>
+                <PackageRedemptionDemo terms="dearer" />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Covered, not offered here" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false}>
+                <PackageRedemptionDemo terms="notOffered" />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Exhausted and expired" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false}>
+                <PackageRedemptionDemo terms="unusable" />
+              </LocationsProvider>
+            </div>
           </Row>
         </Section>
         <Section

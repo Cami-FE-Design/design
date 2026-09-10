@@ -1,4 +1,4 @@
-# Multi-location · the design pass (SCR-01–06, SCR-08–16)
+# Multi-location · the design pass (SCR-01–06, SCR-08–16; SCR-07 blocked)
 
 The design side of multi-location, built bottom-up: one definition of a branch,
 the scope control every other screen is read through, and the branch lifecycle
@@ -959,7 +959,7 @@ loading, and error, with the single-branch case showing no switcher at all".
 | SCR-08 public business page | **page built** — picker, per-branch pages, published-only. The booking *flow* is not branch-scoped |
 | SCR-09 branch service catalog | **built** — per-field inherit / override / reset, per-branch enablement |
 | SCR-12 branch tax identity | **built** — per-field source, forward-only warning, prefixed receipt number; tax defaults, receipt sequencing and tipping all save |
-| SCR-13 checkout, package mismatch | **rule and warning built, not wired** — there is no package redemption at checkout to attach it to |
+| SCR-13 checkout, package mismatch | **built** — redemption panel against the shipped eligibility contract, mismatch beside a covered verdict |
 | SCR-14 branch WhatsApp number | **built** — bound / migrating / unassigned, cost attribution |
 | SCR-15 money by branch | **built** — side by side, roll-up as a sum, grant-bounded |
 | SCR-07 client record, visits elsewhere | **blocked** — the readable field set is undecided |
@@ -977,6 +977,50 @@ inventing the answer to a question somebody else owns.
 | **SCR-07** visits elsewhere | R13 fixes the readable field set as *uniform* across branches but does not say what is in it. Does branch A see what branch B charged this client, and B's notes, or only that the visits happened? It is a revenue-integrity call (EC-4), **Maaz's**, and PRD §16 lists it. Guessing narrow hides money from an owner; guessing wide leaks a branch's pricing. |
 | ~~**SCR-10** branch roster~~ | **My framing was wrong, and it was the only thing blocking this.** DW2.3 and DW2.4 are not opposites: DW2.3 puts a roster on each branch, and DW2.4 adds a cross-branch overlap block on top of it, with within-branch overlap unchanged (ADR-023). Release criterion 12 says both in one line. What is genuinely open is the **ADR-023 extension** the PRD marks 🔴, which is engineering's rather than Michelle's. |
 | **SCR-11** branch stock | Not blocked on a decision — blocked on a feature. `Product` in components/blocks/products-table.tsx carries no quantity at all, so there is no stock to make per-branch. R16's content (per-branch balances, business total derived and never stored) is a page of inventory work first. |
+
+### Package redemption, and the host the warning never had (SCR-13)
+
+The rule and the warning were built first and had nowhere to fire. I reported
+that as "no package redemption at checkout" twice, and both times I had looked
+in the wrong place — the sales module is `src/modules/invoice/components/new-sale/`,
+and customer packages have their own type file. The contract is fully built:
+
+```
+GET  /merchant/customer-packages/eligibility
+POST /merchant/customer-packages/:id/redeem     — "redeem one session"
+```
+
+with `verdict: "covered" | "exhausted" | "expired" | "not_covered"`, the
+package's `sessionsRemaining` / `sessionsTotal`, and
+`source: "appointment" | "direct"`. `customerPackageService` has every method
+and **no UI calls it**. So the missing piece was the surface, and it could be
+built against the real shape: the verdicts, the session counting and the
+reversal concept are taken rather than invented.
+
+**The branch is not a fifth verdict, and that is the design.** A verdict decides
+whether the package can be applied, so a `not_covered_here` would block the
+redemption KC1.5 insists must complete — "a clear warning rather than a hard
+block… checkout still completes, and the staff decision is recorded". The
+mismatch therefore rides **alongside** a `covered` verdict: the package still
+covers the service, and the branch difference is information for the person
+standing in front of the client. `canApply` deliberately does not look at it.
+
+**Not offered here is the strongest form of the same rule.** The branch does not
+do the service at all and the client is *still* honoured, because they already
+paid for it. That is the case where a block feels most defensible and is most
+wrong.
+
+**An unusable verdict reads differently.** Exhausted, expired and nothing
+covering it each get a sentence a receptionist can repeat to the client, and no
+button — a disabled Apply beside the reason invites a second try at something
+that cannot work.
+
+**A redemption resolves to one location before it happens** (R11, R08). The
+package is held at the business; the session is consumed at the branch doing the
+work, and the branch comes from `WriteTargetLocation` rather than a default.
+
+Seven tests. The load-bearing one: a mismatch never makes `canApply` false, in
+every one of its three shapes.
 
 ### The branch roster (SCR-10)
 
@@ -1275,8 +1319,6 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   If the v0 line changes, that footnote and the seed's business-level payout
   rows change with it. **Confirm with Michelle before designing anything else in
   payments.**
-- **SCR-13 has no host flow** — no package redemption at checkout to attach the
-  warning to. Described in Screen coverage rather than pretended to be done.
 - **The full test suite needs `--no-file-parallelism` on this machine.** Running
   `npm test` alongside the dev server exhausted V8's heap mid-run and reported a
   partial pass (12 of 21 files) with errors, which looks like a failure and is
