@@ -962,7 +962,7 @@ const SECTIONS: Section[] = [
       {
         path: "/playground#multi-location-per-branch-hours",
         label: "Per-branch hours · SCR-01 (playground)",
-        note: 'R01 + R19, three seeded weeks side by side — one branch at a time cannot show that a week is the branch\'s own. JVC closes Sunday, Jumeirah trades seven days, Al Quoz shuts 1pm–4pm. That split day is why a day holds shifts and not one open/close (PRO-363 is the same bug from the other side), and pinned to a Tuesday mid-afternoon it reads Closed now while the others are open, with the public card saying "opens 4pm" rather than naming tomorrow. Editable in the settings dialog; what an operator sets is what a client reads on the branch page — one source, like the menu.',
+        note: 'R01 + R19, three seeded weeks side by side — one branch at a time cannot show that a week is the branch\'s own. JVC closes Sunday, Jumeirah trades seven days, Al Quoz shuts 1pm–4pm. That split day is why a day holds shifts and not one open/close (PRO-363 is the same bug from the other side), and pinned to a Tuesday mid-afternoon it reads Closed now while the others are open, with the public card saying "opens 4pm" rather than naming tomorrow. One definition: the week lives in lib/locations and the public page resolves it rather than carrying a copy. Editable in the settings dialog, but the edit does not reach the public branch page yet — that page renders on the server from the seed, the same gap the per-branch service overrides have.',
       },
       {
         path: "/playground#multi-location-chain-setup",

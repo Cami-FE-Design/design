@@ -204,10 +204,16 @@ The seeded estate is deliberately three different weeks (JVC closed Sunday,
 Jumeirah seven days, Al Quoz split 8–1 and 4–8) because identical hours cannot
 demonstrate that hours are per branch.
 
-**One source, like the menu.** `PublicBranch.hours` is now optional and a
-branch resolves its hours from `lib/locations`, so what an operator sets is
-what a client reads. Only a business with no location record still carries its
-own copy.
+**One definition, like the menu.** `PublicBranch.hours` is now optional and a
+branch resolves its hours from `lib/locations` rather than carrying a copy, so
+there is one place a branch's week is defined. Only a business with no location
+record still carries its own.
+
+That is the definition, not yet the round trip. `/{branchSlug}` is a server
+component reading the module seed, so an hours **edit** made in settings does
+not reach the public page — exactly the gap the per-branch service overrides
+have. Both want the public page reading a client-side store, which is one slice
+covering both rather than two.
 
 ### Branch access grants (SCR-03)
 
@@ -716,7 +722,8 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   per branch and read everywhere they are displayed, but availability and date
   bucketing still run on one clock. R19's display half is done; its scheduling
   half needs the booking engine, which is not a design surface.
-- **An operator's per-branch override does not reach the client page yet.**
+- **An operator's per-branch edit does not reach the client page yet — hours
+  and service overrides both.**
   The offerings round-trip on the operator side —
   `lib/service-catalog/offerings-store.tsx` reads them into the service sheet
   and writes them back on save, persisted. But `publicMenuForLocation()` runs
