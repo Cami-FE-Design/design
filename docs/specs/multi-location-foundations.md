@@ -467,6 +467,52 @@ being entirely P2 is *confirmed* deferrable rather than assumed so. Neither
 changes what is drawn here: HQ1.1's "same result, no lesser path" holds under
 every answer.
 
+### What nine branches actually broke
+
+Seeding nine was supposed to expose the layouts that only hold at three. It did,
+and five of the six things it found were mine — four of them invisible until the
+estate got bigger. Reviewed off screenshots rather than reasoned about, which is
+the only way this class of defect surfaces.
+
+- **A draft branch was told it would "reopen".** The service catalog's row had
+  two states where the model has three, so `draft` fell into the `suspended`
+  sentence. A branch being set up and a branch that stopped trading are not the
+  same fact, and the one word separating them was the wrong one.
+- **The calendar strip truncated the word that identifies a branch.** Every name
+  in a chain starts with the business, so nine cards spent their width on
+  "Shampooch " and cut what came after: "Shampooch Al Quoz" rendered as
+  "Shampooch…". It shows the branch's own label now, with the full name on hover
+  and for a screen reader. Inside the business the prefix is already known.
+- **The strip's last row stretched one card across the full width.** A wrapped
+  flex row with `flex-1` made Yas Island three times the size of every other
+  branch, which reads as importance. A grid with equal columns instead.
+- **"No takings this period at …" became seven names in one sentence.** The
+  count is the fact an owner wants; seven names inline hide it. Up to three it
+  stays a sentence, after that it is a count above a list.
+- **"Business total — the sum of 1 location"** restated the single row above it,
+  and told a manager granted one branch that their branch is the business. Their
+  number was right; the label was not. The roll-up row is absent below two rows.
+- **The availability chips read "T W T F S S M"** — two T and two S, so Friday
+  and Sunday, the two days these branches differ on most, could not be picked
+  out. Three letters now.
+
+Two empty states were missing entirely, both reachable. The public picker with
+every branch paused (a chain closed for Eid) would have read "Shampooch has 0
+locations. Each one has its own team, hours and prices." above nothing; it now
+says it is not taking bookings and offers the phone. And the service catalog's
+Locations section with no branches yet — a service can exist before anywhere to
+sell it does — promised inheritance above an empty space.
+
+**Loading is drawn once, on purpose.** The design definition of done asks for
+empty, loading and error, and the only branch surface with a loading state worth
+drawing is the money roll-up: a grant-bounded query summing a row per branch,
+and the one the product has a budget for — `PRD-78` is an E2E whose subject is
+that this query stays inside it. It renders a placeholder per branch in scope,
+because the count is known before the money is; an owner on nine branches should
+see nine rows coming rather than a spinner that could resolve to anything. Every
+other branch surface reads data it already has, and a skeleton there would be a
+wait that never happens.
+
 ### Nine branches, and the collapse (D5)
 
 Three branches is the demo. Nine is what the PRD assumes, and it is where the

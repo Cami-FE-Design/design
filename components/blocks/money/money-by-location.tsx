@@ -28,6 +28,7 @@
  *   footnote says so rather than leaving a suspicious gap.
  */
 
+import { Skeleton } from "@/components/ui/skeleton"
 import { formatAed } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { type MoneyByLocation, shareOfRollUp, summarizeByLocation } from "@/lib/money/by-location"
@@ -43,10 +44,21 @@ export function MoneyByLocationView({
   txs,
   filter,
   className,
+  loading = false,
 }: {
   txs: ReadonlyArray<MoneyTx>
   filter: PeriodFilter
   className?: string
+  /**
+   * Waiting on the roll-up.
+   *
+   * This is the one multi-location surface with a loading state worth drawing.
+   * It is a query bounded by the grant that sums a row per branch, and at nine
+   * branches it is the one the product has a budget for — `PRD-78` is an E2E
+   * whose whole subject is that this query stays inside it. Every other branch
+   * surface reads data it already has.
+   */
+  loading?: boolean
 }) {
   // The granted set, not the estate: this is where R18's bound comes from, and
   // it is read rather than passed so no caller can widen it by accident.
@@ -65,13 +77,51 @@ export function MoneyByLocationView({
         </p>
       </div>
 
-      <Rows data={data} />
+      {loading ? <RowsSkeleton count={allowed.length} /> : <Rows data={data} />}
 
       <p className="text-xs text-muted-foreground">
         Fees and refunds sit with the location that took the payment. Payouts are business-level in
         this market — one account for the whole business — so they are not broken out per location.
       </p>
     </section>
+  )
+}
+
+/**
+ * The shape the answer will have, not a spinner.
+ *
+ * One placeholder per branch in scope, because that count is known before the
+ * money is — an owner on nine branches should see nine rows coming rather than
+ * a spinner that could resolve to anything. The total row is included for the
+ * same reason: it is always there, so its absence would read as movement.
+ */
+function RowsSkeleton({ count }: { count: number }) {
+  return (
+    <div className="flex flex-col gap-2" role="status" aria-label="Loading money by location">
+      {Array.from({ length: Math.max(count, 1) }, (_, index) => (
+        <div
+          // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity
+          key={index}
+          className="flex flex-col gap-2 rounded-2xl border border-border/60 p-4"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-5 w-24" />
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+      ))}
+      {/* The total row too: it is always present, so leaving it out would read
+          as the layout moving rather than filling. */}
+      <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted/40 p-4">
+        <Skeleton className="h-4 w-48" />
+        <Skeleton className="h-5 w-28" />
+      </div>
+    </div>
   )
 }
 
@@ -131,23 +181,48 @@ function Rows({ data }: { data: MoneyByLocation }) {
         )
       })}
 
-      {/* After the rows, and named as a sum. The order is the argument. */}
-      <div className="flex items-baseline justify-between gap-3 rounded-2xl bg-muted/30 px-4 py-3">
-        <span className="text-sm text-muted-foreground">
-          Business total — the sum of {data.rows.length}{" "}
-          {data.rows.length === 1 ? "location" : "locations"}
-        </span>
-        <span className="shrink-0 font-heading text-lg font-semibold text-foreground">
-          {aed(data.rollUp.moneyIn.totalMinor)}
-        </span>
-      </div>
+      {/* After the rows, and named as a sum. The order is the argument.
+          Absent when there is one row: "Business total — the sum of 1 location"
+          restates the row directly above it, and worse, it tells a manager
+          granted one branch that their branch is the business. Their number is
+          right; the label was not. */}
+      {data.rows.length > 1 ? (
+        <div className="flex items-baseline justify-between gap-3 rounded-2xl bg-muted/30 px-4 py-3">
+          <span className="text-sm text-muted-foreground">
+            Business total — the sum of {data.rows.length} locations
+          </span>
+          <span className="shrink-0 font-heading text-lg font-semibold text-foreground">
+            {aed(data.rollUp.moneyIn.totalMinor)}
+          </span>
+        </div>
+      ) : null}
 
+      {/* Named, not dropped. "Nothing at Al Quoz today" and "Al Quoz is missing
+          from this report" are different answers to an owner.
+          Named in a sentence up to three, and counted above a list after that:
+          at nine branches this read "No takings this period at Shampooch Al
+          Majaz, Shampooch Al Quoz, Shampooch Al Reem, Shampooch Business Bay,
+          Shampooch Dubai Marina, Shampooch Mirdif, Shampooch Yas Island." —
+          the count is the fact, and seven names inside one sentence hide it. */}
       {data.quietLocations.length > 0 ? (
-        // Named, not dropped. "Nothing at Al Quoz today" and "Al Quoz is
-        // missing from this report" are different answers to an owner.
-        <p className="text-xs text-muted-foreground">
-          No takings this period at {data.quietLocations.join(", ")}.
-        </p>
+        data.quietLocations.length <= 3 ? (
+          <p className="text-xs text-muted-foreground">
+            No takings this period at {data.quietLocations.join(", ")}.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-1">
+            <p className="text-xs text-muted-foreground">
+              No takings this period at {data.quietLocations.length} locations:
+            </p>
+            <ul className="flex flex-wrap gap-x-3 gap-y-1">
+              {data.quietLocations.map((name) => (
+                <li key={name} className="text-xs text-muted-foreground">
+                  {name}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
       ) : null}
     </div>
   )

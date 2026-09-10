@@ -105,6 +105,28 @@ export function ServiceLocationsSection({
     onChange(isDefault ? others : [...others, next])
   }
 
+  /**
+   * A business with no location record yet — the state between signing up and
+   * finishing setup, where a service can exist before anywhere to sell it does.
+   *
+   * The ordinary copy promises that "each location inherits it and can differ
+   * on any field" above an empty space, which reads as a section that failed to
+   * load. The one true sentence and the one useful next step instead.
+   */
+  if (locations.length === 0) {
+    return (
+      <div className="flex flex-col gap-2 rounded-2xl bg-muted/40 p-4">
+        <span className="text-sm font-medium leading-5 text-foreground">
+          No locations to sell this at yet
+        </span>
+        <p className="text-sm leading-5 text-muted-foreground">
+          This service is defined for the business and will apply everywhere. Add a location in
+          Settings and it will appear here, ready to price differently if it needs to.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
@@ -153,9 +175,16 @@ export function ServiceLocationsSection({
                     the two the toggle is about. */}
                 {loc.status !== "live" ? (
                   <span className="text-sm text-muted-foreground">
+                    {/* Three states, three sentences. "Reopens" was being said
+                        to a draft branch, which has never opened — a branch
+                        being set up and a branch that stopped trading are not
+                        the same fact, and the one word that distinguishes them
+                        was the wrong one. */}
                     {loc.status === "archived"
                       ? "This location is archived and takes no bookings. Its menu is kept for its history."
-                      : "This location is paused, so nothing is bookable here yet. This applies when it reopens."}
+                      : loc.status === "draft"
+                        ? "This location is still being set up, so nothing is bookable here yet. This applies from its first day."
+                        : "This location is paused, so nothing is bookable here yet. This applies when it reopens."}
                   </span>
                 ) : null}
               </div>

@@ -874,7 +874,7 @@ function BranchAvailabilityDemo() {
                     key={day.id}
                     title={day.closed ? "Closed" : day.full ? "Fully booked" : "Open"}
                     className={cn(
-                      "flex size-7 items-center justify-center rounded-full text-xs font-medium",
+                      "flex h-7 items-center justify-center rounded-full px-1.5 text-xs font-medium",
                       day.closed
                         ? "bg-background text-muted-foreground/40 line-through"
                         : day.full
@@ -882,7 +882,11 @@ function BranchAvailabilityDemo() {
                           : "bg-cami-green-3 text-cami-green-11",
                     )}
                   >
-                    {day.weekday.slice(0, 1)}
+                    {/* Three letters, not one. "T W T F S S M" has two T and
+                        two S, so the two days that differ most between these
+                        branches — Friday and Sunday — could not be picked out
+                        of it. The chip is wider; the row is still one line. */}
+                    {day.weekday}
                   </span>
                 ))}
               </div>
@@ -2691,6 +2695,19 @@ export function PlaygroundShowcase() {
             <div className="w-full max-w-[560px]">
               <LocationsProvider persist={false}>
                 <MoneyByLocationView txs={MONEY_TXS} filter={MONEY_DEMO_FILTER} />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Waiting on the roll-up" align="start">
+            <div className="w-full max-w-[560px]">
+              {/* The one branch surface with a loading state worth drawing: a
+                  grant-bounded query that sums a row per branch, and the one
+                  the product has a budget for (PRD-78 is an E2E about exactly
+                  that). Nine placeholders because the count is known before the
+                  money is — an owner should see nine rows coming rather than a
+                  spinner that could resolve to anything. */}
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <MoneyByLocationView txs={MONEY_TXS} filter={MONEY_DEMO_FILTER} loading />
               </LocationsProvider>
             </div>
           </Row>

@@ -58,7 +58,10 @@ export function BranchDayStrip({
 
   return (
     <div className={cn("flex flex-col gap-2", className)}>
-      <div className="flex flex-wrap gap-2">
+      {/* A grid, not a wrapped flex row. With `flex-1` the last row stretched
+          its one card across the full width — at nine branches Yas Island was
+          three times the size of every other branch and read as important. */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-2">
         {counts.map((count) => {
           const location = byId(count.locationId)
           if (!location) return null
@@ -77,18 +80,26 @@ export function BranchDayStrip({
               }
               aria-pressed={active}
               className={cn(
-                "flex min-w-[160px] flex-1 flex-col gap-1.5 rounded-2xl border p-3 text-left transition-colors",
+                "flex min-w-0 flex-col gap-1.5 rounded-2xl border p-3 text-left transition-colors",
                 active
                   ? "border-cami-violet-7 bg-cami-violet-2"
                   : "border-border/60 hover:bg-foreground/[0.03]",
               )}
             >
-              <span className="flex min-w-0 items-center gap-2">
+              {/* The branch's own label, not `location.name`. Every name in a
+                  chain starts with the business — nine cards reading
+                  "Shampooch …" spend their width on the one word that cannot
+                  tell them apart, and truncation eats the word that can:
+                  "Shampooch Al Quoz" came out as "Shampooch…". Inside the
+                  business the prefix is already known. Full name on hover and
+                  for a screen reader. */}
+              <span className="flex min-w-0 items-center gap-2" title={location.name}>
                 <span className="truncate text-sm font-medium text-foreground">
-                  {location.name}
+                  {location.location.district || location.name}
                 </span>
                 <LocationStatusBadge status={location.status} />
               </span>
+              <span className="sr-only">{location.name}</span>
               <span className="text-xs text-muted-foreground">
                 {count.bookings === 0
                   ? "No appointments"

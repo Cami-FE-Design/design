@@ -1,4 +1,4 @@
-import { ChevronRightIcon, MapPinIcon } from "lucide-react"
+import { ChevronRightIcon, MapPinIcon, PhoneIcon } from "lucide-react"
 import Link from "next/link"
 import type { WeekSchedule } from "@/lib/locations/hours"
 import { type LocationContact, locationContact, locationHours } from "@/lib/locations/mock"
@@ -75,6 +75,41 @@ export function PublicBranchPicker({
    */
   intent?: "view" | "book"
 }) {
+  /**
+   * Every branch paused at once. Reachable, not theoretical: a chain closes for
+   * Eid, or a new one is still standing up and nothing is live yet.
+   *
+   * The list is filtered to published branches before it reaches here, so the
+   * ordinary copy would have read "Shampooch has 0 locations. Each one has its
+   * own team, hours and prices" above nothing — a sentence that is both wrong
+   * and faintly ridiculous. A client needs one fact and one way forward, and
+   * neither is a location picker.
+   */
+  if (branches.length === 0) {
+    return (
+      <section id="locations" aria-labelledby="locations-heading" className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <h2 id="locations-heading" className="text-base font-semibold text-foreground">
+            Not taking bookings right now
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {business.displayName} has no locations open for online booking at the moment. Calling
+            is the way to reach them until one is back.
+          </p>
+        </div>
+        {business.phone ? (
+          <a
+            href={`tel:${business.phone.replace(/\s+/g, "")}`}
+            className="flex items-center gap-2 self-start rounded-2xl border border-border/60 px-4 py-3 text-sm font-medium text-foreground transition-colors hover:bg-foreground/[0.03]"
+          >
+            <PhoneIcon className="size-4 text-muted-foreground" aria-hidden />
+            {business.phone}
+          </a>
+        ) : null}
+      </section>
+    )
+  }
+
   return (
     <section id="locations" aria-labelledby="locations-heading" className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
@@ -82,8 +117,12 @@ export function PublicBranchPicker({
           {intent === "book" ? "Choose a location to book" : "Choose a location"}
         </h2>
         <p className="text-sm text-muted-foreground">
-          {business.displayName} has {branches.length} locations. Each one has its own team, hours
-          and prices.{intent === "book" ? " Pick the one you want to book at." : ""}
+          {/* Singular when there is one. A chain that has paused all but one
+              branch still reads as a chain to the code, and "has 1 locations"
+              is the kind of thing a client screenshots. */}
+          {business.displayName} has {branches.length}{" "}
+          {branches.length === 1 ? "location" : "locations"}. Each one has its own team, hours and
+          prices.{intent === "book" ? " Pick the one you want to book at." : ""}
         </p>
       </div>
 
