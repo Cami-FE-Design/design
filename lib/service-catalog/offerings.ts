@@ -146,20 +146,25 @@ export function resetField(offering: LocationOffering, field: OverridableField):
  * not do daycare" is exactly the drift R06 exists to prevent — the client-facing
  * price could disagree with the operator-facing one and nobody would notice.
  *
- * Keyed by the client-side catalog ids (lib/booking.ts). ⚠️ The operator's own
- * service sheet edits a different catalog (lib/service-catalog/mock-data.ts,
- * whose seed is a hair salon), so an override made there does not reach these
- * ids yet. That is the one catalog question left, and it is called out in
- * docs/specs/multi-location-foundations.md rather than papered over here.
+ * Keyed by catalog ids (lib/booking.ts), which the operator's service sheet now
+ * reads too — lib/service-catalog/mock-data.ts derives its services from the
+ * same catalog rather than holding a second one. An override made in the sheet
+ * lands on the id the client page and the booking flow look up, which is what
+ * makes these seeded rows and a fresh edit the same kind of thing.
  */
 export const LOCATION_OFFERINGS: LocationOffering[] = [
   {
-    // The busy branch charges more for the same wash. Duration is still the
-    // business's, which is what per-field override means in practice.
+    // The busy branch charges more for the same wash — 145 against the
+    // business's 120. Duration is still the business's, which is what a
+    // per-field override means in practice.
+    //
+    // This said 75 while the comment and the spec both said "charges more", so
+    // the seed was arguing with itself and the screen showed the branch as
+    // cheaper.
     serviceId: "bath-small",
     locationId: "shampooch-jumeirah",
     enabled: true,
-    overrides: { price: 75 },
+    overrides: { price: 145 },
   },
   {
     // No space for daycare here, so it is not offered — and therefore not

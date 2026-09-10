@@ -38,13 +38,14 @@
  * the client page — which is the thing a reviewer needs to check and could not.
  */
 
+import { BookingFlow } from "@/components/blocks/booking/booking-flow"
 import { PublicBookingCard } from "@/components/blocks/public-booking-card"
 import { PublicBranchPicker } from "@/components/blocks/public-branch-picker"
 import { PublicHours } from "@/components/blocks/public-hours"
 import { PublicServices } from "@/components/blocks/public-services"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
 import { branchAsBusiness, type PublicBranch, type PublicBusiness } from "@/lib/public-business"
-import { publicMenuForLocation } from "@/lib/public-offering"
+import { bookingCatalogForLocation, publicMenuForLocation } from "@/lib/public-offering"
 import {
   LocationOfferingsProvider,
   useLocationOfferings,
@@ -58,13 +59,15 @@ import {
 export function PublicChainPickerLive({
   business,
   branches,
+  intent,
 }: {
   business: PublicBusiness
   branches: ReadonlyArray<PublicBranch>
+  intent?: "view" | "book"
 }) {
   return (
     <LocationsProvider>
-      <PickerRows business={business} branches={branches} />
+      <PickerRows business={business} branches={branches} intent={intent} />
     </LocationsProvider>
   )
 }
@@ -72,17 +75,58 @@ export function PublicChainPickerLive({
 function PickerRows({
   business,
   branches,
+  intent,
 }: {
   business: PublicBusiness
   branches: ReadonlyArray<PublicBranch>
+  intent?: "view" | "book"
 }) {
   const { byId } = useLocations()
   return (
     <PublicBranchPicker
       business={business}
       branches={branches}
+      intent={intent}
       hoursFor={(branchId) => byId(branchId)?.hours}
     />
+  )
+}
+
+/**
+ * The branch's booking flow, priced against what that branch actually charges
+ * (R15).
+ *
+ * The branch page resolved per branch while the flow read the business default
+ * straight off the module, so an operator could set JVC's full groom to 240,
+ * see 240 on the branch page, press Book now, and be quoted 260. A page and a
+ * flow disagreeing about the same branch is worse than either being wrong on
+ * its own — the client has already been told a price by the time they notice.
+ */
+export function PublicBookingFlowLive({
+  business,
+  branch,
+}: {
+  business: PublicBusiness
+  branch: PublicBranch
+}) {
+  return (
+    <LocationsProvider>
+      <LocationOfferingsProvider>
+        <Flow business={business} branch={branch} />
+      </LocationOfferingsProvider>
+    </LocationsProvider>
+  )
+}
+
+function Flow({ business, branch }: { business: PublicBusiness; branch: PublicBranch }) {
+  const { byId } = useLocations()
+  const { offerings } = useLocationOfferings()
+  const resolved = branchAsBusiness(business, branch, {
+    hours: byId(branch.id)?.hours,
+    offerings,
+  })
+  return (
+    <BookingFlow business={resolved} catalog={bookingCatalogForLocation(branch.id, offerings)} />
   )
 }
 

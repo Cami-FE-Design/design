@@ -50,6 +50,7 @@ import { addressPlaceRef, EMPTY_ADDRESS, hasPrecisePoint, type PlaceRef } from "
 import {
   BOOKING_DAYS,
   BOOKING_STAFF,
+  type BookingCatalog,
   bookingLines,
   bookingRef,
   businessHasPets,
@@ -62,6 +63,7 @@ import {
   type ReturningClient,
   resolvePickupAddress,
   resolvePickupPlace,
+  SERVICE_CATEGORIES,
   serviceTotals,
 } from "@/lib/booking"
 import { type PetNoteEntry, petNoteLabel, petNotesComplete } from "@/lib/pet-notes"
@@ -90,14 +92,16 @@ function StepHeading({ title, hint }: { title: string; hint?: string }) {
 function ServiceStep({
   selectedIds,
   onToggle,
+  categories,
 }: {
   selectedIds: ReadonlyArray<string>
   onToggle: (id: string) => void
+  categories: BookingCatalog
 }) {
   return (
     <div className="flex flex-col gap-5">
       <StepHeading title="Select services" hint="Add one or more — pick a category to browse." />
-      <ServicePicker selectedIds={selectedIds} onToggle={onToggle} />
+      <ServicePicker selectedIds={selectedIds} onToggle={onToggle} categories={categories} />
     </div>
   )
 }
@@ -872,6 +876,7 @@ function ConfirmStep({
   pickupAddress,
   pickupPinned = false,
   petNotes,
+  catalog,
 }: {
   business: PublicBusiness
   services: ReadonlyArray<CatalogService>
@@ -887,10 +892,14 @@ function ConfirmStep({
    */
   pickupPinned?: boolean
   petNotes?: ReadonlyArray<PetNoteEntry>
+  catalog: BookingCatalog
 }) {
   const total = services.reduce((n, s) => n + s.priceAed, 0)
   const duration = services.reduce((n, s) => n + s.durationMinutes, 0)
-  const lines = bookingLines(services.map((s) => s.id))
+  const lines = bookingLines(
+    services.map((s) => s.id),
+    catalog,
+  )
   const subtotal = Math.round(total / 1.05)
   const vat = total - subtotal
 
@@ -1056,6 +1065,7 @@ function DesktopSummary({
   canContinue,
   isLast,
   onCta,
+  catalog,
 }: {
   business: PublicBusiness
   services: ReadonlyArray<CatalogService>
@@ -1065,8 +1075,12 @@ function DesktopSummary({
   canContinue: boolean
   isLast: boolean
   onCta: () => void
+  catalog: BookingCatalog
 }) {
-  const lines = bookingLines(services.map((s) => s.id))
+  const lines = bookingLines(
+    services.map((s) => s.id),
+    catalog,
+  )
 
   const address = [business.street, business.city, business.emirate].filter(Boolean).join(", ")
 
@@ -1162,7 +1176,21 @@ function DesktopSummary({
   )
 }
 
-export function BookingFlow({ business }: { business: PublicBusiness }) {
+export function BookingFlow({
+  business,
+  catalog = SERVICE_CATEGORIES,
+}: {
+  business: PublicBusiness
+  /**
+   * The catalog this booking is priced against. Defaults to the business's; a
+   * branch's flow is handed its own resolved one, so a price the operator set
+   * for that branch is what the picker shows, the summary totals, and the
+   * review step confirms (R15). It has to reach all three, because a flow that
+   * quotes one price and confirms another is worse than one that is simply
+   * wrong.
+   */
+  catalog?: BookingCatalog
+}) {
   const hasPets = businessHasPets(business)
   // Pet is picked/captured inside Identify after phone verify (feature-flagged),
   // not a separate step — see docs/specs/PRO-80.
@@ -1188,8 +1216,10 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
   const [pickup, setPickup] = useState<PickupDetails>(EMPTY_PICKUP_DETAILS)
 
   const step = steps[stepIndex]!
-  const services = serviceIds.map(findCatalogService).filter(Boolean) as CatalogService[]
-  const totals = serviceTotals(serviceIds)
+  const services = serviceIds
+    .map((id) => findCatalogService(id, catalog))
+    .filter(Boolean) as CatalogService[]
+  const totals = serviceTotals(serviceIds, catalog)
 
   function toggleService(id: string) {
     setServiceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -1264,7 +1294,7 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
 
   const stepBody =
     step === "service" ? (
-      <ServiceStep selectedIds={serviceIds} onToggle={toggleService} />
+      <ServiceStep selectedIds={serviceIds} onToggle={toggleService} categories={catalog} />
     ) : step === "slot" ? (
       <SlotStep
         staffId={staffId}
@@ -1288,6 +1318,7 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
       <ConfirmStep
         business={business}
         services={services}
+        catalog={catalog}
         whenLabel={whenLabel}
         staffLabel={staffLabel}
         petLabel={petLabel}
@@ -1332,6 +1363,7 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
             <DesktopSummary
               business={business}
               services={services}
+              catalog={catalog}
               totals={totals}
               whenLabel={whenLabel}
               hasSlot={Boolean(time)}

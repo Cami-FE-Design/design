@@ -384,6 +384,30 @@ now: absent means "resolve from the catalog", which is what the chain's branches
 do. Purr Palace keeps a literal list because it is a second business and only
 one catalog is modelled in this repo.
 
+#### Both entry paths, not just one
+
+R15 says both entry paths "yield that Location's offering", and only one of them
+did. The branch page resolved per branch; the booking flow read the business
+default straight off the module. So an operator could set JVC's full groom to
+240, see 240 on the branch page, press **Book now**, and be quoted **260**.
+
+A page and a flow disagreeing about the same branch is worse than either being
+wrong alone — by the time the client notices, they have already been told a
+price.
+
+`bookingCatalogForLocation()` is the flow's resolver, sitting beside the price
+list's. Same resolution, different shape: the flow needs combos, the qualifier
+next to a duration, and the component ids a bundle books as, so it returns
+`ServiceCategory[]` rather than dropping those. `findCatalogService`,
+`bookingLines` and `serviceTotals` all take the catalog now and default to the
+business's, and the flow threads it to the picker, the sticky summary **and** the
+review step — a flow that quotes one price and confirms another is the failure
+this was meant to fix, not a smaller version of it.
+
+**A combo goes only where every component goes.** A bundle whose parts a branch
+does not do is not a cheaper option, it is an unfulfillable one, and offering it
+books work the branch cannot deliver.
+
 #### The operator's side was reading a different business
 
 Found in review, and worse than a duplicate. `lib/service-catalog/mock-data.ts`
@@ -418,6 +442,11 @@ the nineteen services a client sees (Full groom, not Hair Color), and the
 seeded per-branch overrides are now editable in the sheet that owns them. Tests
 and playground rows that named `svc-8` now find a combo **by kind**, because
 pinning an id ties them to which service happens to sit where.
+
+One seeded row was arguing with itself, found while checking the above:
+Jumeirah's wash override was **75** against the business's 120, while both its
+own comment and this spec said "charges more". The branch rendered as the
+cheaper one. It is 145 now.
 
 ### Chain setup (SCR-02)
 

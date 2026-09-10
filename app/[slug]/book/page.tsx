@@ -1,8 +1,10 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-import { BookingFlow } from "@/components/blocks/booking/booking-flow"
-import { PublicBranchPicker } from "@/components/blocks/public-branch-picker"
+import {
+  PublicBookingFlowLive,
+  PublicChainPickerLive,
+} from "@/components/blocks/public-branch-live"
 import { PublicCover } from "@/components/blocks/public-cover"
 import { PublicFooter } from "@/components/blocks/public-footer"
 import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
@@ -61,12 +63,14 @@ export default async function BookingPage({ params }: { params: Params }) {
         <PublicTopGradient />
         <div className="relative flex w-full max-w-[560px] flex-col gap-8">
           <PublicCover business={view.business} />
-          <PublicBranchPicker business={view.business} branches={view.branches} intent="book" />
+          <PublicChainPickerLive business={view.business} branches={view.branches} intent="book" />
           <PublicFooter />
         </div>
       </main>
     )
   }
 
-  return <BookingFlow business={branchAsBusiness(view.business, view.branch)} />
+  // Resolved on the client so the prices are the branch's own, not the
+  // business default. See the wrapper's note.
+  return <PublicBookingFlowLive business={view.business} branch={view.branch} />
 }

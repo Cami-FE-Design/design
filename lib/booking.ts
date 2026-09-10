@@ -313,8 +313,24 @@ export const SERVICE_CATEGORIES: ReadonlyArray<ServiceCategory> = [
 
 const ALL_SERVICES: ReadonlyArray<CatalogService> = SERVICE_CATEGORIES.flatMap((c) => c.services)
 
-export function findCatalogService(id: string): CatalogService | undefined {
-  return ALL_SERVICES.find((s) => s.id === id)
+/**
+ * Every function below takes the catalog rather than reading the module, and
+ * defaults to the business's. That default is what a business-wide surface
+ * wants; a branch passes its own resolved catalog, so a price it overrode is
+ * the price the flow quotes and totals (R15). Read together with
+ * `bookingCatalogForLocation` in lib/public-offering.ts.
+ */
+export type BookingCatalog = ReadonlyArray<ServiceCategory>
+
+function servicesOf(catalog?: BookingCatalog): ReadonlyArray<CatalogService> {
+  return catalog ? catalog.flatMap((c) => c.services) : ALL_SERVICES
+}
+
+export function findCatalogService(
+  id: string,
+  catalog?: BookingCatalog,
+): CatalogService | undefined {
+  return servicesOf(catalog).find((s) => s.id === id)
 }
 
 /**
@@ -322,9 +338,9 @@ export function findCatalogService(id: string): CatalogService | undefined {
  * proportion to what the components cost alone (remainder on the last line, so
  * the lines always sum to the combo's price).
  */
-function comboLines(combo: CatalogService): BookingLine[] {
+function comboLines(combo: CatalogService, catalog?: BookingCatalog): BookingLine[] {
   const components = (combo.componentIds ?? [])
-    .map(findCatalogService)
+    .map((id) => findCatalogService(id, catalog))
     .filter((c): c is CatalogService => Boolean(c))
   if (components.length === 0) {
     return [
@@ -361,11 +377,11 @@ function comboLines(combo: CatalogService): BookingLine[] {
 }
 
 /** The lines a selection books as — combos expanded, plain services as-is. */
-export function bookingLines(ids: ReadonlyArray<string>): BookingLine[] {
+export function bookingLines(ids: ReadonlyArray<string>, catalog?: BookingCatalog): BookingLine[] {
   return ids.flatMap((id) => {
-    const service = findCatalogService(id)
+    const service = findCatalogService(id, catalog)
     if (!service) return []
-    if (service.isCombo) return comboLines(service)
+    if (service.isCombo) return comboLines(service, catalog)
     return [
       {
         id: service.id,
@@ -377,17 +393,22 @@ export function bookingLines(ids: ReadonlyArray<string>): BookingLine[] {
   })
 }
 
-export function serviceTotals(ids: ReadonlyArray<string>): {
+export function serviceTotals(
+  ids: ReadonlyArray<string>,
+  catalog?: BookingCatalog,
+): {
   count: number
   durationMinutes: number
   priceAed: number
 } {
-  const chosen = ids.map(findCatalogService).filter(Boolean) as CatalogService[]
+  const chosen = ids
+    .map((id) => findCatalogService(id, catalog))
+    .filter(Boolean) as CatalogService[]
   return {
     // A combo is several services to the parent — the count follows the lines,
     // while duration and price come from the combo itself (it already carries
     // the bundle's slot length and its discounted total).
-    count: bookingLines(ids).length,
+    count: bookingLines(ids, catalog).length,
     durationMinutes: chosen.reduce((n, s) => n + s.durationMinutes, 0),
     priceAed: chosen.reduce((n, s) => n + s.priceAed, 0),
   }
