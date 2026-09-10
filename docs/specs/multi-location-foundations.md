@@ -1,4 +1,4 @@
-# Multi-location · the design pass (SCR-01–06, SCR-08, SCR-09, SCR-12–15)
+# Multi-location · the design pass (SCR-01–06, SCR-08, SCR-09, SCR-12–16)
 
 The design side of multi-location, built bottom-up: one definition of a branch,
 the scope control every other screen is read through, and the branch lifecycle
@@ -11,7 +11,7 @@ and lifecycle, **SCR-02** chain setup, **SCR-03** branch access grants, **SCR-09
 per-branch service pricing, **SCR-08** the public branch picker, **SCR-05**
 the all-branches calendar, **SCR-06** the cross-branch move, **SCR-12** branch
 tax identity, **SCR-13** the package mismatch at checkout, **SCR-14** branch
-WhatsApp numbers, **SCR-15** money by branch.
+WhatsApp numbers, **SCR-15** money by branch, and **SCR-16** the CamiHQ chain view.
 
 Four are not done, and three of those are not startable — see
 [Screen coverage](#screen-coverage-against-the-prds-6-reference) and
@@ -426,6 +426,46 @@ thing does: resolve the location, then render its offering.
 **`/{businessSlug}/book` 404s on purpose.** Booking without a branch is the
 default-venue fallback R11 deletes, so there is no such page — only
 `/{branchSlug}/book`.
+
+### The chain, seen from CamiHQ (SCR-16)
+
+E15's two stories decide this screen, and they decide it against building one:
+
+- **HQ1.1** — "HQ-assisted setup produces the same result as if the owner had
+  done it themselves. **There is no lesser HQ-only path.**"
+- **HQ1.2** — "Viewing from HQ shows **the same** per-branch breakdown and
+  roll-up an owner would see."
+
+A bespoke HQ chain dashboard would be a second implementation of both, and the
+second one is the one that drifts. So the Locations tab on a partner reads the
+estate from `lib/locations` and renders the per-branch money with
+`MoneyByLocationView` — the owner's component, not a copy of it. What HQ adds is
+the two things it genuinely has: which partner am I looking at, and that this is
+not my data.
+
+**CamiHQ modelled a partner as a single site.** `AdminBusiness` carried one
+`street`, one `phone`, and the demo partner was named **"Shampooch JVC"** — the
+name of a branch. An Account Manager could not tell a chain from a single site,
+which is the first thing they need about a signed account. The partner is
+`Shampooch` now, with `locationIds` into the estate rather than copies, and the
+list badges a chain. The badge is absent for a single site rather than reading
+"1 location", because a badge on every row stops being information.
+
+**No write path, deliberately.** Standing a chain up happens *as the owner*, in
+an impersonation session, which is what puts an actor on the record (INV-08). A
+create-and-configure surface here would be exactly the lesser HQ-only path
+HQ1.1 rules out. The section says so and links into a session.
+
+**Single-site partners see no chain view at all** — G3 read in the HQ plane.
+Four of the five seeded partners trade from one address, and a tab full of chain
+concepts would make an Account Manager reason about branches for an account that
+has none.
+
+**Still open, and Michelle's** (PRD §16): whether chain onboarding is
+CamiHQ-ops-driven like PRO-737, partner self-serve, or both — and whether E15
+being entirely P2 is *confirmed* deferrable rather than assumed so. Neither
+changes what is drawn here: HQ1.1's "same result, no lesser path" holds under
+every answer.
 
 ### Nine branches, and the collapse (D5)
 
@@ -873,7 +913,7 @@ loading, and error, with the single-branch case showing no switcher at all".
 | SCR-07 client record, visits elsewhere | **blocked** — the readable field set is undecided |
 | SCR-10 branch roster | **blocked** — one unified timeline or one roster per branch is undecided |
 | SCR-11 branch stock | **not started** — there is no stock quantity in the product model to make per-branch |
-| SCR-16 CamiHQ chain view | **not started** — entirely P2, cuttable whole without failing a gate |
+| SCR-16 CamiHQ chain view | **built** — a Locations tab on the partner, reusing the owner's estate and money roll-up; chain badged in the list; no HQ write path |
 
 ### Blocked on a decision
 

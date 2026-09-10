@@ -970,6 +970,11 @@ const SECTIONS: Section[] = [
         note: "R15 asks for that location’s offering AND availability. The offering was per branch; the availability was one hardcoded week plus all twelve staff on every branch page. Both are derived now. Day chips come from the branch’s hours, and a day it does not open reads Closed rather than Fully booked — different facts, and showing one as the other sends a client back to a day that will never have a slot. Slots are the hours at half-hour steps, so Al Quoz’s 1–4pm gap is absent rather than filtered afterwards, and the last slot sits half an hour before closing. Staff filter by the branches they work at, and someone covering two sites shows at both. Friday is on screen because all three branches differ there.",
       },
       {
+        path: "/admin/businesses?business=shampooch",
+        label: "CamiHQ chain view · SCR-16",
+        note: "Open the Shampooch partner → Locations. E15 (HQ1.1, HQ1.2), and both stories decide the design: HQ-assisted setup must produce the same result as the owner doing it, with no lesser HQ-only path, and viewing from HQ must show the same breakdown and roll-up an owner sees. So this reuses the owner’s components rather than drawing a second chain dashboard — the estate is read from lib/locations, and the per-branch money is literally MoneyByLocationView. What HQ adds is which partner am I looking at, and that this is not my data: there is no write path here, because standing a chain up happens as the owner, in a session, where the change has an actor on the record (INV-08). The businesses list now badges a chain, which it could not before — every partner looked like one site. The tab is absent for the four single-site partners (G3 in the HQ plane); open Velvet Paw to see that.",
+      },
+      {
         path: "/playground#multi-location-nine-branches-d5",
         label: "Nine branches · D5 (playground)",
         note: "The designs at the scale the PRD assumes. Three branches is the demo; nine is where the layouts fail, always the same way — most rows say nothing and the one that matters is below the fold. Both states are drawn, and the call was made by looking — collapsed is the default (D5, 10 Sep): at nine branches the one that differs is the only row worth reading, and a default that puts it below the fold loses what the screen is for. Collapsed folds the inheriting branches into one line that names them; Show all is the nine cards it replaces. Under four quiet branches nothing collapses, because folding three cards into a click is worse than three cards. The switcher, the money roll-up and the calendar strip are here at nine too — the switcher had no height cap until this pass.",
@@ -1320,7 +1325,7 @@ const SECTIONS: Section[] = [
         note: "Sort state lives in the URL, so a roster ordered by weekly volume can be pasted into a thread.",
       },
       {
-        path: "/admin/businesses?business=shampooch-jvc",
+        path: "/admin/businesses?business=shampooch",
         label: "Detail modal, Live state",
         note: "Dark green Access row, Manage tab with Sign in / Suspend / Archive",
       },
@@ -1354,7 +1359,7 @@ const SECTIONS: Section[] = [
       "R1 HQ billing spine. Settings tab on the Partner detail modal: CamiPay rail flags, a gateway per rail, and an append-only rate card. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off. Open a Partner below, then the Settings tab. Rate changes are forward-only, they never re-price captured payments.",
     screens: [
       {
-        path: "/admin/businesses?business=shampooch-jvc",
+        path: "/admin/businesses?business=shampooch",
         label: "Settings tab, live Partner",
         note: "Both rails on NeoPay, terminal cut from 2% to 1.8% and online to 3% + AED 0.75 under AED 100, both on 01 May. Show rate history to see the append-only rows, then Change to append another; the dialog previews the fee on either side of the bracket before you save.",
       },
@@ -1394,7 +1399,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/terminals?q=NP5-2419-8830",
         label: "Reverse lookup, the reason this screen exists",
-        note: "Lands with the serial off a support ticket already in the box, resolved to Shampooch JVC. Tab and search live in the URL, so a filtered fleet view is a link you can send. Search also matches pairing code, model, location, Partner name and Partner code — try CM-5107.",
+        note: "Lands with the serial off a support ticket already in the box, resolved to the Shampooch partner. Tab and search live in the URL, so a filtered fleet view is a link you can send. Search also matches pairing code, model, location, Partner name and Partner code — try CM-5107.",
       },
       {
         path: "/admin/terminals?tab=in-stock",
@@ -1412,7 +1417,7 @@ const SECTIONS: Section[] = [
         note: "Written-off unit, never offered for assignment again and not deleted — leased hardware written off is a thing finance asks about later.",
       },
       {
-        path: "/admin/businesses?business=shampooch-jvc&section=settings",
+        path: "/admin/businesses?business=shampooch&section=settings",
         label: "Partner card, three units assigned",
         note: "Active (2 signed in), No sessions, and Not set up — shipped and signed for, nobody has switched it on. Assign picks a unit from stock; the fleet listing picks a Partner for a unit. Same write, opposite starting point.",
       },
@@ -1434,7 +1439,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/businesses?q=CM-4821",
         label: "Roster, searched by Partner code",
-        note: "Lands with CM-4821 in the search box, resolved to Shampooch JVC — a support thread quoting the code is one paste from the Partner. The code reads inline under each business name next to the slug, and the copy chip sits in the detail modal header. Immutable by design: the slug already exists for the identifier that can change.",
+        note: "Lands with CM-4821 in the search box, resolved to the Shampooch partner — a support thread quoting the code is one paste from the Partner. The code reads inline under each business name next to the slug, and the copy chip sits in the detail modal header. Immutable by design: the slug already exists for the identifier that can change.",
       },
     ],
   },
@@ -1450,7 +1455,7 @@ const SECTIONS: Section[] = [
         note: "New route — the Billing menu item has been pointing at a page that didn't exist. Per-partner sends × the rate that applies, with the per-channel totals above and the amount due this period. A rate override is labelled as one on the cell, so nobody debugs an invoice discrepancy by guessing. A cell reads 'Off' when the channel isn't granted and '0' when it is granted but nothing was sent — a blank cell would mean two different things. Amounts use the rate stamped on each send, so changing a rate never rewrites a closed period. Scoped to messaging: Cami Pay subscription and transaction fees are a separate ledger, and the page says so.",
       },
       {
-        path: "/admin/businesses?business=shampooch-jvc&section=notifications",
+        path: "/admin/businesses?business=shampooch&section=notifications",
         label: "Partner record → Notifications tab",
         note: 'Opens straight on the Notifications tab (&section=notifications). Three sections in the order someone debugging a partner asks about them. Channels: master switches — turning one off locks that column in the merchant\'s own settings without clearing what they had, so turning it back on restores exactly that. Sender ID: the registered name, the Approve / Reject decision, and — only when it differs — what customers actually see. Approved, the two are the same word, so the second box is hidden; it renders in submitted and rejected, where a registration is in flight or refused and customers are still on CAMI. The null guard there is load-bearing: with no Sender ID on file the value is null while the effective sender is CAMI, so a bare inequality showed "CUSTOMERS SEE CAMI" beside "CAMI (default)" — walk Velvet Paw or Furry Tales, which both land in that state. Rates: blank now genuinely means inherited, which is what the card always claimed and the field never did — it rendered the resolved rate, so nothing was ever blank and inheriting looked identical to overridden. The placeholder carries the inherited number. Clearing the field, or typing the global value back, returns the partner to inheriting; previously touching the field made them overridden with no way back. Same decimal fix and same above-AED-1.00 warning as the global rates screen. Every change writes to the Activity tab — channel toggles, Sender ID approve/reject with its reason, and rate edits, one entry per edit on blur rather than per keystroke.',
       },

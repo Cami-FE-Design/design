@@ -23,6 +23,7 @@ import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
+import { BusinessLocationsSection } from "@/components/blocks/admin/business-locations-section"
 import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
 import { HqTerminalsPanel } from "@/components/blocks/hq-terminals-panel"
 import { LoginAsOwnerDialog } from "@/components/blocks/login-as-owner-dialog"
@@ -187,6 +188,8 @@ export function BusinessDetailDialog({
 
   if (!business) return null
 
+  const isChain = (business.locationIds?.length ?? 0) > 1
+
   const isSuspended = business.state === "suspended"
   const isArchived = business.state === "archived"
 
@@ -293,6 +296,17 @@ export function BusinessDetailDialog({
 
               <TabsList variant="underline" className="px-9">
                 <TabsTrigger value="general">General</TabsTrigger>
+                {/* Only for a chain. A single-site partner has no branches to
+                    reason about, and a tab that says so on every account is a
+                    concept four of five Account Managers never need (G3). */}
+                {isChain ? (
+                  <TabsTrigger value="locations">
+                    Locations
+                    <span className="text-sm font-normal text-muted-foreground">
+                      {business.locationIds?.length}
+                    </span>
+                  </TabsTrigger>
+                ) : null}
                 <TabsTrigger value="team">
                   Team
                   <span className="text-sm font-normal text-muted-foreground">
@@ -336,6 +350,9 @@ export function BusinessDetailDialog({
                   onChange={() => setChangeSlugOpen(true)}
                   disabled={isArchived}
                 />
+              </TabsContent>
+              <TabsContent value="locations" className="flex flex-col gap-4">
+                <BusinessLocationsSection business={business} />
               </TabsContent>
               <TabsContent value="team" className="flex flex-col gap-4">
                 <TeamSection
