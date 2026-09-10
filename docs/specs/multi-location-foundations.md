@@ -1351,6 +1351,14 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   per branch and read everywhere they are displayed, but availability and date
   bucketing still run on one clock. R19's display half is done; its scheduling
   half needs the booking engine, which is not a design surface.
+- **Not multi-location, recorded here because it was found here: the phone
+  input.** Four hardcoded dial-code lists in this repo, four options each
+  (`+971 / +966 / +44 / +1`), in the location form, the booking flow's identify
+  step and two more places — while `cami-business` ships a searchable
+  199-country picker. A client or a branch with a number outside those four
+  cannot be entered here at all. Nothing to design, only to bring across, and it
+  belongs to whoever next touches a phone field rather than to this work.
+
 - **A branch's public label is its district.** `locationContact` maps
   `location.district` onto the name a client reads, because the two matched
   exactly on all three branches and the operator already types it. A branch
