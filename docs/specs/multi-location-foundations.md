@@ -384,6 +384,41 @@ now: absent means "resolve from the catalog", which is what the chain's branches
 do. Purr Palace keeps a literal list because it is a second business and only
 one catalog is modelled in this repo.
 
+#### The operator's side was reading a different business
+
+Found in review, and worse than a duplicate. `lib/service-catalog/mock-data.ts`
+— the only source for the Service menu and Categories screens — held a **hair
+salon**: Hair Color, Brazilian Blowout, "Color treatments", ids `svc-1`…
+Everything client-facing read `SERVICE_CATEGORIES` in `lib/booking.ts`, a **pet
+groomer**: Full groom, Bath & brush, ids `full-groom`, `bath-small`…
+
+So the two lists were not copies of each other that had drifted. They were
+different businesses, and the consequence landed squarely on SCR-09: setting a
+branch price on "Hair Color" wrote an override keyed `svc-1`, and
+`publicMenuForLocation()` never looks that id up. The per-branch pricing screen
+could not reach a client page **at all** — the seeded deviations worked
+(`bath-small`, `daycare-day` are catalog ids), so the gap was invisible until
+someone made an override themselves.
+
+The as-built settles the shape. `src/types/service-catalog.ts` has one `Service`
+record carrying a `showInPublicBooking` flag — "this only hides the service from
+the public booking widget" — and `src/types/booking.ts`'s
+`CatalogService.serviceId` is documented as *"the underlying service UUID"*. One
+record set, two projections; the operator's menu and the client's catalog cannot
+disagree because they are the same rows.
+
+`seedServices` and the merchant categories are now **derived** from
+`SERVICE_CATEGORIES` rather than written again. Derived rather than retyped for
+the same reason `lib/public-offering.ts` exists: two lists agree only while
+somebody keeps them in step. The `admin-*` system categories stay hand-written —
+those are the platform's business types, not this merchant's menu.
+
+Two things this changed that a reviewer should expect: the Service menu lists
+the nineteen services a client sees (Full groom, not Hair Color), and the
+seeded per-branch overrides are now editable in the sheet that owns them. Tests
+and playground rows that named `svc-8` now find a combo **by kind**, because
+pinning an id ties them to which service happens to sit where.
+
 ### Chain setup (SCR-02)
 
 Three fields per branch — name, city, timezone — and everything else inherited

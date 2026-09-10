@@ -467,7 +467,7 @@ const SECTIONS: Section[] = [
         note: "Category sidebar + grouped service list. Drag service rows to reorder within a category or move them between categories. 'Add' menu creates a single service (full-screen takeover), a category (dialog), or a combo (own page). 'Order' / Options → 'Set menu order' opens the reorder sheet. Search filters by service name. Per-card and per-category kebabs offer Edit / Archive / Delete. All mutations update local state live. PRD-143: combos share this list with single services, so their rows now carry a tinted 'Combo' badge (layers icon) plus a count of the services they bundle — see 'Colour & Cut Combo' under Color treatments and 'Wash, Treat & Style' under Hair & styling; the same badge marks them in the Set-menu-order sheet.",
       },
       {
-        path: "/catalogs/service-menu/combos/svc-8/edit",
+        path: "/catalogs/service-menu/combos/groom-and-nails-combo/edit",
         label: "Edit combo",
         note: "PRD-143 — a combo card's kebab → Edit lands here, not in the single-service takeover, which had no field for components, schedule type or combo pricing. Opens the builder on the saved combo: name, category, description, its bundled services resolved back out of the catalog, Booked in sequence/parallel, and the price type it was saved with (service pricing / custom / percentage / free) with the percentage or retail price filled in. Save writes back to the same combo. This link opens the seeded 'Colour & Cut Combo'; a combo you create yourself edits from its own row.",
       },

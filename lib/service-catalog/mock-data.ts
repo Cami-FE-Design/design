@@ -3,9 +3,27 @@
 // are stored as minutes (not display strings) and every service carries the
 // `variants` / `extraTimes` / `isActive` fields the components expect.
 //
-// This is the only data source for the Service menu + Categories screens in
-// this design/prototype repo — there is no API. All mutations happen in
-// local React state (see store.tsx).
+// The merchant-facing services and their categories are DERIVED from the one
+// catalog in lib/booking.ts rather than written again here. That is not tidying
+// — this file used to hold a hair salon (Hair Color, Brazilian Blowout, "Color
+// treatments") while every client-facing surface read a pet groomer, so the two
+// were not duplicates of each other, they were different businesses. Setting a
+// branch price on "Hair Color" wrote an override keyed to a service id that
+// publicMenuForLocation() never looks up, so the per-branch pricing screen
+// (SCR-09) could not reach a client page at all.
+//
+// The as-built settles the shape: src/types/service-catalog.ts has one `Service`
+// record with a `showInPublicBooking` flag, and src/types/booking.ts's
+// `CatalogService.serviceId` is documented as "the underlying service UUID".
+// One record set, two projections. Deriving here makes that true by
+// construction rather than by keeping two lists in step by hand.
+//
+// The system-managed `admin-*` categories below stay hand-written: they are the
+// platform's business types, not this merchant's menu.
+//
+// All mutations happen in local React state (see store.tsx).
+
+import { SERVICE_CATEGORIES } from "@/lib/booking"
 
 import type { Service, ServiceCategory } from "./types"
 
@@ -14,6 +32,26 @@ export type TeamMember = {
   id: string
   name: string
   title?: string
+}
+
+/** The roster the catalog screens read. */
+export const seedTeamMembers: TeamMember[] = [
+  { id: "tm-1", name: "Sarah Johnson" },
+  { id: "tm-2", name: "James Carter", title: "Cashier" },
+  { id: "tm-3", name: "Emily Rivera" },
+]
+
+/** Cycled so the Categories table is legible; the palette is the repo's. */
+const CATEGORY_COLORS = ["purple", "yellow", "green", "pink"]
+
+/**
+ * Who can perform a service. The catalog carries no staff assignment, so this
+ * spreads the roster across the menu rather than claiming every groomer does
+ * everything — enough for the Team members tab to have something true to show.
+ */
+function teamFor(index: number): string[] {
+  const roster = seedTeamMembers.map((member) => member.id)
+  return [roster[index % roster.length], roster[(index + 1) % roster.length]]
 }
 
 export const seedCategories: ServiceCategory[] = [
@@ -123,197 +161,62 @@ export const seedCategories: ServiceCategory[] = [
     isActive: true,
     servicesCount: 0,
   },
-  // Merchant-created categories (shown in the Categories table + Service menu).
-  {
-    id: "cat-1",
-    name: "Color treatments",
-    color: "purple",
-    description: "Hair coloring and treatment services",
-    order: 0,
-    parentId: "admin-1",
-    isSystemManaged: false,
-    isActive: true,
-    servicesCount: 0,
-  },
-  {
-    id: "cat-2",
-    name: "Hair & styling",
-    color: "blue",
-    description: "Haircuts, blowouts, and styling services",
-    order: 1,
-    parentId: "admin-1",
-    isSystemManaged: false,
-    isActive: true,
-    servicesCount: 0,
-  },
-  {
-    id: "cat-3",
-    name: "Nail care",
-    color: "pink",
-    description: "Manicure and pedicure services",
-    order: 2,
-    parentId: "admin-1",
-    isSystemManaged: false,
-    isActive: true,
-    servicesCount: 0,
-  },
+
+  // Merchant-created categories (shown in the Categories table + Service menu),
+  // one per category of the catalog the client browses. Parented to Grooming
+  // because that is this merchant's business type.
+  ...SERVICE_CATEGORIES.map(
+    (category, index): ServiceCategory => ({
+      id: category.id,
+      name: category.name,
+      color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+      description: category.description,
+      order: index + 1,
+      parentId: "admin-1",
+      isSystemManaged: false,
+      slug: category.id,
+      isActive: true,
+      servicesCount: category.services.length,
+    }),
+  ),
 ]
 
-export const seedServices: Service[] = [
-  {
-    id: "svc-1",
-    name: "Hair Color",
-    categoryId: "cat-1",
-    categoryName: "Color treatments",
-    description: "Full head hair coloring",
-    priceType: "Fixed",
-    price: 57,
-    duration: 75,
-    order: 0,
-    teamMemberIds: ["tm-1", "tm-2"],
-    isActive: true,
-    variants: [],
-    extraTimes: [],
-  },
-  {
-    id: "svc-2",
-    name: "Haircut",
-    categoryId: "cat-1",
-    categoryName: "Color treatments",
-    description: "Precision haircut",
-    priceType: "Fixed",
-    price: 40,
-    duration: 45,
-    order: 1,
-    teamMemberIds: ["tm-1", "tm-2", "tm-3"],
-    isActive: true,
-    variants: [],
-    extraTimes: [],
-  },
-  {
-    id: "svc-3",
-    name: "Brazilian Blowout",
-    categoryId: "cat-2",
-    categoryName: "Hair & styling",
-    description: "Smoothing treatment",
-    priceType: "Fixed",
-    price: 100,
-    duration: 60,
-    order: 0,
-    teamMemberIds: ["tm-2"],
-    isActive: true,
-    variants: [],
-    extraTimes: [],
-  },
-  {
-    id: "svc-4",
-    name: "Blow Dry",
-    categoryId: "cat-2",
-    categoryName: "Hair & styling",
-    description: "Professional blowout",
-    priceType: "Fixed",
-    price: 35,
-    duration: 35,
-    order: 1,
-    teamMemberIds: ["tm-1", "tm-3"],
-    isActive: true,
-    variants: [],
-    extraTimes: [],
-  },
-  {
-    id: "svc-5",
-    name: "Deep Conditioning",
-    categoryId: "cat-2",
-    categoryName: "Hair & styling",
-    description: "Intensive moisture treatment",
-    priceType: "Fixed",
-    price: 65,
-    duration: 60,
-    order: 2,
-    teamMemberIds: ["tm-2", "tm-3"],
-    isActive: true,
-    variants: [],
-    extraTimes: [],
-  },
-  {
-    id: "svc-6",
-    name: "Classic Manicure",
-    categoryId: "cat-3",
-    categoryName: "Nail care",
-    description: "Nail shaping, cuticle care and polish",
-    priceType: "Fixed",
-    price: 25,
-    duration: 30,
-    order: 0,
-    teamMemberIds: ["tm-3"],
-    isActive: true,
-    variants: [],
-    extraTimes: [],
-  },
-  {
-    id: "svc-7",
-    name: "Gel Manicure",
-    categoryId: "cat-3",
-    categoryName: "Nail care",
-    description: "Long-lasting gel polish application",
-    priceType: "Fixed",
-    price: 45,
-    duration: 45,
-    order: 1,
-    teamMemberIds: ["tm-3"],
-    isActive: true,
-    variants: [],
-    extraTimes: [],
-  },
+export const seedServices: Service[] = SERVICE_CATEGORIES.flatMap((category) =>
+  category.services.map((service, index): Service => {
+    const components = (service.componentIds ?? []).map((componentId) => {
+      const component = SERVICE_CATEGORIES.flatMap((c) => c.services).find(
+        (candidate) => candidate.id === componentId,
+      )
+      return { id: componentId, name: component?.name ?? componentId }
+    })
 
-  // ── Combos ───────────────────────────────────────────────────────────────
-  // Combos come back from the same services endpoint as single services, so
-  // they sit in this list too — the card tells them apart via `serviceType`.
-  {
-    id: "svc-8",
-    name: "Colour & Cut Combo",
-    serviceType: "combo",
-    components: [
-      { id: "svc-1", name: "Hair Color" },
-      { id: "svc-2", name: "Haircut" },
-    ],
-    categoryId: "cat-1",
-    categoryName: "Color treatments",
-    description: "Full colour followed by a precision cut",
-    priceType: "Fixed",
-    price: 85,
-    duration: 120,
-    order: 2,
-    teamMemberIds: ["tm-1", "tm-2"],
-    isActive: true,
-    variants: [],
-    extraTimes: [],
-  },
-  {
-    id: "svc-9",
-    name: "Wash, Treat & Style",
-    serviceType: "combo",
-    components: [
-      { id: "svc-5", name: "Deep Conditioning" },
-      { id: "svc-4", name: "Blow Dry" },
-      { id: "svc-3", name: "Brazilian Blowout" },
-    ],
-    categoryId: "cat-2",
-    categoryName: "Hair & styling",
-    description: "Conditioning treatment, smoothing and a finishing blowout",
-    priceType: "From",
-    price: 165,
-    duration: 155,
-    order: 3,
-    teamMemberIds: ["tm-2", "tm-3"],
-    isActive: true,
-    variants: [],
-    extraTimes: [],
-  },
-]
-
-export const seedTeamMembers: TeamMember[] = [
-  { id: "tm-1", name: "Sarah Johnson" },
-  { id: "tm-2", name: "James Carter", title: "Cashier" },
-  { id: "tm-3", name: "Emily Rivera" },
-]
+    return {
+      id: service.id,
+      name: service.name,
+      ...(service.isCombo
+        ? {
+            serviceType: "combo" as const,
+            components,
+            // The catalog's own field: absent means back-to-back, which is
+            // what "sequence" is called on this side.
+            scheduleType: service.comboScheduleType ?? ("sequence" as const),
+            // The catalog prices its combos below the sum of the components
+            // (a full groom and a nail trim are 295 apart, the combo is 270),
+            // which is "custom" rather than derived from the components.
+            comboPriceType: "custom" as const,
+          }
+        : {}),
+      categoryId: category.id,
+      categoryName: category.name,
+      description: service.description,
+      priceType: "Fixed",
+      price: service.priceAed,
+      duration: service.durationMinutes,
+      order: index + 1,
+      teamMemberIds: teamFor(index),
+      isActive: true,
+      variants: [],
+      extraTimes: [],
+    }
+  }),
+)

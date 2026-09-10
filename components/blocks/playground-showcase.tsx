@@ -871,6 +871,13 @@ function BookingComboPickerDemo() {
 // PRD-143 — the POS cart holds a combo the same way: its component lines, each
 // with the list price struck through, and the saving named in the footer.
 let comboUidSeq = 0
+/**
+ * The seeded combos, by kind rather than by id. The catalog is derived from
+ * lib/booking.ts now, so naming "svc-8" tied these rows to which service
+ * happened to sit where.
+ */
+const SEED_COMBOS = seedServices.filter((service) => service.serviceType === "combo")
+
 const COMBO_CART_LINES = comboCartLines(
   SERVICES.find((svc) => svc.id === "nails-and-style-combo") ?? SERVICES[0],
   SERVICES,
@@ -2941,8 +2948,8 @@ export function PlaygroundShowcase() {
               {/* PRD-143 — combos share the list with single services, so the row
                 carries a tinted Combo badge and a component count. */}
               <ServiceCardInner
-                service={seedServices.find((s) => s.id === "svc-8")!}
-                category={seedCategories.find((c) => c.id === "cat-1")!}
+                service={SEED_COMBOS[0]}
+                category={seedCategories.find((c) => c.id === SEED_COMBOS[0].categoryId)!}
                 canManage
                 withHandle={false}
                 onDelete={() => {}}
@@ -2953,8 +2960,8 @@ export function PlaygroundShowcase() {
           <Row label="Service card, combo (archived)">
             <div className="w-full max-w-xl">
               <ServiceCardInner
-                service={{ ...seedServices.find((s) => s.id === "svc-9")!, isActive: false }}
-                category={seedCategories.find((c) => c.id === "cat-2")!}
+                service={{ ...SEED_COMBOS[1], isActive: false }}
+                category={seedCategories.find((c) => c.id === SEED_COMBOS[1].categoryId)!}
                 canManage
                 withHandle={false}
                 onDelete={() => {}}
