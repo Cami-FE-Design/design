@@ -5,12 +5,8 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import {
-  locationName,
-  type Terminal,
-  type TerminalSession,
-  terminalStatus,
-} from "@/lib/terminals/store"
+import { locationName } from "@/lib/locations/mock"
+import { type Terminal, type TerminalSession, terminalStatus } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
 import { formatAedDecimal } from "./mock"
 

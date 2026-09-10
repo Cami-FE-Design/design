@@ -14,15 +14,53 @@
 // fee their rate card says they pay.
 
 import { type CamiPayRate, computeFee } from "@/lib/hq-camipay/store"
+import { LOCATIONS } from "@/lib/locations/mock"
 import type { CamiPayRail, MerchantRails, MoneyTx, Payout } from "./types"
 
 /** Fixed anchor. Everything relative ("Today", "arriving") reads from this. */
 export const TODAY_ISO = "2026-08-24"
 
-/** The merchant. Named on every "from"/"to" row in a transaction detail. */
-export const BUSINESS_NAME = "Shampooch JVC"
+/**
+ * The merchant. Named on every "from"/"to" row in a transaction detail, and on
+ * the business-level rows a branch does not own — a payout leaves for the
+ * business's account, not a branch's (GP1.4).
+ *
+ * Was "Shampooch JVC", which named a branch where the business belonged. JVC
+ * is one of three locations now.
+ */
+export const BUSINESS_NAME = "Shampooch"
 
-const LOCATION = BUSINESS_NAME
+/**
+ * The branches money is attributed to (R09, R17).
+ *
+ * This used to be one `LOCATION = BUSINESS_NAME`, which conflated the two
+ * planes the blueprint separates (§02): a business is the shared tenancy, a
+ * branch is where money actually happens. Money is location-operational and
+ * never locationless.
+ *
+ * Only the two trading branches appear. Al Quoz is suspended, so it takes no
+ * new sales — and that is worth seeing rather than smoothing over: SCR-15
+ * names a granted branch with no activity instead of dropping it, because "no
+ * sales there today" and "missing from this report" are different answers.
+ */
+const TRADING_LOCATIONS = LOCATIONS.filter((l) => l.status === "live").map((l) => l.name)
+
+/**
+ * Which branch a seeded row lands on.
+ *
+ * Derived from the row index rather than from `rand`, deliberately. The
+ * generator's random stream is a fixture other tests assert exact figures
+ * against (lib/money/fees.test.ts, ledger.test.ts), so drawing from it here
+ * would silently move every seeded amount — spreading money across branches
+ * must not change how much money there is.
+ *
+ * Uneven on purpose: a chain where every branch takes the same is a chain
+ * where SCR-15 has nothing to show, since the job is spotting the branch
+ * having a bad day. Two rows in three land on the first branch.
+ */
+function locationFor(index: number): string {
+  return index % 3 === 2 ? TRADING_LOCATIONS[1] : TRADING_LOCATIONS[0]
+}
 
 /**
  * Shampooch JVC's rates as they stand from 01 May 2026 in the CamiPay demo
@@ -158,6 +196,12 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
       const confirmation =
         rail === "terminal" && isRecent && rand() < 0.35 ? "reported" : "confirmed"
 
+      // Resolved once per payment and reused by the tip, fee and refund that
+      // ride on it. A fee attributed to a different branch than its payment
+      // would show up in the breakdown as a cost with no matching sale, which
+      // is the attribution drift INV-01 exists to prevent.
+      const locationName = locationFor(i)
+
       const payment: MoneyTx = {
         id: nextId("tx"),
         kind,
@@ -167,7 +211,7 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
         reference,
         client,
         method,
-        locationName: LOCATION,
+        locationName,
         confirmation,
       }
       txs.push(payment)
@@ -184,7 +228,7 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
           reference,
           client,
           method,
-          locationName: LOCATION,
+          locationName,
           confirmation,
           causedByTxId: payment.id,
         })
@@ -202,7 +246,7 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
           amountMinor: -fee.totalMinor,
           at: at(day, i * 47 + 2),
           reference,
-          locationName: LOCATION,
+          locationName,
           confirmation: "confirmed",
           causedByTxId: payment.id,
           // Snapshotted here, not looked up later. See `rateSnapshot` on MoneyTx.
@@ -234,7 +278,10 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
           client: original.client,
           reference: original.reference,
           method: original.method,
-          locationName: LOCATION,
+          // The branch the money was taken at, not the branch doing the
+          // refunding: a refund reverses a specific sale, and moving it would
+          // credit one branch for another's reversal (R17, INV-01).
+          locationName: original.locationName,
           confirmation: "confirmed",
           causedByTxId: original.id,
         })
@@ -250,7 +297,9 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
         rail: "online",
         amountMinor: -amountBetween(rand, 2_000, 6_000),
         at: at(day, 30),
-        locationName: LOCATION,
+        // Comms cost is attributed to the branch that sent or received it
+        // (R22); the business total is derived from its branches.
+        locationName: locationFor(weekdayOf(day)),
         confirmation: "confirmed",
         note: "WhatsApp reminders and campaign sends",
       })
@@ -340,7 +389,11 @@ function schedulePayouts(txs: MoneyTx[], nextId: (prefix: string) => string): Pa
         rail,
         amountMinor: -amountMinor,
         at: at(day, -180),
-        locationName: LOCATION,
+        // A payout is money leaving for the bank, and UAE v0 settles per
+        // business into one account (GP1.4) — so it is not a branch row.
+        // Attributing it to a branch would double-count against that branch's
+        // takings, which are already attributed on the sale.
+        locationName: BUSINESS_NAME,
         confirmation: "confirmed",
         payoutId: id,
       })
@@ -364,7 +417,7 @@ function schedulePayouts(txs: MoneyTx[], nextId: (prefix: string) => string): Pa
           rail,
           amountMinor,
           at: at(day, 540),
-          locationName: LOCATION,
+          locationName: BUSINESS_NAME,
           confirmation: "confirmed",
           payoutId: retryId,
           reversesPayoutId: id,
@@ -388,7 +441,7 @@ function schedulePayouts(txs: MoneyTx[], nextId: (prefix: string) => string): Pa
           rail,
           amountMinor: -amountMinor,
           at: at(retryDay, -180),
-          locationName: LOCATION,
+          locationName: BUSINESS_NAME,
           confirmation: "confirmed",
           payoutId: retryId,
           note: "Retry of the payout NeoPay returned",

@@ -10,6 +10,7 @@ import {
   CheckCircle2Icon,
   CheckIcon,
   ChevronDownIcon,
+  CirclePlusIcon,
   ClockIcon,
   FootprintsIcon,
   GraduationCapIcon,
@@ -29,13 +30,15 @@ import {
   XIcon,
 } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import { useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
+import { FullScreenEditDialog as SharedFullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
+import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +56,17 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { REASON_CODES } from "@/lib/admin-businesses"
+import { type NewLocationInput, slugify, useLocations } from "@/lib/locations/store"
+import {
+  BUSINESS_TAX_IDENTITY,
+  formatReceiptNumber,
+  LOCATION_TAX_OVERRIDES,
+  resolveTaxIdentity,
+  taxOverrideCount,
+} from "@/lib/locations/tax-identity"
+import type { Invoicing, Location, LocationAddress } from "@/lib/locations/types"
+import { isPubliclyBookable } from "@/lib/locations/types"
 import { cn } from "@/lib/utils"
 
 const triggerOverride = "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
@@ -109,80 +123,6 @@ const COUNTRY_OPTIONS = [
   "United States",
 ] as const
 
-type LocationAddress = {
-  address: string
-  aptSuite: string
-  district: string
-  city: string
-  state: string
-  postcode: string
-  country: string
-}
-
-type Invoicing = {
-  sameAsLocation: boolean
-  companyName: string
-  address: string
-  aptSuite: string
-  city: string
-  state: string
-  postcode: string
-  vatNumber: string
-  invoiceNote: string
-}
-
-type Location = {
-  id: string
-  name: string
-  slug: string
-  phone: string
-  email: string
-  location: LocationAddress
-  mapPin: { lat: number; lng: number } | null
-  businessType: string[]
-  invoicing: Invoicing
-  status: "live" | "draft"
-  ownerName: string
-  ownerEmail: string
-  photoUrl: string
-}
-
-const LOCATIONS: Location[] = [
-  {
-    id: "shampooch-jvc",
-    name: "Shampooch JVC",
-    slug: "shampooch-jvc",
-    phone: "+971 50 123 4567",
-    email: "hello@shampooch.ae",
-    location: {
-      address: "Al Ghozlan 4, Jumeirah Village Circle",
-      aptSuite: "",
-      district: "JVC",
-      city: "Dubai",
-      state: "Dubai",
-      postcode: "",
-      country: "United Arab Emirates",
-    },
-    mapPin: { lat: 25.0635, lng: 55.2008 },
-    businessType: ["grooming", "wellness"],
-    invoicing: {
-      sameAsLocation: false,
-      companyName: "Shampooch Trading LLC",
-      address: "Office 504, Building 7, JLT",
-      aptSuite: "",
-      city: "Dubai",
-      state: "Dubai",
-      postcode: "",
-      vatNumber: "100123456700003",
-      invoiceNote: "",
-    },
-    status: "live",
-    ownerName: "Maz Khan",
-    ownerEmail: "maaz@getcami.io",
-    photoUrl: "https://picsum.photos/seed/shampooch/80",
-  },
-]
-
 function formatLocationAddress(loc: LocationAddress): string | null {
   const line = [loc.address, loc.aptSuite, loc.district, loc.city, loc.state, loc.postcode]
     .filter(Boolean)
@@ -204,8 +144,12 @@ function formatInvoicingAddress(inv: Invoicing): string | null {
  * intentionally absent during design iteration.
  */
 export function LocationForm() {
+  // The estate, not the seed: suspending a branch here has to be the same
+  // branch the topbar switcher and the terminals panel are looking at.
+  const { locations } = useLocations()
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const selected = LOCATIONS.find((l) => l.id === selectedId) ?? null
+  const [addOpen, setAddOpen] = useState(false)
+  const selected = locations.find((l) => l.id === selectedId) ?? null
 
   if (selected) {
     return <LocationDetailView location={selected} onBack={() => setSelectedId(null)} />
@@ -221,19 +165,257 @@ export function LocationForm() {
           <p className="text-sm leading-5 text-muted-foreground">
             Where you operate. Click a location to manage its details.
           </p>
+          <Button
+            type="button"
+            variant="outline"
+            radius="full"
+            className="self-start"
+            onClick={() => setAddOpen(true)}
+          >
+            <CirclePlusIcon className="size-4" />
+            Add locations
+          </Button>
         </header>
       }
     >
       <div className="flex flex-col gap-3">
-        {LOCATIONS.map((loc) => (
+        {locations.map((loc) => (
           <LocationListCard key={loc.id} location={loc} onOpen={() => setSelectedId(loc.id)} />
         ))}
       </div>
+      <AddLocationsTakeover open={addOpen} onOpenChange={setAddOpen} />
     </SettingsPanel>
   )
 }
 
+/**
+ * SCR-02 · Chain setup (R02, SU1.2, SU1.3).
+ *
+ * The gate this screen exists for is BG-03: adding branch N costs zero
+ * operator migration steps. So it asks for the three things that genuinely
+ * differ per branch and inherits everything else from the business — tax
+ * identity, invoicing and country are a business default with a per-field
+ * override (R23), not a form to fill in nine times.
+ *
+ * All or none, deliberately. "Submitting several branches at once with one bad
+ * entry creates none of them, I fix it and retry" (SU1.2). A partial create is
+ * worse than a rejection here: the owner cannot tell which of the nine landed,
+ * and retrying duplicates the ones that did.
+ *
+ * Branches land as `draft`, not `live`. Created is not trading — hours and
+ * staff still have to be set before a branch can take a booking.
+ */
+export function AddLocationsTakeover({
+  open,
+  onOpenChange,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { addLocations, takenSlugs } = useLocations()
+  const [rows, setRows] = useState<NewLocationInput[]>([
+    { name: "", city: "Dubai", timezone: "Asia/Dubai" },
+  ])
+  const [errors, setErrors] = useState<Record<number, string>>({})
+
+  function update(index: number, patch: Partial<NewLocationInput>) {
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, ...patch } : r)))
+    // Clear this row's error as soon as it is edited, so the form stops
+    // shouting about something the owner is already fixing.
+    setErrors((prev) => {
+      if (!prev[index]) return prev
+      const next = { ...prev }
+      delete next[index]
+      return next
+    })
+  }
+
+  function validate(): Record<number, string> {
+    const found: Record<number, string> = {}
+    const seen = new Map<string, number>()
+    rows.forEach((row, i) => {
+      const name = row.name.trim()
+      if (!name) {
+        found[i] = "Give this location a name"
+        return
+      }
+      if (!row.city.trim()) {
+        found[i] = "Give this location a city"
+        return
+      }
+      const slug = slugify(name)
+      if (!slug) {
+        found[i] = "That name has no letters or numbers to make a link from"
+        return
+      }
+      if (takenSlugs.includes(slug)) {
+        found[i] = `cami.app/${slug} is already taken by another location`
+        return
+      }
+      // Two rows in the same batch resolving to one link is the collision the
+      // owner cannot see coming, so it is named on the second row rather than
+      // silently overwriting the first.
+      const earlier = seen.get(slug)
+      if (earlier !== undefined) {
+        found[i] = `Same link as row ${earlier + 1} (cami.app/${slug})`
+        return
+      }
+      seen.set(slug, i)
+    })
+    return found
+  }
+
+  function save() {
+    const found = validate()
+    setErrors(found)
+    if (Object.keys(found).length > 0) return
+    addLocations(rows)
+    setRows([{ name: "", city: "Dubai", timezone: "Asia/Dubai" }])
+    setErrors({})
+    onOpenChange(false)
+  }
+
+  const errorCount = Object.keys(errors).length
+
+  return (
+    <SharedFullScreenEditDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Add locations"
+      subtitle="Add one location, or several in one pass. Everything else — tax details, invoicing, country — is inherited from the business, and each location can override it later."
+      onSave={save}
+      saveLabel={rows.length > 1 ? `Create ${rows.length} locations` : "Create location"}
+    >
+      {/* The settings form idiom, copied from sales-settings.tsx (Gift card
+          settings, Payment policy): section heading + description, fields
+          constrained to max-w-md rather than filling the column, an `hr`
+          between sections, and a circled-plus pill for the add action. A
+          bordered card per row was wrong twice — cards are for the read-mode
+          summaries this form is the counterpart to, and full-width inputs are
+          not what any other settings form does. */}
+      {rows.map((row, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: rows are positional and have no id until created
+        <Fragment key={i}>
+          {i > 0 ? <hr className="border-border/40" /> : null}
+          <section className="flex flex-col gap-5">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-col gap-1">
+                <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+                  {rows.length > 1 ? `Location ${i + 1}` : "New location"}
+                </h3>
+                <p className="text-sm leading-5 text-muted-foreground">
+                  Shown on receipts, booking confirmations, and the public booking page.
+                </p>
+              </div>
+              {rows.length > 1 ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  radius="full"
+                  onClick={() => {
+                    setRows((prev) => prev.filter((_, j) => j !== i))
+                    setErrors({})
+                  }}
+                >
+                  Remove
+                </Button>
+              ) : null}
+            </div>
+
+            <div className="flex w-full max-w-md flex-col gap-5">
+              <div className="flex flex-col gap-1.5">
+                <Field label="Location name">
+                  <Input
+                    value={row.name}
+                    onChange={(e) => update(i, { name: e.target.value })}
+                    placeholder="Shampooch Marina"
+                    aria-invalid={Boolean(errors[i])}
+                  />
+                </Field>
+                {/* Helper under the field, the way Payment policy explains a
+                    deposit percentage — the link is a consequence of the name,
+                    so it belongs next to it rather than in the heading. */}
+                <p className="text-sm leading-5 text-muted-foreground">
+                  {row.name.trim()
+                    ? `Its booking page will be cami.app/${slugify(row.name)}`
+                    : "Its booking page link is made from this name."}
+                </p>
+              </div>
+
+              <Field label="City">
+                <Input
+                  value={row.city}
+                  onChange={(e) => update(i, { city: e.target.value })}
+                  placeholder="Dubai"
+                  aria-invalid={Boolean(errors[i])}
+                />
+              </Field>
+
+              <div className="flex flex-col gap-1.5">
+                <Field label="Timezone">
+                  <Select value={row.timezone} onValueChange={(v) => update(i, { timezone: v })}>
+                    <SelectTrigger className={cn(triggerOverride, "w-full")}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TIMEZONE_OPTIONS.map((tz) => (
+                        <SelectItem key={tz} value={tz}>
+                          {tz}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <p className="text-sm leading-5 text-muted-foreground">
+                  Appointments and reports at this location bucket by its own day.
+                </p>
+              </div>
+
+              {errors[i] ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {errors[i]}
+                </p>
+              ) : null}
+            </div>
+          </section>
+        </Fragment>
+      ))}
+
+      <hr className="border-border/40" />
+
+      <section className="flex flex-col gap-5">
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            radius="full"
+            className="gap-1.5"
+            onClick={() =>
+              setRows((prev) => [...prev, { name: "", city: "Dubai", timezone: "Asia/Dubai" }])
+            }
+          >
+            <CirclePlusIcon className="size-4" />
+            Add another location
+          </Button>
+        </div>
+        {errorCount > 0 ? (
+          <p
+            role="alert"
+            className="w-full max-w-md rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground"
+          >
+            {errorCount === 1 ? "One location needs" : `${errorCount} locations need`} fixing.
+            Nothing has been created — fix the fields above and try again.
+          </p>
+        ) : null}
+      </section>
+    </SharedFullScreenEditDialog>
+  )
+}
+
 function LocationListCard({ location, onOpen }: { location: Location; onOpen: () => void }) {
+  const { setStatus } = useLocations()
   return (
     <div className="group flex items-center justify-between gap-4 rounded-2xl border border-border/60 p-4 transition-colors hover:bg-foreground/[0.03]">
       <button
@@ -246,8 +428,11 @@ function LocationListCard({ location, onOpen }: { location: Location; onOpen: ()
           <img src={location.photoUrl} alt={location.name} className="size-full object-cover" />
         </div>
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate font-heading text-base font-semibold text-foreground">
-            {location.name}
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="truncate font-heading text-base font-semibold text-foreground">
+              {location.name}
+            </span>
+            <LocationStatusBadge status={location.status} />
           </span>
           <span className="truncate text-sm text-muted-foreground">cami.app/{location.slug}</span>
         </div>
@@ -261,13 +446,25 @@ function LocationListCard({ location, onOpen }: { location: Location; onOpen: ()
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuItem>Change photo</DropdownMenuItem>
-          <DropdownMenuItem>Suspend location</DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <a href={`/${location.slug}`} target="_blank" rel="noopener noreferrer">
-              See public booking page
-              <ArrowUpRightIcon className="ml-auto size-3.5 text-muted-foreground" />
-            </a>
-          </DropdownMenuItem>
+          {location.status === "suspended" ? (
+            <DropdownMenuItem onSelect={() => setStatus(location.id, "live")}>
+              Unsuspend location
+            </DropdownMenuItem>
+          ) : location.status === "live" ? (
+            <DropdownMenuItem onSelect={() => setStatus(location.id, "suspended")}>
+              Suspend location
+            </DropdownMenuItem>
+          ) : null}
+          {/* Suspended and archived branches have no public page to open
+              (SU1.5, R12), so the row goes rather than 404ing the operator. */}
+          {isPubliclyBookable(location.status) ? (
+            <DropdownMenuItem asChild>
+              <a href={`/${location.slug}`} target="_blank" rel="noopener noreferrer">
+                See public booking page
+                <ArrowUpRightIcon className="ml-auto size-3.5 text-muted-foreground" />
+              </a>
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -633,28 +830,88 @@ function HoursTab() {
   )
 }
 
+/**
+ * SCR-12 · A branch's tax identity (R23, R25, INV-12).
+ *
+ * Every inheritable row says whose value it is, because "business default with
+ * a per-field override" is invisible otherwise — two branches showing
+ * "Shampooch Trading LLC" look identical whether one of them means it or is
+ * merely following along, and the difference decides what happens when the
+ * business default changes.
+ *
+ * The forward-only warning is the load-bearing copy on this screen. Editing
+ * here changes every **future** receipt and no issued one: the resolved values
+ * are copied onto the receipt at sale completion and are permanent from then
+ * (INV-12). An operator who expects a correction to fix last month's invoices
+ * is going to be wrong in a way that matters at filing.
+ */
 function InvoicingTab({ location }: { location: Location }) {
   const [taxEditing, setTaxEditing] = useState(false)
   const [receiptEditing, setReceiptEditing] = useState(false)
   const [tippingEditing, setTippingEditing] = useState(false)
 
+  const overrides = LOCATION_TAX_OVERRIDES[location.id]
+  const { value: tax, source } = resolveTaxIdentity(BUSINESS_TAX_IDENTITY, overrides)
+  const ownFields = taxOverrideCount(overrides)
+
   return (
     <div className="flex flex-col gap-4">
       <InvoicingDetailsCard location={location} />
+
+      <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
+        {ownFields === 0
+          ? "This location follows the business tax identity on every field."
+          : ownFields === 1
+            ? "This location holds its own value for 1 field. The rest follow the business."
+            : `This location holds its own values for ${ownFields} fields. The rest follow the business.`}{" "}
+        Changes here apply to future receipts only — an issued receipt keeps the details it was
+        printed with.
+      </p>
+
+      <SummaryCard heading="Tax identity" onEdit={() => setTaxEditing(true)}>
+        <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+          <SummaryRow
+            label="Legal / invoice name"
+            value={tax.legalName}
+            source={source.legalName}
+          />
+          <SummaryRow label="Tax registration number" value={tax.trn} source={source.trn} />
+          <SummaryRow
+            label="Invoice address"
+            value={tax.invoiceAddress}
+            source={source.invoiceAddress}
+          />
+        </div>
+      </SummaryCard>
+
       <SummaryCard heading="Tax defaults" onEdit={() => setTaxEditing(true)}>
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
-          <SummaryRow label="Services" value="VAT (5%)" />
-          <SummaryRow label="Products" value="VAT (5%)" />
+          <SummaryRow
+            label="Services"
+            value={tax.servicesVatRate}
+            source={source.servicesVatRate}
+          />
+          <SummaryRow
+            label="Products"
+            value={tax.productsVatRate}
+            source={source.productsVatRate}
+          />
         </div>
       </SummaryCard>
       <SummaryCard heading="Receipt sequencing" onEdit={() => setReceiptEditing(true)}>
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           <SummaryRow
             label="Receipt No. prefix"
-            value={null}
-            onAdd={() => setReceiptEditing(true)}
+            value={tax.receiptPrefix}
+            source={source.receiptPrefix}
           />
-          <SummaryRow label="Next receipt number" value="21857" />
+          {/* Shown as it will print, prefix included: the prefix is the whole
+              point of a per-branch sequence, and "21857" alone does not show
+              that two branches cannot collide. */}
+          <SummaryRow
+            label="Next receipt number"
+            value={formatReceiptNumber(tax.receiptPrefix, 21857)}
+          />
         </div>
       </SummaryCard>
       <SummaryCard heading="Tipping" onEdit={() => setTippingEditing(true)}>
@@ -676,7 +933,44 @@ function InvoicingTab({ location }: { location: Location }) {
   )
 }
 
+/**
+ * The lifecycle half of SCR-01 (R01, R12, SU1.4, SU1.5).
+ *
+ * Copy, states and disabled rules are the shipped ones — this mirrors
+ * `LocationsPanel.tsx` in cami-business, which already ships suspend,
+ * unsuspend and delete against `useChangeVenueState()`. It was wired to
+ * nothing here, which is the only thing that changed.
+ *
+ * Two rules that are easy to miss and are the shipped behaviour:
+ *
+ * - Suspend and delete are **mutually exclusive moves**. A suspended location
+ *   has to be unsuspended before it can be deleted, and an archived one accepts
+ *   neither. That is why each button has its own disabled condition rather than
+ *   one shared guard.
+ * - Every move takes a **reason code and an optional internal note**, composed
+ *   into one reason string. The state endpoint expects it, and INV-08 wants the
+ *   change attributable. Unsuspend narrows the picker to owner request and
+ *   other, because coming back is almost always the owner's own call.
+ *
+ * ⚠️ The delete copy says data is "permanently removed" after 90 days. That is
+ * the shipped wording and the shipped behaviour, and it contradicts **R12**,
+ * which says an archived location is never deleted and its history, receipts,
+ * reports and issued stored value stay readable. Only the slug is meant to free
+ * up. Not changed here — the conflict is between the built product and the
+ * requirement, and it belongs to Michelle rather than to this file.
+ *
+ * Also deliberately not invented: what happens to a branch's future
+ * appointments and unsettled sales on delete. Undecided (PRD §16, PRO-557).
+ */
 function ManageTab({ location }: { location: Location }) {
+  const { setStatus } = useLocations()
+  const [suspendOpen, setSuspendOpen] = useState(false)
+  const [unsuspendOpen, setUnsuspendOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+
+  const isSuspended = location.status === "suspended"
+  const isArchived = location.status === "archived"
+
   return (
     <div className="flex flex-col gap-4">
       {location.status === "live" && (
@@ -696,26 +990,195 @@ function ManageTab({ location }: { location: Location }) {
         <h3 className="mb-2 text-sm font-semibold text-foreground">Manage Location</h3>
 
         <ManageRow
-          title="Suspend Location"
-          description="Hides the public booking page for this location. Owner can re-enable any time. Bookings, services, and staff are preserved."
+          title={isSuspended ? "Unsuspend Location" : "Suspend Location"}
+          description={
+            isSuspended
+              ? "This location is currently suspended — its public booking page is hidden. Unsuspending makes it bookable again."
+              : "Hides the public booking page for this location. Owner can re-enable any time. Bookings, services, and staff are preserved."
+          }
           action={
-            <Button type="button" variant="outline" radius="full">
-              Suspend location
+            <Button
+              type="button"
+              variant="outline"
+              radius="full"
+              disabled={isArchived}
+              onClick={() => (isSuspended ? setUnsuspendOpen(true) : setSuspendOpen(true))}
+            >
+              {isSuspended ? "Unsuspend location" : "Suspend location"}
             </Button>
           }
         />
 
         <ManageRow
           title="Delete Location"
-          description="Soft-deletes the location. Data is preserved for 90 days, then permanently removed. The slug frees up after 90 days."
+          description={
+            isArchived
+              ? "This location has already been deleted. Data is preserved for 90 days, then permanently removed."
+              : isSuspended
+                ? "Unsuspend this location before deleting it. A suspended location can't be moved straight to archive."
+                : "Soft-deletes the location. Data is preserved for 90 days, then permanently removed. The slug frees up after 90 days."
+          }
           action={
-            <Button type="button" variant="destructive" radius="full">
+            <Button
+              type="button"
+              variant="destructive"
+              radius="full"
+              disabled={isArchived || isSuspended}
+              onClick={() => setDeleteOpen(true)}
+            >
               Delete location
             </Button>
           }
         />
       </section>
+
+      <LocationStateDialog
+        open={suspendOpen}
+        onOpenChange={setSuspendOpen}
+        title={`Suspend ${location.name}?`}
+        description="Hides the public booking page and disables the calendar. Bookings, services, and staff are preserved. You can unsuspend at any time."
+        confirmLabel="Suspend location"
+        reasons={REASON_CODES}
+        onConfirm={() => setStatus(location.id, "suspended")}
+      />
+      <LocationStateDialog
+        open={unsuspendOpen}
+        onOpenChange={setUnsuspendOpen}
+        title={`Unsuspend ${location.name}?`}
+        description="Brings the public booking page back online. Bookings, services, and staff are preserved."
+        confirmLabel="Unsuspend location"
+        destructive={false}
+        reasons={UNSUSPEND_REASONS}
+        onConfirm={() => setStatus(location.id, "live")}
+      />
+      <LocationStateDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`Delete ${location.name}?`}
+        description="Soft-deletes the location. Data is preserved for 90 days, then permanently removed. The slug is freed up after 90 days."
+        confirmLabel="Delete location"
+        reasons={REASON_CODES}
+        onConfirm={() => setStatus(location.id, "archived")}
+      />
     </div>
+  )
+}
+
+/**
+ * Coming back from a suspension is almost always the owner's own call, so the
+ * picker narrows rather than offering fraud or business-closed as a reason to
+ * reopen. Matches the shipped panel.
+ */
+const UNSUSPEND_REASONS = REASON_CODES.filter((r) => r.id === "owner_request" || r.id === "other")
+
+/**
+ * One dialog for all three lifecycle moves. They differ only in copy, which
+ * reason codes they offer, and where they land — so three near-identical
+ * components would be three places for the reason field to drift.
+ *
+ * The reason is required: an unattributable state change is the thing INV-08
+ * exists to prevent, and the shipped dialogs enforce it through their schema.
+ */
+function LocationStateDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel,
+  reasons,
+  destructive = true,
+  onConfirm,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  description: string
+  confirmLabel: string
+  reasons: readonly { id: string; label: string }[]
+  destructive?: boolean
+  onConfirm: (reason: string, note: string) => void
+}) {
+  const [reason, setReason] = useState("")
+  const [note, setNote] = useState("")
+  const [showError, setShowError] = useState(false)
+
+  useEffect(() => {
+    if (!open) {
+      setReason("")
+      setNote("")
+      setShowError(false)
+    }
+  }, [open])
+
+  function confirm() {
+    if (!reason) {
+      setShowError(true)
+      return
+    }
+    onConfirm(reason, note)
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+        <div className="flex flex-col gap-4 pt-4">
+          <Field label="Reason">
+            <Select
+              value={reason}
+              onValueChange={(v) => {
+                setReason(v)
+                setShowError(false)
+              }}
+            >
+              <SelectTrigger className={cn(triggerOverride, "w-full")}>
+                <SelectValue placeholder="Pick a reason" />
+              </SelectTrigger>
+              <SelectContent>
+                {reasons.map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+          {showError ? (
+            <p role="alert" className="text-sm text-destructive">
+              Pick a reason before continuing.
+            </p>
+          ) : null}
+          <Field label="Internal note (optional)">
+            <Textarea
+              placeholder="Anything ops should know"
+              rows={3}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </Field>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              radius="full"
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant={destructive ? "destructive" : "default"}
+              radius="full"
+              onClick={confirm}
+            >
+              {confirmLabel}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -1824,10 +2287,17 @@ function SummaryRow({
   label,
   value,
   onAdd,
+  source,
 }: {
   label: string
   value: string | null
   onAdd?: () => void
+  /**
+   * Where the value came from (R06, R23). Omitted on rows that are not
+   * inheritable, so an ordinary field is not decorated with a concept it does
+   * not have.
+   */
+  source?: "business" | "location"
 }) {
   if (!value) {
     return (
@@ -1845,6 +2315,16 @@ function SummaryRow({
     <div className="flex flex-col gap-0.5">
       <span className="text-sm leading-5 text-muted-foreground">{label}</span>
       <span className="text-sm font-medium leading-5 text-foreground">{value}</span>
+      {source ? (
+        <span
+          className={cn(
+            "text-xs leading-4",
+            source === "location" ? "font-medium text-cami-violet-11" : "text-muted-foreground",
+          )}
+        >
+          {source === "location" ? "Set for this location" : "Inherited from the business"}
+        </span>
+      ) : null}
     </div>
   )
 }

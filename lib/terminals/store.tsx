@@ -15,24 +15,12 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 
+import { LOCATIONS } from "@/lib/locations/mock"
+
 const STORAGE_KEY = "cami-terminals-v5"
 
 /** A session runs 24 hours from sign-in. Open question 4: fixed or per-merchant. */
 export const SESSION_HOURS = 24
-
-/**
- * Demo locations. Known gap: this doesn't read from location-form.tsx's
- * LOCATIONS, nor follow the demo business rename in lib/demo-business.tsx.
- * Collapse into one locations source when that source exists.
- */
-export const TERMINAL_LOCATIONS: { id: string; name: string }[] = [
-  { id: "downtown-clinic", name: "Downtown Clinic" },
-  { id: "field-team", name: "Field team" },
-]
-
-export function locationName(locationId: string): string {
-  return TERMINAL_LOCATIONS.find((l) => l.id === locationId)?.name ?? "Unknown location"
-}
 
 export type Terminal = {
   /**
@@ -126,7 +114,7 @@ export const DEMO_TERMINALS: Terminal[] = [
   {
     id: "TRM-7Q4K2M",
     name: "Front Desk Register",
-    locationId: "downtown-clinic",
+    locationId: "shampooch-jvc",
     pairedAt: "Jul 28",
     pin: "482915",
     lockedFor: null,
@@ -136,7 +124,7 @@ export const DEMO_TERMINALS: Terminal[] = [
   {
     id: "TRM-3H8N5P",
     name: "Grooming Counter",
-    locationId: "downtown-clinic",
+    locationId: "shampooch-jvc",
     pairedAt: "Jul 30",
     pin: "730164",
     lockedFor: null,
@@ -147,7 +135,7 @@ export const DEMO_TERMINALS: Terminal[] = [
   {
     id: "TRM-9F2W6C",
     name: "Mobile Grooming Van",
-    locationId: "field-team",
+    locationId: "shampooch-jumeirah",
     pairedAt: null,
     pin: "915302",
     lockedFor: null,
@@ -159,7 +147,7 @@ export const DEMO_TERMINALS: Terminal[] = [
   {
     id: "TRM-2B7X4V",
     name: "Reception iPad",
-    locationId: "downtown-clinic",
+    locationId: "shampooch-jvc",
     pairedAt: "Jul 22",
     pin: "268471",
     lockedFor: "12 min",
@@ -288,7 +276,7 @@ function readSaved(): TerminalsState | null {
     return {
       terminals: (saved.terminals ?? DEFAULT_TERMINALS_STATE.terminals).map((t) => ({
         ...t,
-        locationId: t.locationId ?? TERMINAL_LOCATIONS[0].id,
+        locationId: t.locationId ?? LOCATIONS[0].id,
         pairedAt: t.pairedAt ?? null,
         pin: t.pin ?? generatePin(),
         lockedFor: t.lockedFor ?? null,

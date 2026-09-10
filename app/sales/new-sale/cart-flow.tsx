@@ -13,9 +13,9 @@ import { Suspense, useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { locationName } from "@/lib/locations/mock"
 import { useCreatedCombos } from "@/lib/service-catalog/created-combos"
 import {
-  locationName,
   type Terminal,
   type TerminalSession,
   TYPICAL_SESSIONS,

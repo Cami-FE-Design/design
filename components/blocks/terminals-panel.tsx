@@ -51,15 +51,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { LOCATIONS, locationName } from "@/lib/locations/mock"
 import {
   DEMO_SESSIONS,
   DEMO_TERMINALS,
   generatePin,
   generateTerminalCode,
   liveSessions,
-  locationName,
   SESSION_HOURS,
-  TERMINAL_LOCATIONS,
   type Terminal,
   type TerminalSession,
   type TerminalStatus,
@@ -645,7 +644,7 @@ function RegisterTerminalDialog({
                 <SelectValue placeholder="Select a location" />
               </SelectTrigger>
               <SelectContent>
-                {TERMINAL_LOCATIONS.map((loc) => (
+                {LOCATIONS.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>
                     {loc.name}
                   </SelectItem>
@@ -1152,7 +1151,7 @@ function EditTerminalDialog({
                 <SelectValue placeholder="Select a location" />
               </SelectTrigger>
               <SelectContent>
-                {TERMINAL_LOCATIONS.map((loc) => (
+                {LOCATIONS.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>
                     {loc.name}
                   </SelectItem>
