@@ -12,6 +12,7 @@ import { useState } from "react"
 import { SelectBrandDialog } from "@/components/blocks/select-brand-dialog"
 import { SelectCategoryDialog } from "@/components/blocks/select-category-dialog"
 import { SelectSupplierDialog } from "@/components/blocks/select-supplier-dialog"
+import { WriteTargetLocation } from "@/components/blocks/write-target-location"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -24,6 +25,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
 // ─── Local helpers ────────────────────────────────────────────────────────────
@@ -249,6 +251,9 @@ export function ProductForm({
   const [lowStockLevel, setLowStockLevel] = useState(iv.lowStockLevel ?? "")
   const [reorderQty, setReorderQty] = useState(iv.reorderQty ?? "")
   const [lowStockNotif, setLowStockNotif] = useState(iv.lowStockNotif ?? false)
+  /** Which branch the opening count and thresholds belong to (R11, R16). */
+  const [stockLocationId, setStockLocationId] = useState<string | null>(null)
+  const { isMultiLocation } = useLocations()
 
   const measureLabel = MEASURE_OPTIONS.find((m) => m.value === measure)?.value ?? "ml"
 
@@ -599,17 +604,37 @@ export function ProductForm({
             />
 
             {trackStock && (
-              <FieldRow>
-                <Label htmlFor="current-stock">Current stock quantity</Label>
-                <Input
-                  id="current-stock"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={currentStock}
-                  onChange={(e) => setCurrentStock(e.target.value)}
+              <>
+                {/* R11 and R16: an opening count is a stock movement, so it
+                    names one branch. Asked before the number, because "how
+                    many" has no meaning until "where" is settled — and a
+                    create form is not the place to type nine opening balances,
+                    which is why the other branches receive stock rather than
+                    being filled in here. */}
+                <WriteTargetLocation
+                  value={stockLocationId}
+                  onChange={setStockLocationId}
+                  label="Opening count at"
+                  action="An opening count"
                 />
-              </FieldRow>
+                <FieldRow>
+                  <Label htmlFor="current-stock">Current stock quantity</Label>
+                  <Input
+                    id="current-stock"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={currentStock}
+                    onChange={(e) => setCurrentStock(e.target.value)}
+                  />
+                  {isMultiLocation ? (
+                    <p className="text-xs text-muted-foreground">
+                      This location&apos;s count. Every other location starts at zero and takes its
+                      own deliveries — the business quantity is the sum of them, never set directly.
+                    </p>
+                  ) : null}
+                </FieldRow>
+              </>
             )}
           </div>
 
@@ -624,6 +649,9 @@ export function ProductForm({
                   <p className="text-sm text-muted-foreground">
                     Cami will automatically notify you and pre-fill the reorder quantity set for
                     future stock orders.
+                    {isMultiLocation
+                      ? " These apply to the location above; a busy location and a quiet one rarely reorder at the same number, so each sets its own."
+                      : ""}
                   </p>
                 </div>
 

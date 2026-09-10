@@ -1013,6 +1013,34 @@ the total equals the sum of its rows, a negative branch reduces it rather than
 being clamped away, the grant bounds it, and the one bad branch a healthy total
 hides is still found.
 
+**Where it is reachable, which was the first thing wrong with it.** The
+Quantity column said "3 locations need attention" with nowhere to go and see
+which — a surface stating something the app had no path to. Hussain caught it
+off a screenshot. Three places now carry the location dimension:
+
+- **View** — a "Stock by location" card in the product detail, which is where a
+  row click already goes. Only for a chain: a single-site business has one
+  shelf, and the card would be the same number twice. The dialog's stock figure
+  was a hardcoded `0` before this, so it reported an empty shelf for every
+  product.
+- **Movements** — `AddStockDialog` and `RemoveStockDialog` existed and were
+  business-wide. A movement is an operational write, so both now name a branch
+  and Save is refused without one (R11, R16). Receiving a case of shampoo at
+  "the business" is not a thing that happens, and removing stock from it would
+  leave every branch's count unchanged and the total wrong — the failure DW4.1
+  is written about.
+- **Create and edit** — the form already had every stock field; what it lacked
+  was which branch they belong to. The opening count names a location, and the
+  copy says the others start at zero and take their own deliveries. A create
+  form is not the place to type nine opening balances.
+
+`WriteTargetLocation` is the control all three share, and it is where R11 starts
+being **enforced** rather than modelled: `requiresTargetLocation` and
+`activeLocation` had been in the store since the scope was built with no callers
+at all. It resolves the branch when there is only one it can be, asks when there
+is more than one, and says so plainly when a write is impossible — and it never
+offers a suspended or archived branch, which takes no new writes (R12).
+
 **Gap, named rather than invented:** a branch with no row reads "Out of stock",
 but a branch that never carried the product and one that ran out are different
 facts. The built model has no "not stocked here" — a product is business-wide

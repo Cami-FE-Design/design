@@ -2,6 +2,7 @@
 
 import { MinusIcon, PlusIcon, XIcon } from "lucide-react"
 import { useState } from "react"
+import { WriteTargetLocation } from "@/components/blocks/write-target-location"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -25,7 +26,8 @@ type RemoveStockDialogProps = {
   onOpenChange: (open: boolean) => void
   productName: string
   stockOnHand: number
-  onSave?: (qty: number, reason: string) => void
+  /** The movement, with the branch it happened at (R11, R16). */
+  onSave?: (qty: number, reason: string, locationId: string) => void
 }
 
 export function RemoveStockDialog({
@@ -37,9 +39,16 @@ export function RemoveStockDialog({
 }: RemoveStockDialogProps) {
   const [qty, setQty] = useState(1)
   const [reason, setReason] = useState("internal-use")
+  /**
+   * Which branch this came off the shelf at (R11, R16). Removing stock from
+   * "the business" would leave every branch's count unchanged and the total
+   * wrong, which is the failure DW4.1 is written about.
+   */
+  const [locationId, setLocationId] = useState<string | null>(null)
 
   function handleSave() {
-    onSave?.(qty, reason)
+    if (!locationId) return
+    onSave?.(qty, reason, locationId)
     onOpenChange(false)
     setQty(1)
   }
@@ -67,6 +76,10 @@ export function RemoveStockDialog({
               {stockOnHand} in stock
             </span>
           </div>
+
+          {/* Asked before the quantity, because "how many" has no meaning
+              until "where" is settled. */}
+          <WriteTargetLocation value={locationId} onChange={setLocationId} action="This removal" />
 
           {/* Quantity stepper */}
           <div className="flex flex-col items-center gap-2">
@@ -123,7 +136,7 @@ export function RemoveStockDialog({
           <Button variant="outline" radius="full" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button radius="full" onClick={handleSave}>
+          <Button radius="full" disabled={!locationId} onClick={handleSave}>
             Save
           </Button>
         </div>

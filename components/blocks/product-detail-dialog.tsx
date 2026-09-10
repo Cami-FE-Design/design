@@ -16,6 +16,7 @@ import { useState } from "react"
 import { AddStockDialog } from "@/components/blocks/add-stock-dialog"
 import { DeleteProductDialog } from "@/components/blocks/delete-product-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { ProductBranchStock } from "@/components/blocks/product-branch-stock"
 import { ProductImagePlaceholder } from "@/components/blocks/product-image-placeholder"
 import type { Product } from "@/components/blocks/products-table"
 import { RemoveStockDialog } from "@/components/blocks/remove-stock-dialog"
@@ -38,6 +39,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { businessQuantity } from "@/lib/inventory/branch-stock"
+import { BRANCH_STOCK } from "@/lib/inventory/mock"
+import { useLocations } from "@/lib/locations/store"
 
 // ─── Field ────────────────────────────────────────────────────────────────────
 
@@ -82,10 +86,16 @@ export function ProductDetailDialog({
   const [addStockOpen, setAddStockOpen] = useState(false)
   const [removeStockOpen, setRemoveStockOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const { scopedLocations, granted, isMultiLocation } = useLocations()
+  const inScopeIds = (scopedLocations.length > 0 ? scopedLocations : granted).map((l) => l.id)
 
   if (!product) return null
 
-  const stockOnHand = 0
+  // Derived from the branches in scope, never stored (R16). This was a
+  // hardcoded 0, so the dialog reported an empty shelf for every product.
+  const stockOnHand = product.trackStock
+    ? businessQuantity(BRANCH_STOCK, product.id, inScopeIds)
+    : 0
 
   function handleEdit() {
     onOpenChange(false)
@@ -255,7 +265,10 @@ export function ProductDetailDialog({
                 >
                   <FieldGrid>
                     <Field label="Primary SKU" value={product.sku} />
-                    <Field label="Stock on hand" value={String(stockOnHand)} />
+                    <Field
+                      label="Stock on hand"
+                      value={product.trackStock ? String(stockOnHand) : "Unlimited"}
+                    />
                     <Field
                       label="Retail price"
                       value={`AED ${product.retailPrice.toLocaleString()}`}
@@ -270,6 +283,17 @@ export function ProductDetailDialog({
                     <Field label="Total cost" value="AED 0" />
                   </FieldGrid>
                 </SectionCard>
+
+                {/* SCR-11. Only for a chain: a single-site business has one
+                    shelf, and "stock by location" would be the same number
+                    twice. This is where the Quantity column's "N locations need
+                    attention" lands — the table states it, and until now there
+                    was nowhere to go and see which. */}
+                {isMultiLocation ? (
+                  <SectionCard title="Stock by location">
+                    <ProductBranchStock product={product} />
+                  </SectionCard>
+                ) : null}
               </TabsContent>
 
               {/* Placeholder tabs */}
