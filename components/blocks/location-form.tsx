@@ -1358,13 +1358,16 @@ function FullScreenEditDialog({
           </div>
         </div>
 
+        {/* The same commit as the header's Save, not a second behaviour. This
+            footer read onOpenChange directly, which meant Save on a narrow
+            screen discarded the edit while Save on a wide one kept it. */}
         <footer className="border-border/40 border-t bg-background px-4 py-3 lg:hidden">
           <Button
             type="button"
             size="lg"
             radius="full"
             className="w-full"
-            onClick={() => onOpenChange(false)}
+            onClick={() => (onSave ? onSave() : onOpenChange(false))}
           >
             Save
           </Button>
