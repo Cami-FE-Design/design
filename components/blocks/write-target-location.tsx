@@ -107,7 +107,12 @@ export function WriteTargetLocation({
     <div className="flex flex-col gap-1.5">
       <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
       <Select value={value ?? ""} onValueChange={onChange}>
-        <SelectTrigger className="h-12 w-full rounded-2xl bg-input px-4">
+        {/* The repo's idiom for a Select that sits among Inputs, not a
+            hand-rolled one. `h-12` alone does nothing here — the trigger sets
+            its height from `data-[size=default]`, which wins — and the sibling
+            fields carry no border, so a default one made this control taller
+            and outlined next to them. */}
+        <SelectTrigger className="data-[size=default]:h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium">
           <SelectValue placeholder="Choose a location" />
         </SelectTrigger>
         <SelectContent>

@@ -221,6 +221,13 @@ export function ProductForm({
   section?: ProductFormSectionId
 }) {
   const iv = initialValues ?? {}
+  /**
+   * Editing an existing product rather than creating one. The distinction
+   * matters to the stock block below: a product that already exists has a
+   * count at every branch, so there is no opening count to ask for and no one
+   * branch the question belongs to.
+   */
+  const isEdit = initialValues !== undefined
 
   // Basic info
   const [name, setName] = useState(iv.name ?? "")
@@ -522,10 +529,7 @@ export function ProductForm({
 
       {/* ── Inventory ──────────────────────────────────────────────────── */}
       {showInventory && (
-        <FormSection
-          title="Inventory"
-          description="Manage stock levels of this product through Fresha."
-        >
+        <FormSection title="Inventory" description="Manage stock levels of this product.">
           {/* SKU fields */}
           <div className="flex flex-col gap-3">
             {skus.map((sku, index) => (
@@ -603,7 +607,20 @@ export function ProductForm({
               onCheckedChange={setTrackStock}
             />
 
-            {trackStock && (
+            {/* An opening count exists only at creation. On an existing product
+                every branch already has a count, changed by a movement and read
+                per branch — so this asked a question with no answer ("opening
+                count at") and printed a zero beside a product holding 49. It
+                says where to go instead. */}
+            {trackStock && isEdit && isMultiLocation ? (
+              <p className="rounded-xl bg-muted/40 p-3 text-sm text-muted-foreground">
+                Each location keeps its own count, and this product&apos;s are on its Stock by
+                location card. Change one with Add or Remove stock, which records the location it
+                happened at — the business quantity is the sum of them and is never set directly.
+              </p>
+            ) : null}
+
+            {trackStock && !isEdit && (
               <>
                 {/* R11 and R16: an opening count is a stock movement, so it
                     names one branch. Asked before the number, because "how
@@ -650,7 +667,9 @@ export function ProductForm({
                     Cami will automatically notify you and pre-fill the reorder quantity set for
                     future stock orders.
                     {isMultiLocation
-                      ? " These apply to the location above; a busy location and a quiet one rarely reorder at the same number, so each sets its own."
+                      ? isEdit
+                        ? " Each location sets its own, on its Stock by location card — a busy location and a quiet one rarely reorder at the same number."
+                        : " These apply to the location above; every other location sets its own."
                       : ""}
                   </p>
                 </div>

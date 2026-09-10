@@ -131,7 +131,10 @@ export function MoveToBranchDialog({
             <Select value={destinationId} onValueChange={setDestinationId}>
               <SelectTrigger
                 id="move-destination"
-                className="h-12 w-full rounded-2xl bg-input px-4 font-medium"
+                // `h-12` does not apply to a trigger — it sets its height from
+                // `data-[size=default]`, which wins. Same idiom as every other
+                // Select that sits among Inputs.
+                className="data-[size=default]:h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium"
               >
                 <SelectValue placeholder="Pick a location" />
               </SelectTrigger>

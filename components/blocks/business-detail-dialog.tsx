@@ -1567,7 +1567,7 @@ function ProfileSheet({
                     <FormLabel>Emirate</FormLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
-                        <SelectTrigger className="h-12 w-full rounded-2xl bg-input px-4 py-3 font-medium">
+                        <SelectTrigger className="data-[size=default]:h-12 w-full rounded-2xl border-0 bg-input px-4 py-3 font-medium">
                           <SelectValue placeholder="Select" />
                         </SelectTrigger>
                       </FormControl>
@@ -1829,7 +1829,7 @@ function SuspendDialog({
                   <FormLabel>Reason</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
-                      <SelectTrigger className="h-12 w-full rounded-2xl bg-input px-4 py-3 font-medium">
+                      <SelectTrigger className="data-[size=default]:h-12 w-full rounded-2xl border-0 bg-input px-4 py-3 font-medium">
                         <SelectValue placeholder="Pick a reason" />
                       </SelectTrigger>
                     </FormControl>
@@ -1938,7 +1938,7 @@ function ArchiveDialog({
                   <FormLabel>Reason</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
-                      <SelectTrigger className="h-12 w-full rounded-2xl bg-input px-4 py-3 font-medium">
+                      <SelectTrigger className="data-[size=default]:h-12 w-full rounded-2xl border-0 bg-input px-4 py-3 font-medium">
                         <SelectValue placeholder="Pick a reason" />
                       </SelectTrigger>
                     </FormControl>
