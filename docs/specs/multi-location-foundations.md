@@ -1,4 +1,4 @@
-# Multi-location · the design pass (SCR-01–06, SCR-08, SCR-09, SCR-12–16)
+# Multi-location · the design pass (SCR-01–06, SCR-08, SCR-09, SCR-11–16)
 
 The design side of multi-location, built bottom-up: one definition of a branch,
 the scope control every other screen is read through, and the branch lifecycle
@@ -958,7 +958,7 @@ loading, and error, with the single-branch case showing no switcher at all".
 | SCR-15 money by branch | **built** — side by side, roll-up as a sum, grant-bounded |
 | SCR-07 client record, visits elsewhere | **blocked** — the readable field set is undecided |
 | SCR-10 branch roster | **blocked** — one unified timeline or one roster per branch is undecided |
-| SCR-11 branch stock | **not started, and not blocked** — the shipped product has the stock model; see the correction below |
+| SCR-11 branch stock | **built** — per-branch quantity and reorder config, derived business total, grant-bounded; Quantity column on the Products table |
 | SCR-16 CamiHQ chain view | **built** — a Locations tab on the partner, reusing the owner's estate and money roll-up; chain badged in the list; no HQ write path |
 
 ### Blocked on a decision
@@ -971,6 +971,54 @@ inventing the answer to a question somebody else owns.
 | **SCR-07** visits elsewhere | R13 fixes the readable field set as *uniform* across branches but does not say what is in it. Does branch A see what branch B charged this client, and B's notes, or only that the visits happened? It is a revenue-integrity call (EC-4), **Maaz's**, and PRD §16 lists it. Guessing narrow hides money from an owner; guessing wide leaks a branch's pricing. |
 | **SCR-10** branch roster | Does a staff member working two sites in a day get one unified timeline or one roster per branch? DW2.3 assumes per-branch, DW2.4 assumes the roster is authoritative. **Michelle's**, with a chain ops lead. The two answers produce different screens, not different styling. |
 | **SCR-11** branch stock | Not blocked on a decision — blocked on a feature. `Product` in components/blocks/products-table.tsx carries no quantity at all, so there is no stock to make per-branch. R16's content (per-branch balances, business total derived and never stored) is a page of inventory work first. |
+
+### Stock per branch (SCR-11)
+
+R16: "Stock quantity, reorder configuration, movements, depletion, and
+adjustments resolve per Location while the Business quantity is **derived** from
+its Locations and **never stored independently**."
+
+That last clause is the design. A stored business total is a second number that
+can disagree with the branches, and DW4.2 is written about exactly that: "the
+business-wide stock total always equals the sum of every branch, so that I never
+reconcile it by hand". So there is no field for it — `businessQuantity()` is a
+function over the rows, with no path by which it can be set.
+
+**A sum is correct and insufficient.** 18 at one branch and -2 at another add up
+to a healthy-looking 16, and the -2 is the only row worth acting on. Rows first,
+total after and labelled as a sum; and the Products table's Quantity column
+carries the total *plus* a marker when a branch inside it needs attention,
+because a number alone answers "how many do we have" and not "is anything
+wrong".
+
+**Empty and negative are different problems.** Zero means the shelf is empty and
+the action is a reorder. Below zero means the count is wrong — something was
+sold that was never booked in — and the action is a stock take. The built
+product allows negative balances and shows them, so the row names which of the
+two it is rather than colouring both red.
+
+**Thresholds are per branch.** R16 puts reorder configuration on the Location,
+and a busy branch and a quiet one do not reorder at the same number — one shared
+threshold makes the busy branch run out or the quiet one overstock. `undefined`
+is no opinion rather than zero, so a branch with no threshold is never "low".
+
+**Nothing moves stock between branches.** Per-branch stock is the v0 model,
+confirmed at the 2026-09-02 workshop ("we can just assign essentially in each
+location the stock"), with cross-branch transfer and a central warehouse in
+future backlog. So the affordance orders from a supplier rather than borrowing
+from a sibling.
+
+Fourteen tests in `lib/inventory/branch-stock.test.ts`. The load-bearing ones:
+the total equals the sum of its rows, a negative branch reduces it rather than
+being clamped away, the grant bounds it, and the one bad branch a healthy total
+hides is still found.
+
+**Gap, named rather than invented:** a branch with no row reads "Out of stock",
+but a branch that never carried the product and one that ran out are different
+facts. The built model has no "not stocked here" — a product is business-wide
+and every branch has a count — so zero is the honest answer today. Whether
+products get per-branch enablement the way services did (DW3.3) is a product
+question.
 
 ## Corrections after reading the built product again
 

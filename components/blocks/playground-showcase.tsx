@@ -122,6 +122,7 @@ import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
 import { PetNotesFields, PetNotesList } from "@/components/blocks/pet-notes-fields"
 import { PhoneField } from "@/components/blocks/phone-field"
 import { PickupFields } from "@/components/blocks/pickup-fields"
+import { ProductBranchStock } from "@/components/blocks/product-branch-stock"
 import { PublicBranchPicker } from "@/components/blocks/public-branch-picker"
 import { CapacityHeatmap } from "@/components/blocks/reports/charts/capacity-heatmap"
 import { DonutChart } from "@/components/blocks/reports/charts/donut-chart"
@@ -354,6 +355,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Multi-location — branch lifecycle",
       "Multi-location — per-branch hours",
       "Multi-location — per-branch availability",
+      "Multi-location — per-branch stock",
       "Multi-location — nine branches (D5)",
       "Multi-location — chain setup",
       "Multi-location — branch access grants",
@@ -964,6 +966,19 @@ let comboUidSeq = 0
  * happened to sit where.
  */
 const SEED_COMBOS = seedServices.filter((service) => service.serviceType === "combo")
+
+/**
+ * The four stock states, each on the seeded product that actually holds it, so
+ * the numbers on screen come from lib/inventory/mock.ts rather than from props
+ * written to make a screenshot look right.
+ */
+const STOCK_DEMO_PRODUCTS = {
+  // 18 at Jumeirah, -2 at JVC: the sum hides the only row worth acting on.
+  negative: { id: "p3", name: "Burt's Bees Hypoallergenic Shampoo", trackStock: true },
+  // Low at one branch, empty at another — same product, two problems.
+  lowAndOut: { id: "p2", name: "Furminator Deshedding Tool", trackStock: true },
+  unlimited: { id: "p9", name: "Service consumable", trackStock: false },
+} as const
 
 const COMBO_CART_LINES = comboCartLines(
   SERVICES.find((svc) => svc.id === "nails-and-style-combo") ?? SERVICES[0],
@@ -2600,6 +2615,41 @@ export function PlaygroundShowcase() {
             <LocationsProvider persist={false}>
               <BranchAvailabilityDemo />
             </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — per-branch stock"
+          description="SCR-11 (R16, R18, DW4.1–DW4.2). Stock quantity and reorder configuration resolve per location, and the business quantity is derived from them and never stored — which is what makes 'I never reconcile it by hand' true by construction. Rows first, total after, because a sum is correct and insufficient: 18 at one branch and -2 at another add up to a healthy-looking 16, and the -2 is the only row worth acting on. Empty and negative are kept apart on purpose — zero is a reorder, below zero is a stock take, and one red state for both sends a manager to the wrong action. Thresholds are per branch because a busy branch and a quiet one do not reorder at the same number. Nothing here moves stock between branches: cross-branch transfer and a central warehouse are future backlog, confirmed at the 2026-09-02 workshop."
+        >
+          <Row label="Two branches disagree" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false}>
+                <ProductBranchStock product={STOCK_DEMO_PRODUCTS.negative} />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Low and out" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false}>
+                <ProductBranchStock product={STOCK_DEMO_PRODUCTS.lowAndOut} />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Manager · one branch" align="start">
+            <div className="w-full max-w-[560px]">
+              {/* No roll-up row: it would restate the row above it and call one
+                  manager's shelf the business. */}
+              <LocationsProvider persist={false} initialGrants={["shampooch-jumeirah"]}>
+                <ProductBranchStock product={STOCK_DEMO_PRODUCTS.negative} />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Not counted" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false}>
+                <ProductBranchStock product={STOCK_DEMO_PRODUCTS.unlimited} />
+              </LocationsProvider>
+            </div>
           </Row>
         </Section>
         <Section
