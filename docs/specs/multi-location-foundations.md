@@ -417,6 +417,16 @@ folding three cards into a line you have to click is a worse screen than three
 cards. The summary names the branches it hides, because "6 branches inherit"
 without saying which is a fact the operator cannot check.
 
+**D5, decided 10 Sep 2026 (Hussain): collapsed stays the default.** Both states
+were built so the call could be made by looking, and it was. The reason: at nine
+branches the branch that differs is the only one worth reading, and a default
+that puts it below the fold loses the thing the screen is for. The click is paid
+by the operator who wants to audit a branch that has nothing to say, which is
+the rarer errand.
+
+The floor stays at four quiet branches, so a three-branch business — which is
+most of them — never sees a collapse at all.
+
 **Found at nine, fixed:** the switcher had no height cap — at three nothing
 needed one. Its branch list scrolls on its own now while "All locations" stays
 put, since a roll-up you have to scroll back up to reach is the row an owner
@@ -888,12 +898,6 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   owner is on the roster and is not a slot — so they were not collapsed. Branch
   assignment lives on `BOOKING_STAFF` for now, which means a grant changed in
   SCR-03 does not change who a client can pick.
-- **Nine branches is drawn, but D5 is still open.** The collapse is built and
-  reviewable at nine (`NINE_BRANCH_ESTATE`), and both states are on screen. What
-  is not decided is whether the *product* should collapse by default at all, or
-  at what count — that is Michelle's call, and the answer changes copy rather
-  than structure.
-
 - **The session's grant is not the signed-in member's grant.** `LocationsProvider.grants`
   is a demo control, and the roster's per-member grants are separate data.
   Linking them needs a signed-in-member concept this prototype does not have:

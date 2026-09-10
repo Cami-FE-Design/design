@@ -972,7 +972,7 @@ const SECTIONS: Section[] = [
       {
         path: "/playground#multi-location-nine-branches-d5",
         label: "Nine branches · D5 (playground)",
-        note: "The designs at the scale the PRD assumes. Three branches is the demo; nine is where the layouts fail, always the same way — most rows say nothing and the one that matters is below the fold. Both states are drawn so the call can be made by looking: collapsed folds the inheriting branches into one line that names them, expanded is the nine cards it replaces. Under four quiet branches nothing collapses, because folding three cards into a click is worse than three cards. The switcher, the money roll-up and the calendar strip are here at nine too — the switcher had no height cap until this pass.",
+        note: "The designs at the scale the PRD assumes. Three branches is the demo; nine is where the layouts fail, always the same way — most rows say nothing and the one that matters is below the fold. Both states are drawn, and the call was made by looking — collapsed is the default (D5, 10 Sep): at nine branches the one that differs is the only row worth reading, and a default that puts it below the fold loses what the screen is for. Collapsed folds the inheriting branches into one line that names them; Show all is the nine cards it replaces. Under four quiet branches nothing collapses, because folding three cards into a click is worse than three cards. The switcher, the money roll-up and the calendar strip are here at nine too — the switcher had no height cap until this pass.",
       },
       {
         path: "/playground#multi-location-chain-setup",
