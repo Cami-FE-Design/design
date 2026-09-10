@@ -1,4 +1,4 @@
-# Multi-location · the design pass (SCR-01–06, SCR-08, SCR-09, SCR-11–16)
+# Multi-location · the design pass (SCR-01–06, SCR-08–16)
 
 The design side of multi-location, built bottom-up: one definition of a branch,
 the scope control every other screen is read through, and the branch lifecycle
@@ -957,7 +957,7 @@ loading, and error, with the single-branch case showing no switcher at all".
 | SCR-14 branch WhatsApp number | **built** — bound / migrating / unassigned, cost attribution |
 | SCR-15 money by branch | **built** — side by side, roll-up as a sum, grant-bounded |
 | SCR-07 client record, visits elsewhere | **blocked** — the readable field set is undecided |
-| SCR-10 branch roster | **blocked** — one unified timeline or one roster per branch is undecided |
+| SCR-10 branch roster | **built** — per-branch roster, cross-branch overlap surfaced; the ADR extension behind blocking it is engineering's |
 | SCR-11 branch stock | **built** — per-branch quantity and reorder config, derived business total, grant-bounded; Quantity column on the Products table |
 | SCR-16 CamiHQ chain view | **built** — a Locations tab on the partner, reusing the owner's estate and money roll-up; chain badged in the list; no HQ write path |
 
@@ -969,8 +969,53 @@ inventing the answer to a question somebody else owns.
 | Screen | The question, and whose it is |
 | --- | --- |
 | **SCR-07** visits elsewhere | R13 fixes the readable field set as *uniform* across branches but does not say what is in it. Does branch A see what branch B charged this client, and B's notes, or only that the visits happened? It is a revenue-integrity call (EC-4), **Maaz's**, and PRD §16 lists it. Guessing narrow hides money from an owner; guessing wide leaks a branch's pricing. |
-| **SCR-10** branch roster | Does a staff member working two sites in a day get one unified timeline or one roster per branch? DW2.3 assumes per-branch, DW2.4 assumes the roster is authoritative. **Michelle's**, with a chain ops lead. The two answers produce different screens, not different styling. |
+| ~~**SCR-10** branch roster~~ | **My framing was wrong, and it was the only thing blocking this.** DW2.3 and DW2.4 are not opposites: DW2.3 puts a roster on each branch, and DW2.4 adds a cross-branch overlap block on top of it, with within-branch overlap unchanged (ADR-023). Release criterion 12 says both in one line. What is genuinely open is the **ADR-023 extension** the PRD marks 🔴, which is engineering's rather than Michelle's. |
 | **SCR-11** branch stock | Not blocked on a decision — blocked on a feature. `Product` in components/blocks/products-table.tsx carries no quantity at all, so there is no stock to make per-branch. R16's content (per-branch balances, business total derived and never stored) is a page of inventory work first. |
+
+### The branch roster (SCR-10)
+
+**My framing was the only thing blocking this.** The spec had D2 as "one
+unified timeline or one roster per branch… DW2.3 assumes per-branch, DW2.4
+assumes the roster is authoritative", and called them opposites. Read properly
+they fit together:
+
+- **DW2.3** puts a roster on **each branch** — "a stylist working Marina
+  mornings and JLT evenings is scheduled correctly at each", with the
+  acceptance that "booking only offers them at a branch during their rostered
+  hours there".
+- **DW2.4** adds a **cross-branch overlap block** on top — "never booked at two
+  branches at the same time", while two overlapping bookings at the *same*
+  branch still go through unchanged.
+
+Release criterion 12 states both in one line, and the built product has already
+chosen that shape: `ShiftsTable` reads `activeVenueId` and its filter dialog is
+headed "Team members at {locationName}".
+
+**A person assigned to two branches appears on both**, with the hours they work
+*there*. Not cosmetic: a roster showing their whole day at every branch would
+have booking offer them everywhere, which is the opposite of DW2.3.
+
+**Overlap inside a branch is legal and is not marked.** ADR-023 is unchanged
+there, and a screen flagging it would be reporting the product's own behaviour
+as an error. Only cross-branch overlap is a conflict, so `crossBranchClashes`
+compares the branch as well as the time — and the seed carries both cases so the
+screen can be checked for *not* flagging the legal one.
+
+**Nothing blocks, deliberately.** Whether an overlapping booking is refused or
+merely warned extends ADR-023, which the PRD marks 🔴 as needing an extension.
+That is an engineering rule, not a screen's decision, and the roster has to show
+the clash either way — so it names it and stops. It also reports a clash as a
+**pair**, because a conflict is a relationship: flagging one of the two shifts
+would send the operator to change whichever they happened to be looking at.
+
+**Bookable hours come from the roster, never the branch's opening hours.**
+`bookableHours` returns nothing on a day someone does not work there, and the
+absence is the answer — falling back to opening hours is how a groomer gets
+booked on their day off.
+
+Twelve tests in `lib/team/shifts.test.ts`. The load-bearing ones: back-to-back
+shifts are not an overlap, two branches in one day with a gap is not a clash,
+and an overlap inside one branch never is.
 
 ### Stock per branch (SCR-11)
 
@@ -1108,9 +1153,12 @@ Worth knowing before designing against it:
 - **Team members have assigned locations.** `TeamMemberDetailAssignedLocation`
   is `{ id, venueId, venueName }` — R05's data half ships. This repo's
   `locationGrants` is the same idea under a different name.
-- **Shifts carry `venueId`.** So **D2** (one unified timeline or one roster per
-  branch) is a presentation question, not a modelling one — the record is
-  already per-venue, which narrows what Michelle has to decide.
+- **Shifts carry `venueId`, and the shipped roster is already per-venue.**
+  `ShiftsTable` reads `activeVenueId` and its filter dialog is headed "Team
+  members at {locationName}" — so the built product has already chosen DW2.3's
+  shape. It does not behave that way yet, because `activeVenueId` is never set,
+  so the name falls back to "this location" and the roster is business-wide in
+  practice. Decided, not wired.
 - **Appointments require `venueId`; sales do not.** `CreateAppointmentSchema`
   has it as `z.string()`, while `ComposePaymentLinkSchema` has it nullable and
   optional. Two write paths, two different rules, which is R11 and R20 pulling

@@ -57,6 +57,7 @@ import { BoardingDetailSheet } from "@/components/blocks/boarding/booking-detail
 import { NewBoardingSheet } from "@/components/blocks/boarding/new-boarding-sheet"
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { BranchDayStrip } from "@/components/blocks/branch-day-strip"
+import { BranchRoster } from "@/components/blocks/branch-roster"
 import { BusinessNotificationsSection } from "@/components/blocks/business-detail-dialog"
 import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
@@ -355,6 +356,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Multi-location — branch lifecycle",
       "Multi-location — per-branch hours",
       "Multi-location — per-branch availability",
+      "Multi-location — branch roster",
       "Multi-location — per-branch stock",
       "Multi-location — nine branches (D5)",
       "Multi-location — chain setup",
@@ -2615,6 +2617,34 @@ export function PlaygroundShowcase() {
             <LocationsProvider persist={false}>
               <BranchAvailabilityDemo />
             </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — branch roster"
+          description="SCR-10 (R05, DW2.3, DW2.4). A roster belongs to one branch, and somebody assigned to two appears on both with the hours they work there — not their whole day, because DW2.3's acceptance is that booking offers them at a branch only during their rostered hours there. Lena is JVC mornings and Jumeirah evenings: two branches in one day and no conflict, which is the arrangement the story is written for. Sara is rostered at both over the same hours, which is the one clash DW2.4 names — one person cannot be in two places. Mariam has two overlapping shifts at JVC and is deliberately not flagged: ADR-023 allows overlap inside a branch, and marking it would report the product's own behaviour as an error. Nothing here blocks: whether booking refuses a cross-branch overlap extends ADR-023, which the PRD marks as needing an extension, so the roster states the fact and leaves the rule to the rule."
+        >
+          <Row label="JVC" align="start">
+            <div className="w-full">
+              <LocationsProvider persist={false}>
+                <BranchRoster locationId="shampooch-jvc" />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Jumeirah" align="start">
+            <div className="w-full">
+              <LocationsProvider persist={false}>
+                <BranchRoster locationId="shampooch-jumeirah" />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Nobody assigned" align="start">
+            <div className="w-full">
+              {/* A branch standing up has no roster yet, which is a sentence
+                  rather than an empty grid. */}
+              <LocationsProvider persist={false}>
+                <BranchRoster locationId="shampooch-al-quoz" />
+              </LocationsProvider>
+            </div>
           </Row>
         </Section>
         <Section
