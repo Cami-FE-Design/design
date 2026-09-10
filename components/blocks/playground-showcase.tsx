@@ -205,6 +205,13 @@ import { type AddressParts, addressToLines, EMPTY_ADDRESS, type PlaceRef } from 
 import { adminBusinesses } from "@/lib/admin-businesses"
 import { ALL_HQ_PERMISSIONS, AuthProvider, type PermissionKey } from "@/lib/auth-mock"
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
+import {
+  BOOKING_DAYS,
+  BOOKING_STAFF,
+  bookingDaysForLocation,
+  bookingStaffForLocation,
+  slotGroupsForLocation,
+} from "@/lib/booking"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { CamiPayProvider, ZERO_RATE } from "@/lib/hq-camipay/store"
 import { type HqTerminalStatus, HqTerminalsProvider } from "@/lib/hq-terminals/store"
@@ -345,6 +352,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Multi-location — branch switcher",
       "Multi-location — branch lifecycle",
       "Multi-location — per-branch hours",
+      "Multi-location — per-branch availability",
       "Multi-location — chain setup",
       "Multi-location — branch access grants",
       "Multi-location — per-branch service pricing",
@@ -829,6 +837,79 @@ function BranchHoursDemo() {
           </ul>
         </div>
       ))}
+    </div>
+  )
+}
+
+/**
+ * The same week and the same day, resolved for each branch. R15 asks for "that
+ * Location's offering **and** availability", and the availability half was one
+ * hardcoded week and one roster shown on every branch.
+ *
+ * Friday is picked because it is where all three differ: JVC 10-6, Jumeirah
+ * 10-9, Al Quoz closed.
+ */
+function BranchAvailabilityDemo() {
+  const { locations } = useLocations()
+  const friday = BOOKING_DAYS.find((d) => d.weekDay === "fri")!
+
+  return (
+    <div className="grid w-full gap-4 sm:grid-cols-3">
+      {locations.map((loc) => {
+        const days = bookingDaysForLocation(loc.hours)
+        const slots = slotGroupsForLocation(loc.hours, friday)
+        const free = slots.flatMap((g) => g.times.filter((t) => !t.taken))
+        const staff = bookingStaffForLocation(loc.id)
+        return (
+          <div key={loc.id} className="flex flex-col gap-3 rounded-xl bg-muted/40 p-3">
+            <span className="text-sm font-medium leading-5 text-foreground">{loc.name}</span>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">The week</span>
+              <div className="flex gap-1">
+                {days.map((day) => (
+                  <span
+                    key={day.id}
+                    title={day.closed ? "Closed" : day.full ? "Fully booked" : "Open"}
+                    className={cn(
+                      "flex size-7 items-center justify-center rounded-full text-xs font-medium",
+                      day.closed
+                        ? "bg-background text-muted-foreground/40 line-through"
+                        : day.full
+                          ? "bg-background text-muted-foreground/60"
+                          : "bg-cami-green-3 text-cami-green-11",
+                    )}
+                  >
+                    {day.weekday.slice(0, 1)}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">
+                Friday · {free.length} free of {slots.flatMap((g) => g.times).length}
+              </span>
+              {free.length === 0 ? (
+                <span className="text-xs text-muted-foreground">Closed, so nothing offered</span>
+              ) : (
+                <span className="text-xs text-foreground">
+                  {free[0]!.time} – {free[free.length - 1]!.time}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">
+                Bookable team · {staff.length} of {BOOKING_STAFF.length}
+              </span>
+              <span className="text-xs text-foreground">
+                {staff.map((member) => member.name.split(" ")[0]).join(", ")}
+              </span>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -2502,6 +2583,16 @@ export function PlaygroundShowcase() {
           <Row label="The seeded estate" align="start">
             <LocationsProvider persist={false}>
               <BranchHoursDemo />
+            </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — per-branch availability"
+          description="R15's other half (R04, R15). The offering was per branch; the availability was one hardcoded week and all twelve staff on every branch's page. Now both are derived: the day chips come from the branch's hours, and a day it does not open is Closed rather than Fully booked — those are different facts, and showing one as the other sends a client back to a day that will never have a slot. Slots are the hours at half-hour steps, so Al Quoz's midday gap is simply absent instead of being filtered out, and the last slot is half an hour before closing. Staff are filtered by the branches they work at; someone covering two sites appears at both. Friday below, because that is where all three differ."
+        >
+          <Row label="The seeded estate" align="start">
+            <LocationsProvider persist={false}>
+              <BranchAvailabilityDemo />
             </LocationsProvider>
           </Row>
         </Section>

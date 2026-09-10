@@ -7,6 +7,7 @@
 
 import type { AvatarSpecies } from "@/components/ui/avatar"
 import type { PlaceRef } from "@/lib/address"
+import { formatTime12h, type WeekDay, type WeekSchedule } from "@/lib/locations/hours"
 import type { PetNoteEntry } from "@/lib/pet-notes"
 import type { PublicBusiness, PublicService } from "@/lib/public-business"
 
@@ -22,22 +23,55 @@ export function businessHasPets(business: PublicBusiness): boolean {
 
 // ─── Staff ────────────────────────────────────────────────────────────────────
 // "Any team member" is the default — most pet parents don't have a preference.
-export type BookingStaff = { id: string; name: string; role: string }
+export type BookingStaff = {
+  id: string
+  name: string
+  role: string
+  /**
+   * The branches this person works at (R04, R15). Absent means every branch —
+   * which is the honest reading of a roster written before branches existed,
+   * and what a single-site business needs.
+   *
+   * Someone can appear at more than one: a senior groomer covering two sites is
+   * ordinary, and a model that made staff belong to exactly one branch would
+   * force the operator to invent a duplicate person to express it.
+   */
+  locationIds?: ReadonlyArray<string>
+}
+
+const JVC = "shampooch-jvc"
+const JUMEIRAH = "shampooch-jumeirah"
+const AL_QUOZ = "shampooch-al-quoz"
 
 export const BOOKING_STAFF: ReadonlyArray<BookingStaff> = [
-  { id: "lena", name: "Lena Hassan", role: "Senior groomer" },
-  { id: "mariam", name: "Mariam Saleh", role: "Groomer" },
-  { id: "deepa", name: "Deepa Nair", role: "Groomer" },
-  { id: "aisha", name: "Aisha Rahman", role: "Senior groomer" },
-  { id: "omar", name: "Omar Farooq", role: "Groomer" },
-  { id: "priya", name: "Priya Menon", role: "Bather" },
-  { id: "yusuf", name: "Yusuf Khan", role: "Groomer" },
-  { id: "sara", name: "Sara Ali", role: "Stylist" },
-  { id: "diana", name: "Diana Costa", role: "Groomer" },
-  { id: "hana", name: "Hana Tariq", role: "Bather" },
-  { id: "raj", name: "Raj Patel", role: "Senior groomer" },
-  { id: "nadia", name: "Nadia Karim", role: "Groomer" },
+  { id: "lena", name: "Lena Hassan", role: "Senior groomer", locationIds: [JVC, JUMEIRAH] },
+  { id: "mariam", name: "Mariam Saleh", role: "Groomer", locationIds: [JVC] },
+  { id: "deepa", name: "Deepa Nair", role: "Groomer", locationIds: [JVC] },
+  { id: "aisha", name: "Aisha Rahman", role: "Senior groomer", locationIds: [JUMEIRAH] },
+  { id: "omar", name: "Omar Farooq", role: "Groomer", locationIds: [JUMEIRAH] },
+  { id: "priya", name: "Priya Menon", role: "Bather", locationIds: [JVC] },
+  { id: "yusuf", name: "Yusuf Khan", role: "Groomer", locationIds: [JUMEIRAH] },
+  { id: "sara", name: "Sara Ali", role: "Stylist", locationIds: [JVC, JUMEIRAH] },
+  { id: "diana", name: "Diana Costa", role: "Groomer", locationIds: [AL_QUOZ] },
+  { id: "hana", name: "Hana Tariq", role: "Bather", locationIds: [JUMEIRAH] },
+  { id: "raj", name: "Raj Patel", role: "Senior groomer", locationIds: [AL_QUOZ, JVC] },
+  { id: "nadia", name: "Nadia Karim", role: "Groomer", locationIds: [JVC] },
 ]
+
+/**
+ * Who a client can pick at one branch (R15).
+ *
+ * The rail used to list all twelve on every branch's page, which is the same
+ * error as the business-wide catalog: it offers a client someone who is not
+ * there. Nobody is filtered out for lacking a grant — absent `locationIds`
+ * means every branch, so a single-site business is unaffected.
+ */
+export function bookingStaffForLocation(locationId?: string): ReadonlyArray<BookingStaff> {
+  if (!locationId) return BOOKING_STAFF
+  return BOOKING_STAFF.filter(
+    (member) => !member.locationIds || member.locationIds.includes(locationId),
+  )
+}
 
 // ─── Days + slots ─────────────────────────────────────────────────────────────
 // Static demo week (today = 2026-06-30). Labels are pre-resolved so the flow
@@ -46,21 +80,52 @@ export type BookingDay = {
   id: string
   weekday: string
   dayNum: number
+  /** Which day of the week this is, so a branch's schedule can be read for it. */
+  weekDay: WeekDay
   /** Overrides the weekday label when present ("Today" / "Tomorrow"). */
   label?: string
-  /** No open slots — chip is shown disabled. */
+  /** Open, but every slot is taken — try another day. */
   full?: boolean
+  /**
+   * This branch does not open on this day at all (R01).
+   *
+   * Deliberately not the same state as `full`. "Fully booked" invites a client
+   * to check back; "closed on Sundays" is a fact about the branch, and showing
+   * one as the other sends people back to a day that will never have a slot.
+   */
+  closed?: boolean
 }
 
 export const BOOKING_DAYS: ReadonlyArray<BookingDay> = [
-  { id: "d0", weekday: "Tue", dayNum: 30, label: "Today" },
-  { id: "d1", weekday: "Wed", dayNum: 1, label: "Tomorrow" },
-  { id: "d2", weekday: "Thu", dayNum: 2 },
-  { id: "d3", weekday: "Fri", dayNum: 3 },
-  { id: "d4", weekday: "Sat", dayNum: 4, full: true },
-  { id: "d5", weekday: "Sun", dayNum: 5, full: true },
-  { id: "d6", weekday: "Mon", dayNum: 6 },
+  { id: "d0", weekday: "Tue", dayNum: 30, weekDay: "tue", label: "Today" },
+  { id: "d1", weekday: "Wed", dayNum: 1, weekDay: "wed", label: "Tomorrow" },
+  { id: "d2", weekday: "Thu", dayNum: 2, weekDay: "thu" },
+  { id: "d3", weekday: "Fri", dayNum: 3, weekDay: "fri" },
+  { id: "d4", weekday: "Sat", dayNum: 4, weekDay: "sat", full: true },
+  { id: "d5", weekday: "Sun", dayNum: 5, weekDay: "sun", full: true },
+  { id: "d6", weekday: "Mon", dayNum: 6, weekDay: "mon" },
 ]
+
+/**
+ * The week as one branch can actually be booked (R15's availability half).
+ *
+ * The static week above is the business's, and it was every branch's — so a
+ * branch closed on Sunday still offered Sunday, and a branch trading seven days
+ * was shown as shut at the weekend. Both are the same bug: availability drawn
+ * from the business when it belongs to the branch.
+ *
+ * A day the branch does not open becomes `closed`. `full` is left alone where
+ * the branch is open, because "every slot is taken" is still a true and useful
+ * demo state — it just cannot stand in for "we are not open then".
+ */
+export function bookingDaysForLocation(hours?: WeekSchedule): ReadonlyArray<BookingDay> {
+  if (!hours) return BOOKING_DAYS
+  return BOOKING_DAYS.map((day) => {
+    const schedule = hours[day.weekDay]
+    if (schedule.closed) return { ...day, closed: true, full: false }
+    return day
+  })
+}
 
 // ─── Service catalog (categorized, scales past 30 services) ───────────────────
 // Grouped so the picker can show category tabs + an overflow "Categories" sheet,
@@ -415,6 +480,67 @@ export function serviceTotals(
 }
 
 export type SlotGroup = { label: string; times: ReadonlyArray<{ time: string; taken?: boolean }> }
+
+/**
+ * The times one branch offers on one day, generated from that branch's hours.
+ *
+ * `SLOT_GROUPS` below is a fixed Morning/Afternoon grid that every branch got,
+ * which contradicted the hours on the same page: Al Quoz shuts 1pm to 4pm and
+ * was still offering 1:30pm and 2pm. Slots are the hours at half-hour steps —
+ * derived, so the two cannot disagree.
+ *
+ * A shift contributes its own slots, so the midday gap is simply absent rather
+ * than being filtered out afterwards. The last slot of a range is half an hour
+ * before it closes, because a slot at closing time is not a slot.
+ */
+export function slotGroupsForLocation(
+  hours: WeekSchedule | undefined,
+  day: BookingDay,
+): ReadonlyArray<SlotGroup> {
+  if (!hours) return SLOT_GROUPS
+  const schedule = hours[day.weekDay]
+  if (schedule.closed) return []
+
+  const groups: Array<{ label: string; times: Array<{ time: string; taken?: boolean }> }> = [
+    { label: "Morning", times: [] },
+    { label: "Afternoon", times: [] },
+    { label: "Evening", times: [] },
+  ]
+
+  for (const range of schedule.ranges) {
+    const open = toMinutes(range.open)
+    const close = toMinutes(range.close)
+    for (let minutes = open; minutes + SLOT_MINUTES <= close; minutes += SLOT_MINUTES) {
+      const hour = Math.floor(minutes / 60)
+      const time = formatTime12h(
+        `${String(hour).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`,
+      )
+      const group = hour < 12 ? groups[0]! : hour < 17 ? groups[1]! : groups[2]!
+      group.times.push({ time, taken: isTaken(day.id, minutes) })
+    }
+  }
+
+  return groups.filter((group) => group.times.length > 0)
+}
+
+const SLOT_MINUTES = 30
+
+function toMinutes(time24: string): number {
+  const [h, m] = time24.split(":").map(Number)
+  return (h ?? 0) * 60 + (m ?? 0)
+}
+
+/**
+ * Which generated slots read as already booked. Deterministic on day and time
+ * so a demo does not reshuffle between renders or between server and client —
+ * roughly one in three, which is enough scarcity to look real without leaving
+ * a day with nothing bookable.
+ */
+function isTaken(dayId: string, minutes: number): boolean {
+  let hash = 0
+  for (const char of `${dayId}:${minutes}`) hash = (hash * 31 + char.charCodeAt(0)) % 997
+  return hash % 3 === 0
+}
 
 // A representative day's grid. Taken slots render disabled (the 5-min-hold model
 // means another parent grabbed them).

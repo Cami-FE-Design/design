@@ -48,11 +48,13 @@ import {
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { addressPlaceRef, EMPTY_ADDRESS, hasPrecisePoint, type PlaceRef } from "@/lib/address"
 import {
-  BOOKING_DAYS,
-  BOOKING_STAFF,
   type BookingCatalog,
+  type BookingDay,
+  type BookingStaff,
+  bookingDaysForLocation,
   bookingLines,
   bookingRef,
+  bookingStaffForLocation,
   businessHasPets,
   type CatalogService,
   EMPTY_PICKUP_DETAILS,
@@ -64,8 +66,11 @@ import {
   resolvePickupAddress,
   resolvePickupPlace,
   SERVICE_CATEGORIES,
+  type SlotGroup,
   serviceTotals,
+  slotGroupsForLocation,
 } from "@/lib/booking"
+import type { WeekSchedule } from "@/lib/locations/hours"
 import { type PetNoteEntry, petNoteLabel, petNotesComplete } from "@/lib/pet-notes"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
@@ -115,6 +120,9 @@ function SlotStep({
   onDay,
   time,
   onTime,
+  days,
+  staff,
+  slotGroups,
 }: {
   staffId: string
   onStaff: (id: string) => void
@@ -122,6 +130,9 @@ function SlotStep({
   onDay: (id: string) => void
   time: string | null
   onTime: (t: string) => void
+  days: ReadonlyArray<BookingDay>
+  staff: ReadonlyArray<BookingStaff>
+  slotGroups: ReadonlyArray<SlotGroup>
 }) {
   const staffRailRef = useRef<HTMLDivElement>(null)
   const scrollStaff = (dir: -1 | 1) =>
@@ -164,7 +175,7 @@ function SlotStep({
             label="Any"
             sub="Soonest"
           />
-          {BOOKING_STAFF.map((s) => (
+          {staff.map((s) => (
             <StaffChip
               key={s.id}
               active={staffId === s.id}
@@ -178,10 +189,10 @@ function SlotStep({
       </div>
 
       {/* Day — circle picker with month header */}
-      <DayPicker dayId={dayId} onDay={onDay} />
+      <DayPicker dayId={dayId} onDay={onDay} days={days} />
 
       {/* Available times — full-width stacked rows */}
-      <TimeList time={time} onTime={onTime} />
+      <TimeList time={time} onTime={onTime} groups={slotGroups} />
 
       {time ? (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -1179,6 +1190,8 @@ function DesktopSummary({
 export function BookingFlow({
   business,
   catalog = SERVICE_CATEGORIES,
+  locationId,
+  hours,
 }: {
   business: PublicBusiness
   /**
@@ -1190,11 +1203,24 @@ export function BookingFlow({
    * wrong.
    */
   catalog?: BookingCatalog
+  /**
+   * The branch this booking is at. Absent for a business-wide surface, which is
+   * what the playground and a single-site business are — availability then falls
+   * back to the business's week and its whole roster.
+   */
+  locationId?: string
+  /** That branch's hours, so the days and slots offered are the ones it keeps. */
+  hours?: WeekSchedule
 }) {
   const hasPets = businessHasPets(business)
   // Pet is picked/captured inside Identify after phone verify (feature-flagged),
   // not a separate step — see docs/specs/PRO-80.
   const steps: StepId[] = ["service", "slot", "identify", "confirm"]
+
+  // Availability, resolved for this branch. R15 asks for "that Location's
+  // offering and availability"; the offering was done and this is the rest.
+  const days = bookingDaysForLocation(hours)
+  const staff = bookingStaffForLocation(locationId)
 
   const [stepIndex, setStepIndex] = useState(0)
   const [done, setDone] = useState(false)
@@ -1202,7 +1228,10 @@ export function BookingFlow({
 
   const [serviceIds, setServiceIds] = useState<string[]>([])
   const [staffId, setStaffId] = useState("any")
-  const [dayId, setDayId] = useState(BOOKING_DAYS[0]!.id)
+  // Opens on the first day the branch is actually open, rather than on a
+  // Sunday it never trades — a closed chip is disabled, so defaulting to one
+  // leaves the step looking broken.
+  const [dayId, setDayId] = useState(() => (days.find((d) => !d.closed && !d.full) ?? days[0]!).id)
   const [time, setTime] = useState<string | null>(null)
   const [customer, setCustomer] = useState<Customer>({
     firstName: "",
@@ -1225,12 +1254,13 @@ export function BookingFlow({
     setServiceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
-  const day = BOOKING_DAYS.find((d) => d.id === dayId)!
+  const day = days.find((d) => d.id === dayId) ?? days[0]!
+  const slotGroups = slotGroupsForLocation(hours, day)
   const whenLabel = `${day.label ?? `${day.weekday} ${day.dayNum}`}${time ? ` · ${time}` : ""}`
   const staffLabel =
     staffId === "any"
       ? "Any team member"
-      : (BOOKING_STAFF.find((s) => s.id === staffId)?.name ?? "Any team member")
+      : (staff.find((member) => member.id === staffId)?.name ?? "Any team member")
   const petLabel = hasPets && pet.name.trim() ? pet.name : undefined
   // Same resolver the identify step uses, so the review line shows whichever
   // address will actually be collected from.
@@ -1303,6 +1333,9 @@ export function BookingFlow({
         onDay={setDayId}
         time={time}
         onTime={setTime}
+        days={days}
+        staff={staff}
+        slotGroups={slotGroups}
       />
     ) : step === "identify" ? (
       <IdentifyStep

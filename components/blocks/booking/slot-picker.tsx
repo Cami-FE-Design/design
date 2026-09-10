@@ -1,13 +1,25 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 
-import { BOOKING_DAYS, SLOT_GROUPS } from "@/lib/booking"
+import { BOOKING_DAYS, type BookingDay, SLOT_GROUPS, type SlotGroup } from "@/lib/booking"
 import { cn } from "@/lib/utils"
 
 // Shared day + time pickers used by the booking flow and the reschedule view.
 // Month label is static in the mock; a real calendar derives it from the range.
 const MONTH_LABEL = "July 2026"
 
-export function DayPicker({ dayId, onDay }: { dayId: string; onDay: (id: string) => void }) {
+export function DayPicker({
+  dayId,
+  onDay,
+  days = BOOKING_DAYS,
+}: {
+  dayId: string
+  onDay: (id: string) => void
+  /**
+   * The week to offer. Defaults to the business's; a branch's flow passes its
+   * own, where a day it does not open is `closed` rather than `full`.
+   */
+  days?: ReadonlyArray<BookingDay>
+}) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -31,22 +43,27 @@ export function DayPicker({ dayId, onDay }: { dayId: string; onDay: (id: string)
       </div>
 
       <div className="grid grid-cols-7 gap-1">
-        {BOOKING_DAYS.map((d) => {
+        {days.map((d) => {
           const active = d.id === dayId
+          // Both states disable the chip; only one of them is worth coming back
+          // for, which is why the label says which it is.
+          const unavailable = d.full || d.closed
           return (
             <button
               key={d.id}
               type="button"
-              disabled={d.full}
+              disabled={unavailable}
               onClick={() => onDay(d.id)}
               aria-pressed={active}
-              aria-label={`${d.label ?? d.weekday} ${d.dayNum}`}
+              aria-label={`${d.label ?? d.weekday} ${d.dayNum}${
+                d.closed ? " — closed" : d.full ? " — fully booked" : ""
+              }`}
               className="flex flex-col items-center gap-1.5"
             >
               <span
                 className={cn(
                   "flex size-10 items-center justify-center rounded-full border font-semibold text-sm tabular-nums transition-colors",
-                  d.full
+                  unavailable
                     ? "border-transparent text-muted-foreground/40"
                     : active
                       ? "border-cami-violet-9 bg-cami-violet-9 text-white"
@@ -58,7 +75,7 @@ export function DayPicker({ dayId, onDay }: { dayId: string; onDay: (id: string)
               <span
                 className={cn(
                   "text-xs",
-                  d.full
+                  unavailable
                     ? "text-muted-foreground/40"
                     : active
                       ? "font-medium text-foreground"
@@ -75,9 +92,31 @@ export function DayPicker({ dayId, onDay }: { dayId: string; onDay: (id: string)
   )
 }
 
-export function TimeList({ time, onTime }: { time: string | null; onTime: (t: string) => void }) {
+export function TimeList({
+  time,
+  onTime,
+  groups = SLOT_GROUPS,
+}: {
+  time: string | null
+  onTime: (t: string) => void
+  /** The slots to offer. A branch's flow passes its own, generated from its hours. */
+  groups?: ReadonlyArray<SlotGroup>
+}) {
   // Flat list of bookable slots — taken ones are simply not offered.
-  const slots = SLOT_GROUPS.flatMap((g) => g.times).filter((s) => !s.taken)
+  const slots = groups.flatMap((g) => g.times).filter((s) => !s.taken)
+
+  // A closed day has no slots at all, and saying so beats an empty list under a
+  // heading that promises times.
+  if (slots.length === 0) {
+    return (
+      <div className="flex flex-col gap-2">
+        <span className="font-medium text-muted-foreground text-xs">Available times</span>
+        <p className="rounded-xl bg-muted/40 p-3 text-sm text-muted-foreground">
+          Nothing free on this day. Pick another one.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-2">

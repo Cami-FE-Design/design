@@ -390,6 +390,39 @@ thing does: resolve the location, then render its offering.
 default-venue fallback R11 deletes, so there is no such page — only
 `/{branchSlug}/book`.
 
+### Availability per branch, not just the offering (R15)
+
+R15 asks that both entry paths yield "that Location's offering **and
+availability**". The offering was done; availability was one hardcoded week and
+all twelve staff, shown on every branch's page.
+
+**Days come from the branch's hours.** A day it does not open is `closed`, which
+is deliberately not `full`. "Fully booked" invites a client to check back;
+"closed on Sundays" is a fact about the branch. Rendering one as the other sends
+people back to a day that will never have a slot. `full` still exists for the
+days the seed marks busy, but only where the branch is actually open.
+
+**Slots are the hours at half-hour steps.** They used to be a fixed
+Morning/Afternoon grid, which contradicted the hours printed on the same page —
+Al Quoz shuts 1pm to 4pm and was still offering 1:30pm. Deriving them means the
+two cannot disagree, a shift contributes its own slots so the midday gap is
+absent rather than filtered out afterwards, and the last slot of a range is half
+an hour before it closes because a slot at closing time is not one.
+
+Which slots read as taken is hashed from the day and the time. Deterministic on
+purpose: a demo that reshuffles between renders — or between server and client —
+is a demo nobody can point at.
+
+**Staff filter by the branches they work at.** The rail offered a client someone
+who is not there, which is the same error as a business-wide catalog. Absent
+`locationIds` means every branch, so a single-site business is untouched, and
+somebody covering two sites appears at both rather than forcing the operator to
+invent a duplicate person.
+
+Fourteen tests in `lib/booking-availability.test.ts`, including the two that
+would have caught the old behaviour: no open day is left with nothing bookable,
+and JVC and Jumeirah resolve to different weeks and different last slots.
+
 ### One catalog for the client side
 
 The public page used to carry its own hand-written service list, and the
@@ -817,10 +850,12 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   so an override made on the operator's sheet lands on the id the client page
   and the booking flow look up. See
   [The operator's side was reading a different business](#the-operators-side-was-reading-a-different-business).
-- **The booking flow's staff and slots are still business-wide.**
-  `BOOKING_STAFF`, `BOOKING_DAYS` and `SLOT_GROUPS` carry no branch dimension,
-  so R15's "that Location's offering **and availability**" is met on the
-  offering and not on the availability.
+- **The bookable roster and the team roster are two lists.** `BOOKING_STAFF` is
+  twelve groomers; `lib/team/mock.ts` is five people including an owner and a
+  pending invite. Which team members are bookable is a product question — an
+  owner is on the roster and is not a slot — so they were not collapsed. Branch
+  assignment lives on `BOOKING_STAFF` for now, which means a grant changed in
+  SCR-03 does not change who a client can pick.
 - **The per-branch catalog does not collapse.** With nine branches the Locations
   section is nine cards, most of them identical, and the one that differs is
   below the fold. Recommended: collapse the branches that inherit everything
