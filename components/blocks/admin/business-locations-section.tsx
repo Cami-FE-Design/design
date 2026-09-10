@@ -38,6 +38,7 @@ import { MoneyByLocationView } from "@/components/blocks/money/money-by-location
 import { Button } from "@/components/ui/button"
 import type { AdminBusiness } from "@/lib/admin-businesses"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
+import { isPubliclyBookable } from "@/lib/locations/types"
 import type { PeriodFilter } from "@/lib/money/ledger"
 import { MONEY_TXS, periodBounds } from "@/lib/money/mock"
 
@@ -63,7 +64,7 @@ export function BusinessLocationsSection({ business }: { business: AdminBusiness
           </h3>
           <p className="text-sm leading-5 text-muted-foreground">
             {business.name} trades from one location, so there is no chain to view. The owner can
-            add branches themselves at any time, and there is no separate HQ setup path.
+            add branches themselves at any time.
           </p>
         </div>
         <div className="flex items-start gap-3 rounded-2xl bg-muted/40 p-4">
@@ -105,7 +106,7 @@ function ChainView({ business }: { business: AdminBusiness }) {
             {live.length === granted.length
               ? "All trading."
               : `${live.length} trading, ${granted.length - live.length} not.`}{" "}
-            The same estate the owner sees — HQ reads it rather than keeping a copy.
+            Everything here is the owner&apos;s own record, read live.
           </p>
         </div>
 
@@ -130,43 +131,40 @@ function ChainView({ business }: { business: AdminBusiness }) {
                 </span>
               </div>
               {/* The one check an Account Manager can make without entering the
-                  account at all: is this branch actually reachable by a client. */}
-              <Link
-                href={`/${location.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              >
-                Public page
-              </Link>
+                  account at all: is this branch actually reachable by a client.
+                  Offered only when it is — a paused branch's page 404s, and a
+                  link to it next to a Paused badge has the row contradicting
+                  itself. Absent, with the reason, rather than broken. */}
+              {isPubliclyBookable(location.status) ? (
+                <Link
+                  href={`/${location.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  Public page
+                </Link>
+              ) : (
+                <span className="shrink-0 text-sm text-muted-foreground">No public page</span>
+              )}
             </li>
           ))}
         </ul>
       </section>
 
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
-            Per-branch activity
-          </h3>
-          <p className="text-sm leading-5 text-muted-foreground">
-            The same breakdown and roll-up an owner sees (HQ1.2, R18), and the same component rather
-            than a second one. This is what says whether a signed account is operating or only
-            signed.
-          </p>
-        </div>
-        <MoneyByLocationView txs={MONEY_TXS} filter={HQ_PERIOD} />
-      </section>
+      {/* No heading of its own: MoneyByLocationView brings one ("Money by
+          location") and a line explaining itself, and two stacked headings with
+          two paragraphs put a wall of prose between an Account Manager and the
+          only numbers on the screen. */}
+      <MoneyByLocationView txs={MONEY_TXS} filter={HQ_PERIOD} />
 
       <section className="flex flex-col gap-2 rounded-2xl bg-muted/40 p-4">
         <span className="text-sm font-medium leading-5 text-foreground">
           Standing this chain up
         </span>
         <p className="text-sm leading-5 text-muted-foreground">
-          Adding and configuring branches happens inside the account, as the owner. There is no
-          HQ-only setup path (HQ1.1), and a change made from here would land on the business with no
-          actor on the record (INV-08). Start a session and the owner&apos;s own chain setup is what
-          you use.
+          Branches are added and configured inside the account, as the owner — the same setup they
+          would use themselves. Start a session and every change is recorded against you.
         </p>
         <Button asChild variant="outline" radius="full" className="w-fit gap-1.5">
           <Link href={`/admin/impersonation?business=${business.slug}`}>

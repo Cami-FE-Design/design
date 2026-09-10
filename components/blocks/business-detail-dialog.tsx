@@ -294,7 +294,18 @@ export function BusinessDetailDialog({
                 </DialogClose>
               </DialogHeader>
 
-              <TabsList variant="underline" className="px-9">
+              {/* Scrolls rather than overflowing. Six tabs fitted; Locations
+                  made seven and pushed Manage off the right edge. Scrolling
+                  also means the row survives the next tab, where tightening a
+                  gap only buys one. `gap-5` so nothing scrolls at the widths a
+                  partner is actually opened at, and `py-1 -my-1` to leave the
+                  focus ring room — an overflow container clips both axes, and
+                  the ring sits outside the trigger. Same trick as the booking
+                  flow's category rail. */}
+              <TabsList
+                variant="underline"
+                className="no-scrollbar -my-1 max-w-full gap-5 overflow-x-auto px-9 py-1"
+              >
                 <TabsTrigger value="general">General</TabsTrigger>
                 {/* Only for a chain. A single-site partner has no branches to
                     reason about, and a tab that says so on every account is a
