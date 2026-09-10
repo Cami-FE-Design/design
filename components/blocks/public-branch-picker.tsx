@@ -1,6 +1,7 @@
 import { ChevronRightIcon, MapPinIcon } from "lucide-react"
 import Link from "next/link"
 
+import { locationHours } from "@/lib/locations/mock"
 import {
   formatDayHours,
   getDayIdFromDate,
@@ -74,8 +75,11 @@ export function PublicBranchPicker({
 
       <ul className="flex flex-col gap-2">
         {branches.map((branch) => {
-          const today = formatDayHours(branch.hours[getDayIdFromDate(now)])
-          const open = isOpenNow(branch.hours, now)
+          // Resolved from the branch's own record, like the branch page does —
+          // so the hours a client compares are the hours an operator set.
+          const hours = branch.hours ?? locationHours(branch.id)
+          const today = hours ? formatDayHours(hours[getDayIdFromDate(now)]) : null
+          const open = hours ? isOpenNow(hours, now) : false
           return (
             <li key={branch.slug}>
               <Link
@@ -98,8 +102,12 @@ export function PublicBranchPicker({
                     ) : (
                       <span>Closed now</span>
                     )}
-                    <span aria-hidden> · </span>
-                    <span>{today}</span>
+                    {today ? (
+                      <>
+                        <span aria-hidden> · </span>
+                        <span>{today}</span>
+                      </>
+                    ) : null}
                   </span>
                 </span>
                 <ChevronRightIcon

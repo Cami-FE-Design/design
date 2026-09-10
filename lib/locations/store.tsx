@@ -28,13 +28,29 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
+import { CLOSED_DAY, openFor, type WeekSchedule } from "@/lib/locations/hours"
 import { LOCATIONS, locationName } from "@/lib/locations/mock"
 import type { Location, LocationScope, LocationStatus } from "@/lib/locations/types"
 import { acceptsWrites } from "@/lib/locations/types"
 
+/**
+ * The fallback for a business with no branches yet to inherit from. Weekdays
+ * open, Sunday closed — a starting point an owner edits, not a claim.
+ */
+const DEFAULT_HOURS: WeekSchedule = {
+  mon: openFor("09:00", "19:00"),
+  tue: openFor("09:00", "19:00"),
+  wed: openFor("09:00", "19:00"),
+  thu: openFor("09:00", "19:00"),
+  fri: openFor("10:00", "18:00"),
+  sat: openFor("10:00", "18:00"),
+  sun: CLOSED_DAY,
+}
+
 const SCOPE_KEY = "cami-location-scope"
 const GRANTS_KEY = "cami-location-grants"
 const STATUS_KEY = "cami-location-statuses"
+const HOURS_KEY = "cami-location-hours"
 
 /**
  * `"all"` is a grant of every location the business has, now and later — what
@@ -52,6 +68,14 @@ type LocationsValue = {
 
   /** Move a branch through its lifecycle (R01, R12). */
   setStatus: (id: string, status: LocationStatus) => void
+
+  /**
+   * Set one branch's hours and timezone (R01, R19). Per branch by construction
+   * — there is no "apply to all", because a chain whose branches keep identical
+   * hours is the exception, and an owner who wants that can copy a week faster
+   * than they can undo a bulk write they did not mean.
+   */
+  setHours: (id: string, hours: WeekSchedule, timezone: string) => void
 
   /**
    * Stand up N branches in one pass (R02, SU1.2). One call, so it is all or
@@ -180,6 +204,20 @@ function readStoredStatuses(): Record<string, LocationStatus> | null {
   }
 }
 
+/** Hours and timezone survive a reload, because reviewing an edit means seeing it again. */
+type StoredHours = Record<string, { hours: WeekSchedule; timezone: string }>
+
+function readStoredHours(): StoredHours | null {
+  try {
+    const raw = window.localStorage.getItem(HOURS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as StoredHours
+    return parsed && typeof parsed === "object" ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 function readStoredGrants(): LocationGrants | null {
   try {
     const raw = window.localStorage.getItem(GRANTS_KEY)
@@ -227,6 +265,16 @@ export function LocationsProvider({
         prev.map((l) => (savedStatuses[l.id] ? { ...l, status: savedStatuses[l.id] } : l)),
       )
     }
+    const savedHours = readStoredHours()
+    if (savedHours) {
+      setLocations((prev) =>
+        prev.map((l) =>
+          savedHours[l.id]
+            ? { ...l, hours: savedHours[l.id].hours, timezone: savedHours[l.id].timezone }
+            : l,
+        ),
+      )
+    }
     const savedGrants = readStoredGrants()
     if (savedGrants) setGrantsState(savedGrants)
     const savedScope = readStoredScope()
@@ -246,6 +294,22 @@ export function LocationsProvider({
         if (persist) {
           const statuses = Object.fromEntries(next.map((l) => [l.id, l.status]))
           window.localStorage.setItem(STATUS_KEY, JSON.stringify(statuses))
+        }
+        return next
+      })
+    },
+    [persist],
+  )
+
+  const setHours = useCallback(
+    (id: string, hours: WeekSchedule, timezone: string) => {
+      setLocations((prev) => {
+        const next = prev.map((l) => (l.id === id ? { ...l, hours, timezone } : l))
+        if (persist) {
+          const stored: StoredHours = Object.fromEntries(
+            next.map((l) => [l.id, { hours: l.hours, timezone: l.timezone }]),
+          )
+          window.localStorage.setItem(HOURS_KEY, JSON.stringify(stored))
         }
         return next
       })
@@ -290,6 +354,10 @@ export function LocationsProvider({
         // Draft, not live: created is not the same as trading, and an owner
         // still has hours and staff to set before it takes a booking.
         status: "draft",
+        // Starts on the business default, which is what inheriting means — an
+        // owner adjusts the days this branch actually differs on rather than
+        // filling in a week from empty (R01).
+        hours: businessDefault?.hours ?? DEFAULT_HOURS,
         timezone: row.timezone,
         ownerName: businessDefault?.ownerName ?? "",
         ownerEmail: businessDefault?.ownerEmail ?? "",
@@ -329,6 +397,7 @@ export function LocationsProvider({
       byId: (id) => locations.find((l) => l.id === id),
       locationName,
       setStatus,
+      setHours,
       addLocations,
       takenSlugs: locations.map((l) => l.slug),
       grants,
@@ -343,7 +412,7 @@ export function LocationsProvider({
       activeLocation,
       requiresTargetLocation: writable.length !== 1,
     }
-  }, [locations, grants, scope, setStatus, addLocations, setGrants, setScope])
+  }, [locations, grants, scope, setStatus, setHours, addLocations, setGrants, setScope])
 
   return <LocationsContext.Provider value={value}>{children}</LocationsContext.Provider>
 }
@@ -363,6 +432,7 @@ export function useLocations(): LocationsValue {
     byId: (id) => locations.find((l) => l.id === id),
     locationName,
     setStatus: () => {},
+    setHours: () => {},
     addLocations: () => {},
     takenSlugs: locations.map((l) => l.slug),
     grants: "all",

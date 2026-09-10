@@ -1,4 +1,43 @@
+import { CLOSED_DAY, openFor, openForShifts, type WeekSchedule } from "@/lib/locations/hours"
 import type { Location } from "@/lib/locations/types"
+
+/**
+ * The hours each branch actually keeps. Deliberately different, because
+ * identical hours across three branches cannot show that they are per branch
+ * (R01) — and because the states worth reviewing are the awkward ones: a branch
+ * that trades seven days, and a branch that closes in the middle of the day.
+ */
+const JVC_HOURS: WeekSchedule = {
+  mon: openFor("09:00", "19:00"),
+  tue: openFor("09:00", "19:00"),
+  wed: openFor("09:00", "19:00"),
+  thu: openFor("09:00", "19:00"),
+  fri: openFor("10:00", "18:00"),
+  sat: openFor("10:00", "18:00"),
+  sun: CLOSED_DAY,
+}
+
+/** Opens seven days, and later on the weekend — a busier catchment. */
+const JUMEIRAH_HOURS: WeekSchedule = {
+  mon: openFor("09:00", "20:00"),
+  tue: openFor("09:00", "20:00"),
+  wed: openFor("09:00", "20:00"),
+  thu: openFor("09:00", "20:00"),
+  fri: openFor("10:00", "21:00"),
+  sat: openFor("10:00", "21:00"),
+  sun: openFor("11:00", "18:00"),
+}
+
+/** Closes over the middle of the day — the case a single range cannot hold. */
+const AL_QUOZ_HOURS: WeekSchedule = {
+  mon: openForShifts({ open: "08:00", close: "13:00" }, { open: "16:00", close: "20:00" }),
+  tue: openForShifts({ open: "08:00", close: "13:00" }, { open: "16:00", close: "20:00" }),
+  wed: openForShifts({ open: "08:00", close: "13:00" }, { open: "16:00", close: "20:00" }),
+  thu: openForShifts({ open: "08:00", close: "13:00" }, { open: "16:00", close: "20:00" }),
+  fri: CLOSED_DAY,
+  sat: openFor("09:00", "14:00"),
+  sun: CLOSED_DAY,
+}
 
 /**
  * The business's locations — the single source every surface reads.
@@ -45,6 +84,7 @@ export const LOCATIONS: Location[] = [
       invoiceNote: "",
     },
     status: "live",
+    hours: JVC_HOURS,
     timezone: "Asia/Dubai",
     ownerName: "Maz Khan",
     ownerEmail: "maaz@getcami.io",
@@ -85,6 +125,7 @@ export const LOCATIONS: Location[] = [
       invoiceNote: "",
     },
     status: "live",
+    hours: JUMEIRAH_HOURS,
     timezone: "Asia/Dubai",
     ownerName: "Maz Khan",
     ownerEmail: "maaz@getcami.io",
@@ -120,6 +161,7 @@ export const LOCATIONS: Location[] = [
     },
     /** Closed for a fit-out. Booking page hidden, calendar off, nothing lost. */
     status: "suspended",
+    hours: AL_QUOZ_HOURS,
     timezone: "Asia/Dubai",
     ownerName: "Maz Khan",
     ownerEmail: "maaz@getcami.io",
@@ -138,4 +180,13 @@ export const LOCATIONS: Location[] = [
  */
 export function locationName(locationId: string): string {
   return LOCATIONS.find((l) => l.id === locationId)?.name ?? locationId
+}
+
+/**
+ * A branch's opening hours by id, for the client-facing surfaces that hold only
+ * an id. Undefined when the id names no branch, so the caller falls back rather
+ * than rendering an empty week.
+ */
+export function locationHours(locationId: string): WeekSchedule | undefined {
+  return LOCATIONS.find((l) => l.id === locationId)?.hours
 }

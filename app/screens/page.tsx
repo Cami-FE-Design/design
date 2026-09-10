@@ -957,7 +957,12 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=locations",
         label: "Locations, the estate (settings)",
-        note: "SCR-01 and SCR-12 — where a branch is created and configured. Reads the shared source in lib/locations, so the same branches appear here, in the topbar switcher and on the terminals panel. Three seeded: JVC and Jumeirah live, Al Quoz suspended, so the Paused badge and the 'Booking page hidden' line show without clicking. Open a branch → Manage for the lifecycle: Suspend / Reactivate is a state change in both directions, Archive asks first and says what survives it. 'Add locations' opens chain setup. Known gaps: Hours are still location-agnostic, and the tax identity does not yet show which fields are inherited from the business and which are overridden.",
+        note: "SCR-01 and SCR-12 — where a branch is created and configured. Reads the shared source in lib/locations, so the same branches appear here, in the topbar switcher and on the terminals panel. Three seeded: JVC and Jumeirah live, Al Quoz suspended, so the Paused badge and the 'Booking page hidden' line show without clicking. Open a branch → Manage for the lifecycle: Suspend / Reactivate is a state change in both directions, Archive asks first and says what survives it. 'Add locations' opens chain setup. Hours are per branch: open a branch → Hours for its own week and timezone, and the edit persists. Known gap: the tax identity does not yet show which fields are inherited from the business and which are overridden.",
+      },
+      {
+        path: "/playground#multi-location-per-branch-hours",
+        label: "Per-branch hours · SCR-01 (playground)",
+        note: 'R01 + R19, three seeded weeks side by side — one branch at a time cannot show that a week is the branch\'s own. JVC closes Sunday, Jumeirah trades seven days, Al Quoz shuts 1pm–4pm. That split day is why a day holds shifts and not one open/close (PRO-363 is the same bug from the other side), and pinned to a Tuesday mid-afternoon it reads Closed now while the others are open, with the public card saying "opens 4pm" rather than naming tomorrow. Editable in the settings dialog; what an operator sets is what a client reads on the branch page — one source, like the menu.',
       },
       {
         path: "/playground#multi-location-chain-setup",

@@ -1,3 +1,5 @@
+import type { WeekSchedule } from "@/lib/locations/hours"
+
 /**
  * The Location domain, shaped to the blueprint's three data-ownership planes
  * (Multi-Location Blueprint §02). Read that section before adding a field here,
@@ -76,6 +78,12 @@ export type Location = {
   businessType: string[]
   invoicing: Invoicing
   status: LocationStatus
+  /**
+   * This branch's opening hours (R01). Its own, not the business's — a chain
+   * whose branches all keep the same hours is the exception, not the model.
+   * Read together with `timezone` below; see lib/locations/hours.ts.
+   */
+  hours: WeekSchedule
   /**
    * IANA zone. Time is stored in UTC; this governs schedules, availability,
    * display and date bucketing for this branch (R19). Business-default with a

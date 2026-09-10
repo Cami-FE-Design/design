@@ -1,20 +1,27 @@
+import { CLOSED_DAY, type DaySchedule, openFor, type WeekSchedule } from "@/lib/locations/hours"
+import { locationHours } from "@/lib/locations/mock"
 import { publicServicesForLocation } from "@/lib/public-offering"
 
-export type WeekDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
-
-export const WEEK_DAYS: ReadonlyArray<{ id: WeekDay; short: string; long: string }> = [
-  { id: "mon", short: "Mon", long: "Monday" },
-  { id: "tue", short: "Tue", long: "Tuesday" },
-  { id: "wed", short: "Wed", long: "Wednesday" },
-  { id: "thu", short: "Thu", long: "Thursday" },
-  { id: "fri", short: "Fri", long: "Friday" },
-  { id: "sat", short: "Sat", long: "Saturday" },
-  { id: "sun", short: "Sun", long: "Sunday" },
-]
-
-export type DaySchedule = { closed: true } | { closed: false; open: string; close: string }
-
-export type WeekSchedule = Record<WeekDay, DaySchedule>
+// Hours are location-configuration (blueprint §02), so they live with the
+// location. Re-exported here because every client-facing surface already
+// imports them from this module.
+export {
+  CLOSED_DAY,
+  closingTime,
+  type DaySchedule,
+  formatDayHours,
+  formatTime12h,
+  getDayIdFromDate,
+  getDaySchedule,
+  isOpenNow,
+  nextOpeningTime,
+  openFor,
+  openForShifts,
+  type TimeRange,
+  WEEK_DAYS,
+  type WeekDay,
+  type WeekSchedule,
+} from "@/lib/locations/hours"
 
 export type PublicService = {
   id: string
@@ -90,7 +97,12 @@ export type PublicBranch = {
   city: string
   emirate: string
   phone: string
-  hours: WeekSchedule
+  /**
+   * Only for a business with no location record. A branch of the chain leaves
+   * this absent and its hours resolve from `lib/locations`, so the hours an
+   * operator sets are the hours a client reads — one source, like the menu.
+   */
+  hours?: WeekSchedule
   /**
    * Only for a business with no catalog modelled. A branch of the chain leaves
    * this absent and its menu is resolved from the one catalog, per branch
@@ -106,9 +118,9 @@ export type PublicBranch = {
   isPublished: boolean
 }
 
-const closed: DaySchedule = { closed: true }
-const standardDay: DaySchedule = { closed: false, open: "09:00", close: "19:00" }
-const weekendDay: DaySchedule = { closed: false, open: "10:00", close: "18:00" }
+const closed: DaySchedule = CLOSED_DAY
+const standardDay: DaySchedule = openFor("09:00", "19:00")
+const weekendDay: DaySchedule = openFor("10:00", "18:00")
 
 const SHAMPOOCH_BRAND: Omit<PublicBusiness, "branches"> = {
   businessName: "Shampooch",
@@ -221,7 +233,6 @@ const SHAMPOOCH: PublicBusiness = {
       city: "Dubai",
       emirate: "Dubai",
       phone: "+971 50 123 4567",
-      hours: SHAMPOOCH_BRAND.hours,
       isPublished: true,
     },
     {
@@ -232,15 +243,6 @@ const SHAMPOOCH: PublicBusiness = {
       city: "Dubai",
       emirate: "Dubai",
       phone: "+971 50 771 8820",
-      hours: {
-        mon: standardDay,
-        tue: standardDay,
-        wed: standardDay,
-        thu: standardDay,
-        fri: weekendDay,
-        sat: weekendDay,
-        sun: weekendDay,
-      },
       // Its higher wash price and its lack of daycare are in
       // lib/service-catalog/offerings.ts, resolved per branch — not filtered
       // and mapped by hand here, where the operator-facing catalog could not
@@ -259,7 +261,6 @@ const SHAMPOOCH: PublicBusiness = {
       city: "Dubai",
       emirate: "Dubai",
       phone: "+971 55 340 1192",
-      hours: SHAMPOOCH_BRAND.hours,
       isPublished: false,
     },
   ],
@@ -446,7 +447,8 @@ export function branchAsBusiness(business: PublicBusiness, branch: PublicBranch)
     city: branch.city,
     emirate: branch.emirate,
     phone: branch.phone,
-    hours: branch.hours,
+    // Resolved from the branch's own record unless it carries its own list.
+    hours: branch.hours ?? locationHours(branch.id) ?? business.hours,
     // Resolved from the catalog unless the branch carries its own list. Was
     // `branch.services`, a copy that had to be kept in step by hand.
     services: branch.services ?? publicServicesForLocation(branch.id),
@@ -488,39 +490,6 @@ export function listPublicPageSlugs(): ReadonlyArray<string> {
     .filter((b) => b.isLive)
     .map((b) => b.slug)
   return Array.from(new Set([...businessSlugs, ...listPublicBusinessSlugs()]))
-}
-
-export function getDaySchedule(hours: WeekSchedule, day: WeekDay): DaySchedule {
-  return hours[day]
-}
-
-export function getDayIdFromDate(date: Date): WeekDay {
-  const order: WeekDay[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"]
-  return order[date.getDay()]
-}
-
-export function isOpenNow(hours: WeekSchedule, now: Date): boolean {
-  const day = getDayIdFromDate(now)
-  const schedule = hours[day]
-  if (schedule.closed) return false
-  const minutes = now.getHours() * 60 + now.getMinutes()
-  const [openH, openM] = schedule.open.split(":").map(Number)
-  const [closeH, closeM] = schedule.close.split(":").map(Number)
-  return minutes >= openH * 60 + openM && minutes < closeH * 60 + closeM
-}
-
-export function formatTime12h(time24: string): string {
-  const [hStr, mStr] = time24.split(":")
-  const h = Number(hStr)
-  const m = Number(mStr)
-  const suffix = h >= 12 ? "pm" : "am"
-  const display = h % 12 === 0 ? 12 : h % 12
-  return m === 0 ? `${display}${suffix}` : `${display}:${mStr}${suffix}`
-}
-
-export function formatDayHours(schedule: DaySchedule): string {
-  if (schedule.closed) return "Closed"
-  return `${formatTime12h(schedule.open)} – ${formatTime12h(schedule.close)}`
 }
 
 export function formatDuration(minutes: number): string {

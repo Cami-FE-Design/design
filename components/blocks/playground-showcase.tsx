@@ -215,6 +215,7 @@ import { placeholderSkuRows, reviewCounts } from "@/lib/imports/outcome"
 import type { ProductImportPreviewRow, RowOverride } from "@/lib/imports/types"
 import { INVOICE_FIXTURES } from "@/lib/invoice/mock"
 import { bookingsInScope } from "@/lib/locations/calendar-scope"
+import { formatDayHours, isOpenNow, WEEK_DAYS } from "@/lib/locations/hours"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
@@ -343,6 +344,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
     sections: [
       "Multi-location — branch switcher",
       "Multi-location — branch lifecycle",
+      "Multi-location — per-branch hours",
       "Multi-location — chain setup",
       "Multi-location — branch access grants",
       "Multi-location — per-branch service pricing",
@@ -784,6 +786,49 @@ function MoveDemo({
           )
         }
       />
+    </div>
+  )
+}
+
+/**
+ * The three seeded weeks side by side, because per-branch hours cannot be shown
+ * one branch at a time — a single week looks the same whether it is the
+ * branch's own or the business's. "Open now" is pinned so the row is
+ * deterministic to review.
+ */
+function BranchHoursDemo() {
+  const { locations } = useLocations()
+  const now = new Date("2026-09-08T14:00:00+04:00")
+  return (
+    <div className="grid w-full gap-4 sm:grid-cols-3">
+      {locations.map((loc) => (
+        <div key={loc.id} className="flex flex-col gap-2 rounded-xl bg-muted/40 p-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium leading-5 text-foreground">{loc.name}</span>
+            <span className="text-xs text-muted-foreground">
+              {loc.timezone} ·{" "}
+              {isOpenNow(loc.hours, now) ? (
+                <span className="text-cami-green-11">Open now</span>
+              ) : (
+                "Closed now"
+              )}
+            </span>
+          </div>
+          <ul className="flex flex-col gap-1">
+            {WEEK_DAYS.map((day) => {
+              const schedule = loc.hours[day.id]
+              return (
+                <li key={day.id} className="flex justify-between gap-2 text-xs leading-5">
+                  <span className="text-muted-foreground">{day.short}</span>
+                  <span className={schedule.closed ? "text-muted-foreground" : "text-foreground"}>
+                    {formatDayHours(schedule)}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ))}
     </div>
   )
 }
@@ -2441,6 +2486,16 @@ export function PlaygroundShowcase() {
                 ) : null}
               </span>
             ))}
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — per-branch hours"
+          description="SCR-01's hours half (R01, R19). Every branch keeps its own week and its own timezone: JVC closes Sunday, Jumeirah trades seven days and later at the weekend, Al Quoz shuts over the middle of the day. That last one is why a day holds shifts rather than one open and one close — pinned to a Tuesday mid-afternoon below, Al Quoz reads Closed now while both others are open, and the public card says 'opens 4pm' rather than naming tomorrow. Editable at /shell-demo?settings=locations → a branch → Hours; the edit persists, and the same hours are what a client reads on the branch's public page."
+        >
+          <Row label="The seeded estate" align="start">
+            <LocationsProvider persist={false}>
+              <BranchHoursDemo />
+            </LocationsProvider>
           </Row>
         </Section>
         <Section

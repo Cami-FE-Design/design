@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react"
 import {
+  closingTime,
   formatDayHours,
   formatTime12h,
   getDayIdFromDate,
   isOpenNow,
+  nextOpeningTime,
   type PublicBusiness,
   WEEK_DAYS,
   type WeekDay,
@@ -24,6 +26,8 @@ export function PublicHours({ business }: { business: PublicBusiness }) {
   const today: WeekDay | null = now ? getDayIdFromDate(now) : null
   const open = now ? isOpenNow(business.hours, now) : null
   const todaySchedule = today ? business.hours[today] : null
+  const closesAt = todaySchedule && now ? closingTime(todaySchedule, now) : null
+  const opensAt = todaySchedule && now ? nextOpeningTime(todaySchedule, now) : null
 
   return (
     <section id="hours" aria-labelledby="hours-heading" className="flex flex-col gap-3">
@@ -37,11 +41,11 @@ export function PublicHours({ business }: { business: PublicBusiness }) {
               className={cn("size-1.5 rounded-full", open ? "bg-cami-green-9" : "bg-sand-9")}
               aria-hidden
             />
-            {open && !todaySchedule.closed
-              ? `Open until ${formatTime12h(todaySchedule.close)}`
-              : todaySchedule.closed
-                ? "Closed today"
-                : `Opens ${formatTime12h(todaySchedule.open)}`}
+            {open && closesAt
+              ? `Open until ${formatTime12h(closesAt)}`
+              : opensAt
+                ? `Opens ${formatTime12h(opensAt)}`
+                : "Closed today"}
           </span>
         )}
       </div>

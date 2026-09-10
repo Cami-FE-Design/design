@@ -6,8 +6,8 @@ those two make legible. It starts by removing an ambiguity rather than adding a
 feature — before this, four different files each had their own idea of what a
 location was.
 
-Covered here: **SCR-04** branch switcher, **SCR-01** branch list, state and
-lifecycle, **SCR-02** chain setup, **SCR-03** branch access grants, **SCR-09**
+Covered here: **SCR-04** branch switcher, **SCR-01** branch list, state, hours
+and lifecycle, **SCR-02** chain setup, **SCR-03** branch access grants, **SCR-09**
 per-branch service pricing, **SCR-08** the public branch picker, **SCR-05**
 the all-branches calendar, **SCR-06** the cross-branch move, **SCR-12** branch
 tax identity, **SCR-13** the package mismatch at checkout, **SCR-14** branch
@@ -127,6 +127,52 @@ undone; history is permanent, so there is nothing to restore to.
 and unsettled sales when it is archived. That disposition is undecided (PRD
 §16, Michelle, and PRO-557), so the dialog states the settled rules and implies
 nothing about the unsettled ones.
+
+### Per-branch hours and timezone (SCR-01)
+
+`HoursTab()` used to take no location and print "9:00 AM – 9:00 PM, Time zone
+Asia/Dubai" for every branch. That is not a cosmetic gap: if all three branches
+show one week, per-branch hours do not exist, and R01 is the requirement the
+whole screen is for.
+
+Three hour models were in the repo, which is why this took a model decision
+before it took a component change:
+
+| Where | Shape |
+| --- | --- |
+| The operator's edit dialog | per day, **multiple shifts**, 12-hour labels |
+| The public `WeekSchedule` | per day, one `open`/`close`, 24-hour |
+| `cami-business` venue | one `startTime`/`endTime` for the entire week |
+
+Shifts win, and PRO-363 ("user is unable to add more than 2 shifts in business
+hours for a day") is the evidence — a bug filed *because* shifts are the real
+concept. `lib/locations/hours.ts` is now the one model: a day is
+`{ closed: true }` or `{ closed: false, ranges: [...] }`, in 24-hour time, in
+the branch's own zone. `DAYS_FULL` in `location-form.tsx` was a fourth copy of
+the seven days and is gone.
+
+Consequences worth reviewing:
+
+- **A closed day says "Closed"**, rather than being dropped from the list. A
+  missing row reads as an oversight; the word is a fact.
+- **"Open until" names the shift running now**, not the last close of the day.
+  A branch open 9–1 and 4–8 closes at 1pm at noon — saying 8pm sends a client
+  away at ten past one. Likewise "opens 4pm" instead of naming tomorrow, which
+  is `closingTime()` and `nextOpeningTime()` in the same module.
+- **Unticking a day stores closed**, not an empty range list — a day with no
+  ranges would render as open with nothing in it.
+- **A new branch inherits the business default** rather than an empty week,
+  because that is what inheriting means: an owner adjusts the days this branch
+  actually differs on.
+
+The seeded estate is deliberately three different weeks (JVC closed Sunday,
+Jumeirah seven days, Al Quoz split 8–1 and 4–8) because identical hours cannot
+demonstrate that hours are per branch.
+
+**One source, like the menu.** `PublicBranch.hours` is now optional and a
+branch resolves its hours from `lib/locations`, so what an operator sets is
+what a client reads. Only a business with no location record still carries its
+own copy.
 
 ### Branch access grants (SCR-03)
 
@@ -529,7 +575,7 @@ loading, and error, with the single-branch case showing no switcher at all".
 
 | Screen | State |
 | --- | --- |
-| SCR-01 branch list, state and lifecycle | **built** — four states badged, suspend / unsuspend / delete with reason codes, matching the shipped panel |
+| SCR-01 branch list, state and lifecycle | **built** — four states badged, suspend / unsuspend / delete with reason codes, matching the shipped panel; hours and timezone are per branch and persist |
 | SCR-02 chain setup | **built** — N branches in one pass, all-or-none |
 | SCR-03 branch access grants | **built** — role × location, roster columns, grants dialog |
 | SCR-04 branch switcher | **built** — one / subset / all, absent for a single branch |
@@ -631,10 +677,10 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   because the reporting module and the older team surfaces read it. New
   surfaces should read `roleId` and `locationGrants`.
 
-- **Hours are location-agnostic.** `HoursTab()` in `location-form.tsx` takes no
-  location, so every branch shows the same hours. R01 requires per-branch hours
-  and R19 per-branch timezone; `timezone` is set at creation and stored per
-  branch, but no scheduling or display surface reads it yet.
+- **Nothing schedules against a branch's timezone yet.** Hours and timezone are
+  per branch and read everywhere they are displayed, but availability and date
+  bucketing still run on one clock. R19's display half is done; its scheduling
+  half needs the booking engine, which is not a design surface.
 - **An operator's per-branch override does not reach the client page yet.**
   The offerings round-trip on the operator side —
   `lib/service-catalog/offerings-store.tsx` reads them into the service sheet

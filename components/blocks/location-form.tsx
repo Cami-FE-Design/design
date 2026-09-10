@@ -57,6 +57,14 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { REASON_CODES } from "@/lib/admin-businesses"
+import {
+  CLOSED_DAY,
+  formatDayHours,
+  fromPickerTime,
+  toPickerTime,
+  WEEK_DAYS,
+  type WeekSchedule,
+} from "@/lib/locations/hours"
 import { type NewLocationInput, slugify, useLocations } from "@/lib/locations/store"
 import {
   BUSINESS_TAX_IDENTITY,
@@ -537,7 +545,7 @@ function LocationDetailView({ location, onBack }: { location: Location; onBack: 
           <GeneralTab location={location} />
         </TabsContent>
         <TabsContent value="hours">
-          <HoursTab />
+          <HoursTab location={location} />
         </TabsContent>
         <TabsContent value="address">
           <AddressTab location={location} />
@@ -798,7 +806,16 @@ function InvoicingDetailsCard({ location }: { location: Location }) {
   )
 }
 
-function HoursTab() {
+/**
+ * SCR-01 · A branch's own opening hours and timezone (R01, R19).
+ *
+ * Reads the branch, not the business. This card used to print the same
+ * "9:00 AM – 9:00 PM" for every location, which quietly contradicted the whole
+ * premise: if all three branches show one week, per-branch hours do not exist.
+ * Closed days say Closed rather than being dropped, and a day with two shifts
+ * prints both — a branch that shuts over lunch is a real week, not a bad row.
+ */
+function HoursTab({ location }: { location: Location }) {
   const [editing, setEditing] = useState(false)
   return (
     <>
@@ -811,21 +828,26 @@ function HoursTab() {
             <div className="flex flex-col gap-0.5">
               <span className="text-sm leading-5 text-muted-foreground">Hours</span>
               <p className="text-sm leading-5 text-foreground">
-                When this location accepts bookings. Time zone Asia/Dubai.
+                When this location accepts bookings. Time zone {location.timezone}.
               </p>
             </div>
             <div className="flex flex-col gap-1.5">
-              {DAYS_FULL.map((day) => (
-                <div key={day.id} className="flex gap-6 text-sm leading-5">
-                  <span className="w-24 font-medium text-foreground">{day.label}</span>
-                  <span className="text-foreground">9:00 AM – 9:00 PM</span>
-                </div>
-              ))}
+              {WEEK_DAYS.map((day) => {
+                const schedule = location.hours[day.id]
+                return (
+                  <div key={day.id} className="flex gap-6 text-sm leading-5">
+                    <span className="w-24 font-medium text-foreground">{day.long}</span>
+                    <span className={schedule.closed ? "text-muted-foreground" : "text-foreground"}>
+                      {formatDayHours(schedule)}
+                    </span>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
       </SummaryCard>
-      <HoursEditDialog open={editing} onOpenChange={setEditing} />
+      <HoursEditDialog location={location} open={editing} onOpenChange={setEditing} />
     </>
   )
 }
@@ -1212,6 +1234,7 @@ function FullScreenEditDialog({
   title,
   description,
   subtitle,
+  onSave,
   children,
 }: {
   open: boolean
@@ -1219,6 +1242,12 @@ function FullScreenEditDialog({
   title: string
   description: string
   subtitle?: string
+  /**
+   * What Save commits. Absent for the tabs that are still mock-only, where
+   * Save closes and changes nothing — leaving those alone rather than pretending
+   * they persist, which would be the worse lie of the two.
+   */
+  onSave?: () => void
   children: React.ReactNode
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -1295,7 +1324,7 @@ function FullScreenEditDialog({
                 type="button"
                 size="lg"
                 radius="full"
-                onClick={() => onOpenChange(false)}
+                onClick={() => (onSave ? onSave() : onOpenChange(false))}
                 className="hidden lg:inline-flex"
               >
                 Save
@@ -1730,17 +1759,6 @@ function InvoicingDetailsEditDialog({
   )
 }
 
-type DayDef = { id: string; short: string; label: string }
-const DAYS_FULL: DayDef[] = [
-  { id: "sun", short: "S", label: "Sunday" },
-  { id: "mon", short: "M", label: "Monday" },
-  { id: "tue", short: "T", label: "Tuesday" },
-  { id: "wed", short: "W", label: "Wednesday" },
-  { id: "thu", short: "T", label: "Thursday" },
-  { id: "fri", short: "F", label: "Friday" },
-  { id: "sat", short: "S", label: "Saturday" },
-]
-
 const HOUR_OPTIONS: string[] = (() => {
   const out: string[] = []
   for (let h = 0; h < 24; h++) {
@@ -1753,6 +1771,7 @@ const HOUR_OPTIONS: string[] = (() => {
   return out
 })()
 
+/** Enough zones to show a chain spanning more than one (R19), not a full IANA list. */
 const TIMEZONE_OPTIONS = [
   "Asia/Dubai",
   "Asia/Riyadh",
@@ -1761,19 +1780,84 @@ const TIMEZONE_OPTIONS = [
   "America/Los_Angeles",
 ]
 
+/** What the time pickers hold while an edit is open: 12-hour labels, per day. */
+type PickerRange = { open: string; close: string }
+type PickerWeek = Record<string, PickerRange[]>
+
+const DEFAULT_PICKER_RANGE: PickerRange = { open: "9:00 AM", close: "6:00 PM" }
+
+function openDaysOf(location: Location): Set<string> {
+  return new Set(WEEK_DAYS.filter((d) => !location.hours[d.id].closed).map((d) => d.id))
+}
+
+/**
+ * A closed day still gets a default range behind the scenes, so ticking it back
+ * on offers a sensible week rather than an empty row to fill in.
+ */
+function pickerWeekOf(location: Location): PickerWeek {
+  return Object.fromEntries(
+    WEEK_DAYS.map((d) => {
+      const schedule = location.hours[d.id]
+      return [
+        d.id,
+        schedule.closed
+          ? [{ ...DEFAULT_PICKER_RANGE }]
+          : schedule.ranges.map((r) => ({
+              open: toPickerTime(r.open),
+              close: toPickerTime(r.close),
+            })),
+      ]
+    }),
+  )
+}
+
+/**
+ * A day the owner unticked becomes closed, not an empty range list — closed is
+ * a state the client-facing surfaces render ("Closed"), whereas a day with no
+ * ranges would read as open with nothing in it.
+ */
+function weekScheduleOf(days: Set<string>, hours: PickerWeek): WeekSchedule {
+  return Object.fromEntries(
+    WEEK_DAYS.map((d) => {
+      if (!days.has(d.id)) return [d.id, CLOSED_DAY]
+      const ranges = (hours[d.id] ?? [{ ...DEFAULT_PICKER_RANGE }]).map((r) => ({
+        open: fromPickerTime(r.open),
+        close: fromPickerTime(r.close),
+      }))
+      return [d.id, ranges.length > 0 ? { closed: false, ranges } : CLOSED_DAY]
+    }),
+  ) as WeekSchedule
+}
+
 function HoursEditDialog({
+  location,
   open,
   onOpenChange,
 }: {
+  location: Location
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  type Range = { open: string; close: string }
-  const defaultRange: Range = { open: "9:00 AM", close: "6:00 PM" }
-  const [days, setDays] = useState<Set<string>>(() => new Set(["mon", "tue", "wed", "thu", "fri"]))
-  const [hours, setHours] = useState<Record<string, Range[]>>(() =>
-    Object.fromEntries(DAYS_FULL.map((d) => [d.id, [{ ...defaultRange }]])),
-  )
+  const { setHours: saveHours } = useLocations()
+
+  // Opens on what this branch actually keeps. Re-seeded on `open` so a
+  // cancelled edit is discarded rather than lingering into the next one, and
+  // so switching branches never shows the previous branch's week.
+  const [days, setDays] = useState<Set<string>>(() => openDaysOf(location))
+  const [hours, setHours] = useState<PickerWeek>(() => pickerWeekOf(location))
+  const [timezone, setTimezone] = useState(location.timezone)
+
+  useEffect(() => {
+    if (!open) return
+    setDays(openDaysOf(location))
+    setHours(pickerWeekOf(location))
+    setTimezone(location.timezone)
+  }, [open, location])
+
+  const save = () => {
+    saveHours(location.id, weekScheduleOf(days, hours), timezone)
+    onOpenChange(false)
+  }
 
   const toggleDay = (id: string) => {
     setDays((curr) => {
@@ -1786,7 +1870,7 @@ function HoursEditDialog({
 
   const setHour = (id: string, i: number, key: "open" | "close", val: string) => {
     setHours((curr) => {
-      const ranges = (curr[id] ?? [{ ...defaultRange }]).map((r, idx) =>
+      const ranges = (curr[id] ?? [{ ...DEFAULT_PICKER_RANGE }]).map((r, idx) =>
         idx === i ? { ...r, [key]: val } : r,
       )
       return { ...curr, [id]: ranges }
@@ -1796,7 +1880,7 @@ function HoursEditDialog({
   const addRange = (id: string) => {
     setHours((curr) => ({
       ...curr,
-      [id]: [...(curr[id] ?? []), { ...defaultRange }],
+      [id]: [...(curr[id] ?? []), { ...DEFAULT_PICKER_RANGE }],
     }))
   }
 
@@ -1814,12 +1898,14 @@ function HoursEditDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Edit business hours"
+      subtitle={`Change opening hours for ${location.name}`}
       description="Set the days and hours this location is open."
+      onSave={save}
     >
       <section className="flex flex-col gap-3">
         <span className="text-sm font-medium leading-5 text-foreground">Days</span>
         <div className="flex flex-wrap gap-2">
-          {DAYS_FULL.map((day) => {
+          {WEEK_DAYS.map((day) => {
             const isSelected = days.has(day.id)
             return (
               <button
@@ -1827,7 +1913,7 @@ function HoursEditDialog({
                 type="button"
                 onClick={() => toggleDay(day.id)}
                 aria-pressed={isSelected}
-                aria-label={day.label}
+                aria-label={day.long}
                 className={cn(
                   "size-9 rounded-full text-sm font-medium transition-colors",
                   isSelected
@@ -1835,17 +1921,17 @@ function HoursEditDialog({
                     : "bg-muted/60 text-muted-foreground hover:bg-muted",
                 )}
               >
-                {day.short}
+                {day.long.slice(0, 1)}
               </button>
             )
           })}
         </div>
       </section>
 
-      {DAYS_FULL.some((d) => days.has(d.id)) && (
+      {WEEK_DAYS.some((d) => days.has(d.id)) && (
         <section className="flex flex-col gap-3">
-          {DAYS_FULL.filter((d) => days.has(d.id)).map((day) => {
-            const ranges = hours[day.id] ?? [{ ...defaultRange }]
+          {WEEK_DAYS.filter((d) => days.has(d.id)).map((day) => {
+            const ranges = hours[day.id] ?? [{ ...DEFAULT_PICKER_RANGE }]
             const isOnly = ranges.length === 1
             return (
               <div key={day.id} className="flex flex-col gap-2">
@@ -1857,7 +1943,7 @@ function HoursEditDialog({
                   >
                     {i === 0 ? (
                       <span className="text-sm font-medium leading-5 text-foreground">
-                        {day.label}
+                        {day.long}
                       </span>
                     ) : (
                       <span />
@@ -1896,7 +1982,7 @@ function HoursEditDialog({
                         variant="ghost"
                         size="icon"
                         radius="full"
-                        aria-label={`Add another range for ${day.label}`}
+                        aria-label={`Add another range for ${day.long}`}
                         onClick={() => addRange(day.id)}
                       >
                         <PlusIcon className="size-4" />
@@ -1923,7 +2009,7 @@ function HoursEditDialog({
 
       <section className="flex flex-col gap-3">
         <Field label="Time zone">
-          <Select defaultValue="Asia/Dubai">
+          <Select value={timezone} onValueChange={setTimezone}>
             <SelectTrigger className={triggerOverride}>
               <SelectValue />
             </SelectTrigger>
