@@ -775,21 +775,11 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   not one. `npx vitest run --no-file-parallelism` gives 21 files / 286 tests
   green.
 
-- **There are two catalogs, and that is the one thing left in the way of SCR-09
-  reaching a client.** The operator's service sheet edits
-  `lib/service-catalog/mock-data.ts`, whose seed is a **hair salon**
-  (`svc-1` … "Hair Color"). The client side — the public page and the booking
-  flow — reads `lib/booking.ts`, which is **pet grooming** with semantic ids
-  (`full-groom`, `bath-small`). Offerings are keyed by service id, so an
-  override made on the operator sheet cannot reach the ids the client sees.
-
-  The public page's own duplication is gone (it derives from the client catalog
-  now), so the visible symptom is fixed. What remains is the decision: unify on
-  one catalog and one id space, or accept that the operator demo and the client
-  demo describe different businesses. Unifying touches PRD-143's shipped combo
-  work, `app/appointments/mock.ts` and the booking flow, so it is a slice of
-  its own rather than a tidy-up. `combo.test.tsx` looks `svc-1` up by id and
-  asserts nothing about its name, which is the one piece of good luck available.
+- ~~**There are two catalogs.**~~ Closed — `lib/service-catalog/mock-data.ts`
+  derives its services from `lib/booking.ts` rather than holding a second set,
+  so an override made on the operator's sheet lands on the id the client page
+  and the booking flow look up. See
+  [The operator's side was reading a different business](#the-operators-side-was-reading-a-different-business).
 - **The booking flow's staff and slots are still business-wide.**
   `BOOKING_STAFF`, `BOOKING_DAYS` and `SLOT_GROUPS` carry no branch dimension,
   so R15's "that Location's offering **and availability**" is met on the
