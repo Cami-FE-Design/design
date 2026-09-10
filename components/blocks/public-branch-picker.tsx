@@ -1,7 +1,7 @@
 import { ChevronRightIcon, MapPinIcon } from "lucide-react"
 import Link from "next/link"
 import type { WeekSchedule } from "@/lib/locations/hours"
-import { locationHours } from "@/lib/locations/mock"
+import { type LocationContact, locationContact, locationHours } from "@/lib/locations/mock"
 import {
   formatDayHours,
   getDayIdFromDate,
@@ -49,6 +49,7 @@ export function PublicBranchPicker({
   now = new Date(),
   intent = "view",
   hoursFor = locationHours,
+  contactFor = locationContact,
 }: {
   business: PublicBusiness
   branches: ReadonlyArray<PublicBranch>
@@ -60,6 +61,12 @@ export function PublicBranchPicker({
    * shows the hours an operator has actually saved.
    */
   hoursFor?: (branchId: string) => WeekSchedule | undefined
+  /**
+   * Where a branch's name and street come from. Same default and same reason as
+   * `hoursFor`: the seed for a server render, the store for a client one, so a
+   * row shows the address an operator has actually saved.
+   */
+  contactFor?: (branchId: string) => LocationContact | undefined
   /**
    * What the client came to do. `book` sends each row straight into that
    * branch's booking flow instead of its page — a client who arrived at
@@ -84,6 +91,9 @@ export function PublicBranchPicker({
         {branches.map((branch) => {
           // Resolved from the branch's own record, like the branch page does —
           // so the hours a client compares are the hours an operator set.
+          const contact = contactFor(branch.id)
+          const branchName = branch.name ?? contact?.name ?? ""
+          const street = branch.street ?? contact?.street
           const hours = branch.hours ?? hoursFor(branch.id)
           const today = hours ? formatDayHours(hours[getDayIdFromDate(now)]) : null
           const open = hours ? isOpenNow(hours, now) : false
@@ -98,9 +108,11 @@ export function PublicBranchPicker({
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <span className="truncate text-sm font-medium text-foreground group-hover:text-cami-violet-9">
-                    {business.displayName} {branch.name}
+                    {business.displayName} {branchName}
                   </span>
-                  <span className="truncate text-xs text-muted-foreground">{branch.street}</span>
+                  {street ? (
+                    <span className="truncate text-xs text-muted-foreground">{street}</span>
+                  ) : null}
                   <span className="text-xs text-muted-foreground">
                     {/* Today's hours, not the week: a client choosing a branch
                         now is asking whether they can go now. */}

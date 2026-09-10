@@ -1,5 +1,5 @@
 import { CLOSED_DAY, type DaySchedule, openFor, type WeekSchedule } from "@/lib/locations/hours"
-import { locationHours } from "@/lib/locations/mock"
+import { type LocationContact, locationContact, locationHours } from "@/lib/locations/mock"
 import { publicServicesForLocation } from "@/lib/public-offering"
 import type { LocationOffering } from "@/lib/service-catalog/offerings"
 
@@ -92,12 +92,20 @@ export type PublicBranch = {
   id: string
   /** The branch's own shareable link: cami.app/{slug}. */
   slug: string
-  /** How the branch is named to a client. Usually the area, not the brand again. */
-  name: string
-  street: string
-  city: string
-  emirate: string
-  phone: string
+  /**
+   * Name, address and phone, for a business with no location record. A branch
+   * of the chain leaves these absent and resolves them from `lib/locations`
+   * — the same fields an operator edits in settings, so an address changed
+   * there is the address a client reads. They were a second copy until now,
+   * which is why editing a branch's address changed nothing publicly.
+   *
+   * Optional as a set: a branch either has its own profile or resolves one.
+   */
+  name?: string
+  street?: string
+  city?: string
+  emirate?: string
+  phone?: string
   /**
    * Only for a business with no location record. A branch of the chain leaves
    * this absent and its hours resolve from `lib/locations`, so the hours an
@@ -229,21 +237,12 @@ const SHAMPOOCH: PublicBusiness = {
     {
       id: "shampooch-jvc",
       slug: "shampooch-jvc",
-      name: "JVC",
-      street: "Al Ghozlan 4, Jumeirah Village Circle",
-      city: "Dubai",
-      emirate: "Dubai",
-      phone: "+971 50 123 4567",
+      // Name, address and phone resolve from lib/locations — see PublicBranch.
       isPublished: true,
     },
     {
       id: "shampooch-jumeirah",
       slug: "shampooch-jumeirah",
-      name: "Jumeirah",
-      street: "Beach Park Plaza, Jumeirah 2",
-      city: "Dubai",
-      emirate: "Dubai",
-      phone: "+971 50 771 8820",
       // Its higher wash price and its lack of daycare are in
       // lib/service-catalog/offerings.ts, resolved per branch — not filtered
       // and mapped by hand here, where the operator-facing catalog could not
@@ -257,11 +256,6 @@ const SHAMPOOCH: PublicBusiness = {
       // bookings and staff, and comes back unchanged (SU1.5, R12).
       id: "shampooch-al-quoz",
       slug: "shampooch-al-quoz",
-      name: "Al Quoz",
-      street: "Warehouse 4, Al Quoz Industrial 3",
-      city: "Dubai",
-      emirate: "Dubai",
-      phone: "+971 55 340 1192",
       isPublished: false,
     },
   ],
@@ -426,6 +420,7 @@ export function resolvePublicView(slug: string): PublicView | undefined {
 export type BranchLiveData = {
   hours?: WeekSchedule
   offerings?: ReadonlyArray<LocationOffering>
+  contact?: LocationContact
 }
 
 export function branchAsBusiness(
@@ -441,8 +436,13 @@ export function branchAsBusiness(
   //
   // A single-site business is left alone: its page *is* the business, so
   // "Purr Palace Al Quoz" would be worse than "Purr Palace".
+  // Resolved once: the branch's own values if it carries them, else its
+  // location record, else the business's. Every field below reads this.
+  const contact = live?.contact ?? locationContact(branch.id)
+  const branchName = branch.name ?? contact?.name ?? ""
+
   const isChain = business.branches.filter((b) => b.isPublished).length > 1
-  const name = isChain ? `${business.displayName} ${branch.name}`.trim() : business.displayName
+  const name = isChain ? `${business.displayName} ${branchName}`.trim() : business.displayName
 
   return {
     ...business,
@@ -461,10 +461,10 @@ export function branchAsBusiness(
     slug: branch.slug,
     businessName: name,
     displayName: name,
-    street: branch.street,
-    city: branch.city,
-    emirate: branch.emirate,
-    phone: branch.phone,
+    street: branch.street ?? contact?.street ?? business.street,
+    city: branch.city ?? contact?.city ?? business.city,
+    emirate: branch.emirate ?? contact?.emirate ?? business.emirate,
+    phone: branch.phone ?? contact?.phone ?? business.phone,
     // Resolved from the branch's own record unless it carries its own list.
     hours: branch.hours ?? live?.hours ?? locationHours(branch.id) ?? business.hours,
     // Resolved from the catalog unless the branch carries its own list. Was

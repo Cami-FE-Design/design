@@ -190,3 +190,47 @@ export function locationName(locationId: string): string {
 export function locationHours(locationId: string): WeekSchedule | undefined {
   return LOCATIONS.find((l) => l.id === locationId)?.hours
 }
+
+/**
+ * What a client-facing surface needs to name and find a branch (R01, R15).
+ *
+ * The public mock used to hold its own `street`, `city`, `emirate`, `phone` and
+ * `name` per branch, which is the same field set an operator edits in settings
+ * — so an address changed there left the public page showing the old one. This
+ * is the fourth copy collapsed onto this module, after the location list, the
+ * public service menu and the opening hours.
+ *
+ * Two of the mappings are worth naming, because the two sides call the same
+ * fact different things:
+ *
+ * - `emirate` reads `state`. The Location form says State because the field
+ *   serves every country; the public page says what a client in the UAE would.
+ * - `name` reads `district`, not `Location.name`. A branch's public name is the
+ *   area ("JVC"), while its operator-facing name carries the brand too
+ *   ("Shampooch JVC") — and the page composes the brand back on, so using the
+ *   full name would read "Shampooch Shampooch JVC". District is what an
+ *   operator already types, and it matched all three branch labels exactly.
+ *
+ * That second mapping holds while the area *is* the label. A branch wanting a
+ * public name its district does not describe needs a real field for it — see
+ * the note in docs/specs/multi-location-foundations.md.
+ */
+export type LocationContact = {
+  name: string
+  street: string
+  city: string
+  emirate: string
+  phone: string
+}
+
+export function locationContact(locationId: string): LocationContact | undefined {
+  const location = LOCATIONS.find((l) => l.id === locationId)
+  if (!location) return undefined
+  return {
+    name: location.location.district,
+    street: location.location.address,
+    city: location.location.city,
+    emirate: location.location.state,
+    phone: location.phone,
+  }
+}

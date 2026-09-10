@@ -163,6 +163,40 @@ obvious behaviour is the wrong one:
   address.** A copy would silently stop following when the address changed,
   which is the one thing ticking it promised.
 
+### The fifth copy: name, address and phone
+
+`PublicBranch` carried its own `name`, `street`, `city`, `emirate` and `phone`
+— the same five facts an operator edits in settings. So the round trip above
+worked for hours and prices and silently did not for an address: change a
+branch's street in settings, open its public page, nothing.
+
+The values matched to the character, which is what made it invisible. Two
+copies that agree are not a smaller problem than two that disagree, they are
+the same problem before anyone has noticed.
+
+All five resolve from `lib/locations` now, and the fields are optional as a set:
+a branch either carries its own profile or resolves one. Both paths are live —
+the chain's three branches resolve, and Purr Palace keeps its own literals
+because it is a second business with no location record.
+
+Two mappings needed a decision, because the two sides name the same fact
+differently:
+
+- **`emirate` reads `state`.** The Location form says State because the field
+  serves every country; the public page says what a client in the UAE would.
+- **The public name reads `district`, not `Location.name`.** A branch's public
+  name is the area ("JVC"); its operator-facing name carries the brand too
+  ("Shampooch JVC"), and the page composes the brand back on — so using the
+  full name would have read "Shampooch Shampooch JVC". District is what an
+  operator already types and it matched all three labels exactly. Where the
+  area is not the label, that needs a real field; listed under Known gaps
+  rather than guessed at.
+
+The cover and the address block moved inside `PublicBranchLive` with this,
+since a name and an address are now things an operator can change. Only
+`about` and the page metadata stay on the server — neither is per-branch, and
+metadata cannot read a client store at all.
+
 ### The round trip to the client page
 
 The operator side and the client side already shared one definition — a branch's
@@ -665,7 +699,7 @@ And four the review prompted:
   There is a request that reaches Customer Success instead, and the copy names
   who acts.
 
-## The four sources this replaced
+## The seven sources this replaced
 
 `lib/locations/mock.ts` is now the only place a branch is defined.
 
@@ -675,6 +709,9 @@ And four the review prompted:
 | `TERMINAL_LOCATIONS` in `lib/terminals/store.tsx` | "Downtown Clinic", "Field team" — names that existed nowhere else | deleted; seeded terminals remapped onto real branch ids |
 | the topbar's second workspace row | `` `${businessName} · Jumeirah` `` — a branch dressed as a workspace | deleted; branches live in `LocationSwitcher`, on their own axis |
 | `const LOCATION = BUSINESS_NAME` in `lib/money/mock.ts` | every transaction attributed to the *business* | points at a branch; see [Known gaps](#known-gaps) |
+| the public page's own service list | five services, hand-copied from the flow's nineteen | resolved per branch from the one catalog (`lib/public-offering.ts`) |
+| three hour models | shifts on the operator side, one range on the public side, one week in the dev repo's venue | one model in `lib/locations/hours.ts`, shifts everywhere |
+| `PublicBranch`'s name, street, city, emirate, phone | the same five facts an operator edits in settings, agreeing to the character | resolved from the branch's record (`locationContact`) |
 
 That third row is the one worth remembering. A workspace holds exactly one
 business (blueprint §01), and multi-brand under one login is explicitly out of
@@ -805,13 +842,13 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   per branch and read everywhere they are displayed, but availability and date
   bucketing still run on one clock. R19's display half is done; its scheduling
   half needs the booking engine, which is not a design surface.
-- **A branch's street address and phone are still a second copy.**
-  `PublicBranch` in `lib/public-business.ts` carries its own `street`, `city`,
-  `emirate` and `phone`, so an address edited in settings does not change the
-  public page — the hours and the menu resolve from `lib/locations`, these do
-  not. It is the same collapse the menu and the hours already had, one field
-  set later, and it is why the round trip below covers three sections and not
-  five.
+- **A branch's public label is its district.** `locationContact` maps
+  `location.district` onto the name a client reads, because the two matched
+  exactly on all three branches and the operator already types it. A branch
+  wanting a public name its district does not describe — "Marina Walk" for a
+  branch whose district is "Dubai Marina" — needs a real field for it. Not
+  invented, because which of the two an operator expects to edit is a product
+  question, not a modelling one.
 - **Three dialogs still do not save: tax defaults, receipt sequencing and
   tipping.** Not an oversight of the same kind as the profile tabs — these
   resolve from a business default with a per-field override (R23), so saving one

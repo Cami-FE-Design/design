@@ -1,11 +1,9 @@
 import type { Metadata } from "next"
-import Link from "next/link"
 import { notFound } from "next/navigation"
 import { PublicAbout } from "@/components/blocks/public-about"
 import { PublicBranchLive, PublicChainPickerLive } from "@/components/blocks/public-branch-live"
 import { PublicCover } from "@/components/blocks/public-cover"
 import { PublicFooter } from "@/components/blocks/public-footer"
-import { PublicLocation } from "@/components/blocks/public-location"
 import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
 import { branchAsBusiness, listPublicPageSlugs, resolvePublicView } from "@/lib/public-business"
 
@@ -87,42 +85,19 @@ export default async function PublicBusinessPage({ params }: { params: Params })
   }
 
   const business = branchAsBusiness(view.business, view.branch)
-  // A client who followed a branch link and wants the other branch had no way
-  // out of this page — the picker is only reachable from the chain URL they
-  // never saw. One line, and only for a chain: a single-site business has
-  // nowhere to go and should not be told it has.
-  const siblingBranches = view.business.branches.filter(
-    (b) => b.isPublished && b.slug !== view.branch.slug,
-  )
 
   return (
     <main className="relative flex flex-1 justify-center bg-background px-5 py-8 sm:py-12">
       <PublicTopGradient />
       <div className="relative w-full max-w-[560px] lg:max-w-[960px]">
         <div className="grid grid-cols-1 gap-8 [grid-template-areas:'cover'_'card'_'about'_'services'_'location'_'hours'] lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-x-12 lg:[grid-template-areas:'cover_card'_'about_card'_'services_card'_'location_card'_'hours_card']">
-          <div className="[grid-area:cover] flex flex-col gap-3">
-            <PublicCover business={business} />
-            {siblingBranches.length > 0 ? (
-              <Link
-                href={`/${view.business.slug}`}
-                className="self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              >
-                {siblingBranches.length === 1
-                  ? `${view.business.displayName} has another location`
-                  : `${view.business.displayName} has ${siblingBranches.length} other locations`}
-              </Link>
-            ) : null}
-          </div>
           <div className="[grid-area:about]">
             <PublicAbout business={business} />
           </div>
-          <div className="[grid-area:location]">
-            <PublicLocation business={business} />
-          </div>
-          {/* The booking card, the menu and the hours re-resolve on the client
-              against what the operator has saved, and land in their own grid
-              areas. Everything else on this page is the same static HTML it
-              was. See the component's note for why the seam is here. */}
+          {/* Everything a branch owns re-resolves on the client against what
+              the operator has saved, landing in its own grid area: cover,
+              address, booking card, menu and hours. `about` above is the
+              business's, not the branch's. See the component's note. */}
           <PublicBranchLive business={view.business} branch={view.branch} />
         </div>
         <PublicFooter />

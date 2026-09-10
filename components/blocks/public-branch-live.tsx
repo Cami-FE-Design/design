@@ -15,9 +15,13 @@
  *
  * ## Why a wrapper rather than a client page
  *
- * The page stays server-rendered and statically generated: metadata, cover,
- * about and address are unchanged, and the first paint is still HTML. Only the
- * three sections whose data an operator can edit re-resolve after hydration.
+ * The page stays server-rendered and statically generated, and the first paint is
+ * still HTML — client components render on the server too. Only the sections
+ * whose data an operator can edit re-resolve after hydration: the cover and the
+ * address block joined the card, menu and hours once name, street, phone and
+ * emirate stopped being a second copy. `about` and the page metadata stay
+ * outside, because neither is per-branch and metadata cannot read a store at
+ * all.
  *
  * Both stores seed from the same module the server read, so the first client
  * render matches the server's output exactly and the hydrated values arrive on
@@ -38,12 +42,18 @@
  * the client page — which is the thing a reviewer needs to check and could not.
  */
 
+import Link from "next/link"
 import { BookingFlow } from "@/components/blocks/booking/booking-flow"
+
 import { PublicBookingCard } from "@/components/blocks/public-booking-card"
 import { PublicBranchPicker } from "@/components/blocks/public-branch-picker"
+import { PublicCover } from "@/components/blocks/public-cover"
 import { PublicHours } from "@/components/blocks/public-hours"
+import { PublicLocation } from "@/components/blocks/public-location"
 import { PublicServices } from "@/components/blocks/public-services"
+import type { LocationContact } from "@/lib/locations/mock"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
+import type { Location } from "@/lib/locations/types"
 import { branchAsBusiness, type PublicBranch, type PublicBusiness } from "@/lib/public-business"
 import { bookingCatalogForLocation, publicMenuForLocation } from "@/lib/public-offering"
 import {
@@ -56,6 +66,23 @@ import {
  * hours today, and comparing branches on stale hours is the comparison the
  * picker exists to make right.
  */
+/**
+ * The client-facing view of a live Location. `locationContact` in
+ * lib/locations/mock does the same mapping against the seed; this does it
+ * against the store, so an address the operator just saved is the one rendered.
+ * The two must agree, which is why the field choices are documented there.
+ */
+function contactOf(location: Location | undefined): LocationContact | undefined {
+  if (!location) return undefined
+  return {
+    name: location.location.district,
+    street: location.location.address,
+    city: location.location.city,
+    emirate: location.location.state,
+    phone: location.phone,
+  }
+}
+
 export function PublicChainPickerLive({
   business,
   branches,
@@ -88,6 +115,7 @@ function PickerRows({
       branches={branches}
       intent={intent}
       hoursFor={(branchId) => byId(branchId)?.hours}
+      contactFor={(branchId) => contactOf(byId(branchId))}
     />
   )
 }
@@ -121,9 +149,11 @@ export function PublicBookingFlowLive({
 function Flow({ business, branch }: { business: PublicBusiness; branch: PublicBranch }) {
   const { byId } = useLocations()
   const { offerings } = useLocationOfferings()
+  const location = byId(branch.id)
   const resolved = branchAsBusiness(business, branch, {
-    hours: byId(branch.id)?.hours,
+    hours: location?.hours,
     offerings,
+    contact: contactOf(location),
   })
   return (
     <BookingFlow business={resolved} catalog={bookingCatalogForLocation(branch.id, offerings)} />
@@ -152,11 +182,31 @@ function Sections({ business, branch }: { business: PublicBusiness; branch: Publ
 
   // A branch with no location record keeps whatever the seed gave it, rather
   // than losing its hours to an undefined lookup.
-  const live = { hours: byId(branch.id)?.hours, offerings }
+  const location = byId(branch.id)
+  const live = { hours: location?.hours, offerings, contact: contactOf(location) }
   const resolved = branchAsBusiness(business, branch, live)
+
+  // The chain link, computed here because it names the branch it is not.
+  const siblings = business.branches.filter((b) => b.isPublished && b.slug !== branch.slug)
 
   return (
     <>
+      <div className="[grid-area:cover] flex flex-col gap-3">
+        <PublicCover business={resolved} />
+        {siblings.length > 0 ? (
+          <Link
+            href={`/${business.slug}`}
+            className="self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            {siblings.length === 1
+              ? `${business.displayName} has another location`
+              : `${business.displayName} has ${siblings.length} other locations`}
+          </Link>
+        ) : null}
+      </div>
+      <div className="[grid-area:location]">
+        <PublicLocation business={resolved} />
+      </div>
       <div className="[grid-area:card] lg:sticky lg:top-12 lg:self-start">
         <PublicBookingCard business={resolved} />
       </div>
