@@ -9,6 +9,7 @@ import {
   GlobeIcon,
   type LucideIcon,
   MapPinIcon,
+  MessageCircleIcon,
   MessageSquareTextIcon,
   TagIcon,
   UserIcon,
@@ -27,6 +28,7 @@ import { NotificationsSettingsPanel } from "@/components/blocks/notifications-se
 import { PaymentsSettingsPanel } from "@/components/blocks/payment-policy/payments-settings-panel"
 import { SalesSettings } from "@/components/blocks/sales-settings"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { WhatsAppNumbersPanel } from "@/components/blocks/whatsapp-numbers-panel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -152,6 +154,15 @@ const GROUPS: SettingsGroup[] = [
         label: "Communication templates",
         description: "The wording of every automated email and WhatsApp message.",
         icon: MessageSquareTextIcon,
+      },
+      // Which number a message arrives on is what decides the branch (R21), so
+      // it sits with Messaging rather than with Locations — an owner setting
+      // numbers up is thinking about the channel, not about addresses.
+      {
+        id: "whatsapp-numbers",
+        label: "WhatsApp numbers",
+        description: "The number each location answers on, and its migration.",
+        icon: MessageCircleIcon,
       },
     ],
   },
@@ -291,6 +302,7 @@ export function AppSettingsDialog({
             {active.id === "billing" ? <BillingSettingsPanel /> : null}
             {active.id === "notifications" ? <NotificationsSettingsPanel /> : null}
             {active.id === "comms-templates" ? <CommsTemplatesPanel /> : null}
+            {active.id === "whatsapp-numbers" ? <WhatsAppNumbersPanel /> : null}
           </div>
         </div>
       </DialogContent>
