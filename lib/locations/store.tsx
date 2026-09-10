@@ -49,8 +49,13 @@ const DEFAULT_HOURS: WeekSchedule = {
 
 const SCOPE_KEY = "cami-location-scope"
 const GRANTS_KEY = "cami-location-grants"
-const STATUS_KEY = "cami-location-statuses"
-const HOURS_KEY = "cami-location-hours"
+/**
+ * One key, holding what a demo changed: the fields edited per branch, and the
+ * branches created. Two keys grew here first (statuses, then hours) and a third
+ * was about to, once the profile tabs saved — at which point "did this survive
+ * a reload" would depend on which tab you were in. It is one seam now.
+ */
+const EDITS_KEY = "cami-location-edits"
 
 /**
  * `"all"` is a grant of every location the business has, now and later — what
@@ -65,6 +70,13 @@ type LocationsValue = {
   byId: (id: string) => Location | undefined
   /** Display name for an id. Falls back to the id so a stale reference is visible, not silent. */
   locationName: (id: string) => string
+
+  /**
+   * Change fields on one branch (R01). A patch, so a surface writes only what
+   * it edits — and the one seam every branch edit goes through, which is what
+   * makes "did this survive a reload" the same answer on every tab.
+   */
+  updateLocation: (id: string, patch: Partial<Location>) => void
 
   /** Move a branch through its lifecycle (R01, R12). */
   setStatus: (id: string, status: LocationStatus) => void
@@ -193,29 +205,38 @@ function readStoredScope(): LocationScope | null {
   }
 }
 
-function readStoredStatuses(): Record<string, LocationStatus> | null {
+/**
+ * What a session changed, as a patch per branch rather than whole locations.
+ * A patch is what makes the seed still the source: add a field to `Location`
+ * and every stored edit stays valid, where a stored copy would be missing it.
+ */
+type StoredEdits = {
+  overrides: Record<string, Partial<Location>>
+  /** Branches created in this session (R02). Seed order first, these after. */
+  created: Location[]
+}
+
+const NO_EDITS: StoredEdits = { overrides: {}, created: [] }
+
+function readStoredEdits(): StoredEdits {
   try {
-    const raw = window.localStorage.getItem(STATUS_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Record<string, LocationStatus>
-    return parsed && typeof parsed === "object" ? parsed : null
+    const raw = window.localStorage.getItem(EDITS_KEY)
+    if (!raw) return NO_EDITS
+    const parsed = JSON.parse(raw) as Partial<StoredEdits>
+    return {
+      overrides: parsed?.overrides && typeof parsed.overrides === "object" ? parsed.overrides : {},
+      created: Array.isArray(parsed?.created) ? parsed.created : [],
+    }
   } catch {
-    return null
+    return NO_EDITS
   }
 }
 
-/** Hours and timezone survive a reload, because reviewing an edit means seeing it again. */
-type StoredHours = Record<string, { hours: WeekSchedule; timezone: string }>
-
-function readStoredHours(): StoredHours | null {
-  try {
-    const raw = window.localStorage.getItem(HOURS_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as StoredHours
-    return parsed && typeof parsed === "object" ? parsed : null
-  } catch {
-    return null
-  }
+/** The estate as this session left it: seed, plus what was created, plus the edits. */
+function applyEdits(edits: StoredEdits): Location[] {
+  return [...LOCATIONS, ...edits.created].map((l) =>
+    edits.overrides[l.id] ? { ...l, ...edits.overrides[l.id] } : l,
+  )
 }
 
 function readStoredGrants(): LocationGrants | null {
@@ -257,29 +278,49 @@ export function LocationsProvider({
 
   useEffect(() => {
     if (!persist) return
-    const savedStatuses = readStoredStatuses()
-    if (savedStatuses) {
-      // Only the lifecycle state is persisted, never a whole location. A branch's
-      // profile is seed data; its state is what a demo changes.
-      setLocations((prev) =>
-        prev.map((l) => (savedStatuses[l.id] ? { ...l, status: savedStatuses[l.id] } : l)),
-      )
-    }
-    const savedHours = readStoredHours()
-    if (savedHours) {
-      setLocations((prev) =>
-        prev.map((l) =>
-          savedHours[l.id]
-            ? { ...l, hours: savedHours[l.id].hours, timezone: savedHours[l.id].timezone }
-            : l,
-        ),
-      )
+    const edits = readStoredEdits()
+    if (Object.keys(edits.overrides).length > 0 || edits.created.length > 0) {
+      setLocations(applyEdits(edits))
     }
     const savedGrants = readStoredGrants()
     if (savedGrants) setGrantsState(savedGrants)
     const savedScope = readStoredScope()
     if (savedScope) setScopeState(savedScope)
   }, [persist])
+
+  /**
+   * Write to the stored patch, then to state, so the two cannot disagree —
+   * every branch edit goes through here, whatever surface asked for it.
+   */
+  const writeEdits = useCallback(
+    (mutate: (edits: StoredEdits) => StoredEdits) => {
+      if (!persist) return
+      window.localStorage.setItem(EDITS_KEY, JSON.stringify(mutate(readStoredEdits())))
+    },
+    [persist],
+  )
+
+  /**
+   * Change fields on one branch (R01). A patch, not a replacement, because a
+   * surface only knows the fields it edits — the address form has no business
+   * asserting anything about hours.
+   */
+  const updateLocation = useCallback(
+    (id: string, patch: Partial<Location>) => {
+      setLocations((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+      writeEdits((edits) => ({
+        ...edits,
+        // Merged with what was already stored for this branch, so editing the
+        // address does not drop yesterday's hours.
+        overrides: {
+          ...edits.overrides,
+          [id]: { ...edits.overrides[id], ...patch },
+        },
+        created: edits.created.map((l) => (l.id === id ? { ...l, ...patch } : l)),
+      }))
+    },
+    [writeEdits],
+  )
 
   /**
    * Move a branch through its lifecycle (R01, R12). Suspend and reactivate are
@@ -289,40 +330,26 @@ export function LocationsProvider({
    */
   const setStatus = useCallback(
     (id: string, status: LocationStatus) => {
-      setLocations((prev) => {
-        const next = prev.map((l) => (l.id === id ? { ...l, status } : l))
-        if (persist) {
-          const statuses = Object.fromEntries(next.map((l) => [l.id, l.status]))
-          window.localStorage.setItem(STATUS_KEY, JSON.stringify(statuses))
-        }
-        return next
-      })
+      updateLocation(id, { status })
     },
-    [persist],
+    [updateLocation],
   )
 
   const setHours = useCallback(
     (id: string, hours: WeekSchedule, timezone: string) => {
-      setLocations((prev) => {
-        const next = prev.map((l) => (l.id === id ? { ...l, hours, timezone } : l))
-        if (persist) {
-          const stored: StoredHours = Object.fromEntries(
-            next.map((l) => [l.id, { hours: l.hours, timezone: l.timezone }]),
-          )
-          window.localStorage.setItem(HOURS_KEY, JSON.stringify(stored))
-        }
-        return next
-      })
+      updateLocation(id, { hours, timezone })
     },
-    [persist],
+    [updateLocation],
   )
 
-  const addLocations = useCallback((rows: NewLocationInput[]) => {
-    setLocations((prev) => {
+  const addLocations = useCallback(
+    (rows: NewLocationInput[]) => {
+      // Built outside the state updater on purpose: it writes to storage, and
+      // React may call an updater twice, which would create every branch twice.
       // Tax identity, invoicing and the operating country are business-level,
       // so a new branch inherits them rather than being asked again (R23 is a
       // business default with a per-field override, not a per-branch form).
-      const businessDefault = prev[0]
+      const businessDefault = locations[0]
       const created: Location[] = rows.map((row) => ({
         id: slugify(row.name),
         name: row.name.trim(),
@@ -363,9 +390,11 @@ export function LocationsProvider({
         ownerEmail: businessDefault?.ownerEmail ?? "",
         photoUrl: `https://picsum.photos/seed/${slugify(row.name)}/80`,
       }))
-      return [...prev, ...created]
-    })
-  }, [])
+      writeEdits((edits) => ({ ...edits, created: [...edits.created, ...created] }))
+      setLocations((prev) => [...prev, ...created])
+    },
+    [locations, writeEdits],
+  )
 
   const setGrants = useCallback(
     (next: LocationGrants) => {
@@ -396,6 +425,7 @@ export function LocationsProvider({
       locations,
       byId: (id) => locations.find((l) => l.id === id),
       locationName,
+      updateLocation,
       setStatus,
       setHours,
       addLocations,
@@ -412,7 +442,17 @@ export function LocationsProvider({
       activeLocation,
       requiresTargetLocation: writable.length !== 1,
     }
-  }, [locations, grants, scope, setStatus, setHours, addLocations, setGrants, setScope])
+  }, [
+    locations,
+    grants,
+    scope,
+    updateLocation,
+    setStatus,
+    setHours,
+    addLocations,
+    setGrants,
+    setScope,
+  ])
 
   return <LocationsContext.Provider value={value}>{children}</LocationsContext.Provider>
 }
@@ -431,6 +471,7 @@ export function useLocations(): LocationsValue {
     locations,
     byId: (id) => locations.find((l) => l.id === id),
     locationName,
+    updateLocation: () => {},
     setStatus: () => {},
     setHours: () => {},
     addLocations: () => {},

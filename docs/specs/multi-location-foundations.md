@@ -128,6 +128,41 @@ and unsettled sales when it is archived. That disposition is undecided (PRD
 §16, Michelle, and PRO-557), so the dialog states the settled rules and implies
 nothing about the unsettled ones.
 
+### A branch's profile persists, on one seam (SCR-01)
+
+The profile tabs pre-dated this work and were never wired: every field was an
+uncontrolled `defaultValue`, and Save closed the dialog and changed nothing.
+Basic info, business type, address and invoicing now write through the store.
+
+The reason this could not wait: hours started persisting in the slice above, and
+a reviewer who finds Hours surviving a reload and Address not concludes the
+feature is broken. They are not wrong to.
+
+Persistence had also grown a key per surface — statuses first, then hours, and
+the profile would have been a third. Whether an edit survived a reload would
+have depended on which tab you were in. It is one seam now:
+`updateLocation(id, patch)`, one stored key, and `setStatus` and `setHours` are
+two-line wrappers over it. Branches created in chain setup persist too, which
+they did not before.
+
+Stored as a **patch per branch**, not a copy of the location. Add a field to
+`Location` and every stored edit stays valid, where a stored copy would be
+missing it — and editing the address does not drop yesterday's hours.
+
+Three decisions inside the forms are worth naming, because each is a place the
+obvious behaviour is the wrong one:
+
+- **Renaming a branch does not rename its slug.** The slug is the branch's
+  public URL and the id every operational record carries. Renaming "Shampooch
+  JVC" must not break a link a client already has. A slug change is its own
+  decision, with a redirect.
+- **The map pin is not re-derived from the typed address.** Geocoding is a real
+  service; a pin quietly moved to the wrong side of a road is worse than one
+  left where the operator put it.
+- **"Same as business location" stores the tick, not a copy of today's
+  address.** A copy would silently stop following when the address changed,
+  which is the one thing ticking it promised.
+
 ### Per-branch hours and timezone (SCR-01)
 
 `HoursTab()` used to take no location and print "9:00 AM – 9:00 PM, Time zone
@@ -689,8 +724,10 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   the store. The seeded deviation (Jumeirah's higher wash price, no daycare) is
   what a client sees; a fresh edit is not. Making it end-to-end means the public
   page reading a client-side store, which is its own slice.
-- **A branch's profile is seed data.** Only the lifecycle state and newly added
-  branches are persisted. Editing an address or tax field in the takeovers still
-  does not survive a reload — those dialogs pre-date this work and were never
-  wired to a store.
+- **Three dialogs still do not save: tax defaults, receipt sequencing and
+  tipping.** Not an oversight of the same kind as the profile tabs — these
+  resolve from a business default with a per-field override (R23), so saving one
+  means building that inheritance rather than writing a field. That is SCR-12's
+  own slice, and `lib/locations/tax-identity.ts` already holds the resolution.
+  Their Save closes and changes nothing, which is worth knowing before a demo.
 

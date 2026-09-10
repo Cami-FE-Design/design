@@ -148,8 +148,16 @@ function formatInvoicingAddress(inv: Invoicing): string | null {
 /**
  * Locations panel — list view that drills down into a per-location detail
  * page (inner-page navigation, not a popup). Notion-style breadcrumb at the
- * top of the detail provides back navigation. Form-state wiring is
- * intentionally absent during design iteration.
+ * top of the detail provides back navigation.
+ *
+ * Every tab here writes through `updateLocation`, so a branch's profile, hours
+ * and lifecycle all survive a reload the same way. That uniformity is the
+ * point: a reviewer who finds Hours persisting and Address not concludes the
+ * feature is broken, and they are not wrong to. Three dialogs are still
+ * unwired and listed as a gap in docs/specs: tax defaults, receipt sequencing
+ * and tipping. Those are not plain per-branch fields — they resolve from a
+ * business default with a per-field override (R23), so saving one means
+ * building that inheritance, which is SCR-12's own slice.
  */
 export function LocationForm() {
   // The estate, not the seed: suspending a branch here has to be the same
@@ -1366,10 +1374,18 @@ function FullScreenEditDialog({
   )
 }
 
+/** Every control these dialogs read on save. The invoice note is a textarea. */
+type FieldElement = HTMLInputElement | HTMLTextAreaElement
+
+/** What a ref holds, or the branch's current value when the field never rendered. */
+function readField(el: FieldElement | null | undefined, fallback: string): string {
+  return el ? el.value.trim() : fallback
+}
+
 function useFocusOnOpen<T extends string>(
   open: boolean,
   focusField: T | null,
-  fieldRefs: React.MutableRefObject<Partial<Record<T, HTMLInputElement | null>>>,
+  fieldRefs: React.MutableRefObject<Partial<Record<T, FieldElement | null>>>,
 ) {
   useEffect(() => {
     if (!open || !focusField) return
@@ -1395,10 +1411,32 @@ function BasicInfoEditDialog({
   onOpenChange: (open: boolean) => void
   focusField: BasicInfoField | null
 }) {
-  const fieldRefs = useRef<Partial<Record<BasicInfoField, HTMLInputElement | null>>>({})
+  const fieldRefs = useRef<Partial<Record<BasicInfoField, FieldElement | null>>>({})
   useFocusOnOpen(open, focusField, fieldRefs)
-  const setFieldRef = (field: BasicInfoField) => (el: HTMLInputElement | null) => {
+  const setFieldRef = (field: BasicInfoField) => (el: FieldElement | null) => {
     fieldRefs.current[field] = el
+  }
+  const { updateLocation } = useLocations()
+  const [dialCode, setDialCode] = useState(() => dialCodeOf(location.phone))
+
+  useEffect(() => {
+    if (open) setDialCode(dialCodeOf(location.phone))
+  }, [open, location.phone])
+
+  /**
+   * The slug is deliberately not renamed with the branch. It is the branch's
+   * public URL and the id every operational record carries; renaming "Shampooch
+   * JVC" to "Shampooch JVC (Main)" must not break a link a client already has
+   * or orphan a booking. Changing a slug is its own decision, with a redirect.
+   */
+  const save = () => {
+    const local = readField(fieldRefs.current.phone, location.phone)
+    updateLocation(location.id, {
+      name: readField(fieldRefs.current.name, location.name) || location.name,
+      phone: local ? `${dialCode} ${local}` : "",
+      email: readField(fieldRefs.current.email, location.email),
+    })
+    onOpenChange(false)
   }
 
   return (
@@ -1406,7 +1444,9 @@ function BasicInfoEditDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Edit basic info"
+      subtitle={`Change the contact details for ${location.name}`}
       description="Edit this location's name and contact details."
+      onSave={save}
     >
       <section className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
@@ -1419,11 +1459,11 @@ function BasicInfoEditDialog({
         </div>
         <div className="flex flex-col gap-6">
           <Field label="Location name">
-            <Input ref={setFieldRef("name")} defaultValue={location.name} />
+            <Input key={location.id} ref={setFieldRef("name")} defaultValue={location.name} />
           </Field>
           <Field label="Phone">
             <div className="flex gap-2">
-              <Select defaultValue="+971">
+              <Select value={dialCode} onValueChange={setDialCode}>
                 <SelectTrigger className={cn(triggerOverride, "w-28")}>
                   <SelectValue />
                 </SelectTrigger>
@@ -1459,11 +1499,21 @@ function BusinessTypeEditDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { updateLocation } = useLocations()
   const [selected, setSelected] = useState<Set<string>>(() => new Set(location.businessType))
 
   useEffect(() => {
     if (open) setSelected(new Set(location.businessType))
   }, [open, location.businessType])
+
+  // Ordered by the option list, not by the order they were clicked, so two
+  // branches offering the same things read the same on the public page.
+  const save = () => {
+    updateLocation(location.id, {
+      businessType: BUSINESS_TYPE_OPTIONS.filter((o) => selected.has(o.id)).map((o) => o.id),
+    })
+    onOpenChange(false)
+  }
 
   const toggle = (id: string) => {
     setSelected((curr) => {
@@ -1479,7 +1529,9 @@ function BusinessTypeEditDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Edit business type"
+      subtitle={`Change what ${location.name} offers`}
       description="Choose every service this location offers."
+      onSave={save}
     >
       <section className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
@@ -1540,10 +1592,37 @@ function AddressEditDialog({
   onOpenChange: (open: boolean) => void
   focusField: AddressField | null
 }) {
-  const fieldRefs = useRef<Partial<Record<AddressField, HTMLInputElement | null>>>({})
+  const fieldRefs = useRef<Partial<Record<AddressField, FieldElement | null>>>({})
   useFocusOnOpen(open, focusField, fieldRefs)
-  const setFieldRef = (field: AddressField) => (el: HTMLInputElement | null) => {
+  const setFieldRef = (field: AddressField) => (el: FieldElement | null) => {
     fieldRefs.current[field] = el
+  }
+  const { updateLocation } = useLocations()
+  const [country, setCountry] = useState(location.location.country)
+
+  useEffect(() => {
+    if (open) setCountry(location.location.country)
+  }, [open, location.location.country])
+
+  /**
+   * The map pin is not derived from the typed address here — geocoding is a real
+   * service, and a pin quietly moved to the wrong side of a road is worse than a
+   * pin left where the operator put it. It stays as it was.
+   */
+  const save = () => {
+    const current = location.location
+    updateLocation(location.id, {
+      location: {
+        address: readField(fieldRefs.current.address, current.address),
+        aptSuite: readField(fieldRefs.current.aptSuite, current.aptSuite),
+        district: readField(fieldRefs.current.district, current.district),
+        city: readField(fieldRefs.current.city, current.city),
+        state: readField(fieldRefs.current.state, current.state),
+        postcode: readField(fieldRefs.current.postcode, current.postcode),
+        country,
+      },
+    })
+    onOpenChange(false)
   }
 
   return (
@@ -1551,7 +1630,9 @@ function AddressEditDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Edit address"
+      subtitle={`Change where ${location.name} is`}
       description="Edit the business location address."
+      onSave={save}
     >
       <section className="flex flex-col gap-5">
         <Field label="Where's your business located?">
@@ -1600,7 +1681,7 @@ function AddressEditDialog({
           </Field>
           <div className="sm:col-span-2">
             <Field label="Country">
-              <Select defaultValue={location.location.country}>
+              <Select value={country} onValueChange={setCountry}>
                 <SelectTrigger className={triggerOverride}>
                   <SelectValue />
                 </SelectTrigger>
@@ -1631,16 +1712,49 @@ function InvoicingDetailsEditDialog({
   onOpenChange: (open: boolean) => void
   focusField: InvoicingField | null
 }) {
-  const fieldRefs = useRef<Partial<Record<InvoicingField, HTMLInputElement | null>>>({})
+  const fieldRefs = useRef<Partial<Record<InvoicingField, FieldElement | null>>>({})
   useFocusOnOpen(open, focusField, fieldRefs)
+  const { updateLocation } = useLocations()
   const [sameAsLocation, setSameAsLocation] = useState(location.invoicing.sameAsLocation)
 
   useEffect(() => {
     if (open) setSameAsLocation(location.invoicing.sameAsLocation)
   }, [open, location.invoicing.sameAsLocation])
 
-  const setFieldRef = (field: InvoicingField) => (el: HTMLInputElement | null) => {
+  const setFieldRef = (field: InvoicingField) => (el: FieldElement | null) => {
     fieldRefs.current[field] = el
+  }
+
+  /**
+   * With "same as location" ticked the entity fields are disabled and mirror the
+   * address, so what is stored is the tick — not a copy of today's address. A
+   * copy would silently stop following when the address changed, which is the
+   * one thing ticking it was meant to promise.
+   */
+  const save = () => {
+    const current = location.invoicing
+    updateLocation(location.id, {
+      invoicing: {
+        sameAsLocation,
+        companyName: sameAsLocation
+          ? current.companyName
+          : readField(fieldRefs.current.companyName, current.companyName),
+        address: sameAsLocation
+          ? current.address
+          : readField(fieldRefs.current.address, current.address),
+        aptSuite: sameAsLocation
+          ? current.aptSuite
+          : readField(fieldRefs.current.aptSuite, current.aptSuite),
+        city: sameAsLocation ? current.city : readField(fieldRefs.current.city, current.city),
+        state: sameAsLocation ? current.state : readField(fieldRefs.current.state, current.state),
+        postcode: sameAsLocation
+          ? current.postcode
+          : readField(fieldRefs.current.postcode, current.postcode),
+        vatNumber: readField(fieldRefs.current.vatNumber, current.vatNumber),
+        invoiceNote: readField(fieldRefs.current.invoiceNote, current.invoiceNote),
+      },
+    })
+    onOpenChange(false)
   }
 
   return (
@@ -1648,7 +1762,9 @@ function InvoicingDetailsEditDialog({
       open={open}
       onOpenChange={onOpenChange}
       title="Edit invoicing details"
+      subtitle={`Change the invoicing entity for ${location.name}`}
       description="Edit the legal entity and address shown on invoices and receipts."
+      onSave={save}
     >
       <section className="flex flex-col gap-5">
         {/* biome-ignore lint/a11y/noLabelWithoutControl: Checkbox child is the control */}
@@ -1749,6 +1865,7 @@ function InvoicingDetailsEditDialog({
             Invoice note (optional)
           </span>
           <Textarea
+            ref={setFieldRef("invoiceNote")}
             defaultValue={location.invoicing.invoiceNote}
             placeholder="e.g. Thank you! Reschedule up to 24 hours before."
             rows={3}
@@ -1757,6 +1874,20 @@ function InvoicingDetailsEditDialog({
       </section>
     </FullScreenEditDialog>
   )
+}
+
+/**
+ * Split a stored phone into its dial code, so reopening the form shows the code
+ * the branch is actually on rather than resetting every branch to +971.
+ *
+ * Four codes is not a phone input — `cami-business` ships a searchable
+ * 199-country picker, and four hardcoded lists of these exist in this repo. That
+ * is its own inconsistency to fix, not this slice's.
+ */
+const DIAL_CODES = ["+971", "+966", "+44", "+1"]
+
+function dialCodeOf(phone: string): string {
+  return DIAL_CODES.find((code) => phone.startsWith(code)) ?? DIAL_CODES[0]
 }
 
 const HOUR_OPTIONS: string[] = (() => {
