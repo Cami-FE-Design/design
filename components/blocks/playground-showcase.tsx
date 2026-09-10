@@ -8,6 +8,7 @@ import {
   CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
+  CirclePlusIcon,
   CircleUserIcon,
   CreditCardIcon,
   FlagIcon,
@@ -55,6 +56,7 @@ import { AvatarStack } from "@/components/blocks/avatar-stack"
 import { BoardingDetailSheet } from "@/components/blocks/boarding/booking-detail-sheet"
 import { NewBoardingSheet } from "@/components/blocks/boarding/new-boarding-sheet"
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
+import { BranchDayStrip } from "@/components/blocks/branch-day-strip"
 import { BusinessNotificationsSection } from "@/components/blocks/business-detail-dialog"
 import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
@@ -86,6 +88,9 @@ import { REVIEW_GRID_TEMPLATE, ReviewRow } from "@/components/blocks/imports/red
 import { InvoiceDocumentView } from "@/components/blocks/invoice-document"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
+import { AddLocationsTakeover } from "@/components/blocks/location-form"
+import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
+import { LocationSwitcher } from "@/components/blocks/location-switcher"
 import { MerchantCode } from "@/components/blocks/merchant-code"
 import {
   type BankAccountDemoState,
@@ -96,13 +101,19 @@ import {
   BillingDetailsPanel,
 } from "@/components/blocks/money/billing-details-panel"
 import { MoneyActivityView } from "@/components/blocks/money/money-activity"
+import { MoneyByLocationView } from "@/components/blocks/money/money-by-location"
 import { MoneyFeesView } from "@/components/blocks/money/money-fees"
 import { MoneySummaryView } from "@/components/blocks/money/money-summary"
 import { RailBadge } from "@/components/blocks/money/rail-badge"
+import { MoveToBranchDialog } from "@/components/blocks/move-to-branch-dialog"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
 import { NavigateToAddress } from "@/components/blocks/navigate-to-address"
 import { ServicePickerPanel } from "@/components/blocks/new-appointment-service-picker"
 import { NotificationsSettingsPanel } from "@/components/blocks/notifications-settings-panel"
+import {
+  PackageBranchWarning,
+  type PackageDecision,
+} from "@/components/blocks/package-branch-warning"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
@@ -111,6 +122,7 @@ import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
 import { PetNotesFields, PetNotesList } from "@/components/blocks/pet-notes-fields"
 import { PhoneField } from "@/components/blocks/phone-field"
 import { PickupFields } from "@/components/blocks/pickup-fields"
+import { PublicBranchPicker } from "@/components/blocks/public-branch-picker"
 import { CapacityHeatmap } from "@/components/blocks/reports/charts/capacity-heatmap"
 import { DonutChart } from "@/components/blocks/reports/charts/donut-chart"
 import { FunnelChart } from "@/components/blocks/reports/charts/funnel-chart"
@@ -122,6 +134,7 @@ import { SectionCard } from "@/components/blocks/section-card"
 import { SectionedSheetShell, type SectionGroup } from "@/components/blocks/sectioned-sheet-shell"
 import { CategorySidebar } from "@/components/blocks/service-menu/CategorySidebar"
 import { ServiceCardInner } from "@/components/blocks/service-menu/ServiceCard"
+import { ServiceLocationsSection } from "@/components/blocks/service-menu/ServiceLocationsSection"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { ShareInvoiceDialog, type ShareLinkState } from "@/components/blocks/share-invoice-dialog"
 import {
@@ -130,12 +143,14 @@ import {
   type SignatureResult,
 } from "@/components/blocks/sign/signature-dialog"
 import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
+import { TeamAccessDialog } from "@/components/blocks/team-access-dialog"
 import {
   TeamMemberDetailDialog,
   type TeamMemberDetailMember,
 } from "@/components/blocks/team-member-detail-dialog"
 import { TerminalsPanel } from "@/components/blocks/terminals-panel"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
+import { WhatsAppNumbersPanel } from "@/components/blocks/whatsapp-numbers-panel"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -199,10 +214,12 @@ import { applySummaryFor, getScenario, type ImportScenarioId } from "@/lib/impor
 import { placeholderSkuRows, reviewCounts } from "@/lib/imports/outcome"
 import type { ProductImportPreviewRow, RowOverride } from "@/lib/imports/types"
 import { INVOICE_FIXTURES } from "@/lib/invoice/mock"
+import { bookingsInScope } from "@/lib/locations/calendar-scope"
+import { LocationsProvider, useLocations } from "@/lib/locations/store"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
 import type { TerminalFeeModel } from "@/lib/money/fees"
-import { defaultRange, MONEY_TXS, PAYOUTS } from "@/lib/money/mock"
+import { defaultRange, MONEY_TXS, PAYOUTS, periodBounds } from "@/lib/money/mock"
 import type { MerchantRails, SettlementBlock } from "@/lib/money/types"
 import {
   type AmountValue,
@@ -210,6 +227,7 @@ import {
   examplePolicyText,
 } from "@/lib/payment-policy/types"
 import type { PetNoteEntry } from "@/lib/pet-notes"
+import { getPublicBusinessBySlug } from "@/lib/public-business"
 import {
   HEATMAP_DAYS,
   HEATMAP_HOURS,
@@ -222,6 +240,13 @@ import {
 import { CHART_CAT_SWATCH } from "@/lib/reports/dashboard/palette"
 import { getReport } from "@/lib/reports/registry"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
+import type { LocationOffering, ServiceDefaults } from "@/lib/service-catalog/offerings"
+import {
+  type BranchServiceTerms,
+  checkPackageAtBranch,
+} from "@/lib/service-catalog/package-branch-check"
+import { TEAM_MEMBERS } from "@/lib/team/mock"
+import { roleById } from "@/lib/team/roles"
 import { DEMO_SESSIONS, DEMO_TERMINALS } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
 
@@ -316,6 +341,17 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
     id: "business",
     label: "Business app features",
     sections: [
+      "Multi-location — branch switcher",
+      "Multi-location — branch lifecycle",
+      "Multi-location — chain setup",
+      "Multi-location — branch access grants",
+      "Multi-location — per-branch service pricing",
+      "Multi-location — public branch picker",
+      "Multi-location — branch WhatsApp numbers",
+      "Multi-location — money by branch",
+      "Multi-location — cross-branch move",
+      "Multi-location — all-branches calendar",
+      "Multi-location — package mismatch at checkout",
       "Appointments — booking block",
       "Appointments — toolbar and people grid",
       "Appointments — pickup & pet notes",
@@ -476,6 +512,7 @@ function Row({
 const PICKUP_DEMO_BOOKING: MockBooking = {
   id: "pg-pickup",
   staffId: "aya-hassan",
+  locationId: "shampooch-jvc",
   start: "10:15",
   durationMin: 60,
   status: "confirmed",
@@ -504,6 +541,276 @@ const PICKUP_DEMO_BOOKING: MockBooking = {
 // membership — the shape the as-built popup shows and ours could not.
 // PRD-143 — the pet-parent picker, opened on the category that carries a combo
 // so the badge and its "2 services" count are on screen without scrolling.
+/**
+ * Chain setup, with the resulting estate rendered beside it — the created
+ * branches are the acceptance criterion (SU1.2), so hiding them behind a closed
+ * dialog would show the form and not the outcome.
+ */
+/**
+ * SCR-03 against three real roster rows, because the states that matter are
+ * per-person: an owner (all, untickable), a manager granted one branch of
+ * three, and an invited member granted none.
+ */
+/**
+ * SCR-09 with the business default under the operator's thumb, because DW3.1 is
+ * a claim about what happens *after* a default changes — a static screenshot of
+ * the section cannot show it.
+ */
+/** Month to date, so the breakdown has a period with real activity in it. */
+const MONEY_DEMO_FILTER = {
+  fromIso: periodBounds("month-to-date").fromIso,
+  toIso: periodBounds("month-to-date").toIso,
+}
+
+/** Shampooch, the seeded chain — two published branches, one suspended. */
+const PICKER_DEMO_BUSINESS = getPublicBusinessBySlug("shampooch")!
+
+function ServicePricingDemo() {
+  const [defaults, setDefaults] = useState<ServiceDefaults>({
+    priceType: "Fixed",
+    price: 60,
+    duration: 45,
+  })
+  const [offerings, setOfferings] = useState<LocationOffering[]>([
+    // Jumeirah is the busy branch that deliberately charges more — the exact
+    // shape DW3.1 is written about.
+    {
+      serviceId: "dog-wash",
+      locationId: "shampooch-jumeirah",
+      enabled: true,
+      overrides: { price: 75 },
+    },
+    // Al Quoz has no groomer, so it does not offer this at all (DW3.3).
+    { serviceId: "dog-wash", locationId: "shampooch-al-quoz", enabled: false, overrides: {} },
+  ])
+
+  return (
+    <div className="flex w-full max-w-2xl flex-col gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          radius="full"
+          onClick={() =>
+            setDefaults((d) => ({ ...d, price: d.price + 5, duration: d.duration + 5 }))
+          }
+        >
+          Raise the business default
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          Now AED {defaults.price} · {defaults.duration} min
+        </span>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          radius="full"
+          onClick={() => setDefaults({ priceType: "Fixed", price: 60, duration: 45 })}
+        >
+          Back to AED 60 · 45 min
+        </Button>
+      </div>
+      <ServiceLocationsSection
+        serviceId="dog-wash"
+        defaults={defaults}
+        offerings={offerings}
+        onChange={setOfferings}
+      />
+    </div>
+  )
+}
+
+function TeamAccessDemo() {
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [members, setMembers] = useState(TEAM_MEMBERS)
+  const shown = members.filter((m) => ["m_owner", "m_aziz", "m_ahmed"].includes(m.id))
+  const { locationName } = useLocations()
+
+  return (
+    <div className="flex flex-col gap-2">
+      {shown.map((m) => (
+        <div key={m.id} className="flex items-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            radius="full"
+            onClick={() => setOpenId(m.id)}
+          >
+            {m.name ?? m.email}
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            {roleById(m.roleId)?.name ?? m.roleId} ·{" "}
+            {m.locationGrants === "all"
+              ? "All locations"
+              : m.locationGrants.length === 0
+                ? "No access"
+                : m.locationGrants.map(locationName).join(", ")}
+          </span>
+        </div>
+      ))}
+      <TeamAccessDialog
+        open={openId !== null}
+        onOpenChange={(next) => {
+          if (!next) setOpenId(null)
+        }}
+        member={members.find((m) => m.id === openId) ?? null}
+        onSave={(memberId, roleId, grants) =>
+          setMembers((prev) =>
+            prev.map((m) => (m.id === memberId ? { ...m, roleId, locationGrants: grants } : m)),
+          )
+        }
+      />
+    </div>
+  )
+}
+
+/**
+ * The move dialog against one appointment, with the destination checks the
+ * dialog cannot compute supplied per branch — there is no per-branch
+ * availability model to ask yet, so the demo says so rather than faking one.
+ */
+/**
+ * The strip over a scoped booking list. The grid itself lives under
+ * "Appointments — toolbar and people grid"; this shows what the scope does to
+ * the day rather than re-mounting it.
+ */
+const PACKAGE_ENTITLEMENT = {
+  packageId: "pkg-1",
+  serviceId: "bath-small",
+  soldAtLocationId: "shampooch-jvc",
+  soldPriceMinor: 6_000,
+  soldDurationMin: 45,
+  remainingSessions: 3,
+}
+
+const PACKAGE_MISMATCH_CASES = [
+  { label: "Same terms", terms: { offered: true, priceMinor: 6_000, durationMin: 45 } },
+  { label: "Priced differently", terms: { offered: true, priceMinor: 7_500, durationMin: 45 } },
+  { label: "Different duration", terms: { offered: true, priceMinor: 6_000, durationMin: 60 } },
+  { label: "Not offered here", terms: { offered: false, priceMinor: 0, durationMin: 0 } },
+]
+
+/** One cart line's worth of the warning, with the staff decision live. */
+function PackageWarningDemo({ terms }: { terms: BranchServiceTerms }) {
+  const [decision, setDecision] = useState<PackageDecision | null>(null)
+  const mismatch = checkPackageAtBranch(PACKAGE_ENTITLEMENT, terms)
+  return (
+    <div className="flex flex-col gap-2">
+      <PackageBranchWarning
+        mismatch={mismatch}
+        soldAtLocationId={PACKAGE_ENTITLEMENT.soldAtLocationId}
+        serviceName="Bath & brush, small"
+        decision={decision}
+        onDecide={setDecision}
+      />
+      {mismatch.kind === "match" ? (
+        <span className="text-xs text-muted-foreground">
+          Nothing rendered — the terms match, so there is nothing to warn about
+        </span>
+      ) : null}
+      <span className="text-xs text-muted-foreground">
+        Checkout completes either way{decision ? ", and the decision is on the sale" : ""}
+      </span>
+    </div>
+  )
+}
+
+function BranchCalendarDemo() {
+  const { scopedLocations, scopeLabel } = useLocations()
+  const scoped = bookingsInScope(
+    MOCK_BOOKINGS,
+    scopedLocations.map((l) => l.id),
+  )
+  return (
+    <div className="flex flex-col gap-3">
+      <BranchDayStrip bookings={MOCK_BOOKINGS} />
+      <p className="text-sm text-muted-foreground">
+        {scopeLabel} — {scoped.length} of {MOCK_BOOKINGS.length} appointments in view
+      </p>
+      <ul className="flex flex-col gap-1">
+        {scoped.slice(0, 6).map((b) => (
+          <li key={b.id} className="flex items-center gap-2 text-sm text-foreground">
+            <span className="w-14 shrink-0 font-mono text-xs text-muted-foreground">{b.start}</span>
+            <span className="truncate">{b.clientName}</span>
+            <span className="truncate text-muted-foreground">{b.serviceName}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+function MoveDemo({
+  depositMinor,
+  paymentResolvable = true,
+}: {
+  depositMinor: number
+  paymentResolvable?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [moved, setMoved] = useState<string | null>(null)
+  const { locationName } = useLocations()
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Button type="button" variant="outline" size="sm" radius="full" onClick={() => setOpen(true)}>
+        Move Karen Dougall's appointment
+      </Button>
+      {moved ? <span className="text-xs text-muted-foreground">{moved}</span> : null}
+      <MoveToBranchDialog
+        open={open}
+        onOpenChange={setOpen}
+        appointment={{
+          appointmentId: "b-004",
+          clientName: "Karen Dougall",
+          serviceName: "Full groom",
+          serviceId: "full-groom",
+          when: "Today, 11:00",
+          sourceLocationId: "shampooch-jvc",
+          depositMinor,
+        }}
+        destinationChecks={{
+          "shampooch-jumeirah": {
+            destinationOffersService: true,
+            destinationHasSlot: true,
+            paymentResolvable,
+          },
+        }}
+        onMoved={(attribution) =>
+          setMoved(
+            `Moved. Collected at ${locationName(attribution.collectionLocationId)}, delivered at ${locationName(attribution.fulfillmentLocationId)}.`,
+          )
+        }
+      />
+    </div>
+  )
+}
+
+function ChainSetupDemo() {
+  const { locations } = useLocations()
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="flex flex-col gap-3">
+      <Button type="button" variant="outline" radius="full" onClick={() => setOpen(true)}>
+        <CirclePlusIcon className="size-4" />
+        Add locations
+      </Button>
+      <AddLocationsTakeover open={open} onOpenChange={setOpen} />
+      <ul className="flex flex-col gap-1">
+        {locations.map((loc) => (
+          <li key={loc.id} className="flex items-center gap-2 text-sm text-foreground">
+            <span>{loc.name}</span>
+            <LocationStatusBadge status={loc.status} />
+            <span className="font-mono text-xs text-muted-foreground">cami.app/{loc.slug}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function BookingComboPickerDemo() {
   const [selected, setSelected] = useState<string[]>(["groom-and-nails-combo"])
   return (
@@ -2070,6 +2377,194 @@ export function PlaygroundShowcase() {
         blurb="Ticketed work on the operator's surfaces, newest thinking first."
       >
         <Section
+          title="Multi-location — branch switcher"
+          description="SCR-04. The control every other multi-location surface is read through: which branch am I acting on? Scope spans one branch, a named subset, or all granted branches (R03), and never resets the filters or date range a user already set (DW1.1). Each frame below is its own scope, so the states sit side by side."
+        >
+          <Row label="Owner, all branches">
+            <LocationsProvider persist={false} initialScope={{ kind: "all" }}>
+              <LocationSwitcher />
+            </LocationsProvider>
+          </Row>
+          <Row label="Scope = one branch">
+            <LocationsProvider
+              persist={false}
+              initialScope={{ kind: "one", locationId: "shampooch-jumeirah" }}
+            >
+              <LocationSwitcher />
+            </LocationsProvider>
+          </Row>
+          <Row label="Scope = subset">
+            <LocationsProvider
+              persist={false}
+              initialScope={{
+                kind: "subset",
+                locationIds: ["shampooch-jvc", "shampooch-al-quoz"],
+              }}
+            >
+              <LocationSwitcher />
+            </LocationsProvider>
+          </Row>
+          <Row label="Single-branch business" align="start">
+            {/* DW1.2: absent, not disabled, not a one-item dropdown. The frame
+                is here so the reviewer can see that nothing renders on purpose
+                — a T3 operator must not pay attention to a concept they do not
+                have. Granted one branch, so an area manager holding one of nine
+                lands here too. */}
+            <LocationsProvider persist={false} initialGrants={["shampooch-jvc"]}>
+              <div className="flex min-h-11 items-center gap-3">
+                <LocationSwitcher />
+                <span className="text-xs text-muted-foreground">
+                  Nothing rendered — one granted branch means no switcher
+                </span>
+              </div>
+            </LocationsProvider>
+          </Row>
+          <Row label="No branch granted">
+            {/* R24. An empty scope is never "all" — it is no access, and the
+                control says so rather than showing an empty menu. */}
+            <LocationsProvider persist={false} initialGrants={[]}>
+              <LocationSwitcher />
+            </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — branch lifecycle"
+          description="SCR-01's state half (R01, R12). Four states, and the consequence of each is what the badge is for: paused means the booking page is hidden and the calendar is off, archived means no new writes ever again. Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find. The full panel, with the Suspend / Reactivate / Archive actions and the archive confirmation, is at /shell-demo?settings=locations."
+        >
+          <Row label="Status badge">
+            {(["live", "draft", "suspended", "archived"] as const).map((status) => (
+              <span key={status} className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{status}</span>
+                <LocationStatusBadge status={status} />
+                {status === "live" ? (
+                  <span className="text-xs text-muted-foreground">(nothing rendered)</span>
+                ) : null}
+              </span>
+            ))}
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — chain setup"
+          description="SCR-02 (R02, SU1.2). N branches in one pass, because growth must not be a second onboarding — BG-03 makes 'zero operator migration steps' a gate rather than a target. All or none: submit with one bad row and nothing is created, which is the whole point — a partial create leaves the owner unable to tell which of nine landed. Try two rows with the same name to see the link collision, or the existing 'Shampooch JVC' to see a taken slug. Isolated below, so creating here does not touch the app's own estate."
+        >
+          <Row label="Add locations" align="start">
+            <LocationsProvider persist={false}>
+              <ChainSetupDemo />
+            </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — branch access grants"
+          description="SCR-03 (R04, R24). Two independent axes: role capability is what, the location grant is where, and neither widens the other. Open the owner to see an untickable list — an owner holds every branch including ones added later, which is why that grant is stored as 'all' rather than as today's ids. Open Ahmed to see an empty grant said out loud: no access, never 'every branch'. The location permission list marks the four codes that do not exist yet — the product ships one venues:read that bundles viewing a branch with changing it."
+        >
+          <Row label="Open a member" align="start">
+            <LocationsProvider persist={false}>
+              <TeamAccessDemo />
+            </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — per-branch service pricing"
+          description="SCR-09 (R06, DW3.1–DW3.3). One service defined once, configured per branch. Type over a price to override that field; the marker under it says whose value it is, and Reset returns only that field to inheriting. Then press 'Raise the business default' — the inherited branches follow, the overridden field does not. That divergence is the requirement, and it only works because a branch stores what it deliberately differs on rather than a copy of everything."
+        >
+          <Row label="Locations section" align="start">
+            <LocationsProvider persist={false}>
+              <ServicePricingDemo />
+            </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — public branch picker"
+          description="SCR-08 (R15, GB3.1). A chain's public page asks where before it shows anything branch-shaped, because it has N addresses, hours and menus rather than one. The branch's own link skips this entirely (GB3.2) — both paths bind the booking to one branch, and neither guesses. Entry order was left to design: location first, for the reasons in the component's own note. Only published branches are listed; the suspended one is absent rather than greyed out. 'Open now' is pinned to a Tuesday 11am here so the row is deterministic."
+        >
+          <Row label="Chain page" align="start">
+            <div className="w-full max-w-[560px]">
+              <PublicBranchPicker
+                business={PICKER_DEMO_BUSINESS}
+                branches={PICKER_DEMO_BUSINESS.branches.filter((b) => b.isPublished)}
+                now={new Date("2026-09-08T11:00:00+04:00")}
+              />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — branch WhatsApp numbers"
+          description="SCR-14 (R21, R22, KC2.2, KC2.4). WhatsApp is the front door, and per branch it becomes the thing that decides which branch a message belongs to — inbound resolves from the number it arrived on and never falls back. Three states seeded: JVC connected, Jumeirah stuck on the OTP (the step that needs a person standing in that branch), Al Quoz with no number at all, which says so in words because the consequence is no WhatsApp bookings here and nothing rerouted. Note the contrast with SMS: an unapproved sender ID falls back to CAMI on purpose, because a generic sender still reaches the right person — a wrong WhatsApp number reaches the wrong branch."
+        >
+          <Row label="Numbers panel" align="start">
+            <div className="w-full max-w-[640px]">
+              <LocationsProvider persist={false}>
+                <WhatsAppNumbersPanel />
+              </LocationsProvider>
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — money by branch"
+          description="SCR-15 (R09, R18, KH1.1–KH1.3). Side by side, never merged — KH1.1 says a single number destroys the job, because an owner asking how the day went is asking which branch had a bad one. The total sits after the rows and is labelled as their sum. The second frame is the same component for a manager granted only Jumeirah: one row, and a roll-up equal to it — their real number, not an error and not anyone else's (KH1.3). The bound is a grant, not a filter, so the wider result is never fetched (R18, KH1.2)."
+        >
+          <Row label="Owner · all branches" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false}>
+                <MoneyByLocationView txs={MONEY_TXS} filter={MONEY_DEMO_FILTER} />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Manager · one branch" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false} initialGrants={["shampooch-jumeirah"]}>
+                <MoneyByLocationView txs={MONEY_TXS} filter={MONEY_DEMO_FILTER} />
+              </LocationsProvider>
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — cross-branch move"
+          description="SCR-06 (R07, R17, GB1.1–GB1.3). The one operation that touches both branches at once, and every way it fails is a way money or access fails. The destination list is bounded by grants, so a branch you cannot reach is never offered. Pick Jumeirah for the allowed case — the money panel says the deposit stays credited where it was taken while the work moves, because R17 records both and rewrites neither. Al Quoz is suspended, so it is refused as a destination (R12). The third frame has an unresolvable payment: the move is rejected whole and nothing changes, rather than losing the money's trail (GB1.3). Decision logic is unit-tested in lib/locations/cross-branch-move.test.ts."
+        >
+          <Row label="Deposit taken" align="start">
+            <LocationsProvider persist={false}>
+              <MoveDemo depositMinor={5000} />
+            </LocationsProvider>
+          </Row>
+          <Row label="Nothing collected" align="start">
+            <LocationsProvider persist={false}>
+              <MoveDemo depositMinor={0} />
+            </LocationsProvider>
+          </Row>
+          <Row label="Payment can't resolve" align="start">
+            <LocationsProvider persist={false}>
+              <MoveDemo depositMinor={5000} paymentResolvable={false} />
+            </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — all-branches calendar"
+          description="SCR-05 (R07, R11). 'Per-branch columns or filter, drill into one' — this is the filter half, and it is a filter on purpose: a day grid is already staff × time, so a third axis turns 11 columns into 99. Click a branch to narrow the day to it, click it again to go back to all. The counts are why it is a strip and not a dropdown: an owner opening the calendar across branches is asking which branch is busy. While more than one branch is in view the strip says a new booking needs one chosen first — R11's all-locations-is-read-only, said where someone would otherwise expect to drag one in."
+        >
+          <Row label="Branch strip + day" align="start">
+            <div className="w-full">
+              <LocationsProvider persist={false}>
+                <BranchCalendarDemo />
+              </LocationsProvider>
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — package mismatch at checkout"
+          description="SCR-13 (R08, KC1.5). Corrected 2026-09-03 from Maaz's walkthrough of Chaps & Co's real Fresha account, and the earlier design had it backwards: gift cards and memberships travel across branches, packages do not — a package is sold against one specific priced service. The rule is warn, never block. Operators already work around a block by hand (a 100% discount, a gift-card credit), so blocking does not prevent the outcome, it makes reception do it slowly in front of the client. The warning carries both figures so they can decide there and then, and the choice is recorded on the sale — not out of suspicion, but so an owner reading a branch's numbers can see why a package redeemed below its value. The blueprint's §07 'can only be redeemed there' is the superseded version."
+        >
+          {PACKAGE_MISMATCH_CASES.map((demo) => (
+            <Row key={demo.label} label={demo.label} align="start">
+              <div className="w-full max-w-[520px]">
+                <LocationsProvider persist={false}>
+                  <PackageWarningDemo terms={demo.terms} />
+                </LocationsProvider>
+              </div>
+            </Row>
+          ))}
+        </Section>
+        <Section
           title="Appointments — booking block"
           description="Booking card rendered on the People grid. Color carries service category, fill saturation and border style overlay status. All content elements (time, price, name, service, icons) render at every size; truncation handles the squeeze."
         >
@@ -2084,6 +2579,7 @@ export function PlaygroundShowcase() {
                   booking={{
                     id: `demo-${min}`,
                     staffId: "demo",
+                    locationId: "shampooch-jvc",
                     start: "10:00",
                     durationMin: min,
                     status: "confirmed",
@@ -2121,6 +2617,7 @@ export function PlaygroundShowcase() {
                   booking={{
                     id: `demo-${status}`,
                     staffId: "demo",
+                    locationId: "shampooch-jvc",
                     start: "10:00",
                     durationMin: 60,
                     status,
@@ -2156,6 +2653,7 @@ export function PlaygroundShowcase() {
                   booking={{
                     id: `demo-${cat}`,
                     staffId: "demo",
+                    locationId: "shampooch-jvc",
                     start: "10:00",
                     durationMin: 60,
                     status: "confirmed",
@@ -2200,6 +2698,7 @@ export function PlaygroundShowcase() {
                     booking={{
                       id: `demo-flags-${key}`,
                       staffId: "demo",
+                      locationId: "shampooch-jvc",
                       start: "10:00",
                       durationMin: 60,
                       status: "confirmed",

@@ -7,9 +7,11 @@ import { CommsTemplatesProvider } from "@/lib/comms/store"
 import { CurrentUserProvider } from "@/lib/current-user"
 import { DemoBusinessProvider } from "@/lib/demo-business"
 import { DemoFilesProvider } from "@/lib/demo-files"
+import { LocationsProvider } from "@/lib/locations/store"
 import { HqNotificationsProvider } from "@/lib/notifications/hq-store"
 import { NotificationsProvider } from "@/lib/notifications/store"
 import { PaymentPolicyProvider } from "@/lib/payment-policy/store"
+import { LocationOfferingsProvider } from "@/lib/service-catalog/offerings-store"
 import { ServiceCatalogProvider } from "@/lib/service-catalog/store"
 import { TerminalsProvider } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
@@ -44,31 +46,43 @@ export default function RootLayout({
           <TooltipProvider delayDuration={150}>
             <CurrentUserProvider>
               <DemoBusinessProvider>
-                <DemoFilesProvider>
-                  <PaymentPolicyProvider>
-                    {/* Root, not /catalogs: a combo created on the service menu
+                {/* Inside DemoBusinessProvider: business identity sits above
+                    location on the blueprint's planes (§02), so a branch is
+                    scoped by the business, never the other way round. Root,
+                    because the switcher is on every operator surface and the
+                    scope has to survive navigation between them (R03). */}
+                <LocationsProvider>
+                  <DemoFilesProvider>
+                    <PaymentPolicyProvider>
+                      {/* Root, not /catalogs: a combo created on the service menu
                         has to turn up in the appointment service pickers, so
                         both sides of the app read one catalog. */}
-                    <ServiceCatalogProvider>
-                      <TerminalsProvider>
-                        <NotificationsProvider>
-                          {/* Root, not the admin layout: HQ sets the rates but
+                      {/* Inside ServiceCatalogProvider: a per-branch offering is
+                        an override on a service, so it has no meaning without
+                        the catalog it overrides. */}
+                      <ServiceCatalogProvider>
+                        <LocationOfferingsProvider>
+                          <TerminalsProvider>
+                            <NotificationsProvider>
+                              {/* Root, not the admin layout: HQ sets the rates but
                               both portals read them — a merchant sees the price
                               they're billed at. */}
-                          <HqNotificationsProvider>
-                            {/* Inside NotificationsProvider: a template row dims
+                              <HqNotificationsProvider>
+                                {/* Inside NotificationsProvider: a template row dims
                                 when the Reminders matrix has that channel off, so
                                 the panel reads both stores. */}
-                            <CommsTemplatesProvider>
-                              {children}
-                              <Toaster />
-                            </CommsTemplatesProvider>
-                          </HqNotificationsProvider>
-                        </NotificationsProvider>
-                      </TerminalsProvider>
-                    </ServiceCatalogProvider>
-                  </PaymentPolicyProvider>
-                </DemoFilesProvider>
+                                <CommsTemplatesProvider>
+                                  {children}
+                                  <Toaster />
+                                </CommsTemplatesProvider>
+                              </HqNotificationsProvider>
+                            </NotificationsProvider>
+                          </TerminalsProvider>
+                        </LocationOfferingsProvider>
+                      </ServiceCatalogProvider>
+                    </PaymentPolicyProvider>
+                  </DemoFilesProvider>
+                </LocationsProvider>
               </DemoBusinessProvider>
             </CurrentUserProvider>
           </TooltipProvider>

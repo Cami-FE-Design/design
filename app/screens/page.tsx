@@ -944,6 +944,94 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    lane: "business",
+    title: "Multi-location (PRD-43 / PRO-71)",
+    description:
+      "One business, many branches. The initiative is 25 requirements, 15 epics and 16 screens (SCR-01 to SCR-16 in the PRD's §6 reference); this group grows a row per slice. Requirements live in Slite, not the repo — see docs/specs/multi-location-foundations.md for the doc ids and how to read them.",
+    screens: [
+      {
+        path: "/playground#multi-location-branch-switcher",
+        label: "Branch switcher · SCR-04 (playground)",
+        note: "Five scopes side by side, each in its own provider: owner on all branches, one branch, a two-branch subset, a single-branch business (renders nothing at all — DW1.2, and the frame says so), and a staff member granted none (locked, because an empty scope is never 'all' — R24). Live in the shell too: the control sits beside the workspace switcher in the topbar on every route, and toggling it there persists across navigation. The seeded estate is three branches, one of them suspended, so the 'Paused' state shows without clicking anything. See docs/specs/multi-location-foundations.md.",
+      },
+      {
+        path: "/shell-demo?settings=locations",
+        label: "Locations, the estate (settings)",
+        note: "SCR-01 and SCR-12 — where a branch is created and configured. Reads the shared source in lib/locations, so the same branches appear here, in the topbar switcher and on the terminals panel. Three seeded: JVC and Jumeirah live, Al Quoz suspended, so the Paused badge and the 'Booking page hidden' line show without clicking. Open a branch → Manage for the lifecycle: Suspend / Reactivate is a state change in both directions, Archive asks first and says what survives it. 'Add locations' opens chain setup. Known gaps: Hours are still location-agnostic, and the tax identity does not yet show which fields are inherited from the business and which are overridden.",
+      },
+      {
+        path: "/playground#multi-location-chain-setup",
+        label: "Chain setup · SCR-02 (playground)",
+        note: "N branches in one pass (R02, SU1.2). All or none — submit with one bad row and nothing is created, because a partial create leaves the owner unable to tell which of nine landed. Two rows with the same name collide on the link and the second row says so; 'Shampooch JVC' collides with an existing branch. New branches land as Draft, not Live: created is not trading. Isolated from the app's own estate, so creating here changes nothing.",
+      },
+      {
+        path: "/playground#multi-location-all-branches-calendar",
+        label: "All-branches calendar · SCR-05 (playground)",
+        note: "R07's view half, as a filter rather than columns: a day grid is already staff × time, so a third axis turns 11 columns into 99. Click a branch to narrow the day, click it again for all. The counts are why it is a strip and not a dropdown — an owner opening the calendar across branches is asking which branch is busy. While more than one branch is in view it says a booking needs one chosen first, which is R11's all-locations-is-read-only said where someone would otherwise drag one in. Every seeded booking now carries a locationId (the R20 backfill); none is locationless.",
+      },
+      {
+        path: "/playground#multi-location-cross-branch-move",
+        label: "Cross-branch move · SCR-06 (playground)",
+        note: "R07 + R17. The destination list is bounded by grants, so a branch you cannot reach is never offered. The allowed case spells out that the deposit stays credited where it was taken while the work moves — both branches on the sale, neither rewritten. The third frame has an unresolvable payment: rejected whole, nothing changed, rather than losing the money's trail (GB1.3). Eleven unit tests in lib/locations/cross-branch-move.test.ts cover each denial and the dual attribution.",
+      },
+      {
+        path: "/playground#multi-location-package-mismatch-at-checkout",
+        label: "Package mismatch · SCR-13 (playground)",
+        note: "KC1.5, corrected 2026-09-03: warn, never block. Gift cards and memberships travel across branches; a package is sold against one specific priced service and does not. Four cases — same terms (nothing renders), priced differently, different duration, not offered here. Both figures are shown so reception can decide in front of the client, and the choice is recorded on the sale so an owner can see why a package redeemed below its value. The blueprint's 'can only be redeemed there' is superseded.",
+      },
+      {
+        path: "/playground#multi-location-money-by-branch",
+        label: "Money by branch · SCR-15 (playground)",
+        note: "KH1.1's side-by-side, never merged — a single number destroys the job, because the question is which branch had a bad day. The total sits after the rows and is labelled as their sum. The second frame is a manager granted only Jumeirah: one row, roll-up equal to it (KH1.3). The bound is a grant, not a filter (R18). Payouts are business-level in this market, so they are not broken out per branch, and the footnote says so rather than leaving a gap. Nine tests in lib/money/by-location.test.ts, including that the roll-up never leaks a branch the rows withheld.",
+      },
+      {
+        path: "/playground#multi-location-branch-whatsapp-numbers",
+        label: "Branch WhatsApp numbers · SCR-14 (playground)",
+        note: "R21, R22, KC2.2, KC2.4. Also at /shell-demo?settings=whatsapp-numbers. Three states: connected, stuck on the OTP (the step that needs a person standing in that branch), and no number at all — which says so in words, because the consequence is no WhatsApp bookings here and nothing rerouted. Contrast with SMS: an unapproved sender ID falls back to CAMI on purpose, since a generic sender still reaches the right person; a wrong WhatsApp number reaches the wrong branch.",
+      },
+      {
+        path: "/shell-demo?settings=locations",
+        label: "Branch tax identity · SCR-12",
+        note: "Open a branch → Invoicing. Every inheritable row says whose value it is (R23), because two branches showing the same legal name look identical whether one means it or is merely following along. JVC overrides only its receipt prefix; Jumeirah is a separate registered company with its own TRN — both cases the 'keep it flexible' decision exists to support. The receipt number shows as it prints, prefix included, which is what stops two branches at 21857 colliding (R25). The forward-only warning is the load-bearing copy: editing changes future receipts and no issued one (INV-12). Logic tested in lib/locations/tax-identity.test.ts.",
+      },
+      {
+        path: "/shampooch",
+        label: "Public branch picker · SCR-08",
+        note: "A chain's public page (R15, GB3.1). It asks where before showing anything branch-shaped, because it has three addresses, hours and menus rather than one. Compare /shampooch-jvc and /shampooch-jumeirah: the branch link skips the picker (GB3.2), and Jumeirah's menu is its own — bath at AED 75 instead of 60, and no daycare at all. /shampooch-al-quoz 404s: it is suspended, so it is in the record but on no public surface. /purr-palace is the single-site case, where the business page is the branch page and no picker renders.",
+      },
+      {
+        path: "/playground#multi-location-public-branch-picker",
+        label: "Public branch picker · SCR-08 (playground)",
+        note: "The picker in isolation with 'Open now' pinned to a Tuesday 11am. Entry order was left to design (PRD §16): this picks location first, and the component's own note says why — price and availability are per branch, so a service-first list would show a price that is wrong until a branch is chosen, and the client who already knows what they want has the branch link instead.",
+      },
+      {
+        path: "/catalogs/service-menu",
+        label: "Per-branch service pricing · SCR-09",
+        note: "Open any service → Locations. One definition, configured per branch (R06): a switch to offer it here at all (DW3.3), and price and duration that show the inherited value with a marker saying whose it is. Typing over a field creates the override, clearing it or pressing Reset returns only that field to inheriting (DW3.2). The nav badge counts branches that differ, not branches that exist. Held with the service's form, so it saves when the service does.",
+      },
+      {
+        path: "/playground#multi-location-per-branch-service-pricing",
+        label: "Per-branch service pricing · SCR-09 (playground)",
+        note: "The same section with the business default under your thumb — press 'Raise the business default' and the inherited branches follow while the overridden price does not (DW3.1). That divergence is the requirement, and a static screen cannot show it. Seeded as the story's own example: Jumeirah deliberately at AED 75, Al Quoz not offering it at all. Resolution logic is unit-tested in lib/service-catalog/offerings.test.ts.",
+      },
+      {
+        path: "/settings/team",
+        label: "Branch access grants · SCR-03",
+        note: "Role × location, the two axes access resolves on (R04). The roster now shows a Role and a Locations column, so a wrong scope is visible without opening anyone. Action → Edit Roles & Permissions (it was a console.log) opens the grants dialog: role capability read-only because it is defined once for the business, location grant editable because that is the per-person half. Maz is Owner — untickable, since an owner holds every branch including ones added later, stored as 'all' rather than today's ids. Aziz is a Manager granted only Jumeirah, which is the pilot configuration's 'one manager, one branch'. Ahmed is invited with no grant: no access, said out loud, never 'every branch' (R24).",
+      },
+      {
+        path: "/playground#multi-location-branch-access-grants",
+        label: "Branch access grants · SCR-03 (playground)",
+        note: "The same dialog against three roster rows, isolated. The location permission list marks four of five codes Proposed — the product ships one venues:read that bundles viewing a branch with changing it, so a manager who sets hours cannot yet be stopped from editing tax details or archiving a branch (blueprint §03).",
+      },
+      {
+        path: "/playground#multi-location-branch-lifecycle",
+        label: "Branch state badge · SCR-01 (playground)",
+        note: "The four lifecycle states in one row (R01, R12). Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find.",
+      },
+    ],
+  },
+  {
     lane: "settings",
     title: "Pet Business, settings (PRO-95)",
     description:

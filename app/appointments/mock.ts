@@ -52,6 +52,13 @@ export type MockBooking = {
   petName?: string
   petSpecies?: AvatarSpecies
   priceMinor: number
+  /**
+   * The branch this appointment happens at (R11). Required, not optional: an
+   * operational record with no location is the state R20 exists to eliminate,
+   * and making it optional here would let one back in every time someone adds
+   * a booking to the seed.
+   */
+  locationId: string
   isRecurring?: boolean
   linkCount?: number
   hasDeposit?: boolean
@@ -156,7 +163,7 @@ export function formatAed(minor: number): string {
   return `AED ${aed.toLocaleString("en-US")}`
 }
 
-export const MOCK_BOOKINGS: MockBooking[] = [
+const SEEDED_BOOKINGS: Omit<MockBooking, "locationId">[] = [
   // Aya Hassan — column 1
   {
     id: "b-001",
@@ -637,10 +644,26 @@ export const MOCK_BOOKINGS: MockBooking[] = [
   },
 ]
 
+/**
+ * The R20 backfill, done here rather than deferred: every record created
+ * before the location model existed resolves to exactly one branch, and none
+ * stays locationless.
+ *
+ * Assigned by index rather than at random so the day is reproducible, and
+ * unevenly so the all-branches calendar has something to show and a
+ * cross-branch move has somewhere to move to. Staff are assigned per branch in
+ * the real model (R05), so a production backfill would resolve a booking's
+ * branch through its staff member; the seed has no staff-to-branch map yet.
+ */
+export const MOCK_BOOKINGS: MockBooking[] = SEEDED_BOOKINGS.map((b, i) => ({
+  ...b,
+  locationId: i % 4 === 3 ? "shampooch-jumeirah" : "shampooch-jvc",
+}))
+
 // Without-pets demo dataset. Generic salon / wellness services to show how
 // the calendar reads when hasPets is false: client name is primary, no pet
 // chips, no grooming-report affordances, no agreement banner, etc.
-export const MOCK_BOOKINGS_WITHOUT_PETS: MockBooking[] = [
+const SEEDED_BOOKINGS_WITHOUT_PETS: Omit<MockBooking, "locationId">[] = [
   {
     id: "wp-001",
     staffId: "aya-hassan",
@@ -827,6 +850,11 @@ export const MOCK_BOOKINGS_WITHOUT_PETS: MockBooking[] = [
     priceMinor: 6000,
   },
 ]
+
+/** Same backfill, for the no-pets business type (R20). */
+export const MOCK_BOOKINGS_WITHOUT_PETS: MockBooking[] = SEEDED_BOOKINGS_WITHOUT_PETS.map(
+  (b, i) => ({ ...b, locationId: i % 4 === 3 ? "shampooch-jumeirah" : "shampooch-jvc" }),
+)
 
 // ─────────────────────────────────────────────────────────────────────────
 // Service catalog mock — used by the create-booking flow (service picker).
