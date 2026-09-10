@@ -22,6 +22,7 @@ import {
   PhoneIcon,
   PlusIcon,
   ReceiptIcon,
+  RotateCcwIcon,
   ScissorsIcon,
   SparklesIcon,
   StethoscopeIcon,
@@ -57,6 +58,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { REASON_CODES } from "@/lib/admin-businesses"
+import { BUSINESS_TIPPING, useBranchSettings } from "@/lib/locations/branch-settings"
 import {
   CLOSED_DAY,
   formatDayHours,
@@ -66,13 +68,14 @@ import {
   type WeekSchedule,
 } from "@/lib/locations/hours"
 import { type NewLocationInput, slugify, useLocations } from "@/lib/locations/store"
+import { formatReceiptNumber, taxOverrideCount } from "@/lib/locations/tax-identity"
 import {
-  BUSINESS_TAX_IDENTITY,
-  formatReceiptNumber,
-  LOCATION_TAX_OVERRIDES,
-  resolveTaxIdentity,
-  taxOverrideCount,
-} from "@/lib/locations/tax-identity"
+  describeTipBase,
+  describeTipChannels,
+  formatTipValues,
+  TIP_CART_ITEMS,
+  type TippingSettings,
+} from "@/lib/locations/tipping"
 import type { Invoicing, Location, LocationAddress } from "@/lib/locations/types"
 import { isPubliclyBookable } from "@/lib/locations/types"
 import { cn } from "@/lib/utils"
@@ -880,9 +883,13 @@ function InvoicingTab({ location }: { location: Location }) {
   const [receiptEditing, setReceiptEditing] = useState(false)
   const [tippingEditing, setTippingEditing] = useState(false)
 
-  const overrides = LOCATION_TAX_OVERRIDES[location.id]
-  const { value: tax, source } = resolveTaxIdentity(BUSINESS_TAX_IDENTITY, overrides)
+  // Read through the store, not the module const, so an edit made in any of
+  // the three dialogs below is the value this tab shows afterwards.
+  const { taxFor, taxOverridesFor, sequenceFor, tippingFor } = useBranchSettings()
+  const overrides = taxOverridesFor(location.id)
+  const { value: tax, source } = taxFor(location.id)
   const ownFields = taxOverrideCount(overrides)
+  const tipping = tippingFor(location.id)
 
   return (
     <div className="flex flex-col gap-4">
@@ -940,15 +947,22 @@ function InvoicingTab({ location }: { location: Location }) {
               that two branches cannot collide. */}
           <SummaryRow
             label="Next receipt number"
-            value={formatReceiptNumber(tax.receiptPrefix, 21857)}
+            value={formatReceiptNumber(tax.receiptPrefix, sequenceFor(location.id))}
           />
         </div>
       </SummaryCard>
       <SummaryCard heading="Tipping" onEdit={() => setTippingEditing(true)}>
         <div className="flex flex-col gap-3">
-          <SummaryRow label="Tipping options" value="All options enabled" />
-          <SummaryRow label="Default values" value="10% · 18% · 25% · 35% · 45%" />
-          <SummaryRow label="Tip calculation" value="All items included" />
+          {/* Whole-block inheritance, so the source is stated once here rather
+              than per row — unlike the tax identity above, where a branch
+              genuinely differs one field at a time. */}
+          <SummaryRow
+            label="Tipping options"
+            value={describeTipChannels(tipping.settings)}
+            source={tipping.mode === "custom" ? "location" : "business"}
+          />
+          <SummaryRow label="Default values" value={formatTipValues(tipping.settings.values)} />
+          <SummaryRow label="Tip calculation" value={describeTipBase(tipping.settings)} />
         </div>
       </SummaryCard>
 
@@ -958,7 +972,11 @@ function InvoicingTab({ location }: { location: Location }) {
         open={receiptEditing}
         onOpenChange={setReceiptEditing}
       />
-      <TippingEditDialog open={tippingEditing} onOpenChange={setTippingEditing} />
+      <TippingEditDialog
+        location={location}
+        open={tippingEditing}
+        onOpenChange={setTippingEditing}
+      />
     </div>
   )
 }
@@ -1243,6 +1261,7 @@ function FullScreenEditDialog({
   description,
   subtitle,
   onSave,
+  saveDisabled,
   children,
 }: {
   open: boolean
@@ -1250,12 +1269,10 @@ function FullScreenEditDialog({
   title: string
   description: string
   subtitle?: string
-  /**
-   * What Save commits. Absent for the tabs that are still mock-only, where
-   * Save closes and changes nothing — leaving those alone rather than pretending
-   * they persist, which would be the worse lie of the two.
-   */
+  /** What Save commits. Absent means Save just closes. */
   onSave?: () => void
+  /** Refuse the save while the form holds something that cannot be stored. */
+  saveDisabled?: boolean
   children: React.ReactNode
 }) {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -1332,6 +1349,7 @@ function FullScreenEditDialog({
                 type="button"
                 size="lg"
                 radius="full"
+                disabled={saveDisabled}
                 onClick={() => (onSave ? onSave() : onOpenChange(false))}
                 className="hidden lg:inline-flex"
               >
@@ -1367,6 +1385,7 @@ function FullScreenEditDialog({
             size="lg"
             radius="full"
             className="w-full"
+            disabled={saveDisabled}
             onClick={() => (onSave ? onSave() : onOpenChange(false))}
           >
             Save
@@ -2169,6 +2188,18 @@ function HoursEditDialog({
   )
 }
 
+const VAT_OPTIONS = ["VAT (5%)", "VAT exempt (0%)", "No tax"]
+
+/**
+ * SCR-12 · The two VAT defaults, per branch (R23, INV-13).
+ *
+ * Per field rather than per block, because a branch really does differ on one
+ * of these alone: a boarding branch selling no retail keeps the business
+ * products rate while setting its own on services. Each row says whose value it
+ * is and offers exactly one way back, which is the same idiom as the service
+ * catalog's Locations section — one pattern for "inherited unless said
+ * otherwise", wherever it appears.
+ */
 function TaxDefaultsEditDialog({
   location,
   open,
@@ -2178,6 +2209,28 @@ function TaxDefaultsEditDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { taxFor, taxOverridesFor, setTaxField } = useBranchSettings()
+  const resolved = taxFor(location.id)
+  const overrides = taxOverridesFor(location.id)
+
+  // Held locally while the dialog is open so Close discards, then re-seeded on
+  // open — the same shape as the hours editor.
+  const [services, setServices] = useState<string | undefined>(overrides?.servicesVatRate)
+  const [products, setProducts] = useState<string | undefined>(overrides?.productsVatRate)
+
+  useEffect(() => {
+    if (!open) return
+    const current = taxOverridesFor(location.id)
+    setServices(current?.servicesVatRate)
+    setProducts(current?.productsVatRate)
+  }, [open, location.id, taxOverridesFor])
+
+  const save = () => {
+    setTaxField(location.id, "servicesVatRate", services)
+    setTaxField(location.id, "productsVatRate", products)
+    onOpenChange(false)
+  }
+
   return (
     <FullScreenEditDialog
       open={open}
@@ -2185,43 +2238,27 @@ function TaxDefaultsEditDialog({
       title="Edit tax defaults"
       subtitle={`Change tax defaults for ${location.name}`}
       description="Change the default tax rates applied to services and products at this location."
+      onSave={save}
     >
       <section className="flex flex-col gap-6">
-        <div className="flex flex-col gap-1.5">
-          <Field label="Services">
-            <Select defaultValue="vat-5">
-              <SelectTrigger className={triggerOverride}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="vat-5">VAT (5%)</SelectItem>
-                <SelectItem value="vat-0">VAT exempt (0%)</SelectItem>
-                <SelectItem value="none">No tax</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <p className="text-xs leading-5 text-muted-foreground">
-            You can override this per service
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <Field label="Products">
-            <Select defaultValue="vat-5">
-              <SelectTrigger className={triggerOverride}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="vat-5">VAT (5%)</SelectItem>
-                <SelectItem value="vat-0">VAT exempt (0%)</SelectItem>
-                <SelectItem value="none">No tax</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <p className="text-xs leading-5 text-muted-foreground">
-            You can override this per product
-          </p>
-        </div>
+        <InheritedSelect
+          label="Services"
+          hint="You can override this per service"
+          options={VAT_OPTIONS}
+          value={services ?? resolved.value.servicesVatRate}
+          overridden={services !== undefined}
+          onChange={setServices}
+          onReset={() => setServices(undefined)}
+        />
+        <InheritedSelect
+          label="Products"
+          hint="You can override this per product"
+          options={VAT_OPTIONS}
+          value={products ?? resolved.value.productsVatRate}
+          overridden={products !== undefined}
+          onChange={setProducts}
+          onReset={() => setProducts(undefined)}
+        />
 
         <div className="flex items-start gap-3 rounded-2xl bg-sand-3 px-4 py-3">
           <LightbulbIcon className="mt-0.5 size-4 shrink-0 fill-sand-9 text-sand-11" />
@@ -2235,6 +2272,86 @@ function TaxDefaultsEditDialog({
   )
 }
 
+/**
+ * A select that says whose value it holds, with one way back.
+ *
+ * Reset removes the branch's value rather than writing the business one into
+ * it: a copy looks identical and stops following a later change to the default,
+ * which is the one thing "inherited" promises (G5).
+ */
+function InheritedSelect({
+  label,
+  hint,
+  options,
+  value,
+  overridden,
+  onChange,
+  onReset,
+}: {
+  label: string
+  hint: string
+  options: ReadonlyArray<string>
+  value: string
+  overridden: boolean
+  onChange: (next: string) => void
+  onReset: () => void
+}) {
+  return (
+    <div className="flex w-full max-w-md flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
+          {overridden ? (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              Custom
+            </span>
+          ) : null}
+        </span>
+        {overridden ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            radius="full"
+            className="gap-1.5 text-muted-foreground"
+            onClick={onReset}
+          >
+            <RotateCcwIcon className="size-3.5" />
+            Reset
+          </Button>
+        ) : null}
+      </div>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className={triggerOverride}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <p className="text-xs leading-5 text-muted-foreground">
+        {overridden ? "Set for this location" : `Inherited from the business. ${hint}`}
+      </p>
+    </div>
+  )
+}
+
+/**
+ * SCR-12 · A branch's receipt sequence (R23, R25).
+ *
+ * Two fields that look alike and are not. The **prefix** is inherited — a chain
+ * trading as one entity may print SHP everywhere — so it carries a source
+ * marker and a Reset. The **next number** is not: every branch has its own
+ * sequence and there is no business-level "next receipt number" to inherit
+ * from, so a marker there would name a state that cannot exist.
+ *
+ * The preview is the point of the screen. R25 exists so two branches cannot
+ * issue the same receipt number, and only the composed string shows that.
+ */
 function ReceiptSequencingEditDialog({
   location,
   open,
@@ -2244,6 +2361,32 @@ function ReceiptSequencingEditDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
+  const { taxFor, taxOverridesFor, setTaxField, sequenceFor, setSequence } = useBranchSettings()
+  const resolved = taxFor(location.id)
+
+  const [prefix, setPrefix] = useState<string | undefined>(
+    taxOverridesFor(location.id)?.receiptPrefix,
+  )
+  const [next, setNext] = useState(String(sequenceFor(location.id)))
+
+  useEffect(() => {
+    if (!open) return
+    setPrefix(taxOverridesFor(location.id)?.receiptPrefix)
+    setNext(String(sequenceFor(location.id)))
+  }, [open, location.id, taxOverridesFor, sequenceFor])
+
+  const effectivePrefix = prefix ?? resolved.value.receiptPrefix
+  const parsedNext = Number(next)
+  // A sequence has to be a whole number above zero: 0 would make the first
+  // receipt of the branch unnumbered, and a fraction cannot be printed.
+  const nextValid = Number.isInteger(parsedNext) && parsedNext > 0
+
+  const save = () => {
+    setTaxField(location.id, "receiptPrefix", prefix?.trim() ? prefix.trim() : undefined)
+    if (nextValid) setSequence(location.id, parsedNext)
+    onOpenChange(false)
+  }
+
   return (
     <FullScreenEditDialog
       open={open}
@@ -2251,49 +2394,141 @@ function ReceiptSequencingEditDialog({
       title="Edit receipt sequencing"
       subtitle={`Change receipt sequence for ${location.name}`}
       description="Set the prefix and the next receipt number for this location."
+      onSave={save}
+      saveDisabled={!nextValid}
     >
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Field label="Receipt No. Prefix">
-          <Input placeholder="" />
-        </Field>
+      <section className="flex w-full max-w-md flex-col gap-6">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2">
+              <span className="text-sm font-medium leading-5 text-foreground">
+                Receipt No. prefix
+              </span>
+              {prefix !== undefined ? (
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                  Custom
+                </span>
+              ) : null}
+            </span>
+            {prefix !== undefined ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                radius="full"
+                className="gap-1.5 text-muted-foreground"
+                onClick={() => setPrefix(undefined)}
+              >
+                <RotateCcwIcon className="size-3.5" />
+                Reset
+              </Button>
+            ) : null}
+          </div>
+          <Input
+            value={effectivePrefix}
+            onChange={(e) => setPrefix(e.target.value)}
+            aria-label="Receipt number prefix"
+          />
+          <p className="text-xs leading-5 text-muted-foreground">
+            {prefix !== undefined
+              ? "Set for this location"
+              : "Inherited from the business. Type to give this location its own."}
+          </p>
+        </div>
+
         <Field label="Next receipt number">
-          <Input defaultValue="21889" inputMode="numeric" />
+          <Input
+            value={next}
+            inputMode="numeric"
+            onChange={(e) => setNext(e.target.value)}
+            aria-invalid={!nextValid}
+          />
         </Field>
+        {nextValid ? (
+          <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
+            The next sale here prints{" "}
+            <span className="font-medium">{formatReceiptNumber(effectivePrefix, parsedNext)}</span>.
+            This sequence is this location's own, so no two branches can issue the same number.
+          </p>
+        ) : (
+          <p className="rounded-xl bg-destructive/10 p-3 text-sm text-foreground">
+            A receipt number has to be a whole number above zero.
+          </p>
+        )}
       </section>
     </FullScreenEditDialog>
   )
 }
 
+/**
+ * A branch's tipping, as a block that either follows the business or does not
+ * (R06's inheritance, G5).
+ *
+ * Whole-block on purpose, and the dialog said so before anything was wired: its
+ * first control is "Workspace defaults" or "Custom for this location". An
+ * operator does not want this branch's percentages with the business's cart
+ * rules — they want "this branch tips differently", and then they configure it.
+ * Field-level markers here would name six states nobody asked for.
+ *
+ * On Workspace defaults the controls below are disabled and show what the
+ * business does, rather than being hidden. Hidden, an operator has to switch to
+ * Custom to find out what they would be changing from.
+ */
 function TippingEditDialog({
+  location,
   open,
   onOpenChange,
 }: {
+  location: Location
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const [tipValues, setTipValues] = useState<number[]>([10, 18, 25, 35, 45])
-  const removeTip = (i: number) => setTipValues((v) => v.filter((_, idx) => idx !== i))
-  const [cartItems, setCartItems] = useState<Set<string>>(
-    () => new Set(["services", "addons", "products", "memberships", "gift-cards"]),
-  )
-  const toggleCart = (id: string) =>
-    setCartItems((curr) => {
-      const next = new Set(curr)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+  const { tippingFor, followWorkspaceTipping, setCustomTipping } = useBranchSettings()
+
+  const [mode, setMode] = useState<"workspace" | "custom">("workspace")
+  const [draft, setDraft] = useState<TippingSettings>(BUSINESS_TIPPING)
+
+  useEffect(() => {
+    if (!open) return
+    const current = tippingFor(location.id)
+    setMode(current.mode)
+    // Seeded from the resolved settings either way, so switching to Custom
+    // starts from what this branch does today rather than from an empty form.
+    setDraft(current.settings)
+  }, [open, location.id, tippingFor])
+
+  const custom = mode === "custom"
+  const tipValues = draft.values
+  const cartItems = new Set<string>(draft.cartItems)
+  const patch = (next: Partial<TippingSettings>) => setDraft((cur) => ({ ...cur, ...next }))
+  const removeTip = (i: number) => patch({ values: tipValues.filter((_, idx) => idx !== i) })
+  const setTipValue = (i: number, value: number) =>
+    patch({ values: tipValues.map((v, idx) => (idx === i ? value : v)) })
+  const toggleCart = (id: string) => {
+    const next = new Set(cartItems)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    patch({ cartItems: [...next] as TippingSettings["cartItems"] })
+  }
+
+  const save = () => {
+    if (custom) setCustomTipping(location.id, draft)
+    else followWorkspaceTipping(location.id)
+    onOpenChange(false)
+  }
 
   return (
     <FullScreenEditDialog
       open={open}
       onOpenChange={onOpenChange}
       title="Tip values and calculation"
+      subtitle={`Change tipping for ${location.name}`}
       description="Configure tipping options, default tip values, and how tips are calculated."
+      onSave={save}
     >
       <section className="flex flex-col gap-3">
         <Field label="Tipping">
-          <Select defaultValue="workspace">
+          <Select value={mode} onValueChange={(v) => setMode(v as "workspace" | "custom")}>
             <SelectTrigger className={triggerOverride}>
               <SelectValue />
             </SelectTrigger>
@@ -2303,21 +2538,35 @@ function TippingEditDialog({
             </SelectContent>
           </Select>
         </Field>
+        <p className="text-xs leading-5 text-muted-foreground">
+          {custom
+            ? "This location has its own tipping settings. It will not follow a later change to the business defaults."
+            : "This location follows the business defaults, shown below. Change the business and this location follows."}
+        </p>
       </section>
 
       <section className="flex flex-col gap-4">
         <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
           Tipping options
         </h3>
-        <TippingToggleRow title="Display a tip option screen at the Point of Sale" defaultChecked />
+        <TippingToggleRow
+          title="Display a tip option screen at the Point of Sale"
+          checked={draft.atPointOfSale}
+          disabled={!custom}
+          onCheckedChange={(on) => patch({ atPointOfSale: on })}
+        />
         <TippingToggleRow
           title="Display tip options on card terminals and self checkout"
-          defaultChecked
+          checked={draft.onTerminals}
+          disabled={!custom}
+          onCheckedChange={(on) => patch({ onTerminals: on })}
         />
         <TippingToggleRow
           title="Allow client to leave a tip online"
           subtitle="Options to leave a tip on the Cami app after completed appointments"
-          defaultChecked
+          checked={draft.online}
+          disabled={!custom}
+          onCheckedChange={(on) => patch({ online: on })}
         />
       </section>
 
@@ -2340,7 +2589,14 @@ function TippingEditDialog({
               className="flex items-center gap-2"
             >
               <div className="relative flex-1">
-                <Input defaultValue={value} inputMode="decimal" className="pr-10" />
+                <Input
+                  value={String(value)}
+                  inputMode="decimal"
+                  className="pr-10"
+                  disabled={!custom}
+                  aria-label={`Tip value ${i + 1}`}
+                  onChange={(e) => setTipValue(i, Number(e.target.value))}
+                />
                 <span className="pointer-events-none absolute top-1/2 right-4 -translate-y-1/2 text-sm text-muted-foreground">
                   %
                 </span>
@@ -2351,6 +2607,7 @@ function TippingEditDialog({
                 size="icon"
                 radius="full"
                 aria-label="Remove tip value"
+                disabled={!custom}
                 onClick={() => removeTip(i)}
               >
                 <Trash2Icon className="size-4" />
@@ -2377,16 +2634,14 @@ function TippingEditDialog({
           </p>
         </div>
         <div className="flex flex-col gap-3">
-          {[
-            { id: "services", label: "Services" },
-            { id: "addons", label: "Service add-ons" },
-            { id: "products", label: "Products" },
-            { id: "memberships", label: "Memberships" },
-            { id: "gift-cards", label: "Gift cards" },
-          ].map(({ id, label }) => (
+          {TIP_CART_ITEMS.map(({ id, label }) => (
             // biome-ignore lint/a11y/noLabelWithoutControl: Checkbox child is the control
             <label key={id} className="flex items-center gap-3">
-              <Checkbox checked={cartItems.has(id)} onCheckedChange={() => toggleCart(id)} />
+              <Checkbox
+                checked={cartItems.has(id)}
+                disabled={!custom}
+                onCheckedChange={() => toggleCart(id)}
+              />
               <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
             </label>
           ))}
@@ -2394,7 +2649,11 @@ function TippingEditDialog({
 
         <div className="flex flex-col gap-1.5">
           <Field label="Service charges">
-            <Select defaultValue="included">
+            <Select
+              value={draft.serviceCharges}
+              disabled={!custom}
+              onValueChange={(v) => patch({ serviceCharges: v as "included" | "excluded" })}
+            >
               <SelectTrigger className={triggerOverride}>
                 <SelectValue />
               </SelectTrigger>
@@ -2410,7 +2669,11 @@ function TippingEditDialog({
         </div>
         <div className="flex flex-col gap-1.5">
           <Field label="Discounts">
-            <Select defaultValue="included">
+            <Select
+              value={draft.discounts}
+              disabled={!custom}
+              onValueChange={(v) => patch({ discounts: v as "included" | "excluded" })}
+            >
               <SelectTrigger className={triggerOverride}>
                 <SelectValue />
               </SelectTrigger>
@@ -2448,11 +2711,16 @@ function TippingEditDialog({
 function TippingToggleRow({
   title,
   subtitle,
-  defaultChecked,
+  checked,
+  disabled,
+  onCheckedChange,
 }: {
   title: string
   subtitle?: string
-  defaultChecked?: boolean
+  checked: boolean
+  /** True while the branch follows the workspace: shown, and not editable. */
+  disabled?: boolean
+  onCheckedChange: (on: boolean) => void
 }) {
   return (
     <div className="flex items-start justify-between gap-4 py-1">
@@ -2462,7 +2730,7 @@ function TippingToggleRow({
           <span className="text-xs leading-5 text-muted-foreground">{subtitle}</span>
         ) : null}
       </div>
-      <Switch defaultChecked={defaultChecked} />
+      <Switch checked={checked} disabled={disabled} onCheckedChange={onCheckedChange} />
     </div>
   )
 }

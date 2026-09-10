@@ -136,3 +136,33 @@ export function taxOverrideCount(overrides: TaxIdentityOverrides | undefined): n
 export function formatReceiptNumber(prefix: string, next: number): string {
   return `${prefix}-${String(next).padStart(6, "0")}`
 }
+
+/**
+ * Set or clear one branch's override, returning the new map for the whole
+ * estate (INV-13, G5).
+ *
+ * Pure, and separate from the store, because the two rules here are the ones
+ * worth testing and are easy to get wrong in a reducer:
+ *
+ * - **Clearing deletes the key.** Writing today's business value in its place
+ *   leaves the field looking inherited while no longer following a later change
+ *   to the default. That is the one thing "inherited" promises.
+ * - **A branch with nothing left holds no row.** Otherwise every branch
+ *   accumulates an empty object, and "9 branches inherit everything" stops
+ *   being a fact about the data.
+ */
+export function applyTaxOverride(
+  all: Record<string, TaxIdentityOverrides>,
+  locationId: string,
+  field: TaxIdentityField,
+  value: string | undefined,
+): Record<string, TaxIdentityOverrides> {
+  const branch = { ...(all[locationId] ?? {}) }
+  if (value === undefined) delete branch[field]
+  else branch[field] = value
+
+  const next = { ...all }
+  if (Object.keys(branch).length === 0) delete next[locationId]
+  else next[locationId] = branch
+  return next
+}

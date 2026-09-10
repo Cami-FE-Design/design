@@ -163,6 +163,43 @@ obvious behaviour is the wrong one:
   address.** A copy would silently stop following when the address changed,
   which is the one thing ticking it promised.
 
+### The last three dialogs, and two shapes of inheritance
+
+Tax defaults, receipt sequencing and tipping were the last dialogs whose Save
+closed and changed nothing. Not an oversight of the same kind as the profile
+tabs: those write a field, while these write an **override**, which needs
+somewhere for "no opinion" to live. `undefined` is that place, and
+`BranchSettingsProvider` is where it lives — one provider, because the three are
+cards on one tab all answering the same question, and three would let two of
+them disagree about which branch is open.
+
+**Reset deletes the key.** Writing today's business value in its place leaves the
+field looking inherited while no longer following a later change to the default,
+which is G5's failure mode rather than its behaviour. And a branch with nothing
+left holds no row at all, so "9 branches inherit everything" stays a fact about
+the data. Both rules are `applyTaxOverride` in `tax-identity.ts`, pure and
+tested, because they are the easy ones to get wrong in a reducer.
+
+**Two shapes, deliberately.** The tax identity resolves **per field**: a branch
+really does differ on one alone — its receipt prefix while sharing a legal
+entity, or a boarding branch setting its own services rate while keeping the
+business products rate. Tipping resolves **per block**, and the dialog said so
+before anything was wired: its first control is "Workspace defaults" or "Custom
+for this location". An operator does not want this branch's percentages with the
+business's cart rules; they want "this branch tips differently", and then they
+configure it. Field-level markers there would name six states nobody asked for.
+
+**On Workspace defaults the tipping controls are disabled, not hidden.** Hidden,
+an operator has to switch to Custom to find out what they would be changing
+from.
+
+**Receipt sequencing has two fields that look alike and are not.** The prefix is
+inherited, so it carries a marker and a Reset. The next number is not: every
+branch has its own sequence and there is no business-level "next receipt number"
+to inherit from, so a marker there would name a state that cannot exist. Save is
+refused on a number that is not a whole number above zero — 0 would leave the
+branch's first receipt unnumbered.
+
 ### The fifth copy: name, address and phone
 
 `PublicBranch` carried its own `name`, `street`, `city`, `emirate` and `phone`
@@ -829,7 +866,7 @@ loading, and error, with the single-branch case showing no switcher at all".
 | SCR-06 cross-branch move | **built** — destination bounded by grants, dual attribution, whole-move rejection |
 | SCR-08 public business page | **page built** — picker, per-branch pages, published-only. The booking *flow* is not branch-scoped |
 | SCR-09 branch service catalog | **built** — per-field inherit / override / reset, per-branch enablement |
-| SCR-12 branch tax identity | **built** — per-field source, forward-only warning, prefixed receipt number |
+| SCR-12 branch tax identity | **built** — per-field source, forward-only warning, prefixed receipt number; tax defaults, receipt sequencing and tipping all save |
 | SCR-13 checkout, package mismatch | **rule and warning built, not wired** — there is no package redemption at checkout to attach it to |
 | SCR-14 branch WhatsApp number | **built** — bound / migrating / unassigned, cost attribution |
 | SCR-15 money by branch | **built** — side by side, roll-up as a sum, grant-bounded |
@@ -920,10 +957,4 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   branch whose district is "Dubai Marina" — needs a real field for it. Not
   invented, because which of the two an operator expects to edit is a product
   question, not a modelling one.
-- **Three dialogs still do not save: tax defaults, receipt sequencing and
-  tipping.** Not an oversight of the same kind as the profile tabs — these
-  resolve from a business default with a per-field override (R23), so saving one
-  means building that inheritance rather than writing a field. That is SCR-12's
-  own slice, and `lib/locations/tax-identity.ts` already holds the resolution.
-  Their Save closes and changes nothing, which is worth knowing before a demo.
 
