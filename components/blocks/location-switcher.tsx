@@ -126,28 +126,36 @@ export function LocationSwitcher({ className }: { className?: string }) {
         <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
           Locations
         </DropdownMenuLabel>
-        {granted.map((loc) => {
-          const checked = selectedIds.has(loc.id)
-          const isLastSelected = checked && selectedIds.size === 1
-          return (
-            <DropdownMenuItem
-              key={loc.id}
-              // Keep the menu open: building a subset takes more than one click,
-              // and closing after each would make it unusable.
-              onSelect={(e) => {
-                e.preventDefault()
-                toggle(loc.id)
-              }}
-              className={cn("gap-2", isLastSelected && "cursor-default")}
-              aria-checked={checked}
-              role="menuitemcheckbox"
-            >
-              <CheckIcon className={cn("size-4 shrink-0", checked ? "opacity-100" : "opacity-0")} />
-              <span className="min-w-0 flex-1 truncate">{loc.name}</span>
-              <LocationStatusBadge status={loc.status} />
-            </DropdownMenuItem>
-          )
-        })}
+        {/* The branch list scrolls, and only it — "All locations" stays put.
+            At three branches this changes nothing; at nine the list is taller
+            than a laptop popover, and a roll-up you have to scroll back up to
+            reach is the one row an owner uses most. */}
+        <div className="max-h-[min(20rem,var(--radix-dropdown-menu-content-available-height,20rem))] overflow-y-auto">
+          {granted.map((loc) => {
+            const checked = selectedIds.has(loc.id)
+            const isLastSelected = checked && selectedIds.size === 1
+            return (
+              <DropdownMenuItem
+                key={loc.id}
+                // Keep the menu open: building a subset takes more than one click,
+                // and closing after each would make it unusable.
+                onSelect={(e) => {
+                  e.preventDefault()
+                  toggle(loc.id)
+                }}
+                className={cn("gap-2", isLastSelected && "cursor-default")}
+                aria-checked={checked}
+                role="menuitemcheckbox"
+              >
+                <CheckIcon
+                  className={cn("size-4 shrink-0", checked ? "opacity-100" : "opacity-0")}
+                />
+                <span className="min-w-0 flex-1 truncate">{loc.name}</span>
+                <LocationStatusBadge status={loc.status} />
+              </DropdownMenuItem>
+            )
+          })}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   )

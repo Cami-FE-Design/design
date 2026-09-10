@@ -223,6 +223,7 @@ import type { ProductImportPreviewRow, RowOverride } from "@/lib/imports/types"
 import { INVOICE_FIXTURES } from "@/lib/invoice/mock"
 import { bookingsInScope } from "@/lib/locations/calendar-scope"
 import { formatDayHours, isOpenNow, WEEK_DAYS } from "@/lib/locations/hours"
+import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
@@ -353,6 +354,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Multi-location — branch lifecycle",
       "Multi-location — per-branch hours",
       "Multi-location — per-branch availability",
+      "Multi-location — nine branches (D5)",
       "Multi-location — chain setup",
       "Multi-location — branch access grants",
       "Multi-location — per-branch service pricing",
@@ -2594,6 +2596,35 @@ export function PlaygroundShowcase() {
             <LocationsProvider persist={false}>
               <BranchAvailabilityDemo />
             </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — nine branches (D5)"
+          description="The designs at the scale the PRD assumes. Three branches is the demo; nine is where the layouts fail, and the failure is the same one every time — most rows say nothing and the one that matters is below the fold. Both states are drawn so the decision can be made by looking: collapsed folds the branches that inherit everything into one line that names them, and expanded is the nine cards it replaces. Under four quiet branches nothing collapses, because folding three cards into a line you have to click is a worse screen than three cards. The switcher and the money roll-up are here at nine too. Neither had a height cap, because at three nothing needed one — the switcher’s branch list now scrolls on its own while All locations stays put, since a roll-up you have to scroll back up to reach is the row an owner uses most."
+        >
+          <Row label="Per-branch pricing · collapsed" align="start">
+            <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+              <ServicePricingDemo />
+            </LocationsProvider>
+          </Row>
+          <Row label="Branch switcher · nine">
+            <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+              <LocationSwitcher />
+            </LocationsProvider>
+          </Row>
+          <Row label="Money by branch · nine" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <MoneyByLocationView txs={MONEY_TXS} filter={MONEY_DEMO_FILTER} />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="All-branches calendar · nine" align="start">
+            <div className="w-full max-w-[720px]">
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <BranchDayStrip bookings={MOCK_BOOKINGS} />
+              </LocationsProvider>
+            </div>
           </Row>
         </Section>
         <Section

@@ -1,5 +1,5 @@
 import { CLOSED_DAY, openFor, openForShifts, type WeekSchedule } from "@/lib/locations/hours"
-import type { Location } from "@/lib/locations/types"
+import type { Location, LocationStatus } from "@/lib/locations/types"
 
 /**
  * The hours each branch actually keeps. Deliberately different, because
@@ -233,4 +233,69 @@ export function locationContact(locationId: string): LocationContact | undefined
     emirate: location.location.state,
     phone: location.phone,
   }
+}
+
+/**
+ * A nine-branch estate, for reviewing the designs at the scale the PRD assumes
+ * (D5). Three branches is the demo; nine is where the layouts fail.
+ *
+ * Three of them are the real seed above, so nothing that reads the estate has to
+ * change shape. The other six are generated, because writing out six more full
+ * profiles by hand adds no information — what matters at this scale is how many
+ * there are, how many of them are identical, and which one is the exception.
+ *
+ * Deliberately mostly-identical. That is the honest shape of a chain: nine
+ * branches share a menu, keep the same hours, and one of them differs. A seed
+ * where every branch was interestingly different would make the collapse look
+ * unnecessary, when the collapse exists precisely because most rows say nothing.
+ */
+const EXTRA_BRANCHES: ReadonlyArray<{
+  district: string
+  city: string
+  state: string
+  status?: LocationStatus
+  hours?: WeekSchedule
+}> = [
+  { district: "Business Bay", city: "Dubai", state: "Dubai" },
+  { district: "Dubai Marina", city: "Dubai", state: "Dubai" },
+  { district: "Mirdif", city: "Dubai", state: "Dubai" },
+  // Another emirate, so the estate is not one city — a chain crossing an
+  // emirate line is what makes per-branch tax identity (R23) matter.
+  { district: "Al Reem", city: "Abu Dhabi", state: "Abu Dhabi" },
+  { district: "Al Majaz", city: "Sharjah", state: "Sharjah", hours: JUMEIRAH_HOURS },
+  // Standing up, not trading yet: the state a chain is in most of the time
+  // while it grows (R01).
+  { district: "Yas Island", city: "Abu Dhabi", state: "Abu Dhabi", status: "draft" },
+]
+
+export const NINE_BRANCH_ESTATE: ReadonlyArray<Location> = [
+  ...LOCATIONS,
+  ...EXTRA_BRANCHES.map((branch, index): Location => {
+    const slug = `shampooch-${slugifyDistrict(branch.district)}`
+    const template = LOCATIONS[0]!
+    return {
+      ...template,
+      id: slug,
+      slug,
+      name: `Shampooch ${branch.district}`,
+      phone: `+971 50 ${400 + index} ${1000 + index * 7}`,
+      email: `${slugifyDistrict(branch.district)}@shampooch.ae`,
+      location: {
+        ...template.location,
+        address: `Unit ${index + 2}, ${branch.district}`,
+        district: branch.district,
+        city: branch.city,
+        state: branch.state,
+      },
+      mapPin: null,
+      status: branch.status ?? "live",
+      hours: branch.hours ?? template.hours,
+      photoUrl: `https://picsum.photos/seed/${slug}/80`,
+    }
+  }),
+]
+
+/** Local to the seed: the store's `slugify` is for operator input, not fixtures. */
+function slugifyDistrict(district: string): string {
+  return district.toLowerCase().replace(/[^a-z0-9]+/g, "-")
 }

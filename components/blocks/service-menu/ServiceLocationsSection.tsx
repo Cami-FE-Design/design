@@ -27,6 +27,7 @@
  */
 
 import { RotateCcwIcon } from "lucide-react"
+import { useState } from "react"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { Button } from "@/components/ui/button"
@@ -34,6 +35,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useLocations } from "@/lib/locations/store"
+import type { Location } from "@/lib/locations/types"
 import {
   type LocationOffering,
   offeringKey,
@@ -58,6 +60,28 @@ export function ServiceLocationsSection({
   onChange: (next: LocationOffering[]) => void
 }) {
   const { locations } = useLocations()
+  const [showAll, setShowAll] = useState(false)
+
+  /**
+   * A branch says something when it deviates: a field overridden, the service
+   * turned off, or a lifecycle state that changes what "offered here" means.
+   * Everything else is a card repeating the business default back at you.
+   */
+  function deviates(loc: Location): boolean {
+    const offering = offeringFor(loc.id)
+    const resolved = resolveOffering(defaults, offering)
+    return overrideCount(offering) > 0 || !resolved.enabled || loc.status !== "live"
+  }
+
+  const quiet = locations.filter((loc) => !deviates(loc))
+  /**
+   * Collapse only when it earns its keep. Nine branches is nine cards, most of
+   * them identical, and the one that differs is below the fold — that is the
+   * problem. Folding three cards into a line you have to click is a worse
+   * screen than three cards, so under four quiet branches nothing collapses.
+   */
+  const collapsible = quiet.length > 3 && !showAll
+  const shown = collapsible ? locations.filter(deviates) : locations
 
   function offeringFor(locationId: string): LocationOffering | undefined {
     return offerings.find((o) => o.locationId === locationId)
@@ -92,7 +116,7 @@ export function ServiceLocationsSection({
         .
       </p>
 
-      {locations.map((loc) => {
+      {shown.map((loc) => {
         const offering = offeringFor(loc.id)
         const resolved = resolveOffering(defaults, offering)
         const count = overrideCount(offering)
@@ -208,6 +232,41 @@ export function ServiceLocationsSection({
           </div>
         )
       })}
+
+      {/* What the collapse hides, said in words rather than left to a count of
+          missing cards. It names the branches, because "6 branches inherit"
+          without saying which is a fact the operator cannot check. */}
+      {collapsible ? (
+        <div className="flex flex-col gap-2 rounded-2xl bg-muted/40 p-4">
+          <span className="text-sm text-foreground">
+            {quiet.length} branches inherit the business default
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {quiet.map((loc) => loc.name).join(", ")}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            radius="full"
+            className="self-start"
+            onClick={() => setShowAll(true)}
+          >
+            Show all {locations.length}
+          </Button>
+        </div>
+      ) : null}
+
+      {showAll && quiet.length > 3 ? (
+        <Button
+          type="button"
+          variant="ghost"
+          radius="full"
+          className="self-start"
+          onClick={() => setShowAll(false)}
+        >
+          Show only the {locations.length - quiet.length} that differ
+        </Button>
+      ) : null}
     </div>
   )
 }

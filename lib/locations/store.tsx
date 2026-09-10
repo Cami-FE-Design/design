@@ -233,8 +233,8 @@ function readStoredEdits(): StoredEdits {
 }
 
 /** The estate as this session left it: seed, plus what was created, plus the edits. */
-function applyEdits(edits: StoredEdits): Location[] {
-  return [...LOCATIONS, ...edits.created].map((l) =>
+function applyEdits(edits: StoredEdits, seed: ReadonlyArray<Location>): Location[] {
+  return [...seed, ...edits.created].map((l) =>
     edits.overrides[l.id] ? { ...l, ...edits.overrides[l.id] } : l,
   )
 }
@@ -256,6 +256,7 @@ export function LocationsProvider({
   children,
   initialGrants = "all",
   initialScope = { kind: "all" },
+  initialLocations = LOCATIONS,
   persist = true,
 }: {
   children: React.ReactNode
@@ -263,6 +264,16 @@ export function LocationsProvider({
   initialGrants?: LocationGrants
   /** Seed the scope, to open on one branch rather than the roll-up. */
   initialScope?: LocationScope
+  /**
+   * Seed the estate. Three branches is the demo; the PRD assumes nine, and the
+   * layouts that hold at three are the ones that fail at nine — nine cards most
+   * of them identical, a switcher list that needs scrolling, a money table
+   * whose interesting row is below the fold. `NINE_BRANCH_ESTATE` in
+   * lib/locations/mock.ts exists to make those reviewable rather than argued
+   * about. Pass `persist: false` with it: a demo estate must not be written over
+   * the one the operator is working in.
+   */
+  initialLocations?: ReadonlyArray<Location>
   /**
    * Read and write localStorage. False for a nested provider — the playground
    * shows several scopes at once, and a showcase must not overwrite the scope
@@ -272,7 +283,7 @@ export function LocationsProvider({
 }) {
   // Start from the seed so server and first client render agree, then hydrate
   // in an effect — same shape as lib/demo-business.tsx.
-  const [locations, setLocations] = useState<Location[]>(LOCATIONS)
+  const [locations, setLocations] = useState<Location[]>([...initialLocations])
   const [grants, setGrantsState] = useState<LocationGrants>(initialGrants)
   const [scope, setScopeState] = useState<LocationScope>(initialScope)
 
@@ -280,13 +291,15 @@ export function LocationsProvider({
     if (!persist) return
     const edits = readStoredEdits()
     if (Object.keys(edits.overrides).length > 0 || edits.created.length > 0) {
-      setLocations(applyEdits(edits))
+      setLocations(applyEdits(edits, initialLocations))
     }
     const savedGrants = readStoredGrants()
     if (savedGrants) setGrantsState(savedGrants)
     const savedScope = readStoredScope()
     if (savedScope) setScopeState(savedScope)
-  }, [persist])
+    // `initialLocations` is a seed, and both callers pass a module constant, so
+    // this runs once per provider rather than on every render.
+  }, [persist, initialLocations])
 
   /**
    * Write to the stored patch, then to state, so the two cannot disagree —

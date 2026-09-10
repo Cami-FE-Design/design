@@ -390,6 +390,38 @@ thing does: resolve the location, then render its offering.
 default-venue fallback R11 deletes, so there is no such page — only
 `/{branchSlug}/book`.
 
+### Nine branches, and the collapse (D5)
+
+Three branches is the demo. Nine is what the PRD assumes, and it is where the
+layouts fail — always the same way: most rows say nothing, and the one that
+matters is below the fold. That could be argued about indefinitely without a way
+to see it, so `NINE_BRANCH_ESTATE` in `lib/locations/mock.ts` seeds nine and
+`LocationsProvider` takes an `initialLocations` seam to mount it.
+
+The estate is deliberately mostly-identical. Nine branches sharing a menu with
+one exception is the honest shape of a chain, and a seed where every branch was
+interestingly different would make the collapse look unnecessary — when the
+collapse exists precisely because most rows say nothing. Three of the nine are
+the real seed, so nothing reading the estate changes shape; the other six are
+generated, because six more hand-written profiles add no information. One is a
+draft and two are in other emirates, which is what makes per-branch tax identity
+(R23) more than a hypothetical.
+
+**What counts as saying something.** A branch deviates when a field is
+overridden, the service is off there, or its lifecycle state changes what
+"offered here" means. Everything else is a card repeating the business default
+back at you.
+
+**The collapse has a floor.** Under four quiet branches nothing collapses:
+folding three cards into a line you have to click is a worse screen than three
+cards. The summary names the branches it hides, because "6 branches inherit"
+without saying which is a fact the operator cannot check.
+
+**Found at nine, fixed:** the switcher had no height cap — at three nothing
+needed one. Its branch list scrolls on its own now while "All locations" stays
+put, since a roll-up you have to scroll back up to reach is the row an owner
+uses most.
+
 ### Availability per branch, not just the offering (R15)
 
 R15 asks that both entry paths yield "that Location's offering **and
@@ -856,11 +888,11 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   owner is on the roster and is not a slot — so they were not collapsed. Branch
   assignment lives on `BOOKING_STAFF` for now, which means a grant changed in
   SCR-03 does not change who a client can pick.
-- **The per-branch catalog does not collapse.** With nine branches the Locations
-  section is nine cards, most of them identical, and the one that differs is
-  below the fold. Recommended: collapse the branches that inherit everything
-  into one line and expand only what differs. Not built — it needs a demo seam
-  to seed more than three branches, or it ships unreviewable.
+- **Nine branches is drawn, but D5 is still open.** The collapse is built and
+  reviewable at nine (`NINE_BRANCH_ESTATE`), and both states are on screen. What
+  is not decided is whether the *product* should collapse by default at all, or
+  at what count — that is Michelle's call, and the answer changes copy rather
+  than structure.
 
 - **The session's grant is not the signed-in member's grant.** `LocationsProvider.grants`
   is a demo control, and the roster's per-member grants are separate data.

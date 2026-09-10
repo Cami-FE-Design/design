@@ -970,6 +970,11 @@ const SECTIONS: Section[] = [
         note: "R15 asks for that location’s offering AND availability. The offering was per branch; the availability was one hardcoded week plus all twelve staff on every branch page. Both are derived now. Day chips come from the branch’s hours, and a day it does not open reads Closed rather than Fully booked — different facts, and showing one as the other sends a client back to a day that will never have a slot. Slots are the hours at half-hour steps, so Al Quoz’s 1–4pm gap is absent rather than filtered afterwards, and the last slot sits half an hour before closing. Staff filter by the branches they work at, and someone covering two sites shows at both. Friday is on screen because all three branches differ there.",
       },
       {
+        path: "/playground#multi-location-nine-branches-d5",
+        label: "Nine branches · D5 (playground)",
+        note: "The designs at the scale the PRD assumes. Three branches is the demo; nine is where the layouts fail, always the same way — most rows say nothing and the one that matters is below the fold. Both states are drawn so the call can be made by looking: collapsed folds the inheriting branches into one line that names them, expanded is the nine cards it replaces. Under four quiet branches nothing collapses, because folding three cards into a click is worse than three cards. The switcher, the money roll-up and the calendar strip are here at nine too — the switcher had no height cap until this pass.",
+      },
+      {
         path: "/playground#multi-location-chain-setup",
         label: "Chain setup · SCR-02 (playground)",
         note: "N branches in one pass (R02, SU1.2). All or none — submit with one bad row and nothing is created, because a partial create leaves the owner unable to tell which of nine landed. Two rows with the same name collide on the link and the second row says so; 'Shampooch JVC' collides with an existing branch. New branches land as Draft, not Live: created is not trading. Isolated from the app's own estate, so creating here changes nothing.",
