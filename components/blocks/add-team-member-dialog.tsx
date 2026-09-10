@@ -15,6 +15,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
+import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -35,6 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
 // Match Input's h-12 / rounded-2xl / bg-input. Same pattern used by
@@ -55,7 +57,7 @@ const sectionGroups = [
     label: "Workspace",
     items: [
       { id: "services", label: "Services", icon: ScissorsIcon, count: "12" },
-      { id: "locations", label: "Locations", icon: BuildingIcon, count: "1" },
+      { id: "locations", label: "Locations", icon: BuildingIcon },
       { id: "settings", label: "Settings", icon: SettingsIcon },
     ],
   },
@@ -114,6 +116,14 @@ const formSchema = z.object({
   allowBookings: z.boolean(),
   permission: z.enum(["High", "Medium", "Low"]),
   services: z.array(z.string()),
+  /** What they may do (R04). Defined once per role, in lib/team/roles.ts. */
+  roleId: z.string(),
+  /**
+   * Where they may do it (R04). The backend calls these venues
+   * (`assignedVenueIds`); "location" is the operator-facing word, per the
+   * blueprint's terminology mapping.
+   */
+  assignedLocationIds: z.array(z.string()),
 })
 
 export type AddTeamMemberValues = z.infer<typeof formSchema>
@@ -133,6 +143,12 @@ const defaultValues: AddTeamMemberValues = {
   allowBookings: true,
   permission: "Medium",
   services: [],
+  // Not the owner: there is exactly one, and inviting a second by default is
+  // the wrong shape. Staff is the narrowest useful starting point.
+  roleId: "staff",
+  // Nothing granted until the owner says so. An invited member who can see
+  // every branch by default is precisely what R24 forbids.
+  assignedLocationIds: [],
 }
 
 type AddTeamMemberDialogProps = {
@@ -159,10 +175,18 @@ export function AddTeamMemberDialog({
   const firstName = form.watch("firstName").trim()
   const lastName = form.watch("lastName").trim()
   const email = form.watch("email").trim()
+  const { locations: allLocations } = useLocations()
+  const locationCount = allLocations.length
+  const grantedIds = form.watch("assignedLocationIds") ?? []
   const initials =
     `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() ||
     (email.charAt(0).toUpperCase() ?? "")
   const canSubmit = firstName.length > 0 && lastName.length > 0 && /.+@.+\..+/.test(email)
+
+  // An owner holds every location, so its badge counts the estate rather than
+  // the (empty, untickable) grant array.
+  const grantedCount = form.watch("roleId") === "owner" ? locationCount : grantedIds.length
+  const sectionCounts = { locations: grantedCount > 0 ? String(grantedCount) : undefined }
 
   function reset() {
     form.reset(defaultValues)
@@ -198,7 +222,7 @@ export function AddTeamMemberDialog({
           onSubmit={form.handleSubmit(handleSubmit)}
           className="grid min-w-0 grid-cols-1 gap-8 md:grid-cols-[260px_minmax(0,1fr)]"
         >
-          <SectionNav active={section} onChange={setSection} />
+          <SectionNav active={section} onChange={setSection} counts={sectionCounts} />
 
           <div className="flex min-w-0 flex-col gap-5">
             {section === "profile" ? (
@@ -207,7 +231,7 @@ export function AddTeamMemberDialog({
             {section === "addresses" ? <AddressesSection /> : null}
             {section === "emergency" ? <EmergencySection /> : null}
             {section === "services" ? <ServicesSection form={form} /> : null}
-            {section === "locations" ? <LocationsSection businessName={businessName} /> : null}
+            {section === "locations" ? <LocationsSection form={form} /> : null}
             {section === "settings" ? <SettingsSection form={form} /> : null}
           </div>
         </form>
@@ -219,9 +243,12 @@ export function AddTeamMemberDialog({
 function SectionNav({
   active,
   onChange,
+  counts,
 }: {
   active: SectionId
   onChange: (id: SectionId) => void
+  /** Per-section badge overrides, for the counts that depend on the form. */
+  counts?: Partial<Record<SectionId, string>>
 }) {
   return (
     <aside aria-label="Sections" className="flex min-w-0 flex-col gap-6">
@@ -237,7 +264,7 @@ function SectionNav({
                 id={item.id}
                 label={item.label}
                 icon={item.icon}
-                count={"count" in item ? item.count : undefined}
+                count={counts?.[item.id] ?? ("count" in item ? item.count : undefined)}
                 active={active === item.id}
                 onSelect={() => onChange(item.id)}
               />
@@ -650,20 +677,87 @@ function ServicesSection({ form }: { form: FormReturn }) {
   )
 }
 
-function LocationsSection({ businessName }: { businessName?: string }) {
+/**
+ * "Works at" — the per-member half of SCR-03 (R04, R05, R24).
+ *
+ * Mirrors the shipped section in cami-business's `TeamMemberProfileForm.tsx`:
+ * one checkbox row per branch against `assignedVenueIds`, and the whole list
+ * disabled for an owner, who holds every branch by definition. Ours read a
+ * single hardcoded row derived from the business name, which is the same
+ * business-as-location conflation the topbar switcher had.
+ *
+ * A grant here is *where*, never *what* (R04). Ticking every branch does not
+ * make a receptionist a manager, and an owner's untickable list is not a
+ * missing feature — capability and scope do not widen each other.
+ *
+ * Ticking nothing is a real, permitted state: the member performs no
+ * operational read or write, and it must never resolve to every branch (R24).
+ * So the empty case is said out loud rather than left as an unticked list.
+ */
+function LocationsSection({ form }: { form: FormReturn }) {
+  const { locations } = useLocations()
+  const selected = form.watch("assignedLocationIds") ?? []
+  const isOwner = form.watch("roleId") === "owner"
+
+  function toggle(id: string, next: boolean) {
+    if (isOwner) return
+    const set = new Set(selected)
+    if (next) set.add(id)
+    else set.delete(id)
+    form.setValue("assignedLocationIds", Array.from(set), { shouldDirty: true })
+  }
+
   return (
     <SectionShell title="Works at" description="Choose the locations where this team member works.">
-      <div className="flex items-center gap-3 rounded-xl bg-muted/30 p-3">
-        <div className="flex size-12 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-11">
-          <BuildingIcon className="size-5" strokeWidth={1.5} />
-        </div>
-        <div className="flex flex-1 flex-col">
-          <span className="text-sm font-medium text-foreground">
-            {businessName ?? "Main location"}
-          </span>
-          <span className="text-sm text-muted-foreground">Default workspace</span>
-        </div>
-      </div>
+      {isOwner ? (
+        <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
+          An owner holds every location, including any added later. Change the role to grant a named
+          set instead.
+        </p>
+      ) : selected.length === 0 ? (
+        <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
+          No location granted yet. Until one is, this team member can see and do nothing — an empty
+          grant never means every location.
+        </p>
+      ) : null}
+      <ul className="flex flex-col gap-2">
+        {locations.map((loc) => {
+          const inputId = `member-location-${loc.id}`
+          const checked = isOwner || selected.includes(loc.id)
+          return (
+            <li key={loc.id}>
+              <label
+                htmlFor={inputId}
+                className={cn(
+                  "flex items-center gap-3 rounded-xl bg-muted/30 p-3 transition-colors",
+                  isOwner ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/40",
+                )}
+              >
+                <Checkbox
+                  id={inputId}
+                  size="lg"
+                  checked={checked}
+                  disabled={isOwner}
+                  onCheckedChange={(v) => toggle(loc.id, v === true)}
+                />
+                <div className="flex size-12 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-11">
+                  <BuildingIcon className="size-5" strokeWidth={1.5} />
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-sm font-medium text-foreground">{loc.name}</span>
+                    <LocationStatusBadge status={loc.status} />
+                  </span>
+                  <span className="truncate text-sm text-muted-foreground">
+                    {[loc.location.city, loc.location.country].filter(Boolean).join(", ") ||
+                      "Location"}
+                  </span>
+                </div>
+              </label>
+            </li>
+          )
+        })}
+      </ul>
     </SectionShell>
   )
 }

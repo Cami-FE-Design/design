@@ -8,6 +8,7 @@ import {
 } from "@/components/blocks/add-team-member-dialog"
 import { AppShell } from "@/components/blocks/app-shell"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { TeamAccessDialog } from "@/components/blocks/team-access-dialog"
 import { TeamMemberDetailDialog } from "@/components/blocks/team-member-detail-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -29,21 +30,33 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDemoBusiness } from "@/lib/demo-business"
-import { TEAM_MEMBERS } from "@/lib/team/mock"
+import { type LocationGrants, useLocations } from "@/lib/locations/store"
+import { TEAM_MEMBERS, type TeamMember } from "@/lib/team/mock"
+import { roleById } from "@/lib/team/roles"
 import { cn } from "@/lib/utils"
 
-type Permission = "High" | "Medium" | "Low"
-type MemberStatus = "active" | "pending"
+// The roster's own type, not a local copy of it: `roleId` and
+// `locationGrants` (R04) were added to lib/team/mock.ts, and a duplicate here
+// would silently drop them.
+type Member = TeamMember
+type MemberStatus = TeamMember["status"]
 
-type Member = {
-  id: string
-  name: string | null
-  title?: string
-  email: string
-  phone?: string
-  permission: Permission
-  status: MemberStatus
-  initials: string
+/**
+ * A grant, in the fewest words that stay accurate.
+ *
+ * "All locations" and a count are different claims: the first includes branches
+ * added later, the second does not (R04). And "No access" is said rather than
+ * shown as a blank, because an empty grant is a decision with a consequence,
+ * never an unset field (R24).
+ */
+function MemberLocations({ grants }: { grants: LocationGrants }) {
+  const { locationName } = useLocations()
+  if (grants === "all") return <span>All locations</span>
+  if (grants.length === 0) {
+    return <span className="text-muted-foreground">No access</span>
+  }
+  if (grants.length === 1) return <span>{locationName(grants[0])}</span>
+  return <span>{grants.length} locations</span>
 }
 
 function MemberAvatar({ initials, status }: { initials: string; status: MemberStatus }) {
@@ -127,7 +140,12 @@ function MemberTableRow({
           ) : null}
         </div>
       </TableCell>
-      <TableCell className="text-sm text-foreground">{member.permission}</TableCell>
+      <TableCell className="text-sm text-foreground">
+        {roleById(member.roleId)?.name ?? member.roleId}
+      </TableCell>
+      <TableCell className="text-sm text-foreground">
+        <MemberLocations grants={member.locationGrants} />
+      </TableCell>
       <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -216,7 +234,8 @@ function MemberTable({
           </TableHead>
           <TableHead>Member</TableHead>
           <TableHead>Contact</TableHead>
-          <TableHead>Permission</TableHead>
+          <TableHead>Role</TableHead>
+          <TableHead>Locations</TableHead>
           <TableHead className="w-12 sr-only">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -246,6 +265,7 @@ export default function TeamSettingsPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [viewMemberId, setViewMemberId] = useState<string | null>(null)
+  const [accessMemberId, setAccessMemberId] = useState<string | null>(null)
 
   const activeMembers = members.filter((m) => m.status === "active")
   const pendingMembers = members.filter((m) => m.status === "pending")
@@ -285,6 +305,8 @@ export default function TeamSettingsPage() {
         permission: values.permission,
         status: "pending",
         initials,
+        roleId: values.roleId,
+        locationGrants: values.assignedLocationIds,
       },
     ])
   }
@@ -294,7 +316,13 @@ export default function TeamSettingsPage() {
   }
 
   function handleEditRoles(id: string) {
-    console.log("Edit roles & permissions:", id)
+    setAccessMemberId(id)
+  }
+
+  function handleSaveAccess(memberId: string, roleId: string, grants: LocationGrants) {
+    setMembers((prev) =>
+      prev.map((m) => (m.id === memberId ? { ...m, roleId, locationGrants: grants } : m)),
+    )
   }
 
   function handleEditServices(id: string) {
@@ -443,6 +471,17 @@ export default function TeamSettingsPage() {
           }}
         />
       ) : null}
+      {/* SCR-03. Reachable from the row's Action menu and from the member
+          detail dialog, because "who reaches what" is a question an owner asks
+          from wherever they happen to be looking at a person. */}
+      <TeamAccessDialog
+        open={accessMemberId !== null}
+        onOpenChange={(next) => {
+          if (!next) setAccessMemberId(null)
+        }}
+        member={members.find((m) => m.id === accessMemberId) ?? null}
+        onSave={handleSaveAccess}
+      />
     </AppShell>
   )
 }
