@@ -57,9 +57,9 @@ type FullScreenEditDialogProps = {
 /**
  * Dialog version of the full-screen takeover. Use when the takeover should
  * stack on top of an existing dialog (e.g. an edit flow opened from the
- * Settings dialog) rather than being a deep-linked route. Visual structure
- * mirrors `<FullScreenEditShell>` exactly — same sticky header, scroll-fading
- * title, pill Close+Save buttons, big page title.
+ * Settings dialog) rather than being a deep-linked route. Sticky header with a
+ * scroll-fading title, pill Close+Save buttons and a big page title on wide
+ * screens; a sticky full-width Save at the bottom on narrow ones.
  */
 export function FullScreenEditDialog({
   open,
@@ -196,6 +196,31 @@ export function FullScreenEditDialog({
             {children}
           </div>
         </div>
+
+        {/*
+         * Save for narrow screens. The header's Close and Save are both
+         * `hidden lg:inline-flex`, which left every caller passing `onSave` -
+         * chain setup, team access, roles, packages, combos - with no way to
+         * commit below `lg`: the only control there was the X, which discards.
+         * A dialog with no `onSave` renders nothing here and is unchanged.
+         *
+         * Same shape as the sticky footer in business-profile-form.tsx and
+         * location-form.tsx, so it is the idiom rather than a new one.
+         */}
+        {onSave ? (
+          <footer className="border-border/40 border-t bg-background px-4 py-3 lg:hidden">
+            <Button
+              type="button"
+              size="lg"
+              radius="full"
+              className="w-full"
+              disabled={saveDisabled}
+              onClick={onSave}
+            >
+              {saveLabel ?? t.save}
+            </Button>
+          </footer>
+        ) : null}
       </DialogContent>
     </DialogPrimitive.Root>
   )
