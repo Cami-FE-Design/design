@@ -17,10 +17,27 @@ Four are not done, and three of those are not startable — see
 [Screen coverage](#screen-coverage-against-the-prds-6-reference) and
 [Blocked on a decision](#blocked-on-a-decision).
 
-## Read the built product before designing against a doc
+## Which source answers which question
 
-The blueprint summarises the shipped Roles & Permissions editor, and the
-summary is lossy in ways that changed this work:
+Two different questions, and an earlier version of this document conflated them
+under a header that read "read the built product before designing against a
+doc". That has the priority backwards.
+
+- **What has to be true** — the PRD, and only the PRD. R01 to R25, the stories,
+  the release criteria. A requirement does not stop applying because the code
+  has no counterpart for it, and half the screens here have none.
+- **What already exists** — `cami-business`. Continuous work happens there, so
+  before building something that may already ship, check it: field names, copy,
+  states, payload shapes. It is **reference and support**, never authority on
+  scope.
+
+Getting that backwards in either direction costs something. Treating the code as
+authority means never building what is not there yet — which is most of this
+feature. Ignoring it means inventing a second model for something already
+shipped, which is the mistake this section was written about.
+
+The blueprint's own summaries of the shipped product are lossy in ways that
+changed this work:
 
 | The docs said | `cami-business` actually ships |
 | --- | --- |
@@ -33,9 +50,9 @@ summary is lossy in ways that changed this work:
 
 Two things were rebuilt after reading it rather than before: the lifecycle
 actions (wrong copy, missing reason codes, wrong disabled rules) and the role
-model (invented five fixed roles with invented capability defaults). The
-lesson generalises — check `d:/laragon/www/cami-business` for the as-built
-before designing a surface that already exists there.
+model (invented five fixed roles with invented capability defaults). Both were
+surfaces that **already existed** — which is exactly when the dev repo earns a
+look, and exactly the case where a doc's summary of it is not good enough.
 
 ## What is actually built
 
