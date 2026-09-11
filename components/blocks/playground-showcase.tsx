@@ -65,6 +65,7 @@ import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-s
 import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
+import { GoogleReviewLinkField } from "@/components/blocks/google-review-link-field"
 import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
 import { TerminalStatus } from "@/components/blocks/hq-terminal-status"
 import { HqTerminalsPanel } from "@/components/blocks/hq-terminals-panel"
@@ -190,6 +191,7 @@ import { type AddressParts, addressToLines, EMPTY_ADDRESS, type PlaceRef } from 
 import { adminBusinesses } from "@/lib/admin-businesses"
 import { ALL_HQ_PERMISSIONS, AuthProvider, type PermissionKey } from "@/lib/auth-mock"
 import { BOARDING_STAYS, TODAY_ISO as BOARDING_TODAY } from "@/lib/boarding-mock"
+import { checkGoogleReviewLink } from "@/lib/business-links/links"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { CamiPayProvider, ZERO_RATE } from "@/lib/hq-camipay/store"
 import { type HqTerminalStatus, HqTerminalsProvider } from "@/lib/hq-terminals/store"
@@ -331,6 +333,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Terminals (DSG-62)",
       "Notifications settings",
       "Communication templates",
+      "Google review link (PRD-168)",
       "Merchant money surfaces — account summary (DSG-77)",
       "Merchant money surfaces — activity and detail (DSG-78)",
       "Merchant money surfaces — bank account (DSG-75)",
@@ -2643,7 +2646,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Notifications settings"
-          description="Three cards: Sender ID (the registered value, with 'Customers currently see CAMI' only when the two differ, and Edit disabled while a registration is pending), Reminders (7 events × 3 channels with per-message rates, event labels linking into their template editor, stacking into per-event blocks below sm), and Usage this month (share-of-cost meter, straight-line month-end estimate, totals from a period aggregate rather than the paginated log). Three faint demo controls bottom-right walk the Sender ID states and the WhatsApp grant. See docs/specs/notifications-sender-id-and-rates.md."
+          description="Three cards: Sender ID (the registered value, with 'Customers currently see CAMI' only when the two differ, and Edit disabled while a registration is pending), Reminders (6 events × 3 channels with per-message rates, event labels linking into their template editor, stacking into per-event blocks below sm), and Usage this month (share-of-cost meter, straight-line month-end estimate, totals from a period aggregate rather than the paginated log). Three faint demo controls bottom-right walk the Sender ID states and the WhatsApp grant. See docs/specs/notifications-sender-id-and-rates.md."
         >
           <Row label="Live (Settings + Log tabs)">
             <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
@@ -2658,7 +2661,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Communication templates"
-          description="DSG-83 — Notifications decides whether an event sends, this decides its wording, so there is no send toggle here. Per-channel tabs over one card of 7 rows keyed on the same event list the Reminders matrix uses. The editor is form left, sticky preview right, with clickable {{placeholder}} chips; an unknown token sends as written rather than being blanked, because a typo has to be visible here and not in a customer's inbox. See docs/specs/DSG-83-communication-templates.md."
+          description="DSG-83 — Notifications decides whether an event sends, this decides its wording, so there is no send toggle here. Per-channel tabs over one card of 6 rows keyed on the same event list the Reminders matrix uses. The editor is form left, sticky preview right, with clickable {{placeholder}} chips; an unknown token sends as written rather than being blanked, because a typo has to be visible here and not in a customer's inbox. See docs/specs/DSG-83-communication-templates.md."
         >
           <Row label="Live (Email + WhatsApp tabs)">
             <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
@@ -2669,6 +2672,19 @@ export function PlaygroundShowcase() {
                 <CommsTemplatesPanel />
               </Suspense>
             </div>
+          </Row>
+        </Section>
+        <Section
+          title="Google review link (PRD-168)"
+          description="One merchant-level link, and the validation that decides whether the feature works at all. A Google Business Profile URL and a Google *review* URL are different things: the first drops the customer on the listing to hunt for “Write a review”, the second opens the review box. PILOT-30 exists because the previous tool got this wrong and the merchant lost ~50 reviews without noticing. A listing URL therefore saves with a warning rather than being rejected — better than an empty field — and anything non-Google is refused. When nothing is set the review line drops out of the Thank You message entirely instead of sending a dangling label, which is what DZ-263 reported. See docs/specs/PRD-168-google-business-profile.md."
+        >
+          <Row label="Field — live (writes the shared setting)">
+            <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-6">
+              <GoogleReviewLinkField id="playground-google-review-link" help="full" />
+            </div>
+          </Row>
+          <Row label="What each paste is recognised as">
+            <GoogleLinkChecks />
           </Row>
         </Section>
         <Section
@@ -4084,5 +4100,53 @@ function HqNotificationsDemo({ slug }: { slug: string }) {
       business={business}
       onUpdate={(patch) => setBusiness((prev) => (prev ? { ...prev, ...patch } : prev))}
     />
+  )
+}
+
+/**
+ * Playground-only: what `checkGoogleReviewLink` makes of each shape a merchant
+ * might paste. Rendered as data rather than as four live fields, because the
+ * field writes to one shared setting — four of them would fight over it.
+ */
+function GoogleLinkChecks() {
+  const samples = [
+    "https://g.page/r/CShampoochJVC/review",
+    "https://search.google.com/local/writereview?placeid=ChIJ12345",
+    "https://www.google.com/maps/place/Shampooch+JVC/@25.05,55.2",
+    "https://g.page/shampooch-jvc",
+    "https://facebook.com/shampooch",
+    "not a url at all",
+  ]
+  const tone: Record<string, string> = {
+    review: "bg-cami-green-2 text-cami-green-12",
+    listing: "bg-cami-yellow-2 text-cami-yellow-12",
+    invalid: "bg-destructive/10 text-destructive",
+    empty: "bg-muted text-muted-foreground",
+  }
+  return (
+    <div className="flex w-full max-w-2xl flex-col gap-2">
+      {samples.map((sample) => {
+        const check = checkGoogleReviewLink(sample)
+        return (
+          <div
+            key={sample}
+            className="flex flex-col gap-1 rounded-xl border border-border/60 p-3 text-sm leading-5"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <code className="min-w-0 truncate text-xs text-muted-foreground">{sample}</code>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+                  tone[check.kind],
+                )}
+              >
+                {check.kind}
+              </span>
+            </div>
+            {check.message ? <p className="text-muted-foreground">{check.message}</p> : null}
+          </div>
+        )
+      })}
+    </div>
   )
 }

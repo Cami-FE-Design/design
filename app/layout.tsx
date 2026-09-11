@@ -3,6 +3,7 @@ import { Manrope } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { BusinessLinksProvider } from "@/lib/business-links/store"
 import { CommsTemplatesProvider } from "@/lib/comms/store"
 import { CurrentUserProvider } from "@/lib/current-user"
 import { DemoBusinessProvider } from "@/lib/demo-business"
@@ -44,31 +45,37 @@ export default function RootLayout({
           <TooltipProvider delayDuration={150}>
             <CurrentUserProvider>
               <DemoBusinessProvider>
-                <DemoFilesProvider>
-                  <PaymentPolicyProvider>
-                    {/* Root, not /catalogs: a combo created on the service menu
+                {/* Beside DemoBusiness, and for the same reason: the merchant's
+                    Google review link is business identity. Both the settings
+                    field and the template editor's "this line won't send"
+                    notice read it, so it can't live in either of them. */}
+                <BusinessLinksProvider>
+                  <DemoFilesProvider>
+                    <PaymentPolicyProvider>
+                      {/* Root, not /catalogs: a combo created on the service menu
                         has to turn up in the appointment service pickers, so
                         both sides of the app read one catalog. */}
-                    <ServiceCatalogProvider>
-                      <TerminalsProvider>
-                        <NotificationsProvider>
-                          {/* Root, not the admin layout: HQ sets the rates but
+                      <ServiceCatalogProvider>
+                        <TerminalsProvider>
+                          <NotificationsProvider>
+                            {/* Root, not the admin layout: HQ sets the rates but
                               both portals read them — a merchant sees the price
                               they're billed at. */}
-                          <HqNotificationsProvider>
-                            {/* Inside NotificationsProvider: a template row dims
+                            <HqNotificationsProvider>
+                              {/* Inside NotificationsProvider: a template row dims
                                 when the Reminders matrix has that channel off, so
                                 the panel reads both stores. */}
-                            <CommsTemplatesProvider>
-                              {children}
-                              <Toaster />
-                            </CommsTemplatesProvider>
-                          </HqNotificationsProvider>
-                        </NotificationsProvider>
-                      </TerminalsProvider>
-                    </ServiceCatalogProvider>
-                  </PaymentPolicyProvider>
-                </DemoFilesProvider>
+                              <CommsTemplatesProvider>
+                                {children}
+                                <Toaster />
+                              </CommsTemplatesProvider>
+                            </HqNotificationsProvider>
+                          </NotificationsProvider>
+                        </TerminalsProvider>
+                      </ServiceCatalogProvider>
+                    </PaymentPolicyProvider>
+                  </DemoFilesProvider>
+                </BusinessLinksProvider>
               </DemoBusinessProvider>
             </CurrentUserProvider>
           </TooltipProvider>

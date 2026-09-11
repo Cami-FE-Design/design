@@ -10,7 +10,7 @@
 // whose chrome doesn't match the one next to it reads as a different product.
 //
 // Tabs are per channel rather than one combined list. A merchant edits email copy
-// or WhatsApp copy, not both at once, and 7 events × 2 channels of body excerpts
+// or WhatsApp copy, not both at once, and 6 events × 2 channels of body excerpts
 // does not fit the w-146 footprint side by side — the two-column version pushed
 // each excerpt down to about four words, which is not enough to recognise a
 // template by. Per channel, each row gets the full card width for its excerpt.
@@ -21,8 +21,8 @@
 // carries an "Off" / "Not enabled" badge and stays editable, because writing
 // copy for a channel you're about to switch on is reasonable while pretending it
 // already sends is not. The explanation is one line in the card header, not a
-// sentence per row: repeated on all seven it doubled every row's height to say
-// the same thing seven times — the same reason the Reminders matrix keeps one
+// sentence per row: repeated on all six it doubled every row's height to say
+// the same thing six times — the same reason the Reminders matrix keeps one
 // notice per locked column rather than one per cell.
 //
 // Deep-links for /screens: `?ct=email` / `?ct=whatsapp` picks the tab, and
@@ -38,6 +38,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { hasGoogleReviewLink } from "@/lib/business-links/links"
+import { useBusinessLinks } from "@/lib/business-links/store"
 import { useCommsTemplates } from "@/lib/comms/store"
 import {
   COMMS_CHANNEL_LABEL,
@@ -164,6 +166,7 @@ function TemplateEditor({
 }) {
   const { template, customised, updateTemplate, resetTemplate } = useCommsTemplates()
   const { name: businessName } = useDemoBusiness()
+  const { googleReviewLink } = useBusinessLinks()
   const stored = template(event, channel)
   const subjectId = useId()
   const bodyId = useId()
@@ -176,7 +179,9 @@ function TemplateEditor({
   const unknown = unknownTokens(body) // typo'd token names, surfaced rather than swallowed
   const used = tokensUsed(body)
 
-  const samples = sampleTokens(businessName)
+  // The merchant's real link, not an example — so the preview is the message
+  // that sends, missing review line and all.
+  const samples = sampleTokens(businessName, googleReviewLink)
   const resolvedSubject = resolveTemplate(subject, samples)
   const resolvedBody = resolveTemplate(body, samples)
 
@@ -279,6 +284,21 @@ function TemplateEditor({
               </Notice>
             ) : null}
 
+            {/* The whole point of PRD-168, and the fix for DZ-263's class of
+                bug. A body that asks for a review, on a business with no review
+                link, used to send a label with nothing after it — silently, to
+                every completed appointment. The line now drops instead, and the
+                merchant is told here, on the message it affects, which setting
+                is missing. A field in a settings form is somewhere to put a
+                link; this is what gets it filled in. */}
+            {used.includes("reviewLink") && !hasGoogleReviewLink(googleReviewLink) ? (
+              <Notice icon={CircleAlertIcon} className="bg-cami-yellow-2 text-cami-yellow-12">
+                No Google review link set, so the review line won&apos;t send — the preview shows
+                the message as it goes out today. Add it under{" "}
+                <span className="font-medium">Business details › External links</span>.
+              </Notice>
+            ) : null}
+
             {/* cami-sage, not cami-blue: the palette has no blue hue, so
                 `bg-cami-blue-2` compiled to nothing and this notice rendered as
                 bare text on white. Informational notices use sage. */}
@@ -365,16 +385,17 @@ function TemplateRow({
    * Whether to mark this row's off state at all.
    *
    * False when the whole channel is off. Dimming is a contrast device: it only
-   * says "this one differs" while some sibling is undimmed. With all seven
-   * dimmed and badged, the tab read as disabled rather than as seven editable
+   * says "this one differs" while some sibling is undimmed. With all six
+   * dimmed and badged, the tab read as disabled rather than as six editable
    * templates — and the fact is already stated once, in the card header, where
-   * it isn't repeated seven times.
+   * it isn't repeated six times.
    */
   markOff: boolean
 }) {
   const { template, customised } = useCommsTemplates()
   const { events, grant } = useNotifications()
   const { name: businessName } = useDemoBusiness()
+  const { googleReviewLink } = useBusinessLinks()
   const stored = template(event, channel)
   const edited = customised(event, channel)
 
@@ -384,7 +405,7 @@ function TemplateRow({
    * Raw is defensible in an editor — it's what you're editing — but in a list
    * row it isn't: `Your appointment at {{business}} is confirmed` costs 13
    * characters of a 90-character line to say a word the reader already knows,
-   * and seven rows of it read as markup rather than as messages. The editor is
+   * and six rows of it read as markup rather than as messages. The editor is
    * where the placeholders are visible, and that's one click away.
    *
    * Email shows the subject, which the merchant wrote and which distinguishes
@@ -393,8 +414,11 @@ function TemplateRow({
    */
   const rowText =
     channel === "email" && stored.subject
-      ? resolveTemplate(stored.subject, sampleTokens(businessName))
-      : excerpt(resolveTemplate(previewLine(stored.body), sampleTokens(businessName)), 90)
+      ? resolveTemplate(stored.subject, sampleTokens(businessName, googleReviewLink))
+      : excerpt(
+          resolveTemplate(previewLine(stored.body), sampleTokens(businessName, googleReviewLink)),
+          90,
+        )
 
   // Effective state from the Reminders matrix: the merchant has to have asked
   // for it AND HQ has to permit the channel. Read, never written, here.
@@ -419,8 +443,8 @@ function TemplateRow({
             </Badge>
           ) : null}
           {/* A badge, not a sentence per row. The full explanation is one line in
-              the card header — repeated on all seven rows it doubled every row's
-              height and said the same thing seven times, which is exactly what
+              the card header — repeated on all six rows it doubled every row's
+              height and said the same thing six times, which is exactly what
               the Reminders matrix avoids by keeping one notice per locked
               column rather than one per cell. */}
           {!sends ? (
@@ -475,7 +499,7 @@ function ChannelCard({
   const ungranted = !grant[channel]
   // All off is the default state for WhatsApp, not an edge case: DEFAULT_EVENTS
   // ships it false on every event. So it has to read as "nothing is switched on
-  // yet", not as seven broken rows.
+  // yet", not as six broken rows.
   const allOff = offCount === COMMS_EVENTS.length
 
   return (
@@ -517,7 +541,7 @@ function ChannelCard({
           scroll its rows internally for a while — the Form templates idiom — but
           that card is the whole of its panel, and this one isn't. Inside a fixed
           680px dialog with a header, a tab bar and a card header above it, an
-          inner port left ~4 of 7 rows visible while the panel scrolled anyway,
+          inner port left ~4 of 6 rows visible while the panel scrolled anyway,
           so there were two scrollbars for one list. And this panel is going to
           gain cards (PRO-865's manual templates), which an inner port doesn't
           scale to. */}

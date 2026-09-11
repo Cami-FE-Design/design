@@ -303,12 +303,16 @@ const SECTIONS: Section[] = [
       "E2-4 Owner first-time setup. 5-step flow with a separate Go-live page. Welcome step removed, `/setup` lands the Owner directly on About. Services, Staff, and Preview steps are deferred until those features ship.",
     screens: [
       { path: "/setup", label: "Wizard entry (redirects to About)" },
-      { path: "/setup/about", label: "Step 1 · About your business" },
+      {
+        path: "/setup/about",
+        label: "Step 1 · About your business",
+        note: "Now also asks for the Google review link (PRD-168). A field here rather than a step of its own: reviews are the biggest acquisition channel a salon has, but a merchant mid-signup rarely has that URL to hand, so a dedicated step buys a high skip rate on a page everyone must pass through. Optional, never blocks Continue — the empty-state notice in the template editor is what actually gets it filled in.",
+      },
       { path: "/setup/type", label: "Step 2 · Business type" },
       {
         path: "/setup/location",
         label: "Step 3 · Location",
-        note: "Map slot is a placeholder; engineers wire the picker when the map dependency lands.",
+        note: "The search box is now the shared AddressSearchField (docs/specs/address-search-field.md) rather than a decorative input with a ‘Demo: select sample address’ link behind it. Type ‘jum’, ‘bay’ or ‘quoz’ for suggestions; manual entry is the first row of the dropdown rather than the reward for a failed search, and a picked place carries its pin (PRD-144). Picking one fills the Business location grid below — address, district, city, state — which stays and stays editable, because a places result is a starting point and the trade licence is what has to match. Apt and postcode survive a pick rather than being wiped, since a UAE map result rarely carries either. Map slot stays a placeholder until the map dependency lands.",
       },
       { path: "/setup/invoicing", label: "Step 4 · Invoicing" },
       { path: "/setup/hours", label: "Step 5 · Business hours" },
@@ -1099,7 +1103,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=notifications",
         label: "Notifications, settings",
-        note: "Three cards. Sender ID carries the registered value, with the 'Customers currently see CAMI' line only when the two differ, and Edit disabled while a registration is pending. Reminders is 7 events × 3 channels with the per-message rate under each channel and event labels linking into their template editor; below sm it stacks into per-event blocks rather than scrolling sideways. Usage this month leads with a share-of-cost meter and a month-end estimate, totals from a period aggregate rather than the paginated log. Three faint demo controls bottom-right walk the Sender ID states and the WhatsApp grant. See docs/specs/notifications-sender-id-and-rates.md.",
+        note: "Three cards. Sender ID carries the registered value, with the 'Customers currently see CAMI' line only when the two differ, and Edit disabled while a registration is pending. Reminders is 6 events × 3 channels with the per-message rate under each channel and event labels linking into their template editor; below sm it stacks into per-event blocks rather than scrolling sideways. Usage this month leads with a share-of-cost meter and a month-end estimate, totals from a period aggregate rather than the paginated log. Three faint demo controls bottom-right walk the Sender ID states and the WhatsApp grant. See docs/specs/notifications-sender-id-and-rates.md.",
       },
       {
         path: "/shell-demo?settings=notifications&nt=sender",
@@ -1124,7 +1128,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=comms-templates",
         label: "Communication templates, list",
-        note: "DSG-83, the companion to the Notifications panel: that one decides whether an event sends, this one decides its wording — so there is deliberately no send toggle here. Per-channel tabs over one card of 7 rows, keyed on the same event list the Reminders matrix uses. WhatsApp rows show the resolved body without the shared 'Hi {{client}}' opener; email rows show the subject. Open the WhatsApp tab for the shipped default, where nothing is switched on yet. SMS is out of the ticket's scope. See docs/specs/DSG-83-communication-templates.md.",
+        note: "DSG-83, the companion to the Notifications panel: that one decides whether an event sends, this one decides its wording — so there is deliberately no send toggle here. Per-channel tabs over one card of 6 rows, keyed on the same event list the Reminders matrix uses. WhatsApp rows show the resolved body without the shared 'Hi {{client}}' opener; email rows show the subject. Open the WhatsApp tab for the shipped default, where nothing is switched on yet. SMS is out of the ticket's scope. See docs/specs/DSG-83-communication-templates.md.",
       },
       {
         path: "/shell-demo?settings=comms-templates&ce=booking-confirmed:email",
@@ -1137,9 +1141,19 @@ const SECTIONS: Section[] = [
         note: "The same editor with no subject field — WhatsApp has none, modelled as null rather than an empty string so 'this channel has no subject' and 'the merchant cleared it' stay distinguishable. The preview is the customer's view: a light incoming bubble, not green, because WhatsApp only paints green on the outgoing side and green-on-the-left is the one combination it never renders. Carries the Meta-approval notice — editing WhatsApp copy starts a new template approval, so changes take days to go live, which is worth stating rather than implying a merchant can ship arbitrary copy instantly. Default copy for booking-confirmed, reminder-24h and cancelled is lifted verbatim from the existing template set (Aziz's Pet Loft sheet via ENG-58) rather than reinvented.",
       },
       {
+        path: "/shell-demo?settings=business-details",
+        label: "Google review link, the setting",
+        note: "PRD-168. Fifth row under External links, and the one of the five the product actually reads — whether it is set decides whether a line of the Thank You message exists. Walk all four validation states by pasting into the field: g.page/r/CShampoochJVC/review is clean; google.com/maps/place/Shampooch+JVC/@25.05,55.2 warns and still saves, because a listing link beats an empty field but drops the customer on the listing to hunt for ‘Write a review’; g.page/shampooch-jvc is the near-miss — right host, no /review, so it warns too; facebook.com/shampooch is refused. That exact confusion is why PILOT-30 exists — the merchant’s previous tool linked to Google in a way that never landed a review, and ~50 were lost unnoticed. A non-Google URL is refused outright. See docs/specs/PRD-168-google-business-profile.md.",
+      },
+      {
+        path: "/shell-demo?settings=comms-templates&ce=thank-you:email",
+        label: "Thank You template — the missing-link state",
+        note: "The merged completed-appointment message (invoice + review + rebook), which production sends as one email and this repo used to model as two events. With no review link set, the editor warns and the preview drops the review line entirely — compare it with the body on the left, which still has it. That is the fix for DZ-263: the old behaviour printed ‘⭐ Rate your experience:’ with nothing after it to every completed appointment. Set a link under Business details and the line reappears here.",
+      },
+      {
         path: "/shell-demo?settings=notifications",
         label: "Reminders matrix → template links",
-        note: "The hand-off the notification spec wrote for itself: 'this spec's Reminders card degrades gracefully into a row of template links when that lands.' Each event label is now a link into that event's editor — underlined on hover only, since underlining all seven permanently turned the table into a list of links and the switches are what this card is for. The link targets the email template, because email is the one channel always granted, so it can never land on a channel this merchant doesn't have. Also the way to review the partly-off state: switch some events on for WhatsApp here, then open Communication templates — the remaining rows carry an 'Off' badge and stay editable, and the header counts them.",
+        note: "The hand-off the notification spec wrote for itself: 'this spec's Reminders card degrades gracefully into a row of template links when that lands.' Each event label is now a link into that event's editor — underlined on hover only, since underlining all six permanently turned the table into a list of links and the switches are what this card is for. The link targets the email template, because email is the one channel always granted, so it can never land on a channel this merchant doesn't have. Also the way to review the partly-off state: switch some events on for WhatsApp here, then open Communication templates — the remaining rows carry an 'Off' badge and stay editable, and the header counts them.",
       },
     ],
   },
@@ -1219,7 +1233,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/businesses?business=shampooch-jvc",
         label: "Detail modal, Live state",
-        note: "Dark green Access row, Manage tab with Sign in / Suspend / Archive",
+        note: "Dark green Access row, Manage tab with Sign in / Suspend / Archive. General › Profile also carries the Google review link (PRD-168) — this Partner has one, so compare it with any other in the roster, where it reads ‘Not set’ and that merchant’s Thank You goes out with no review ask. Edit opens the same listing-vs-review validation the merchant gets, in the same tinted notice: ops backfill these in bulk out of WhatsApp messages, so they are the ones most likely to paste a Maps URL.",
       },
       {
         path: "/admin/businesses?business=velvet-paw",

@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input"
 import { type AddressParts, addressToLine, isAddressEmpty } from "@/lib/address"
 import { cn } from "@/lib/utils"
 
-type PlaceSuggestion = {
+export type PlaceSuggestion = {
   id: string
   /** The name the merchant recognises. */
   primary: string
@@ -141,9 +141,20 @@ export function AddressSearchField({
   className,
   placeholder = "Search address",
   singleLine = false,
+  onPick,
 }: {
   value: AddressParts
   onChange: (parts: AddressParts) => void
+  /**
+   * The whole suggestion, for callers that keep more structure than
+   * `AddressParts` carries. This model is one address line plus postcode and
+   * country — right for a billing block, too narrow for onboarding's step 3,
+   * which keeps District / City / State as separate fields because the as-built
+   * product does. Rather than widening the model for every caller, a caller
+   * that needs the breakdown reads it off the picked place. Fires alongside
+   * `onChange`, never instead of it.
+   */
+  onPick?: (place: PlaceSuggestion) => void
   /**
    * Falsy renders no label at all, for callers that already have one of their
    * own above the field (the booking form's "Address (optional)"). A node
@@ -196,6 +207,7 @@ export function AddressSearchField({
       line: singleLine ? flat : place.parts.line,
     })
     setQuery(flat)
+    onPick?.(place)
     close()
   }
 
