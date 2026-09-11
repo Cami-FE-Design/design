@@ -82,6 +82,7 @@ import {
   stateLabel,
 } from "@/lib/admin-businesses"
 import { PermissionGate } from "@/lib/auth-mock"
+import { checkGoogleReviewLink, displayGoogleReviewLink } from "@/lib/business-links/links"
 import { EMIRATES } from "@/lib/business-profile"
 import { useHqRates } from "@/lib/notifications/hq-store"
 import {
@@ -111,6 +112,7 @@ const profileSchema = z.object({
   phone: z.string().min(1, "Required"),
   email: z.email("Invalid email"),
   vatNumber: z.string().optional(),
+  googleReviewLink: z.string().optional(),
 })
 type ProfileValues = z.infer<typeof profileSchema>
 
@@ -191,7 +193,11 @@ export function BusinessDetailDialog({
   const isArchived = business.state === "archived"
 
   function handleProfileSave(values: ProfileValues) {
-    onUpdate({ ...values, vatNumber: values.vatNumber || undefined })
+    onUpdate({
+      ...values,
+      vatNumber: values.vatNumber || undefined,
+      googleReviewLink: values.googleReviewLink?.trim() || undefined,
+    })
     toast.success("Profile saved")
   }
 
@@ -742,6 +748,19 @@ function ProfileSection({
           }
         />
         <StatBlock label="VAT number" value={business.vatNumber ?? "—"} />
+        {/* PRD-168: ops backfills this for merchants who onboarded before the
+            field existed. "Not set" is the state worth seeing on this screen —
+            it means that merchant's Thank You goes out with no review ask. */}
+        <StatBlock
+          label="Google review link"
+          value={
+            business.googleReviewLink ? (
+              displayGoogleReviewLink(business.googleReviewLink)
+            ) : (
+              <span className="text-muted-foreground">Not set</span>
+            )
+          }
+        />
       </div>
     </SectionCard>
   )
@@ -1455,6 +1474,7 @@ function ProfileSheet({
       phone: business.phone,
       email: business.email,
       vatNumber: business.vatNumber ?? "",
+      googleReviewLink: business.googleReviewLink ?? "",
     },
   })
 
@@ -1468,6 +1488,7 @@ function ProfileSheet({
         phone: business.phone,
         email: business.email,
         vatNumber: business.vatNumber ?? "",
+        googleReviewLink: business.googleReviewLink ?? "",
       })
     }
   }, [open, business, form])
@@ -1600,6 +1621,55 @@ function ProfileSheet({
                   <FormMessage />
                 </FormItem>
               )}
+            />
+            {/* PRD-168 backfill. Ops pastes the link a merchant sent over on
+                WhatsApp rather than impersonating them to reach Business
+                details. Same listing-vs-review warning as the merchant field,
+                because ops paste the wrong URL for exactly the same reason. */}
+            <FormField
+              control={form.control}
+              name="googleReviewLink"
+              render={({ field }) => {
+                const check = checkGoogleReviewLink(field.value ?? "")
+                return (
+                  <FormItem>
+                    <FormLabel>Google review link</FormLabel>
+                    <FormControl>
+                      <Input
+                        autoComplete="off"
+                        placeholder="g.page/r/your-business/review"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Optional. Sent as the review ask in their Thank You message.
+                    </FormDescription>
+                    {/* Same tinted notice the merchant field uses, not a muted
+                        description line. Ops backfill these in bulk out of
+                        WhatsApp messages, so they are more likely to paste a
+                        Maps listing URL than the merchant is, not less — and a
+                        warning styled identically to help text is not a warning.
+                        Sits alongside the help rather than replacing it, so the
+                        field never loses the line saying what it is for. */}
+                    {check.kind === "listing" ? (
+                      <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-cami-yellow-12">
+                        <CircleAlertIcon
+                          className="mt-0.5 size-4 shrink-0 text-cami-yellow-11"
+                          aria-hidden
+                        />
+                        <span>{check.message}</span>
+                      </p>
+                    ) : null}
+                    {check.kind === "invalid" ? (
+                      <p role="alert" className="text-sm leading-5 text-destructive">
+                        {check.message}
+                      </p>
+                    ) : null}
+                    <FormMessage />
+                  </FormItem>
+                )
+              }}
             />
             <div className="mt-2 flex flex-col gap-2">
               <Button type="submit" size="xl" radius="full" className="w-full">

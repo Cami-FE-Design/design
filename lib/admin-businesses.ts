@@ -82,6 +82,13 @@ export type AdminBusiness = {
   phone: string
   email: string
   vatNumber?: string
+  /**
+   * The merchant's Google review link, editable by ops. Absent for most, which
+   * is the point: PRD-168 asks HQ to collect and configure these for existing
+   * merchants, and a merchant without one sends a Thank You with no review line.
+   * Ops sets it here rather than impersonating to reach Business details.
+   */
+  googleReviewLink?: string
   reasonCode?: ReasonCodeId
   reasonNote?: string
   /**
@@ -123,6 +130,8 @@ export const adminBusinesses: AdminBusiness[] = [
     phone: "+971 50 123 4567",
     email: "hello@shampooch.ae",
     vatNumber: "100123456700003",
+    // Backfilled by ops — the review line in their Thank You actually sends.
+    googleReviewLink: "https://g.page/r/CShampoochJVC/review",
     // Fully set up: their own Sender ID is approved, so SMS arrives as
     // SHAMPOOCH rather than CAMI. Inherits every global rate.
     notifications: {

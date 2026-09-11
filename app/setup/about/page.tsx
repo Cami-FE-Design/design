@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { GoogleReviewLinkField } from "@/components/blocks/google-review-link-field"
 import { SetupCard, SetupLayout } from "@/components/blocks/setup-shell"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -55,6 +56,15 @@ export default function SetupAboutPage() {
           <Label htmlFor="email">Email</Label>
           <Input id="email" type="email" placeholder="hello@yourbusiness.com" />
         </div>
+
+        {/* Asked here rather than as its own step. Reviews are the single
+            biggest acquisition channel for a salon, which argues for prominence
+            — but a merchant mid-signup rarely has this URL to hand (it lives
+            three taps deep in a different Google product), so a dedicated step
+            buys a high skip rate on a page everyone must pass through. Asking
+            once, cheaply, inside a form they are already filling is the better
+            trade. The empty state in the template editor does the rest. */}
+        <GoogleReviewLinkField id="setup-google-review-link" help="full" />
       </SetupCard>
     </SetupLayout>
   )

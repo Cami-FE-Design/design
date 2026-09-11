@@ -114,19 +114,17 @@ We hope everything's okay. Whenever you're ready, you can rebook here:
 
 Team {{business}} x`,
 
-  "review-request": `Hi {{client}}! 🤍
+  // The merged Thank You. Structure is lifted from what production actually
+  // sends (DZ-263's screenshot): a warm opening line, then the three links —
+  // invoice, review, rebook — then a sign-off. The review line is the one that
+  // disappears when no Google link is set; see `lineScoped` in tokens.ts.
+  "thank-you": `Hi {{client}}! 🤍
 
-Thank you for bringing {{pet}} in for {{service}} — it was lovely to see you both.
+We had the best time with {{pet}} today — thank you for trusting us.
 
-If you have a moment, we'd really appreciate a quick review. It helps other pet parents find us.
-
-Team {{business}} x`,
-
-  receipt: `Hi {{client}}! 🤍
-
-Thank you — your payment for {{service}} is confirmed. Your receipt is attached.
-
-We hope to see you and {{pet}} again soon!
+📋 Your invoice: {{invoiceLink}}
+⭐ Rate your experience: {{reviewLink}}
+📅 Book the next visit: {{bookingLink}}
 
 Team {{business}} x`,
 }
@@ -137,8 +135,9 @@ const DEFAULT_EMAIL_SUBJECT: Record<ReminderEvent, string> = {
   "reminder-2h": "Today at {{time}}: {{pet}}'s appointment",
   cancelled: "Your appointment at {{business}} has been cancelled",
   "no-show": "We missed you today at {{business}}",
-  "review-request": "How was your visit to {{business}}?",
-  receipt: "Your receipt from {{business}}",
+  // Production's subject line, kept verbatim. It leads on the invoice because
+  // that is what the recipient is looking for; the review ask rides along.
+  "thank-you": "Your invoice from {{business}}",
 }
 
 const DEFAULT_EMAIL_BODY: Record<ReminderEvent, string> = {
@@ -205,21 +204,15 @@ We hope everything is okay. Whenever you are ready, you can book again here:
 
 {{business}}`,
 
-  "review-request": `Hi {{client}},
+  "thank-you": `Hi {{client}},
 
-Thank you for bringing {{pet}} in for {{service}} — it was lovely to see you both.
+We had the best time with {{pet}} today — thank you for trusting us with them.
 
-If you have a moment, we would really appreciate a short review. It helps other pet parents find us.
+📋 Your invoice: {{invoiceLink}}
+⭐ Rate your experience: {{reviewLink}}
+📅 Book the next visit: {{bookingLink}}
 
-{{bookingLink}}
-
-{{business}}`,
-
-  receipt: `Hi {{client}},
-
-Thank you for your payment. Your receipt for {{service}} is attached.
-
-Pet: {{pet}}
+Service: {{service}}
 When: {{date}} at {{time}}
 
 We hope to see you both again soon.
@@ -283,7 +276,7 @@ export function excerpt(body: string, max = 80): string {
  * The part of a body worth showing in a list row.
  *
  * Nearly every template opens with the same greeting — "Hi {{client}}! 🤍" —
- * so in a list of seven the first ~18 characters are identical and the excerpt's
+ * so in a list of six the first ~18 characters are identical and the excerpt's
  * opening third carries no information at all. Drop a leading greeting so the
  * row starts at the first line that actually distinguishes this template.
  *
