@@ -12,6 +12,8 @@
 // read one list, so a token can't exist in the editor and be unresolvable at
 // send time — which is exactly the bug a second hand-maintained list produces.
 
+import { businessHasCustomerCard, findPublicBusinessByName } from "@/lib/public-business"
+
 /**
  * Every token a merchant may write into a template.
  *
@@ -104,6 +106,26 @@ export const TOKENS = [
     description: "The invoice for this visit, on the pet parent's own page.",
   },
   {
+    key: "cardLink",
+    label: "Customer card link",
+    // A URL, so the same reasoning as reviewLink applies — see `lineScoped`.
+    fallback: "",
+    example: "getcami.io/your-business/card",
+    description:
+      "The customer's own card: wallet, membership, preferences. Opens branded to your business, no password.",
+    /**
+     * Line-scoped for the same reason the review link is. A label with nothing
+     * after it is a dangling instruction, and a business not yet on the
+     * customer card has no stand-in URL to offer, so the line simply isn't in
+     * the message.
+     *
+     * Line-scoped means exactly that — *line*. The label and the URL have to
+     * share one, or dropping the token leaves the label behind, which is the
+     * failure this exists to prevent.
+     */
+    lineScoped: true,
+  },
+  {
     key: "reviewLink",
     label: "Google review link",
     // Empty, and the only token with no readable stand-in. See `lineScoped`.
@@ -165,9 +187,9 @@ export function isLineScoped(key: TemplateTokenKey): boolean {
  *
  * The business name is passed in, never baked in: it's configurable
  * (lib/demo-business, and the demo rename control), so a fixed one would show a
- * merchant a preview of somebody else's messages. The three tokens derived from
- * it — business, location, bookingLink — are all substituted here rather than at
- * each call site, so none of them can be missed.
+ * merchant a preview of somebody else's messages. The four tokens derived from
+ * it — business, location, bookingLink, cardLink — are all substituted here
+ * rather than at each call site, so none of them can be missed.
  */
 export function sampleTokens(
   businessName: string,
@@ -184,6 +206,17 @@ export function sampleTokens(
     location: `${businessName}, ${base.location}`,
     bookingLink: `getcami.io/${slug || "your-business"}`,
   }
+  // Same treatment as the review link below, and for the same reason: a venue
+  // that isn't on the customer card has no link to send, and the merchant has
+  // to see the message that actually goes out — one line shorter. Renaming the
+  // demo business to a name no venue has is the quickest way to watch it drop.
+  // Resolved by name rather than by slugifying it: "Sota Hair Studio" is the
+  // venue at /sota, and a merchant who has renamed the demo to a prospect's
+  // name is a business no venue answers for — which is the case the drop is for.
+  const venue = findPublicBusinessByName(businessName)
+  if (venue && businessHasCustomerCard(venue.slug))
+    sample.cardLink = `getcami.io/${venue.slug}/card`
+  else delete sample.cardLink
   // The review link is the merchant's real setting, not an example, so the
   // preview shows the message that actually sends. With nothing set, the token
   // is left absent and its line drops — which is the point of previewing it.
@@ -216,7 +249,11 @@ export function resolveTemplate(body: string, tokens: TemplateTokens): string {
       }),
     )
   }
-  return kept.join("\n")
+  // A dropped line leaves its blank lines behind. On a paragraph-style email
+  // — where the line sat alone between two blanks — that reads as a hole in
+  // the message, which is the same complaint line-scoping exists to answer.
+  // So the gap closes to a single blank line, never more than the body had.
+  return kept.join("\n").replace(/\n{3,}/g, "\n\n")
 }
 
 /** True when a line carries a line-scoped token that has no value to render. */

@@ -33,6 +33,7 @@ import { useSearchParams } from "next/navigation"
 import { useId, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { FullScreenTakeover } from "@/components/blocks/sales-settings"
+import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -58,6 +59,8 @@ import {
   tokensUsed,
   unknownTokens,
 } from "@/lib/comms/tokens"
+import { useVenueBranding } from "@/lib/customer-card/store"
+import { themeVars } from "@/lib/customer-card/theme"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { useNotifications } from "@/lib/notifications/store"
 import { channelEnabled, eventLabel, type ReminderEvent } from "@/lib/notifications/types"
@@ -110,6 +113,7 @@ function EmailPreview({
   subject: string
   body: string
 }) {
+  const branding = useVenueBranding(businessName)
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -122,12 +126,45 @@ function EmailPreview({
         </span>
       </div>
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        {/* The venue's own palette and logo, above the subject.
+            The brief's complaint is that today's branding is "just a sender
+            name, not the venue's identity" — and an avatar next to a name is
+            still a name. What makes a Sota message look like Sota is the
+            palette Sota picked, the same one its card uses. Carrying it here is
+            what makes the journey branded from the first message rather than
+            only at the page the link opens, a tap too late.
+            A venue that has picked neither gets the default palette and
+            initials, which is what an unconfigured merchant should look like. */}
+        <div
+          style={themeVars(branding.theme)}
+          className="flex items-center gap-2.5 border-b border-[var(--cc-border)] bg-[var(--cc-shell)] px-5 py-3.5"
+        >
+          <Avatar
+            size="sm"
+            fallback="initials"
+            name={businessName}
+            src={branding.logoUrl}
+            hashSeed={businessName}
+          />
+          <span className="truncate text-sm font-semibold tracking-[0.14em] text-[var(--cc-accent)] uppercase">
+            {businessName}
+          </span>
+        </div>
         <div className="border-b border-border/60 bg-muted/40 px-5 py-3">
-          <p className="text-sm font-semibold leading-5 text-foreground">
+          <p className="text-sm leading-5 font-semibold text-foreground">
             {subject || <span className="text-muted-foreground">(no subject)</span>}
           </p>
         </div>
-        <p className="whitespace-pre-wrap px-5 py-5 text-sm leading-6 text-foreground">{body}</p>
+        <p className="px-5 py-5 text-sm leading-6 whitespace-pre-wrap text-foreground">{body}</p>
+        <div
+          style={themeVars(branding.theme)}
+          className="border-t border-[var(--cc-border)] bg-[var(--cc-shell)] px-5 py-3"
+        >
+          <p className="text-xs text-[var(--cc-muted)]">
+            Sent by {businessName}. You are receiving this because you have an appointment with
+            them.
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -135,6 +172,10 @@ function EmailPreview({
 
 /** WhatsApp preview — a chat bubble, because that is the whole of the chrome there. */
 function WhatsAppPreview({ businessName, body }: { businessName: string; body: string }) {
+  // No palette here, and that is the channel rather than an omission: WhatsApp
+  // paints its own bubbles and gives a venue exactly one brand surface, the
+  // business profile at the top of the thread. The logo is all there is to use.
+  const branding = useVenueBranding(businessName)
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">
@@ -146,9 +187,26 @@ function WhatsAppPreview({ businessName, body }: { businessName: string; body: s
           where the business's message is the incoming one — and WhatsApp only
           ever paints green on the outgoing side. Green on the left is the one
           combination it never renders, so it read as a mock of nothing. */}
-      <div className="rounded-2xl bg-muted/40 p-4">
+      <div className="flex flex-col gap-2 rounded-2xl bg-muted/40 p-4">
+        {/* WhatsApp gives a venue one piece of identity and one only: the
+            business profile at the top of the thread. It is worth drawing,
+            because it is the entire brand surface on this channel — there is no
+            header, no colour, no logo in the bubble. */}
+        <div className="flex items-center gap-2">
+          <Avatar
+            size="sm"
+            fallback="initials"
+            name={businessName}
+            src={branding.logoUrl}
+            hashSeed={businessName}
+          />
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate text-xs font-semibold text-foreground">{businessName}</span>
+            <span className="text-[10px] text-muted-foreground">Business account</span>
+          </div>
+        </div>
         <div className="w-fit max-w-[90%] rounded-2xl rounded-tl-sm border border-border/60 bg-card px-4 py-3 shadow-sm">
-          <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{body}</p>
+          <p className="text-sm leading-6 whitespace-pre-wrap text-foreground">{body}</p>
         </div>
       </div>
     </div>

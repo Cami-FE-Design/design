@@ -3,6 +3,7 @@
 import {
   ArrowUpIcon,
   CircleUserIcon,
+  HeartIcon,
   InfoIcon,
   type LucideIcon,
   MapPinIcon,
@@ -10,6 +11,7 @@ import {
   PhoneIcon,
   PlusIcon,
   SettingsIcon,
+  Trash2Icon,
   XIcon,
 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -33,11 +35,24 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import {
+  isKnownPreferenceLabel,
+  PREFERENCE_LABELS,
+  PREFERENCE_OTHER,
+  preferencePlaceholder,
+} from "@/lib/clients/preferences"
 import { cn } from "@/lib/utils"
 
 const triggerOverride = "data-[size=default]:h-12 rounded-2xl bg-input px-4 font-medium"
 
-type SectionId = "profile" | "additional" | "addresses" | "contacts" | "pets" | "settings"
+type SectionId =
+  | "profile"
+  | "additional"
+  | "preferences"
+  | "addresses"
+  | "contacts"
+  | "pets"
+  | "settings"
 
 type SectionItem = { id: SectionId; label: string; icon: LucideIcon }
 
@@ -69,6 +84,13 @@ type ClientFormValues = {
   source: string
   country: string
   tags: string[]
+  /**
+   * Staff-maintained, customer-visible — the only field on this form that the
+   * client reads back on their own card. Free-form label/value because what a
+   * venue keeps varies: a salon records a patch test, a groomer records how a
+   * dog handles clippers.
+   */
+  preferences: Array<{ id: string; label: string; value: string }>
   addresses: Array<{
     id: string
     type: string
@@ -100,6 +122,7 @@ const EMPTY: ClientFormValues = {
   source: "",
   country: "",
   tags: [],
+  preferences: [],
   addresses: [],
   contacts: [{ ...EMPTY_CONTACT }, { ...EMPTY_CONTACT }],
   pets: [],
@@ -153,6 +176,7 @@ export function ClientEditSheet({
   const sections: SectionItem[] = [
     { id: "profile", label: "Profile", icon: CircleUserIcon },
     { id: "additional", label: "Additional info", icon: InfoIcon },
+    { id: "preferences", label: "Preferences", icon: HeartIcon },
     { id: "addresses", label: "Addresses", icon: MapPinIcon },
     { id: "contacts", label: "Additional contacts", icon: PhoneIcon },
     ...(hasPets ? [{ id: "pets" as const, label: "Pets", icon: PawPrintIcon }] : []),
@@ -187,6 +211,7 @@ export function ClientEditSheet({
         <div className="flex min-w-0 flex-col gap-5">
           {section === "profile" ? <ProfileSection values={values} patch={patch} /> : null}
           {section === "additional" ? <AdditionalSection values={values} patch={patch} /> : null}
+          {section === "preferences" ? <PreferencesSection values={values} patch={patch} /> : null}
           {section === "addresses" ? <AddressesSection values={values} patch={patch} /> : null}
           {section === "contacts" ? <ContactsSection values={values} patch={patch} /> : null}
           {section === "pets" && hasPets ? <PetsSection values={values} patch={patch} /> : null}
@@ -481,6 +506,113 @@ function AdditionalSection({ values, patch }: SectionProps) {
             categories={["client", "general"]}
           />
         </FieldRow>
+      </div>
+    </SectionShell>
+  )
+}
+
+/**
+ * The one section on this form whose contents leave the building: these rows
+ * render on the client's own card under "Your preferences", above a line
+ * reading "Maintained by <venue>".
+ *
+ * The label is a closed list, not a text box — see lib/clients/preferences.ts
+ * for why. The detail stays free text, because the detail is the part only this
+ * client's own team knows.
+ */
+function PreferencesSection({ values, patch }: SectionProps) {
+  function addRow() {
+    patch("preferences", [...values.preferences, { id: uid(), label: "", value: "" }])
+  }
+  function updateAt(id: string, next: Partial<{ label: string; value: string }>) {
+    patch(
+      "preferences",
+      values.preferences.map((p) => (p.id === id ? { ...p, ...next } : p)),
+    )
+  }
+  function removeAt(id: string) {
+    patch(
+      "preferences",
+      values.preferences.filter((p) => p.id !== id),
+    )
+  }
+
+  return (
+    <SectionShell
+      title="Preferences"
+      description="What this client likes, and anything the team should know. The client reads these on their own profile, so the labels come from a shared list."
+    >
+      <div className="flex flex-col gap-5">
+        {/* Allergies, patch tests and notes each have their own section under
+            Documents. Without this, a receptionist types a clinical record into
+            a field the client reads — the one mistake this section can make. */}
+        <div className="rounded-xl bg-cami-sage-2 p-3 text-sm text-muted-foreground">
+          These are the client's summary, not the record. Allergies, patch tests and internal notes
+          live under <span className="font-medium text-foreground">Documents</span> and are never
+          shown to the client.
+        </div>
+        {values.preferences.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nothing recorded yet.</p>
+        ) : null}
+        {values.preferences.map((pref) => {
+          const custom = pref.label !== "" && !isKnownPreferenceLabel(pref.label)
+          return (
+            <div key={pref.id} className="flex flex-col gap-3">
+              <div className="flex items-end gap-2">
+                <div className="min-w-0 flex-1">
+                  <FieldRow label="Label">
+                    <Select
+                      value={custom ? PREFERENCE_OTHER : pref.label}
+                      onValueChange={(v) =>
+                        updateAt(pref.id, { label: v === PREFERENCE_OTHER ? " " : v })
+                      }
+                    >
+                      <SelectTrigger className={cn(triggerOverride, "w-full")}>
+                        <SelectValue placeholder="Choose a label" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PREFERENCE_LABELS.map((label) => (
+                          <SelectItem key={label} value={label}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value={PREFERENCE_OTHER}>Other…</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FieldRow>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <FieldRow label="Detail">
+                    <Input
+                      value={pref.value}
+                      onChange={(e) => updateAt(pref.id, { value: e.target.value })}
+                      placeholder={preferencePlaceholder(pref.label)}
+                    />
+                  </FieldRow>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Remove ${pref.label.trim() || "preference"}`}
+                  onClick={() => removeAt(pref.id)}
+                >
+                  <Trash2Icon className="size-4" />
+                </Button>
+              </div>
+              {custom ? (
+                <FieldRow label="Custom label" description="Shown to the client exactly as typed.">
+                  <Input
+                    value={pref.label.trim() === "" ? "" : pref.label}
+                    onChange={(e) => updateAt(pref.id, { label: e.target.value || " " })}
+                    placeholder="Coat length"
+                  />
+                </FieldRow>
+              ) : null}
+            </div>
+          )
+        })}
+        <EmptyAddRow label="Add preference" onAdd={addRow} />
       </div>
     </SectionShell>
   )

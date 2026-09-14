@@ -11,6 +11,16 @@ import { useDemoBusiness } from "@/lib/demo-business"
  * Demo-only control to rebrand the whole prototype to a prospect's salon name.
  * Lives in a Popover (not a menu) so the text input accepts spaces and every
  * keystroke normally — Radix menus would swallow Space for item typeahead.
+ *
+ * Renaming only. Switching between the venues that actually exist belongs in
+ * the workspace switcher beside it, and briefly lived here as well — which made
+ * the official-looking control the one that could not change business, and this
+ * demo-only icon the one that could. One job each.
+ *
+ * A name typed here matches no venue by design: that is the case being
+ * demonstrated, a merchant who has set up neither logo nor palette. Surfaces
+ * that resolve a venue fall back on purpose, and the note below says so, since
+ * the fallback is otherwise indistinguishable from something being broken.
  */
 export function DemoBusinessRename() {
   const { name, setName, reset } = useDemoBusiness()
@@ -33,17 +43,20 @@ export function DemoBusinessRename() {
         <TooltipContent side="bottom">Rename (demo)</TooltipContent>
       </Tooltip>
       <PopoverContent align="end" className="flex w-72 flex-col gap-2 p-3">
-        <span className="font-medium text-foreground text-sm">Business name (demo)</span>
+        <span className="text-sm font-medium text-foreground">Rename for a pitch</span>
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. SOTA Salon"
+          placeholder="e.g. Glow Beauty Lounge"
           aria-label="Demo business name"
           className="h-10"
           autoFocus
         />
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-xs">Rebrands the whole demo.</span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">
+            Rebrands the demo. A prospect's name is not a venue, so it gets the default palette and
+            no logo — switch venue in the workspace menu instead.
+          </span>
           <Button type="button" variant="ghost" size="xs" onClick={reset}>
             Reset
           </Button>

@@ -15,7 +15,7 @@ import {
 } from "@/components/blocks/workspace-switcher"
 import { Button } from "@/components/ui/button"
 import { SheetTrigger } from "@/components/ui/sheet"
-import { useDemoBusiness } from "@/lib/demo-business"
+import { useDemoWorkspaces } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
 type AppMobileTopbarProps = React.ComponentProps<"div"> & {
@@ -25,7 +25,6 @@ type AppMobileTopbarProps = React.ComponentProps<"div"> & {
   avatarSrc?: string
   notificationCount?: number
   workspaces?: Workspace[]
-  defaultWorkspaceId?: string
   workspaceJoinedDate?: string
 }
 
@@ -44,18 +43,16 @@ export function AppMobileTopbar({
   avatarSrc,
   notificationCount = 0,
   workspaces,
-  defaultWorkspaceId = "jvc",
   workspaceJoinedDate = "Apr 14, 2025",
   ...props
 }: AppMobileTopbarProps) {
-  const { name: businessName } = useDemoBusiness()
-  const resolvedWorkspaces = workspaces ?? [
-    { id: "jvc", name: businessName },
-    { id: "jumeirah", name: `${businessName} · Jumeirah` },
-  ]
-  const [selectedId, setSelectedId] = useState(defaultWorkspaceId)
+  const {
+    workspaces: resolvedWorkspaces,
+    selectedId,
+    selected,
+    select,
+  } = useDemoWorkspaces(workspaces)
   const [searchOpen, setSearchOpen] = useState(false)
-  const selected = resolvedWorkspaces.find((w) => w.id === selectedId) ?? resolvedWorkspaces[0]
   const accountLabel = `${firstName} ${lastName}`.trim() || "Account"
   const initials = `${initialOf(firstName)}${initialOf(lastName)}`
   const notificationsAriaLabel =
@@ -99,7 +96,7 @@ export function AppMobileTopbar({
           workspaces={resolvedWorkspaces}
           selectedWorkspaceId={selectedId}
           user={{ firstName, lastName, avatarSrc }}
-          onSelectWorkspace={setSelectedId}
+          onSelectWorkspace={select}
         />
       </div>
       <div className="flex items-center gap-0.5">

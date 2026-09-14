@@ -231,7 +231,7 @@ function AuditLog() {
         </div>
       }
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">
         <div className="flex items-start gap-3 rounded-2xl bg-cami-yellow-3 p-4 text-sm">
           <ShieldAlertIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" />
           <div className="flex flex-col">

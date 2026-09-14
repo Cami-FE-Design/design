@@ -1,10 +1,12 @@
 "use client"
 
 import {
+  ArrowUpRightIcon,
   CalendarIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   CirclePlusIcon,
+  MapPinIcon,
   MoreHorizontalIcon,
   PawPrintIcon,
   PlusIcon,
@@ -14,15 +16,24 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 
+import {
+  type ClientAllergies,
+  type ClientPatchTest,
+  formatPatchTestDate,
+  MOCK_CLIENTS,
+  type MockClient,
+  patchTestExpiry,
+  patchTestState,
+} from "@/app/clients/mock"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { DocumentsFormsAndFiles } from "@/components/blocks/documents-files-card"
 import { EmptyState } from "@/components/blocks/empty-state"
-import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
 import { SectionCard } from "@/components/blocks/section-card"
+import { TAG_COLOR_CLASS, TAG_LIBRARY } from "@/components/blocks/tag-library"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
-import { Avatar } from "@/components/ui/avatar"
+import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -42,6 +53,17 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { RecencyBadge } from "@/components/ui/recency-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { mapsDirectionsHref } from "@/lib/address"
+import {
+  APPT_STATUS_LABEL,
+  type ClientAppointment,
+  type ClientApptStatus,
+  type ClientSale,
+  type ClientSaleStatus,
+  getClientActivity,
+  PET_DETAILS,
+  type PetDetail,
+} from "@/lib/clients/activity"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
@@ -62,8 +84,14 @@ export type ClientDetailClient = {
   noShowCount?: number
   /** Outstanding unpaid amount in minor units (AED). When > 0, renders a cami-yellow pill in the meta line. */
   unpaidMinor?: number
-  /** Operator-set tags rendered in the Details tab's Additional info section. */
+  /** Operator-set tags rendered as Overview chips and in the Details tab. */
   tags?: ClientTag[]
+  /** Short locality for the Overview chip row, e.g. "Marina, Dubai". */
+  locality?: string
+  /** How the client found the business, e.g. "Instagram". Pairs with `activeSince`. */
+  source?: string
+  /** Month + year the client became active, e.g. "Feb 2025". */
+  activeSince?: string
 }
 
 type ClientDetailDialogProps = {
@@ -108,15 +136,7 @@ const PRIMARY_TABS: Array<{
   { id: "documents", label: "Documents" },
 ]
 
-type ApptStatus =
-  | "all"
-  | "booked"
-  | "confirmed"
-  | "arrived"
-  | "started"
-  | "completed"
-  | "canceled"
-  | "no-show"
+type ApptStatus = "all" | ClientApptStatus
 
 const APPT_STATUS_PRIMARY: Array<{ value: ApptStatus; label: string }> = [
   { value: "all", label: "All" },
@@ -132,72 +152,17 @@ const APPT_STATUS_MORE: Array<{ value: ApptStatus; label: string }> = [
   { value: "no-show", label: "No-show" },
 ]
 
-type MockAppointment = {
-  id: string
-  status: Exclude<ApptStatus, "all">
-  statusLabel: string
-  dayMonth: string
-  weekday: string
-  time: string
-  location: string
-  /** Optional pet info shown in the card header. Pet mode only. */
-  pet?: {
-    id: string
-    name: string
-    breed: string
-    species: "dog" | "cat" | "bird" | "rabbit" | "other"
-  }
-  services: Array<{ name: string; staff: string; duration: string; price: string }>
-}
-
+/** A client's pet, as Overview and the Pets tab render it. */
 type MockPet = {
   id: string
   name: string
-  species: "dog" | "cat" | "bird" | "rabbit" | "other"
-  breed: string
-  weight?: string
-  coat?: string
-  /** Reproductive status — "Spayed" (female), "Neutered" (male), or "Intact". */
-  desexedStatus?: "Spayed" | "Neutered" | "Intact"
-  /** Compact service-tier codes shown next to the pet name. */
-  serviceCodes?: string[]
-}
-
-const MOCK_PETS: MockPet[] = [
-  {
-    id: "bobo",
-    name: "Bobo",
-    species: "dog",
-    breed: "French Bulldog",
-    weight: "10 lbs",
-    coat: "Short coat",
-    desexedStatus: "Neutered",
-    serviceCodes: ["5f", "4f"],
-  },
-  {
-    id: "mochi",
-    name: "Mochi",
-    species: "cat",
-    breed: "Domestic Shorthair",
-    weight: "8 lbs",
-    coat: "Short coat",
-    desexedStatus: "Spayed",
-    serviceCodes: ["3f"],
-  },
-  {
-    id: "kiwi",
-    name: "Kiwi",
-    species: "bird",
-    breed: "Cockatiel",
-    weight: "85 g",
-    desexedStatus: "Intact",
-  },
-]
+  species: AvatarSpecies
+} & PetDetail
 
 // ─── Sales ────────────────────────────────────────────────────────────────────
 
-type SaleStatus = "all" | "paid" | "draft" | "part-paid" | "unpaid" | "refunded"
-type ConcreteSaleStatus = Exclude<SaleStatus, "all">
+type SaleStatus = "all" | ClientSaleStatus
+type ConcreteSaleStatus = ClientSaleStatus
 
 const SALES_STATUS_PRIMARY: Array<{ value: SaleStatus; label: string }> = [
   { value: "all", label: "All" },
@@ -210,19 +175,6 @@ const SALES_STATUS_MORE: Array<{ value: SaleStatus; label: string }> = [
   { value: "unpaid", label: "Unpaid" },
   { value: "refunded", label: "Refunded" },
 ]
-
-type MockSaleItem = { name: string; priceMinor: number }
-
-type MockSale = {
-  id: string
-  status: ConcreteSaleStatus
-  /** Day + month for the timeline leading (e.g. "May 24"). Matches MockAppointment. */
-  dayMonth: string
-  weekday: string
-  items: MockSaleItem[]
-  /** Amount already paid (only meaningful for part-paid). Minor units. */
-  paidMinor?: number
-}
 
 const SALE_STATUS_LABEL: Record<ConcreteSaleStatus, string> = {
   paid: "Paid",
@@ -250,73 +202,98 @@ function formatAed(minor: number) {
   return `AED ${Math.round(minor / 100).toLocaleString()}`
 }
 
-const MOCK_SALES: MockSale[] = [
-  {
-    id: "s-1",
-    status: "paid",
-    dayMonth: "May 24",
-    weekday: "Sunday",
-    items: [{ name: "Blow Dry", priceMinor: 2500 }],
-  },
-  {
-    id: "s-2",
-    status: "part-paid",
-    dayMonth: "May 24",
-    weekday: "Sunday",
-    items: [{ name: "Haircut", priceMinor: 2500 }],
-    paidMinor: 2000,
-  },
-  {
-    id: "s-3",
-    status: "unpaid",
-    dayMonth: "May 22",
-    weekday: "Friday",
-    items: [{ name: "Blow Dry", priceMinor: 2500 }],
-  },
-]
+// ─── Overview identity + wallet ───────────────────────────────────────────────
 
-// ─── Appointments mock (kept here as it lives next to the sales mock) ─────────
+/**
+ * Everything the dialog shows that varies per client, resolved from the client
+ * record in app/clients/mock.ts and their activity in lib/clients/activity.ts.
+ *
+ * This started as module-level constants — one address, one source, one set of
+ * tags, one package, one appointment list, one sales list. Every client the
+ * dialog was opened on, from every call site, showed the same "Marina, Dubai ·
+ * Instagram · VIP", the same three pets, and the same AED 75. Fine on the first
+ * render, wrong the moment anyone opened two clients in a row, and actively
+ * misleading on a record that has no address at all.
+ *
+ * A call site can still pass `locality` / `source` / `tags` on the client prop
+ * and those win — that is for the pet and sales surfaces, where the record in
+ * hand is not a MockClient.
+ */
+export type OverviewProfile = {
+  locality?: string
+  source?: string
+  /** Derived from the record's createdAt, e.g. "Since Apr 2026". */
+  activeSince?: string
+  tags: Array<{ id: string; label: string; className: string }>
+  pets: MockPet[]
+  appointments: ClientAppointment[]
+  sales: ClientSale[]
+  salesMinor: number
+  packages: NonNullable<MockClient["packages"]>
+  loyaltyPoints: number
+  giftCardAed: number
+  membershipTier?: string
+  /** Staff-maintained, customer-visible — the one field both faces render. */
+  preferences: NonNullable<MockClient["preferences"]>
+  allergies?: ClientAllergies
+  patchTest?: ClientPatchTest
+  birthday?: string
+  gender?: string
+  country?: string
+  addresses: NonNullable<MockClient["addresses"]>
+  contacts: NonNullable<MockClient["contacts"]>
+}
 
-const MOCK_APPOINTMENTS: MockAppointment[] = [
-  {
-    id: "1",
-    status: "booked",
-    statusLabel: "Booked",
-    pet: { id: "bobo", name: "Bobo", breed: "French Bulldog · 10 lbs", species: "dog" },
-    dayMonth: "May 22",
-    weekday: "Friday",
-    time: "10:00am",
-    location: "Shampooch JVC",
-    services: [
-      { name: "Full groom", staff: "Sophie", duration: "1h 30min", price: "AED 220" },
-      { name: "Nail trim", staff: "Sophie", duration: "15min", price: "AED 40" },
-    ],
-  },
-  {
-    id: "2",
-    status: "completed",
-    statusLabel: "Completed",
-    pet: { id: "mochi", name: "Mochi", breed: "Domestic Shorthair · 8 lbs", species: "cat" },
-    dayMonth: "Apr 8",
-    weekday: "Wednesday",
-    time: "2:30pm",
-    location: "Shampooch JVC",
-    services: [{ name: "Bath & tidy", staff: "Aisha", duration: "45min", price: "AED 130" }],
-  },
-  {
-    id: "3",
-    status: "no-show",
-    statusLabel: "No-show",
-    pet: { id: "bobo", name: "Bobo", breed: "French Bulldog · 10 lbs", species: "dog" },
-    dayMonth: "May 18",
-    weekday: "Monday",
-    time: "12:00pm",
-    location: "Shampooch JVC",
-    services: [
-      { name: "Blow Dry", staff: "Hussain Shabbir", duration: "1h 30min", price: "AED 25" },
-    ],
-  },
-]
+function monthYear(iso: string): string | undefined {
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return undefined
+  return date.toLocaleDateString("en-GB", { month: "short", year: "numeric" })
+}
+
+/**
+ * Tag ids on the client record resolve through TAG_LIBRARY, so a tag reads the
+ * same colour here as it does on the clients table and the tag picker. A
+ * caller-supplied tag has no library entry and falls back to the violet used
+ * for "client" tags.
+ */
+function resolveTags(client: ClientDetailClient, record?: MockClient) {
+  if (client.tags) {
+    return client.tags.map((tag) => ({ ...tag, className: TAG_COLOR_CLASS.violet }))
+  }
+  return (record?.tags ?? []).flatMap((id) => {
+    const def = TAG_LIBRARY.find((t) => t.id === id)
+    return def ? [{ id, label: def.label, className: TAG_COLOR_CLASS[def.color] }] : []
+  })
+}
+
+export function resolveProfile(client: ClientDetailClient): OverviewProfile {
+  const record = client.id ? MOCK_CLIENTS.find((c) => c.id === client.id) : undefined
+  const activity = getClientActivity(client.id)
+  return {
+    locality: client.locality ?? record?.locality,
+    source: client.source ?? record?.source,
+    activeSince: client.activeSince ?? (record ? monthYear(record.createdAt) : undefined),
+    tags: resolveTags(client, record),
+    // Name and species come off the client record; PET_DETAILS adds only the
+    // breed and weight a record has no room for. One list of pets, not two.
+    pets: (record?.pets ?? []).map((pet) => ({ ...pet, ...PET_DETAILS[pet.id] })),
+    appointments: activity.appointments,
+    sales: activity.sales,
+    salesMinor: (record?.salesAed ?? 0) * 100,
+    packages: record?.packages ?? [],
+    loyaltyPoints: record?.loyaltyPoints ?? 0,
+    giftCardAed: record?.giftCardAed ?? 0,
+    membershipTier: record?.membershipTier,
+    preferences: record?.preferences ?? [],
+    allergies: record?.allergies,
+    patchTest: record?.patchTest,
+    birthday: record?.birthday,
+    gender: record?.gender,
+    country: record?.country,
+    addresses: record?.addresses ?? [],
+    contacts: record?.contacts ?? [],
+  }
+}
 
 /**
  * Centered detail dialog modeled on `<BusinessDetailDialog>`. ~630px wide.
@@ -345,13 +322,15 @@ export function ClientDetailDialog({
   const [apptStatus, setApptStatus] = useState<ApptStatus>("all")
   const [saleStatus, setSaleStatus] = useState<SaleStatus>("all")
   const [noShowDialogOpen, setNoShowDialogOpen] = useState(false)
-  const noShowAppointments = MOCK_APPOINTMENTS.filter((a) => a.status === "no-show")
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null)
-  const selectedPet = MOCK_PETS.find((p) => p.id === selectedPetId) ?? null
+  const profile = resolveProfile(client)
+  const appointments = profile.appointments
+  const noShowAppointments = appointments.filter((a) => a.status === "no-show")
+  const selectedPet = profile.pets.find((p) => p.id === selectedPetId) ?? null
   const [addPetOpen, setAddPetOpen] = useState(false)
   const [editClientOpen, setEditClientOpen] = useState(false)
   const [editClientSection, setEditClientSection] = useState<
-    "profile" | "additional" | "addresses" | "contacts" | "pets" | "settings"
+    "profile" | "additional" | "preferences" | "addresses" | "contacts" | "pets" | "settings"
   >("profile")
   function openEditClientAt(section: typeof editClientSection) {
     setEditClientSection(section)
@@ -362,31 +341,57 @@ export function ClientDetailDialog({
   const activeMobileMoreTab = mobileMoreTabs.find((t) => t.id === tab)
   const isApptStatusInMore = APPT_STATUS_MORE.some((s) => s.value === apptStatus)
   const filteredAppointments =
-    apptStatus === "all"
-      ? MOCK_APPOINTMENTS
-      : MOCK_APPOINTMENTS.filter((appt) => appt.status === apptStatus)
+    apptStatus === "all" ? appointments : appointments.filter((a) => a.status === apptStatus)
   const apptCounts = {
-    all: MOCK_APPOINTMENTS.length,
-    booked: MOCK_APPOINTMENTS.filter((a) => a.status === "booked").length,
-    confirmed: MOCK_APPOINTMENTS.filter((a) => a.status === "confirmed").length,
-    arrived: MOCK_APPOINTMENTS.filter((a) => a.status === "arrived").length,
-    started: MOCK_APPOINTMENTS.filter((a) => a.status === "started").length,
-    completed: MOCK_APPOINTMENTS.filter((a) => a.status === "completed").length,
-    canceled: MOCK_APPOINTMENTS.filter((a) => a.status === "canceled").length,
-    "no-show": MOCK_APPOINTMENTS.filter((a) => a.status === "no-show").length,
+    all: appointments.length,
+    booked: appointments.filter((a) => a.status === "booked").length,
+    confirmed: appointments.filter((a) => a.status === "confirmed").length,
+    arrived: appointments.filter((a) => a.status === "arrived").length,
+    started: appointments.filter((a) => a.status === "started").length,
+    completed: appointments.filter((a) => a.status === "completed").length,
+    canceled: appointments.filter((a) => a.status === "canceled").length,
+    "no-show": appointments.filter((a) => a.status === "no-show").length,
   } satisfies Record<ApptStatus, number>
 
   const isSaleStatusInMore = SALES_STATUS_MORE.some((s) => s.value === saleStatus)
-  const filteredSales =
-    saleStatus === "all" ? MOCK_SALES : MOCK_SALES.filter((s) => s.status === saleStatus)
+  const sales = profile.sales
+  // The header's no-show and unpaid pills were props no call site passed, so
+  // they never rendered. Both are derivable from the activity now, and a
+  // caller that knows better still wins.
+  const noShowCount = client.noShowCount ?? noShowAppointments.length
+  const unpaidMinor =
+    client.unpaidMinor ??
+    sales.reduce((sum, sale) => {
+      if (sale.status === "unpaid") {
+        return sum + sale.items.reduce((n, item) => n + item.priceMinor, 0)
+      }
+      if (sale.status === "part-paid") {
+        const total = sale.items.reduce((n, item) => n + item.priceMinor, 0)
+        return sum + Math.max(total - (sale.paidMinor ?? 0), 0)
+      }
+      return sum
+    }, 0)
+  const filteredSales = saleStatus === "all" ? sales : sales.filter((s) => s.status === saleStatus)
   const saleCounts = {
-    all: MOCK_SALES.length,
-    paid: MOCK_SALES.filter((s) => s.status === "paid").length,
-    draft: MOCK_SALES.filter((s) => s.status === "draft").length,
-    "part-paid": MOCK_SALES.filter((s) => s.status === "part-paid").length,
-    unpaid: MOCK_SALES.filter((s) => s.status === "unpaid").length,
-    refunded: MOCK_SALES.filter((s) => s.status === "refunded").length,
+    all: sales.length,
+    paid: sales.filter((s) => s.status === "paid").length,
+    draft: sales.filter((s) => s.status === "draft").length,
+    "part-paid": sales.filter((s) => s.status === "part-paid").length,
+    unpaid: sales.filter((s) => s.status === "unpaid").length,
+    refunded: sales.filter((s) => s.status === "refunded").length,
   } satisfies Record<SaleStatus, number>
+
+  // Overview derives its numbers from the same mocks the other tabs render, so
+  // the strip can't drift from the Appointments / Sales lists the way the old
+  // hardcoded KPI values did.
+  const upcomingAppointments = appointments.filter(
+    (a) => a.status === "booked" || a.status === "confirmed" || a.status === "arrived",
+  )
+  const nextAppointment = upcomingAppointments[0] ?? null
+  // Most recent completed visit — the one reception rebooks.
+  const lastVisit = appointments.find((a) => a.status === "completed") ?? null
+  // Lifetime sales: everything invoiced except drafts and refunds.
+  const totalSalesMinor = profile.salesMinor
 
   return (
     <>
@@ -419,17 +424,17 @@ export function ClientDetailDialog({
                       {client.recencyLabel ? (
                         <RecencyBadge>{client.recencyLabel}</RecencyBadge>
                       ) : null}
-                      {client.noShowCount && client.noShowCount > 0 ? (
+                      {noShowCount > 0 ? (
                         <button
                           type="button"
                           onClick={() => setNoShowDialogOpen(true)}
                           className="inline-flex size-5 cursor-pointer items-center justify-center rounded-full bg-tomato-8 text-xs font-medium text-tomato-12 transition-colors hover:bg-tomato-9"
-                          aria-label={`Show ${client.noShowCount} no-show appointment${client.noShowCount === 1 ? "" : "s"}`}
+                          aria-label={`Show ${noShowCount} no-show appointment${noShowCount === 1 ? "" : "s"}`}
                         >
-                          {client.noShowCount}
+                          {noShowCount}
                         </button>
                       ) : null}
-                      {client.unpaidMinor && client.unpaidMinor > 0 ? (
+                      {unpaidMinor > 0 ? (
                         <button
                           type="button"
                           onClick={() => {
@@ -437,16 +442,16 @@ export function ClientDetailDialog({
                             setSaleStatus("unpaid")
                           }}
                           className="inline-flex cursor-pointer items-center rounded-full bg-cami-yellow-3 px-2.5 py-0.5 text-xs font-medium text-cami-yellow-11 transition-colors hover:bg-cami-yellow-4"
-                          aria-label={`Show unpaid sales — ${formatAed(client.unpaidMinor)}`}
+                          aria-label={`Show unpaid sales — ${formatAed(unpaidMinor)}`}
                         >
-                          {formatAed(client.unpaidMinor)}
+                          {formatAed(unpaidMinor)}
                         </button>
                       ) : null}
                       {!client.phone &&
                       !client.email &&
                       !client.recencyLabel &&
-                      !client.noShowCount &&
-                      !client.unpaidMinor ? (
+                      !noShowCount &&
+                      !unpaidMinor ? (
                         <span>—</span>
                       ) : null}
                     </div>
@@ -547,44 +552,21 @@ export function ClientDetailDialog({
 
             <div className="min-h-0 flex-1 overflow-y-auto px-9 pt-5 pb-5">
               <TabsContent value="overview" className="flex flex-col gap-3">
-                <KpiGrid>
-                  <KpiCard
-                    label="Upcoming"
-                    value="0"
-                    info="Count of bookings in the future for this client."
-                  />
-                  <KpiCard
-                    label="Total appts"
-                    value="4"
-                    info="Lifetime appointment count, including no-shows and cancellations."
-                  />
-                  <KpiCard
-                    label="Total sales"
-                    value="AED 0"
-                    info="Lifetime revenue from this client."
-                  />
-                  <KpiCard
-                    label="No-shows"
-                    value={noShowAppointments.length}
-                    info="Lifetime count of no-shows. Click to see them."
-                    onClick={() => setNoShowDialogOpen(true)}
-                  />
-                </KpiGrid>
-                <SectionCard title="Upcoming appointment">
-                  <p className="text-sm text-muted-foreground">No upcoming appointment yet.</p>
-                </SectionCard>
-                {hasPets ? <PetsOverviewCard onAddPet={() => setAddPetOpen(true)} /> : null}
-                <SectionCard
-                  title="Notes"
-                  action={
-                    <Button variant="secondary" size="sm" radius="full">
-                      <CirclePlusIcon />
-                      Add note
-                    </Button>
-                  }
-                >
-                  <p className="text-sm text-muted-foreground">No notes yet.</p>
-                </SectionCard>
+                <ClientOverview
+                  profile={profile}
+                  hasPets={hasPets}
+                  appts={appointments.length}
+                  salesMinor={totalSalesMinor}
+                  noShows={noShowAppointments.length}
+                  upcoming={upcomingAppointments.length}
+                  lastVisit={lastVisit}
+                  nextAppointment={nextAppointment}
+                  onNoShowsClick={() => setNoShowDialogOpen(true)}
+                  onRebook={onBookNow}
+                  onEditPreferences={() => openEditClientAt("preferences")}
+                  onAddPet={() => setAddPetOpen(true)}
+                  onSelectPet={setSelectedPetId}
+                />
               </TabsContent>
               <TabsContent value="appointments" className="flex flex-col gap-4">
                 <Tabs
@@ -661,7 +643,7 @@ export function ClientDetailDialog({
                         isLast={i === filteredAppointments.length - 1}
                         leading={<TimelineDate dayMonth={appt.dayMonth} weekday={appt.weekday} />}
                       >
-                        <AppointmentCard appt={appt} hasPets={hasPets} />
+                        <AppointmentCard appt={appt} pets={profile.pets} hasPets={hasPets} />
                       </TimelineRow>
                     ))}
                   </ul>
@@ -768,22 +750,25 @@ export function ClientDetailDialog({
                         <DetailField label="Full name" value={client.name} />
                         <DetailField label="Phone" value={client.phone} />
                         <DetailField label="Email" value={client.email} />
-                        <DetailField label="Birthday" value="May 14" />
-                        <DetailField label="Gender" value="Female" />
+                        <DetailField label="Birthday" value={profile.birthday} />
+                        <DetailField label="Gender" value={profile.gender} />
                       </div>
                     </Subsection>
 
                     <Subsection title="Additional info">
                       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                        <DetailField label="Source" value="Walk-in" />
-                        <DetailField label="Country" value="United Arab Emirates" />
+                        <DetailField label="Source" value={profile.source} />
+                        <DetailField label="Country" value={profile.country} />
                         <div className="col-span-2 flex flex-col">
                           <span className="text-xs text-muted-foreground">Tags</span>
                           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            {client.tags?.map((tag) => (
+                            {profile.tags.map((tag) => (
                               <span
                                 key={tag.id}
-                                className="inline-flex items-center gap-1.5 rounded-full bg-cami-violet-3 px-2.5 py-1 text-sm font-medium text-cami-violet-11"
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium",
+                                  tag.className,
+                                )}
                               >
                                 <UserIcon className="size-3.5" strokeWidth={1.75} />
                                 {tag.label}
@@ -805,29 +790,37 @@ export function ClientDetailDialog({
                     </Subsection>
 
                     <Subsection title="Addresses">
-                      <ul className="flex flex-col">
-                        <AddressRow
-                          label="Home"
-                          line="10250 Santa Monica Blvd, Los Angeles, CA 90067, US"
-                        />
-                        <AddressRow label="Work" line="JVC Tower 4, Apt 1102, Dubai, AE" />
-                      </ul>
+                      {profile.addresses.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No addresses on file.</p>
+                      ) : (
+                        <ul className="flex flex-col">
+                          {profile.addresses.map((address) => (
+                            <AddressRow
+                              key={address.id}
+                              label={address.label}
+                              line={address.line}
+                            />
+                          ))}
+                        </ul>
+                      )}
                     </Subsection>
 
                     <Subsection title="Additional contacts">
-                      <ul className="flex flex-col">
-                        <ContactRow
-                          relationship="Emergency"
-                          name="Tom Cassidy"
-                          phone="+971 50 222 1133"
-                          email="tom@example.com"
-                        />
-                        <ContactRow
-                          relationship="Pickup"
-                          name="Sarah Johnson"
-                          phone="+971 55 555 0001"
-                        />
-                      </ul>
+                      {profile.contacts.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No additional contacts.</p>
+                      ) : (
+                        <ul className="flex flex-col">
+                          {profile.contacts.map((contact) => (
+                            <ContactRow
+                              key={contact.id}
+                              relationship={contact.relationship}
+                              name={contact.name}
+                              phone={contact.phone}
+                              email={contact.email}
+                            />
+                          ))}
+                        </ul>
+                      )}
                     </Subsection>
 
                     <Subsection title="Notifications">
@@ -849,7 +842,7 @@ export function ClientDetailDialog({
               <TabsContent value="pets" className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    {MOCK_PETS.length} {MOCK_PETS.length === 1 ? "pet" : "pets"}
+                    {profile.pets.length} {profile.pets.length === 1 ? "pet" : "pets"}
                   </span>
                   <Button
                     variant="secondary"
@@ -861,7 +854,7 @@ export function ClientDetailDialog({
                     Add pet
                   </Button>
                 </div>
-                {MOCK_PETS.length === 0 ? (
+                {profile.pets.length === 0 ? (
                   <EmptyState
                     icon={PawPrintIcon}
                     title="No pets yet."
@@ -869,7 +862,7 @@ export function ClientDetailDialog({
                   />
                 ) : (
                   <ul className="flex flex-col gap-3">
-                    {MOCK_PETS.map((pet) => (
+                    {profile.pets.map((pet) => (
                       <li key={pet.id}>
                         <PetCard pet={pet} onClick={() => setSelectedPetId(pet.id)} />
                       </li>
@@ -898,7 +891,7 @@ export function ClientDetailDialog({
                     </Button>
                   }
                 >
-                  <p className="text-sm text-muted-foreground">No allergies recorded yet.</p>
+                  <AllergiesBody allergies={profile.allergies} />
                 </SectionCard>
                 <SectionCard
                   title="Patch tests"
@@ -909,7 +902,7 @@ export function ClientDetailDialog({
                     </Button>
                   }
                 >
-                  <p className="text-sm text-muted-foreground">No patch tests yet.</p>
+                  <PatchTestBody test={profile.patchTest} />
                 </SectionCard>
                 <DocumentsFormsAndFiles
                   formsTitle="Forms"
@@ -934,7 +927,7 @@ export function ClientDetailDialog({
             id: selectedPet.id,
             name: selectedPet.name,
             species: selectedPet.species,
-            breed: selectedPet.breed,
+            breed: selectedPet.breed ?? "Breed not recorded",
           }}
           owners={[
             {
@@ -976,10 +969,26 @@ export function ClientDetailDialog({
         mode="edit"
         initialSection={editClientSection}
         hasPets={hasPets}
+        // Seeded from the same record the tabs render. It used to carry only
+        // name and phone, so opening Edit on a client with three preferences
+        // and a home address showed an empty form — which reads as "this client
+        // has nothing" rather than "this form hasn't loaded".
         initial={{
           firstName: client.name.split(" ")[0] ?? "",
           lastName: client.name.split(" ").slice(1).join(" "),
           phone: client.phone ?? "",
+          email: client.email ?? "",
+          birthday: profile.birthday ?? "",
+          gender: profile.gender ?? "",
+          source: profile.source?.toLowerCase() ?? "",
+          country: profile.country ?? "",
+          tags: profile.tags.map((tag) => tag.id),
+          preferences: profile.preferences.map((pref) => ({ ...pref })),
+          pets: profile.pets.map((pet) => ({
+            id: pet.id,
+            name: pet.name,
+            species: pet.species,
+          })),
         }}
       />
 
@@ -1004,7 +1013,7 @@ export function ClientDetailDialog({
               <EmptyState icon={CalendarIcon} title="No no-show appointments." />
             ) : (
               noShowAppointments.map((appt) => (
-                <AppointmentCard key={appt.id} appt={appt} hasPets={hasPets} />
+                <AppointmentCard key={appt.id} appt={appt} pets={profile.pets} hasPets={hasPets} />
               ))
             )}
           </div>
@@ -1088,17 +1097,102 @@ function NotificationDisplay({ label, channels }: { label: string; channels: str
   )
 }
 
-const OVERVIEW_PETS = [
-  { id: "bobo", name: "Bobo", breed: "French Bulldog · 10 lbs", species: "dog" as const },
-  { id: "mochi", name: "Mochi", breed: "Domestic Shorthair · 8 lbs", species: "cat" as const },
-]
-
 // Literal match for the NewAppointmentSheet / AppointmentDetailSheet hero-band
 // palette (pale step-5/6 fills with dark text) so the same status reads
 // identically in the list row badge and in the open edit/detail sheet's
 // hero band. Status keys here use the list-friendly aliases
 // (arrived/started/canceled) mapped from the underlying booking statuses
 // (checked-in/ready-for-pickup/cancelled).
+/**
+ * A patch test is not a yes/no, and the two things it carries are independent:
+ * how the test went, and whether it is still current. A pending test is not a
+ * pass, and a pass from eight months ago is not cover for today's colour.
+ */
+const PATCH_TEST_LABEL: Record<"pending" | "failed" | "valid" | "expired", string> = {
+  pending: "Pending",
+  failed: "Failed",
+  valid: "Valid",
+  expired: "Expired",
+}
+
+const PATCH_TEST_BADGE_CLASS: Record<"pending" | "failed" | "valid" | "expired", string> = {
+  pending: "bg-cami-yellow-3 text-cami-yellow-11",
+  failed: "bg-tomato-8 text-tomato-12",
+  valid: "bg-lime-5 text-lime-12",
+  expired: "bg-cami-gray-5 text-cami-gray-12",
+}
+
+/**
+ * "No allergies recorded" and "no known allergies" look the same in a database
+ * and mean opposite things at the chair: one is a question nobody has asked,
+ * the other is a question that was asked and answered. The section says which.
+ */
+function AllergiesBody({ allergies }: { allergies?: ClientAllergies }) {
+  if (!allergies) {
+    return <p className="text-sm text-muted-foreground">No allergies recorded yet.</p>
+  }
+  if (allergies.status === "none-known") {
+    return (
+      <div className="flex items-center gap-2 text-sm">
+        <Badge className="border-transparent bg-lime-5 text-lime-12">No known allergies</Badge>
+        <span className="text-muted-foreground">Confirmed with the client.</span>
+      </div>
+    )
+  }
+  return (
+    <ul className="flex flex-col">
+      {allergies.items.map((allergy, index) => (
+        <li
+          key={allergy.id}
+          className={cn(
+            "flex items-baseline justify-between gap-3 py-2.5 text-sm first:pt-0 last:pb-0",
+            index > 0 && "border-t border-border/60",
+          )}
+        >
+          <span className="min-w-0 font-medium">{allergy.name}</span>
+          <span className="shrink-0 text-muted-foreground">
+            {[allergy.reaction, allergy.severity].filter(Boolean).join(" · ")}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+/**
+ * Expiry is shown as a date rather than a flag, because the date is the thing
+ * reception acts on — "expired" tells you to rebook, "valid until 12 Feb" tells
+ * you whether today's colour is covered.
+ */
+function PatchTestBody({ test }: { test?: ClientPatchTest }) {
+  if (!test) {
+    return <p className="text-sm text-muted-foreground">No patch tests yet.</p>
+  }
+  const state = patchTestState(test)
+  const expiry = formatPatchTestDate(patchTestExpiry(test).toISOString())
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="min-w-0 truncate font-medium">{test.title ?? "Patch test"}</span>
+        <Badge className={cn("shrink-0 border-transparent", PATCH_TEST_BADGE_CLASS[state])}>
+          {PATCH_TEST_LABEL[state]}
+        </Badge>
+      </div>
+      <span className="text-xs text-muted-foreground">
+        {[
+          `Tested ${formatPatchTestDate(test.testedOn)}`,
+          test.testedBy ? `by ${test.testedBy}` : null,
+          test.result === "passed"
+            ? `· ${state === "valid" ? "Valid until" : "Expired"} ${expiry}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      </span>
+    </div>
+  )
+}
+
 const STATUS_BADGE_CLASS: Record<Exclude<ApptStatus, "all">, string> = {
   booked: "bg-blue-5 text-blue-12",
   confirmed: "bg-lime-5 text-lime-12",
@@ -1109,8 +1203,17 @@ const STATUS_BADGE_CLASS: Record<Exclude<ApptStatus, "all">, string> = {
   "no-show": "bg-tomato-8 text-tomato-12",
 }
 
-function AppointmentCard({ appt, hasPets }: { appt: MockAppointment; hasPets: boolean }) {
+function AppointmentCard({
+  appt,
+  pets,
+  hasPets,
+}: {
+  appt: ClientAppointment
+  pets: MockPet[]
+  hasPets: boolean
+}) {
   const { name: businessName } = useDemoBusiness()
+  const pet = pets.find((p) => p.id === appt.petId)
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
       <div className="flex items-start justify-between gap-3">
@@ -1119,25 +1222,22 @@ function AppointmentCard({ appt, hasPets }: { appt: MockAppointment; hasPets: bo
             <span className="font-semibold text-foreground">{appt.time}</span>
             <span className="truncate text-muted-foreground">· {businessName}</span>
           </div>
-          {hasPets && appt.pet ? (
+          {hasPets && pet ? (
             <div className="flex items-center gap-2">
-              <Avatar
-                size="sm"
-                fallback="species"
-                species={appt.pet.species}
-                hashSeed={appt.pet.id}
-              />
+              <Avatar size="sm" fallback="species" species={pet.species} hashSeed={pet.id} />
               <div className="flex min-w-0 flex-col leading-tight">
-                <span className="truncate text-sm font-medium text-foreground">
-                  {appt.pet.name}
-                </span>
-                <span className="truncate text-xs text-muted-foreground">{appt.pet.breed}</span>
+                <span className="truncate text-sm font-medium text-foreground">{pet.name}</span>
+                {pet.breed ? (
+                  <span className="truncate text-xs text-muted-foreground">
+                    {[pet.breed, pet.weight].filter(Boolean).join(" · ")}
+                  </span>
+                ) : null}
               </div>
             </div>
           ) : null}
         </div>
         <Badge className={cn("border-transparent", STATUS_BADGE_CLASS[appt.status])}>
-          {appt.statusLabel}
+          {APPT_STATUS_LABEL[appt.status]}
         </Badge>
       </div>
       <ul className="flex flex-col gap-2">
@@ -1162,7 +1262,7 @@ function AppointmentCard({ appt, hasPets }: { appt: MockAppointment; hasPets: bo
   )
 }
 
-function SaleCard({ sale }: { sale: MockSale }) {
+function SaleCard({ sale }: { sale: ClientSale }) {
   const totalMinor = sale.items.reduce((sum, item) => sum + item.priceMinor, 0)
   const showViewSale =
     sale.status === "part-paid" || sale.status === "unpaid" || sale.status === "draft"
@@ -1274,31 +1374,589 @@ function PetCard({ pet, onClick }: { pet: MockPet; onClick?: () => void }) {
   )
 }
 
-function PetsOverviewCard({ onAddPet }: { onAddPet?: () => void }) {
+/**
+ * Pets on Overview, as chips rather than stacked rows.
+ *
+ * The stacked version repeated the Pets tab in full — avatar, name, breed,
+ * weight, one row each — and cost enough height that the second pet fell below
+ * the fold on an 800px dialog. The brief is explicit that pets stay visible on
+ * the first screen, and it draws them as chips for exactly this reason: on
+ * Overview the question is "who are this client's pets", not "tell me about
+ * them". Tapping one opens the pet, which the stacked card never did.
+ *
+ * It takes the same list the Pets tab renders, so Overview can't say two pets
+ * while the tab says three — which it did, off two separate hardcoded arrays.
+ */
+function PetsOverviewCard({
+  pets,
+  onAddPet,
+  onSelectPet,
+}: {
+  pets: MockPet[]
+  onAddPet?: () => void
+  onSelectPet?: (petId: string) => void
+}) {
   return (
     <SectionCard
       title="Pets"
       action={
-        <Button variant="secondary" size="sm" radius="full" onClick={onAddPet}>
+        <Button variant="outline" size="sm" radius="full" onClick={onAddPet}>
           <CirclePlusIcon />
           Add pet
         </Button>
       }
     >
-      <ul className="flex flex-col">
-        {OVERVIEW_PETS.map((pet) => (
-          <li
-            key={pet.id}
-            className="flex items-center gap-3 border-border/60 border-b py-3 first:pt-0 last:border-b-0 last:pb-0"
-          >
-            <Avatar size="md" fallback="species" species={pet.species} hashSeed={pet.id} />
-            <div className="flex min-w-0 flex-col">
-              <span className="font-medium">{pet.name}</span>
-              <span className="text-sm text-muted-foreground">{pet.breed}</span>
+      {pets.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No pets on this client yet.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {pets.map((pet) => (
+            <button
+              key={pet.id}
+              type="button"
+              onClick={() => onSelectPet?.(pet.id)}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border/60 py-1 pr-3 pl-1 transition-colors hover:bg-muted/40"
+            >
+              <Avatar size="sm" fallback="species" species={pet.species} hashSeed={pet.id} />
+              <span className="text-sm font-medium">{pet.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </SectionCard>
+  )
+}
+
+/**
+ * The Overview tab's body, lifted out of the dialog and exported.
+ *
+ * The brief's side-by-side is a test, and running it means holding the two faces
+ * up next to each other. A `<Dialog>` cannot be held next to anything — it
+ * portals to the body and covers whatever it is compared with — so the content
+ * had to stop being trapped inside one. The dialog renders this; so does the
+ * comparison view in /playground. There is no second copy to drift.
+ */
+export function ClientOverview({
+  profile,
+  hasPets,
+  appts,
+  salesMinor,
+  noShows,
+  upcoming,
+  lastVisit,
+  nextAppointment,
+  onNoShowsClick,
+  onRebook,
+  onEditPreferences,
+  onAddPet,
+  onSelectPet,
+}: {
+  profile: OverviewProfile
+  hasPets: boolean
+  appts: number
+  salesMinor: number
+  noShows: number
+  upcoming: number
+  lastVisit: ClientAppointment | null
+  nextAppointment: ClientAppointment | null
+  onNoShowsClick?: () => void
+  onRebook?: () => void
+  onEditPreferences?: () => void
+  onAddPet?: () => void
+  onSelectPet?: (petId: string) => void
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <OverviewHeaderBlock
+        profile={profile}
+        appts={appts}
+        salesMinor={salesMinor}
+        noShows={noShows}
+        upcoming={upcoming}
+        onNoShowsClick={onNoShowsClick}
+      />
+      <VisitsCard
+        last={lastVisit}
+        next={nextAppointment}
+        pets={profile.pets}
+        hasPets={hasPets}
+        onRebook={onRebook}
+      />
+      <WalletCard profile={profile} />
+      <PreferencesCard preferences={profile.preferences} onEdit={onEditPreferences} />
+      {hasPets ? (
+        <PetsOverviewCard pets={profile.pets} onAddPet={onAddPet} onSelectPet={onSelectPet} />
+      ) : null}
+      {/* Lowest-priority card on the tab, and it duplicates the Notes section
+          under Documents — so it is compact rather than a full card spent on
+          "No notes yet." Whether it belongs on Overview at all is a product
+          call, not a layout one. */}
+      <SectionCard
+        title="Notes"
+        className="gap-2 py-3"
+        action={
+          <Button variant="outline" size="sm" radius="full">
+            <CirclePlusIcon />
+            Add note
+          </Button>
+        }
+      >
+        <p className="text-sm text-muted-foreground">No notes yet.</p>
+      </SectionCard>
+    </div>
+  )
+}
+
+// ─── Overview ────────────────────────────────────────────────────────────────
+
+/**
+ * Locality, source + active-since, and tags — the third line of the dialog
+ * header, under phone · email. All of it lives under Details as fields;
+ * reception needs it at a glance — address for home visits, source for "how did
+ * they find us", tags for handling notes — without opening another tab.
+ *
+ * It shares a block with the counters rather than standing alone, which is what
+ * the brief's own wireframe draws — chips, a hairline, then the numbers. Two
+ * earlier attempts are worth not repeating: as a bare text line at the top of
+ * the tab it floated between the header band and the stats belonging to
+ * neither, and as a fourth line inside the dialog header it pushed the header
+ * to four rows and wrapped the last tag under the Book button on its own.
+ *
+ * Two tints, not three: a fact about the client is a grey pill, a tag is violet,
+ * because violet is what "somebody chose this" looks like everywhere else in
+ * the product. Both sit on the card, not on the block's tint — a pale pill on a
+ * pale fill left the chips barely readable, which is the opposite of the point
+ * of putting them here.
+ */
+function IdentityRow({ profile }: { profile: OverviewProfile }) {
+  const { locality, source, activeSince, tags } = profile
+  const afterLocality = [source, activeSince ? `Since ${activeSince}` : null]
+    .filter(Boolean)
+    .join(" · ")
+
+  if (!locality && !afterLocality && tags.length === 0) return null
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 px-3 py-3">
+      {locality ? (
+        // The address is the one thing on this line anyone acts on — a mobile
+        // groomer reading it off the screen and retyping it into Maps is the
+        // slow path, and the one that mistypes. Same directions link the
+        // pickup rows use (<NavigateToAddress>), on the text itself, since a
+        // second "Navigate" button in a header this dense earns nothing.
+        <a
+          href={mapsDirectionsHref(locality)}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Open ${locality} in Google Maps`}
+          className="group inline-flex max-w-full items-center gap-1 rounded-full bg-cami-sage-3 px-2.5 py-1 text-xs font-medium text-cami-sage-12 transition-colors hover:bg-cami-sage-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        >
+          <MapPinIcon className="size-3.5 shrink-0" strokeWidth={1.75} />
+          <span className="truncate underline decoration-cami-sage-9 underline-offset-2">
+            {locality}
+          </span>
+          <ArrowUpRightIcon className="size-3 shrink-0 opacity-60" strokeWidth={2} />
+        </a>
+      ) : null}
+      {afterLocality ? (
+        <span className="inline-flex max-w-full items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
+          <span className="truncate">{afterLocality}</span>
+        </span>
+      ) : null}
+      {tags.map((tag) => (
+        <span
+          key={tag.id}
+          className={cn(
+            "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium",
+            tag.className,
+          )}
+        >
+          {tag.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/**
+ * Lifetime counters, condensed. These four used to open Overview as full
+ * `<KpiCard>`s; they are reference figures, not the reason anyone opens a
+ * profile, so they share one divided row at the top of the tab.
+ *
+ * Filled rather than bordered, on purpose. As a bordered white card it was the
+ * fifth in a stack of five identical white cards and nothing on the tab had any
+ * hierarchy. A tinted strip reads as chrome — a band of reference numbers —
+ * and leaves "card" meaning "something you act on".
+ *
+ * No-shows stays clickable; it is the only cell with somewhere to go.
+ */
+function OverviewHeaderBlock({
+  profile,
+  appts,
+  salesMinor,
+  noShows,
+  upcoming,
+  onNoShowsClick,
+}: {
+  profile: OverviewProfile
+  appts: number
+  salesMinor: number
+  noShows: number
+  upcoming: number
+  onNoShowsClick?: () => void
+}) {
+  const cells: Array<{ label: string; value: React.ReactNode; onClick?: () => void }> = [
+    { label: appts === 1 ? "Appt" : "Appts", value: appts },
+    // The currency belongs to the figure, not to the label: "75" under
+    // "AED SALES" asks the reader to reassemble an amount that was never
+    // broken up anywhere else in the product.
+    { label: "Sales", value: formatAed(salesMinor) },
+    {
+      label: noShows === 1 ? "No-show" : "No-shows",
+      value: noShows,
+      onClick: noShows > 0 ? onNoShowsClick : undefined,
+    },
+    { label: "Upcoming", value: upcoming },
+  ]
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+      <IdentityRow profile={profile} />
+      <div className="grid grid-cols-4 divide-x divide-border/60 border-t border-border/60 bg-muted/50">
+        {cells.map((cell) =>
+          cell.onClick ? (
+            <button
+              key={cell.label}
+              type="button"
+              onClick={cell.onClick}
+              className="flex cursor-pointer flex-col items-center gap-1 px-2 py-3 transition-colors hover:bg-muted"
+              aria-label={`${cell.label} — ${cell.value}`}
+            >
+              <StatValue>{cell.value}</StatValue>
+              <StatLabel>{cell.label}</StatLabel>
+            </button>
+          ) : (
+            <div key={cell.label} className="flex flex-col items-center gap-1 px-2 py-3">
+              <StatValue>{cell.value}</StatValue>
+              <StatLabel>{cell.label}</StatLabel>
             </div>
-          </li>
-        ))}
-      </ul>
+          ),
+        )}
+      </div>
+    </div>
+  )
+}
+
+function StatValue({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="font-heading text-lg leading-none font-semibold whitespace-nowrap">
+      {children}
+    </span>
+  )
+}
+
+function StatLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+      {children}
+    </span>
+  )
+}
+
+/**
+ * Last visit and next visit, one card, two rows.
+ *
+ * They were two cards, and between them they cost 230px of an 800px dialog to
+ * answer one question — where is this client in their cycle. Reception reads
+ * them together, so they sit together, and the height that frees is what lets
+ * Packages and Pets clear the fold on the first screen.
+ *
+ * Next leads, then Last. Rebook is the only control here anyone presses, and
+ * the brief calls it the single most repeated reception task — which argued for
+ * putting Last on top. But rebooking is what you do when there is *nothing*
+ * booked: a client already on the calendar is not one you rebook. So the row
+ * that answers "are they coming in" goes first, and when it is empty it sits
+ * directly above the thing that fixes that.
+ *
+ * Service names and staff come off the appointment record itself, not the
+ * catalog, so renaming a service later doesn't rewrite what was done in April.
+ */
+function VisitsCard({
+  last,
+  next,
+  pets,
+  hasPets,
+  onRebook,
+}: {
+  last: ClientAppointment | null
+  next: ClientAppointment | null
+  pets: MockPet[]
+  hasPets: boolean
+  onRebook?: () => void
+}) {
+  const petName = (appt: ClientAppointment) =>
+    hasPets ? (pets.find((p) => p.id === appt.petId)?.name ?? null) : null
+  const lastStaff = last ? Array.from(new Set(last.services.map((s) => s.staff))) : []
+  const lastMeta = last
+    ? [lastStaff.length > 0 ? `with ${lastStaff.join(", ")}` : null, last.dayMonth, petName(last)]
+        .filter(Boolean)
+        .join(" · ")
+    : null
+  // Both rows read the same way: who it is with, then when. Next used to lead
+  // with the date and drop the staff member entirely, which is the one thing
+  // reception is asked on the phone — "who have I got on Thursday".
+  const nextStaff = next ? Array.from(new Set(next.services.map((s) => s.staff))) : []
+  const nextMeta = next
+    ? [
+        nextStaff.length > 0 ? `with ${nextStaff.join(", ")}` : null,
+        `${next.weekday} ${next.dayMonth} · ${next.time}`,
+        petName(next),
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null
+
+  return (
+    <SectionCard title="Visits">
+      <div className="flex flex-col divide-y divide-border/60">
+        <VisitRow
+          label="Next"
+          title={next ? next.services.map((s) => s.name).join(" + ") : null}
+          meta={nextMeta}
+          empty="Nothing booked yet."
+          action={
+            next ? (
+              <Badge className={cn("border-transparent", STATUS_BADGE_CLASS[next.status])}>
+                {APPT_STATUS_LABEL[next.status]}
+              </Badge>
+            ) : null
+          }
+        />
+        <VisitRow
+          label="Last"
+          title={last ? last.services.map((s) => s.name).join(" + ") : null}
+          meta={lastMeta}
+          empty="No completed visits yet."
+          action={
+            last ? (
+              // Outline, like every other action on this tab. Two earlier goes
+              // were wrong in opposite directions: a filled primary made it the
+              // twin of Book in the header, and `secondary` left it the only
+              // filled thing on a screen of outlined ones, which read as an
+              // arbitrary difference rather than a rank.
+              //
+              // The emphasis it was reaching for was never asked for. The brief
+              // calls rebooking the most repeated *task*, not the loudest
+              // control, and draws it as a soft pill. The rung it needed to
+              // out-weigh only existed because Add pet and Add note used to be
+              // filled; once those went quiet, so did the reason. In a card with
+              // no other control, position already does the work.
+              <Button variant="outline" size="sm" radius="full" onClick={onRebook}>
+                Rebook
+              </Button>
+            ) : null
+          }
+        />
+      </div>
+    </SectionCard>
+  )
+}
+
+function VisitRow({
+  label,
+  title,
+  meta,
+  empty,
+  action,
+}: {
+  label: string
+  title: string | null
+  meta: string | null
+  empty: string
+  action: React.ReactNode
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <span className="shrink-0 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+            {label}
+          </span>
+          <span className={cn("truncate text-sm", title ? "font-medium" : "text-muted-foreground")}>
+            {title ?? empty}
+          </span>
+        </div>
+        {meta ? <span className="truncate text-xs text-muted-foreground">{meta}</span> : null}
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  )
+}
+
+/**
+ * Everything this client holds with the business: loyalty, gift card,
+ * membership, packages and passes. The brief's only ask here was "packages,
+ * passes, and loyalty balance", and that is what this card was.
+ *
+ * Gift card and membership joined it because the customer's own card shows both
+ * — which meant a client could open their phone and see a balance their own
+ * salon's reception could not. That asymmetry is precisely what the brief's
+ * side-by-side is a test for, and the fix belongs on this side rather than by
+ * hiding it from the customer.
+ *
+ * Loyalty leads as a row rather than the badge in the header it started as: it
+ * is the number that brings a client back, and it was the smallest thing on the
+ * card while a full-width bar for one package was the largest.
+ *
+ * Packages collapse past two. A client holding four passes is ordinary, and
+ * four stacked pushed Pets back below the fold — the exact problem this tab was
+ * rebuilt to fix.
+ */
+function WalletCard({ profile }: { profile: OverviewProfile }) {
+  const [expanded, setExpanded] = useState(false)
+  const COLLAPSED = 2
+  const { packages, loyaltyPoints, giftCardAed, membershipTier } = profile
+  const hidden = Math.max(packages.length - COLLAPSED, 0)
+  const shown = expanded ? packages : packages.slice(0, COLLAPSED)
+
+  const balances: Array<{ id: string; label: string; value: string; accent?: boolean }> = []
+  if (loyaltyPoints > 0) {
+    balances.push({
+      id: "loyalty",
+      label: "Loyalty balance",
+      value: `${loyaltyPoints.toLocaleString()} pts`,
+      accent: true,
+    })
+  }
+  if (giftCardAed > 0) {
+    balances.push({ id: "gift-card", label: "Gift card", value: formatAed(giftCardAed * 100) })
+  }
+  if (membershipTier) {
+    balances.push({ id: "membership", label: "Membership", value: membershipTier })
+  }
+
+  const empty = balances.length === 0 && packages.length === 0
+
+  return (
+    <SectionCard title="Wallet">
+      {empty ? (
+        <p className="text-sm text-muted-foreground">No packages, passes, gift cards or points.</p>
+      ) : null}
+      {balances.length > 0 ? (
+        <dl className="flex flex-col gap-2">
+          {balances.map((row) => (
+            <div key={row.id} className="flex items-baseline justify-between gap-2">
+              <dt className="text-sm text-muted-foreground">{row.label}</dt>
+              <dd
+                className={cn(
+                  "font-heading text-lg leading-none font-semibold",
+                  row.accent && "text-cami-violet-11",
+                )}
+              >
+                {row.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {packages.length > 0 ? (
+        <ul
+          className={cn(
+            "flex flex-col gap-3",
+            balances.length > 0 && "border-t border-border/60 pt-3",
+          )}
+        >
+          {shown.map((pkg) => {
+            const remaining = Math.max(pkg.totalVisits - pkg.usedVisits, 0)
+            // The bar fills with what is LEFT, not what is used. "3 of 5 left"
+            // over a 40%-full bar is two different numbers for one fact, and
+            // the reader has to work out which one the bar means.
+            const remainingPct = pkg.totalVisits > 0 ? (remaining / pkg.totalVisits) * 100 : 0
+            return (
+              <li key={pkg.id} className="flex flex-col gap-1.5">
+                <div className="flex items-baseline justify-between gap-2 text-sm">
+                  <span className="min-w-0 flex-1 truncate font-medium">{pkg.name}</span>
+                  <span className="shrink-0 text-muted-foreground">
+                    {remaining} of {pkg.totalVisits} left
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-cami-violet-9"
+                    style={{ width: `${remainingPct}%` }}
+                  />
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      ) : null}
+      {hidden > 0 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="w-fit cursor-pointer text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          {expanded ? "Show less" : `Show ${hidden} more`}
+        </button>
+      ) : null}
+    </SectionCard>
+  )
+}
+
+/**
+ * Preferences: what the business keeps on this client's behalf.
+ *
+ * It existed only on the customer's card, which meant staff could not edit
+ * something the brief explicitly says they maintain — and the customer's card
+ * says "Maintained by <venue>" while the venue had nowhere to maintain it. This
+ * is that place.
+ *
+ * Labels come from a closed list (lib/clients/preferences.ts) because these
+ * rows are customer-visible, and five receptionists left to type freely produce
+ * five spellings of one idea.
+ *
+ * No icon, and the same outline every other action on the tab uses. Overview
+ * has exactly one filled control — Book, in the header — and everything else is
+ * outlined, so nothing inside the tab is silently ranked against anything else.
+ * A "+" stays only where something is genuinely being added.
+ */
+function PreferencesCard({
+  preferences,
+  onEdit,
+}: {
+  preferences: NonNullable<MockClient["preferences"]>
+  onEdit?: () => void
+}) {
+  return (
+    <SectionCard
+      title="Preferences"
+      action={
+        <Button variant="outline" size="sm" radius="full" onClick={onEdit}>
+          Edit
+        </Button>
+      }
+    >
+      {preferences.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Nothing recorded yet. These show on the client's own card.
+        </p>
+      ) : (
+        <dl className="flex flex-col">
+          {preferences.map((pref, index) => (
+            <div
+              key={pref.id}
+              className={cn(
+                "flex items-baseline justify-between gap-4 py-2 text-sm first:pt-0 last:pb-0",
+                index > 0 && "border-t border-border/60",
+              )}
+            >
+              <dt className="shrink-0 text-muted-foreground">{pref.label}</dt>
+              <dd className="min-w-0 text-right font-medium">{pref.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
     </SectionCard>
   )
 }

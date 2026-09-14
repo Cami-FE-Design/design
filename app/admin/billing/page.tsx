@@ -180,7 +180,7 @@ export default function BillingPage() {
         </div>
       }
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">
         <div className="grid gap-3 sm:grid-cols-4">
           {CHANNELS.map((c) => (
             <div key={c} className="flex flex-col gap-1 rounded-2xl border border-border/60 p-4">
