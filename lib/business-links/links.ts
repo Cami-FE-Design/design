@@ -60,18 +60,35 @@ const LISTING_HOSTS = [
 ]
 
 /**
+ * A hostname we are willing to call a hostname: labels of letters, digits and
+ * inner hyphens, at least two of them. Deliberately ours rather than the
+ * platform's — see `parse`.
+ */
+const HOSTNAME = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/i
+
+/**
  * Parse leniently. Merchants paste without a scheme far more often than they
  * paste a malformed URL, and refusing `g.page/r/x/review` for want of `https://`
  * would be a validation error about nothing.
+ *
+ * Strict about one thing, though: `new URL` is the only part of this file that
+ * isn't the same everywhere. Node and Chrome disagree about which junk counts as
+ * a hostname — `https://not a url at all` throws in Node and parses in Chrome —
+ * and this check runs during SSR as well as in the field, so a disagreement
+ * shows up as a hydration error rather than a wrong message. So whitespace is
+ * refused up front and the host the parser hands back is re-checked against a
+ * pattern we own; the verdict is then the same on both sides of hydration.
  */
 function parse(raw: string): URL | null {
   const trimmed = raw.trim()
-  if (!trimmed) return null
+  if (!trimmed || /\s/.test(trimmed)) return null
+  let url: URL
   try {
-    return new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`)
+    url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`)
   } catch {
     return null
   }
+  return HOSTNAME.test(url.hostname) ? url : null
 }
 
 export function checkGoogleReviewLink(raw: string): GoogleLinkCheck {

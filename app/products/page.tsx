@@ -289,7 +289,7 @@ function ProductsIndex() {
         </div>
       }
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">
         {isLoading ? (
           <>
             {/* Skeleton toolbar */}

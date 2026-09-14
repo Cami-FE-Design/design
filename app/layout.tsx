@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { BusinessLinksProvider } from "@/lib/business-links/store"
 import { CommsTemplatesProvider } from "@/lib/comms/store"
 import { CurrentUserProvider } from "@/lib/current-user"
+import { CustomerCardThemeProvider } from "@/lib/customer-card/store"
 import { DemoBusinessProvider } from "@/lib/demo-business"
 import { DemoFilesProvider } from "@/lib/demo-files"
 import { HqNotificationsProvider } from "@/lib/notifications/hq-store"
@@ -45,37 +46,39 @@ export default function RootLayout({
           <TooltipProvider delayDuration={150}>
             <CurrentUserProvider>
               <DemoBusinessProvider>
-                {/* Beside DemoBusiness, and for the same reason: the merchant's
+                <CustomerCardThemeProvider>
+                  {/* Beside DemoBusiness, and for the same reason: the merchant's
                     Google review link is business identity. Both the settings
                     field and the template editor's "this line won't send"
                     notice read it, so it can't live in either of them. */}
-                <BusinessLinksProvider>
-                  <DemoFilesProvider>
-                    <PaymentPolicyProvider>
-                      {/* Root, not /catalogs: a combo created on the service menu
+                  <BusinessLinksProvider>
+                    <DemoFilesProvider>
+                      <PaymentPolicyProvider>
+                        {/* Root, not /catalogs: a combo created on the service menu
                         has to turn up in the appointment service pickers, so
                         both sides of the app read one catalog. */}
-                      <ServiceCatalogProvider>
-                        <TerminalsProvider>
-                          <NotificationsProvider>
-                            {/* Root, not the admin layout: HQ sets the rates but
+                        <ServiceCatalogProvider>
+                          <TerminalsProvider>
+                            <NotificationsProvider>
+                              {/* Root, not the admin layout: HQ sets the rates but
                               both portals read them — a merchant sees the price
                               they're billed at. */}
-                            <HqNotificationsProvider>
-                              {/* Inside NotificationsProvider: a template row dims
+                              <HqNotificationsProvider>
+                                {/* Inside NotificationsProvider: a template row dims
                                 when the Reminders matrix has that channel off, so
                                 the panel reads both stores. */}
-                              <CommsTemplatesProvider>
-                                {children}
-                                <Toaster />
-                              </CommsTemplatesProvider>
-                            </HqNotificationsProvider>
-                          </NotificationsProvider>
-                        </TerminalsProvider>
-                      </ServiceCatalogProvider>
-                    </PaymentPolicyProvider>
-                  </DemoFilesProvider>
-                </BusinessLinksProvider>
+                                <CommsTemplatesProvider>
+                                  {children}
+                                  <Toaster />
+                                </CommsTemplatesProvider>
+                              </HqNotificationsProvider>
+                            </NotificationsProvider>
+                          </TerminalsProvider>
+                        </ServiceCatalogProvider>
+                      </PaymentPolicyProvider>
+                    </DemoFilesProvider>
+                  </BusinessLinksProvider>
+                </CustomerCardThemeProvider>
               </DemoBusinessProvider>
             </CurrentUserProvider>
           </TooltipProvider>

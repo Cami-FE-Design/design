@@ -51,6 +51,21 @@ describe("checkGoogleReviewLink", () => {
     expect(checkGoogleReviewLink("not a url at all").kind).toBe("invalid")
   })
 
+  it.each([
+    "not a url at all",
+    "shampooch jvc",
+    "https://not a host/review",
+    "just-words",
+  ])("gives %s the same verdict in every engine", (input) => {
+    // Not a taste question: the check runs during SSR and again at hydration,
+    // and Node and Chrome don't reject the same junk hostnames. When the two
+    // pick different messages React blows up the tree. The message, not just
+    // the kind, is pinned for that reason.
+    const check = checkGoogleReviewLink(input)
+    expect(check.kind).toBe("invalid")
+    expect(check.message).toBe("That doesn't look like a web address.")
+  })
+
   it("says nothing about an empty field", () => {
     // Unset is the normal starting state for every merchant, not an error.
     const check = checkGoogleReviewLink("   ")

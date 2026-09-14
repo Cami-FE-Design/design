@@ -28,6 +28,15 @@ describe("resolveTemplate", () => {
     expect(out).toContain("📅 Book the next visit: getcami.io/x")
   })
 
+  it("resolves the card link from the venue, not from the typed name", () => {
+    // PRD-176 G8 against real venue data: "Sota Hair Studio" is the venue at
+    // /sota, so slugifying the name would have pointed the link at a venue that
+    // does not exist — and then dropped the line for a business that has a card.
+    expect(sampleTokens("Sota Hair Studio").cardLink).toBe("getcami.io/sota/card")
+    // A merchant who renamed the demo to a prospect's name has no card to link.
+    expect(sampleTokens("Aziz Salon").cardLink).toBeUndefined()
+  })
+
   it("keeps the line once the link is set", () => {
     const out = resolveTemplate(THANK_YOU, {
       client: "Tom",
@@ -44,6 +53,22 @@ describe("resolveTemplate", () => {
     // rather than an edge one.
     const out = resolveTemplate("⭐ {{reviewLink}}", { reviewLink: "" })
     expect(out).toBe("")
+  })
+
+  it("drops the card line for a business that has no customer card", () => {
+    // PRD-176 G8, the same shape as the review link above: a venue not on the
+    // customer card has no URL to offer, so the line leaves the message.
+    const out = resolveTemplate("Your card: {{cardLink}}\nSee you soon.", {
+      business: "Shampooch",
+    })
+    expect(out).toBe("See you soon.")
+  })
+
+  it("closes the gap a dropped line leaves between paragraphs", () => {
+    // A line sitting alone between two blanks is the email shape, and leaving
+    // both blanks behind reads as a hole in the message.
+    const out = resolveTemplate("One.\n\nYour card: {{cardLink}}\n\nTwo.", {})
+    expect(out).toBe("One.\n\nTwo.")
   })
 
   it("still falls back readably for ordinary tokens", () => {
@@ -71,6 +96,7 @@ describe("sampleTokens", () => {
 describe("isLineScoped", () => {
   it("is true only for the review link", () => {
     expect(isLineScoped("reviewLink")).toBe(true)
+    expect(isLineScoped("cardLink")).toBe(true)
     expect(isLineScoped("bookingLink")).toBe(false)
     expect(isLineScoped("client")).toBe(false)
   })

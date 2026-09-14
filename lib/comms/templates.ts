@@ -71,6 +71,8 @@ Your appointment is booked — we can't wait to see you!
 📅 {{date}} at {{time}}
 🐾 {{service}} with {{staff}}
 
+👤 Your {{business}} card: {{cardLink}}
+
 Team {{business}} x`,
 
   "reminder-24h": `Hi {{client}}! 🤍
@@ -78,6 +80,7 @@ Team {{business}} x`,
 Just a reminder — {{pet}}'s appointment is tomorrow at {{time}}.
 
 📍 {{location}}
+👤 Your {{business}} card: {{cardLink}}
 
 If anything's come up, please let us know right away.
 
@@ -88,6 +91,7 @@ Team {{business}} x`,
 You're almost here — {{pet}}'s appointment is today at {{time}}.
 
 📍 {{location}}
+👤 Your {{business}} card: {{cardLink}}
 
 We can't wait to see you!
 
@@ -124,6 +128,7 @@ We had the best time with {{pet}} today — thank you for trusting us.
 
 📋 Your invoice: {{invoiceLink}}
 ⭐ Rate your experience: {{reviewLink}}
+👤 Your {{business}} card: {{cardLink}}
 📅 Book the next visit: {{bookingLink}}
 
 Team {{business}} x`,
@@ -154,6 +159,8 @@ Where: {{location}}
 Need to make a change? You can reschedule or cancel from your booking page:
 {{bookingLink}}
 
+Your {{business}} card — packages, membership and preferences: {{cardLink}}
+
 We look forward to seeing you both.
 
 {{business}}`,
@@ -171,6 +178,8 @@ If anything has come up, please let us know as soon as you can so we can offer t
 
 {{bookingLink}}
 
+Your {{business}} card — packages and membership: {{cardLink}}
+
 {{business}}`,
 
   "reminder-2h": `Hi {{client}},
@@ -178,6 +187,8 @@ If anything has come up, please let us know as soon as you can so we can offer t
 {{pet}}'s appointment at {{business}} is today at {{time}}.
 
 Where: {{location}}
+
+Your {{business}} card — packages and membership: {{cardLink}}
 
 See you shortly.
 
@@ -210,6 +221,7 @@ We had the best time with {{pet}} today — thank you for trusting us with them.
 
 📋 Your invoice: {{invoiceLink}}
 ⭐ Rate your experience: {{reviewLink}}
+👤 Your {{business}} card: {{cardLink}}
 📅 Book the next visit: {{bookingLink}}
 
 Service: {{service}}
