@@ -13,6 +13,7 @@ import {
   CirclePlusIcon,
   ClockIcon,
   FootprintsIcon,
+  GlobeIcon,
   GraduationCapIcon,
   HomeIcon,
   LayoutGridIcon,
@@ -85,7 +86,7 @@ const triggerOverride = "data-[size=default]:h-12 w-full rounded-2xl bg-input px
 const fullScreenDialogClass =
   "fixed! inset-0! top-0! left-0! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! flex-col p-0"
 
-type BasicInfoField = "name" | "phone" | "email"
+type BasicInfoField = "name" | "publicName" | "phone" | "email"
 type AddressField =
   | "search"
   | "address"
@@ -613,6 +614,12 @@ function GeneralTab({ location }: { location: Location }) {
               label="Location name"
               value={location.name}
               onAdd={() => openBasic("name")}
+            />
+            <SettingsRow
+              icon={GlobeIcon}
+              label="Public name"
+              value={location.publicName ?? location.location.district}
+              onAdd={() => openBasic("publicName")}
             />
             <SettingsRow
               icon={PhoneIcon}
@@ -1460,6 +1467,9 @@ function BasicInfoEditDialog({
       name: readField(fieldRefs.current.name, location.name) || location.name,
       phone: local ? `${dialCode} ${local}` : "",
       email: readField(fieldRefs.current.email, location.email),
+      // Empty means "use the district", so it is cleared rather than stored as
+      // an empty string that would render a branch with no name at all.
+      publicName: readField(fieldRefs.current.publicName, "") || undefined,
     })
     onOpenChange(false)
   }
@@ -1485,6 +1495,24 @@ function BasicInfoEditDialog({
         <div className="flex flex-col gap-6">
           <Field label="Location name">
             <Input key={location.id} ref={setFieldRef("name")} defaultValue={location.name} />
+          </Field>
+          {/* Two names, because they are two facts. The one above is what an
+              operator calls the branch and carries the brand; this one is what
+              a client sees, and the public page composes the brand back on.
+              Usually the area, which is why the district fills it in — but
+              Chaps & Co's branch is "Bloomingdale's", a store inside Dubai
+              Mall, whose district is Downtown Dubai. */}
+          <Field label="Public name">
+            <Input
+              key={`${location.id}-public`}
+              ref={setFieldRef("publicName")}
+              defaultValue={location.publicName ?? ""}
+              placeholder={location.location.district}
+            />
+            <p className="text-xs leading-5 text-muted-foreground">
+              What clients see, after the business name. Leave it empty to use the district &mdash;{" "}
+              {location.location.district || "the area"}.
+            </p>
           </Field>
           <Field label="Phone">
             <div className="flex gap-2">

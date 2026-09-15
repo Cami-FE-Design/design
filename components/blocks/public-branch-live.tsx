@@ -51,7 +51,7 @@ import { PublicCover } from "@/components/blocks/public-cover"
 import { PublicHours } from "@/components/blocks/public-hours"
 import { PublicLocation } from "@/components/blocks/public-location"
 import { PublicServices } from "@/components/blocks/public-services"
-import type { LocationContact } from "@/lib/locations/mock"
+import { type LocationContact, publicLabel } from "@/lib/locations/mock"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
 import type { Location } from "@/lib/locations/types"
 import { branchAsBusiness, type PublicBranch, type PublicBusiness } from "@/lib/public-business"
@@ -75,7 +75,7 @@ import {
 function contactOf(location: Location | undefined): LocationContact | undefined {
   if (!location) return undefined
   return {
-    name: location.location.district,
+    name: publicLabel(location),
     street: location.location.address,
     city: location.location.city,
     emirate: location.location.state,

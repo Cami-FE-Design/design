@@ -205,15 +205,16 @@ export function locationHours(locationId: string): WeekSchedule | undefined {
  *
  * - `emirate` reads `state`. The Location form says State because the field
  *   serves every country; the public page says what a client in the UAE would.
- * - `name` reads `district`, not `Location.name`. A branch's public name is the
- *   area ("JVC"), while its operator-facing name carries the brand too
- *   ("Shampooch JVC") — and the page composes the brand back on, so using the
- *   full name would read "Shampooch Shampooch JVC". District is what an
- *   operator already types, and it matched all three branch labels exactly.
+ * - `name` is `publicName` when the branch has one, and its `district`
+ *   otherwise — never `Location.name`, which carries the brand too
+ *   ("Shampooch JVC") while the page composes the brand back on, so it would
+ *   read "Shampooch Shampooch JVC".
  *
- * That second mapping holds while the area *is* the label. A branch wanting a
- * public name its district does not describe needs a real field for it — see
- * the note in docs/specs/multi-location-foundations.md.
+ *   District alone was the whole rule until Chaps & Co showed it was not
+ *   enough: their branches are "Bloomingdale's" and "Dubai Design District",
+ *   and Bloomingdale's is a store inside Dubai Mall whose district is Downtown
+ *   Dubai. The area is usually the label, which is why it stays the fallback —
+ *   but it is a fallback, not the rule.
  */
 export type LocationContact = {
   name: string
@@ -223,11 +224,23 @@ export type LocationContact = {
   phone: string
 }
 
+/**
+ * What a client is shown this branch as (D3).
+ *
+ * The one place the rule lives, because it is needed on both sides: the server
+ * render resolves from the seed below, and a client render resolves from the
+ * store. Two copies of `publicName ?? district` would drift the moment one of
+ * them gained a case the other did not.
+ */
+export function publicLabel(location: Location): string {
+  return location.publicName ?? location.location.district
+}
+
 export function locationContact(locationId: string): LocationContact | undefined {
   const location = LOCATIONS.find((l) => l.id === locationId)
   if (!location) return undefined
   return {
-    name: location.location.district,
+    name: publicLabel(location),
     street: location.location.address,
     city: location.location.city,
     emirate: location.location.state,
@@ -253,10 +266,18 @@ const EXTRA_BRANCHES: ReadonlyArray<{
   district: string
   city: string
   state: string
+  /** Set only where the area is not what the branch is called (D3). */
+  publicName?: string
   status?: LocationStatus
   hours?: WeekSchedule
 }> = [
-  { district: "Business Bay", city: "Dubai", state: "Dubai" },
+  /**
+   * The case Chaps & Co exposed: a branch inside a mall is called by the mall,
+   * not by the district it sits in. Theirs is "Bloomingdale's" in Downtown
+   * Dubai; this is the same shape with our own names, so the public surfaces
+   * can be checked for using it.
+   */
+  { district: "Downtown Dubai", city: "Dubai", state: "Dubai", publicName: "The Dubai Mall" },
   { district: "Dubai Marina", city: "Dubai", state: "Dubai" },
   { district: "Mirdif", city: "Dubai", state: "Dubai" },
   // Another emirate, so the estate is not one city — a chain crossing an
@@ -288,6 +309,7 @@ export const NINE_BRANCH_ESTATE: ReadonlyArray<Location> = [
         state: branch.state,
       },
       mapPin: null,
+      publicName: branch.publicName,
       status: branch.status ?? "live",
       hours: branch.hours ?? template.hours,
       photoUrl: `https://picsum.photos/seed/${slug}/80`,

@@ -106,6 +106,22 @@ export type Location = {
    * the way each branch experiences it.
    */
   timezone: string
+  /**
+   * What a client is shown this branch as, when the area is not what it is
+   * called (D3, answered 15 Sep by Chaps & Co's own site).
+   *
+   * Their branches are "Bloomingdale's" and "Dubai Design District" — and
+   * Bloomingdale's is a store inside Dubai Mall, whose district is Downtown
+   * Dubai. Deriving the public label from `location.district` would have
+   * rendered it "Chaps & Co Downtown Dubai", which is neither what they call it
+   * nor what a client searches for. Fresha lists the same branch as
+   * "Chaps & Co - Bloomingdale's" with Downtown Dubai as a separate line, which
+   * is the shape: the name and the area are two facts.
+   *
+   * Absent means the area *is* the label, which is the ordinary case and what
+   * all three seeded Shampooch branches are.
+   */
+  publicName?: string
   ownerName: string
   ownerEmail: string
   photoUrl: string

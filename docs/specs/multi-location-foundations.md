@@ -223,6 +223,32 @@ to inherit from, so a marker there would name a state that cannot exist. Save is
 refused on a number that is not a whole number above zero — 0 would leave the
 branch's first receipt unnumbered.
 
+### A branch's public name
+
+Deriving the public label from `location.district` held for all three seeded
+branches, so it shipped as the rule with a note that a branch wanting something
+else would need a real field. **Chaps & Co settled it, and they are the Tier 1
+account this whole feature gates.**
+
+Their own site lists branches as **"Bloomingdale's"** and "Dubai Design
+District". Bloomingdale's is a store inside Dubai Mall; its district is
+**Downtown Dubai**. Fresha lists the same branch as "Chaps & Co -
+Bloomingdale's" with Downtown Dubai on a separate line — which is the shape: the
+name and the area are two facts, shown together and never substituted.
+
+Derived from the district, that branch would have read "Chaps & Co Downtown
+Dubai" — neither what they call it nor what a client searches for.
+
+So `Location` carries an optional `publicName`, and the area is the **fallback**
+rather than the rule. Absent means the district is the label, which is the
+ordinary case and what the three Shampooch branches still are. The nine-branch
+estate seeds one mall branch so the case is on screen rather than hypothetical.
+
+**One rule, one place.** `publicLabel()` is the whole of it, and both sides call
+it — the server render resolving from the seed and the client render resolving
+from the store. Those were two copies of the same mapping before this, which is
+exactly how the two would have drifted the moment one gained a case.
+
 ### The fifth copy: name, address and phone
 
 `PublicBranch` carried its own `name`, `street`, `city`, `emirate` and `phone`
@@ -1376,11 +1402,6 @@ every role, not just Manager**. That last one appears in no SCR- screen.
   cannot be entered here at all. Nothing to design, only to bring across, and it
   belongs to whoever next touches a phone field rather than to this work.
 
-- **A branch's public label is its district.** `locationContact` maps
-  `location.district` onto the name a client reads, because the two matched
-  exactly on all three branches and the operator already types it. A branch
-  wanting a public name its district does not describe — "Marina Walk" for a
-  branch whose district is "Dubai Marina" — needs a real field for it. Not
-  invented, because which of the two an operator expects to edit is a product
-  question, not a modelling one.
+- ~~**A branch's public label is its district.**~~ Closed 15 Sep — see
+  [A branch's public name](#a-branchs-public-name).
 
