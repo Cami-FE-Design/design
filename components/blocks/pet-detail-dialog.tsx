@@ -3,8 +3,8 @@
 import {
   ChevronDownIcon,
   ChevronRightIcon,
-  CirclePlusIcon,
   MoreHorizontalIcon,
+  PlusIcon,
   XIcon,
 } from "lucide-react"
 import { useState } from "react"
@@ -394,7 +394,7 @@ export function PetDetailDialog({
                   title="Pet notes"
                   action={
                     <Button variant="secondary" size="sm" radius="full">
-                      <CirclePlusIcon />
+                      <PlusIcon />
                       Add note
                     </Button>
                   }
@@ -426,7 +426,7 @@ export function PetDetailDialog({
                     radius="full"
                     onClick={() => openEditAt("family")}
                   >
-                    <CirclePlusIcon />
+                    <PlusIcon />
                     Add family
                   </Button>
                 </div>
@@ -566,7 +566,7 @@ export function PetDetailDialog({
                   title="Pet notes"
                   action={
                     <Button variant="secondary" size="sm" radius="full">
-                      <CirclePlusIcon />
+                      <PlusIcon />
                       Add note
                     </Button>
                   }
@@ -596,7 +596,7 @@ export function PetDetailDialog({
                       radius="full"
                       onClick={() => setAddVaccineOpen(true)}
                     >
-                      <CirclePlusIcon />
+                      <PlusIcon />
                       Add vaccine
                     </Button>
                   }
