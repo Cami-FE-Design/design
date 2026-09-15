@@ -1,11 +1,11 @@
 "use client"
 
 import {
+  AlertTriangleIcon,
   ArrowUpRightIcon,
   CalendarIcon,
   ChevronDownIcon,
   ChevronRightIcon,
-  CirclePlusIcon,
   MapPinIcon,
   MoreHorizontalIcon,
   PawPrintIcon,
@@ -28,6 +28,7 @@ import {
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { DocumentsFormsAndFiles } from "@/components/blocks/documents-files-card"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { NoteDialog } from "@/components/blocks/note-dialog"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
 import { SectionCard } from "@/components/blocks/section-card"
@@ -54,6 +55,7 @@ import {
 import { RecencyBadge } from "@/components/ui/recency-badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { mapsDirectionsHref } from "@/lib/address"
+import { type ClientNote, clientNotesFor } from "@/lib/client-notes"
 import {
   APPT_STATUS_LABEL,
   type ClientAppointment,
@@ -324,6 +326,12 @@ export function ClientDetailDialog({
   const [noShowDialogOpen, setNoShowDialogOpen] = useState(false)
   const [selectedPetId, setSelectedPetId] = useState<string | null>(null)
   const profile = resolveProfile(client)
+  const [addNoteOpen, setAddNoteOpen] = useState(false)
+  // Added notes live here rather than in the seeded module, so Overview and
+  // Documents show the same list the moment one is saved. Newest first, which
+  // is the order `clientNotesFor` already guarantees for the seeded ones.
+  const [addedNotes, setAddedNotes] = useState<ClientNote[]>([])
+  const notes = [...addedNotes, ...clientNotesFor(client.id)]
   const appointments = profile.appointments
   const noShowAppointments = appointments.filter((a) => a.status === "no-show")
   const selectedPet = profile.pets.find((p) => p.id === selectedPetId) ?? null
@@ -553,6 +561,9 @@ export function ClientDetailDialog({
             <div className="min-h-0 flex-1 overflow-y-auto px-9 pt-5 pb-5">
               <TabsContent value="overview" className="flex flex-col gap-3">
                 <ClientOverview
+                  clientId={client.id}
+                  notes={notes}
+                  onAddNote={() => setAddNoteOpen(true)}
                   profile={profile}
                   hasPets={hasPets}
                   appts={appointments.length}
@@ -781,7 +792,7 @@ export function ClientDetailDialog({
                               radius="full"
                               className="gap-1"
                             >
-                              <CirclePlusIcon className="size-3.5" />
+                              <PlusIcon className="size-3.5" />
                               Add tag
                             </Button>
                           </div>
@@ -850,7 +861,7 @@ export function ClientDetailDialog({
                     radius="full"
                     onClick={() => setAddPetOpen(true)}
                   >
-                    <CirclePlusIcon />
+                    <PlusIcon />
                     Add pet
                   </Button>
                 </div>
@@ -871,22 +882,24 @@ export function ClientDetailDialog({
                 )}
               </TabsContent>
               <TabsContent value="documents" className="flex flex-col gap-3">
-                <SectionCard
-                  title="Notes"
-                  action={
-                    <Button variant="secondary" size="sm" radius="full">
-                      <CirclePlusIcon />
-                      Add note
-                    </Button>
-                  }
-                >
-                  <p className="text-sm text-muted-foreground">No notes yet.</p>
-                </SectionCard>
+                <ClientNotesCard notes={notes} onAdd={() => setAddNoteOpen(true)} />
+                {/* Forms and files above the two clinical records, because they
+                    are what reception opens before an appointment; allergies
+                    and a patch test are read when something is being booked
+                    that depends on them, which is rarer. */}
+                <DocumentsFormsAndFiles
+                  formsTitle="Forms"
+                  recipientName={client.name}
+                  recipientEmail={client.email}
+                  recipientPhone={client.phone}
+                  initialViewFormId={initialViewFormId}
+                  initialPreviewFileId={initialPreviewFileId}
+                />
                 <SectionCard
                   title="Allergies"
                   action={
                     <Button variant="secondary" size="sm" radius="full">
-                      <CirclePlusIcon />
+                      <PlusIcon />
                       Add allergy
                     </Button>
                   }
@@ -897,21 +910,13 @@ export function ClientDetailDialog({
                   title="Patch tests"
                   action={
                     <Button variant="secondary" size="sm" radius="full">
-                      <CirclePlusIcon />
+                      <PlusIcon />
                       Add patch test
                     </Button>
                   }
                 >
                   <PatchTestBody test={profile.patchTest} />
                 </SectionCard>
-                <DocumentsFormsAndFiles
-                  formsTitle="Forms"
-                  recipientName={client.name}
-                  recipientEmail={client.email}
-                  recipientPhone={client.phone}
-                  initialViewFormId={initialViewFormId}
-                  initialPreviewFileId={initialPreviewFileId}
-                />
               </TabsContent>
             </div>
           </Tabs>
@@ -947,6 +952,28 @@ export function ClientDetailDialog({
           }}
         />
       ) : null}
+
+      {/* The same note dialog the appointment sheet uses — one textarea, one
+          Save, and the line about who can see it. A second one written for this
+          surface would drift from it the first time either changed. */}
+      <NoteDialog
+        open={addNoteOpen}
+        onOpenChange={setAddNoteOpen}
+        initialValue={null}
+        onSave={(value) => {
+          if (!value) return
+          setAddedNotes((current) => [
+            {
+              id: `cn-local-${Date.now()}`,
+              clientId: client.id ?? "current-client",
+              content: value,
+              authorName: "Ahsan Khan",
+              createdAt: new Date().toISOString(),
+            },
+            ...current,
+          ])
+        }}
+      />
 
       <PetEditSheet
         open={addPetOpen}
@@ -1400,8 +1427,8 @@ function PetsOverviewCard({
     <SectionCard
       title="Pets"
       action={
-        <Button variant="outline" size="sm" radius="full" onClick={onAddPet}>
-          <CirclePlusIcon />
+        <Button variant="secondary" size="sm" radius="full" onClick={onAddPet}>
+          <PlusIcon />
           Add pet
         </Button>
       }
@@ -1436,7 +1463,108 @@ function PetsOverviewCard({
  * had to stop being trapped inside one. The dialog renders this; so does the
  * comparison view in /playground. There is no second copy to drift.
  */
+/**
+ * "Created: 09/15/2026 11:09 am by Ahsan Khan" — the as-built profile line.
+ *
+ * Deliberately not the calendar preview's "Ahsan Khan · 7 Sep, 5:49pm". That
+ * one is short because it sits under a clamped note on a surface read in a
+ * second; this is the record, where a full date is what someone asking "when
+ * was this written" actually wants. Author is optional — it arrives only when
+ * the backend enriches the row.
+ */
+function formatClientNoteMeta(note: ClientNote): string {
+  const date = new Date(note.createdAt)
+  if (Number.isNaN(date.getTime())) return ""
+  const pad = (n: number) => String(n).padStart(2, "0")
+  const hour = date.getHours() % 12 || 12
+  const stamp = `${pad(date.getMonth() + 1)}/${pad(date.getDate())}/${date.getFullYear()} ${hour}:${pad(date.getMinutes())} ${date.getHours() >= 12 ? "pm" : "am"}`
+  return note.authorName ? `Created: ${stamp} by ${note.authorName}` : `Created: ${stamp}`
+}
+
+/**
+ * Client notes, in full.
+ *
+ * The calendar and the appointment sheet carry a *preview* of these — two notes
+ * at two lines, deliberately bounded for a surface you glance at. This is the
+ * other end of that: the profile is the archive, so every note renders whole,
+ * with who wrote it and when.
+ *
+ * It sits directly under the header on Overview rather than at the foot of the
+ * tab. Reception opens a profile to recall something before speaking to the
+ * client, and "always ask for Aya" is worth nothing below the fold — it is the
+ * same note they have already been trained to look for on the calendar.
+ *
+ * On Overview it is capped at two, which is the budget the calendar and the
+ * appointment sheet already spend on the same notes. Uncapped, a client like
+ * Karen Dougall — four notes, one of them three lines — pushes Rebook off the
+ * first screen, and rebooking is the most repeated thing reception does. The
+ * rest is a tab away on Documents, which holds the archive in full.
+ */
+function ClientNotesCard({
+  notes,
+  onAdd,
+  limit,
+}: {
+  notes: ClientNote[]
+  onAdd?: () => void
+  /** Overview's budget. Omitted on Documents, which is the archive. */
+  limit?: number
+}) {
+  const visible = limit ? notes.slice(0, limit) : notes
+  const remaining = notes.length - visible.length
+  return (
+    <SectionCard
+      title="Client notes"
+      className="gap-2 py-3"
+      // Filled, like every card action in the as-built profile. Outline is that
+      // file's idiom for inline row actions — Checkout, Sell, Add tag.
+      action={
+        <Button variant="secondary" size="sm" radius="full" onClick={onAdd}>
+          <PlusIcon />
+          Add note
+        </Button>
+      }
+    >
+      {notes.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No notes yet.</p>
+      ) : (
+        <div className="flex items-start gap-2.5">
+          {/* The same muted marker the calendar preview uses — it says what
+              this is, and that should not change between surfaces. */}
+          <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <ul className="divide-y divide-border/60">
+              {visible.map((note) => {
+                const meta = formatClientNoteMeta(note)
+                return (
+                  <li key={note.id} className="flex flex-col gap-0.5 py-1.5 first:pt-0 last:pb-0">
+                    {/* Not clamped. The glance surfaces clamp because they are
+                        previews; here the budget is a note count, so the notes
+                        that do show are whole. */}
+                    <p className="text-sm leading-snug text-foreground">{note.content}</p>
+                    {meta ? <p className="text-xs text-muted-foreground">{meta}</p> : null}
+                  </li>
+                )
+              })}
+            </ul>
+            {remaining > 0 ? (
+              // Not a control, for the same reason the calendar preview's line
+              // isn't: Documents is one tab along in this same dialog.
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {`+${remaining} more under Documents`}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  )
+}
+
 export function ClientOverview({
+  clientId,
+  notes,
+  onAddNote,
   profile,
   hasPets,
   appts,
@@ -1451,6 +1579,11 @@ export function ClientOverview({
   onAddPet,
   onSelectPet,
 }: {
+  clientId?: string
+  /** Handed in by the dialog, which owns them so both tabs agree. Falls back
+      to the seeded notes for a standalone render (the playground's two faces). */
+  notes?: ClientNote[]
+  onAddNote?: () => void
   profile: OverviewProfile
   hasPets: boolean
   appts: number
@@ -1475,6 +1608,7 @@ export function ClientOverview({
         upcoming={upcoming}
         onNoShowsClick={onNoShowsClick}
       />
+      <ClientNotesCard notes={notes ?? clientNotesFor(clientId)} onAdd={onAddNote} limit={2} />
       <VisitsCard
         last={lastVisit}
         next={nextAppointment}
@@ -1487,22 +1621,6 @@ export function ClientOverview({
       {hasPets ? (
         <PetsOverviewCard pets={profile.pets} onAddPet={onAddPet} onSelectPet={onSelectPet} />
       ) : null}
-      {/* Lowest-priority card on the tab, and it duplicates the Notes section
-          under Documents — so it is compact rather than a full card spent on
-          "No notes yet." Whether it belongs on Overview at all is a product
-          call, not a layout one. */}
-      <SectionCard
-        title="Notes"
-        className="gap-2 py-3"
-        action={
-          <Button variant="outline" size="sm" radius="full">
-            <CirclePlusIcon />
-            Add note
-          </Button>
-        }
-      >
-        <p className="text-sm text-muted-foreground">No notes yet.</p>
-      </SectionCard>
     </div>
   )
 }
@@ -1739,19 +1857,21 @@ function VisitsCard({
           empty="No completed visits yet."
           action={
             last ? (
-              // Outline, like every other action on this tab. Two earlier goes
-              // were wrong in opposite directions: a filled primary made it the
-              // twin of Book in the header, and `secondary` left it the only
-              // filled thing on a screen of outlined ones, which read as an
-              // arbitrary difference rather than a rank.
+              // Secondary, like every card action on this tab. The as-built
+              // client profile splits the two idioms by where a control sits
+              // rather than by how much it matters: a card's own action is
+              // filled (Add note, Add pet, Add allergy), and an inline row
+              // action is outlined (Checkout, Sell, Add tag). This is a card
+              // action, so it is filled with the rest of them.
               //
-              // The emphasis it was reaching for was never asked for. The brief
-              // calls rebooking the most repeated *task*, not the loudest
-              // control, and draws it as a soft pill. The rung it needed to
-              // out-weigh only existed because Add pet and Add note used to be
-              // filled; once those went quiet, so did the reason. In a card with
-              // no other control, position already does the work.
-              <Button variant="outline" size="sm" radius="full" onClick={onRebook}>
+              // It was outlined for a while on the argument that a lone filled
+              // pill among outlined ones reads as a rank nobody assigned. That
+              // was true while Add pet and Add note were outlined too; they are
+              // not any more, so the exception it was avoiding is gone. What it
+              // must still not be is a primary — that would make it the twin of
+              // Book in the header, and rebooking is the most repeated task,
+              // not the loudest control.
+              <Button variant="secondary" size="sm" radius="full" onClick={onRebook}>
                 Rebook
               </Button>
             ) : null
@@ -1932,7 +2052,7 @@ function PreferencesCard({
     <SectionCard
       title="Preferences"
       action={
-        <Button variant="outline" size="sm" radius="full" onClick={onEdit}>
+        <Button variant="secondary" size="sm" radius="full" onClick={onEdit}>
           Edit
         </Button>
       }

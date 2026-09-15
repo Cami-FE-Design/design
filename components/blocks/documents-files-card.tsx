@@ -10,6 +10,7 @@ import {
   Loader2Icon,
   MoreHorizontalIcon,
   PencilIcon,
+  PlusIcon,
   Trash2Icon,
   XIcon,
 } from "lucide-react"
@@ -984,7 +985,9 @@ export function FilesSection({
       radius="full"
       onClick={() => fileInputRef.current?.click()}
     >
-      <CirclePlusIcon />
+      {/* Settings surfaces take the circled plus; a profile card takes the
+          plain one, matching the Add buttons beside it on Documents. */}
+      {isSettings ? <CirclePlusIcon /> : <PlusIcon />}
       Upload file
     </Button>
   )
@@ -1200,7 +1203,7 @@ export function DocumentsFormsAndFiles({
         title={formsTitle}
         action={
           <Button variant="secondary" size="sm" radius="full" onClick={openAddForm}>
-            <CirclePlusIcon />
+            <PlusIcon />
             Add form
           </Button>
         }

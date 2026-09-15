@@ -56,6 +56,7 @@ export function TwoFaces({ clientId, slug }: { clientId: string; slug: string })
             one side look like a screenshot and the other like a screen. */}
         <div className="rounded-2xl border border-border/60 bg-background p-4">
           <ClientOverview
+            clientId={client.id}
             profile={profile}
             hasPets={client.pets.length > 0}
             appts={activity.appointments.length}

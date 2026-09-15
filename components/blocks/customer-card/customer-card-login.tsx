@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 
+import { VenueBackdrop } from "@/components/blocks/customer-card/venue-backdrop"
 import { Avatar } from "@/components/ui/avatar"
 
 import { type CustomerCardTheme, themeVars } from "@/lib/customer-card/theme"
@@ -55,15 +56,16 @@ export function CustomerCardLogin({
   return (
     <div
       style={themeVars(theme)}
-      className="flex min-h-dvh flex-col items-center justify-center bg-[var(--cc-shell)] px-5 py-12 text-[var(--cc-text)]"
+      className="relative flex min-h-dvh flex-col items-center justify-center bg-[var(--cc-shell)] px-5 py-12 text-[var(--cc-text)]"
     >
+      <VenueBackdrop business={business} />
       <form
         onSubmit={(e) => {
           e.preventDefault()
           setPending(true)
           router.push(`/${business.slug}/card`)
         }}
-        className="flex w-full max-w-[380px] flex-col items-center gap-6 rounded-3xl bg-[var(--cc-surface)] px-6 py-10 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:px-8"
+        className="relative flex w-full max-w-[380px] flex-col items-center gap-6 rounded-3xl bg-[var(--cc-surface)] px-6 py-10 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:px-8"
       >
         <VenueMark business={business} />
         <p className="text-center text-sm text-[var(--cc-muted)]">
@@ -147,9 +149,10 @@ export function CustomerCardLinkExpired({
   return (
     <div
       style={themeVars(theme)}
-      className="flex min-h-dvh flex-col items-center justify-center bg-[var(--cc-shell)] px-5 py-12 text-[var(--cc-text)]"
+      className="relative flex min-h-dvh flex-col items-center justify-center bg-[var(--cc-shell)] px-5 py-12 text-[var(--cc-text)]"
     >
-      <div className="flex w-full max-w-[380px] flex-col items-center gap-6 rounded-3xl bg-[var(--cc-surface)] px-6 py-10 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:px-8">
+      <VenueBackdrop business={business} />
+      <div className="relative flex w-full max-w-[380px] flex-col items-center gap-6 rounded-3xl bg-[var(--cc-surface)] px-6 py-10 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:px-8">
         <VenueMark business={business} />
         <p className="text-center text-sm text-[var(--cc-muted)]">
           This link has expired. Every link is personal and lasts 30 days, and a fresh one goes out

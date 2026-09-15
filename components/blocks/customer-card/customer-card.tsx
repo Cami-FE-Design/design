@@ -1,5 +1,6 @@
 import Link from "next/link"
 
+import { VenueBackdrop } from "@/components/blocks/customer-card/venue-backdrop"
 import { Avatar } from "@/components/ui/avatar"
 
 import type { CustomerCardData } from "@/lib/customer-card/mock"
@@ -47,9 +48,10 @@ export function CustomerCard({
   return (
     <div
       style={themeVars(theme)}
-      className="flex flex-1 flex-col items-center bg-[var(--cc-shell)] px-5 py-10 text-[var(--cc-text)] sm:py-16"
+      className="relative flex flex-1 flex-col items-center bg-[var(--cc-shell)] px-5 py-10 text-[var(--cc-text)] sm:py-16"
     >
-      <div className="w-full max-w-[420px]">
+      <VenueBackdrop business={business} />
+      <div className="relative w-full max-w-[420px]">
         <article className="flex flex-col gap-7 rounded-3xl bg-[var(--cc-surface)] px-6 py-8 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:px-8">
           <Masthead business={business} card={card} />
           {/* Loyalty is the only section here a venue can not have. Wallet and

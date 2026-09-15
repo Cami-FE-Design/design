@@ -190,7 +190,7 @@ const SECTIONS: Section[] = [
       {
         path: "/sota/card?theme=ink",
         label: "Same card, different palette",
-        note: "The strip under the card is the menu a merchant picks from — five palettes, one typeface. Worth walking all five to see how far colour alone carries a brand, since colour is the whole of what varies.",
+        note: "The strip under the card is the menu a merchant picks from — five palettes, one typeface. The venue's own photo sits behind the card, blurred past reading and scrimmed in the palette's own shell colour, so a client recognises their salon before they read a word and the merchant's colour still decides the mood. Worth walking all five to see how far colour alone carries a brand, since colour is the whole of what varies.",
       },
       {
         path: "/shampooch-jvc/card",
@@ -473,7 +473,12 @@ const SECTIONS: Section[] = [
       {
         path: "/clients?client=millie-cassidy",
         label: "Client detail · Overview, the full record",
-        note: "The rebuilt Overview (Client Card brief, task 1). One block carries identity chips over the lifetime strip; then Visits with Next above Last and a one-tap Rebook, Packages & loyalty, pets as chips. Three packages, so the card's collapse is visible. Address chip opens Google Maps. Every field here is this client's own — open the rows below before judging any of it, because the whole point is that no two read alike.",
+        note: "The rebuilt Overview (Client Card brief, task 1). One block carries identity chips over the lifetime strip; then client notes, Visits with Next above Last and a one-tap Rebook, Packages & loyalty, pets as chips. Notes sit second because reception opens a profile to recall something before speaking, and they are the same notes the calendar previews — Add note opens the same dialog the appointment sheet uses. Three packages, so the card's collapse is visible. Address chip opens Google Maps. Every field here is this client's own — open the rows below before judging any of it, because the whole point is that no two read alike.",
+      },
+      {
+        path: "/clients?client=karen-dougall",
+        label: "Client detail · four client notes",
+        note: "The case that sets the budget on Overview. Karen has four notes, one of them three lines, so the card shows two and sends the rest to Documents — uncapped it pushes Rebook off the first screen, and rebooking is the most repeated thing reception does. Open Documents on the same client for the archive, where every note renders whole.",
       },
       {
         path: "/clients?client=kirsty-dingomal",
@@ -488,7 +493,7 @@ const SECTIONS: Section[] = [
       {
         path: "/clients?client=tom-cassidy&tab=documents",
         label: "Client detail · allergies and patch tests",
-        note: "Both are records, not preferences, so neither is typed into the customer-visible summary — \"On file\" written by hand is a claim with nothing behind it. A patch test carries two independent things: how it went (pending / passed / failed) and whether it is still current, which is derived from the tested date and never stored. Tom's passed in January and has lapsed on its own; Maaz's is valid until February; Kirsty's is pending. Millie has an allergy, Maaz has \"No known allergies\" — a recorded answer, not an empty list, and the difference matters at the chair. The add forms are deliberately not designed: see the ticket's D2.",
+        note: "Forms and files come first on this tab now — they are what gets opened before an appointment, where a patch test is read only when something depends on it. Both of these are records, not preferences, so neither is typed into the customer-visible summary — \"On file\" written by hand is a claim with nothing behind it. A patch test carries two independent things: how it went (pending / passed / failed) and whether it is still current, which is derived from the tested date and never stored. Tom's passed in January and has lapsed on its own; Maaz's is valid until February; Kirsty's is pending. Millie has an allergy, Maaz has \"No known allergies\" — a recorded answer, not an empty list, and the difference matters at the chair. The add forms are deliberately not designed: see the ticket's D2.",
       },
       {
         path: "/clients?client=amy",
