@@ -95,7 +95,8 @@ const CLIENT_NOTES: ClientNote[] = [
   {
     id: "cn-tom-1",
     clientId: "tom-cassidy",
-    content: "Imported from Fresha — 2 unused vouchers on the account, expiring 31 Dec 2026.",
+    content:
+      "Imported from their old system — 2 unused vouchers on the account, expiring 31 Dec 2026.",
     createdAt: "2026-06-02T08:00:00+04:00",
   },
   {

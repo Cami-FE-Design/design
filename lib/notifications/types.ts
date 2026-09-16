@@ -32,8 +32,7 @@ export type ReminderEvent =
   | "reminder-2h"
   | "cancelled"
   | "no-show"
-  | "review-request"
-  | "receipt"
+  | "thank-you"
 
 /** Display order in the reminders matrix — roughly the order a booking hits them. */
 export const REMINDER_EVENTS: { id: ReminderEvent; label: string; description: string }[] = [
@@ -58,12 +57,18 @@ export const REMINDER_EVENTS: { id: ReminderEvent; label: string; description: s
     description: "Confirms a cancellation to the pet parent.",
   },
   { id: "no-show", label: "No-show", description: "Sent after a missed appointment." },
+  // One message, not two. Production sends a single completed-appointment email
+  // carrying the invoice, the Google review ask and the rebook link (DZ-263's
+  // screenshot), and the product's own name for it is "thank you notification"
+  // — the dev repo's per-service toggle reads "Provide aftercare instructions to
+  // clients in thank you notifications". This repo used to model it as separate
+  // `receipt` and `review-request` events, so the Reminders matrix offered
+  // toggles for two messages nobody receives. See PRD-168.
   {
-    id: "review-request",
-    label: "Review request",
-    description: "Asks for a review once the visit is complete.",
+    id: "thank-you",
+    label: "Thank you",
+    description: "Sent when the visit is complete — invoice, review ask, and rebooking.",
   },
-  { id: "receipt", label: "Receipt", description: "Payment receipt after checkout." },
 ]
 
 export type SenderIdStatus = "not-submitted" | "submitted" | "approved" | "rejected"
@@ -204,8 +209,7 @@ export const DEFAULT_EVENTS: EventMatrix = {
   "reminder-2h": { ...EMAIL_ONLY },
   cancelled: { ...EMAIL_ONLY },
   "no-show": { ...EMAIL_ONLY },
-  "review-request": { ...EMAIL_ONLY },
-  receipt: { ...EMAIL_ONLY },
+  "thank-you": { ...EMAIL_ONLY },
 }
 
 /**
@@ -279,11 +283,13 @@ export const DEMO_LOG: NotificationLogEntry[] = [
   {
     id: "NTF-1039",
     channel: "email",
-    event: "receipt",
+    event: "thank-you",
     appointmentId: "b-002",
     recipient: "tom.cassidy@gmail.com",
     recipientName: "Tom Cassidy",
-    body: "Receipt for AED 140.00 — Wash & Blow Dry MD. AED 50.00 deposit applied.",
+    // No review line: the demo business has no Google review link set, so it
+    // dropped. This is the line-scoped fallback showing up in the log.
+    body: "Thank you! Invoice for AED 140.00 — Wash & Blow Dry MD. Book Luna's next visit any time.",
     sentAt: "2026-08-28T11:20:00+04:00",
     status: "sent",
     cost: 0.02,
@@ -334,11 +340,11 @@ export const DEMO_LOG: NotificationLogEntry[] = [
   {
     id: "NTF-1035",
     channel: "email",
-    event: "review-request",
+    event: "thank-you",
     appointmentId: "b-005",
     recipient: "m.cassidy@oldmail.example",
     recipientName: "Millie Cassidy",
-    body: "How did Mochi's visit go? Leave Shampooch a review.",
+    body: "Thank you for bringing Mochi in. Your invoice is ready, and you can rebook any time.",
     sentAt: "2026-08-25T17:31:00+04:00",
     status: "failed",
     failureReason: "Mailbox does not exist (hard bounce)",

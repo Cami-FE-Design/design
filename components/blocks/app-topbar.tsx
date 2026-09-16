@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useCurrentUser } from "@/lib/current-user"
-import { useDemoBusiness } from "@/lib/demo-business"
+import { useDemoWorkspaces } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
 type AppTopbarProps = React.ComponentProps<"div"> & {
@@ -29,7 +29,6 @@ type AppTopbarProps = React.ComponentProps<"div"> & {
   email?: string
   notificationCount?: number
   workspaces?: Workspace[]
-  defaultWorkspaceId?: string
   workspaceJoinedDate?: string
 }
 
@@ -74,11 +73,9 @@ export function AppTopbar({
   email: emailProp,
   notificationCount = 0,
   workspaces,
-  defaultWorkspaceId = "jvc",
   workspaceJoinedDate = "Apr 14, 2025",
   ...props
 }: AppTopbarProps) {
-  const { name: businessName } = useDemoBusiness()
   const router = useRouter()
   const pathname = usePathname() ?? "/"
   // Current-user store backs the avatar and profile menu; explicit props still
@@ -88,13 +85,14 @@ export function AppTopbar({
   const firstName = firstNameProp ?? currentUser.firstName
   const lastName = lastNameProp ?? currentUser.lastName
   const email = emailProp ?? currentUser.email
-  // One workspace, because a workspace holds exactly one business (blueprint
-  // §01). The second row here used to be `${businessName} · Jumeirah`, a branch
-  // dressed as a workspace — which is the confusion multi-location exists to
-  // remove. Branches now live in the LocationSwitcher beside this, on their own
-  // axis. Derived from the demo business name so a rename still rebrands live.
-  const resolvedWorkspaces = workspaces ?? [{ id: "jvc", name: businessName }]
-  const [selectedId, setSelectedId] = useState(defaultWorkspaceId)
+  // The venue list, and what picking one does, live in one hook — the mobile
+  // topbar renders the same switcher and must not answer this differently.
+  const {
+    workspaces: resolvedWorkspaces,
+    selectedId,
+    selected,
+    select,
+  } = useDemoWorkspaces(workspaces)
   const [searchOpen, setSearchOpen] = useState(false)
 
   // Cmd/Ctrl+K opens global search from anywhere in the shell.
@@ -108,7 +106,6 @@ export function AppTopbar({
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [])
-  const selected = resolvedWorkspaces.find((w) => w.id === selectedId) ?? resolvedWorkspaces[0]
   const notificationsAriaLabel =
     notificationCount > 0 ? `Notifications, ${notificationCount} unread` : "Notifications"
   const initials = `${initialOf(firstName)}${initialOf(lastName)}`
@@ -145,7 +142,7 @@ export function AppTopbar({
           workspaces={resolvedWorkspaces}
           selectedWorkspaceId={selectedId}
           user={{ firstName, lastName, avatarSrc }}
-          onSelectWorkspace={setSelectedId}
+          onSelectWorkspace={select}
         />
         {/* SCR-04. Beside the workspace switcher, not inside it: capability and
           location are independent axes (R04), and so are business and branch.

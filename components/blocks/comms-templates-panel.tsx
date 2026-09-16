@@ -10,7 +10,7 @@
 // whose chrome doesn't match the one next to it reads as a different product.
 //
 // Tabs are per channel rather than one combined list. A merchant edits email copy
-// or WhatsApp copy, not both at once, and 7 events × 2 channels of body excerpts
+// or WhatsApp copy, not both at once, and 6 events × 2 channels of body excerpts
 // does not fit the w-146 footprint side by side — the two-column version pushed
 // each excerpt down to about four words, which is not enough to recognise a
 // template by. Per channel, each row gets the full card width for its excerpt.
@@ -21,8 +21,8 @@
 // carries an "Off" / "Not enabled" badge and stays editable, because writing
 // copy for a channel you're about to switch on is reasonable while pretending it
 // already sends is not. The explanation is one line in the card header, not a
-// sentence per row: repeated on all seven it doubled every row's height to say
-// the same thing seven times — the same reason the Reminders matrix keeps one
+// sentence per row: repeated on all six it doubled every row's height to say
+// the same thing six times — the same reason the Reminders matrix keeps one
 // notice per locked column rather than one per cell.
 //
 // Deep-links for /screens: `?ct=email` / `?ct=whatsapp` picks the tab, and
@@ -33,11 +33,14 @@ import { useSearchParams } from "next/navigation"
 import { useId, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { FullScreenTakeover } from "@/components/blocks/sales-settings"
+import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { hasGoogleReviewLink } from "@/lib/business-links/links"
+import { useBusinessLinks } from "@/lib/business-links/store"
 import { useCommsTemplates } from "@/lib/comms/store"
 import {
   COMMS_CHANNEL_LABEL,
@@ -56,6 +59,8 @@ import {
   tokensUsed,
   unknownTokens,
 } from "@/lib/comms/tokens"
+import { useVenueBranding } from "@/lib/customer-card/store"
+import { themeVars } from "@/lib/customer-card/theme"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { useNotifications } from "@/lib/notifications/store"
 import { channelEnabled, eventLabel, type ReminderEvent } from "@/lib/notifications/types"
@@ -108,6 +113,7 @@ function EmailPreview({
   subject: string
   body: string
 }) {
+  const branding = useVenueBranding(businessName)
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1 text-xs text-muted-foreground">
@@ -120,12 +126,45 @@ function EmailPreview({
         </span>
       </div>
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+        {/* The venue's own palette and logo, above the subject.
+            The brief's complaint is that today's branding is "just a sender
+            name, not the venue's identity" — and an avatar next to a name is
+            still a name. What makes a Sota message look like Sota is the
+            palette Sota picked, the same one its card uses. Carrying it here is
+            what makes the journey branded from the first message rather than
+            only at the page the link opens, a tap too late.
+            A venue that has picked neither gets the default palette and
+            initials, which is what an unconfigured merchant should look like. */}
+        <div
+          style={themeVars(branding.theme)}
+          className="flex items-center gap-2.5 border-b border-[var(--cc-border)] bg-[var(--cc-shell)] px-5 py-3.5"
+        >
+          <Avatar
+            size="sm"
+            fallback="initials"
+            name={businessName}
+            src={branding.logoUrl}
+            hashSeed={businessName}
+          />
+          <span className="truncate text-sm font-semibold tracking-[0.14em] text-[var(--cc-accent)] uppercase">
+            {businessName}
+          </span>
+        </div>
         <div className="border-b border-border/60 bg-muted/40 px-5 py-3">
-          <p className="text-sm font-semibold leading-5 text-foreground">
+          <p className="text-sm leading-5 font-semibold text-foreground">
             {subject || <span className="text-muted-foreground">(no subject)</span>}
           </p>
         </div>
-        <p className="whitespace-pre-wrap px-5 py-5 text-sm leading-6 text-foreground">{body}</p>
+        <p className="px-5 py-5 text-sm leading-6 whitespace-pre-wrap text-foreground">{body}</p>
+        <div
+          style={themeVars(branding.theme)}
+          className="border-t border-[var(--cc-border)] bg-[var(--cc-shell)] px-5 py-3"
+        >
+          <p className="text-xs text-[var(--cc-muted)]">
+            Sent by {businessName}. You are receiving this because you have an appointment with
+            them.
+          </p>
+        </div>
       </div>
     </div>
   )
@@ -133,6 +172,10 @@ function EmailPreview({
 
 /** WhatsApp preview — a chat bubble, because that is the whole of the chrome there. */
 function WhatsAppPreview({ businessName, body }: { businessName: string; body: string }) {
+  // No palette here, and that is the channel rather than an omission: WhatsApp
+  // paints its own bubbles and gives a venue exactly one brand surface, the
+  // business profile at the top of the thread. The logo is all there is to use.
+  const branding = useVenueBranding(businessName)
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-muted-foreground">
@@ -144,9 +187,26 @@ function WhatsAppPreview({ businessName, body }: { businessName: string; body: s
           where the business's message is the incoming one — and WhatsApp only
           ever paints green on the outgoing side. Green on the left is the one
           combination it never renders, so it read as a mock of nothing. */}
-      <div className="rounded-2xl bg-muted/40 p-4">
+      <div className="flex flex-col gap-2 rounded-2xl bg-muted/40 p-4">
+        {/* WhatsApp gives a venue one piece of identity and one only: the
+            business profile at the top of the thread. It is worth drawing,
+            because it is the entire brand surface on this channel — there is no
+            header, no colour, no logo in the bubble. */}
+        <div className="flex items-center gap-2">
+          <Avatar
+            size="sm"
+            fallback="initials"
+            name={businessName}
+            src={branding.logoUrl}
+            hashSeed={businessName}
+          />
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span className="truncate text-xs font-semibold text-foreground">{businessName}</span>
+            <span className="text-[10px] text-muted-foreground">Business account</span>
+          </div>
+        </div>
         <div className="w-fit max-w-[90%] rounded-2xl rounded-tl-sm border border-border/60 bg-card px-4 py-3 shadow-sm">
-          <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{body}</p>
+          <p className="text-sm leading-6 whitespace-pre-wrap text-foreground">{body}</p>
         </div>
       </div>
     </div>
@@ -164,6 +224,7 @@ function TemplateEditor({
 }) {
   const { template, customised, updateTemplate, resetTemplate } = useCommsTemplates()
   const { name: businessName } = useDemoBusiness()
+  const { googleReviewLink } = useBusinessLinks()
   const stored = template(event, channel)
   const subjectId = useId()
   const bodyId = useId()
@@ -176,7 +237,9 @@ function TemplateEditor({
   const unknown = unknownTokens(body) // typo'd token names, surfaced rather than swallowed
   const used = tokensUsed(body)
 
-  const samples = sampleTokens(businessName)
+  // The merchant's real link, not an example — so the preview is the message
+  // that sends, missing review line and all.
+  const samples = sampleTokens(businessName, googleReviewLink)
   const resolvedSubject = resolveTemplate(subject, samples)
   const resolvedBody = resolveTemplate(body, samples)
 
@@ -279,6 +342,21 @@ function TemplateEditor({
               </Notice>
             ) : null}
 
+            {/* The whole point of PRD-168, and the fix for DZ-263's class of
+                bug. A body that asks for a review, on a business with no review
+                link, used to send a label with nothing after it — silently, to
+                every completed appointment. The line now drops instead, and the
+                merchant is told here, on the message it affects, which setting
+                is missing. A field in a settings form is somewhere to put a
+                link; this is what gets it filled in. */}
+            {used.includes("reviewLink") && !hasGoogleReviewLink(googleReviewLink) ? (
+              <Notice icon={CircleAlertIcon} className="bg-cami-yellow-2 text-cami-yellow-12">
+                No Google review link set, so the review line won&apos;t send — the preview shows
+                the message as it goes out today. Add it under{" "}
+                <span className="font-medium">Business details › External links</span>.
+              </Notice>
+            ) : null}
+
             {/* cami-sage, not cami-blue: the palette has no blue hue, so
                 `bg-cami-blue-2` compiled to nothing and this notice rendered as
                 bare text on white. Informational notices use sage. */}
@@ -365,16 +443,17 @@ function TemplateRow({
    * Whether to mark this row's off state at all.
    *
    * False when the whole channel is off. Dimming is a contrast device: it only
-   * says "this one differs" while some sibling is undimmed. With all seven
-   * dimmed and badged, the tab read as disabled rather than as seven editable
+   * says "this one differs" while some sibling is undimmed. With all six
+   * dimmed and badged, the tab read as disabled rather than as six editable
    * templates — and the fact is already stated once, in the card header, where
-   * it isn't repeated seven times.
+   * it isn't repeated six times.
    */
   markOff: boolean
 }) {
   const { template, customised } = useCommsTemplates()
   const { events, grant } = useNotifications()
   const { name: businessName } = useDemoBusiness()
+  const { googleReviewLink } = useBusinessLinks()
   const stored = template(event, channel)
   const edited = customised(event, channel)
 
@@ -384,7 +463,7 @@ function TemplateRow({
    * Raw is defensible in an editor — it's what you're editing — but in a list
    * row it isn't: `Your appointment at {{business}} is confirmed` costs 13
    * characters of a 90-character line to say a word the reader already knows,
-   * and seven rows of it read as markup rather than as messages. The editor is
+   * and six rows of it read as markup rather than as messages. The editor is
    * where the placeholders are visible, and that's one click away.
    *
    * Email shows the subject, which the merchant wrote and which distinguishes
@@ -393,8 +472,11 @@ function TemplateRow({
    */
   const rowText =
     channel === "email" && stored.subject
-      ? resolveTemplate(stored.subject, sampleTokens(businessName))
-      : excerpt(resolveTemplate(previewLine(stored.body), sampleTokens(businessName)), 90)
+      ? resolveTemplate(stored.subject, sampleTokens(businessName, googleReviewLink))
+      : excerpt(
+          resolveTemplate(previewLine(stored.body), sampleTokens(businessName, googleReviewLink)),
+          90,
+        )
 
   // Effective state from the Reminders matrix: the merchant has to have asked
   // for it AND HQ has to permit the channel. Read, never written, here.
@@ -419,8 +501,8 @@ function TemplateRow({
             </Badge>
           ) : null}
           {/* A badge, not a sentence per row. The full explanation is one line in
-              the card header — repeated on all seven rows it doubled every row's
-              height and said the same thing seven times, which is exactly what
+              the card header — repeated on all six rows it doubled every row's
+              height and said the same thing six times, which is exactly what
               the Reminders matrix avoids by keeping one notice per locked
               column rather than one per cell. */}
           {!sends ? (
@@ -475,7 +557,7 @@ function ChannelCard({
   const ungranted = !grant[channel]
   // All off is the default state for WhatsApp, not an edge case: DEFAULT_EVENTS
   // ships it false on every event. So it has to read as "nothing is switched on
-  // yet", not as seven broken rows.
+  // yet", not as six broken rows.
   const allOff = offCount === COMMS_EVENTS.length
 
   return (
@@ -517,7 +599,7 @@ function ChannelCard({
           scroll its rows internally for a while — the Form templates idiom — but
           that card is the whole of its panel, and this one isn't. Inside a fixed
           680px dialog with a header, a tab bar and a card header above it, an
-          inner port left ~4 of 7 rows visible while the panel scrolled anyway,
+          inner port left ~4 of 6 rows visible while the panel scrolled anyway,
           so there were two scrollbars for one list. And this panel is going to
           gain cards (PRO-865's manual templates), which an inner port doesn't
           scale to. */}

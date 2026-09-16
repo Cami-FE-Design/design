@@ -63,10 +63,14 @@ import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
 import { CommsTemplatesPanel } from "@/components/blocks/comms-templates-panel"
+import { CardJourney } from "@/components/blocks/customer-card/card-journey"
+import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
+import { TwoFaces } from "@/components/blocks/customer-card/two-faces"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
 import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
+import { GoogleReviewLinkField } from "@/components/blocks/google-review-link-field"
 import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
 import { TerminalStatus } from "@/components/blocks/hq-terminal-status"
 import { HqTerminalsPanel } from "@/components/blocks/hq-terminals-panel"
@@ -218,6 +222,9 @@ import {
   bookingStaffForLocation,
   slotGroupsForLocation,
 } from "@/lib/booking"
+import { checkGoogleReviewLink } from "@/lib/business-links/links"
+import { getCustomerCard } from "@/lib/customer-card/mock"
+import { CUSTOMER_CARD_THEMES, getCustomerCardTheme } from "@/lib/customer-card/theme"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { CamiPayProvider, ZERO_RATE } from "@/lib/hq-camipay/store"
 import { type HqTerminalStatus, HqTerminalsProvider } from "@/lib/hq-terminals/store"
@@ -243,7 +250,7 @@ import {
   examplePolicyText,
 } from "@/lib/payment-policy/types"
 import type { PetNoteEntry } from "@/lib/pet-notes"
-import { getPublicBusinessBySlug } from "@/lib/public-business"
+import { getPublicBusiness, getPublicBusinessBySlug } from "@/lib/public-business"
 import {
   HEATMAP_DAYS,
   HEATMAP_HOURS,
@@ -393,6 +400,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Terminals (DSG-62)",
       "Notifications settings",
       "Communication templates",
+      "Google review link (PRD-168)",
       "Merchant money surfaces — account summary (DSG-77)",
       "Merchant money surfaces — activity and detail (DSG-78)",
       "Merchant money surfaces — bank account (DSG-75)",
@@ -405,6 +413,9 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Clients and pets import — review states (DSG-84)",
       "Performance dashboard — chart primitives",
       "Reporting module (DSG-43 / PRO-703)",
+      "Customer card — per-venue theming",
+      "Client card — the two faces",
+      "Client card — message to card",
     ],
   },
   {
@@ -666,8 +677,8 @@ function ClientVisitsDemo({ cta, isOwner = false }: { cta: string; isOwner?: boo
         open={open}
         onOpenChange={setOpen}
         client={{
-          id: "noor-haddad-1",
-          name: "Noor Haddad",
+          id: "millie-cassidy",
+          name: "Millie Cassidy",
           phone: "+971 58 509 9313",
         }}
         isOwner={isOwner}
@@ -2484,7 +2495,7 @@ export function PlaygroundShowcase() {
       >
         <Section
           title="Client detail dialog"
-          description="Centered Dialog modeled on <BusinessDetailDialog>. ~630px wide; sticky header with avatar + name + meta + Book now + Actions + Close; horizontal underline tabs with a 'More' overflow dropdown for less-used sections (Documents, Settings). Skeleton — each tab renders a placeholder; real content arrives per section."
+          description="Centered Dialog modeled on <BusinessDetailDialog>. ~630px wide; sticky header with avatar + name + meta + Book now + Actions + Close; horizontal underline tabs with a 'More' overflow dropdown for less-used sections (Documents, Settings). Overview leads with one block — identity chips (locality, source + since, tags) over a condensed lifetime strip (appts / AED sales / no-shows / upcoming; no-shows opens the list) — then Visits (Next above Last, with one-tap Rebook), Wallet (loyalty, gift card, membership, packages), Preferences, Pets as chips, Notes. Everything is per client: address, source, active-since, tags, pets, sales, appointments and packages all come off the client record, so no two clients read alike. Open several from /clients rather than judging it on one."
         >
           <Row label="Pets">
             <SegmentedToggle
@@ -2504,7 +2515,7 @@ export function PlaygroundShowcase() {
             open={detailOpen}
             onOpenChange={setDetailOpen}
             client={{
-              id: "millie-cassidy-1",
+              id: "millie-cassidy",
               name: "Millie Cassidy",
               phone: "+971 58 509 9313",
               recencyLabel: "First visit",
@@ -2910,7 +2921,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — client visits at another branch"
-          description="SCR-07 (R13, R18, G1). One client, four visits, three branches. The read is never narrowed — franchise views are out of scope, so this is one business with one owner and one P&L, and reception cannot answer 'what did I pay last time' by telephoning the other branch. What a grant narrows is what you may *do*: open it as the owner and every visit carries its actions; open it as JVC reception and the Jumeirah visit still reads in full — price included — with its buttons replaced by the reason they are gone. Al Quoz is paused, so it takes no writes from anyone, owner included: the one state a grant cannot unlock. Overview gains 'Visits by branch', which is the thing the rows stop telling you once nine branches and a scroll are between them. The single-branch case — no branch anywhere on the screen, per PRD §12 — is the `spansBranches` rule, covered in lib/locations/visit-access.test.ts rather than here, because these fixtures always span."
+          description="SCR-07 (R13, R18, G1). Millie: four visits and three sales across three branches. The read is never narrowed — franchise views are out of scope, so this is one business with one owner and one P&L, and reception cannot answer 'what did I pay last time' by telephoning the other branch. What a grant narrows is what you may *do*: open it as the owner and every visit carries its actions; open it as JVC reception and the Jumeirah visit still reads in full — price included — with its buttons replaced by the reason they are gone. Al Quoz is paused, so it takes no writes from anyone, owner included: the one state a grant cannot unlock. Overview gains 'Visits by branch', which is the thing the rows stop telling you once nine branches and a scroll are between them. The single-branch case — no branch anywhere on the screen, per PRD §12 — is the `spansBranches` rule, covered in lib/locations/visit-access.test.ts rather than here, because these fixtures always span."
         >
           <Row label="Owner · holds every branch" align="start">
             <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
@@ -3619,7 +3630,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Notifications settings"
-          description="Three cards: Sender ID (the registered value, with 'Customers currently see CAMI' only when the two differ, and Edit disabled while a registration is pending), Reminders (7 events × 3 channels with per-message rates, event labels linking into their template editor, stacking into per-event blocks below sm), and Usage this month (share-of-cost meter, straight-line month-end estimate, totals from a period aggregate rather than the paginated log). Three faint demo controls bottom-right walk the Sender ID states and the WhatsApp grant. See docs/specs/notifications-sender-id-and-rates.md."
+          description="Three cards: Sender ID (the registered value, with 'Customers currently see CAMI' only when the two differ, and Edit disabled while a registration is pending), Reminders (6 events × 3 channels with per-message rates, event labels linking into their template editor, stacking into per-event blocks below sm), and Usage this month (share-of-cost meter, straight-line month-end estimate, totals from a period aggregate rather than the paginated log). Three faint demo controls bottom-right walk the Sender ID states and the WhatsApp grant. See docs/specs/notifications-sender-id-and-rates.md."
         >
           <Row label="Live (Settings + Log tabs)">
             <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
@@ -3634,7 +3645,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Communication templates"
-          description="DSG-83 — Notifications decides whether an event sends, this decides its wording, so there is no send toggle here. Per-channel tabs over one card of 7 rows keyed on the same event list the Reminders matrix uses. The editor is form left, sticky preview right, with clickable {{placeholder}} chips; an unknown token sends as written rather than being blanked, because a typo has to be visible here and not in a customer's inbox. See docs/specs/DSG-83-communication-templates.md."
+          description="DSG-83 — Notifications decides whether an event sends, this decides its wording, so there is no send toggle here. Per-channel tabs over one card of 6 rows keyed on the same event list the Reminders matrix uses. The editor is form left, sticky preview right, with clickable {{placeholder}} chips; an unknown token sends as written rather than being blanked, because a typo has to be visible here and not in a customer's inbox. {{cardLink}} is the newest chip — the customer-card link the Client Card brief wants in every message, line-scoped like the review link so a venue without a card takes the whole line rather than leaving a dangling label. See docs/specs/DSG-83-communication-templates.md."
         >
           <Row label="Live (Email + WhatsApp tabs)">
             <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
@@ -3645,6 +3656,19 @@ export function PlaygroundShowcase() {
                 <CommsTemplatesPanel />
               </Suspense>
             </div>
+          </Row>
+        </Section>
+        <Section
+          title="Google review link (PRD-168)"
+          description="One merchant-level link, and the validation that decides whether the feature works at all. A Google Business Profile URL and a Google *review* URL are different things: the first drops the customer on the listing to hunt for “Write a review”, the second opens the review box. PILOT-30 exists because the previous tool got this wrong and the merchant lost ~50 reviews without noticing. A listing URL therefore saves with a warning rather than being rejected — better than an empty field — and anything non-Google is refused. When nothing is set the review line drops out of the Thank You message entirely instead of sending a dangling label, which is what DZ-263 reported. See docs/specs/PRD-168-google-business-profile.md."
+        >
+          <Row label="Field — live (writes the shared setting)">
+            <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-6">
+              <GoogleReviewLinkField id="playground-google-review-link" help="full" />
+            </div>
+          </Row>
+          <Row label="What each paste is recognised as">
+            <GoogleLinkChecks />
           </Row>
         </Section>
         <Section
@@ -4233,6 +4257,62 @@ export function PlaygroundShowcase() {
               <DashboardReport report={reportPerformanceOverTime} />
             </div>
           ) : null}
+        </Section>
+        <Section
+          title="Customer card — per-venue theming"
+          description="Task 2 + 3 of the Client Card brief. The same client record, faced at the customer: wallet (gift card / package / membership), loyalty balance with distance to the next reward, the next appointment, and staff-maintained preferences marked as such — then one path back to booking. Drawn from the same client row the operator dialog renders — one record, two faces, which is what the brief's side-by-side is a test for. The operator half leads with client notes, the same ones the calendar previews. Everything reception-only (no-shows, lifetime sales, source, tags, internal notes) is excluded where the view is built, so it cannot leak onto this face by a careless prop spread. Theming is settled: a venue picks one of five palettes and typography stays Cami's Manrope, because merchant fonts cost a licence, a load and a rendering difference per merchant forever. The previews below therefore read as five versions of one card rather than five brands — that is the shape of the trade, not a gap left to close. Behind the card sits the venue's own cover photo, blurred and scrimmed in the palette's shell colour; a venue with no photo keeps the flat ground. The empty card teaches the difference between the two kinds of nothing: the wallet keeps its outline because Purr Palace sells packages and this client has none, while loyalty is absent entirely because that venue runs no programme — gone reads as 'this venue doesn't show you that', which is the wrong sentence for an empty balance. Live at /sota/card; the door in from a message is /sota/card/[token]."
+          lazy
+        >
+          <Row label="Themes">
+            <LazyMount minHeight={440}>
+              <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+                {CUSTOMER_CARD_THEMES.map((theme) => (
+                  <CustomerCardPreview key={theme.id} themeId={theme.id} label={theme.label} />
+                ))}
+              </div>
+            </LazyMount>
+          </Row>
+          <Row label="Empty">
+            <LazyMount minHeight={340}>
+              <div className="grid w-full grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-5">
+                <CustomerCardPreview
+                  slug="purr-palace"
+                  themeId="sage"
+                  label="Empty wallet, no loyalty programme"
+                />
+              </div>
+            </LazyMount>
+          </Row>
+          <Row label="The door">
+            <a
+              href="/sota/card/demo"
+              className="text-sm font-medium text-foreground hover:underline"
+            >
+              Branded login — /sota/card/demo
+            </a>
+          </Row>
+        </Section>
+        <Section
+          title="Client card — the two faces"
+          description="The brief's own side-by-side, runnable. Both halves are drawn from one client row (Maaz Shaffi) by the same resolver: identity, wallet, last/next appointment and preferences appear on both, and nothing about the layout, type or colour crosses between them. That is the test the brief sets for whether the record is venue-agnostic before Tech commits to a schema — and the asymmetries it caught are why preferences now exist on the operator side at all, and why gift card and membership stopped being visible to the customer but not to their own salon. Reception-only fields (no-shows, lifetime sales, source, tags, internal notes) are excluded where the customer view is built, not by remembering."
+          lazy
+        >
+          <Row label="One record" align="start">
+            <LazyMount minHeight={600}>
+              <TwoFaces clientId="maaz-shaffi" slug="sota" />
+            </LazyMount>
+          </Row>
+        </Section>
+        <Section
+          title="Client card — message to card"
+          description="The brief's page 6, runnable: trigger → message → branded login → their card. Each of the four works on its own; four working screens is not the same as a journey that works. Two things this is for. The venue's mark now appears in panel 2 and carries through 3 and 4 unbroken — before, the message was a grey notification from nobody and the branded page was the first branded thing a customer met, one tap too late. And panel 3 is the only place the customer is told the link is personal while panel 4 is everything that link exposes: seeing them adjacent is the honest way to judge the token-as-credential trade."
+          lazy
+        >
+          <Row label="End to end" align="start">
+            <LazyMount minHeight={380}>
+              <CardJourney slug="sota" clientId="maaz-shaffi" />
+            </LazyMount>
+          </Row>
         </Section>
       </Lane>
       <Lane id="hq" label="Cami HQ" blurb="Our own control plane over Partners.">
@@ -5060,5 +5140,95 @@ function HqNotificationsDemo({ slug }: { slug: string }) {
       business={business}
       onUpdate={(patch) => setBusiness((prev) => (prev ? { ...prev, ...patch } : prev))}
     />
+  )
+}
+
+/**
+ * Playground-only: what `checkGoogleReviewLink` makes of each shape a merchant
+ * might paste. Rendered as data rather than as four live fields, because the
+ * field writes to one shared setting — four of them would fight over it.
+ */
+function GoogleLinkChecks() {
+  const samples = [
+    "https://g.page/r/CShampoochJVC/review",
+    "https://search.google.com/local/writereview?placeid=ChIJ12345",
+    "https://www.google.com/maps/place/Shampooch+JVC/@25.05,55.2",
+    "https://g.page/shampooch-jvc",
+    "https://facebook.com/shampooch",
+    "not a url at all",
+  ]
+  const tone: Record<string, string> = {
+    review: "bg-cami-green-2 text-cami-green-12",
+    listing: "bg-cami-yellow-2 text-cami-yellow-12",
+    invalid: "bg-destructive/10 text-destructive",
+    empty: "bg-muted text-muted-foreground",
+  }
+  return (
+    <div className="flex w-full max-w-2xl flex-col gap-2">
+      {samples.map((sample) => {
+        const check = checkGoogleReviewLink(sample)
+        return (
+          <div
+            key={sample}
+            className="flex flex-col gap-1 rounded-xl border border-border/60 p-3 text-sm leading-5"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <code className="min-w-0 truncate text-xs text-muted-foreground">{sample}</code>
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+                  tone[check.kind],
+                )}
+              >
+                {check.kind}
+              </span>
+            </div>
+            {check.message ? <p className="text-muted-foreground">{check.message}</p> : null}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+/**
+ * One customer card at gallery size. Shrunk rather than reflowed: the row exists
+ * to compare palettes, and a card that re-laid-out at preview width would be
+ * comparing two things at once.
+ *
+ * `zoom` rather than `transform: scale`, which is the usual trick here (see
+ * InvoicePreview). A transform leaves the layout box at full size, so the
+ * preview needs a hardcoded height — and any guess is wrong for a card whose
+ * height depends on its content: the empty Purr Palace card left a third of its
+ * box as bare shell colour. `zoom` shrinks the layout box too, so every preview
+ * ends exactly where its card ends.
+ */
+function CustomerCardPreview({
+  slug = "sota",
+  themeId,
+  label,
+}: {
+  slug?: string
+  themeId: string
+  label: string
+}) {
+  const business = getPublicBusiness(slug)
+  const card = getCustomerCard(slug)
+  if (!business || !card) return null
+  const theme = getCustomerCardTheme(slug, themeId)
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="overflow-hidden rounded-xl border border-border/60">
+        <div className="w-[520px] [zoom:0.42]">
+          <CustomerCard business={business} card={card} theme={theme} />
+        </div>
+      </div>
+      <a
+        href={`/${slug}/card?theme=${themeId}`}
+        className="text-xs font-medium text-foreground hover:underline"
+      >
+        {label}
+      </a>
+    </div>
   )
 }

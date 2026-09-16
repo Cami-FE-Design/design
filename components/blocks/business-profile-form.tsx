@@ -3,9 +3,15 @@
 import { BanknoteIcon, Building2Icon, FlagIcon, GlobeIcon, PercentIcon, XIcon } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useRef, useState } from "react"
+import { GoogleReviewLinkField } from "@/components/blocks/google-review-link-field"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
-import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
+import {
+  FacebookGlyphIcon,
+  GoogleGlyphIcon,
+  InstagramGlyphIcon,
+  XGlyphIcon,
+} from "@/components/blocks/social-icons"
 import { Button } from "@/components/ui/button"
 import { DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -16,6 +22,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { displayGoogleReviewLink } from "@/lib/business-links/links"
+import { useBusinessLinks } from "@/lib/business-links/store"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
@@ -36,6 +44,7 @@ type FocusField =
   | "twitter"
   | "instagram"
   | "website"
+  | "googleReview"
 type SummaryItem = {
   icon: IconComponent
   label: string
@@ -60,6 +69,9 @@ const EXTERNAL_LINKS_SUMMARY: SummaryItem[] = [
   { icon: XGlyphIcon, label: "X (Twitter)", value: null, field: "twitter" },
   { icon: InstagramGlyphIcon, label: "Instagram", value: null, field: "instagram" },
   { icon: GlobeIcon, label: "Website", value: "www.shampooch.ae", field: "website" },
+  // Value comes from the store, not this list — it is the one external link the
+  // product reads at send time, so it has real state. See lib/business-links.
+  { icon: GoogleGlyphIcon, label: "Google review link", value: null, field: "googleReview" },
 ]
 
 /**
@@ -70,6 +82,7 @@ const EXTERNAL_LINKS_SUMMARY: SummaryItem[] = [
  */
 export function BusinessProfileForm() {
   const { name: businessName } = useDemoBusiness()
+  const { googleReviewLink } = useBusinessLinks()
   const [editing, setEditing] = useState(false)
   const [focusField, setFocusField] = useState<FocusField | null>(null)
 
@@ -130,7 +143,11 @@ export function BusinessProfileForm() {
                 key={row.label}
                 icon={row.icon}
                 label={row.label}
-                value={row.field === "businessName" ? businessName : row.value}
+                value={
+                  row.field === "googleReview"
+                    ? displayGoogleReviewLink(googleReviewLink)
+                    : row.value
+                }
                 onAdd={() => openEdit(row.field)}
               />
             ))}
@@ -352,6 +369,10 @@ function BusinessDetailsEditDialog({
                 <Field label="Website">
                   <Input ref={setFieldRef("website")} defaultValue="www.shampooch.ae" />
                 </Field>
+                <GoogleReviewLinkField
+                  id="business-google-review-link"
+                  inputRef={setFieldRef("googleReview")}
+                />
               </div>
             </section>
           </div>

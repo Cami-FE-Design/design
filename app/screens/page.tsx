@@ -160,6 +160,11 @@ const SECTIONS: Section[] = [
         note: "Second mock to confirm the page is data-driven, not hardcoded",
       },
       {
+        path: "/sota",
+        label: "Live business · hair salon, no pets",
+        note: "The venue the Client Card brief is written against — its card can be held next to page 4 of the PDF and read line for line. The only non-pet business in the mocks, so it is also the one to open when checking that nothing assumes a pet is on the booking. To run the operator app as Sota rather than Shampooch, pick it from the workspace menu top-left: Branding then edits Sota's palette and the message previews wear it. One seam to know about — the client directory is shared, so switching venue does not change who is in the Clients list.",
+      },
+      {
         path: "/no-such-business",
         label: "404, slug not found",
         note: "An unknown slug, and a business that exists but is not live yet, both land here — the public site never confirms that a name is taken.",
@@ -168,6 +173,59 @@ const SECTIONS: Section[] = [
         path: "/draft-business",
         label: "404, business not yet live",
         note: "Slug exists but isLive is false, hidden behind the same not-found page",
+      },
+    ],
+  },
+  {
+    lane: "public",
+    title: "Customer card, the record a customer opens (Client Card brief)",
+    description:
+      "The client record faced at the customer instead of at reception: wallet (gift card / package / membership), loyalty balance with the distance to the next reward, next appointment, and staff-maintained preferences labelled as such. Everything reception-only — no-shows, lifetime sales, source, internal notes — is excluded in the type (lib/customer-card/mock.ts) rather than merely left off the page, so it cannot leak onto this face later. Theming is the constrained v1: a venue picks one of five palettes and typography stays Cami's in all of them. Not indexed, same as /pay/[token].",
+    screens: [
+      {
+        path: "/sota/card",
+        label: "Sota, the customer face of the same record",
+        note: "Compare against page 4 of the brief, and against /clients?client=maaz-shaffi, which is the same row seen by reception. The layout and data match; the wordmark does not — the brief's is a serif, this is Cami's Manrope, and that is settled rather than pending. Merchant fonts were ruled out on what they cost to run at scale, not on how Sota's mockup looks: every extra typeface is a licence, a load and a rendering difference, once per merchant forever. A venue's identity therefore rides on palette alone; every venue gets the same type at the same tracking.",
+      },
+      {
+        path: "/sota/card?theme=ink",
+        label: "Same card, different palette",
+        note: "The strip under the card is the menu a merchant picks from — five palettes, one typeface. The venue's own photo sits behind the card, blurred past reading and scrimmed in the palette's own shell colour, so a client recognises their salon before they read a word and the merchant's colour still decides the mood. Worth walking all five to see how far colour alone carries a brand, since colour is the whole of what varies.",
+      },
+      {
+        path: "/shampooch-jvc/card",
+        label: "Grooming venue, pets in preferences",
+        note: "Confirms the card is data-driven: same component, a pet business's wallet and a groomer instead of a stylist.",
+      },
+      {
+        path: "/purr-palace/card",
+        label: "Empty wallet, nothing booked",
+        note: "What most customers see on a first visit — a client with no packages, no points and nothing booked. It is the screen that teaches the difference between the two kinds of nothing. Wallet and Upcoming stay as outlines, because 'you have none yet' is the true reading of an empty wallet at a venue that sells packages. Loyalty is gone entirely, because Purr Palace runs no loyalty programme — that section is absent rather than empty, and absent correctly reads as 'this venue doesn't show you that'. Open /sota/card beside it: same component, a venue that does run one.",
+      },
+      {
+        path: "/sota/card/demo",
+        label: "The door in from a message",
+        note: "Where the {{cardLink}} token in every confirmation, reminder and thank-you lands. Settled: the token in the link IS the credential, so Continue confirms who is about to open rather than verifying it — one tap from WhatsApp, no code. The cost is that a forwarded confirmation forwards the link, which is why the card is read-only (nothing on it spends or edits) and why this screen says the link is personal. Any future edit or redeem control on the card breaks that and needs its own step-up.",
+      },
+      {
+        path: "/playground#client-card-the-two-faces",
+        label: "The two faces, side by side",
+        note: "The brief's own page 4, and the reason it is a test rather than a drawing: both halves are rendered from one client row, so a field that only one side should see has to be excluded somewhere visible rather than simply left off a mockup. Reception's half carries no-shows, lifetime sales, source and tags; the customer's carries none of them. Preferences are the single row on both, because they are the one thing staff write and the customer reads.",
+      },
+      {
+        path: "/playground#client-card-message-to-card",
+        label: "The flow, trigger to card",
+        note: "Four screens that each work do not prove the journey does, so the trigger, the WhatsApp message, the branded door and the card sit in one row. Worth reading left to right once: the venue's palette has to be on the message, or the branded page is the first branded thing the customer meets, one tap too late.",
+      },
+      {
+        path: "/playground#customer-card-per-venue-theming",
+        label: "The same card in all five palettes",
+        note: "The whole menu a merchant picks from, so the brand delta can be judged across the set rather than from one mockup. Five palettes and one typeface: type never varies, because every extra face is a licence, a load and a rendering difference per venue, forever. What is being judged here is whether colour alone carries a venue — that is the open question the pilot answers (PRD-176 D1), not a gap left to close.",
+      },
+      {
+        path: "/sota/card/demo-expired",
+        label: "The same door, link expired",
+        note: "The other half of the token-as-credential bargain: the link stops working, so a forwarded confirmation is not a permanent key. Any token the venue did not issue lands here too — a made-up one is answered exactly like a dead one, so nobody can tell from the screen which guesses were close. A branded screen rather than a 404 — the person holding a stale link is a customer who tapped what their salon sent them. It names no balance, appointment or preference, because nobody holding a stale link has been verified.",
       },
     ],
   },
@@ -308,12 +366,16 @@ const SECTIONS: Section[] = [
       "E2-4 Owner first-time setup. 5-step flow with a separate Go-live page. Welcome step removed, `/setup` lands the Owner directly on About. Services, Staff, and Preview steps are deferred until those features ship.",
     screens: [
       { path: "/setup", label: "Wizard entry (redirects to About)" },
-      { path: "/setup/about", label: "Step 1 · About your business" },
+      {
+        path: "/setup/about",
+        label: "Step 1 · About your business",
+        note: "Now also asks for the Google review link (PRD-168). A field here rather than a step of its own: reviews are the biggest acquisition channel a salon has, but a merchant mid-signup rarely has that URL to hand, so a dedicated step buys a high skip rate on a page everyone must pass through. Optional, never blocks Continue — the empty-state notice in the template editor is what actually gets it filled in.",
+      },
       { path: "/setup/type", label: "Step 2 · Business type" },
       {
         path: "/setup/location",
         label: "Step 3 · Location",
-        note: "Map slot is a placeholder; engineers wire the picker when the map dependency lands.",
+        note: "The search box is now the shared AddressSearchField (docs/specs/address-search-field.md) rather than a decorative input with a ‘Demo: select sample address’ link behind it. Type ‘jum’, ‘bay’ or ‘quoz’ for suggestions; manual entry is the first row of the dropdown rather than the reward for a failed search, and a picked place carries its pin (PRD-144). Picking one fills the Business location grid below — address, district, city, state — which stays and stays editable, because a places result is a starting point and the trade licence is what has to match. Apt and postcode survive a pick rather than being wiped, since a UAE map result rarely carries either. Map slot stays a placeholder until the map dependency lands.",
       },
       { path: "/setup/invoicing", label: "Step 4 · Invoicing" },
       { path: "/setup/hours", label: "Step 5 · Business hours" },
@@ -402,16 +464,56 @@ const SECTIONS: Section[] = [
       "E2-7 Pet Parent & Pet Directory. Operator-facing clients list with search, sort, and a detail dialog. Mode toggle switches between with-pets (Pets column visible) and without-pets businesses.",
     screens: [
       { path: "/clients", label: "Clients directory (with pets)" },
+      {
+        path: "/clients?tags=client-vip",
+        label: "Clients directory · filtered by tag",
+        note: 'The brief\'s last complaint about the profile is that tags are "supported, but no reason for staff to fill them in today". This is the reason: the Tags control — named for the only thing it filters by, rather than a generic Filters icon — lists only tags somebody has actually applied, with how many clients carry each, and selecting two narrows rather than widens — "VIP who also tips well" is the query worth tagging for. A tag that filters is worth applying; one that only decorates a profile is not.',
+      },
       { path: "/clients?mode=without-pets", label: "Clients directory (without pets)" },
       {
+        path: "/clients?client=maaz-shaffi",
+        label: "Client detail · the brief's own record",
+        note: 'Both halves are on one screen in /playground under "Client card — the two faces"; this is the operator half on its own. Open it beside /sota/card. Both faces are drawn from this one client row and nothing about the layout, type or colour survives the crossing — which is what the brief\'s side-by-side is a test for. Reception sees no-shows, lifetime sales, source and tags; the customer sees none of those, and the split is enforced in the type rather than by remembering. Preferences appear on both, because they are the one field staff maintain and the customer reads.',
+      },
+      {
         path: "/clients?client=millie-cassidy",
-        label: "Client detail · multi-pet owner",
-        note: "Opens the detail dialog over the directory. Pets tab shows Bobo, Mochi, Kiwi.",
+        label: "Client detail · Overview, the full record",
+        note: "The rebuilt Overview (Client Card brief, task 1). One block carries identity chips over the lifetime strip; then client notes, Visits with Next above Last and a one-tap Rebook, Packages & loyalty, pets as chips. Notes sit second because reception opens a profile to recall something before speaking, and they are the same notes the calendar previews — Add note opens the same dialog the appointment sheet uses. Three packages, so the card's collapse is visible. Address chip opens Google Maps. Every field here is this client's own — open the rows below before judging any of it, because the whole point is that no two read alike.",
+      },
+      {
+        path: "/clients?client=karen-dougall",
+        label: "Client detail · four client notes",
+        note: "The case that sets the budget on Overview. Karen has four notes, one of them three lines, so the card shows two and sends the rest to Documents — uncapped it pushes Rebook off the first screen, and rebooking is the most repeated thing reception does. Open Documents on the same client for the archive, where every note renders whole.",
+      },
+      {
+        path: "/clients?client=kirsty-dingomal",
+        label: "Client detail · booked, never yet seen",
+        note: "Confirmed for Sunday, no history: Visits leads with the booking and the Last row says so, which is when Rebook has nothing to repeat. No address, no tags, AED 0, no packages — four empty states in one screen, and the case a new client actually lands on.",
+      },
+      {
+        path: "/clients?client=grace-kent",
+        label: "Client detail · lapsed, nothing booked",
+        note: "The mirror of the row above: a history and an empty Next. Rebook is the only thing on the card worth pressing, which is why Next sits above Last rather than under it.",
+      },
+      {
+        path: "/clients?client=tom-cassidy&tab=documents",
+        label: "Client detail · allergies and patch tests",
+        note: "Forms and files come first on this tab now — they are what gets opened before an appointment, where a patch test is read only when something depends on it. Both of these are records, not preferences, so neither is typed into the customer-visible summary — \"On file\" written by hand is a claim with nothing behind it. A patch test carries two independent things: how it went (pending / passed / failed) and whether it is still current, which is derived from the tested date and never stored. Tom's passed in January and has lapsed on its own; Maaz's is valid until February; Kirsty's is pending. Millie has an allergy, Maaz has \"No known allergies\" — a recorded answer, not an empty list, and the difference matters at the chair. The add forms are deliberately not designed: see the ticket's D2.",
+      },
+      {
+        path: "/clients?client=amy",
+        label: "Client detail · repeat no-shows",
+        note: "Two no-shows and a refund. The tomato count in the header and the No-shows cell in the strip both open the same list; a refunded sale sits on the Sales tab.",
+      },
+      {
+        path: "/clients?client=luke",
+        label: "Client detail · four pets",
+        note: "Pet chips wrap instead of pushing the rest of Overview below the fold — the reason they stopped being stacked rows.",
       },
       {
         path: "/clients?client=charmaine-hayes",
-        label: "Client detail · no pets",
-        note: "Client with zero pets in pet mode — Pets tab still renders, empty state visible.",
+        label: "Client detail · no pets, no activity",
+        note: "Zero pets in pet mode: the Pets tab still renders its empty state, and Overview holds with nothing in any card.",
       },
       {
         path: "/clients?add=1",
@@ -1237,7 +1339,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=notifications",
         label: "Notifications, settings",
-        note: "Three cards. Sender ID carries the registered value, with the 'Customers currently see CAMI' line only when the two differ, and Edit disabled while a registration is pending. Reminders is 7 events × 3 channels with the per-message rate under each channel and event labels linking into their template editor; below sm it stacks into per-event blocks rather than scrolling sideways. Usage this month leads with a share-of-cost meter and a month-end estimate, totals from a period aggregate rather than the paginated log. Three faint demo controls bottom-right walk the Sender ID states and the WhatsApp grant. See docs/specs/notifications-sender-id-and-rates.md.",
+        note: "Three cards. Sender ID carries the registered value, with the 'Customers currently see CAMI' line only when the two differ, and Edit disabled while a registration is pending. Reminders is 6 events × 3 channels with the per-message rate under each channel and event labels linking into their template editor; below sm it stacks into per-event blocks rather than scrolling sideways. Usage this month leads with a share-of-cost meter and a month-end estimate, totals from a period aggregate rather than the paginated log. Three faint demo controls bottom-right walk the Sender ID states and the WhatsApp grant. See docs/specs/notifications-sender-id-and-rates.md.",
       },
       {
         path: "/shell-demo?settings=notifications&nt=sender",
@@ -1262,7 +1364,12 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=comms-templates",
         label: "Communication templates, list",
-        note: "DSG-83, the companion to the Notifications panel: that one decides whether an event sends, this one decides its wording — so there is deliberately no send toggle here. Per-channel tabs over one card of 7 rows, keyed on the same event list the Reminders matrix uses. WhatsApp rows show the resolved body without the shared 'Hi {{client}}' opener; email rows show the subject. Open the WhatsApp tab for the shipped default, where nothing is switched on yet. SMS is out of the ticket's scope. See docs/specs/DSG-83-communication-templates.md.",
+        note: "DSG-83, the companion to the Notifications panel: that one decides whether an event sends, this one decides its wording — so there is deliberately no send toggle here. Per-channel tabs over one card of 6 rows, keyed on the same event list the Reminders matrix uses. WhatsApp rows show the resolved body without the shared 'Hi {{client}}' opener; email rows show the subject. Open the WhatsApp tab for the shipped default, where nothing is switched on yet. The preview now carries the venue's own mark — on email as a brand row above the subject plus a signed-off footer, on WhatsApp as the business profile above the bubble, which is the entire brand surface that channel gives a venue. Before, branding was a sender name, so the page the link opened was the first branded thing a customer met, one tap too late. Four of the six now carry a {{cardLink}} line — the door into the customer card (Client Card brief, task 3), line-scoped like the review link so a business without a card sends a message that is simply one line shorter. To watch that happen, rename the demo business (the building icon beside the workspace menu) to a name no venue has: the link has nowhere to point, so the line leaves the message rather than arriving with nothing after it. Label and URL therefore share a line — split across two, dropping the token would strand the label, which is the exact failure the rule exists to prevent. SMS is out of the ticket's scope. See docs/specs/DSG-83-communication-templates.md.",
+      },
+      {
+        path: "/shell-demo?settings=branding",
+        label: "Branding",
+        note: 'Where a merchant picks the palette their clients see — until now it was assigned by hand in code, which survives one pilot and nothing after it. Filed under Workspace beside Business details rather than under Messaging: Messaging is about messages, whether one sends and what it says, and this is a page reached from one. The palette set here themes the messages too, which is why it is not called "Customer card". Five themes, a live card as the preview rather than five coloured rectangles, and nothing else — type is Cami\'s for every venue and imagery is out, so the panel is small on purpose rather than unfinished.',
       },
       {
         path: "/shell-demo?settings=comms-templates&ce=booking-confirmed:email",
@@ -1275,9 +1382,19 @@ const SECTIONS: Section[] = [
         note: "The same editor with no subject field — WhatsApp has none, modelled as null rather than an empty string so 'this channel has no subject' and 'the merchant cleared it' stay distinguishable. The preview is the customer's view: a light incoming bubble, not green, because WhatsApp only paints green on the outgoing side and green-on-the-left is the one combination it never renders. Carries the Meta-approval notice — editing WhatsApp copy starts a new template approval, so changes take days to go live, which is worth stating rather than implying a merchant can ship arbitrary copy instantly. Default copy for booking-confirmed, reminder-24h and cancelled is lifted verbatim from the existing template set (Aziz's Pet Loft sheet via ENG-58) rather than reinvented.",
       },
       {
+        path: "/shell-demo?settings=business-details",
+        label: "Google review link, the setting",
+        note: "PRD-168. Fifth row under External links, and the one of the five the product actually reads — whether it is set decides whether a line of the Thank You message exists. Walk all four validation states by pasting into the field: g.page/r/CShampoochJVC/review is clean; google.com/maps/place/Shampooch+JVC/@25.05,55.2 warns and still saves, because a listing link beats an empty field but drops the customer on the listing to hunt for ‘Write a review’; g.page/shampooch-jvc is the near-miss — right host, no /review, so it warns too; facebook.com/shampooch is refused. That exact confusion is why PILOT-30 exists — the merchant’s previous tool linked to Google in a way that never landed a review, and ~50 were lost unnoticed. A non-Google URL is refused outright. See docs/specs/PRD-168-google-business-profile.md.",
+      },
+      {
+        path: "/shell-demo?settings=comms-templates&ce=thank-you:email",
+        label: "Thank You template — the missing-link state",
+        note: "The merged completed-appointment message (invoice + review + rebook), which production sends as one email and this repo used to model as two events. With no review link set, the editor warns and the preview drops the review line entirely — compare it with the body on the left, which still has it. That is the fix for DZ-263: the old behaviour printed ‘⭐ Rate your experience:’ with nothing after it to every completed appointment. Set a link under Business details and the line reappears here.",
+      },
+      {
         path: "/shell-demo?settings=notifications",
         label: "Reminders matrix → template links",
-        note: "The hand-off the notification spec wrote for itself: 'this spec's Reminders card degrades gracefully into a row of template links when that lands.' Each event label is now a link into that event's editor — underlined on hover only, since underlining all seven permanently turned the table into a list of links and the switches are what this card is for. The link targets the email template, because email is the one channel always granted, so it can never land on a channel this merchant doesn't have. Also the way to review the partly-off state: switch some events on for WhatsApp here, then open Communication templates — the remaining rows carry an 'Off' badge and stay editable, and the header counts them.",
+        note: "The hand-off the notification spec wrote for itself: 'this spec's Reminders card degrades gracefully into a row of template links when that lands.' Each event label is now a link into that event's editor — underlined on hover only, since underlining all six permanently turned the table into a list of links and the switches are what this card is for. The link targets the email template, because email is the one channel always granted, so it can never land on a channel this merchant doesn't have. Also the way to review the partly-off state: switch some events on for WhatsApp here, then open Communication templates — the remaining rows carry an 'Off' badge and stay editable, and the header counts them.",
       },
     ],
   },
@@ -1357,7 +1474,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/businesses?business=shampooch",
         label: "Detail modal, Live state",
-        note: "Dark green Access row, Manage tab with Sign in / Suspend / Archive",
+        note: "Dark green Access row, Manage tab with Sign in / Suspend / Archive. General › Profile also carries the Google review link (PRD-168) — this Partner has one, so compare it with any other in the roster, where it reads ‘Not set’ and that merchant’s Thank You goes out with no review ask. Edit opens the same listing-vs-review validation the merchant gets, in the same tinted notice: ops backfill these in bulk out of WhatsApp messages, so they are the ones most likely to paste a Maps URL.",
       },
       {
         path: "/admin/businesses?business=velvet-paw",
@@ -1567,7 +1684,11 @@ const SECTIONS: Section[] = [
     title: "Demos & playground",
     description: "Internal references for design foundations, shell layout, and component states.",
     screens: [
-      { path: "/shell-demo", label: "Business app shell" },
+      {
+        path: "/shell-demo",
+        label: "Business app shell",
+        note: "The workspace menu top-left is where you change venue: Shampooch JVC, Purr Palace and Sota Hair Studio are the three live ones, and only the signed-in venue shows its second branch. Picking one rebrands the whole demo, so Branding edits that venue's palette and the message previews wear it. The building icon beside it only renames — a prospect's name matches no venue, which is the case where the default palette is correct rather than broken. Known seam: the client directory is shared, so switching venue does not change who is in /clients.",
+      },
       { path: "/playground", label: "Component states" },
       {
         path: "/appointments",

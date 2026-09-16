@@ -11,6 +11,7 @@ import {
   MapPinIcon,
   MessageCircleIcon,
   MessageSquareTextIcon,
+  PaletteIcon,
   TagIcon,
   UserIcon,
   WalletIcon,
@@ -20,6 +21,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useState } from "react"
 import { BusinessProfileForm } from "@/components/blocks/business-profile-form"
 import { CommsTemplatesPanel } from "@/components/blocks/comms-templates-panel"
+import { CustomerCardSettingsPanel } from "@/components/blocks/customer-card-settings-panel"
 import { FilesSection } from "@/components/blocks/documents-files-card"
 import { LocationForm } from "@/components/blocks/location-form"
 import { BillingSettingsPanel } from "@/components/blocks/money/billing-settings-panel"
@@ -68,6 +70,17 @@ const GROUPS: SettingsGroup[] = [
         label: "Business details",
         description: "Legal entity, currency, tax, default languages, and external links.",
         icon: Building2Icon,
+      },
+      // Next to Business details, not under Messaging, and named for what it
+      // is. Messaging is about messages — whether one sends, and what it says.
+      // This is a page, reached from a message the way the booking page is. And
+      // the palette set here now themes the messages too, so filing it as
+      // "Customer card" described a fraction of what it does.
+      {
+        id: "branding",
+        label: "Branding",
+        description: "The palette clients see, on their card and in your messages.",
+        icon: PaletteIcon,
       },
       {
         id: "locations",
@@ -303,6 +316,7 @@ export function AppSettingsDialog({
             {active.id === "notifications" ? <NotificationsSettingsPanel /> : null}
             {active.id === "comms-templates" ? <CommsTemplatesPanel /> : null}
             {active.id === "whatsapp-numbers" ? <WhatsAppNumbersPanel /> : null}
+            {active.id === "branding" ? <CustomerCardSettingsPanel /> : null}
           </div>
         </div>
       </DialogContent>
@@ -347,7 +361,11 @@ function FilesPanel() {
           <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
             Form templates
           </h2>
-          <p className="text-sm leading-5 text-muted-foreground">
+          {/* The only panel blurb long enough to wrap, so it needs the cap the
+              one-line headers get for free: same w-146 footprint as the card
+              below it, otherwise the text runs a full column wider than the
+              thing it describes. */}
+          <p className="max-w-146 text-sm leading-5 text-muted-foreground">
             Reusable forms you can send to clients and pets for signature. Uploads made on a profile
             stay personal to that profile and won&apos;t appear here.
           </p>

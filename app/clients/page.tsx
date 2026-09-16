@@ -22,14 +22,17 @@ import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { TAG_COLOR_CLASS, TAG_LIBRARY } from "@/components/blocks/tag-library"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { SearchInput } from "@/components/ui/search-input"
 import { SegmentedToggle } from "@/components/ui/segmented-toggle"
 import {
@@ -214,6 +217,7 @@ function ClientsIndex() {
         dir: string
         client: string
         add: string
+        tags: string
       }>,
     ) => {
       const params = new URLSearchParams(searchParams.toString())
@@ -254,6 +258,53 @@ function ClientsIndex() {
     updateParams({ client: "" })
   }
 
+  /**
+   * The brief's last complaint about this screen is that tags are "supported,
+   * but no reason for staff to fill them in today". This is the reason: a tag
+   * that filters the list is worth applying, and one that only decorates a
+   * profile is not. It is deliberately the smallest job that makes the field
+   * earn its place — see PRD-176 D3 for the larger ones nobody owns yet.
+   */
+  const activeTags = useMemo(() => {
+    const raw = searchParams.get("tags")
+    return raw ? raw.split(",").filter(Boolean) : []
+  }, [searchParams])
+
+  /**
+   * Only tags somebody has applied, each counted against the *current*
+   * selection rather than the whole directory.
+   *
+   * The count has to answer "what do I get if I click this", because that is
+   * the only question anyone asks a number in a filter list. Counted globally,
+   * two tags deep, "VIP 3" promised three clients and delivered none — nobody
+   * is VIP and Loyal and a great tipper. A number that walks you into an empty
+   * list is worse than no number.
+   *
+   * Tags that would empty the list stay visible and go quiet: hiding them makes
+   * the list jump around as you select, and "that combination has nobody" is
+   * itself the answer someone is looking for.
+   */
+  const tagsInUse = useMemo(() => {
+    const applied = new Set<string>()
+    for (const client of MOCK_CLIENTS) {
+      for (const id of client.tags ?? []) applied.add(id)
+    }
+    return Array.from(applied)
+      .flatMap((id) => {
+        const def = TAG_LIBRARY.find((t) => t.id === id)
+        if (!def) return []
+        const withThis = activeTags.includes(id) ? activeTags : [...activeTags, id]
+        const count = MOCK_CLIENTS.filter((c) => withThis.every((t) => c.tags?.includes(t))).length
+        return [{ id, label: def.label, color: def.color, count }]
+      })
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+  }, [activeTags])
+
+  function toggleTag(id: string) {
+    const next = activeTags.includes(id) ? activeTags.filter((t) => t !== id) : [...activeTags, id]
+    updateParams({ tags: next.join(",") })
+  }
+
   function handleModeChange(next: Mode) {
     updateParams({ mode: next === "with-pets" ? "" : next })
   }
@@ -261,6 +312,10 @@ function ClientsIndex() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
     const filtered = MOCK_CLIENTS.filter((c) => {
+      // Every selected tag has to be on the client, not any of them. Two tags
+      // narrow; "VIP or Walk-in" is a list nobody asks for, where "VIP who is
+      // also a great tipper" is the whole reason to tag anyone.
+      if (activeTags.length > 0 && !activeTags.every((t) => c.tags?.includes(t))) return false
       if (!q) return true
       return (
         c.name.toLowerCase().includes(q) ||
@@ -274,7 +329,7 @@ function ClientsIndex() {
       return dir === "asc" ? cmp : -cmp
     })
     return sorted
-  }, [query, sort, dir])
+  }, [query, sort, dir, activeTags])
 
   const openClient = useMemo(
     () => (openClientId ? (MOCK_CLIENTS.find((c) => c.id === openClientId) ?? null) : null),
@@ -296,8 +351,13 @@ function ClientsIndex() {
         <div className="flex w-full max-w-6xl items-center justify-between gap-3">
           <div className="flex flex-col">
             <h1 className="text-2xl font-medium leading-8 text-foreground">Clients</h1>
+            {/* Counts what is on screen. It counted the whole directory
+                before, so a filtered list read "16 clients" above one row —
+                and the one number that tells you a filter is doing anything
+                was the one number that ignored it. */}
             <p className="text-sm text-muted-foreground">
-              {MOCK_CLIENTS.length} {MOCK_CLIENTS.length === 1 ? "client" : "clients"}
+              {visible.length} {visible.length === 1 ? "client" : "clients"}
+              {visible.length !== MOCK_CLIENTS.length ? ` of ${MOCK_CLIENTS.length}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -331,7 +391,11 @@ function ClientsIndex() {
         </div>
       }
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+      {/* AppShell locks the viewport (h-screen overflow-clip) so the sidebar and
+          topbar stay put — scrolling is the page's job. Without min-h-0 /
+          flex-1 / overflow-y-auto this wrapper clips the table instead of
+          scrolling it, which is what it was doing below Luke. */}
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">
         {/* The pet feature is an account-level flag HQ sets (`pets_enabled`), not
             something an operator switches — it used to sit in the header next to
             Options, which read like a product control. */}
@@ -363,15 +427,93 @@ function ClientsIndex() {
                 defaultValue={query}
                 onValueChange={handleQueryChange}
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon-sm"
-                radius="full"
-                aria-label="Filters"
-              >
-                <SlidersHorizontalIcon className="size-4" />
-              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  {/* Labelled, not a bare icon.
+                      Two reasons. The other control in this toolbar — the sort
+                      pill on the right — carries its own name, so an unnamed
+                      icon beside it does not match its own row. And a filter
+                      nobody opens teaches nobody that tags do anything, which
+                      is the entire reason tags were given a job: the brief's
+                      complaint is that staff have "no reason to fill them in",
+                      and a hidden control is not a reason.
+                      It says "Tags" rather than "Filters" because tags are all
+                      it filters by. A generic name promises filters this list
+                      does not have, and sends someone looking for "unpaid" away
+                      thinking filtering is broken. */}
+                  <Button
+                    type="button"
+                    variant={activeTags.length > 0 ? "secondary" : "outline"}
+                    size="sm"
+                    radius="full"
+                  >
+                    <SlidersHorizontalIcon className="size-4" />
+                    {activeTags.length > 0 ? `Tags · ${activeTags.length}` : "Tags"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-64 p-3">
+                  <div className="flex items-center justify-between gap-2 pb-2">
+                    <span className="text-sm font-medium">Tags</span>
+                    {activeTags.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => updateParams({ tags: "" })}
+                        className="cursor-pointer text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                      >
+                        Clear
+                      </button>
+                    ) : null}
+                  </div>
+                  {tagsInUse.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No tags applied yet.</p>
+                  ) : (
+                    <ul className="flex flex-col gap-1">
+                      {tagsInUse.map((tag) => {
+                        const on = activeTags.includes(tag.id)
+                        const disabled = !on && tag.count === 0
+                        return (
+                          <li key={tag.id}>
+                            {/* A real checkbox, not a tick that appears after
+                                the fact. Reserving space for a tick left a hole
+                                on every unselected row — and the default state
+                                is all of them unselected, so the list read as
+                                misaligned. A checkbox is not dead space: it says
+                                the row is selectable and that more than one may
+                                be, before anyone clicks. */}
+                            <label
+                              htmlFor={`tag-${tag.id}`}
+                              className={cn(
+                                "flex w-full items-center justify-between gap-2 rounded-lg px-2 py-1.5 transition-colors",
+                                disabled ? "opacity-45" : "cursor-pointer hover:bg-muted/50",
+                              )}
+                            >
+                              <span className="flex min-w-0 items-center gap-2.5">
+                                <Checkbox
+                                  id={`tag-${tag.id}`}
+                                  checked={on}
+                                  disabled={disabled}
+                                  onCheckedChange={() => toggleTag(tag.id)}
+                                />
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                                    TAG_COLOR_CLASS[tag.color],
+                                  )}
+                                >
+                                  {tag.label}
+                                </span>
+                              </span>
+                              <span className="shrink-0 text-xs text-muted-foreground">
+                                {tag.count}
+                              </span>
+                            </label>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
           }
           actions={
@@ -400,7 +542,11 @@ function ClientsIndex() {
             variant="card"
             icon={UsersIcon}
             title="No clients match"
-            description="Try a different search."
+            description={
+              activeTags.length > 0
+                ? "No client carries all of these tags. Remove one, or clear the filter."
+                : "Try a different search."
+            }
           />
         ) : (
           <Table className="min-w-[860px]">
