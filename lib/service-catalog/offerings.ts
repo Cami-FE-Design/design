@@ -184,3 +184,36 @@ export function findOffering(
 ): LocationOffering | undefined {
   return offerings.find((o) => o.serviceId === serviceId && o.locationId === locationId)
 }
+
+/**
+ * Whether this branch offers this service at all (DW3.3).
+ *
+ * Unconfigured means offered: a branch that has never been touched runs the
+ * business menu, which is what makes adding branch N cost nothing (R02).
+ * Turning a service *off* is a decision and has to be recorded; leaving it
+ * alone is not.
+ */
+export function isOfferedAt(
+  serviceId: string,
+  locationId: string,
+  offerings: ReadonlyArray<LocationOffering> = LOCATION_OFFERINGS,
+): boolean {
+  return findOffering(serviceId, locationId, offerings)?.enabled ?? true
+}
+
+/**
+ * The branches that do offer a service, out of the ones given.
+ *
+ * For the sentence an operator needs when the branch in hand does not do it.
+ * The client's own booking page hides a service its branch has turned off —
+ * there is nothing a client can do with it — but reception is the person who
+ * can say "not here, but Jumeirah does it", and hiding it leaves them to find
+ * that out by telephone. Same reading as KC1.5: tell them, do not block them.
+ */
+export function locationsOffering(
+  serviceId: string,
+  locationIds: ReadonlyArray<string>,
+  offerings: ReadonlyArray<LocationOffering> = LOCATION_OFFERINGS,
+): string[] {
+  return locationIds.filter((id) => isOfferedAt(serviceId, id, offerings))
+}

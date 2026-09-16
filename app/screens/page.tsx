@@ -1172,6 +1172,16 @@ const SECTIONS: Section[] = [
         note: "The same dialog against three roster rows, isolated. The location permission list marks four of five codes Proposed — the product ships one venues:read that bundles viewing a branch with changing it, so a manager who sets hours cannot yet be stopped from editing tax details or archiving a branch (blueprint §03).",
       },
       {
+        path: "/playground#multi-location-a-write-names-one-branch",
+        label: "A write names one branch · G1, R11 (playground)",
+        note: "Every operational write lands on exactly one branch, and there is no default — the PRD's release criterion says the fallback comes out of the repo rather than being flagged off, and the built calendar still derives one from 'the first venue of the first staff member who has one'. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A paused branch is never a target (R12), so it is absent rather than offered and refused. Now on the appointment sheet — the most-made write in the product, and the one surface that never asked. Save waits for the branch, and the service picker reads against it: a service the branch does not run is marked and one that does is named (DW3.3), while staying pickable, because reception is the person who can say 'not here, but Jumeirah does it'.",
+      },
+      {
+        path: "/appointments",
+        label: "Booking names a branch · G1 (route)",
+        note: "The rule on the surface it matters most. Open New appointment: Location sits first, because it is what the write resolves to and what the service list is read against — asked after the services were chosen, every one of them would need rechecking. Nothing renders for a single-branch business (DW1.2).",
+      },
+      {
         path: "/playground#multi-location-client-visits-at-another-branch",
         label: "Client visits at another branch · SCR-07 (playground)",
         note: "What a branch reads of a client's visits elsewhere (R13, R18). Drawn wide — date, branch, service, price, notes — because R13 exists to make those visits readable, and franchise views are out of scope: one business, one owner, one P&L. The grant gates what you can *do*, not what you can read. Open it as the owner, then as JVC reception: the Jumeirah visit and its part-paid sale stay legible either way, and only the buttons go, replaced by the reason. Al Quoz is paused, so it takes no writes from anyone — the state a grant cannot unlock. Overview gains 'Visits by branch'; the Total sales KPI now counts every branch and says so, rather than showing AED 0 above three sales.",

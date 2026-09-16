@@ -161,6 +161,7 @@ import {
 import { TerminalsPanel } from "@/components/blocks/terminals-panel"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
 import { WhatsAppNumbersPanel } from "@/components/blocks/whatsapp-numbers-panel"
+import { WriteTargetLocation } from "@/components/blocks/write-target-location"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -378,6 +379,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Multi-location — chain setup",
       "Multi-location — branch access grants",
       "Multi-location — client visits at another branch",
+      "Multi-location — a write names one branch",
       "Multi-location — per-branch service pricing",
       "Multi-location — public branch picker",
       "Multi-location — branch WhatsApp numbers",
@@ -685,6 +687,18 @@ function ClientVisitsDemo({ cta, isOwner = false }: { cta: string; isOwner?: boo
       />
     </>
   )
+}
+
+/**
+ * G1 and R11, in the three sentences the rule actually has.
+ *
+ * Each row is its own provider, so the only thing changing between them is the
+ * grant — which is the point: the control is not one message styled three ways,
+ * it says a different thing in each case.
+ */
+function WriteTargetDemo({ action }: { action: string }) {
+  const [locationId, setLocationId] = useState<string | null>(null)
+  return <WriteTargetLocation value={locationId} onChange={setLocationId} action={action} />
 }
 
 function TeamAccessDemo() {
@@ -2916,6 +2930,43 @@ export function PlaygroundShowcase() {
           <Row label="Open a member" align="start">
             <LocationsProvider persist={false}>
               <TeamAccessDemo />
+            </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — a write names one branch"
+          description="G1 and R11 (SCR-05). Every operational write lands on exactly one branch and there is no default, ever — the PRD's release criterion says the default-branch fallback comes out of the repo rather than being flagged off, and the built calendar still derives one from 'the first venue of the first staff member who has one'. This control is the shape that replaces it, and it is three different sentences rather than one styled three ways: with one branch in scope it is resolved and stated, because a select with one option is a question with one answer; with several it is a required choice, which is the whole of 'all-locations is read only for creating'; with none it says no write is possible (R24). A paused branch is never a target — readable, and takes no new entries (R12) — so it is absent from the list rather than offered and refused. It is now on the appointment sheet, which is the most-made write in the product and the one surface that never asked: Save stays disabled until the branch is named, and the service picker reads against it, marking a service the branch does not run and naming one that does (DW3.3). Pickable either way — reception is the person who can say 'not here, but Jumeirah does it', and hiding it leaves them to find that out by telephone. Same reading as KC1.5."
+        >
+          <Row label="One branch in scope · resolved, not asked" align="start">
+            <LocationsProvider
+              persist={false}
+              initialLocations={NINE_BRANCH_ESTATE}
+              initialGrants={["shampooch-jvc"]}
+            >
+              <WriteTargetDemo action="This appointment" />
+            </LocationsProvider>
+          </Row>
+          <Row label="Nine in scope · a required choice" align="start">
+            <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+              <WriteTargetDemo action="This appointment" />
+            </LocationsProvider>
+          </Row>
+          <Row label="Only a paused branch · nowhere to record it (R12)" align="start">
+            <LocationsProvider
+              persist={false}
+              initialLocations={NINE_BRANCH_ESTATE}
+              initialGrants={["shampooch-al-quoz"]}
+            >
+              <WriteTargetDemo action="This appointment" />
+            </LocationsProvider>
+          </Row>
+          <Row label="No grant at all · no access, said out loud (R24)" align="start">
+            <LocationsProvider
+              persist={false}
+              initialLocations={NINE_BRANCH_ESTATE}
+              initialGrants={[]}
+            >
+              <WriteTargetDemo action="This appointment" />
             </LocationsProvider>
           </Row>
         </Section>

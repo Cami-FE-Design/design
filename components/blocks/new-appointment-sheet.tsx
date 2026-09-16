@@ -62,6 +62,7 @@ import { PetNotesFields } from "@/components/blocks/pet-notes-fields"
 import { PickupFields } from "@/components/blocks/pickup-fields"
 import { SendMessageDialog } from "@/components/blocks/send-message-dialog"
 import { ServiceAccentRail } from "@/components/blocks/service-accent-rail"
+import { WriteTargetLocation } from "@/components/blocks/write-target-location"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -441,6 +442,12 @@ export function NewAppointmentSheet({
   const isEdit = flow === "edit"
   const [status, setStatus] = useState<MockBookingStatus>(isEdit ? initialStatus : "booked")
   const [selectedClient, setSelectedClient] = useState<SelectedClient | null>(null)
+  // R11: an appointment is an operational write, so it names one branch and
+  // there is no default. This is the most-made write in the product and the
+  // one surface that never asked — the built calendar derives a venue from
+  // "the first venue of the first staff member who has one", which is the
+  // fallback the PRD's release criterion says to remove rather than flag off.
+  const [locationId, setLocationId] = useState<string | null>(null)
   const [pets, setPets] = useState<SelectedPet[]>(() => defaultPets(startTime))
   // Same list the pickers show, so a combo expands against the services the
   // operator just saw — including any combo created on the service menu.
@@ -490,7 +497,9 @@ export function NewAppointmentSheet({
     0,
   )
   const totalServices = pets.reduce((n, pet) => n + pet.services.length, 0)
-  const canSave = totalServices > 0
+  // Both halves are required: something to book, and somewhere to book it.
+  // A view can span nine branches; a write cannot (G1).
+  const canSave = totalServices > 0 && locationId !== null
   const { name: businessName } = useDemoBusiness()
 
   // Hand the appointment's services to the checkout flow as cart lines. Each
@@ -783,6 +792,7 @@ export function NewAppointmentSheet({
           <ServicePickerPanel
             onBack={() => setMode(pickerIntent === "swap" ? "edit-service" : "appointment")}
             onSelectService={handlePickServiceFromPicker}
+            locationId={locationId}
           />
         ) : mode === "select-pet-and-service" ? (
           <PetAndServicePickerPanel
@@ -912,6 +922,18 @@ export function NewAppointmentSheet({
             </header>
 
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto bg-sand-2 px-6 py-5">
+              {/* First, because it is what the write resolves to and what the
+                  service list is read against — asking for it after the
+                  services are chosen would mean rechecking every one of them.
+                  Renders nothing for a single-branch business (DW1.2), states
+                  the branch rather than offering it when only one is in scope,
+                  and says so plainly when no write is possible at all (R24). */}
+              <WriteTargetLocation
+                value={locationId}
+                onChange={setLocationId}
+                action="This appointment"
+              />
+
               {/* Client + quick message render in both modes. Pet attachment is
                   the only pets-only affordance; it lives in the services section. */}
               <ClientPicker
