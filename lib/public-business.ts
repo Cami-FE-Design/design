@@ -1,5 +1,10 @@
 import { CLOSED_DAY, type DaySchedule, openFor, type WeekSchedule } from "@/lib/locations/hours"
-import { type LocationContact, locationContact, locationHours } from "@/lib/locations/mock"
+import {
+  type LocationContact,
+  locationContact,
+  locationHours,
+  NINE_BRANCH_ESTATE,
+} from "@/lib/locations/mock"
 import { publicServicesForLocation } from "@/lib/public-offering"
 import type { LocationOffering } from "@/lib/service-catalog/offerings"
 
@@ -69,7 +74,6 @@ export type PublicBusiness = {
    * area, not "Location 2". Drives the second row in the workspace switcher, so
    * a one-branch demo and a two-branch one differ by this field alone.
    */
-  secondLocation?: string
   heroEyebrow: string
   heroHeadline: string
   heroHeadlineAccent: string
@@ -170,7 +174,6 @@ const SHAMPOOCH_BRAND: Omit<PublicBusiness, "branches"> = {
   email: "hello@shampooch.ae",
   categories: ["grooming", "daycare"],
   isLive: true,
-  secondLocation: "Jumeirah",
   heroEyebrow: "Trusted pet care",
   heroHeadline: "Premium care for",
   heroHeadlineAccent: "furry friends.",
@@ -248,34 +251,31 @@ const SHAMPOOCH_BRAND: Omit<PublicBusiness, "branches"> = {
  * same example the requirements use: the busy branch charges more for the same
  * service, and it does not do daycare at all (R06, DW3.1, DW3.3).
  */
+/**
+ * The chain, and its branches read off the operator's estate.
+ *
+ * Hand-listed here until this point, which made two lists of one thing: the
+ * operator had nine branches and the public record three, and nothing would
+ * have told you which was wrong. The estate is the richer of the two — it
+ * carries status, hours, timezone and the public name a district cannot give —
+ * so it is the one that is true, and this derives.
+ *
+ * Name, address and phone are deliberately left off each row: `PublicBranch`
+ * resolves them from `lib/locations` so a branch renamed in Settings is
+ * renamed on its public page, rather than in one of the two places.
+ *
+ * `isPublished` is the lifecycle read publicly. Paused and archived are both
+ * absent from every public surface (R12, SU1.5) while staying in the record,
+ * because a paused branch still exists, keeps its bookings and staff, and
+ * comes back unchanged.
+ */
 const SHAMPOOCH: PublicBusiness = {
   ...SHAMPOOCH_BRAND,
-  branches: [
-    {
-      id: "shampooch-jvc",
-      slug: "shampooch-jvc",
-      // Name, address and phone resolve from lib/locations — see PublicBranch.
-      isPublished: true,
-    },
-    {
-      id: "shampooch-jumeirah",
-      slug: "shampooch-jumeirah",
-      // Its higher wash price and its lack of daycare are in
-      // lib/service-catalog/offerings.ts, resolved per branch — not filtered
-      // and mapped by hand here, where the operator-facing catalog could not
-      // see them.
-      isPublished: true,
-    },
-    {
-      // Suspended in the operator's estate, so present in the record and
-      // absent from every public surface. Kept here rather than deleted
-      // because that is the state: a paused branch still exists, keeps its
-      // bookings and staff, and comes back unchanged (SU1.5, R12).
-      id: "shampooch-al-quoz",
-      slug: "shampooch-al-quoz",
-      isPublished: false,
-    },
-  ],
+  branches: NINE_BRANCH_ESTATE.map((location) => ({
+    id: location.id,
+    slug: location.slug,
+    isPublished: location.status === "live",
+  })),
 }
 
 const PURRPALACE_BRAND: Omit<PublicBusiness, "branches"> = {
@@ -295,7 +295,6 @@ const PURRPALACE_BRAND: Omit<PublicBusiness, "branches"> = {
   email: "stay@purrpalace.ae",
   categories: ["boarding", "daycare"],
   isLive: true,
-  secondLocation: "Mirdif",
   heroEyebrow: "Cats only",
   heroHeadline: "A calm stay for",
   heroHeadlineAccent: "every cat.",
@@ -396,7 +395,6 @@ const SOTA_BRAND: Omit<PublicBusiness, "branches"> = {
   email: "hello@sota.ae",
   categories: ["hair", "beauty"],
   isLive: true,
-  secondLocation: "Downtown",
   heroEyebrow: "Hair studio",
   heroHeadline: "Colour that grows out",
   heroHeadlineAccent: "beautifully.",
@@ -467,6 +465,12 @@ const SOTA_BRAND: Omit<PublicBusiness, "branches"> = {
  * its business slug and the business page *is* the branch page — no picker
  * (the public half of DW1.2). Written flat when it arrived with the Client Card
  * brief; the wrapper is all that changed.
+ *
+ * The flat model also carried `secondLocation: "Downtown"`, which no
+ * requirement asks for — demo colour from before a business could hold real
+ * branches. It is not promoted to one: inventing an address and hours for a
+ * site nobody specified would put fabricated data in the seed, and Shampooch
+ * already covers the multi-branch case.
  */
 const SOTA: PublicBusiness = {
   ...SOTA_BRAND,

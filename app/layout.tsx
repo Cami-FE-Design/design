@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Manrope } from "next/font/google"
+import { BusinessLocationsProvider } from "@/components/blocks/business-locations-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -11,8 +12,6 @@ import { DemoBusinessProvider } from "@/lib/demo-business"
 import { DemoFilesProvider } from "@/lib/demo-files"
 import { BranchStockProvider } from "@/lib/inventory/store"
 import { BranchSettingsProvider } from "@/lib/locations/branch-settings"
-import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
-import { LocationsProvider } from "@/lib/locations/store"
 import { HqNotificationsProvider } from "@/lib/notifications/hq-store"
 import { NotificationsProvider } from "@/lib/notifications/store"
 import { PaymentPolicyProvider } from "@/lib/payment-policy/store"
@@ -56,16 +55,13 @@ export default function RootLayout({
                     scoped by the business, never the other way round. Root,
                     because the switcher is on every operator surface and the
                     scope has to survive navigation between them (R03). */}
-                {/* Nine branches, not three.
-                    Every multi-location defect this repo has found showed up
-                    at nine and not at three — a tab row that stops being
-                    readable, a name that truncates to the half every branch
-                    shares, a page that scrolls without end. Reviewing the
-                    estate at the size where those appear is worth more than
-                    reviewing a tidy one. The original three are still the
-                    first three, Al Quoz still suspended, so nothing that was
-                    reviewable before has gone. */}
-                <LocationsProvider initialLocations={NINE_BRANCH_ESTATE}>
+                {/* The estate belongs to the business, so it is read from the
+                    one the demo is signed into rather than fixed here — which
+                    is what the comment above already claimed and a fixed seed
+                    did not keep. Shampooch's nine branches are still the nine:
+                    every multi-location defect this repo has found showed up at
+                    nine and not at three. */}
+                <BusinessLocationsProvider>
                   <CustomerCardThemeProvider>
                     {/* Beside DemoBusiness, and for the same reason: the merchant's
                     Google review link is business identity. Both the settings
@@ -116,7 +112,7 @@ export default function RootLayout({
                       </BranchStockProvider>
                     </BusinessLinksProvider>
                   </CustomerCardThemeProvider>
-                </LocationsProvider>
+                </BusinessLocationsProvider>
               </DemoBusinessProvider>
             </CurrentUserProvider>
           </TooltipProvider>

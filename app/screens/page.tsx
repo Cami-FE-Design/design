@@ -1687,7 +1687,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo",
         label: "Business app shell",
-        note: "The workspace menu top-left is where you change venue: Shampooch JVC, Purr Palace and Sota Hair Studio are the three live ones, and only the signed-in venue shows its second branch. Picking one rebrands the whole demo, so Branding edits that venue's palette and the message previews wear it. The building icon beside it only renames — a prospect's name matches no venue, which is the case where the default palette is correct rather than broken. Known seam: the client directory is shared, so switching venue does not change who is in /clients.",
+        note: "The workspace menu top-left is where you change venue: Shampooch, Purr Palace and Sota Hair Studio are the three live ones. Branches are not in this menu — they are the LocationSwitcher beside it (SCR-04), because two ways into the same branch is how the two end up disagreeing. Picking one rebrands the whole demo and swaps the estate with it — the LocationSwitcher offers that venue's branches, not the last one's, and the scope resets because the branch you were looking at does not exist here. Branding edits that venue's palette and the message previews wear it. The building icon beside it only renames — a prospect's name matches no venue, which is the case where the default palette is correct rather than broken. Known seam: the client directory is shared, so switching venue does not change who is in /clients.",
       },
       { path: "/playground", label: "Component states" },
       {

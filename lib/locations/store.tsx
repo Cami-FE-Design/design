@@ -27,7 +27,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
-
+import { idsWithin } from "@/lib/locations/from-business"
 import { CLOSED_DAY, openFor, type WeekSchedule } from "@/lib/locations/hours"
 import { LOCATIONS, locationName } from "@/lib/locations/mock"
 import type { Location, LocationScope, LocationStatus } from "@/lib/locations/types"
@@ -246,6 +246,20 @@ function applyEdits(edits: StoredEdits, seed: ReadonlyArray<Location>): Location
   )
 }
 
+/**
+ * A stored scope, narrowed to what this estate actually holds, or `null` when
+ * nothing of it survives — in which case the caller keeps its own default
+ * rather than rendering a scope nobody can see anything through.
+ */
+function scopeWithin(estate: ReadonlyArray<Location>, scope: LocationScope): LocationScope | null {
+  if (scope.kind === "all") return scope
+  if (scope.kind === "one") {
+    return estate.some((l) => l.id === scope.locationId) ? scope : null
+  }
+  const ids = idsWithin(estate, scope.locationIds)
+  return ids.length > 0 ? { kind: "subset", locationIds: ids } : null
+}
+
 function readStoredGrants(): LocationGrants | null {
   try {
     const raw = window.localStorage.getItem(GRANTS_KEY)
@@ -300,10 +314,24 @@ export function LocationsProvider({
     if (Object.keys(edits.overrides).length > 0 || edits.created.length > 0) {
       setLocations(applyEdits(edits, initialLocations))
     }
+    // Both outlive a change of business, and an id from the estate you have
+    // left resolves to nothing — a scope pointing at `shampooch-jvc` while
+    // signed into Sota empties every screen, and nothing on them says why.
+    // Checked against the estate rather than cleared on any mismatch, so
+    // switching away and back keeps what the session had.
+    const estate = applyEdits(edits, initialLocations)
     const savedGrants = readStoredGrants()
-    if (savedGrants) setGrantsState(savedGrants)
+    if (savedGrants) {
+      const kept = savedGrants === "all" ? "all" : idsWithin(estate, savedGrants)
+      // An empty survivor list is not a grant of none — that is R24's state and
+      // it has to be asked for, never arrived at by a business switch.
+      if (kept === "all" || kept.length > 0) setGrantsState(kept)
+    }
     const savedScope = readStoredScope()
-    if (savedScope) setScopeState(savedScope)
+    if (savedScope) {
+      const kept = scopeWithin(estate, savedScope)
+      if (kept) setScopeState(kept)
+    }
     // `initialLocations` is a seed, and both callers pass a module constant, so
     // this runs once per provider rather than on every render.
   }, [persist, initialLocations])

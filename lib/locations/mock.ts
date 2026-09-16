@@ -185,7 +185,7 @@ export function locationName(locationId: string): string {
  * than rendering an empty week.
  */
 export function locationHours(locationId: string): WeekSchedule | undefined {
-  return LOCATIONS.find((l) => l.id === locationId)?.hours
+  return findSeeded(locationId)?.hours
 }
 
 /**
@@ -233,8 +233,21 @@ export function publicLabel(location: Location): string {
   return location.publicName ?? location.location.district
 }
 
+/**
+ * A seeded branch by id, across the whole estate rather than the first three.
+ *
+ * These lookups read `LOCATIONS` while only three branches were public. Six
+ * more are now, and a branch whose name and hours resolve to nothing renders a
+ * page with the business's name on it and no sign of which branch it is —
+ * which is what /shampooch-mirdif did. `NINE_BRANCH_ESTATE` opens with those
+ * same three, so nothing that resolved before resolves differently.
+ */
+function findSeeded(locationId: string): Location | undefined {
+  return NINE_BRANCH_ESTATE.find((l) => l.id === locationId)
+}
+
 export function locationContact(locationId: string): LocationContact | undefined {
-  const location = LOCATIONS.find((l) => l.id === locationId)
+  const location = findSeeded(locationId)
   if (!location) return undefined
   return {
     name: publicLabel(location),

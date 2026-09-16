@@ -564,6 +564,47 @@ see nine rows coming rather than a spinner that could resolve to anything. Every
 other branch surface reads data it already has, and a skeleton there would be a
 wait that never happens.
 
+### The estate belongs to the business
+
+The layout seeded one fixed list of nine, so signing the demo into Sota left the
+LocationSwitcher offering Shampooch's branches under a Sota heading. The
+layout's own comment already claimed the opposite — "a branch is scoped by the
+business, never the other way round", which is the blueprint's §02 — so this
+was a rule the code asserted and did not keep, and a comment that lies is worse
+than none.
+
+This is not the franchise view the PRD puts out of scope. That is one operator
+reading *across* businesses. This is ordinary containment: the branches you can
+stand in are the ones belonging to the business you are signed into.
+
+`locationsForBusiness` in `lib/locations/from-business.ts` is the whole of it.
+An authored estate wins where there is one — Shampooch's nine carry a suspended
+branch, a timezone override and a mall's public name, facts no public record
+holds and no rule could invent. A business without one has its estate derived
+from its public branches, and the fields a branch never carries come from the
+business: email, owner, trading name, invoicing. Those *are* business-level
+facts, which is why a branch never had them.
+
+**Two lists of one thing, reduced to one.** Shampooch's public record listed
+three branches by hand while the operator held nine, and nothing said which was
+wrong. The public record now derives from the estate, and `isPublished` reads
+the lifecycle — so the two suspended branches are in the record and absent from
+every public surface (R12, G9), which is what the requirement always said.
+
+**What that exposed.** `locationContact` and `locationHours` looked up the first
+three branches only. Six more became public in the same change, and
+/shampooch-mirdif rendered with the business's name and no sign of which branch
+it was. Both now read the estate; it opens with the same three, so nothing that
+resolved before resolves differently.
+
+**Scope and grants are checked, not cleared.** Both outlive a change of
+business, and an id from the estate you have left resolves to nothing — a scope
+pointing at `shampooch-jvc` while signed into Sota empties every screen with no
+sign of why. `idsWithin` narrows them to what the estate holds rather than
+dropping them on any mismatch, so switching away and back keeps what the session
+had. An empty survivor list is not applied: a grant of none is R24's state and
+has to be asked for, never arrived at by a business switch.
+
 ### Nine branches, and the collapse (D5)
 
 Three branches is the demo. Nine is what the PRD assumes, and it is where the
