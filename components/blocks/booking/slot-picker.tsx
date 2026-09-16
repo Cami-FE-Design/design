@@ -96,11 +96,19 @@ export function TimeList({
   time,
   onTime,
   groups = SLOT_GROUPS,
+  unavailableStaff,
 }: {
   time: string | null
   onTime: (t: string) => void
   /** The slots to offer. A branch's flow passes its own, generated from its hours. */
   groups?: ReadonlyArray<SlotGroup>
+  /**
+   * First name of the chosen team member, when the grid is empty because they
+   * are not working at this branch that day rather than because the day is
+   * full. Which branch they are at instead is deliberately not passed — that is
+   * the estate's business, not a client's (BG-06).
+   */
+  unavailableStaff?: string
 }) {
   // Flat list of bookable slots — taken ones are simply not offered.
   const slots = groups.flatMap((g) => g.times).filter((s) => !s.taken)
@@ -112,7 +120,9 @@ export function TimeList({
       <div className="flex flex-col gap-2">
         <span className="font-medium text-muted-foreground text-xs">Available times</span>
         <p className="rounded-xl bg-muted/40 p-3 text-sm text-muted-foreground">
-          Nothing free on this day. Pick another one.
+          {unavailableStaff
+            ? `${unavailableStaff} isn’t at this branch on this day. Pick another day, or another team member.`
+            : "Nothing free on this day. Pick another one."}
         </p>
       </div>
     )

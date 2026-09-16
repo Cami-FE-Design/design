@@ -85,7 +85,6 @@ export const LOCATIONS: Location[] = [
     },
     status: "live",
     hours: JVC_HOURS,
-    timezone: "Asia/Dubai",
     ownerName: "Maz Khan",
     ownerEmail: "maaz@getcami.io",
     photoUrl: "https://picsum.photos/seed/shampooch/80",
@@ -126,7 +125,6 @@ export const LOCATIONS: Location[] = [
     },
     status: "live",
     hours: JUMEIRAH_HOURS,
-    timezone: "Asia/Dubai",
     ownerName: "Maz Khan",
     ownerEmail: "maaz@getcami.io",
     photoUrl: "https://picsum.photos/seed/shampooch-jumeirah/80",
@@ -162,7 +160,6 @@ export const LOCATIONS: Location[] = [
     /** Closed for a fit-out. Booking page hidden, calendar off, nothing lost. */
     status: "suspended",
     hours: AL_QUOZ_HOURS,
-    timezone: "Asia/Dubai",
     ownerName: "Maz Khan",
     ownerEmail: "maaz@getcami.io",
     photoUrl: "https://picsum.photos/seed/shampooch-alquoz/80",
@@ -270,6 +267,8 @@ const EXTRA_BRANCHES: ReadonlyArray<{
   publicName?: string
   status?: LocationStatus
   hours?: WeekSchedule
+  /** Set only where the branch does not follow the business default (R19). */
+  timezone?: string
 }> = [
   /**
    * The case Chaps & Co exposed: a branch inside a mall is called by the mall,
@@ -283,7 +282,17 @@ const EXTRA_BRANCHES: ReadonlyArray<{
   // Another emirate, so the estate is not one city — a chain crossing an
   // emirate line is what makes per-branch tax identity (R23) matter.
   { district: "Al Reem", city: "Abu Dhabi", state: "Abu Dhabi" },
-  { district: "Al Majaz", city: "Sharjah", state: "Sharjah", hours: JUMEIRAH_HOURS },
+  {
+    district: "Al Majaz",
+    city: "Sharjah",
+    state: "Sharjah",
+    hours: JUMEIRAH_HOURS,
+    // The one branch holding its own zone, so the estate shows an override
+    // beside eight inheritances (R19). The three emirates share a zone today,
+    // which is why an estate can run for years before anyone notices the
+    // business default is doing all the work.
+    timezone: "Asia/Riyadh",
+  },
   // A second non-trading branch, so the nine-branch estate has more than one
   // exception to look at.
   { district: "Yas Island", city: "Abu Dhabi", state: "Abu Dhabi", status: "suspended" },
@@ -312,6 +321,7 @@ export const NINE_BRANCH_ESTATE: ReadonlyArray<Location> = [
       publicName: branch.publicName,
       status: branch.status ?? "live",
       hours: branch.hours ?? template.hours,
+      timezone: branch.timezone,
       photoUrl: `https://picsum.photos/seed/${slug}/80`,
     }
   }),

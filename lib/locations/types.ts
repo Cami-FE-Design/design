@@ -100,12 +100,19 @@ export type Location = {
    */
   hours: WeekSchedule
   /**
-   * IANA zone. Time is stored in UTC; this governs schedules, availability,
-   * display and date bucketing for this branch (R19). Business-default with a
-   * per-location override, so a chain spanning timezones still buckets a day
-   * the way each branch experiences it.
+   * This branch's own IANA zone, when it has one (R19).
+   *
+   * Absent is inheritance, not a blank: the branch follows
+   * `BUSINESS_TIMEZONE` and keeps following it when the business moves. Read it
+   * through `resolveTimezone` rather than directly — the value and where it
+   * came from are both needed, because "same as the business" and "deliberately
+   * Dubai" look identical once resolved and behave differently the day the
+   * default changes.
+   *
+   * Time is stored in UTC; this governs schedules, availability, display and
+   * date bucketing for the branch.
    */
-  timezone: string
+  timezone?: string
   /**
    * What a client is shown this branch as, when the area is not what it is
    * called (D3, answered 15 Sep by Chaps & Co's own site).

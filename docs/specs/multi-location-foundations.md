@@ -119,6 +119,8 @@ Treat it as older than the PRD: see [Where the blueprint is stale](#where-the-bl
 | R06 · enable per branch, and inherit / override / reset per field | `lib/service-catalog/offerings.ts`, `ServiceLocationsSection` |
 | R07 · view one / subset / all calendars, and move with destination checks | `lib/locations/calendar-scope.ts`, `lib/locations/cross-branch-move.ts` |
 | R08 · stored value is business-wide, consumption resolves to one branch | `lib/service-catalog/package-branch-check.ts` (the warn-never-block half) |
+| R05 · one person, many branches, never booked at two at once | `lib/team/shifts.ts` for the rota, `lib/locations/cross-branch-availability.ts` for the block |
+| R19 · a business timezone default with per-location overrides | `lib/locations/timezone.ts`, resolved on the Hours tab |
 | R09 / R18 · per-branch money breakdown, bounded by the grant | `lib/money/by-location.ts`, `MoneyByLocationView` |
 | R15 · a client picks a branch, or arrives on its own link | `resolvePublicView()`, `PublicBranchPicker` |
 | R17 · a sale records collection and fulfilment, and rewrites neither | `MoveAttribution` in `cross-branch-move.ts` |
@@ -1006,20 +1008,18 @@ loading, and error, with the single-branch case showing no switcher at all".
 | SCR-14 branch WhatsApp number | **built** — bound / migrating / unassigned, cost attribution |
 | SCR-15 money by branch | **built** — side by side, roll-up as a sum, grant-bounded |
 | SCR-07 client record, visits elsewhere | **blocked** — the readable field set is undecided |
-| SCR-10 branch roster | **built** — per-branch roster, cross-branch overlap surfaced; the ADR extension behind blocking it is engineering's |
+| SCR-10 scheduled shifts | **built** — the as-built week grid per branch, with leave, block times and hours; cross-branch overlap named as a pair and refused in booking |
 | SCR-11 branch stock | **built** — per-branch quantity and reorder config, derived business total, grant-bounded; Quantity column on the Products table |
 | SCR-16 CamiHQ chain view | **built** — a Locations tab on the partner, reusing the owner's estate and money roll-up; chain badged in the list; no HQ write path |
 
 ### Blocked on a decision
 
-Three of these were deliberately not designed, because designing them means
-inventing the answer to a question somebody else owns.
+One screen is deliberately not designed, because designing it means inventing
+the answer to a question somebody else owns.
 
 | Screen | The question, and whose it is |
 | --- | --- |
 | **SCR-07** visits elsewhere | R13 fixes the readable field set as *uniform* across branches but does not say what is in it. Does branch A see what branch B charged this client, and B's notes, or only that the visits happened? It is a revenue-integrity call (EC-4), **Maaz's**, and PRD §16 lists it. Guessing narrow hides money from an owner; guessing wide leaks a branch's pricing. |
-| ~~**SCR-10** branch roster~~ | **My framing was wrong, and it was the only thing blocking this.** DW2.3 and DW2.4 are not opposites: DW2.3 puts a roster on each branch, and DW2.4 adds a cross-branch overlap block on top of it, with within-branch overlap unchanged (ADR-023). Release criterion 12 says both in one line. What is genuinely open is the **ADR-023 extension** the PRD marks 🔴, which is engineering's rather than Michelle's. |
-| **SCR-11** branch stock | Not blocked on a decision — blocked on a feature. `Product` in components/blocks/products-table.tsx carries no quantity at all, so there is no stock to make per-branch. R16's content (per-branch balances, business total derived and never stored) is a page of inventory work first. |
 
 ### Package redemption, and the host the warning never had (SCR-13)
 
@@ -1065,12 +1065,17 @@ work, and the branch comes from `WriteTargetLocation` rather than a default.
 Seven tests. The load-bearing one: a mismatch never makes `canApply` false, in
 every one of its three shapes.
 
-### The branch roster (SCR-10)
+### Scheduled shifts, per branch (SCR-10)
 
-**My framing was the only thing blocking this.** The spec had D2 as "one
-unified timeline or one roster per branch… DW2.3 assumes per-branch, DW2.4
-assumes the roster is authoritative", and called them opposites. Read properly
-they fit together:
+The built product already has this screen: `ShiftsTable` under
+business/team/scheduled-shifts, members against Mon–Sun, fetched from
+`/merchant/team-members/schedules` under the active venue, with per-member and
+per-day hour totals and a member filter headed "Team members at
+{locationName}". This repo draws that grid rather than a separate roster, so
+the multi-location layer lands on the screen the team already uses.
+
+DW2.3 and DW2.4 read as opposites — "one unified timeline or one roster per
+branch" — and are not. They stack:
 
 - **DW2.3** puts a roster on **each branch** — "a stylist working Marina
   mornings and JLT evenings is scheduled correctly at each", with the
@@ -1088,18 +1093,88 @@ headed "Team members at {locationName}".
 *there*. Not cosmetic: a roster showing their whole day at every branch would
 have booking offer them everywhere, which is the opposite of DW2.3.
 
-**Overlap inside a branch is legal and is not marked.** ADR-023 is unchanged
-there, and a screen flagging it would be reporting the product's own behaviour
-as an error. Only cross-branch overlap is a conflict, so `crossBranchClashes`
-compares the branch as well as the time — and the seed carries both cases so the
-screen can be checked for *not* flagging the legal one.
+**Two overlaps, and only one of them is ours.** ADR-023 / INV-B7 allows
+overlapping **appointments** when staff book from Cami Business, and is
+untouched. A **shift** is the opposite: the built shift dialog refuses two
+windows that overlap at one branch, refuses a duplicate, refuses a window that
+overlaps a leave, and requires at least thirty minutes between windows. So an
+overlapping rota at one branch cannot be created.
 
-**Nothing blocks, deliberately.** Whether an overlapping booking is refused or
-merely warned extends ADR-023, which the PRD marks 🔴 as needing an extension.
-That is an engineering rule, not a screen's decision, and the roster has to show
-the clash either way — so it names it and stops. It also reports a clash as a
-**pair**, because a conflict is a relationship: flagging one of the two shifts
-would send the operator to change whichever they happened to be looking at.
+That is exactly why the cross-branch check has to exist. Each branch's rota is
+written under its own venue and nothing compares two of them, so the one overlap
+the product cannot refuse today is the one that spans branches — the gap
+multi-location opens and DW2.4 closes. `crossBranchClashes` compares the branch
+as well as the time, so a same-branch pair is never reported even if one reached
+the data, and `validDayWindows` keeps the seed itself to a rota the product
+would accept.
+
+**A cross-branch overlap is blocked, not warned.** Maaz settled this on a call
+on 15 Sep, and it is written down nowhere else yet: someone committed at one
+branch is not offered at another for an overlapping time. It matches DW2.4's own
+wording and release criterion 12; what the PRD marks 🔴 is the ADR-023 extension
+that carries it, which is engineering's to write.
+
+The rule lives in `lib/locations/cross-branch-availability.ts` and is enforced
+where a slot is offered, not on the roster. A roster is where a manager sees a
+clash and fixes the rota; refusing a booking there would be refusing the wrong
+person at the wrong moment. So the roster still names the clash as a **pair**,
+because a conflict is a relationship — flagging one of the two shifts would send
+the operator to change whichever they happened to be looking at.
+
+**Two refusals, kept apart.** Not working here (DW2.3) and working somewhere
+else (DW2.4) look identical on a grid and are not the same fact: one is a gap in
+a rota, the other is a clash between branches, and only the second is Maaz's
+rule. `slotRefusal` returns which, so an estate can tell under-rostering from
+double-booking.
+
+**The client is told the slot is gone, never where the person is.** Which other
+branches someone works is not a client's business — BG-06 is the gate — so the
+public flow drops the slot the way it drops one another client already holds,
+and the reason stays behind for the operator surfaces. When a chosen person
+empties the day, the flow says so in their name rather than "fully booked",
+which would send the client to a different day instead of a different person.
+
+**The leave rule is the product's, not an inference.** "Online bookings cannot
+be placed during time off" is the built time-off dialog's own sentence, and the
+shift dialog refuses a window overlapping a leave. Multi-location only widens
+it: the refusal applies at every branch the person is rostered at, not only the
+one that filed the leave.
+
+**Only a roster that exists is enforced.** Someone with no shifts anywhere is a
+rota nobody has filled in, not someone who works nowhere, so the branch's own
+hours stand for them — the same reading absent `locationIds` gets. Narrowing a
+grid on missing data would make a business unbookable the day it turned
+multi-location.
+
+**A branch holds its own shifts. An absence is the person's.** DW2.2 is P0 and
+lists assignment, schedules, time off and capability together as per-branch —
+but the criterion it is accepted on is "another branch's **roster change** never
+affects mine", and an absence is not a roster change. Those two halves of the
+requirement pull apart, and the gap between them was D6 on the ticket.
+
+**Settled 2026-09-16 (Hussain): away is away.** A leave closes every branch the
+person is rostered at. Built the other way, Lena's Thursday leave at JVC left
+her bookable at Jumeirah on a day she is out of the country — a failure nobody
+would defend, protecting nothing anybody asked for. The reading also survives
+the requirement: DW2.2's acceptance is about a rota, and a rota is still
+strictly per branch. A manager at one branch neither sees nor moves another's
+shifts, which is the half of DW2.2 that does the work.
+
+Two guards enforced the old reading and both are gone — the leave filter in
+`dayCell` and the branch check in `slotRefusal`. `Leave.locationId` survives as
+**provenance**: somebody entered and approved it somewhere, and that is worth
+being able to say. Nothing scopes off it, and the time-off dialog now names
+every branch the leave will reach before it is saved rather than promising it
+applies at one.
+
+**A block time goes the other way.** A lunch or a training hour is a hole in one
+branch's day, not a fact about the person, so it stays at its branch. It counts
+as worked and cannot be sold, which is why it is deducted from availability and
+not from the hours total — the opposite of leave on both counts.
+
+**An empty day says "Not working".** A blank cell reads as a rota nobody has
+filled in. Booking treats the two identically, but an operator deciding whether
+to call somebody in must not have to guess which one they are looking at.
 
 **Bookable hours come from the roster, never the branch's opening hours.**
 `bookableHours` returns nothing on a day someone does not work there, and the
@@ -1331,6 +1406,53 @@ Worth knowing before designing against it:
   has it as `z.string()`, while `ComposePaymentLinkSchema` has it nullable and
   optional. Two write paths, two different rules, which is R11 and R20 pulling
   in opposite directions inside the built product.
+- **Bookable staff is not the team roster, and this answers D4.**
+  `CreateTeamMemberPayload` carries `profile.allowCalendarBooking` ("whether
+  this team member is bookable on the public calendar"), `assignedVenueIds` and
+  `assignedServiceIds`. So who a client can pick is one roster narrowed three
+  ways — bookable at all, at this branch, for this service. Not two lists, as
+  this repo's separate `BOOKING_STAFF` implies. Nothing to ask Maaz.
+- **"Closed periods" is already written for the estate.** The scheduling
+  settings panel says "Add closed periods for a single or multiple locations.
+  E.g. Christmas break or a renovation" — the one place shipped copy names more
+  than one location. A dated shutdown across a chosen set of branches is neither
+  hours (R01) nor leave, and this repo has no such concept.
+- **Timezone is one business setting in the as-built.** Scheduling settings hold
+  one "(GMT +05:00) Karachi", one time format and one first-day-of-week for the
+  whole business. R19 is a **Must** and asks for both halves — "a Business
+  timezone default and per-Location overrides" — so this repo now carries the
+  default in `lib/locations/timezone.ts` with an optional per-branch override,
+  resolved the way tax identity already resolves. The first day of the week is
+  still one business setting and nobody has asked for it per branch.
+- **Closed periods have no requirement behind them.** The as-built settings
+  panel offers them "for a single or multiple locations", which is the only
+  shipped copy naming more than one location — but the PRD has no closure, no
+  holiday and no closed period. Its answer to a renovation is SU1.5: **suspend
+  the branch**. So this is not built here. It is worth asking whether the
+  as-built feature is meant to survive multi-location or be replaced by
+  suspension.
+- **The schedule's cache key has no venue in it.** `useScheduledShifts` keys on
+  `["shifts","schedules", tenantId, weekStart]` while the request is scoped by
+  the `x-venue-id` header. `useCalendar` and `useSalesAppointments` do include
+  `venueId`. Nothing is wrong today — there is one venue — but switching
+  branches would serve the previous branch's rota from cache, which is a BG-06
+  path and belongs on the multi-location build list.
+- **Slot granularity and the booking window are configurable.** "Display time
+  slot intervals of 15 minutes", "Show all available time slots", "book
+  immediately before start time and no more than 12 months in the future". This
+  repo generates slots at a fixed half hour, which is a simplification to
+  retire, not a rule.
+- **Block time types carry paid / unpaid.** Lunch is "30 min · Unpaid",
+  Training "1 hr · Paid", and `blockTimeType.isPaid` is on the contract. The
+  built hours total counts every block as worked either way, and this repo
+  matches it — but whether an unpaid lunch belongs in an hours column is a
+  payroll question for engineering, not a design one.
+- **A client record has no branch dimension at all.** `ClientDetailDialog` has
+  Overview, Appointments, Sales, Details, Pets and Documents, and "lifetime
+  revenue from this client" with nowhere for a venue. So today every branch
+  would read everything, and SCR-07's question (D1) is really *what to take
+  away*, not what to add — which is a stronger argument for asking than the one
+  this spec had.
 
 ## Where the blueprint is stale
 

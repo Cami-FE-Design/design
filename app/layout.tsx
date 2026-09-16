@@ -9,6 +9,7 @@ import { DemoBusinessProvider } from "@/lib/demo-business"
 import { DemoFilesProvider } from "@/lib/demo-files"
 import { BranchStockProvider } from "@/lib/inventory/store"
 import { BranchSettingsProvider } from "@/lib/locations/branch-settings"
+import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LocationsProvider } from "@/lib/locations/store"
 import { HqNotificationsProvider } from "@/lib/notifications/hq-store"
 import { NotificationsProvider } from "@/lib/notifications/store"
@@ -53,7 +54,16 @@ export default function RootLayout({
                     scoped by the business, never the other way round. Root,
                     because the switcher is on every operator surface and the
                     scope has to survive navigation between them (R03). */}
-                <LocationsProvider>
+                {/* Nine branches, not three.
+                    Every multi-location defect this repo has found showed up
+                    at nine and not at three — a tab row that stops being
+                    readable, a name that truncates to the half every branch
+                    shares, a page that scrolls without end. Reviewing the
+                    estate at the size where those appear is worth more than
+                    reviewing a tidy one. The original three are still the
+                    first three, Al Quoz still suspended, so nothing that was
+                    reviewable before has gone. */}
+                <LocationsProvider initialLocations={NINE_BRANCH_ESTATE}>
                   {/* Inside LocationsProvider: every setting it holds is keyed
                       by a branch, and there is nothing to resolve without the
                       estate. Root rather than in the settings dialog, because

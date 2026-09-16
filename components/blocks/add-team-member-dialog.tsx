@@ -15,7 +15,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
-import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
+import { LocationMultiSelect } from "@/components/blocks/location-multi-select"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -37,6 +37,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useLocations } from "@/lib/locations/store"
+import { seedServices } from "@/lib/service-catalog/mock-data"
+import { MERCHANT_ROLES, roleById } from "@/lib/team/roles"
 import { cn } from "@/lib/utils"
 
 // Match Input's h-12 / rounded-2xl / bg-input. Same pattern used by
@@ -65,8 +67,6 @@ const sectionGroups = [
 
 type SectionId = (typeof sectionGroups)[number]["items"][number]["id"]
 
-type Permission = "High" | "Medium" | "Low"
-
 const calendarColors = [
   { id: "indigo", className: "bg-cami-violet-9" },
   { id: "violet", className: "bg-cami-violet-8" },
@@ -86,21 +86,6 @@ const phoneCodes = ["+971", "+966", "+965", "+974", "+44", "+1"]
 const days = Array.from({ length: 31 }, (_, i) => String(i + 1))
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-const mockServices = [
-  { id: "wash-tidy", label: "Wash & tidy", duration: "45 min" },
-  { id: "full-groom", label: "Full groom", duration: "1 hr 30 min" },
-  { id: "puppy-first", label: "Puppy first groom", duration: "1 hr" },
-  { id: "nails", label: "Nail trim", duration: "15 min" },
-  { id: "deshed", label: "Deshedding treatment", duration: "1 hr" },
-]
-
-const permissionDescriptions: Record<Permission, string> = {
-  High: "Full access to calendar, sales, clients, catalog, marketing, team, payments and workspace.",
-  Medium:
-    "Partial access to calendar, sales, clients, catalog, online profile, marketing, team, payments and wallet, and workspace.",
-  Low: "Calendar, their own appointments, and limited client info. Cannot edit team or settings.",
-}
-
 const formSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required."),
   lastName: z.string().trim().min(1, "Last name is required."),
@@ -114,7 +99,6 @@ const formSchema = z.object({
   calendarColor: z.string(),
   jobTitle: z.string().trim().optional(),
   allowBookings: z.boolean(),
-  permission: z.enum(["High", "Medium", "Low"]),
   services: z.array(z.string()),
   /** What they may do (R04). Defined once per role, in lib/team/roles.ts. */
   roleId: z.string(),
@@ -141,7 +125,6 @@ const defaultValues: AddTeamMemberValues = {
   calendarColor: "indigo",
   jobTitle: "",
   allowBookings: true,
-  permission: "Medium",
   services: [],
   // Not the owner: there is exactly one, and inviting a second by default is
   // the wrong shape. Staff is the narrowest useful starting point.
@@ -157,6 +140,21 @@ type AddTeamMemberDialogProps = {
   onAdd: (values: AddTeamMemberValues) => void
   /** Used in microcopy, e.g. "join Shampooch JVC". */
   businessName?: string
+  /**
+   * The member being edited, when this is an edit rather than an invitation.
+   *
+   * One form, not two. The sections an owner fills in to create somebody are
+   * the sections they come back to change — Works at above all, which is where
+   * the estate lives — and a separate edit form is how the two drift until one
+   * of them forgets a field.
+   */
+  editing?: Partial<AddTeamMemberValues> & { name?: string }
+  /**
+   * Which section to land on. "Edit Services" that opened on Profile made the
+   * operator find the section themselves, which is the whole cost the menu item
+   * was saving them.
+   */
+  initialSection?: SectionId
 }
 
 export function AddTeamMemberDialog({
@@ -164,13 +162,24 @@ export function AddTeamMemberDialog({
   onOpenChange,
   onAdd,
   businessName,
+  editing,
+  initialSection = "profile",
 }: AddTeamMemberDialogProps) {
-  const [section, setSection] = useState<SectionId>("profile")
+  const [section, setSection] = useState<SectionId>(initialSection)
   const form = useForm<AddTeamMemberValues>({
     resolver: zodResolver(formSchema as never),
-    defaultValues,
+    defaultValues: { ...defaultValues, ...editing },
     mode: "onChange",
   })
+
+  // Reopening on a different person loads that person, rather than leaving the
+  // last one's details in the fields.
+  const [loadedFor, setLoadedFor] = useState(editing?.email)
+  if (open && loadedFor !== editing?.email) {
+    setLoadedFor(editing?.email)
+    form.reset({ ...defaultValues, ...editing })
+    setSection(initialSection)
+  }
 
   const firstName = form.watch("firstName").trim()
   const lastName = form.watch("lastName").trim()
@@ -186,11 +195,18 @@ export function AddTeamMemberDialog({
   // An owner holds every location, so its badge counts the estate rather than
   // the (empty, untickable) grant array.
   const grantedCount = form.watch("roleId") === "owner" ? locationCount : grantedIds.length
-  const sectionCounts = { locations: grantedCount > 0 ? String(grantedCount) : undefined }
+  // The nav carries both counts, the way the built form does — how many
+  // services and how many locations, so a section says what is in it before
+  // you open it.
+  const serviceCount = (form.watch("services") ?? []).length
+  const sectionCounts = {
+    services: serviceCount > 0 ? String(serviceCount) : undefined,
+    locations: grantedCount > 0 ? String(grantedCount) : undefined,
+  }
 
   function reset() {
     form.reset(defaultValues)
-    setSection("profile")
+    setSection(initialSection)
   }
 
   function handleSubmit(values: AddTeamMemberValues) {
@@ -203,16 +219,18 @@ export function AddTeamMemberDialog({
     <FullScreenEditDialog
       open={open}
       onOpenChange={(next) => {
-        if (!next) reset()
+        if (!next && !editing) reset()
         onOpenChange(next)
       }}
-      title="Add team member"
+      title={editing ? `Edit ${editing.name ?? "team member"}` : "Add team member"}
       subtitle={
-        businessName
-          ? `Set up a new team member for ${businessName}.`
-          : "Set up a new team member's profile, services, and access."
+        editing
+          ? "Change their profile, the services they provide, and the locations they work at."
+          : businessName
+            ? `Set up a new team member for ${businessName}.`
+            : "Set up a new team member's profile, services, and access."
       }
-      saveLabel="Add"
+      saveLabel={editing ? "Save" : "Add"}
       saveDisabled={!canSubmit}
       onSave={form.handleSubmit(handleSubmit)}
       contentClassName="max-w-3xl"
@@ -646,33 +664,76 @@ function CalendarColorField({ form }: { form: FormReturn }) {
 
 function ServicesSection({ form }: { form: FormReturn }) {
   const selected = form.watch("services") ?? []
+
+  // The real catalog, not a five-row fixture. A team member's services is a
+  // list of dozens — that is what makes Select all worth having and what a
+  // five-row mock hides.
+  const services = seedServices
+
+  const allSelected = services.length > 0 && services.every((s) => selected.includes(s.id))
+  const someSelected = selected.length > 0 && !allSelected
+
   function toggle(id: string, value: boolean) {
     const next = new Set(selected)
     if (value) next.add(id)
     else next.delete(id)
     form.setValue("services", Array.from(next), { shouldDirty: true })
   }
+
   return (
     <SectionShell title="Services" description="Choose the services this team member provides.">
-      <ul className="flex flex-col divide-y divide-border">
-        {mockServices.map((service) => {
+      {/* The rules run edge to edge. Inside the card's padding they stopped
+          short of both sides and read as a boxed sub-list rather than as the
+          section's own rows — `-mx-5 px-5` is the same trick the shell uses
+          for its header rule. */}
+      <div className="-mx-5 -mt-1 flex flex-col">
+        <label
+          htmlFor="svc-select-all"
+          className="flex cursor-pointer items-center gap-3 border-border/60 border-b px-5 py-3"
+        >
+          <Checkbox
+            id="svc-select-all"
+            checked={allSelected ? true : someSelected ? "indeterminate" : false}
+            onCheckedChange={(v) =>
+              form.setValue("services", v === true ? services.map((x) => x.id) : [], {
+                shouldDirty: true,
+              })
+            }
+          />
+          <span className="flex-1 font-medium text-foreground text-sm">Select all</span>
+        </label>
+
+        {services.map((service) => {
           const checked = selected.includes(service.id)
           return (
-            <li key={service.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+            <label
+              key={service.id}
+              htmlFor={`svc-${service.id}`}
+              className="flex cursor-pointer items-start gap-3 border-border/60 border-b px-5 py-3 last:border-b-0"
+            >
+              {/* Top-aligned, because the row is two lines. Centred against a
+                  name-plus-category block, the box drifts between the two and
+                  stops lining up with anything. */}
               <Checkbox
                 id={`svc-${service.id}`}
-                size="lg"
+                className="mt-0.5"
                 checked={checked}
                 onCheckedChange={(v) => toggle(service.id, v === true)}
               />
-              <label htmlFor={`svc-${service.id}`} className="flex flex-1 cursor-pointer flex-col">
-                <span className="text-sm font-medium text-foreground">{service.label}</span>
-                <span className="text-sm text-muted-foreground">{service.duration}</span>
-              </label>
-            </li>
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate font-medium text-foreground text-sm">{service.name}</span>
+                {/* The category, not the price. This section answers "which
+                    services does this person perform", and a groomer is
+                    assigned by category — what a service costs and how long it
+                    takes belong to the booking, not to the capability. */}
+                <span className="truncate text-muted-foreground text-sm">
+                  {service.categoryName}
+                </span>
+              </span>
+            </label>
           )
         })}
-      </ul>
+      </div>
     </SectionShell>
   )
 }
@@ -699,7 +760,10 @@ function LocationsSection({ form }: { form: FormReturn }) {
   const selected = form.watch("assignedLocationIds") ?? []
   const isOwner = form.watch("roleId") === "owner"
 
-  function toggle(id: string, next: boolean) {
+  const allSelected = locations.length > 0 && locations.every((l) => selected.includes(l.id))
+  const _someSelected = selected.length > 0 && !allSelected
+
+  function _toggle(id: string, next: boolean) {
     if (isOwner) return
     const set = new Set(selected)
     if (next) set.add(id)
@@ -720,44 +784,16 @@ function LocationsSection({ form }: { form: FormReturn }) {
           grant never means every location.
         </p>
       ) : null}
-      <ul className="flex flex-col gap-2">
-        {locations.map((loc) => {
-          const inputId = `member-location-${loc.id}`
-          const checked = isOwner || selected.includes(loc.id)
-          return (
-            <li key={loc.id}>
-              <label
-                htmlFor={inputId}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl bg-muted/30 p-3 transition-colors",
-                  isOwner ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/40",
-                )}
-              >
-                <Checkbox
-                  id={inputId}
-                  size="lg"
-                  checked={checked}
-                  disabled={isOwner}
-                  onCheckedChange={(v) => toggle(loc.id, v === true)}
-                />
-                <div className="flex size-12 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-11">
-                  <BuildingIcon className="size-5" strokeWidth={1.5} />
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm font-medium text-foreground">{loc.name}</span>
-                    <LocationStatusBadge status={loc.status} />
-                  </span>
-                  <span className="truncate text-sm text-muted-foreground">
-                    {[loc.location.city, loc.location.country].filter(Boolean).join(", ") ||
-                      "Location"}
-                  </span>
-                </div>
-              </label>
-            </li>
-          )
-        })}
-      </ul>
+      {/* A dropdown, not a stack of cards. The answer is two or three
+          branches whether the estate is three or twenty, so the control should
+          cost what the answer costs. Same shape as the topbar switcher and the
+          access dialog — one gesture for choosing branches. */}
+      <LocationMultiSelect
+        locations={locations}
+        selectedIds={isOwner ? locations.map((l) => l.id) : selected}
+        onChange={(ids) => form.setValue("assignedLocationIds", ids, { shouldDirty: true })}
+        disabled={isOwner}
+      />
     </SectionShell>
   )
 }
@@ -771,11 +807,7 @@ function SettingsSection({ form }: { form: FormReturn }) {
         render={({ field }) => (
           <FormItem className="flex flex-row items-start gap-3">
             <FormControl>
-              <Checkbox
-                size="lg"
-                checked={field.value}
-                onCheckedChange={(v) => field.onChange(v === true)}
-              />
+              <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} />
             </FormControl>
             <div className="flex flex-1 flex-col gap-0.5">
               <FormLabel className="font-medium">Allow calendar bookings</FormLabel>
@@ -791,27 +823,39 @@ function SettingsSection({ form }: { form: FormReturn }) {
 
       <FormField
         control={form.control}
-        name="permission"
+        name="roleId"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Permission role</FormLabel>
+            <FormLabel>Permission role *</FormLabel>
             <FormDescription>
               Choose the access level this team member has to the workspace.
             </FormDescription>
-            <Select value={field.value} onValueChange={(v) => field.onChange(v as Permission)}>
+            {/* The real roles, not High / Medium / Low.
+                This select offered three severities that are not roles, name
+                nothing a merchant recognises, and were read by no surface in
+                the repo — while the same form's Roles & permissions section was
+                editing `roleId`. One form, two ideas of what a role is, and the
+                meaningless one was the one on screen.
+
+                Owner is absent for the same reason it is absent from the access
+                dialog: it is not an access level you hand out, it is what
+                holding the estate is called (R04). */}
+            <Select value={field.value} onValueChange={field.onChange}>
               <FormControl>
                 <SelectTrigger className={cn(triggerOverride, "w-full")}>
-                  <SelectValue />
+                  <SelectValue>{roleById(field.value)?.name}</SelectValue>
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem value="High">High</SelectItem>
-                <SelectItem value="Medium">Medium</SelectItem>
-                <SelectItem value="Low">Low</SelectItem>
+                {MERCHANT_ROLES.filter((r) => r.id !== "owner").map((r) => (
+                  <SelectItem key={r.id} value={r.id}>
+                    {r.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <p className="pt-1 text-sm text-muted-foreground">
-              {permissionDescriptions[field.value as Permission]}
+              {roleById(field.value)?.capability}
             </p>
           </FormItem>
         )}

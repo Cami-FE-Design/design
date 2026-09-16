@@ -71,6 +71,13 @@ import {
 import { type NewLocationInput, slugify, useLocations } from "@/lib/locations/store"
 import { formatReceiptNumber, taxOverrideCount } from "@/lib/locations/tax-identity"
 import {
+  BUSINESS_TIMEZONE,
+  normaliseOverride,
+  resolveTimezone,
+  TIMEZONE_OPTIONS,
+  timezoneLabel,
+} from "@/lib/locations/timezone"
+import {
   describeTipBase,
   describeTipChannels,
   formatTipValues,
@@ -80,6 +87,9 @@ import {
 import type { Invoicing, Location, LocationAddress } from "@/lib/locations/types"
 import { isPubliclyBookable } from "@/lib/locations/types"
 import { cn } from "@/lib/utils"
+
+/** Radix refuses "" as a value, so inheritance needs a name of its own. */
+const INHERIT = "__business__"
 
 const triggerOverride = "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
 
@@ -383,8 +393,8 @@ export function AddLocationsTakeover({
                     </SelectTrigger>
                     <SelectContent>
                       {TIMEZONE_OPTIONS.map((tz) => (
-                        <SelectItem key={tz} value={tz}>
-                          {tz}
+                        <SelectItem key={tz.id} value={tz.id}>
+                          {tz.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -849,7 +859,12 @@ function HoursTab({ location }: { location: Location }) {
             <div className="flex flex-col gap-0.5">
               <span className="text-sm leading-5 text-muted-foreground">Hours</span>
               <p className="text-sm leading-5 text-foreground">
-                When this location accepts bookings. Time zone {location.timezone}.
+                When this location accepts bookings. Time zone{" "}
+                {timezoneLabel(resolveTimezone(BUSINESS_TIMEZONE, location.timezone).value)}
+                {resolveTimezone(BUSINESS_TIMEZONE, location.timezone).source === "business"
+                  ? ", inherited from the business"
+                  : ", set for this location"}
+                .
               </p>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -1956,14 +1971,6 @@ const HOUR_OPTIONS: string[] = (() => {
 })()
 
 /** Enough zones to show a chain spanning more than one (R19), not a full IANA list. */
-const TIMEZONE_OPTIONS = [
-  "Asia/Dubai",
-  "Asia/Riyadh",
-  "Europe/London",
-  "America/New_York",
-  "America/Los_Angeles",
-]
-
 /** What the time pickers hold while an edit is open: 12-hour labels, per day. */
 type PickerRange = { open: string; close: string }
 type PickerWeek = Record<string, PickerRange[]>
@@ -2193,19 +2200,37 @@ function HoursEditDialog({
 
       <section className="flex flex-col gap-3">
         <Field label="Time zone">
-          <Select value={timezone} onValueChange={setTimezone}>
+          {/* R19 is a default plus an override, not a free-standing value per
+              branch. "Same as the business" is the first option and the one
+              most branches sit on, so moving the business moves them — and a
+              branch that genuinely differs is visibly its own. */}
+          <Select
+            value={timezone ?? INHERIT}
+            onValueChange={(v) =>
+              setTimezone(v === INHERIT ? undefined : normaliseOverride(BUSINESS_TIMEZONE, v))
+            }
+          >
             <SelectTrigger className={triggerOverride}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TIMEZONE_OPTIONS.map((tz) => (
-                <SelectItem key={tz} value={tz}>
-                  {tz}
+              <SelectItem value={INHERIT}>
+                Same as the business · {timezoneLabel(BUSINESS_TIMEZONE)}
+              </SelectItem>
+              {TIMEZONE_OPTIONS.filter((tz) => tz.id !== BUSINESS_TIMEZONE).map((tz) => (
+                <SelectItem key={tz.id} value={tz.id}>
+                  {tz.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </Field>
+        <p className="text-muted-foreground text-xs leading-5">
+          {timezone === undefined
+            ? "Inherited. Change the business time zone and this location follows."
+            : `This location keeps its own time zone. The business is ${timezoneLabel(BUSINESS_TIMEZONE)}.`}{" "}
+          Bookings, rotas and takings are bucketed by the day this location experiences.
+        </p>
       </section>
 
       <button

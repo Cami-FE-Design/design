@@ -1,18 +1,20 @@
 "use client"
 
-import { ChevronDownIcon, PlusIcon, SlidersHorizontalIcon } from "lucide-react"
+import { ChevronDownIcon, PlusIcon } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useState } from "react"
+import { toast } from "sonner"
 import {
   AddTeamMemberDialog,
   type AddTeamMemberValues,
 } from "@/components/blocks/add-team-member-dialog"
 import { AppShell } from "@/components/blocks/app-shell"
+import { AddTimeOffDialog } from "@/components/blocks/shifts/add-time-off-dialog"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { TeamAccessDialog } from "@/components/blocks/team-access-dialog"
 import { TeamMemberDetailDialog } from "@/components/blocks/team-member-detail-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,6 +35,7 @@ import { useDemoBusiness } from "@/lib/demo-business"
 import { type LocationGrants, useLocations } from "@/lib/locations/store"
 import { TEAM_MEMBERS, type TeamMember } from "@/lib/team/mock"
 import { roleById } from "@/lib/team/roles"
+import { RotaProvider, useRota } from "@/lib/team/shifts-store"
 import { cn } from "@/lib/utils"
 
 // The roster's own type, not a local copy of it: `roleId` and
@@ -77,22 +80,22 @@ function MemberAvatar({ initials, status }: { initials: string; status: MemberSt
 
 function MemberTableRow({
   member,
-  selected,
   onOpen,
-  onToggleSelect,
+  onEditProfile,
   onEditRoles,
   onEditServices,
   onEditSchedule,
+  onAddTimeOff,
   onResendInvitation,
   onRemove,
 }: {
   member: Member
-  selected: boolean
   onOpen: (id: string) => void
-  onToggleSelect: (id: string, value: boolean) => void
+  onEditProfile: (id: string) => void
   onEditRoles: (id: string) => void
   onEditServices: (id: string) => void
   onEditSchedule: (id: string) => void
+  onAddTimeOff: (id: string) => void
   onResendInvitation: (id: string) => void
   onRemove: (id: string) => void
 }) {
@@ -101,7 +104,6 @@ function MemberTableRow({
 
   return (
     <TableRow
-      data-state={selected ? "selected" : undefined}
       className="cursor-pointer"
       onClick={() => onOpen(member.id)}
       onKeyDown={(e) => {
@@ -109,13 +111,6 @@ function MemberTableRow({
       }}
       tabIndex={0}
     >
-      <TableCell className="w-10 pr-0" onClick={(e) => e.stopPropagation()}>
-        <Checkbox
-          checked={selected}
-          onCheckedChange={(v) => onToggleSelect(member.id, v === true)}
-          aria-label={`Select ${member.name ?? member.email}`}
-        />
-      </TableCell>
       <TableCell>
         <div className="flex items-center gap-3">
           <MemberAvatar initials={member.initials} status={member.status} />
@@ -126,9 +121,11 @@ function MemberTableRow({
               </span>
               {isPending ? <Badge variant="secondary">Pending</Badge> : null}
             </div>
-            {member.title ? (
-              <span className="truncate text-sm text-muted-foreground">{member.title}</span>
-            ) : null}
+            {/* No job title here. The Role column two across says "Owner",
+                and a job title reading "Manager" under the same name looks
+                like the same field disagreeing with itself — the seed has
+                exactly that pair. The title belongs on the profile, which is
+                where the built table leaves it too. */}
           </div>
         </div>
       </TableCell>
@@ -140,8 +137,11 @@ function MemberTableRow({
           ) : null}
         </div>
       </TableCell>
-      <TableCell className="text-sm text-foreground">
-        {roleById(member.roleId)?.name ?? member.roleId}
+      <TableCell className="text-foreground text-sm">
+        <span className="flex items-center gap-2">
+          {roleById(member.roleId)?.name ?? member.roleId}
+          {isLocked ? <Badge variant="secondary">Owner</Badge> : null}
+        </span>
       </TableCell>
       <TableCell className="text-sm text-foreground">
         <MemberLocations grants={member.locationGrants} />
@@ -154,30 +154,42 @@ function MemberTableRow({
               size="sm"
               className="gap-1"
               aria-label={`Actions for ${member.name ?? member.email}`}
-              disabled={isLocked}
             >
               Action
               <ChevronDownIcon className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => onEditRoles(member.id)}>
-              Edit Roles & Permissions
+          <DropdownMenuContent align="end" className="w-auto min-w-fit whitespace-nowrap">
+            <DropdownMenuItem onSelect={() => onEditProfile(member.id)}>
+              Edit Profile
             </DropdownMenuItem>
+            {/* An owner's role and grant are immutable, for everyone
+                including themselves — an owner holds the estate by definition,
+                and a "named set" owner is a contradiction (R04). */}
+            {isLocked ? null : (
+              <DropdownMenuItem onSelect={() => onEditRoles(member.id)}>
+                Edit Roles & Permissions
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onSelect={() => onEditServices(member.id)}>
               Edit Services
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onEditSchedule(member.id)}>
               Edit Schedule
             </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onAddTimeOff(member.id)}>
+              Add Time Off
+            </DropdownMenuItem>
             {isPending ? (
               <DropdownMenuItem onSelect={() => onResendInvitation(member.id)}>
                 Resend invitation
               </DropdownMenuItem>
             ) : null}
-            <DropdownMenuItem variant="destructive" onSelect={() => onRemove(member.id)}>
-              Remove from business
-            </DropdownMenuItem>
+            {isLocked ? null : (
+              <DropdownMenuItem variant="destructive" onSelect={() => onRemove(member.id)}>
+                Remove from business
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>
@@ -187,24 +199,22 @@ function MemberTableRow({
 
 function MemberTable({
   members,
-  selectedIds,
   onOpen,
-  onToggleSelect,
-  onToggleSelectAll,
+  onEditProfile,
   onEditRoles,
   onEditServices,
   onEditSchedule,
+  onAddTimeOff,
   onResendInvitation,
   onRemove,
 }: {
   members: Member[]
-  selectedIds: Set<string>
   onOpen: (id: string) => void
-  onToggleSelect: (id: string, value: boolean) => void
-  onToggleSelectAll: (ids: string[], value: boolean) => void
+  onEditProfile: (id: string) => void
   onEditRoles: (id: string) => void
   onEditServices: (id: string) => void
   onEditSchedule: (id: string) => void
+  onAddTimeOff: (id: string) => void
   onResendInvitation: (id: string) => void
   onRemove: (id: string) => void
 }) {
@@ -215,28 +225,21 @@ function MemberTable({
       </div>
     )
   }
-  const allSelected = members.every((m) => selectedIds.has(m.id))
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead className="w-10 pr-0">
-            <Checkbox
-              checked={allSelected}
-              onCheckedChange={(v) =>
-                onToggleSelectAll(
-                  members.map((m) => m.id),
-                  v === true,
-                )
-              }
-              aria-label={allSelected ? "Deselect all members" : "Select all members"}
-            />
-          </TableHead>
           <TableHead>Member</TableHead>
           <TableHead>Contact</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Locations</TableHead>
-          <TableHead className="w-12 sr-only">Actions</TableHead>
+          {/* The cell stays in the layout; only its label is hidden.
+              `sr-only` on the <th> itself takes it out of flow, so the header
+              rule stopped before the Action column and that column had no
+              width of its own. */}
+          <TableHead className="w-28">
+            <span className="sr-only">Actions</span>
+          </TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -244,12 +247,12 @@ function MemberTable({
           <MemberTableRow
             key={member.id}
             member={member}
-            selected={selectedIds.has(member.id)}
             onOpen={onOpen}
-            onToggleSelect={onToggleSelect}
+            onEditProfile={onEditProfile}
             onEditRoles={onEditRoles}
             onEditServices={onEditServices}
             onEditSchedule={onEditSchedule}
+            onAddTimeOff={onAddTimeOff}
             onResendInvitation={onResendInvitation}
             onRemove={onRemove}
           />
@@ -260,36 +263,44 @@ function MemberTable({
 }
 
 export default function TeamSettingsPage() {
+  const router = useRouter()
+  const { locationName } = useLocations()
   const { name: businessName } = useDemoBusiness()
   const [members, setMembers] = useState<Member[]>(TEAM_MEMBERS)
   const [addOpen, setAddOpen] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [viewMemberId, setViewMemberId] = useState<string | null>(null)
+  const [query, setQuery] = useState("")
+  // Opened from elsewhere — the scheduled-shifts row menu links here with the
+  // member on the URL, because "View team member" that lands you on a list of
+  // everyone is a link that did not go anywhere.
+  const memberParam = useSearchParams()?.get("member") ?? null
+  const [viewMemberId, setViewMemberId] = useState<string | null>(memberParam)
+  const [openedFor, setOpenedFor] = useState(memberParam)
+  if (memberParam !== openedFor) {
+    setOpenedFor(memberParam)
+    setViewMemberId(memberParam)
+  }
   const [accessMemberId, setAccessMemberId] = useState<string | null>(null)
+  const [editMemberId, setEditMemberId] = useState<string | null>(null)
+  const [editSection, setEditSection] = useState<"profile" | "services">("profile")
+  const [timeOffMemberId, setTimeOffMemberId] = useState<string | null>(null)
+  const timeOffMember = members.find((m) => m.id === timeOffMemberId) ?? null
+  const editMember = members.find((m) => m.id === editMemberId) ?? null
 
-  const activeMembers = members.filter((m) => m.status === "active")
-  const pendingMembers = members.filter((m) => m.status === "pending")
+  // Name, email and the branches they work — a chain's team list is searched
+  // for "who is at Marina" as often as for a person.
+  const q = query.trim().toLowerCase()
+  const visible = q
+    ? members.filter((m) => {
+        const grants =
+          m.locationGrants === "all"
+            ? "all locations"
+            : m.locationGrants.map((id) => locationName(id)).join(" ")
+        return `${m.name ?? ""} ${m.email} ${grants}`.toLowerCase().includes(q)
+      })
+    : members
+  const activeMembers = visible.filter((m) => m.status === "active")
+  const pendingMembers = visible.filter((m) => m.status === "pending")
   const viewMember = members.find((m) => m.id === viewMemberId) ?? null
-
-  function handleToggleSelect(id: string, value: boolean) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (value) next.add(id)
-      else next.delete(id)
-      return next
-    })
-  }
-
-  function handleToggleSelectAll(ids: string[], value: boolean) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      for (const id of ids) {
-        if (value) next.add(id)
-        else next.delete(id)
-      }
-      return next
-    })
-  }
 
   function handleAddMember(values: AddTeamMemberValues) {
     const fullName = `${values.firstName} ${values.lastName}`.trim()
@@ -302,7 +313,6 @@ export default function TeamSettingsPage() {
         title: values.jobTitle || undefined,
         email: values.email,
         phone: values.phone ? `${values.phoneCode} ${values.phone}` : undefined,
-        permission: values.permission,
         status: "pending",
         initials,
         roleId: values.roleId,
@@ -312,7 +322,11 @@ export default function TeamSettingsPage() {
   }
 
   function handleEditProfile(id: string) {
-    console.log("Edit profile:", id)
+    // One form for creating and for changing, so the sections cannot drift —
+    // and so "Works at", where the estate lives, is edited in the same place
+    // it is first chosen (R05).
+    setEditMemberId(id)
+    setViewMemberId(null)
   }
 
   function handleEditRoles(id: string) {
@@ -326,15 +340,29 @@ export default function TeamSettingsPage() {
   }
 
   function handleEditServices(id: string) {
-    console.log("Edit services:", id)
+    // Services are a section of the same form, not a surface of their own —
+    // and the form opens on that section, because finding it is the work the
+    // menu item exists to save.
+    setEditSection("services")
+    setEditMemberId(id)
+    setViewMemberId(null)
   }
 
-  function handleEditSchedule(id: string) {
-    console.log("Edit schedule:", id)
+  function handleEditSchedule(_id?: string) {
+    // A schedule is per branch (DW2.2), so editing one means opening the week
+    // at a branch — a screen, not a field on this dialog. The member is not
+    // passed on: the grid is the branch's, and dropping into it filtered to one
+    // person would hide the clash the screen exists to show.
+    setViewMemberId(null)
+    router.push("/team/scheduled-shifts")
   }
 
   function handleResendInvitation(id: string) {
-    console.log("Resend invitation:", id)
+    // Said, because nothing else on screen changes. An action that looks
+    // identical before and after reads as a button that did not work, and this
+    // one is pressed exactly when somebody is unsure the first went out.
+    const member = members.find((m) => m.id === id)
+    toast.success(`Invitation resent to ${member?.email ?? "them"}`)
   }
 
   function handleRemove(id: string) {
@@ -365,8 +393,8 @@ export default function TeamSettingsPage() {
               <TabsList variant="ghost">
                 <TabsTrigger value="members">
                   Members
-                  <span className="text-sm font-normal text-muted-foreground">
-                    {members.length}
+                  <span className="font-normal text-muted-foreground text-sm">
+                    {visible.length}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="active">
@@ -385,33 +413,27 @@ export default function TeamSettingsPage() {
             }
             actions={
               <>
+                {/* Search that searches. It was rendered with no handler, so
+                    typing did nothing — and so was a Filters button with no
+                    filters behind it. Both looked like working controls. */}
                 <SearchInput
                   className="h-9! w-72"
                   placeholder="Search team members"
                   aria-label="Search team members"
+                  onValueChange={setQuery}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  radius="full"
-                  aria-label="Filters"
-                >
-                  <SlidersHorizontalIcon className="size-4" />
-                </Button>
               </>
             }
           />
           <TabsContent value="members">
             <MemberTable
-              members={members}
-              selectedIds={selectedIds}
+              members={visible}
               onOpen={setViewMemberId}
-              onToggleSelect={handleToggleSelect}
-              onToggleSelectAll={handleToggleSelectAll}
+              onEditProfile={handleEditProfile}
               onEditRoles={handleEditRoles}
               onEditServices={handleEditServices}
-              onEditSchedule={handleEditSchedule}
+              onEditSchedule={() => handleEditSchedule()}
+              onAddTimeOff={setTimeOffMemberId}
               onResendInvitation={handleResendInvitation}
               onRemove={handleRemove}
             />
@@ -419,13 +441,12 @@ export default function TeamSettingsPage() {
           <TabsContent value="active">
             <MemberTable
               members={activeMembers}
-              selectedIds={selectedIds}
               onOpen={setViewMemberId}
-              onToggleSelect={handleToggleSelect}
-              onToggleSelectAll={handleToggleSelectAll}
+              onEditProfile={handleEditProfile}
               onEditRoles={handleEditRoles}
               onEditServices={handleEditServices}
-              onEditSchedule={handleEditSchedule}
+              onEditSchedule={() => handleEditSchedule()}
+              onAddTimeOff={setTimeOffMemberId}
               onResendInvitation={handleResendInvitation}
               onRemove={handleRemove}
             />
@@ -433,13 +454,12 @@ export default function TeamSettingsPage() {
           <TabsContent value="pending">
             <MemberTable
               members={pendingMembers}
-              selectedIds={selectedIds}
               onOpen={setViewMemberId}
-              onToggleSelect={handleToggleSelect}
-              onToggleSelectAll={handleToggleSelectAll}
+              onEditProfile={handleEditProfile}
               onEditRoles={handleEditRoles}
               onEditServices={handleEditServices}
-              onEditSchedule={handleEditSchedule}
+              onEditSchedule={() => handleEditSchedule()}
+              onAddTimeOff={setTimeOffMemberId}
               onResendInvitation={handleResendInvitation}
               onRemove={handleRemove}
             />
@@ -452,6 +472,52 @@ export default function TeamSettingsPage() {
         onAdd={handleAddMember}
         businessName={businessName}
       />
+      {timeOffMember ? (
+        <RotaProvider>
+          <TeamTimeOff member={timeOffMember} onClose={() => setTimeOffMemberId(null)} />
+        </RotaProvider>
+      ) : null}
+
+      {editMember ? (
+        <AddTeamMemberDialog
+          open
+          onOpenChange={(next) => {
+            if (!next) setEditMemberId(null)
+          }}
+          businessName={businessName}
+          initialSection={editSection}
+          editing={{
+            name: editMember.name ?? editMember.email,
+            firstName: (editMember.name ?? "").split(" ")[0] ?? "",
+            lastName: (editMember.name ?? "").split(" ").slice(1).join(" "),
+            email: editMember.email,
+            jobTitle: editMember.title ?? "",
+            roleId: editMember.roleId,
+            assignedLocationIds:
+              editMember.locationGrants === "all" ? [] : editMember.locationGrants,
+          }}
+          onAdd={(values) => {
+            setMembers((prev) =>
+              prev.map((m) =>
+                m.id === editMember.id
+                  ? {
+                      ...m,
+                      name: `${values.firstName} ${values.lastName}`.trim() || m.name,
+                      title: values.jobTitle || undefined,
+                      email: values.email,
+                      roleId: values.roleId,
+                      // An owner holds the estate, so their grant is not a
+                      // list and must not be flattened into one (R04).
+                      locationGrants:
+                        values.roleId === "owner" ? "all" : values.assignedLocationIds,
+                    }
+                  : m,
+              ),
+            )
+            setEditMemberId(null)
+          }}
+        />
+      ) : null}
       {viewMember ? (
         <TeamMemberDetailDialog
           open
@@ -463,7 +529,7 @@ export default function TeamSettingsPage() {
           onEditProfile={() => handleEditProfile(viewMember.id)}
           onEditRoles={() => handleEditRoles(viewMember.id)}
           onEditServices={() => handleEditServices(viewMember.id)}
-          onEditSchedule={() => handleEditSchedule(viewMember.id)}
+          onEditSchedule={() => handleEditSchedule()}
           onResendInvitation={() => handleResendInvitation(viewMember.id)}
           onRemove={() => {
             handleRemove(viewMember.id)
@@ -483,5 +549,41 @@ export default function TeamSettingsPage() {
         onSave={handleSaveAccess}
       />
     </AppShell>
+  )
+}
+
+/**
+ * Time off, opened from the team list rather than from a branch's week.
+ *
+ * The dialog needs a branch (DW2.2) and there is none in view here, so it is
+ * asked for — limited to the branches this person is granted, because time off
+ * somewhere they do not work is a record nobody can act on. Wrapped in its own
+ * `RotaProvider` so the write lands in the same store the schedule reads.
+ */
+function TeamTimeOff({ member, onClose }: { member: Member; onClose: () => void }) {
+  const { granted, byId } = useLocations()
+  const { addLeave } = useRota()
+  const choices =
+    member.locationGrants === "all"
+      ? granted
+      : granted.filter((l) => member.locationGrants.includes(l.id))
+
+  return (
+    <AddTimeOffDialog
+      open
+      onOpenChange={(next) => {
+        if (!next) onClose()
+      }}
+      members={[{ id: member.id, name: member.name ?? member.email }]}
+      defaultMemberId={member.id}
+      locationId={choices[0]?.id ?? ""}
+      locationName={choices[0]?.name ?? ""}
+      locationChoices={choices.map((l) => ({ id: l.id, name: l.name }))}
+      alsoWorksAt={(_id) => choices.slice(1).map((l) => byId(l.id)?.location.district || l.name)}
+      onAdd={(leave) => {
+        addLeave(leave)
+        onClose()
+      }}
+    />
   )
 }

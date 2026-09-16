@@ -35,8 +35,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { roleById } from "@/lib/team/roles"
 
-export type TeamMemberPermission = "High" | "Medium" | "Low"
 export type TeamMemberStatus = "active" | "pending"
 
 export type TeamMemberDetailMember = {
@@ -45,7 +45,8 @@ export type TeamMemberDetailMember = {
   title?: string
   email: string
   phone?: string
-  permission: TeamMemberPermission
+  /** The role, which is the only notion of access this product has (R04). */
+  roleId: string
   status: TeamMemberStatus
 }
 
@@ -55,13 +56,6 @@ const PRIMARY_TABS: Array<{ id: TeamMemberDetailTabId; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "details", label: "Details" },
 ]
-
-const PERMISSION_DESCRIPTION: Record<TeamMemberPermission, string> = {
-  High: "Full access to calendar, sales, clients, catalog, marketing, team, payments and workspace.",
-  Medium:
-    "Partial access to calendar, sales, clients, catalog, online profile, marketing, team, payments and wallet, and workspace.",
-  Low: "Calendar, their own appointments, and limited client info. Cannot edit team or settings.",
-}
 
 // Static demo detail — the listing carries only the thin row, so the extra
 // profile fields (birthday, country, calendar color, addresses, emergency
@@ -136,7 +130,9 @@ export function TeamMemberDetailDialog({
                 </DialogTitle>
                 <DialogDescription asChild>
                   <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted-foreground">
-                    <span className="truncate">{member.permission} access</span>
+                    <span className="truncate">
+                      {roleById(member.roleId)?.name ?? member.roleId}
+                    </span>
                     <span className="truncate">· {member.email}</span>
                     {member.phone ? <span className="truncate">· {member.phone}</span> : null}
                   </div>
@@ -320,9 +316,11 @@ export function TeamMemberDetailDialog({
                       <DetailField label="Calendar bookings" value="Allowed" />
                       <div className="flex flex-col">
                         <span className="text-xs text-muted-foreground">Permission role</span>
-                        <span className="text-sm">{member.permission}</span>
-                        <span className="pt-1 text-sm text-muted-foreground">
-                          {PERMISSION_DESCRIPTION[member.permission]}
+                        <span className="text-sm">
+                          {roleById(member.roleId)?.name ?? member.roleId}
+                        </span>
+                        <span className="pt-1 text-muted-foreground text-sm">
+                          {roleById(member.roleId)?.capability}
                         </span>
                       </div>
                     </div>

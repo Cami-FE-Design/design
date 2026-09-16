@@ -4,7 +4,6 @@ import type { LocationGrants } from "@/lib/locations/store"
 // listing and the Reporting module read from here so a Team member link cell in
 // any report opens that member's ACTUAL profile (no fabricated look-ups).
 
-export type TeamPermission = "High" | "Medium" | "Low"
 export type TeamMemberStatus = "active" | "pending"
 
 export type TeamMember = {
@@ -19,7 +18,6 @@ export type TeamMember = {
    * lib/team/roles.ts — so `roleId` and `locationGrants` are what a new surface
    * should read.
    */
-  permission: TeamPermission
   status: TeamMemberStatus
   initials: string
   /** What this person may do. Defined once per role (R04). */
@@ -39,7 +37,6 @@ export const TEAM_MEMBERS: TeamMember[] = [
     title: "Manager",
     email: "maaz@getcami.io",
     phone: "+971 50 963 6445",
-    permission: "High",
     status: "active",
     initials: "MK",
     roleId: "owner",
@@ -51,7 +48,6 @@ export const TEAM_MEMBERS: TeamMember[] = [
     title: "Senior Groomer",
     email: "aziz@getcami.io",
     phone: "+971 50 118 2204",
-    permission: "Medium",
     status: "active",
     initials: "AR",
     roleId: "manager",
@@ -66,7 +62,6 @@ export const TEAM_MEMBERS: TeamMember[] = [
     title: "Groomer",
     email: "sara@getcami.io",
     phone: "+971 54 402 0718",
-    permission: "Medium",
     status: "active",
     initials: "SP",
     roleId: "staff",
@@ -78,7 +73,6 @@ export const TEAM_MEMBERS: TeamMember[] = [
     title: "Stylist",
     email: "beth@getcami.io",
     phone: "+971 55 218 9043",
-    permission: "Medium",
     status: "active",
     initials: "BC",
     roleId: "staff",
@@ -89,7 +83,6 @@ export const TEAM_MEMBERS: TeamMember[] = [
     id: "m_ahmed",
     name: null,
     email: "ahmed@getcami.io",
-    permission: "Low",
     status: "pending",
     initials: "A",
     roleId: "receptionist",

@@ -47,9 +47,19 @@ describe("crossBranchClashes", () => {
     )
   })
 
-  it("never flags an overlap inside one branch, which ADR-023 allows", () => {
-    // Mariam has two overlapping shifts at JVC. Legal, unchanged, and reporting
-    // it would be calling the product's own behaviour an error.
+  it("never reports two windows at the same branch as a cross-branch clash", () => {
+    // The built rota dialog refuses overlapping windows at one branch, so this
+    // should never reach the data — it is a guard, not a supported state, and
+    // the seed no longer carries one.
+    const shifts: Shift[] = [
+      { id: "a", memberId: "one", locationId: JVC, day: "thu", start: "09:00", end: "14:00" },
+      { id: "b", memberId: "one", locationId: JVC, day: "thu", start: "12:00", end: "18:00" },
+    ]
+    expect(crossBranchClashes(shifts)).toEqual([])
+  })
+
+  it("keeps a split shift at one branch out of the clash list", () => {
+    // Mariam: JVC 09:00–13:00 then 14:00–18:00, a break the product requires.
     const mariam = ROSTER_SHIFTS.filter((shift) => shift.memberId === "mariam")
     expect(crossBranchClashes(mariam)).toEqual([])
   })
@@ -89,8 +99,12 @@ describe("shiftsAt and membersAt", () => {
 
   it("shows the hours actually worked at that branch, not the person's whole day", () => {
     const atJvc = shiftsAt(ROSTER_SHIFTS, JVC, "lena")
-    expect(atJvc).toHaveLength(1)
-    expect(atJvc[0]!.end).toBe("13:00")
+    expect(atJvc.every((shift) => shift.locationId === JVC)).toBe(true)
+    // Tuesday is the split day: she is here 09:00–13:00 and at Jumeirah until
+    // 20:00, and the branch's own row must show the four hours, not the eleven.
+    const tuesday = atJvc.filter((shift) => shift.day === "tue")
+    expect(tuesday).toHaveLength(1)
+    expect(tuesday[0]!.end).toBe("13:00")
   })
 })
 

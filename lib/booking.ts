@@ -479,7 +479,15 @@ export function serviceTotals(
   }
 }
 
-export type SlotGroup = { label: string; times: ReadonlyArray<{ time: string; taken?: boolean }> }
+/**
+ * One slot as the grid shows it. `time` is what a person reads, `time24` is
+ * what a rule compares — carried together rather than parsing the label back,
+ * because a display string is a poor key for an availability check and the two
+ * can then never disagree.
+ */
+export type BookingSlot = { time: string; time24: string; taken?: boolean }
+
+export type SlotGroup = { label: string; times: ReadonlyArray<BookingSlot> }
 
 /**
  * The times one branch offers on one day, generated from that branch's hours.
@@ -501,7 +509,7 @@ export function slotGroupsForLocation(
   const schedule = hours[day.weekDay]
   if (schedule.closed) return []
 
-  const groups: Array<{ label: string; times: Array<{ time: string; taken?: boolean }> }> = [
+  const groups: Array<{ label: string; times: Array<BookingSlot> }> = [
     { label: "Morning", times: [] },
     { label: "Afternoon", times: [] },
     { label: "Evening", times: [] },
@@ -512,11 +520,9 @@ export function slotGroupsForLocation(
     const close = toMinutes(range.close)
     for (let minutes = open; minutes + SLOT_MINUTES <= close; minutes += SLOT_MINUTES) {
       const hour = Math.floor(minutes / 60)
-      const time = formatTime12h(
-        `${String(hour).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`,
-      )
+      const time24 = `${String(hour).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`
       const group = hour < 12 ? groups[0]! : hour < 17 ? groups[1]! : groups[2]!
-      group.times.push({ time, taken: isTaken(day.id, minutes) })
+      group.times.push({ time: formatTime12h(time24), time24, taken: isTaken(day.id, minutes) })
     }
   }
 
@@ -548,23 +554,23 @@ export const SLOT_GROUPS: ReadonlyArray<SlotGroup> = [
   {
     label: "Morning",
     times: [
-      { time: "9:00am" },
-      { time: "9:30am", taken: true },
-      { time: "10:00am" },
-      { time: "10:30am" },
-      { time: "11:00am", taken: true },
-      { time: "11:30am" },
+      { time: "9:00am", time24: "09:00" },
+      { time: "9:30am", time24: "09:30", taken: true },
+      { time: "10:00am", time24: "10:00" },
+      { time: "10:30am", time24: "10:30" },
+      { time: "11:00am", time24: "11:00", taken: true },
+      { time: "11:30am", time24: "11:30" },
     ],
   },
   {
     label: "Afternoon",
     times: [
-      { time: "12:00pm" },
-      { time: "1:00pm" },
-      { time: "1:30pm" },
-      { time: "2:00pm", taken: true },
-      { time: "3:00pm" },
-      { time: "4:30pm" },
+      { time: "12:00pm", time24: "12:00" },
+      { time: "1:00pm", time24: "13:00" },
+      { time: "1:30pm", time24: "13:30" },
+      { time: "2:00pm", time24: "14:00", taken: true },
+      { time: "3:00pm", time24: "15:00" },
+      { time: "4:30pm", time24: "16:30" },
     ],
   },
 ]

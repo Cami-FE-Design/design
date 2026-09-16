@@ -57,7 +57,6 @@ import { BoardingDetailSheet } from "@/components/blocks/boarding/booking-detail
 import { NewBoardingSheet } from "@/components/blocks/boarding/new-boarding-sheet"
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { BranchDayStrip } from "@/components/blocks/branch-day-strip"
-import { BranchRoster } from "@/components/blocks/branch-roster"
 import { BusinessNotificationsSection } from "@/components/blocks/business-detail-dialog"
 import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
@@ -136,6 +135,7 @@ import { RankedBarChart } from "@/components/blocks/reports/charts/ranked-bar-ch
 import { DashboardReport } from "@/components/blocks/reports/dashboard-report"
 import { DetailedTableReport } from "@/components/blocks/reports/detailed-table-report"
 import { TableReport } from "@/components/blocks/reports/table-report"
+import { ScheduledShifts } from "@/components/blocks/scheduled-shifts"
 import { SectionCard } from "@/components/blocks/section-card"
 import { SectionedSheetShell, type SectionGroup } from "@/components/blocks/sectioned-sheet-shell"
 import { CategorySidebar } from "@/components/blocks/service-menu/CategorySidebar"
@@ -231,6 +231,7 @@ import { bookingsInScope } from "@/lib/locations/calendar-scope"
 import { formatDayHours, isOpenNow, WEEK_DAYS } from "@/lib/locations/hours"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
+import { BUSINESS_TIMEZONE, resolveTimezone, timezoneLabel } from "@/lib/locations/timezone"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
 import type { TerminalFeeModel } from "@/lib/money/fees"
@@ -264,6 +265,7 @@ import {
 import { eligibilityFor } from "@/lib/service-catalog/package-eligibility"
 import { TEAM_MEMBERS } from "@/lib/team/mock"
 import { roleById } from "@/lib/team/roles"
+import { NINE_BRANCH_LEAVES, NINE_BRANCH_MEMBERS, NINE_BRANCH_SHIFTS } from "@/lib/team/shifts-mock"
 import { DEMO_SESSIONS, DEMO_TERMINALS } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
 
@@ -368,6 +370,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Multi-location — nine branches (D5)",
       "Multi-location — chain setup",
       "Multi-location — branch access grants",
+      "Multi-location — client visits at another branch",
       "Multi-location — per-branch service pricing",
       "Multi-location — public branch picker",
       "Multi-location — branch WhatsApp numbers",
@@ -644,6 +647,35 @@ function ServicePricingDemo() {
   )
 }
 
+/**
+ * SCR-07 under one reader at a time.
+ *
+ * The screen only says anything if you can change who is looking: the same
+ * client, the same four visits, and a different set of things you may do about
+ * them. Each row wraps it in its own provider, so the grant is the only
+ * variable between them.
+ */
+function ClientVisitsDemo({ cta, isOwner = false }: { cta: string; isOwner?: boolean }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Button type="button" variant="outline" size="sm" radius="full" onClick={() => setOpen(true)}>
+        {cta}
+      </Button>
+      <ClientDetailDialog
+        open={open}
+        onOpenChange={setOpen}
+        client={{
+          id: "noor-haddad-1",
+          name: "Noor Haddad",
+          phone: "+971 58 509 9313",
+        }}
+        isOwner={isOwner}
+      />
+    </>
+  )
+}
+
 function TeamAccessDemo() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [members, setMembers] = useState(TEAM_MEMBERS)
@@ -827,7 +859,7 @@ function BranchHoursDemo() {
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium leading-5 text-foreground">{loc.name}</span>
             <span className="text-xs text-muted-foreground">
-              {loc.timezone} ·{" "}
+              {timezoneLabel(resolveTimezone(BUSINESS_TIMEZONE, loc.timezone).value)} ·{" "}
               {isOpenNow(loc.hours, now) ? (
                 <span className="text-cami-green-11">Open now</span>
               ) : (
@@ -1263,14 +1295,14 @@ const TEAM_DEMO_MEMBERS: Record<"active" | "pending", TeamMemberDetailMember> = 
     title: "Groomer",
     email: "sara@getcami.io",
     phone: "+971 54 402 0718",
-    permission: "Medium",
+    roleId: "staff",
     status: "active",
   },
   pending: {
     id: "pg-tm-pending",
     name: null,
     email: "ahmed@getcami.io",
-    permission: "Low",
+    roleId: "receptionist",
     status: "pending",
   },
 }
@@ -2733,20 +2765,20 @@ export function PlaygroundShowcase() {
           </Row>
         </Section>
         <Section
-          title="Multi-location — branch roster"
-          description="SCR-10 (R05, DW2.3, DW2.4). A roster belongs to one branch, and somebody assigned to two appears on both with the hours they work there — not their whole day, because DW2.3's acceptance is that booking offers them at a branch only during their rostered hours there. Lena is JVC mornings and Jumeirah evenings: two branches in one day and no conflict, which is the arrangement the story is written for. Sara is rostered at both over the same hours, which is the one clash DW2.4 names — one person cannot be in two places. Mariam has two overlapping shifts at JVC and is deliberately not flagged: ADR-023 allows overlap inside a branch, and marking it would report the product's own behaviour as an error. Nothing here blocks: whether booking refuses a cross-branch overlap extends ADR-023, which the PRD marks as needing an extension, so the roster states the fact and leaves the rule to the rule."
+          title="Multi-location — scheduled shifts"
+          description="SCR-10 (R05, DW2.3, DW2.4). The built product’s Scheduled shifts grid, drawn per branch: members against Mon–Sun, hours per person and per day, today marked. The week, the sort and which branch is open live on the route, not on the grid — the route shows one branch’s week and a strip carries the rest of the estate, because a grid per branch is an endless scroll by nine of them. A schedule belongs to one location, and somebody assigned to two appears on both with the hours they work there — not their whole day, because DW2.3’s acceptance is that booking offers them at a branch only during their rostered hours there. Lena is JVC mornings and Jumeirah evenings, two branches in one day and no conflict, which is the arrangement the story is written for. Sara is rostered at both over the same hours, which is the one clash DW2.4 names; booking refuses those hours, and the grid is where the rota gets fixed. Overlapping shifts at one branch are not seeded, because they cannot happen: the built shift dialog refuses two windows that overlap and requires at least thirty minutes between them. That is the point — the one overlap nothing refuses today is the one that spans branches, because each branch’s rota is written under its own venue and nothing compares two of them. Mariam’s Thursday is a split shift with a proper break, which is the legal shape. Leave and shifts are kept apart on purpose: a shift is the branch’s, so it shows at one; leave is the person’s, so Lena’s Thursday is off at both. A block time — Sara’s lunch, Mariam’s training — stays at its own branch, counts as worked, and cannot be sold. Omar’s Tuesday carries half a day’s sick leave inside a shift, so the window splits around it rather than drawing one pill over hours nobody is there for. Empty days say “Not working” rather than going blank, because a blank cell reads as a rota nobody filled in. Read-only here — the write surfaces (add or edit a day, set a repeating pattern, add time off, clear a week) are on the route, where a provider holds the schedule. At nine branches: Yara works three, Faris crosses an emirate line and clashes with himself on Saturday, and Hadi is rostered at a suspended branch — a rota does not stop when trading does, so the week is shown and only the writing stops (R12)."
         >
           <Row label="JVC" align="start">
             <div className="w-full">
               <LocationsProvider persist={false}>
-                <BranchRoster locationId="shampooch-jvc" />
+                <ScheduledShifts locationId="shampooch-jvc" />
               </LocationsProvider>
             </div>
           </Row>
           <Row label="Jumeirah" align="start">
             <div className="w-full">
               <LocationsProvider persist={false}>
-                <BranchRoster locationId="shampooch-jumeirah" />
+                <ScheduledShifts locationId="shampooch-jumeirah" />
               </LocationsProvider>
             </div>
           </Row>
@@ -2755,7 +2787,39 @@ export function PlaygroundShowcase() {
               {/* A branch standing up has no roster yet, which is a sentence
                   rather than an empty grid. */}
               <LocationsProvider persist={false}>
-                <BranchRoster locationId="shampooch-al-quoz" />
+                <ScheduledShifts locationId="shampooch-al-quoz" />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Nine branches" align="start">
+            <div className="w-full">
+              {/* Three branches is where a rule looks obvious and a layout looks
+                  fine. Nine is where both get tested — every defect this repo
+                  has found in a multi-location surface showed up here first.
+
+                  Yara works three branches, Faris crosses an emirate line and
+                  clashes with himself on Saturday, and Hadi is rostered at a
+                  suspended branch, because a rota does not stop when trading
+                  does and the hours are still owed. */}
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <ScheduledShifts
+                  locationId="shampooch-dubai-marina"
+                  members={NINE_BRANCH_MEMBERS}
+                  shifts={NINE_BRANCH_SHIFTS}
+                  leaves={NINE_BRANCH_LEAVES}
+                />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Nine branches · suspended" align="start">
+            <div className="w-full">
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <ScheduledShifts
+                  locationId="shampooch-yas-island"
+                  members={NINE_BRANCH_MEMBERS}
+                  shifts={NINE_BRANCH_SHIFTS}
+                  leaves={NINE_BRANCH_LEAVES}
+                />
               </LocationsProvider>
             </div>
           </Row>
@@ -2841,6 +2905,25 @@ export function PlaygroundShowcase() {
           <Row label="Open a member" align="start">
             <LocationsProvider persist={false}>
               <TeamAccessDemo />
+            </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — client visits at another branch"
+          description="SCR-07 (R13, R18, G1). One client, four visits, three branches. The read is never narrowed — franchise views are out of scope, so this is one business with one owner and one P&L, and reception cannot answer 'what did I pay last time' by telephoning the other branch. What a grant narrows is what you may *do*: open it as the owner and every visit carries its actions; open it as JVC reception and the Jumeirah visit still reads in full — price included — with its buttons replaced by the reason they are gone. Al Quoz is paused, so it takes no writes from anyone, owner included: the one state a grant cannot unlock. Overview gains 'Visits by branch', which is the thing the rows stop telling you once nine branches and a scroll are between them. The single-branch case — no branch anywhere on the screen, per PRD §12 — is the `spansBranches` rule, covered in lib/locations/visit-access.test.ts rather than here, because these fixtures always span."
+        >
+          <Row label="Owner · holds every branch" align="start">
+            <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+              <ClientVisitsDemo cta="Open as Omar (owner)" isOwner />
+            </LocationsProvider>
+          </Row>
+          <Row label="Reception · holds JVC only" align="start">
+            <LocationsProvider
+              persist={false}
+              initialLocations={NINE_BRANCH_ESTATE}
+              initialGrants={["shampooch-jvc"]}
+            >
+              <ClientVisitsDemo cta="Open as Layla (JVC reception)" />
             </LocationsProvider>
           </Row>
         </Section>

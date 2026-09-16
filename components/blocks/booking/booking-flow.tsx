@@ -70,9 +70,11 @@ import {
   serviceTotals,
   slotGroupsForLocation,
 } from "@/lib/booking"
+import { slotsForStaff } from "@/lib/locations/cross-branch-availability"
 import type { WeekSchedule } from "@/lib/locations/hours"
 import { type PetNoteEntry, petNoteLabel, petNotesComplete } from "@/lib/pet-notes"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
+import { ROSTER_LEAVES, ROSTER_SHIFTS } from "@/lib/team/shifts-mock"
 import { cn } from "@/lib/utils"
 
 // Luma single-column flow, sibling to checkout-flow. ONE flat surface, hairline
@@ -123,6 +125,7 @@ function SlotStep({
   days,
   staff,
   slotGroups,
+  unavailableStaff,
 }: {
   staffId: string
   onStaff: (id: string) => void
@@ -133,6 +136,8 @@ function SlotStep({
   days: ReadonlyArray<BookingDay>
   staff: ReadonlyArray<BookingStaff>
   slotGroups: ReadonlyArray<SlotGroup>
+  /** Set when the grid is empty because *this person* is not here that day. */
+  unavailableStaff?: string
 }) {
   const staffRailRef = useRef<HTMLDivElement>(null)
   const scrollStaff = (dir: -1 | 1) =>
@@ -192,7 +197,12 @@ function SlotStep({
       <DayPicker dayId={dayId} onDay={onDay} days={days} />
 
       {/* Available times — full-width stacked rows */}
-      <TimeList time={time} onTime={onTime} groups={slotGroups} />
+      <TimeList
+        time={time}
+        onTime={onTime}
+        groups={slotGroups}
+        unavailableStaff={unavailableStaff}
+      />
 
       {time ? (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -1255,7 +1265,28 @@ export function BookingFlow({
   }
 
   const day = days.find((d) => d.id === dayId) ?? days[0]!
-  const slotGroups = slotGroupsForLocation(hours, day)
+  const branchSlots = slotGroupsForLocation(hours, day)
+  // Picking a person narrows the grid to the hours they work *here* and drops
+  // anything they are committed to at another branch (DW2.3, DW2.4 — blocked,
+  // per Maaz on 15 Sep). "Any team member" leaves it alone: the branch is open,
+  // and somebody can take it.
+  const slotGroups =
+    staffId === "any"
+      ? branchSlots
+      : slotsForStaff(
+          branchSlots,
+          ROSTER_SHIFTS,
+          staffId,
+          locationId ?? "",
+          day.weekDay,
+          totals.durationMinutes,
+          ROSTER_LEAVES,
+        )
+  // An empty grid means two different things and must not read as one. The
+  // branch being shut or fully booked is the day's fault; a chosen person not
+  // working here is theirs, and sends the client to a different person rather
+  // than a different day.
+  const emptyBecauseOfStaff = slotGroups.length === 0 && branchSlots.length > 0
   const whenLabel = `${day.label ?? `${day.weekday} ${day.dayNum}`}${time ? ` · ${time}` : ""}`
   const staffLabel =
     staffId === "any"
@@ -1328,14 +1359,24 @@ export function BookingFlow({
     ) : step === "slot" ? (
       <SlotStep
         staffId={staffId}
-        onStaff={setStaffId}
+        onStaff={(id) => {
+          setStaffId(id)
+          // The grid is about to change under the selection. Keeping a 4pm that
+          // the new person does not work would carry an unbookable time into
+          // the summary, and it is chosen again in one tap.
+          setTime(null)
+        }}
         dayId={dayId}
-        onDay={setDayId}
+        onDay={(id) => {
+          setDayId(id)
+          setTime(null)
+        }}
         time={time}
         onTime={setTime}
         days={days}
         staff={staff}
         slotGroups={slotGroups}
+        unavailableStaff={emptyBecauseOfStaff ? staffLabel.split(" ")[0] : undefined}
       />
     ) : step === "identify" ? (
       <IdentifyStep

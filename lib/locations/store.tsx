@@ -87,7 +87,14 @@ type LocationsValue = {
    * hours is the exception, and an owner who wants that can copy a week faster
    * than they can undo a bulk write they did not mean.
    */
-  setHours: (id: string, hours: WeekSchedule, timezone: string) => void
+  /**
+   * Set one branch's hours, and its timezone override (R01, R19).
+   *
+   * `undefined` for the zone is inheritance, not a clear — the branch goes back
+   * to following the business default, which is a different state from holding
+   * a value that happens to match it today.
+   */
+  setHours: (id: string, hours: WeekSchedule, timezone: string | undefined) => void
 
   /**
    * Stand up N branches in one pass (R02, SU1.2). One call, so it is all or
@@ -349,7 +356,7 @@ export function LocationsProvider({
   )
 
   const setHours = useCallback(
-    (id: string, hours: WeekSchedule, timezone: string) => {
+    (id: string, hours: WeekSchedule, timezone: string | undefined) => {
       updateLocation(id, { hours, timezone })
     },
     [updateLocation],

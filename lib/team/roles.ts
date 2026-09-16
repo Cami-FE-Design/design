@@ -53,7 +53,11 @@ export const SEEDED_ROLE_CODES = {
 export const VENUE_CAPABILITIES = [
   {
     code: "venues:read",
-    label: "Can view and access all locations",
+    // "all locations" made this read as scope, which is exactly the pair this
+    // code exists to keep apart: it says the role may open a location's record
+    // at all, not which branches they are granted. Somebody with this and one
+    // branch has one branch.
+    label: "Can open location settings",
     /** The one that already exists. */
     shipped: true,
     /**
@@ -120,7 +124,7 @@ export const MERCHANT_ROLES: MerchantRole[] = [
   {
     id: "owner",
     roleCode: SEEDED_ROLE_CODES.MERCHANT_OWNER,
-    name: "Owner",
+    name: "Owner / Admin",
     capability:
       "Full access to every setting, including billing, team management and business configuration.",
     isSystemRole: true,
@@ -156,11 +160,27 @@ export const MERCHANT_ROLES: MerchantRole[] = [
   {
     id: "staff",
     roleCode: SEEDED_ROLE_CODES.STAFF,
-    name: "Staff",
+    // The seeded staff role, under the name a grooming account gives it — the
+    // built product's own list reads "Stylist", because a role is renamed per
+    // account while its code stays `staff`.
+    name: "Stylist",
     capability:
       "Delivers services, manages their own calendar, and processes their own appointments.",
     isSystemRole: true,
-    /** "Stylist" in a grooming account is this role renamed. */
+    typicalScope: "The locations they are assigned to work",
+    venueCapabilities: [],
+  },
+  {
+    id: "trainee",
+    roleCode: "trainee",
+    name: "Trainee / Staff",
+    capability: "Read-only: client existence and notes at the locations they are assigned.",
+    isSystemRole: false,
+    /**
+     * A trainee is on the floor of one branch, not the estate. Read-only is the
+     * point — they see enough to work a shift and can configure nothing, which
+     * is why they hold no venue capability at all.
+     */
     typicalScope: "The locations they are assigned to work",
     venueCapabilities: [],
   },
