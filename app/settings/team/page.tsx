@@ -2,7 +2,7 @@
 
 import { ChevronDownIcon, PlusIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { toast } from "sonner"
 import {
   AddTeamMemberDialog,
@@ -262,7 +262,7 @@ function MemberTable({
   )
 }
 
-export default function TeamSettingsPage() {
+function TeamSettingsContent() {
   const router = useRouter()
   const { locationName } = useLocations()
   const { name: businessName } = useDemoBusiness()
@@ -548,6 +548,42 @@ export default function TeamSettingsPage() {
         member={members.find((m) => m.id === accessMemberId) ?? null}
         onSave={handleSaveAccess}
       />
+    </AppShell>
+  )
+}
+
+/**
+ * The `?member=` deep link reads the URL, and a page that reads the URL cannot
+ * be prerendered without a boundary to suspend at — Next refuses the build
+ * rather than shipping a page that hydrates into the wrong state. Dev never
+ * sees it, because nothing is prerendered there; the Vercel build is where it
+ * showed up.
+ *
+ * The fallback carries the page's own header rather than a spinner, so the
+ * heading does not appear late on a screen that is otherwise already drawn.
+ */
+export default function TeamSettingsPage() {
+  return (
+    <Suspense fallback={<TeamSettingsFallback />}>
+      <TeamSettingsContent />
+    </Suspense>
+  )
+}
+
+function TeamSettingsFallback() {
+  const { name: businessName } = useDemoBusiness()
+  return (
+    <AppShell
+      header={
+        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-medium leading-8 text-foreground">Team members</h1>
+            <p className="text-sm text-muted-foreground">Manage who has access to {businessName}</p>
+          </div>
+        </div>
+      }
+    >
+      <div className="h-64" aria-hidden />
     </AppShell>
   )
 }
