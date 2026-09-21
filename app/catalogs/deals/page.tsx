@@ -52,9 +52,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { DEAL_STATUS_LABEL, type Deal, MOCK_DEALS } from "@/lib/deals/mock"
+import { DEAL_STATUS_LABEL, type Deal, describeRun, MOCK_DEALS, statusFor } from "@/lib/deals/mock"
 import { describeScope, isRunnable, reaches, runsAt } from "@/lib/locations/promotion-scope"
 import { useLocations } from "@/lib/locations/store"
+import { TODAY_ISO } from "@/lib/money/mock"
 
 export default function DealsPage() {
   const [query, setQuery] = useState("")
@@ -244,7 +245,7 @@ export default function DealsPage() {
             if (!next) setEditing(null)
           }}
           deal={editing.deal}
-          onSave={({ name, offer, scope }) => {
+          onSave={({ name, offer, scope, startsAt, endsAt }) => {
             const target = editing.deal
             setDeals((current) =>
               target
@@ -254,8 +255,11 @@ export default function DealsPage() {
                       id: `deal-${Date.now()}`,
                       name,
                       offer,
-                      status: "scheduled" as const,
-                      runs: "Not scheduled yet",
+                      // Both derived from the dates, never typed in: a deal
+                      // whose end has passed would otherwise read Live until
+                      // somebody edited it.
+                      status: statusFor(startsAt, endsAt, TODAY_ISO),
+                      runs: describeRun(startsAt, endsAt),
                       scope,
                       redemptions: 0,
                     },

@@ -83,13 +83,27 @@ describe("nothing chosen is refused, not saved", () => {
 })
 
 describe("creating one", () => {
-  it("asks for a name and an offer, and refuses without them", async () => {
+  it("asks for a name, an offer and a start, and refuses without them", async () => {
     open(null)
     expect(screen.getByText("New deal")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Create deal" })).toBeDisabled()
     await userEvent.type(screen.getByLabelText("Name"), "Spring refresh")
     await userEvent.type(screen.getByLabelText("Offer"), "15% off")
+    // A deal with no start has nothing to show in Runs, which is the column
+    // that could not be filled before dates were asked for.
+    expect(screen.getByRole("button", { name: "Create deal" })).toBeDisabled()
+    await userEvent.type(screen.getByLabelText("Starts"), "2026-04-01")
     expect(screen.getByRole("button", { name: "Create deal" })).not.toBeDisabled()
+  })
+
+  it("refuses an end before the start", async () => {
+    open(null)
+    await userEvent.type(screen.getByLabelText("Name"), "Spring refresh")
+    await userEvent.type(screen.getByLabelText("Offer"), "15% off")
+    await userEvent.type(screen.getByLabelText("Starts"), "2026-04-01")
+    await userEvent.type(screen.getByLabelText("Ends"), "2026-03-01")
+    expect(screen.getByText(/cannot precede the start/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Create deal" })).toBeDisabled()
   })
 
   it("does not ask an existing deal to be renamed", () => {

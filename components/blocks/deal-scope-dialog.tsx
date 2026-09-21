@@ -64,7 +64,11 @@ function ScopeChoice({
       aria-pressed={selected}
       className={cn(
         "flex w-full cursor-pointer items-start gap-3 rounded-2xl border p-3 text-left transition-colors",
-        selected ? "border-cami-violet-8 bg-cami-violet-2" : "border-border/60 hover:bg-muted/40",
+        // Hover moves the BORDER, not the fill. An unselected radio is a soft
+        // grey disc on `bg-input`, and tinting the card grey on hover put the
+        // two within a shade of each other — the control vanished at exactly
+        // the moment the pointer was over it.
+        selected ? "border-cami-violet-8 bg-cami-violet-2" : "border-border/60 hover:border-border",
       )}
     >
       {/* Not interactive itself — the card above it already is, and two click
@@ -88,7 +92,13 @@ export function DealScopeDialog({
   onOpenChange: (open: boolean) => void
   /** `null` creates one. The scope question is the same either way. */
   deal: Deal | null
-  onSave: (next: { name: string; offer: string; scope: PromotionScope }) => void
+  onSave: (next: {
+    name: string
+    offer: string
+    scope: PromotionScope
+    startsAt: string
+    endsAt: string
+  }) => void
 }) {
   // The branches this owner may scope to — never the estate, since you cannot
   // run a deal at a branch you do not hold (R04).
@@ -98,6 +108,8 @@ export function DealScopeDialog({
   const [picked, setPicked] = useState<string[]>([])
   const [name, setName] = useState("")
   const [offer, setOffer] = useState("")
+  const [startsAt, setStartsAt] = useState("")
+  const [endsAt, setEndsAt] = useState("")
 
   useEffect(() => {
     if (!open) return
@@ -105,12 +117,18 @@ export function DealScopeDialog({
     setPicked(deal?.scope.kind === "branches" ? [...deal.scope.locationIds] : [])
     setName(deal?.name ?? "")
     setOffer(deal?.offer ?? "")
+    setStartsAt("")
+    setEndsAt("")
   }, [open, deal])
 
   const scope: PromotionScope =
     kind === "estate" ? { kind: "estate" } : { kind: "branches", locationIds: picked }
   const runnable = isRunnable(scope)
-  const named = name.trim().length > 0 && offer.trim().length > 0
+  // A deal with no start date has no row to show in Runs, which is the column
+  // that was unfillable before this. Ends is optional — an ongoing offer is a
+  // decision, not a blank.
+  const named = name.trim().length > 0 && offer.trim().length > 0 && startsAt.length > 0
+  const datesOk = !endsAt || endsAt >= startsAt
   const creating = deal === null
 
   return (
@@ -151,6 +169,33 @@ export function DealScopeDialog({
                   onChange={(e) => setOffer(e.target.value)}
                 />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="deal-starts">Starts</Label>
+                  <Input
+                    id="deal-starts"
+                    type="date"
+                    value={startsAt}
+                    onChange={(e) => setStartsAt(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="deal-ends">Ends</Label>
+                  <Input
+                    id="deal-ends"
+                    type="date"
+                    value={endsAt}
+                    min={startsAt || undefined}
+                    onChange={(e) => setEndsAt(e.target.value)}
+                  />
+                  <span className="text-muted-foreground text-xs">
+                    Leave empty to run until you stop it.
+                  </span>
+                </div>
+              </div>
+              {!datesOk ? (
+                <p className="text-cami-tomato-11 text-sm">An end date cannot precede the start.</p>
+              ) : null}
             </div>
           ) : null}
 
@@ -204,8 +249,10 @@ export function DealScopeDialog({
           </Button>
           <Button
             radius="full"
-            disabled={!runnable || (creating && !named)}
-            onClick={() => onSave({ name: name.trim(), offer: offer.trim(), scope })}
+            disabled={!runnable || (creating && (!named || !datesOk))}
+            onClick={() =>
+              onSave({ name: name.trim(), offer: offer.trim(), scope, startsAt, endsAt })
+            }
           >
             {creating ? "Create deal" : "Save"}
           </Button>

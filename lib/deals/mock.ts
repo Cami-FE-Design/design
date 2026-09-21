@@ -93,3 +93,35 @@ export const DEAL_STATUS_LABEL: Record<DealStatus, string> = {
   scheduled: "Scheduled",
   ended: "Ended",
 }
+
+/**
+ * When a deal runs, said the way a row reads it.
+ *
+ * The list carried a `runs` string and the create flow had no way to set one,
+ * so a deal made on this screen said "Not scheduled yet" for ever — a column
+ * nobody could fill, which is the same dead end a disabled Add button is.
+ *
+ * Dates in, sentence out. An open end is "ongoing" rather than a blank: a deal
+ * with no finish is a decision, not a missing field.
+ */
+export function describeRun(startsAt: string, endsAt: string): string {
+  const day = (iso: string) =>
+    new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+  if (!startsAt) return "Not scheduled yet"
+  if (!endsAt) return `From ${day(startsAt)}, ongoing`
+  return `${day(startsAt)} – ${day(endsAt)}`
+}
+
+/**
+ * Live, scheduled or ended — derived, never typed in.
+ *
+ * Stored separately it drifts: a deal whose end date passed still reads Live
+ * until somebody edits it, which is exactly the row an owner trusts and should
+ * not.
+ */
+export function statusFor(startsAt: string, endsAt: string, todayIso: string): DealStatus {
+  if (!startsAt) return "scheduled"
+  if (endsAt && endsAt < todayIso) return "ended"
+  if (startsAt > todayIso) return "scheduled"
+  return "live"
+}
