@@ -424,6 +424,11 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/appointments",
+        label: "New / edit sheet · the branch it books at",
+        note: "R11: an appointment is a write, so it names one branch. 'New booking' asks for it — after the client, before the services, because the service picker reads its offerings against the branch and the client does not depend on it; paused branches are listed and badged rather than hidden, and picking one says why it cannot hold the booking instead of leaving Save mysteriously shut. 'Edit existing appointment (demo)' states it instead of asking: an existing booking already belongs somewhere and moving it is SCR-06. The same line, in the same order, as the detail sheet at /sales/appointments-list?ref=b-014 — and the tile's hover card carries it too, in /playground under 'Appointments — pickup & pet notes'. BuildingIcon throughout, never the pin: the pin is the pet's address. All of it absent for a single-branch business (DW1.2).",
+      },
+      {
+        path: "/appointments",
         label: "New / edit sheet · Quick message",
         note: "Open the create sheet via 'New booking' (or 'Edit existing appointment (demo)'). Select a client to reveal the Quick message dropdown in the client action row — lists the business's WhatsApp templates with a resolved-text preview, plus a Message center link to the inbox. Picking a template opens the send dialog: edit the resolved body → Send → sending → 'Message sent' confirmation.",
       },
@@ -727,7 +732,7 @@ const SECTIONS: Section[] = [
       {
         path: "/sales/appointments-list?ref=b-002&view=activity",
         label: "Appointment detail sheet",
-        note: "Opens the right-side sheet over the listing via ?ref=<id>. Try b-001…b-024 for different states (b-002 is ready-for-pickup, b-003 confirmed, etc.). Status-colored header band (blue=booked, gray=completed, tomato=no-show), Services list, sale total with inline-expand breakdown, Quick actions popover. Status pill behavior: terminal statuses (completed/cancelled) are static, no-show only offers Undo, others get the full dropdown — pill + band update live.",
+        note: "Opens the right-side sheet over the listing via ?ref=<id>. Try b-001…b-024 for different states (b-002 is ready-for-pickup, b-003 confirmed, etc.). Status-colored header band (blue=booked, gray=completed, tomato=no-show), Services list, sale total with inline-expand breakdown, Quick actions popover. Status pill behavior: terminal statuses (completed/cancelled) are static, no-show only offers Undo, others get the full dropdown — pill + band update live. The header band also names the branch, beside the time: it is one of the two facts an operator reads first, and it carries full contrast against the band's muted 70% because bold alone at 12px, third in a comma list after 'doesn't repeat', was there and could not be found.",
       },
       {
         path: "/sales/appointments-list?ref=b-002",
@@ -893,12 +898,12 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?money=drawer",
         label: "Topbar money drawer · the entry point",
-        note: "The money icon sits in the topbar on every screen, so it has no route of its own — these links open it over the bare shell. It is the only way in, because a routed Money section was an orphan nothing linked to. One card per sender (Cami / NeoPay) with what each holds and when it lands, the last three days of activity, then a way into the full screens. Reads the same derivation as the account summary, so the drawer and the page cannot disagree — which is exactly what they do in the reference product.",
+        note: "Says which branches it is counting and is bounded by the grant, like every other money surface — it was the one that summed the whole ledger regardless. The money icon sits in the topbar on every screen, so it has no route of its own — these links open it over the bare shell. It is the only way in, because a routed Money section was an orphan nothing linked to. One card per sender (Cami / NeoPay) with what each holds and when it lands, the last three days of activity, then a way into the full screens. Reads the same derivation as the account summary, so the drawer and the page cannot disagree — which is exactly what they do in the reference product.",
       },
       {
         path: "/shell-demo?money=summary",
         label: "Account summary (DSG-77) · two rails",
-        note: "The recommended D6 layout. Cami-held money is the headline (the only timing Cami controls), NeoPay's sits beside it at lower weight. Follow the breakdown down: money in → what Cami charged → adjustments → already paid to your bank → still held. The running totals between blocks are the point — the arithmetic is visible, not asserted.",
+        note: "Carries the per-branch breakdown (SCR-15) — Activity has had a branch filter since DSG-78, while this side summed the estate into one figure and offered no way down. Absent for a single-site business. The recommended D6 layout. Cami-held money is the headline (the only timing Cami controls), NeoPay's sits beside it at lower weight. Follow the breakdown down: money in → what Cami charged → adjustments → already paid to your bank → still held. The running totals between blocks are the point — the arithmetic is visible, not asserted.",
       },
       {
         path: "/shell-demo?money=summary&variant=blended",
@@ -1125,6 +1130,16 @@ const SECTIONS: Section[] = [
         path: "/playground#multi-location-package-mismatch-at-checkout",
         label: "Package mismatch · SCR-13 (playground)",
         note: "KC1.5, corrected 2026-09-03: warn, never block. Gift cards and memberships travel across branches; a package is sold against one specific priced service and does not. Four cases — same terms (nothing renders), priced differently, different duration, not offered here. Both figures are shown so reception can decide in front of the client, and the choice is recorded on the sale so an owner can see why a package redeemed below its value. The blueprint's 'can only be redeemed there' is superseded.",
+      },
+      {
+        path: "/sales/daily-summary",
+        label: "End of day, per branch · RP-A1 (route)",
+        note: "The PRD's FIRST user story — 'an EOD view per branch and a business total in one place, so I stop calling each location' — and the one BG-05 times. It was two cards of constants typed to match a Figma frame, with no branch anywhere on them, so an owner of nine branches read one merged number: the exact outcome the story names as the failure. Every figure now derives from the sales log, bounded by the grant before it sums (G7, R18), and the By location card puts the branches side by side with the total after them, labelled as their sum (KH1.1). A granted branch that took nothing is named rather than dropped. The page lands on this scope's own last trading day, because opening on today met every reviewer with an empty report and no way to tell an empty day from a broken one. Absent for a single-branch business (DW1.2).",
+      },
+      {
+        path: "/playground#multi-location-the-duplicate-caught-before-booking",
+        label: "Duplicate caught before booking · CL-A1 / RC-B1 (playground)",
+        note: "The last user story's Done-when is 'duplicate caught BEFORE booking', and only its readable half had shipped — SCR-07 put a client's visits across the estate on the client record, which answers the question if reception thinks to open it, and somebody mid-booking does not. It now arrives unprompted under the client picker in the new-appointment sheet. Unbounded by the grant on purpose: the duplicate worth catching is the one at a branch you cannot see, which is R13's floor and why R13 fixes the field set as uniform. States, never blocks — two appointments in a day is routinely correct, and reception has the client in front of them. Also live at /appointments → New appointment → pick Millie Cassidy.",
       },
       {
         path: "/playground#multi-location-money-by-branch",
@@ -1379,7 +1394,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=branding",
         label: "Branding",
-        note: 'Where a merchant picks the palette their clients see — until now it was assigned by hand in code, which survives one pilot and nothing after it. Filed under Workspace beside Business details rather than under Messaging: Messaging is about messages, whether one sends and what it says, and this is a page reached from one. The palette set here themes the messages too, which is why it is not called "Customer card". Five themes, a live card as the preview rather than five coloured rectangles, and nothing else — type is Cami\'s for every venue and imagery is out, so the panel is small on purpose rather than unfinished.',
+        note: 'Where a merchant picks the palette their clients see — until now it was assigned by hand in code, which survives one pilot and nothing after it. Filed under Workspace beside Business details rather than under Messaging: Messaging is about messages, whether one sends and what it says, and this is a page reached from one. The palette set here themes the messages too, which is why it is not called "Customer card". Five themes, a live card as the preview rather than five coloured rectangles, and nothing else — type is Cami\'s for every venue and imagery is out, so the panel is small on purpose rather than unfinished. The palette belongs to the business, not to a branch: set it once and all nine Shampooch branches carry it. Keyed per branch it was nine separate settings nobody could reach, and the preview — which needs a real card, and a chain has none of its own — rendered as an empty box.',
       },
       {
         path: "/shell-demo?settings=comms-templates&ce=booking-confirmed:email",

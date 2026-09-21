@@ -38,7 +38,7 @@ import {
   type MockBookingStatus,
   type MockServiceCategory,
 } from "@/app/appointments/mock"
-import { CartContent, CartFooter } from "@/app/sales/new-sale/cart-summary"
+import { CartContent, CartFooter, CheckoutFooter } from "@/app/sales/new-sale/cart-summary"
 import { GiftCardDialog, newGiftCardDraft } from "@/app/sales/new-sale/gift-card-dialog"
 import { comboCartLines, SERVICES } from "@/app/sales/new-sale/mock"
 import { PaymentLinkLockScreen } from "@/app/sales/new-sale/payment-link-lock"
@@ -47,6 +47,7 @@ import { RedeemGiftCardDialog } from "@/app/sales/new-sale/redeem-gift-card-dial
 import { SelectTerminalDialog } from "@/app/sales/new-sale/select-terminal-dialog"
 import { SelfCheckoutDialog } from "@/app/sales/new-sale/self-checkout-dialog"
 import { TerminalLockScreen } from "@/app/sales/new-sale/terminal-lock"
+import type { CartLine } from "@/app/sales/new-sale/types"
 import { AddTeamMemberDialog } from "@/components/blocks/add-team-member-dialog"
 import { AddressSearchField } from "@/components/blocks/address-search-field"
 import { AppointmentBlock } from "@/components/blocks/appointment-block"
@@ -62,6 +63,7 @@ import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
+import { ClientOpenAppointmentsBanner } from "@/components/blocks/client-open-appointments-banner"
 import { CommsTemplatesPanel } from "@/components/blocks/comms-templates-panel"
 import { CardJourney } from "@/components/blocks/customer-card/card-journey"
 import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
@@ -224,6 +226,7 @@ import {
   slotGroupsForLocation,
 } from "@/lib/booking"
 import { checkGoogleReviewLink } from "@/lib/business-links/links"
+import { openAppointmentsFor } from "@/lib/clients/open-appointments"
 import { getCustomerCard } from "@/lib/customer-card/mock"
 import { CUSTOMER_CARD_THEMES, getCustomerCardTheme } from "@/lib/customer-card/theme"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
@@ -403,11 +406,11 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Notifications settings",
       "Communication templates",
       "Google review link (PRD-168)",
-      "Merchant money surfaces — account summary (DSG-77)",
-      "Merchant money surfaces — activity and detail (DSG-78)",
-      "Merchant money surfaces — bank account (DSG-75)",
-      "Merchant money surfaces — invoices and fees (DSG-76)",
-      "Merchant money surfaces — billing details (DSG-74)",
+      "Money — account summary (DSG-77)",
+      "Money — activity and detail (DSG-78)",
+      "Money — bank account (DSG-75)",
+      "Money — invoices and fees (DSG-76)",
+      "Money — billing details (DSG-74)",
       "CamiPay fee breakdown — Partner side",
       "Invoice document — A4 downloadable",
       "Invoice document — share & email actions",
@@ -696,9 +699,16 @@ function ClientVisitsDemo({ cta, isOwner = false }: { cta: string; isOwner?: boo
  * grant — which is the point: the control is not one message styled three ways,
  * it says a different thing in each case.
  */
-function WriteTargetDemo({ action }: { action: string }) {
+function WriteTargetDemo({ action, variant }: { action: string; variant?: "field" | "card" }) {
   const [locationId, setLocationId] = useState<string | null>(null)
-  return <WriteTargetLocation value={locationId} onChange={setLocationId} action={action} />
+  return (
+    <WriteTargetLocation
+      value={locationId}
+      onChange={setLocationId}
+      action={action}
+      variant={variant}
+    />
+  )
 }
 
 function TeamAccessDemo() {
@@ -995,8 +1005,11 @@ function BranchAvailabilityDemo() {
  */
 function PackageRedemptionDemo({
   terms,
+  redeemingAt,
 }: {
   terms: "same" | "dearer" | "notOffered" | "unusable"
+  /** Standing in for a sale that has already named its branch. */
+  redeemingAt?: string
 }) {
   const [applied, setApplied] = useState<string[]>([])
   const entitlement: PackageEntitlement = {
@@ -1054,6 +1067,7 @@ function PackageRedemptionDemo({
   return (
     <PackageRedemptionPanel
       lines={lines}
+      redeemingAt={redeemingAt}
       applied={applied}
       onApply={(uid) => setApplied((current) => [...current, uid])}
       onRemove={(uid) => setApplied((current) => current.filter((id) => id !== uid))}
@@ -1118,6 +1132,33 @@ const STOCK_DEMO_PRODUCTS = {
   lowAndOut: { id: "p2", name: "Furminator Deshedding Tool", trackStock: true },
   unlimited: { id: "p9", name: "Service consumable", trackStock: false },
 } as const
+
+/**
+ * A two-line cart where the package pays for one of them (KC1.5). The covered
+ * line keeps its own price — a package is a captured payment, not a discount —
+ * and says so with a chip, so "zero" and "already paid for" stay different
+ * facts at the counter.
+ */
+const PACKAGE_CART_LINES: CartLine[] = [
+  {
+    uid: "pkg-line-1",
+    kind: "service",
+    name: "Blow dry",
+    priceMinor: 12000,
+    durationMin: 45,
+    qty: 1,
+    sourceId: "blow-dry",
+  },
+  {
+    uid: "pkg-line-2",
+    kind: "service",
+    name: "Nail trim",
+    priceMinor: 6000,
+    durationMin: 20,
+    qty: 1,
+    sourceId: "nail-trim",
+  },
+]
 
 const COMBO_CART_LINES = comboCartLines(
   SERVICES.find((svc) => svc.id === "nails-and-style-combo") ?? SERVICES[0],
@@ -2757,8 +2798,40 @@ export function PlaygroundShowcase() {
           </Row>
         </Section>
         <Section
+          title="Multi-location — the duplicate caught before booking"
+          description="CL-A1 / RC-B1, EC-1, R13. The PRD's last user story ends 'duplicate caught BEFORE booking', and only its readable half had shipped: SCR-07 put a client's visits across the estate on the client record, which answers the question if reception thinks to go and ask it — and somebody mid-booking does not. So it arrives unprompted, under the client picker in the new-appointment sheet, beside the notes banner and by the same rule: a fact that changes what gets booked belongs before the booking. It reads the client's own history UNBOUNDED by the grant, because the duplicate worth catching is the one at a branch you cannot see; that is R13's floor, and why R13 fixes the field set as uniform — date, location, service, whether the visit was yours or not. It states and never blocks (KC1.5's shape): two appointments in a day is routinely correct — a second pet, a partner on the same account — and reception has the client in front of them while the system does not."
+        >
+          <Row label="Already booked at another branch" align="start">
+            <div className="w-full max-w-md">
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <ClientOpenAppointmentsBanner
+                  open={openAppointmentsFor("millie-cassidy")}
+                  bookingAt="shampooch-jumeirah"
+                />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Already booked here — the ordinary case" align="start">
+            <div className="w-full max-w-md">
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <ClientOpenAppointmentsBanner
+                  open={openAppointmentsFor("millie-cassidy")}
+                  bookingAt="shampooch-jvc"
+                />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Nothing to say — renders nothing at all" align="start">
+            <div className="w-full max-w-md">
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <ClientOpenAppointmentsBanner open={openAppointmentsFor("nobody")} />
+              </LocationsProvider>
+            </div>
+          </Row>
+        </Section>
+        <Section
           title="Multi-location — package redemption at checkout"
-          description="SCR-13's host, which the rule and the warning never had (R08, KC1.5, R11). The contract exists in cami-business and no UI calls it: eligibility returns a verdict per service — covered, exhausted, expired, not_covered — with the package's sessions, and redeem consumes one session. So the verdicts and the counting here are taken rather than invented. What the contract has no room for is the branch, and that is deliberate: a branch-shaped verdict would block the redemption KC1.5 insists must complete, so a mismatch rides alongside a covered verdict and Apply stays reachable. An unusable verdict is a different thing and reads differently — a sentence a receptionist can repeat, and no button. A redemption resolves to one location before it can happen (R11), and the operator's decision is recorded on the sale so an owner reading a discount can see why."
+          description="SCR-13's host, which the rule and the warning never had (R08, KC1.5, R11). The contract exists in cami-business and no UI calls it: eligibility returns a verdict per service — covered, exhausted, expired, not_covered — with the package's sessions, and redeem consumes one session. So the verdicts and the counting here are taken rather than invented. What the contract has no room for is the branch, and that is deliberate: a branch-shaped verdict would block the redemption KC1.5 insists must complete, so a mismatch rides alongside a covered verdict and Apply stays reachable. An unusable verdict is a different thing and reads differently — a sentence a receptionist can repeat, and no button. A redemption resolves to one location before it can happen (R11), and the operator's decision is recorded on the sale so an owner reading a discount can see why. What it then does to the sale is the built product's model, read off packagePayments.ts: the covered line keeps its gross price and the coverage is booked as a captured customer_package payment, so the money leaves through the tenders — a chip on the line, a Package row in the footer — rather than by discounting the line."
         >
           <Row label="Covered, terms match" align="start">
             <div className="w-full max-w-[560px]">
@@ -2786,6 +2859,40 @@ export function PlaygroundShowcase() {
               <LocationsProvider persist={false}>
                 <PackageRedemptionDemo terms="unusable" />
               </LocationsProvider>
+            </div>
+          </Row>
+          {/* Hosted in the sale, the branch is settled before the cart holds
+              anything. Asking a second time two panels down invites two
+              different answers to one question (R11). */}
+          <Row label="Hosted in a sale — branch already named" align="start">
+            <div className="w-full max-w-[560px]">
+              <LocationsProvider persist={false}>
+                <PackageRedemptionDemo terms="dearer" redeemingAt="shampooch-jumeirah" />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="What it does to the cart line and the footer" align="start">
+            <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/60 bg-card">
+              <CartContent
+                lines={PACKAGE_CART_LINES}
+                hasClient
+                onRemove={() => {}}
+                onSetQty={() => {}}
+                readOnly
+                packageCovered={["pkg-line-1"]}
+              />
+              <CheckoutFooter
+                baseMinor={18000}
+                tipMinor={0}
+                packagePaidMinor={12000}
+                ctaLabel="Pay now"
+                onCta={() => {}}
+                onAddTip={() => {}}
+                onAddCartDiscount={() => {}}
+                onAddSaleNote={() => {}}
+                onSaveDraft={() => {}}
+                onCancelSale={() => {}}
+              />
             </div>
           </Row>
         </Section>
@@ -2935,7 +3042,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — a write names one branch"
-          description="G1 and R11 (SCR-05). Every operational write lands on exactly one branch and there is no default, ever — the PRD's release criterion says the default-branch fallback comes out of the repo rather than being flagged off, and the built calendar still derives one from 'the first venue of the first staff member who has one'. This control is the shape that replaces it, and it is three different sentences rather than one styled three ways: with one branch in scope it is resolved and stated, because a select with one option is a question with one answer; with several it is a required choice, which is the whole of 'all-locations is read only for creating'; with none it says no write is possible (R24). A paused branch is never a target — readable, and takes no new entries (R12) — so it is absent from the list rather than offered and refused. It is now on the appointment sheet, which is the most-made write in the product and the one surface that never asked: Save stays disabled until the branch is named, and the service picker reads against it, marking a service the branch does not run and naming one that does (DW3.3). Pickable either way — reception is the person who can say 'not here, but Jumeirah does it', and hiding it leaves them to find that out by telephone. Same reading as KC1.5."
+          description="G1 and R11 (SCR-05). Every operational write lands on exactly one branch and there is no default, ever — the PRD's release criterion says the default-branch fallback comes out of the repo rather than being flagged off, and the built calendar still derives one from 'the first venue of the first staff member who has one'. This control is the shape that replaces it, and it is three different sentences rather than one styled three ways: with one branch in scope it is resolved and stated, because a select with one option is a question with one answer; with several it is a required choice, which is the whole of 'all-locations is read only for creating'; with none it says no write is possible (R24). A paused branch is never a target — readable, and takes no new entries (R12) — but it is listed and badged rather than hidden. It used to be filtered out and explained in a footnote under the field: a rule stated before the operator had asked anything, about branches they could not see. Now it sits in the list where they are already looking, carrying the same Paused badge as everywhere else, and choosing it answers the question at the moment it is raised. The pick is held by the control and reported upward as nothing, so all six callers keep Save shut without knowing what a lifecycle is. It is now on the appointment sheet, which is the most-made write in the product and the one surface that never asked: Save stays disabled until the branch is named, and the service picker reads against it, marking a service the branch does not run and naming one that does (DW3.3). Pickable either way — reception is the person who can say 'not here, but Jumeirah does it', and hiding it leaves them to find that out by telephone. Same reading as KC1.5."
         >
           <Row label="One branch in scope · resolved, not asked" align="start">
             <LocationsProvider
@@ -2951,6 +3058,14 @@ export function PlaygroundShowcase() {
               <WriteTargetDemo action="This appointment" />
             </LocationsProvider>
           </Row>
+          {/* Open the list here: two of the nine are paused and both are in it,
+              badged. Pick one and it says why it cannot hold the write, and
+              Save stays shut because nothing was reported upward. */}
+          <Row label="Nine in scope · pick a paused one and it says why (R12)" align="start">
+            <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+              <WriteTargetDemo action="This appointment" />
+            </LocationsProvider>
+          </Row>
           <Row label="Only a paused branch · nowhere to record it (R12)" align="start">
             <LocationsProvider
               persist={false}
@@ -2958,6 +3073,15 @@ export function PlaygroundShowcase() {
               initialGrants={["shampooch-al-quoz"]}
             >
               <WriteTargetDemo action="This appointment" />
+            </LocationsProvider>
+          </Row>
+          {/* The same control, dressed for the appointment sheet: a section
+              heading like Services and Pet Address, and a white bordered card
+              instead of a grey field. The dialogs and panels keep the field
+              look, because there it sits among Inputs that carry no border. */}
+          <Row label="Card variant · for the appointment sheet's stacked cards" align="start">
+            <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+              <WriteTargetDemo action="This appointment" variant="card" />
             </LocationsProvider>
           </Row>
           <Row label="No grant at all · no access, said out loud (R24)" align="start">
@@ -3280,7 +3404,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Appointments — pickup & pet notes"
-          description="Pet-address capture on the staff sheet (<PickupFields>) and its read-only rendering on the calendar card. The tick is off by default and reuses the saved address when on; the field is the same map search as billing, so a picked place stores a pin and the line beneath says whether this one has it. Pet notes sit outside the tick — allergies and handling matter on every appointment. The card below is the ONE hover card (PRO-68's second click popover is gone): identity once, every service with its own performer and price, and the note rows. See docs/specs/PRD-167-appointment-notes.md and address-search-field.md."
+          description="Pet-address capture on the staff sheet (<PickupFields>) and its read-only rendering on the calendar card. The tick is off by default and reuses the saved address when on; the field is the same map search as billing, so a picked place stores a pin and the line beneath says whether this one has it. Pet notes sit outside the tick — allergies and handling matter on every appointment. The card below is the ONE hover card (PRO-68's second click popover is gone): identity once, every service with its own performer and price, and the note rows. It now opens with the branch, on its own line above the client: the tile and this card carried none, so on 'All locations' the calendar said when and who and never where — and staff do not settle it, since Lena Petrov works JVC and Jumeirah both. BuildingIcon, the switcher's, not the pin: the pin is the pet's address further down this same card. Absent for a single-branch business (DW1.2), which the last row shows. See docs/specs/PRD-167-appointment-notes.md and address-search-field.md."
         >
           <PickupFieldsStates />
           <Row label="Hover card — pinned address (Navigate)">
@@ -3291,6 +3415,19 @@ export function PlaygroundShowcase() {
           </Row>
           <Row label="Hover card — three services, two groomers, one on a membership">
             <AppointmentQuickPanel booking={MULTI_SERVICE_DEMO_BOOKING} />
+          </Row>
+          {/* One grant, so there is nothing to tell apart and the branch line
+              renders nothing at all (DW1.2) — the same rule the switcher and
+              the detail sheet follow. Compare against the rows above, which
+              run against the whole nine-branch estate. */}
+          <Row label="Hover card — single-branch business · no branch anywhere on it">
+            <LocationsProvider
+              persist={false}
+              initialLocations={NINE_BRANCH_ESTATE}
+              initialGrants={["shampooch-jvc"]}
+            >
+              <AppointmentQuickPanel booking={PICKUP_PINNED_DEMO_BOOKING} />
+            </LocationsProvider>
           </Row>
         </Section>
         <Section
@@ -3723,7 +3860,7 @@ export function PlaygroundShowcase() {
           </Row>
         </Section>
         <Section
-          title="Merchant money surfaces — account summary (DSG-77)"
+          title="Money — account summary (DSG-77)"
           description="Split custody made legible: terminal money is held and paid by NeoPay, online money by Cami. Every figure is derived from one ledger (lib/money), so the breakdown arrives at the headline instead of asserting it — the defect the benchmark shows at 9.3x. D6 is undecided, so both layouts are here."
         >
           <Row label="Two rails">
@@ -3746,7 +3883,7 @@ export function PlaygroundShowcase() {
           </Row>
         </Section>
         <Section
-          title="Merchant money surfaces — activity and detail (DSG-78)"
+          title="Money — activity and detail (DSG-78)"
           description="The itemised feed under the number. Day groups carry a NET subtotal rather than takings, so a heavy fee day cannot read as a good one. Rows carry direction in the icon and colour before the sign. Open any row for the detail panel; open a payout row to drill into what it carried and watch the contents sum to the payout figure."
         >
           <Row label="Both rails">
@@ -3760,7 +3897,7 @@ export function PlaygroundShowcase() {
           </Row>
         </Section>
         <Section
-          title="Merchant money surfaces — bank account (DSG-75)"
+          title="Money — bank account (DSG-75)"
           description="The one control that can redirect every dirham the business takes, so changing it is a multi-step flow and never an inline edit. The reference version is a masked account and an Edit button; this one adds a verification state, both senders shown against the single account they pay into, and a permanent change log that keeps failed attempts. The state worth clicking is the gateway failure — it must leave the old account untouched and say so."
         >
           <Row label="Verified">
@@ -3780,7 +3917,7 @@ export function PlaygroundShowcase() {
           </Row>
         </Section>
         <Section
-          title="Merchant money surfaces — invoices and fees (DSG-76)"
+          title="Money — invoices and fees (DSG-76)"
           description="What Cami charged, per period, with the current month pending. Cami's statement is a different document from the benchmark's: no subscription line (the OS is free), the rate stated on the screen rather than only inside a download, and every fee expandable to the sale that caused it with the working shown. Each line renders the rate snapshotted at capture, so a past statement never re-rates after a renegotiation."
         >
           <Row label="NeoPay deducts">
@@ -3797,7 +3934,7 @@ export function PlaygroundShowcase() {
           </Row>
         </Section>
         <Section
-          title="Merchant money surfaces — billing details (DSG-74)"
+          title="Money — billing details (DSG-74)"
           description="Four values, held once, printed on every tax invoice the merchant sends and every invoice Cami sends them. Missing fields collapse into an Add pill rather than a blank row, and the no-TRN state names its consequence: ordinary invoices with no tax wording. Edit opens the standard takeover, which says changes apply forward only, and takes the registered address through the address search field below rather than a free-text box."
         >
           <Row label="Complete">

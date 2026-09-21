@@ -78,6 +78,42 @@ no shipped branch switcher to match**, and the header shape can express one
 active venue but not a subset or a roll-up. SCR-04's subset and all-branches
 scopes need an API shape the header does not have.
 
+## What the live PRD says that this repo's copy does not
+
+Checked against Slite `5hKLTw-Tfm0psh` on **2026-09-21**. The PRD there was last
+edited **2026-09-04**; the copy under `cami design with dotzero/PMOS/` is dated
+**2026-08-16** and is 19 days behind, which is the staleness this section has
+always warned about, arriving.
+
+Three things the live document settles that the mirror does not:
+
+- **R10 and R14 are not missing numbers.** The register runs R01–R09 and
+  R11–R25: there is no R10. R14 exists and is real — events, jobs, audit
+  records, notifications, exports and subscriptions carry location context and
+  never deliver outside the recipient's grant.
+- **What the 2026-09-03 cross-check added** — GB1.3, GP1.4, KH1.5, SU1.4's
+  90-day soft delete and SU1.5 suspend — is all built: a move that cannot
+  attribute a captured payment is rejected whole, an archived branch still
+  reports its VAT, and a deleted branch soft-deletes for 90 days before its slug
+  frees.
+- **GB2.1 / GB2.2 contradict what we built, and §16 says the question is still
+  open.** See below.
+
+### The one live conflict: R13's ceiling
+
+GB2.1 is the duplicate-before-booking story, now built. Its coupled partner
+GB2.2 draws the opposite conclusion to ours about the field set: *"viewing that
+visit shows only date, branch, and service. No charges, no notes."* We built
+SCR-07 **wide** — price included — on the reasoning in
+`lib/locations/visit-access.ts`.
+
+It is not a defect on either side yet, because §16 of the same document still
+lists *"R13's readable field set"* as an open decision owned by **Maaz**, and
+names GB2.2 as what it blocks. A drafted story and an open decision cannot both
+be authoritative. The note now lives in `visit-access.ts`, which is the file
+that changes if Maaz settles it narrow — `grantCovers()` already decides per
+visit, so the narrow field set is a second consumer of an answer that exists.
+
 ## Where the real documents live
 
 Slite, not this repo. They move faster than any copy of them, so read them there
@@ -933,11 +969,68 @@ filter narrows a wider result; this never has the wider result.
 "Al Quoz is missing from this report" are different answers, and an owner needs
 the first.
 
+**The topbar drawer is bounded too, and says so.** It was the one money surface
+that skipped the bound — `summarizeByRail` and `groupByDay` took the whole
+ledger — so a manager granted one branch read a held figure built from nine,
+while the summary behind the same button was bounded and disagreed with it. It
+now applies the summary's expression verbatim, and prints which branches it is
+counting: the switcher that would otherwise answer sits in the topbar *behind*
+the sheet, so the sheet has to answer for itself. A balance that does not say
+whose it is invites an owner to read one branch's takings as all nine, or the
+reverse.
+
+**Reachable by the owner, not only by HQ.** The breakdown was mounted at
+CamiHQ and on the playground and nowhere else, while the owner's own Account
+summary rolled the estate into one figure with no way down — so HQ1.2's promise
+that HQ shows "the same breakdown and roll-up an owner sees" held in one
+direction only. It now sits in the Account summary between the custody
+breakdown and the rail detail, absent for a single-site business the way the HQ
+tab is (G3). Activity's branch dropdown is the other half of the pair and
+predates this by a release, which is why the gap read as deliberate.
+
 **Payouts are not branch rows.** UAE v0 settles per business into one account
 (GP1.4), so attributing a payout to a branch would double-count against takings
 already attributed on the sale. The footnote says so rather than leaving a
 suspicious gap. ⚠️ This is the line the neopay clarification may move — see
 Known gaps.
+
+**A fixture that covers two branches is a screen that lies, so a test asserts
+the estate.** The money ledger was not the only one: `BRANCH_STOCK` held rows
+for two live branches, so `stockForProduct()` backfilled zero at the other five
+and every product read as out of stock there — five false alarms on every
+product, drowning the negative balance and the empty shelf the fixture exists to
+show. `LOCATION_TAX_OVERRIDES` gave two branches a receipt prefix, so seven
+traded under one shared "SHP", which is precisely what a per-branch prefix
+exists to prevent (R23). Al Reem had no staff, and a booking resolves its branch
+through whoever performs it, so that branch could take no booking at all — and
+seeding the people was only half of it, because it then had a team and still no
+bookings. `DEMO_TERMINALS` covered two branches, so "no card machine here" and
+"this demo did not bother" looked the same.
+
+None of these threw, none made a total wrong, and none was reachable by
+reasoning about the code — the only evidence was a branch that never appeared,
+and absence is what no assertion was looking at. Each was found by someone
+opening a screen and asking why five branches were empty, which is not a way to
+find defects. `lib/locations/estate-coverage.test.ts` now asserts it directly:
+a live branch appears in every fixture, a suspended one may be absent from
+anything forward-looking but keeps its history, and adding branch ten fails the
+file until it is seeded.
+
+**Every trading branch is actually in the ledger — and only one business is.**
+`locationFor()` weights the estate across an 18-entry table and was fed the
+per-day row index, which a day of 3–7 rows never pushes past 6. The table's back
+half was unreachable, so five of the seven trading branches never received a
+transaction in any period: Money by branch showed four rows and five
+permanently quiet ones, which reads as a slow month rather than as missing
+data. It now takes a counter that runs across the whole ledger. The same
+unreachable tail held the other seeded businesses, and the day they became
+reachable the arithmetic broke — a payout is business-wide (GP1.4) and survives
+the grant bound while the takings behind it do not, so Shampooch subtracted
+payouts carrying Purr Palace's money from takings that excluded it and reported
+a negative balance held. Attributing payouts per business needs a business
+dimension this ledger does not have; it is CamiPay's, and CamiPay is signed up
+to per business. So the ledger is Shampooch's, and a business with no CamiPay
+account has no money to show — a true empty state, not a seeding gap.
 
 **The seed was spread across branches without moving any money.** `locationFor()`
 derives a branch from the row index rather than drawing from the generator's
@@ -1047,11 +1140,39 @@ loading, and error, with the single-branch case showing no switcher at all".
 | SCR-12 branch tax identity | **built** — per-field source, forward-only warning, prefixed receipt number; tax defaults, receipt sequencing and tipping all save |
 | SCR-13 checkout, package mismatch | **built** — redemption panel against the shipped eligibility contract, mismatch beside a covered verdict |
 | SCR-14 branch WhatsApp number | **built** — bound / migrating / unassigned, cost attribution |
-| SCR-15 money by branch | **built** — side by side, roll-up as a sum, grant-bounded |
-| SCR-07 client record, visits elsewhere | **blocked** — the readable field set is undecided |
+| SCR-15 money by branch | **built** — side by side, roll-up as a sum, grant-bounded; mounted in the owner's Account summary as well as at CamiHQ |
+| SCR-07 client record, visits elsewhere | **built** — visits across the estate on the client record, read wide (one business, one P&L); a grant narrows what you may *do*, not what you may read. The open half stays open: whether a franchise view ever narrows the read is Maaz's, and nothing here forecloses it |
 | SCR-10 scheduled shifts | **built** — the as-built week grid per branch, with leave, block times and hours; cross-branch overlap named as a pair and refused in booking |
 | SCR-11 branch stock | **built** — per-branch quantity and reorder config, derived business total, grant-bounded; Quantity column on the Products table |
 | SCR-16 CamiHQ chain view | **built** — a Locations tab on the partner, reusing the owner's estate and money roll-up; chain badged in the list; no HQ write path |
+
+### Two stories the screens table did not cover
+
+The screen list is drawn from the PRD's §6 screen reference, and two of the
+PRD's eight *user stories* have no screen of their own — so both passed every
+screen review and neither was built.
+
+**`RP-A1` / `RP-C1`, the end-of-day view.** The PRD's first story: "an EOD view
+per branch and a business total in one place, so I stop calling each location",
+done when "the roll-up shows a per-location breakdown side by side, not a merged
+total (R09). A single number destroys the job." `/sales/daily-summary` existed
+and was two cards of constants typed to match a Figma frame, with no branch
+anywhere on them — an owner of nine branches read exactly the single number the
+story names as its own failure. Every figure now derives from the sales log,
+bounded by the grant before it sums, with the branches side by side and the
+total after them as their sum. It lands on the scope's own last trading day,
+because opening on today met every reviewer with an empty report.
+
+**`CL-A1` / `RC-B1`, the duplicate.** Done when "date, location and service of
+visits at any location are readable… **duplicate caught before booking**".
+SCR-07 built the readable half and stopped there, which satisfies a screen
+review and not the story: a record answers only when somebody opens it, and
+somebody mid-booking does not. The check now sits under the client picker in the
+new-appointment sheet. It reads the client's history *unbounded* by the grant —
+the duplicate worth catching is the one at a branch you cannot see, which is
+what R13's uniform field set is for — and it states rather than blocks, because
+two appointments in a day is routinely correct and reception has the client in
+front of them.
 
 ### Blocked on a decision
 
@@ -1060,7 +1181,7 @@ the answer to a question somebody else owns.
 
 | Screen | The question, and whose it is |
 | --- | --- |
-| **SCR-07** visits elsewhere | R13 fixes the readable field set as *uniform* across branches but does not say what is in it. Does branch A see what branch B charged this client, and B's notes, or only that the visits happened? It is a revenue-integrity call (EC-4), **Maaz's**, and PRD §16 lists it. Guessing narrow hides money from an owner; guessing wide leaks a branch's pricing. |
+| **SCR-07's open half** | Built wide rather than left undrawn — franchise views are out of scope, so this is one business with one owner and one P&L. R13 fixes the readable field set as *uniform* across branches but does not say what is in it. Does branch A see what branch B charged this client, and B's notes, or only that the visits happened? It is a revenue-integrity call (EC-4), **Maaz's**, and PRD §16 lists it. Guessing narrow hides money from an owner; guessing wide leaks a branch's pricing. |
 
 ### Package redemption, and the host the warning never had (SCR-13)
 
@@ -1513,6 +1634,34 @@ Two things the blueprint has that the PRD does not, and that are worth keeping:
 per-role location toggles (view/access all locations, manage venue hours,
 manage venue invoice, change venue state, update venues) **need to exist for
 every role, not just Manager**. That last one appears in no SCR- screen.
+
+## Reports: what multi-location owes, and what it does not
+
+R18 asks for two different things and only one of them was done. **"The result
+set never exceeds the caller's granted Location Scope"** held from the start —
+rows are bounded by the grant before anything is summed, so there was never a
+leak. **"An authorized user can run a bounded single-Location report"** did not:
+`table-report.tsx` read `granted` alone, so the topbar switcher — the control
+every other surface in the product obeys — did nothing to a report. Narrowing to
+one branch still showed the estate, which also fails R03's plain reading, that
+the session scope is what a user sets and reads. It now reads the active scope
+and falls back to the grant, like every money surface.
+
+**The filter sheet's own selection is still unwired, and that is not this
+ticket's.** `FilterField` holds its value in local state and never lifts it, so
+*every* filter in the reports module is decorative — location, team member,
+channel alike. That is one defect in DSG-43's module with one fix, and doing it
+per-filter from here would leave the other filters broken and the module with
+two mechanisms. The branch axis needs no special case once it is fixed: the
+options are already grant-bounded.
+
+**Quiet hours is not multi-location's.** It appears once in the PRD, in §9's
+messaging table, as "existing policy, per location timezone (R19)" — no release
+criterion, no screen in SCR-01…16, no requirement of its own. The multi-location
+delta on it is the per-branch timezone, which is built and tested in
+`lib/locations/timezone.ts`. The policy surface it modifies exists in neither
+this repo nor `cami-business`, whose `notification` module is an empty folder.
+Building it would be inventing a comms feature, not completing this one.
 
 ## Known gaps
 
