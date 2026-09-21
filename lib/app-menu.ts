@@ -76,6 +76,7 @@ export const topMenu: MenuItem[] = [
       { label: "Service Menu", href: "/catalogs/service-menu" },
       { label: "Categories", href: "/catalogs/categories" },
       { label: "Packages", href: "/catalogs/packages" },
+      { label: "Deals", href: "/catalogs/deals" },
     ],
   },
   {

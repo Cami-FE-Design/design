@@ -1197,8 +1197,13 @@ const SECTIONS: Section[] = [
         note: "The template is the business's — one wording, edited once, which is what the plane split has templates as business-shared for. The NUMBER is the branch's, and nothing on this screen said so: 'if I reply, it lands with the people who know me' is the whole of KC3.1, and a reply goes wherever the send came from. It now says it, and names the branches whose clients get no WhatsApp reminder at all until a number is connected — never rerouted through a sister branch, which is KC2.2 arriving from the other direction.",
       },
       {
+        path: "/catalogs/deals",
+        label: "Deals, and where each one runs · DW3.4 (route)",
+        note: "Catalogs → Deals. A chain-wide January offer and Mirdif discounting to fill a Tuesday are both on the list, and the Locations column is what tells them apart. 'All locations' is a NAMED set — a branch opened mid-January is in it — while '3 locations' is today's three and is not; they read differently for that reason. The last row is saved with nothing chosen and says 'No locations — cannot run', because the alternative reading of that same shape is the dev repo's: its mapper turns allVenues into locationIds: [], so empty means ALL there while R24 here says an empty scope never resolves to all. Click any row to change where it runs; Save is refused while nothing is chosen. Narrow the switcher to Mirdif and the Abu Dhabi deal goes — a deal scoped elsewhere is not yours to read (R18).",
+      },
+      {
         path: "/playground#multi-location-where-a-promotion-runs",
-        label: "Where a promotion runs · DW3.4",
+        label: "Where a promotion runs · DW3.4 (playground)",
         note: "A chain-wide January offer and a quiet branch discounting to fill a Tuesday are both real and must not be the same object. The scope is a named case or a list, never an empty list standing in for 'everywhere' — which is what the dev repo's promotions branch does today: its mapper turns allVenues into locationIds: [], so empty means ALL there, while R24 here is explicit that an empty scope never resolves to all. One shape, two opposite readings, in one product: that is how an offer meant for one branch runs at nine and a chain-wide one silently runs nowhere. Multi-location had not started when that mapper was written. Four states here, including the empty one being refused out loud rather than passing as chain-wide.",
       },
       {
