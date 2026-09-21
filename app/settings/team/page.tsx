@@ -524,7 +524,9 @@ function TeamSettingsContent() {
           onOpenChange={(next) => {
             if (!next) setViewMemberId(null)
           }}
-          member={viewMember}
+          // Which branches they hold, so "Works at" names locations rather
+          // than repeating the business back at the reader (R04).
+          member={{ ...viewMember, locationGrants: viewMember.locationGrants }}
           isLocked={viewMember.id === "m_owner"}
           onEditProfile={() => handleEditProfile(viewMember.id)}
           onEditRoles={() => handleEditRoles(viewMember.id)}

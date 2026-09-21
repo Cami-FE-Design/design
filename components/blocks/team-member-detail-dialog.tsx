@@ -14,6 +14,7 @@ import { useState } from "react"
 
 import { EmptyState } from "@/components/blocks/empty-state"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
+import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { SectionCard } from "@/components/blocks/section-card"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -34,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useDemoBusiness } from "@/lib/demo-business"
+import { type LocationGrants, useLocations } from "@/lib/locations/store"
 import { roleById } from "@/lib/team/roles"
 
 export type TeamMemberStatus = "active" | "pending"
@@ -47,6 +48,15 @@ export type TeamMemberDetailMember = {
   phone?: string
   /** The role, which is the only notion of access this product has (R04). */
   roleId: string
+  /**
+   * Where they work (R04, R05).
+   *
+   * This card read the BUSINESS name with "Default workspace" under it — the
+   * business-as-location conflation this whole slice exists to delete, left
+   * standing on the one screen whose heading is literally "Works at". An owner
+   * checking which branches somebody covers was told the name of the company.
+   */
+  locationGrants?: LocationGrants
   status: TeamMemberStatus
 }
 
@@ -66,6 +76,67 @@ const MOCK_SERVICES = [
   { id: "full-groom", label: "Full groom", duration: "1 hr 30 min" },
   { id: "nails", label: "Nail trim", duration: "15 min" },
 ]
+
+/**
+ * Which branches this person actually works at (R04, R05, SCR-03).
+ *
+ * It said the business name with "Default workspace" beneath it, which is the
+ * conflation the topbar switcher had and the rest of this slice removed: the
+ * business is the tenancy, a branch is where work happens. On the one card
+ * headed "Works at", an owner was being told the name of their company.
+ *
+ * An owner's "all locations" stays a named set rather than a list of nine —
+ * ticking every branch today and holding the estate are different claims, and
+ * the second is the one an owner has. An empty grant is said out loud, because
+ * it is a real and permitted state and must never read as "all" (R24).
+ */
+function WorksAtCard({ grants }: { grants?: LocationGrants }) {
+  const { granted, locationName, isMultiLocation } = useLocations()
+
+  // Nothing to tell apart at one branch, and a "Works at" card naming the only
+  // branch there is repeats the business back at the reader (DW1.2).
+  if (!isMultiLocation) return null
+
+  const rows =
+    grants === "all" || grants == null ? granted : granted.filter((l) => grants.includes(l.id))
+  const holdsEverything = grants === "all"
+
+  return (
+    <SectionCard title="Works at">
+      {grants !== "all" && rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No locations yet, so this member cannot open or change anything. An owner can grant
+          access.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {holdsEverything ? (
+            <p className="text-sm text-muted-foreground">
+              Every location, including any added later.
+            </p>
+          ) : null}
+          <ul className="flex flex-col divide-y divide-border/60">
+            {rows.map((location) => (
+              <li key={location.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-11">
+                  <BuildingIcon className="size-4" strokeWidth={1.5} />
+                </div>
+                <span className="flex min-w-0 flex-1 items-center gap-2">
+                  <span className="truncate font-medium text-foreground text-sm">
+                    {locationName(location.id)}
+                  </span>
+                  {location.status === "live" ? null : (
+                    <LocationStatusBadge status={location.status} />
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </SectionCard>
+  )
+}
 
 type TeamMemberDetailDialogProps = {
   open: boolean
@@ -101,7 +172,6 @@ export function TeamMemberDetailDialog({
   onRemove,
   initialTab,
 }: TeamMemberDetailDialogProps) {
-  const { name: businessName } = useDemoBusiness()
   const [tab, setTab] = useState<TeamMemberDetailTabId>(
     initialTab && PRIMARY_TABS.some((t) => t.id === initialTab) ? initialTab : "overview",
   )
@@ -238,17 +308,7 @@ export function TeamMemberDetailDialog({
                       info="Lifetime revenue attributed to this team member."
                     />
                   </KpiGrid>
-                  <SectionCard title="Works at">
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-11">
-                        <BuildingIcon className="size-5" strokeWidth={1.5} />
-                      </div>
-                      <div className="flex min-w-0 flex-col">
-                        <span className="text-sm font-medium text-foreground">{businessName}</span>
-                        <span className="text-sm text-muted-foreground">Default workspace</span>
-                      </div>
-                    </div>
-                  </SectionCard>
+                  <WorksAtCard grants={member.locationGrants} />
                   <SectionCard title="Services">
                     <ul className="flex flex-col divide-y divide-border/60">
                       {MOCK_SERVICES.map((service) => (
