@@ -32,6 +32,9 @@ import {
 } from "@/lib/sales/daily-summary"
 import { cn } from "@/lib/utils"
 
+/** Beyond this the card stops being a glance and starts pushing the report off. */
+const VISIBLE_LOCATIONS = 5
+
 // ─── Derived from the sales log ───────────────────────────────────────────────
 //
 // Every figure on this page comes from `summarizeDay`, bounded by the grant
@@ -193,7 +196,7 @@ function CashMovementSummary({ summary }: { summary: DailySummary }) {
  * went across nine branches is asking which one had a bad day, and a single
  * number sends them back to phoning each branch, which is what BG-05 measures.
  *
- * ## Bounded height, because nine rows is a wall
+ * ## Five rows, then a door — not a second scrollbar
  *
  * This card answers the first question, so it goes first — but first and
  * unbounded means that at nine branches the transaction and cash summaries
@@ -201,17 +204,25 @@ function CashMovementSummary({ summary }: { summary: DailySummary }) {
  * that got pushed off the screen. That is the layout holding at three and
  * failing at nine, which is the whole reason the seeded estate is nine.
  *
- * So the rows scroll inside their own box at about five, with the header
- * pinned, and the business total sits OUTSIDE that box — a roll-up you have to
- * scroll to find is not a roll-up. Ordered biggest first, so the rows worth
- * seeing are the ones already visible and scrolling is for completeness rather
- * than for the answer.
+ * Capping the card's height and letting the rows scroll inside it fixed that
+ * and bought a worse problem: a scrollbar inside a scrollbar, two of them on
+ * screen at once, and no way to tell which one a wheel is about to move. So the
+ * list is simply short by default — the five biggest — and everything else is
+ * one click away, which grows the page rather than nesting inside it. Ordered
+ * biggest first, so the five worth seeing are the five you get.
+ *
+ * The business total sits outside the list either way: it is the check on the
+ * rows rather than one of them, and a roll-up that hides behind a toggle is not
+ * a roll-up.
  *
  * Absent for a single-branch business: there is nothing to tell apart, and a
  * breakdown of one row is a label for nothing (DW1.2).
  */
 function ByLocationSummary({ summary }: { summary: DailySummary }) {
   const { locationName } = useLocations()
+  const [showAll, setShowAll] = useState(false)
+  const rows = showAll ? summary.byLocation : summary.byLocation.slice(0, VISIBLE_LOCATIONS)
+  const hidden = summary.byLocation.length - rows.length
 
   if (summary.byLocation.length === 0) {
     return (
@@ -225,11 +236,9 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
 
   return (
     <SummaryCard title="By location" className="shrink-0">
-      {/* `overscroll-contain` keeps the wheel here instead of chaining it into
-          the page behind, which is what made the client picker read as frozen. */}
-      <div className="max-h-[19rem] overflow-y-auto overscroll-contain">
+      <div>
         <Table>
-          <TableHeader className="sticky top-0 z-10 bg-card">
+          <TableHeader>
             <TableRow>
               <TableHead>Location</TableHead>
               <TableHead className="text-right">Sales qty</TableHead>
@@ -239,7 +248,7 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {summary.byLocation.map((row) => (
+            {rows.map((row) => (
               <TableRow key={row.locationId}>
                 <TableCell className="text-foreground text-sm">
                   {locationName(row.locationId)}
@@ -267,7 +276,22 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
         </Table>
       </div>
 
-      {/* Outside the scroll on purpose. The rows are the answer and the total is
+      {/* The door to the rest. A count rather than "Show all", because how many
+          branches are hidden is the thing worth knowing before you decide to
+          look — and at seven of nine it is a different decision than at two. */}
+      {hidden > 0 || showAll ? (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="w-full border-border/60 border-t px-5 py-2.5 text-left font-medium text-cami-violet-11 text-sm transition-colors hover:bg-muted/40"
+        >
+          {showAll
+            ? "Show fewer locations"
+            : `Show ${hidden} more ${hidden === 1 ? "location" : "locations"}`}
+        </button>
+      ) : null}
+
+      {/* Outside the list on purpose. The rows are the answer and the total is
           the check on it, so the check cannot be the thing you have to go
           looking for. */}
       <div className="flex items-center justify-between gap-3 border-border/60 border-t bg-muted/30 px-5 py-3">

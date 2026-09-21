@@ -1644,11 +1644,14 @@ till is reconciled against below the fold, so the card that answers "which
 branch" costs you the ones that answer "what did we take". The layout held at
 three and broke at nine, which is the shape this whole slice is built to catch.
 
-The rows scroll inside their own box at about five, header pinned, ordered
-biggest first so the rows worth seeing are the visible ones and scrolling is for
-completeness rather than for the answer. The business total sits **outside** that
-box: a roll-up you have to scroll to find is not a roll-up, and it is the check
-on the rows rather than one of them.
+Capping the card and scrolling the rows inside it fixed that and bought a worse
+problem — a scrollbar inside a scrollbar, both on screen, with no way to tell
+which one a wheel is about to move. So the list is simply short: the five
+biggest, ordered biggest first, and the rest one click away, which grows the page
+instead of nesting inside it. The control counts what is hidden rather than
+saying "show all", because seven of nine hidden is a different decision from two.
+The business total sits outside the list either way: it is the check on the rows
+rather than one of them, and a roll-up behind a toggle is not a roll-up.
 
 ## Reports: what multi-location owes, and what it does not
 
