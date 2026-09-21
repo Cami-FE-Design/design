@@ -17,10 +17,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useLocations } from "@/lib/locations/store"
 import type { FilterKey } from "@/lib/reports/types"
 
 const FILTER_META: Record<FilterKey, { label: string; options: string[] }> = {
-  location: { label: "Location", options: ["Pet Loft"] },
+  // Options come from the reader's grant at render — see `FilterField`. The
+  // list here was `["Pet Loft"]`, a different merchant entirely, so the one
+  // filter multi-location needs offered a single wrong answer.
+  location: { label: "Location", options: [] },
   type: { label: "Type", options: ["Service", "Product"] },
   teamMember: { label: "Team member", options: ["Aziz", "Sara", "Omar"] },
   channel: { label: "Channel", options: ["Public booking", "Operator", "Walk-in"] },
@@ -36,6 +40,11 @@ const FILTER_META: Record<FilterKey, { label: string; options: string[] }> = {
 
 function FilterField({ filterKey }: { filterKey: FilterKey }) {
   const meta = FILTER_META[filterKey]
+  // Branches are the one filter whose options are not a fixed list: they are
+  // whatever this reader holds (R18). An owner sees the estate, a manager sees
+  // theirs, and neither is told the other exists.
+  const { granted } = useLocations()
+  const options = filterKey === "location" ? granted.map((l) => l.name) : meta.options
   const [value, setValue] = useState("all")
   return (
     <div className="flex flex-col gap-1.5">
@@ -47,7 +56,7 @@ function FilterField({ filterKey }: { filterKey: FilterKey }) {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{`All ${meta.label.toLowerCase()}`}</SelectItem>
-          {meta.options.map((o) => (
+          {options.map((o) => (
             <SelectItem key={o} value={o}>
               {o}
             </SelectItem>
