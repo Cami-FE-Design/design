@@ -33,6 +33,7 @@ import {
 } from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { Fragment, useEffect, useRef, useState } from "react"
+import { CitySelect } from "@/components/blocks/city-select"
 import { FullScreenEditDialog as SharedFullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
@@ -173,10 +174,14 @@ function formatInvoicingAddress(inv: Invoicing): string | null {
  * business default with a per-field override (R23), so saving one means
  * building that inheritance, which is SCR-12's own slice.
  */
+
 export function LocationForm() {
   // The estate, not the seed: suspending a branch here has to be the same
   // branch the topbar switcher and the terminals panel are looking at.
-  const { locations } = useLocations()
+  // The granted set, not the estate (R18). An owner's grant is "all", so this
+  // costs an owner nothing — and stops a manager holding one branch from
+  // seeing, assigning to, or configuring the other eight.
+  const { granted: locations } = useLocations()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [addOpen, setAddOpen] = useState(false)
   const selected = locations.find((l) => l.id === selectedId) ?? null
@@ -376,12 +381,16 @@ export function AddLocationsTakeover({
                 </p>
               </div>
 
+              {/* A list, not free text. Typed by hand, "Dubai" and "dubai" are
+                  two cities — and every surface that groups branches by city,
+                  the switcher included, then shows one of them twice. The
+                  cities an estate is actually in is a short list; a new one is
+                  a decision worth making deliberately. */}
               <Field label="City">
-                <Input
+                <CitySelect
                   value={row.city}
-                  onChange={(e) => update(i, { city: e.target.value })}
-                  placeholder="Dubai"
-                  aria-invalid={Boolean(errors[i])}
+                  onChange={(v) => update(i, { city: v })}
+                  invalid={Boolean(errors[i])}
                 />
               </Field>
 
@@ -603,7 +612,7 @@ function GeneralTab({ location }: { location: Location }) {
   return (
     <>
       <div className="flex flex-col gap-4">
-        <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit">
+        <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-[36.5rem]">
           <header className="flex items-start justify-between gap-2">
             <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
               Basic info
@@ -646,7 +655,7 @@ function GeneralTab({ location }: { location: Location }) {
           </div>
         </section>
 
-        <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-[36.5rem]">
+        <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-[36.5rem]">
           <header className="flex items-start justify-between gap-2">
             <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
               Business type
@@ -706,7 +715,7 @@ function AddressTab({ location }: { location: Location }) {
 
   return (
     <>
-      <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-[36.5rem]">
+      <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-[36.5rem]">
         <header className="flex items-start justify-between gap-2">
           <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
             Business location
@@ -767,7 +776,7 @@ function InvoicingDetailsCard({ location }: { location: Location }) {
 
   return (
     <>
-      <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit">
+      <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-[36.5rem]">
         <header className="flex items-start justify-between gap-2">
           <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
             Invoicing details
@@ -920,7 +929,10 @@ function InvoicingTab({ location }: { location: Location }) {
     <div className="flex flex-col gap-4">
       <InvoicingDetailsCard location={location} />
 
-      <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
+      {/* Same footprint as the cards it sits between. Left to stretch it ran
+          past both of them, and the column read as three different widths
+          stacked. */}
+      <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground sm:w-[36.5rem]">
         {ownFields === 0
           ? "This location follows the business tax identity on every field."
           : ownFields === 1
@@ -1660,6 +1672,7 @@ function AddressEditDialog({
   onOpenChange: (open: boolean) => void
   focusField: AddressField | null
 }) {
+  const [cityValue, setCityValue] = useState(location.location.city)
   const fieldRefs = useRef<Partial<Record<AddressField, FieldElement | null>>>({})
   useFocusOnOpen(open, focusField, fieldRefs)
   const setFieldRef = (field: AddressField) => (el: FieldElement | null) => {
@@ -1738,8 +1751,11 @@ function AddressEditDialog({
           <Field label="District">
             <Input ref={setFieldRef("district")} defaultValue={location.location.district} />
           </Field>
+          {/* The same closed list chain setup uses. Typed by hand here and
+              picked there, "Dubai" and "dubai" become two cities and every
+              surface that groups branches by city shows one of them twice. */}
           <Field label="City">
-            <Input ref={setFieldRef("city")} defaultValue={location.location.city} />
+            <CitySelect value={cityValue} onChange={setCityValue} inputRef={setFieldRef("city")} />
           </Field>
           <Field label="State">
             <Input ref={setFieldRef("state")} defaultValue={location.location.state} />
@@ -1780,6 +1796,9 @@ function InvoicingDetailsEditDialog({
   onOpenChange: (open: boolean) => void
   focusField: InvoicingField | null
 }) {
+  const [invoicingCity, setInvoicingCity] = useState(
+    location.invoicing.city || location.location.city,
+  )
   const fieldRefs = useRef<Partial<Record<InvoicingField, FieldElement | null>>>({})
   useFocusOnOpen(open, focusField, fieldRefs)
   const { updateLocation } = useLocations()
@@ -1845,6 +1864,16 @@ function InvoicingDetailsEditDialog({
             Use the same info as the business location
           </span>
         </label>
+        {/* Said where the greyed fields are, not only by the box above them.
+            Five disabled rows with no reason beside them read as a broken form,
+            and the one control that unlocks them is off the top of the eye's
+            path by the time you reach City. */}
+        {sameAsLocation ? (
+          <p className="-mt-2 text-xs leading-5 text-muted-foreground">
+            These follow the location&apos;s own address. Untick to give this branch its own
+            invoicing entity — the VAT number and invoice note stay editable either way.
+          </p>
+        ) : null}
 
         {(() => {
           const synced = sameAsLocation
@@ -1866,7 +1895,13 @@ function InvoicingDetailsEditDialog({
                 postcode: location.invoicing.postcode,
               }
 
-          const disabledClass = "disabled:text-muted-foreground"
+          // The base Input already dims a disabled control. This added
+          // `disabled:text-muted-foreground` on top, painting the *value* in
+          // the placeholder's colour — so a mirrored field carrying "Purr
+          // Palace Al Quoz" read exactly like the empty VAT field two rows
+          // below, and the whole form looked blank. Dimmed is the signal;
+          // unreadable is not.
+          const disabledClass = ""
           return (
             <div key={synced ? "synced" : "custom"} className="flex flex-col gap-5">
               <Field label="Company name">
@@ -1894,16 +1929,17 @@ function InvoicingDetailsEditDialog({
                     className={disabledClass}
                   />
                 </Field>
-                <div className="sm:col-span-2">
-                  <Field label="City">
-                    <Input
-                      ref={setFieldRef("city")}
-                      defaultValue={values.city}
-                      disabled={synced}
-                      className={disabledClass}
-                    />
-                  </Field>
-                </div>
+                {/* Half width, beside State. It spanned the grid while every
+                    other field in this form sat in a pair, so one row ran the
+                    full width for no reason the form could explain. */}
+                <Field label="City">
+                  <CitySelect
+                    value={invoicingCity}
+                    onChange={setInvoicingCity}
+                    inputRef={setFieldRef("city")}
+                    disabled={synced}
+                  />
+                </Field>
                 <Field label="State">
                   <Input
                     ref={setFieldRef("state")}
@@ -2815,7 +2851,7 @@ function SummaryCard({
   children: React.ReactNode
 }) {
   return (
-    <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-[36.5rem]">
+    <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-[36.5rem]">
       <header className="flex items-start justify-between gap-2">
         <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">{heading}</h3>
         <Button type="button" variant="secondary" size="sm" radius="full" onClick={onEdit}>

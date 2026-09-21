@@ -27,7 +27,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         dropdown_root: "relative inline-flex items-center",
         dropdown:
           "absolute inset-0 opacity-0 cursor-pointer w-full appearance-none border-0 bg-transparent",
-        nav: "flex items-center gap-1 absolute inset-x-3 top-1 justify-between pointer-events-none [&>button]:pointer-events-auto",
+        nav: "flex items-center gap-1 absolute inset-x-3 top-3 h-9 justify-between pointer-events-none [&>button]:pointer-events-auto",
         button_previous: cn(
           buttonVariants({ variant: "ghost", size: "icon-xs" }),
           "size-7 bg-transparent p-0 opacity-60 hover:opacity-100",

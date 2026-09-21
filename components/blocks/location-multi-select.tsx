@@ -142,7 +142,7 @@ export function LocationMultiSelect({
               {/* Only when there is more than one city to tell apart. A single
                   heading over every branch is a label for nothing. */}
               {groups.length > 1 ? (
-                <p className="sticky top-0 bg-background px-3 pt-2 pb-1 font-medium text-muted-foreground text-xs">
+                <p className="sticky top-0 z-10 bg-background px-3 py-1.5 font-medium text-muted-foreground text-xs shadow-[0_1px_0_0_var(--background)]">
                   {group.city}
                 </p>
               ) : null}
@@ -153,7 +153,7 @@ export function LocationMultiSelect({
                     key={loc.id}
                     htmlFor={`loc-multi-${loc.id}`}
                     className={cn(
-                      "flex cursor-pointer items-center gap-2.5 px-3 py-2 transition-colors",
+                      "relative flex cursor-pointer items-center gap-2.5 px-3 py-2 transition-colors",
                       checked ? "bg-cami-violet-2" : "hover:bg-muted/50",
                     )}
                   >

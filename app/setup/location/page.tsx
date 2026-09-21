@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { AddressSearchField, type PlaceSuggestion } from "@/components/blocks/address-search-field"
+import { CitySelect } from "@/components/blocks/city-select"
 import { SetupCard, SetupLayout, WireBox } from "@/components/blocks/setup-shell"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -131,12 +132,11 @@ export default function SetupLocationPage() {
                   onChange={(e) => set("district")(e.target.value)}
                 />
               </Field>
+              {/* Closed list, same as every other place a branch's city is
+                  set — this is the first of them, and a typo here is the one
+                  every later surface inherits. */}
               <Field id="city" label="City">
-                <Input
-                  id="city"
-                  value={fields.city}
-                  onChange={(e) => set("city")(e.target.value)}
-                />
+                <CitySelect id="city" value={fields.city} onChange={set("city")} />
               </Field>
               <Field id="state" label="State">
                 <Input

@@ -56,7 +56,10 @@ export function TeamAccessDialog({
   member: TeamMember | null
   onSave: (memberId: string, roleId: string, grants: LocationGrants) => void
 }) {
-  const { locations } = useLocations()
+  // The granted set, not the estate (R18). An owner's grant is "all", so this
+  // costs an owner nothing — and stops a manager holding one branch from
+  // seeing, assigning to, or configuring the other eight.
+  const { granted: locations } = useLocations()
   const [roleId, setRoleId] = useState("staff")
   const [grantedIds, setGrantedIds] = useState<string[]>([])
 

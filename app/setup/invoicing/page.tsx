@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { CitySelect } from "@/components/blocks/city-select"
 import { SetupCard, SetupLayout } from "@/components/blocks/setup-shell"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -9,9 +10,14 @@ import { Textarea } from "@/components/ui/textarea"
 
 export default function SetupInvoicingPage() {
   const [inherited, setInherited] = useState(true)
+  const [city, setCity] = useState("Dubai")
 
   const dataDisabled = inherited ? "true" : undefined
-  const fieldClass = "disabled:text-muted-foreground"
+  // Not `disabled:text-muted-foreground`. The base Input already dims a
+  // disabled control; painting the *value* in the placeholder's colour on top
+  // makes a field carrying real text read as an empty one, which is exactly how
+  // the same line behaved on the location form's invoicing tab.
+  const fieldClass = ""
 
   return (
     <SetupLayout stepIndex={4} prevHref="/setup/location">
@@ -58,9 +64,12 @@ export default function SetupInvoicingPage() {
           </div>
         </div>
 
+        {/* The same closed list as the branch editor's. Free text here and a
+            dropdown there is one address typed two ways, and the surfaces that
+            group branches by city then show Dubai twice. */}
         <div className="group flex flex-col gap-1.5" data-disabled={dataDisabled}>
           <Label htmlFor="city">City</Label>
-          <Input id="city" defaultValue="Dubai" disabled={inherited} className={fieldClass} />
+          <CitySelect id="city" value={city} onChange={setCity} disabled={inherited} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">

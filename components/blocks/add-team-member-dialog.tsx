@@ -138,7 +138,7 @@ type AddTeamMemberDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onAdd: (values: AddTeamMemberValues) => void
-  /** Used in microcopy, e.g. "join Shampooch JVC". */
+  /** The business, not a branch — microcopy reads "a new team member for Shampooch". */
   businessName?: string
   /**
    * The member being edited, when this is an edit rather than an invitation.
@@ -756,7 +756,10 @@ function ServicesSection({ form }: { form: FormReturn }) {
  * So the empty case is said out loud rather than left as an unticked list.
  */
 function LocationsSection({ form }: { form: FormReturn }) {
-  const { locations } = useLocations()
+  // The granted set, not the estate (R18). An owner's grant is "all", so this
+  // costs an owner nothing — and stops a manager holding one branch from
+  // seeing, assigning to, or configuring the other eight.
+  const { granted: locations } = useLocations()
   const selected = form.watch("assignedLocationIds") ?? []
   const isOwner = form.watch("roleId") === "owner"
 
