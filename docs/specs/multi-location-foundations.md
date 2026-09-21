@@ -1653,6 +1653,34 @@ saying "show all", because seven of nine hidden is a different decision from two
 The business total sits outside the list either way: it is the check on the rows
 rather than one of them, and a roll-up behind a toggle is not a roll-up.
 
+## Deals: read the branch before inventing the shape
+
+`/catalogs/deals` was built against the story and not against the module that
+already exists on the dev repo's `promotion-discount-ui` — `types/deal.ts`, a
+five-step wizard, a list, a detail view and a scope picker. Two things were
+therefore invented and both were wrong:
+
+- **Status.** `live | scheduled | ended` against an as-built
+  `active | scheduled | inactive | archived`. Two of the three names were wrong,
+  and `ended` silently merged two different facts: a deal somebody switched off,
+  and one whose season is over.
+- **Dates.** A `runs` string, where the built product carries `startDate` /
+  `endDate` and formats them with `formatDateRange` — including collapsing a
+  range inside one month to "Apr 1 – 30, 2026".
+
+Both now match. The one thing kept from the first attempt is the rule that
+survives the correction: **a status a calendar can settle is derived, and one
+somebody set by hand is not.** A deal whose end date passed reads Inactive
+without anyone editing it; a deal switched off mid-run stays off, because
+deriving from its dates would switch it back on.
+
+There is also a real inconsistency inside that branch worth raising. Its
+`DealScope` models `mode: "all" | "none" | "selected"` — three states, with
+"none" explicit — for services, products and packages. Locations get none of
+that: `locationIds: allVenues ? [] : venues`, where empty means *all*. The same
+module holds both conventions, and R24 says an empty scope never resolves to
+all.
+
 ## A dialog inside AppShell renders twice
 
 `AppShell` renders its children **twice** — a narrow layout and a wide one, with

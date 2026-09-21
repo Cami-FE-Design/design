@@ -22,8 +22,9 @@ const EXISTING: Deal = {
   id: "d1",
   name: "January groom offer",
   offer: "20% off",
-  status: "live",
-  runs: "1 – 31 Jan",
+  status: "active",
+  startDate: "2026-01-01",
+  endDate: "2026-01-31",
   scope: { kind: "estate" },
   redemptions: 4,
 }

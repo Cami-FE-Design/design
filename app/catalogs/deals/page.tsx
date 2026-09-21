@@ -52,7 +52,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { DEAL_STATUS_LABEL, type Deal, describeRun, MOCK_DEALS, statusFor } from "@/lib/deals/mock"
+import {
+  DEAL_STATUS_LABEL,
+  type Deal,
+  formatDateRange,
+  MOCK_DEALS,
+  statusFor,
+} from "@/lib/deals/mock"
 import { describeScope, isRunnable, reaches, runsAt } from "@/lib/locations/promotion-scope"
 import { useLocations } from "@/lib/locations/store"
 import { TODAY_ISO } from "@/lib/money/mock"
@@ -160,6 +166,8 @@ export default function DealsPage() {
                 {visible.map((deal) => {
                   const runnable = isRunnable(deal.scope)
                   const mine = reaches(deal.scope, inScope)
+                  // Derived where a date can settle it, stored where it cannot.
+                  const resolved = statusFor(deal.status, deal.startDate, deal.endDate, TODAY_ISO)
                   return (
                     <TableRow
                       key={deal.id}
@@ -182,18 +190,20 @@ export default function DealsPage() {
                       <TableCell>
                         <Badge
                           variant={
-                            deal.status === "live"
+                            resolved === "active"
                               ? "primary-soft"
-                              : deal.status === "scheduled"
+                              : resolved === "scheduled"
                                 ? "outline"
                                 : "secondary"
                           }
                           size="sm"
                         >
-                          {DEAL_STATUS_LABEL[deal.status]}
+                          {DEAL_STATUS_LABEL[resolved]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{deal.runs}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {formatDateRange(deal.startDate, deal.endDate)}
+                      </TableCell>
                       {isMultiLocation ? (
                         <TableCell>
                           {runnable ? (
@@ -258,8 +268,9 @@ export default function DealsPage() {
                       // Both derived from the dates, never typed in: a deal
                       // whose end has passed would otherwise read Live until
                       // somebody edited it.
-                      status: statusFor(startsAt, endsAt, TODAY_ISO),
-                      runs: describeRun(startsAt, endsAt),
+                      status: statusFor("scheduled", startsAt, endsAt || null, TODAY_ISO),
+                      startDate: startsAt,
+                      endDate: endsAt || null,
                       scope,
                       redemptions: 0,
                     },
