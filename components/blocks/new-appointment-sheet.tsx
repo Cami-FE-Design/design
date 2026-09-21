@@ -3,6 +3,7 @@
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
+  BuildingIcon,
   CalendarClockIcon,
   CalendarXIcon,
   CheckIcon,
@@ -29,7 +30,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
 import {
@@ -46,6 +47,7 @@ import {
 } from "@/app/appointments/mock"
 import type { CartLine, CatalogClient } from "@/app/sales/new-sale/types"
 import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
+import { ClientOpenAppointmentsBanner } from "@/components/blocks/client-open-appointments-banner"
 import { ComboLineIcon } from "@/components/blocks/combo-badge"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { DatePicker } from "@/components/blocks/date-picker"
@@ -94,7 +96,9 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { PlaceRef } from "@/lib/address"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
+import { openAppointmentsFor } from "@/lib/clients/open-appointments"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { useLocations } from "@/lib/locations/store"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
 import { depositForServices, examplePolicyText } from "@/lib/payment-policy/types"
 import type { PetNoteEntry } from "@/lib/pet-notes"
@@ -267,6 +271,25 @@ const MOCK_CLIENTS: SelectedClient[] = [
     addressPlace: { placeId: "ChIJdemo_al_barsha_villa_7", point: { lat: 25.1107, lng: 55.1985 } },
   },
   { id: "aaliyah-hazari", name: "Aaliyah Hazari", phone: "+971 52 692 6368" },
+  /**
+   * The two clients the client record actually holds a history for.
+   *
+   * This list and `app/clients/mock.ts` were two directories, and the
+   * already-booked check reads the second — so the banner was correct, tested,
+   * and impossible to open: nobody reachable from this picker had an
+   * appointment anywhere. The same shape as the package panel keyed on clients
+   * the till had never heard of.
+   *
+   * Ids and phones match the client record, so opening Millie here and at
+   * /clients?client=millie-cassidy is the same person rather than a namesake.
+   */
+  {
+    id: "millie-cassidy",
+    name: "Millie Cassidy",
+    phone: "+971 58 509 9313",
+    address: "Apt 2203, Bay Central, Dubai Marina",
+  },
+  { id: "kirsty-dingomal", name: "Kirsty Dingomal", phone: "+44 7508 219989" },
 ]
 
 // Mock client → pet ownership. Real implementation reads from the
@@ -276,6 +299,10 @@ const MOCK_CLIENT_PETS: Record<string, string[]> = {
   "maaz-test": ["Saffron"],
   "demo-profile": ["Max"],
   "aaesha-al-ali": ["Max"],
+  // The pets their client record already names, so a booking started here does
+  // not offer a different animal than the record does.
+  "millie-cassidy": ["Bobo", "Mochi", "Kiwi"],
+  "kirsty-dingomal": ["Biscuit"],
 }
 
 function normalizePhone(s: string): string {
@@ -422,6 +449,17 @@ type NewAppointmentSheetProps = {
   /** Initial status for edit mode (defaults to "confirmed"). Ignored in create. */
   initialStatus?: MockBookingStatus
   /**
+   * The branch the existing appointment already belongs to (edit flow only).
+   *
+   * Stated, never asked: the create flow resolves a branch because the write
+   * has none yet, but an existing booking has one and moving it is SCR-06. The
+   * sheet had neither — no question and no answer — so an operator who read
+   * the branch on the detail sheet lost it the moment they opened the surface
+   * where they change things, on the one screen where what a branch offers
+   * decides what can be booked.
+   */
+  existingLocationId?: string
+  /**
    * Fired when the operator hits Checkout (edit flow). Hands the appointment's
    * services as cart lines + the attached client so the host can launch the
    * checkout flow (CartFlow) at the Tip step.
@@ -437,6 +475,7 @@ export function NewAppointmentSheet({
   hasPets = true,
   flow = "create",
   initialStatus = "confirmed",
+  existingLocationId,
   onCheckout,
 }: NewAppointmentSheetProps) {
   const isEdit = flow === "edit"
@@ -453,6 +492,13 @@ export function NewAppointmentSheet({
   // operator just saw — including any combo created on the service menu.
   const serviceCatalog = useAppointmentServiceCatalog()
   const availablePets = computeAvailablePets(selectedClient, pets)
+  // Unbounded by the grant on purpose: the duplicate worth catching is the one
+  // at the branch you cannot see, which is exactly what R13's uniform field set
+  // exists to make readable.
+  const openAppointments = useMemo(
+    () => openAppointmentsFor(selectedClient?.id),
+    [selectedClient?.id],
+  )
   const [note, setNote] = useState<string | null>(null)
   const [noteDialogOpen, setNoteDialogOpen] = useState(false)
   // Pickup defaults to off — most appointments are self-drop, and if it were on
@@ -487,6 +533,9 @@ export function NewAppointmentSheet({
   // activePetUid; "swap" replaces the catalog on the editing service.
   const [pickerIntent, setPickerIntent] = useState<"add" | "swap">("add")
 
+  // Only to name the branch an existing booking already sits at. The create
+  // flow's target comes from WriteTargetLocation, which resolves its own.
+  const { isMultiLocation, locationName } = useLocations()
   const theme = STATUS_THEME[status]
   const statusLabel =
     STATUS_OPTIONS.find((s) => s.value === status)?.label ?? STATUS_FALLBACK_LABEL[status]
@@ -499,7 +548,7 @@ export function NewAppointmentSheet({
   const totalServices = pets.reduce((n, pet) => n + pet.services.length, 0)
   // Both halves are required: something to book, and somewhere to book it.
   // A view can span nine branches; a write cannot (G1).
-  const canSave = totalServices > 0 && locationId !== null
+  const canSave = totalServices > 0 && (isEdit || locationId !== null)
   const { name: businessName } = useDemoBusiness()
 
   // Hand the appointment's services to the checkout flow as cart lines. Each
@@ -866,6 +915,28 @@ export function NewAppointmentSheet({
                   >
                     {repeatLabel(repeatConfig)}
                   </button>
+                  {/* Stated, not offered — no button, because moving a booking
+                      between branches is SCR-06 and not a thing to do by
+                      mistake while reading the header.
+
+                      Full-strength colour against the line's muted 70%, and the
+                      switcher's building icon. The same three facts in the same
+                      order as the detail sheet, so the branch does not move when
+                      an operator goes from reading to editing. */}
+                  {isEdit && existingLocationId && isMultiLocation ? (
+                    <>
+                      <span aria-hidden>, </span>
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 align-middle font-medium",
+                          theme.text,
+                        )}
+                      >
+                        <BuildingIcon className="size-3.5 shrink-0" aria-hidden />
+                        {locationName(existingLocationId)}
+                      </span>
+                    </>
+                  ) : null}
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -922,18 +993,6 @@ export function NewAppointmentSheet({
             </header>
 
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto bg-sand-2 px-6 py-5">
-              {/* First, because it is what the write resolves to and what the
-                  service list is read against — asking for it after the
-                  services are chosen would mean rechecking every one of them.
-                  Renders nothing for a single-branch business (DW1.2), states
-                  the branch rather than offering it when only one is in scope,
-                  and says so plainly when no write is possible at all (R24). */}
-              <WriteTargetLocation
-                value={locationId}
-                onChange={setLocationId}
-                action="This appointment"
-              />
-
               {/* Client + quick message render in both modes. Pet attachment is
                   the only pets-only affordance; it lives in the services section. */}
               <ClientPicker
@@ -959,6 +1018,39 @@ export function NewAppointmentSheet({
                   for Aya" changes what gets booked. Renders nothing until a
                   client with notes is selected. */}
               <ClientNoteBanner clientId={selectedClient?.id} />
+
+              {/* And whether they are already booked (R13, EC-1). The client
+                  record has carried this since SCR-07, but a record answers
+                  only when somebody thinks to open it, and somebody mid-booking
+                  does not — so the one story whose Done-when is "duplicate
+                  caught BEFORE booking" needs it here, unprompted. It states
+                  and never blocks: two appointments on a day is routinely
+                  correct, and reception has the client in front of them. */}
+              <ClientOpenAppointmentsBanner open={openAppointments} bookingAt={locationId} />
+
+              {/* After the client, before the services, and the second half of
+                  that is the one that matters: the service list is read against
+                  the branch, so asking afterwards would mean rechecking every
+                  service already chosen. The client carries no such tie — the
+                  directory is one business's, not one branch's — so who it is
+                  for is the first thing reception is told and the first thing
+                  this sheet asks.
+                  Renders nothing for a single-branch business (DW1.2), states
+                  the branch rather than offering it when only one is in scope,
+                  and says so plainly when no write is possible at all (R24). */}
+              {/* Asked when the appointment is being created, never when it
+                  already exists. An existing booking already belongs to a
+                  branch, and moving it to another is SCR-06 — a destination
+                  bounded by grants, with both branches on the money. Re-asking
+                  here would move it silently and settle it nowhere. */}
+              {isEdit ? null : (
+                <WriteTargetLocation
+                  value={locationId}
+                  onChange={setLocationId}
+                  action="This appointment"
+                  variant="card"
+                />
+              )}
 
               <section data-slot="services-section" className="flex flex-col gap-3">
                 <h2 className="text-lg font-semibold leading-7 text-foreground">Services</h2>
@@ -1818,7 +1910,11 @@ function ClientPicker({
           className="w-[var(--radix-popover-trigger-width)] gap-2 p-2 supports-backdrop-filter:backdrop-blur-[8px]"
         >
           <SearchInput size="lg" onValueChange={setQuery} placeholder="Search by name or phone" />
-          <ul className="max-h-72 overflow-y-auto">
+          {/* `overscroll-contain`: without it the wheel chains out of this list
+              into the sheet behind, which is inside a dialog that does not
+              scroll — so the list read as frozen the moment the pointer was
+              over it. The scrollbar was there and the wheel did nothing. */}
+          <ul className="max-h-72 overflow-y-auto overscroll-contain">
             {filtered.length === 0 ? (
               <li className="px-3 py-2 text-sm text-muted-foreground">No clients found.</li>
             ) : (

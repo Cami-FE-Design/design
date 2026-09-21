@@ -62,6 +62,10 @@ export default function AppointmentsPage() {
         hasPets={hasPets}
         flow="edit"
         initialStatus="booked"
+        // An existing booking has a branch; the demo has to supply one for the
+        // sheet to have anything to state. Any branch of the estate does — what
+        // is being shown is that the sheet names it, not which one it is.
+        existingLocationId="shampooch-jumeirah"
         onCheckout={(lines, client) => {
           setEditOpen(false)
           setCheckout({

@@ -16,9 +16,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
-import { useLocations } from "@/lib/locations/store"
-import { isOfferedAt, locationsOffering } from "@/lib/service-catalog/offerings"
-import { useLocationOfferings } from "@/lib/service-catalog/offerings-store"
+import { useBranchOfferingNote } from "@/lib/service-catalog/use-branch-offering-note"
 
 type ServicePickerPanelProps = {
   onBack: () => void
@@ -31,39 +29,6 @@ type ServicePickerPanelProps = {
    * where there is nothing to say about where a service runs.
    */
   locationId?: string | null
-}
-
-/**
- * What to say about a service the chosen branch does not run (DW3.3).
- *
- * The client's own booking page hides these — there is nothing a client can do
- * with a service their branch has turned off. Reception is the person who *can*
- * say "not here, but Jumeirah does it", and hiding it from them leaves them to
- * find that out by telephone. Same reading as KC1.5: tell them, do not block
- * them, so the service stays pickable and the sentence rides alongside it.
- *
- * Bounded by the grant, so a receptionist never learns what a branch they
- * cannot see does or does not run (R18).
- */
-function useBranchOfferingNote(locationId: string | null | undefined) {
-  const { granted, locationName } = useLocations()
-  const { offerings } = useLocationOfferings()
-  return (serviceId: string): string | null => {
-    if (!locationId) return null
-    if (isOfferedAt(serviceId, locationId, offerings)) return null
-    const elsewhere = locationsOffering(
-      serviceId,
-      granted.map((l) => l.id).filter((id) => id !== locationId),
-      offerings,
-    ).map(locationName)
-    if (elsewhere.length === 0) {
-      // No branch to send them to, which is a different fact from "not here".
-      return `Not offered at ${locationName(locationId)}`
-    }
-    return `Not at ${locationName(locationId)} — ${elsewhere.slice(0, 2).join(", ")}${
-      elsewhere.length > 2 ? ` and ${elsewhere.length - 2} more` : ""
-    }`
-  }
 }
 
 /**

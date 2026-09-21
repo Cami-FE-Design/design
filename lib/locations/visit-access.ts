@@ -16,6 +16,20 @@
  * everything, and you act only where you hold a grant (G1 — every operational
  * write names one branch).
  *
+ * ## This is a choice, and the PRD has not finished making it
+ *
+ * The live PRD (Slite `5hKLTw-Tfm0psh`, 2026-09-04) drafts the opposite in
+ * **GB2.2**: "viewing that visit shows only date, branch, and service. No
+ * charges, no notes" — P1, coupled to GB2.1. Its §16 still lists *R13's
+ * readable field set* as an open decision owned by **Maaz**, and names GB2.2 as
+ * what the decision blocks. So the story is drafted, not settled.
+ *
+ * We are built wide, deliberately and for the reasons above. If Maaz settles it
+ * narrow, the change is contained: `grantCovers()` already decides per visit,
+ * so a narrow field set is a second consumer of the same answer — the money and
+ * note fields hide where it returns false, and nothing else moves. Noted here
+ * rather than in the ticket because this is the file that would change.
+ *
  * ## Why not being granted outranks the branch's own state
  *
  * A branch you do not hold should not tell you its lifecycle. "Shampooch Al

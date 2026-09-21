@@ -126,7 +126,13 @@ type MockPetVisit = {
   dayMonth: string
   weekday: string
   time: string
-  location: string
+  /**
+   * The branch, by id. Seeded but not yet rendered — kept as an id so whoever
+   * does render it resolves the name from the estate rather than trusting a
+   * stored string, which is how six branches ended up printing their raw id on
+   * the appointments table.
+   */
+  locationId: string
   services: Array<{ name: string; staff: string; duration: string; price: string }>
 }
 
@@ -138,7 +144,7 @@ const MOCK_PET_VISITS: MockPetVisit[] = [
     dayMonth: "Apr 8",
     weekday: "Wednesday",
     time: "2:30pm",
-    location: "Shampooch JVC",
+    locationId: "shampooch-jvc",
     services: [{ name: "Bath & tidy", staff: "Aisha", duration: "45min", price: "AED 130" }],
   },
   {
@@ -148,7 +154,7 @@ const MOCK_PET_VISITS: MockPetVisit[] = [
     dayMonth: "Mar 4",
     weekday: "Monday",
     time: "11:00am",
-    location: "Shampooch JVC",
+    locationId: "shampooch-jvc",
     services: [{ name: "Full groom", staff: "Sophie", duration: "1h 30min", price: "AED 220" }],
   },
   {
@@ -158,7 +164,7 @@ const MOCK_PET_VISITS: MockPetVisit[] = [
     dayMonth: "Feb 12",
     weekday: "Wednesday",
     time: "3:00pm",
-    location: "Shampooch JVC",
+    locationId: "shampooch-jvc",
     services: [{ name: "Nail trim", staff: "Sophie", duration: "15min", price: "AED 40" }],
   },
 ]

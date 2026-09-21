@@ -4,6 +4,7 @@ import {
   AlertTriangleIcon,
   ArrowRightToLineIcon,
   BellRingIcon,
+  BuildingIcon,
   CheckIcon,
   ChevronDownIcon,
   Clock3Icon,
@@ -36,6 +37,7 @@ import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Separator } from "@/components/ui/separator"
+import { useLocations } from "@/lib/locations/store"
 import { formatPetNotes } from "@/lib/pet-notes"
 import { cn } from "@/lib/utils"
 
@@ -159,6 +161,44 @@ function StatusHeaderBar({
         {meta.label}
         {interactive ? <ChevronDownIcon className="size-3" aria-hidden /> : null}
       </span>
+    </div>
+  )
+}
+
+/**
+ * Which branch the appointment is at, on the surface an operator actually
+ * reads the day from.
+ *
+ * The tile and this panel carried no branch at all. On "All locations" that
+ * left the calendar saying when and who and never where, and staff do not
+ * settle it: Lena Petrov works JVC *and* Jumeirah, so her name answers nothing.
+ *
+ * Not inside the status bar: that row is 320px already holding a time range and
+ * a status, and branch names here run to "Shampooch Downtown Dubai" — a third
+ * thing in it wraps.
+ *
+ * So it is the header's second row instead — its own strip, flush under the
+ * bar, on a muted ground with the bar's own horizontal padding. Sitting inside
+ * the body with the client and the notes it read as one more item in that list,
+ * floating above the avatar with nothing tying it to anything. When and where
+ * are one fact about the appointment; who and what are the body. The ground and
+ * the shared padding say which of those this is, before a word is read.
+ *
+ * BuildingIcon, not the pin: the pin is the pet's address further down this
+ * same panel, and the switcher already uses this icon to mean branch.
+ *
+ * Renders nothing for a single-branch business (DW1.2).
+ */
+function BranchLine({ booking }: { booking: MockBooking }) {
+  const { isMultiLocation, locationName } = useLocations()
+  if (!isMultiLocation || !booking.locationId) return null
+  return (
+    <div
+      data-slot="appointment-branch"
+      className="flex shrink-0 items-center gap-1.5 border-b bg-muted/30 px-3 py-1.5 text-[11px] font-medium text-foreground"
+    >
+      <BuildingIcon className="size-3 shrink-0 text-muted-foreground" aria-hidden />
+      <span className="min-w-0 truncate">{locationName(booking.locationId)}</span>
     </div>
   )
 }
@@ -375,6 +415,9 @@ export function AppointmentQuickPanel({
         durationMin={booking.durationMin}
         className="shrink-0"
       />
+      {/* The header's second row — see the note on BranchLine. Outside the body
+          on purpose: flush to the bar, sharing its padding. */}
+      <BranchLine booking={booking} />
       <div className="flex flex-col gap-2.5 p-3">
         <IdentityBlock booking={booking} hasPets={hasPets} />
         <TagRow booking={booking} />

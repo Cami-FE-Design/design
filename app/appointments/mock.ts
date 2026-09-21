@@ -24,6 +24,18 @@ export type MockStaff = {
   name: string
   role: string
   photoUrl?: string
+  /**
+   * The branches this person actually works (R05, DW2.3).
+   *
+   * A booking's branch resolves through here rather than being assigned to it,
+   * which is how the real model works and what this seed was missing — the
+   * backfill below used to pick a branch by counting, so every fourth booking
+   * landed at Jumeirah whoever was doing it.
+   *
+   * Two branches means a genuinely split week, not a person in two places: the
+   * branch is picked by the day, the way a rota does it.
+   */
+  locationIds: string[]
 }
 
 export type MockBooking = {
@@ -119,19 +131,79 @@ export type MockBooking = {
   dayOffset?: number
 }
 
+const JVC = "shampooch-jvc"
+const JUMEIRAH = "shampooch-jumeirah"
+const DOWNTOWN = "shampooch-downtown-dubai"
+const MIRDIF = "shampooch-mirdif"
+const MARINA = "shampooch-dubai-marina"
+const AL_MAJAZ = "shampooch-al-majaz"
+const AL_REEM = "shampooch-al-reem"
+const PURR_PALACE = "purr-palace"
+const SOTA = "sota"
+
+/**
+ * Who works where.
+ *
+ * Assigned against what each branch actually runs rather than spread for
+ * variety: the daycare lead and the boarding attendant are at Mirdif because
+ * Downtown and Jumeirah have neither service (see `LOCATION_OFFERINGS`), and
+ * the vet and vet tech share the mall unit because that is where the walk-in
+ * trade is. Lena is the one person on two branches — the split week SCR-10 is
+ * drawn against.
+ *
+ * Nobody is rostered at Al Quoz or Yas Island: both are suspended, and a
+ * suspended branch keeps its history and takes no new bookings (R12, G9).
+ */
 export const MOCK_STAFF: MockStaff[] = [
-  { id: "aya-hassan", name: "Aya Hassan", role: "Senior Groomer" },
-  { id: "lena-petrov", name: "Lena Petrov", role: "Groomer" },
-  { id: "priya-nair", name: "Priya Nair", role: "Groomer" },
-  { id: "marco-rossi", name: "Marco Rossi", role: "Senior Groomer" },
-  { id: "joel-batumbya", name: "Joel Batumbya", role: "Junior Groomer" },
-  { id: "sarah-khoury", name: "Dr. Sarah Khoury", role: "Veterinarian" },
-  { id: "fatima-ali", name: "Fatima Ali", role: "Daycare Lead" },
-  { id: "hassan-kareem", name: "Hassan Kareem", role: "Boarding Attendant" },
-  { id: "olivia-park", name: "Olivia Park", role: "Trainer" },
-  { id: "diego-santos", name: "Diego Santos", role: "Vet Tech" },
-  { id: "mei-tanaka", name: "Mei Tanaka", role: "Groomer" },
+  { id: "aya-hassan", name: "Aya Hassan", role: "Senior Groomer", locationIds: [JVC] },
+  { id: "lena-petrov", name: "Lena Petrov", role: "Groomer", locationIds: [JVC, JUMEIRAH] },
+  { id: "priya-nair", name: "Priya Nair", role: "Groomer", locationIds: [JVC] },
+  { id: "marco-rossi", name: "Marco Rossi", role: "Senior Groomer", locationIds: [JUMEIRAH] },
+  { id: "joel-batumbya", name: "Joel Batumbya", role: "Junior Groomer", locationIds: [JVC] },
+  { id: "sarah-khoury", name: "Dr. Sarah Khoury", role: "Veterinarian", locationIds: [DOWNTOWN] },
+  { id: "fatima-ali", name: "Fatima Ali", role: "Daycare Lead", locationIds: [MIRDIF] },
+  {
+    id: "hassan-kareem",
+    name: "Hassan Kareem",
+    role: "Boarding Attendant",
+    locationIds: [MIRDIF],
+  },
+  { id: "olivia-park", name: "Olivia Park", role: "Trainer", locationIds: [MARINA] },
+  { id: "diego-santos", name: "Diego Santos", role: "Vet Tech", locationIds: [DOWNTOWN] },
+  { id: "mei-tanaka", name: "Mei Tanaka", role: "Groomer", locationIds: [JUMEIRAH] },
+  // Sharjah, so the estate's third emirate has somebody in it.
+  { id: "noor-jaber", name: "Noor Jaber", role: "Groomer", locationIds: [AL_MAJAZ] },
+  // Al Reem had nobody, which is not a quiet branch — it is a branch that
+  // cannot take a booking at all, because `branchForBooking` resolves a
+  // booking's branch through whoever performs it. It was live in the estate,
+  // named in the switcher, and absent from every calendar.
+  { id: "rana-idris", name: "Rana Idris", role: "Senior Groomer", locationIds: [AL_REEM] },
+  // Abu Dhabi's two branches share a groomer, so the estate has a split week
+  // outside Dubai as well — the case DW2.2 is about (the rota is the branch's,
+  // the absence is the person's).
+  { id: "omar-said", name: "Omar Said", role: "Groomer", locationIds: [AL_REEM, DOWNTOWN] },
+  // The other two businesses. Their people are theirs — a grant never reaches
+  // across a business, so these never appear under Shampooch (R18).
+  { id: "dana-aziz", name: "Dana Aziz", role: "Senior Groomer", locationIds: [PURR_PALACE] },
+  { id: "sami-haddad", name: "Sami Haddad", role: "Groomer", locationIds: [PURR_PALACE] },
+  { id: "lina-farouk", name: "Lina Farouk", role: "Colourist", locationIds: [SOTA] },
+  { id: "yara-nasr", name: "Yara Nasr", role: "Stylist", locationIds: [SOTA] },
 ]
+
+/**
+ * The branch a booking happened at, resolved through whoever is doing it.
+ *
+ * Somebody on two branches works a split week, so the day decides which —
+ * the same fact a rota states, rather than a second one to keep in step. A
+ * staff id nobody has placed falls back to the flagship rather than to
+ * nothing, because a booking with no branch is not a state this product has.
+ */
+function branchForBooking(staffId: string, dayOffset = 0): string {
+  const staff = MOCK_STAFF.find((m) => m.id === staffId)
+  const where = staff?.locationIds ?? []
+  if (where.length === 0) return JVC
+  return where[Math.abs(dayOffset) % where.length]!
+}
 
 export const DAY_START_HOUR = 7
 export const DAY_END_HOUR = 19
@@ -642,6 +714,107 @@ const SEEDED_BOOKINGS: Omit<MockBooking, "locationId">[] = [
     petSpecies: "cat",
     priceMinor: 10000,
   },
+
+  // ── The rest of the estate, and the other businesses ───────────────────────
+  //
+  // Sharjah had nobody, and Purr Palace and Sota had nothing at all — so
+  // narrowing to any of them, or signing into either business, emptied every
+  // appointment surface with no way to tell that from a broken filter. Each
+  // booking resolves its branch through its staff member, so these land where
+  // those people actually work.
+  {
+    id: "b-030",
+    staffId: "noor-jaber",
+    start: "10:00",
+    durationMin: 90,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Full Grooming MD",
+    clientName: "Hind Al Suwaidi",
+    petName: "Simba",
+    petSpecies: "dog",
+    priceMinor: 19000,
+  },
+  // Abu Dhabi. Al Reem had a branch, then a team, and still no bookings —
+  // because a booking resolves its branch through its staff member, so seeding
+  // the people is only half of it. Two, so the branch has more than one row to
+  // look at on a day view.
+  {
+    id: "b-033",
+    staffId: "rana-idris",
+    start: "09:30",
+    durationMin: 75,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Full Grooming SM",
+    clientName: "Maryam Al Hosani",
+    petName: "Dates",
+    petSpecies: "dog",
+    priceMinor: 17500,
+  },
+  {
+    id: "b-034",
+    staffId: "omar-said",
+    start: "13:00",
+    durationMin: 45,
+    status: "booked",
+    serviceCategory: "grooming",
+    serviceName: "Wash & Blow Dry MD",
+    clientName: "Khalid Al Mansoori",
+    petName: "Rocket",
+    petSpecies: "dog",
+    priceMinor: 12000,
+  },
+  {
+    id: "b-031",
+    staffId: "dana-aziz",
+    start: "11:00",
+    durationMin: 60,
+    status: "completed",
+    serviceCategory: "grooming",
+    serviceName: "Cat Groom",
+    clientName: "Dana Khalil",
+    petName: "Muffin",
+    petSpecies: "cat",
+    priceMinor: 21000,
+  },
+  {
+    id: "b-032",
+    staffId: "sami-haddad",
+    start: "14:30",
+    durationMin: 45,
+    status: "booked",
+    serviceCategory: "grooming",
+    serviceName: "Wash Only SM",
+    clientName: "Omar Sultan",
+    petName: "Pepper",
+    petSpecies: "dog",
+    priceMinor: 9000,
+  },
+  {
+    // Sota is the non-pet business, so no pet on the booking — the case that
+    // catches anything assuming one is there.
+    id: "b-033",
+    staffId: "lina-farouk",
+    start: "13:00",
+    durationMin: 150,
+    status: "confirmed",
+    serviceCategory: "grooming",
+    serviceName: "Hair Colour",
+    clientName: "Maaz Shaffi",
+    priceMinor: 38000,
+  },
+  {
+    id: "b-034",
+    staffId: "yara-nasr",
+    start: "16:00",
+    durationMin: 75,
+    status: "checked-in",
+    serviceCategory: "grooming",
+    serviceName: "Cut and finish",
+    clientName: "Aisha Rahman",
+    priceMinor: 26000,
+  },
 ]
 
 /**
@@ -655,9 +828,9 @@ const SEEDED_BOOKINGS: Omit<MockBooking, "locationId">[] = [
  * the real model (R05), so a production backfill would resolve a booking's
  * branch through its staff member; the seed has no staff-to-branch map yet.
  */
-export const MOCK_BOOKINGS: MockBooking[] = SEEDED_BOOKINGS.map((b, i) => ({
+export const MOCK_BOOKINGS: MockBooking[] = SEEDED_BOOKINGS.map((b) => ({
   ...b,
-  locationId: i % 4 === 3 ? "shampooch-jumeirah" : "shampooch-jvc",
+  locationId: branchForBooking(b.staffId, b.dayOffset),
 }))
 
 // Without-pets demo dataset. Generic salon / wellness services to show how
@@ -852,9 +1025,10 @@ const SEEDED_BOOKINGS_WITHOUT_PETS: Omit<MockBooking, "locationId">[] = [
 ]
 
 /** Same backfill, for the no-pets business type (R20). */
-export const MOCK_BOOKINGS_WITHOUT_PETS: MockBooking[] = SEEDED_BOOKINGS_WITHOUT_PETS.map(
-  (b, i) => ({ ...b, locationId: i % 4 === 3 ? "shampooch-jumeirah" : "shampooch-jvc" }),
-)
+export const MOCK_BOOKINGS_WITHOUT_PETS: MockBooking[] = SEEDED_BOOKINGS_WITHOUT_PETS.map((b) => ({
+  ...b,
+  locationId: branchForBooking(b.staffId, b.dayOffset),
+}))
 
 // ─────────────────────────────────────────────────────────────────────────
 // Service catalog mock — used by the create-booking flow (service picker).
