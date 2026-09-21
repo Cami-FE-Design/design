@@ -136,13 +136,21 @@ export function LocationMultiSelect({
           </span>
         </label>
 
-        <div className="max-h-[13.5rem] overflow-y-auto py-1">
+        {/* `overscroll-contain` keeps the wheel on this list instead of chaining
+            it into whatever is behind — inside a dialog that is a page which
+            does not scroll, so the list read as frozen. */}
+        <div className="max-h-[13.5rem] overflow-y-auto overscroll-contain py-1">
           {groups.map((group) => (
             <div key={group.city}>
               {/* Only when there is more than one city to tell apart. A single
                   heading over every branch is a label for nothing. */}
+              {/* Opaque and ruled. It painted its own background colour as a 1px
+                  shadow to mask the row sliding under it, which left a seam: at
+                  some scroll positions a checkbox showed through the gap between
+                  the two. A real background and a real border have nothing to
+                  slip between. */}
               {groups.length > 1 ? (
-                <p className="sticky top-0 z-10 bg-background px-3 py-1.5 font-medium text-muted-foreground text-xs shadow-[0_1px_0_0_var(--background)]">
+                <p className="sticky top-0 z-10 border-border/60 border-b bg-card px-3 py-1.5 font-medium text-muted-foreground text-xs">
                   {group.city}
                 </p>
               ) : null}

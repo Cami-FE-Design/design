@@ -130,7 +130,7 @@ export function DealScopeDialog({
             scroll port around it made two scrollbars for one dialog, with the
             notice under the picker half-cut between them. One scrollable
             region, and it is the one that has too many rows. */}
-        <div className="flex flex-col gap-4">
+        <div className="mt-2 flex flex-col gap-4">
           {creating ? (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1.5">
@@ -157,7 +157,7 @@ export function DealScopeDialog({
           <RadioGroup
             value={kind}
             onValueChange={(v) => setKind(v as PromotionScope["kind"])}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-2"
           >
             {/* The whole card is the target, not the 16px dot. Radix renders the
                 radio as a <button>, and a <label htmlFor> pointing at one does

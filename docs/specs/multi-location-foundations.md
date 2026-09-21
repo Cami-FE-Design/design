@@ -1653,6 +1653,22 @@ saying "show all", because seven of nine hidden is a different decision from two
 The business total sits outside the list either way: it is the check on the rows
 rather than one of them, and a roll-up behind a toggle is not a roll-up.
 
+## A dialog inside AppShell renders twice
+
+`AppShell` renders its children **twice** — a narrow layout and a wide one, with
+CSS hiding whichever does not apply. That is fine for content, which the hidden
+container hides. It is not fine for a dialog: a dialog portals to the body, so
+the CSS hiding its container does not reach it, and **both instances appear,
+stacked, each with its own state**. The Deals list showed two "Where does this
+deal run?" dialogs at once, one of them mid-edit.
+
+Dialogs therefore go **outside** `<AppShell>`, as a sibling in a fragment.
+
+This is repo-wide, not new: `/clients`, `/catalogs/packages` and others all
+mount their dialogs inside the shell. Only the Deals one is moved here, because
+that is the screen this ticket owns — but every dialog in the repo has the same
+defect and it is worth its own pass.
+
 ## Before listing an estate, ask whether the list is the answer
 
 This defect has now arrived five times, each in a different card, and the fix
