@@ -157,8 +157,14 @@ export function LocationMultiSelect({
                       checked ? "bg-cami-violet-2" : "hover:bg-muted/50",
                     )}
                   >
+                    {/* Named explicitly. The row's text sits in a sibling span
+                        and the control is a Radix button, so the wrapping label
+                        gave it no accessible name — every branch read as an
+                        unlabelled checkbox, which is the one thing a picker of
+                        nine cannot afford. */}
                     <Checkbox
                       id={`loc-multi-${loc.id}`}
+                      aria-label={loc.location.district || loc.name}
                       checked={checked}
                       disabled={disabled}
                       onCheckedChange={() => toggle(loc.id)}

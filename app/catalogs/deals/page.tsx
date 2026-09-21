@@ -58,7 +58,9 @@ import { useLocations } from "@/lib/locations/store"
 
 export default function DealsPage() {
   const [query, setQuery] = useState("")
-  const [editing, setEditing] = useState<Deal | null>(null)
+  // `null` is "nothing open"; `{ deal: null }` is "creating one". A single
+  // nullable would collapse those two into one state.
+  const [editing, setEditing] = useState<{ deal: Deal | null } | null>(null)
   const [deals, setDeals] = useState(MOCK_DEALS)
 
   // The granted set, narrowed by the switcher (R03, R18). A manager holding one
@@ -105,7 +107,11 @@ export default function DealsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button radius="full" disabled>
+            {/* It was disabled, which on a list page's primary action reads as
+                broken rather than as "not yet". A deal needs a name, an offer
+                and somewhere to run — the third is this ticket's, and leaving
+                the first two out is what made the button dead. */}
+            <Button radius="full" onClick={() => setEditing({ deal: null })}>
               <PlusIcon className="size-4" />
               Add
             </Button>
@@ -156,7 +162,7 @@ export default function DealsPage() {
                   <TableRow
                     key={deal.id}
                     className="group cursor-pointer"
-                    onClick={() => setEditing(deal)}
+                    onClick={() => setEditing({ deal })}
                   >
                     <TableCell>
                       <div className="flex min-w-0 items-center gap-3">
@@ -229,9 +235,25 @@ export default function DealsPage() {
           onOpenChange={(next) => {
             if (!next) setEditing(null)
           }}
-          deal={editing}
-          onSave={(scope) => {
-            setDeals((current) => current.map((d) => (d.id === editing.id ? { ...d, scope } : d)))
+          deal={editing.deal}
+          onSave={({ name, offer, scope }) => {
+            const target = editing.deal
+            setDeals((current) =>
+              target
+                ? current.map((d) => (d.id === target.id ? { ...d, scope } : d))
+                : [
+                    {
+                      id: `deal-${Date.now()}`,
+                      name,
+                      offer,
+                      status: "scheduled" as const,
+                      runs: "Not scheduled yet",
+                      scope,
+                      redemptions: 0,
+                    },
+                    ...current,
+                  ],
+            )
             setEditing(null)
           }}
         />
