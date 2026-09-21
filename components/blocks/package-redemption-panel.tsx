@@ -72,6 +72,7 @@ export function PackageRedemptionPanel({
   onApply,
   onRemove,
   className,
+  redeemingAt,
 }: {
   lines: ReadonlyArray<RedeemableLine>
   /** Line uids already covered by a package in this sale. */
@@ -79,8 +80,13 @@ export function PackageRedemptionPanel({
   onApply: (uid: string, redemption: PackageRedemption) => void
   onRemove: (uid: string) => void
   className?: string
+  /** The branch the host has already settled on, if it has one. */
+  redeemingAt?: string | null
 }) {
-  const [locationId, setLocationId] = useState<string | null>(null)
+  const [pickedLocationId, setPickedLocationId] = useState<string | null>(null)
+  // The host's answer wins. Standalone — the playground — it asks for itself.
+  const locationId = redeemingAt ?? pickedLocationId
+  const setLocationId = setPickedLocationId
   const [decisions, setDecisions] = useState<Record<string, PackageDecision>>({})
 
   const covered = lines.filter((line) => line.eligibility.customerPackage !== null)
@@ -115,12 +121,18 @@ export function PackageRedemptionPanel({
 
       {/* Before any Apply: a redemption resolves to exactly one location, and
           there is no default. */}
-      <WriteTargetLocation
-        value={locationId}
-        onChange={setLocationId}
-        label="Redeeming at"
-        action="A redemption"
-      />
+      {/* Asked only when nobody has already answered. Hosted in a sale, the
+          branch is settled before the cart has anything in it — asking again
+          two panels later invites two different answers to one question, and
+          a redemption resolves to one location (R11). */}
+      {redeemingAt ? null : (
+        <WriteTargetLocation
+          value={locationId}
+          onChange={setLocationId}
+          label="Redeeming at"
+          action="A redemption"
+        />
+      )}
 
       <ul className="flex flex-col gap-2">
         {covered.map((line) => {

@@ -59,7 +59,10 @@ export function ServiceLocationsSection({
   offerings: LocationOffering[]
   onChange: (next: LocationOffering[]) => void
 }) {
-  const { locations } = useLocations()
+  // The granted set, not the estate (R18). An owner's grant is "all", so this
+  // costs an owner nothing — and stops a manager holding one branch from
+  // seeing, assigning to, or configuring the other eight.
+  const { granted: locations } = useLocations()
   const [showAll, setShowAll] = useState(false)
 
   /**

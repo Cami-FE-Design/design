@@ -14,6 +14,7 @@ import {
 import { useState } from "react"
 import { ComboLineIcon } from "@/components/blocks/combo-badge"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -60,6 +61,15 @@ type CartContentProps = {
   onEditLine?: (uid: string) => void
   /** Read-only summary (Tip / Payment steps): no edit / remove / qty controls. */
   readOnly?: boolean
+  /**
+   * Line uids a customer package has settled.
+   *
+   * The built product renders these at AED 0 with the covered figure struck
+   * through, and books the package as a payment — see `comboCoverage.ts`. The
+   * struck figure is what the package actually paid, so every number on screen
+   * reconciles against the tender.
+   */
+  packageCovered?: ReadonlyArray<string>
 }
 
 export function CartContent({
@@ -69,6 +79,7 @@ export function CartContent({
   onSetQty,
   onEditLine,
   readOnly = false,
+  packageCovered,
 }: CartContentProps) {
   if (lines.length === 0) {
     return (
@@ -106,6 +117,7 @@ export function CartContent({
               onEdit={onEditLine ? () => onEditLine(line.uid) : undefined}
               // Read-only summaries (Tip / Payment) are editable but not deletable.
               onRemove={readOnly ? undefined : () => onRemove(line.uid)}
+              covered={packageCovered?.includes(line.uid)}
             />
           ) : (
             <ProductLineRow
@@ -131,11 +143,14 @@ function ServiceLineRow({
   subject,
   onEdit,
   onRemove,
+  covered = false,
 }: {
   line: CartLine
   subject?: string
   onEdit?: () => void
   onRemove?: () => void
+  /** A customer package has settled this line. */
+  covered?: boolean
 }) {
   const meta = [line.durationMin != null ? formatDuration(line.durationMin) : null, subject]
     .filter(Boolean)
@@ -162,7 +177,21 @@ function ServiceLineRow({
             {meta ? (
               <span className="truncate text-muted-foreground text-sm leading-5">{meta}</span>
             ) : null}
+            {/* The same chip the booking's own service row prints when a
+                session is drawn down rather than charged. Zero and "already
+                paid for" are different facts at the counter, and the struck
+                figure alone does not say which one this is. */}
+            {covered ? (
+              <Badge variant="primary-soft" size="sm" className="mt-1 w-fit">
+                Included in package
+              </Badge>
+            ) : null}
           </div>
+          {/* The covered line keeps its gross price. Confirmed against the
+              built cart: a package is booked as a captured payment, not as a
+              discount on the line, so striking it to zero here would take the
+              same money out twice — once off the line and again in the
+              tenders — and the footer would stop adding up. */}
           <RowActions
             value={money(line.priceMinor)}
             strikeValue={
@@ -430,7 +459,12 @@ export function CartFooter({
           <BreakdownRow label="Discount" value={`- ${formatAedDecimal(discountMinor)}`} muted />
         ) : null}
         <BreakdownRow label="To pay" value={formatAedDecimal(discountedMinor)} strong />
-        {blockedReason ? <span className="text-destructive text-xs">{blockedReason}</span> : null}
+        {/* `blockedReason` keeps Continue shut below and is no longer printed
+            here. Sitting inside this block it was an error about neither money
+            nor anything else on screen — an operator reading for a figure met
+            "Choose a location to continue" under To pay, with the location
+            picker at the other end of the cart. Each reason now sits beside the
+            control that answers it. */}
       </div>
 
       <div className="flex items-center gap-2">
@@ -508,6 +542,17 @@ type CheckoutFooterProps = {
   /** Recorded payments (Payment step). When present, shows the paid breakdown. */
   payments?: Payment[]
   onRemovePayment?: (id: number) => void
+  /**
+   * What the client's package has settled, in fils.
+   *
+   * It is a tender, not a discount, so it belongs here beside the cash and the
+   * card rather than off the line. Without it this footer subtracted only the
+   * recorded payments and printed a "Left to pay" the flow itself disagreed
+   * with — the package money had moved the sale on and nothing said where it
+   * went. It carries no remove control: a package is given back in the
+   * Packages panel, next to the client it belongs to.
+   */
+  packagePaidMinor?: number
 }
 
 export function CheckoutFooter({
@@ -522,10 +567,11 @@ export function CheckoutFooter({
   onCancelSale,
   payments = [],
   onRemovePayment,
+  packagePaidMinor = 0,
 }: CheckoutFooterProps) {
   const [expanded, setExpanded] = useState(true)
   const toPay = baseMinor + tipMinor
-  const paid = payments.reduce((sum, p) => sum + p.amountMinor, 0)
+  const paid = payments.reduce((sum, p) => sum + p.amountMinor, 0) + packagePaidMinor
   const left = Math.max(0, toPay - paid)
   const change = Math.max(0, paid - toPay)
   const subtotalMinor = Math.round(toPay / (1 + VAT_RATE))
@@ -533,7 +579,7 @@ export function CheckoutFooter({
 
   return (
     <footer className="relative border-border border-t bg-card px-6 py-4">
-      {payments.length > 0 ? (
+      {payments.length > 0 || packagePaidMinor > 0 ? (
         // Paid breakdown with a centered expand/collapse handle.
         <>
           <button
@@ -567,6 +613,14 @@ export function CheckoutFooter({
                 <div className="border-border/60 border-t pt-1">
                   <BreakdownRow label="Total" value={formatAedDecimal(toPay)} strong />
                 </div>
+                {packagePaidMinor > 0 ? (
+                  <div className="flex items-center justify-between gap-3 pt-1 text-sm">
+                    <span className="text-foreground">Package</span>
+                    <span className="text-muted-foreground tabular-nums">
+                      - {formatAedDecimal(packagePaidMinor)}
+                    </span>
+                  </div>
+                ) : null}
                 {payments.map((p) => (
                   <div key={p.id} className="flex items-center justify-between gap-3 pt-1 text-sm">
                     <span className="flex items-center gap-1.5 text-foreground">

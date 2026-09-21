@@ -174,6 +174,115 @@ export const LOCATION_OFFERINGS: LocationOffering[] = [
     enabled: false,
     overrides: {},
   },
+
+  // ── The rest of the estate ─────────────────────────────────────────────────
+  //
+  // Two configured branches out of nine meant almost nothing was turned off
+  // anywhere, so every screen that exists to show a branch differing showed
+  // nothing differing. A reviewer cannot judge "not at this branch" from a seed
+  // where every branch runs everything.
+  //
+  // Each line below is a reason a real branch would differ — a room it does not
+  // have, equipment it does not own, a market that pays more — rather than
+  // variety for its own sake. Branches not listed inherit the whole business
+  // menu, which is the ordinary case and has to stay visible too.
+
+  {
+    // A mall unit: no kennels, so nothing overnight and nothing all-day.
+    serviceId: "daycare-day",
+    locationId: "shampooch-downtown-dubai",
+    enabled: false,
+    overrides: {},
+  },
+  {
+    serviceId: "boarding",
+    locationId: "shampooch-downtown-dubai",
+    enabled: false,
+    overrides: {},
+  },
+  {
+    // Mall rent, and the footfall to carry it.
+    serviceId: "full-groom",
+    locationId: "shampooch-downtown-dubai",
+    enabled: true,
+    overrides: { price: 260 },
+  },
+  {
+    // No dental chair at the marina unit.
+    serviceId: "scale",
+    locationId: "shampooch-dubai-marina",
+    enabled: false,
+    overrides: {},
+  },
+  {
+    // Longer slot here: one bather, and the room doubles as the dryer room.
+    serviceId: "bath-large",
+    locationId: "shampooch-dubai-marina",
+    enabled: true,
+    overrides: { duration: 90 },
+  },
+  {
+    // Cat-only room is Mirdif's alone, so the cat groom is cheaper where it is
+    // routine and unchanged everywhere else.
+    serviceId: "cat-groom",
+    locationId: "shampooch-mirdif",
+    enabled: true,
+    overrides: { price: 150 },
+  },
+  {
+    serviceId: "medicated",
+    locationId: "shampooch-mirdif",
+    enabled: false,
+    overrides: {},
+  },
+  {
+    // Abu Dhabi opened without the spa fit-out; the treatments wait for it.
+    serviceId: "facial",
+    locationId: "shampooch-al-reem",
+    enabled: false,
+    overrides: {},
+  },
+  {
+    serviceId: "spa-pamper-combo",
+    locationId: "shampooch-al-reem",
+    enabled: false,
+    overrides: {},
+  },
+  {
+    // Sharjah prices below Dubai, which is the market rather than a discount.
+    serviceId: "full-groom",
+    locationId: "shampooch-al-majaz",
+    enabled: true,
+    overrides: { price: 190 },
+  },
+  {
+    serviceId: "deshed",
+    locationId: "shampooch-al-majaz",
+    enabled: false,
+    overrides: {},
+  },
+
+  // ── The till's own catalogue ────────────────────────────────────────────────
+  //
+  // The sale flow sells from a different service list than the booking flow, so
+  // a package redeemed at the counter is measured against these. Without them
+  // every branch resolved to the business defaults and the mismatch the panel
+  // exists to show could never occur.
+  {
+    // Jumeirah charges more for the same blow dry — the price-difference case.
+    serviceId: "blow-dry",
+    locationId: "shampooch-jumeirah",
+    enabled: true,
+    overrides: { price: 145 },
+  },
+  {
+    // No massage room at Mirdif: "we don't do that here", which the panel puts
+    // ahead of a price difference because it is a different conversation.
+    serviceId: "deep-tissue",
+    locationId: "shampooch-mirdif",
+    enabled: false,
+    overrides: {},
+  },
 ]
 
 /** The offering for one service at one branch, or undefined when it inherits. */

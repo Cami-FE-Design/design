@@ -10,7 +10,6 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
-
 import {
   MOCK_BOOKINGS,
   MOCK_STAFF,
@@ -42,6 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
 // Set high enough that the curated demo subset (10 rows) paints in a single
@@ -69,6 +69,14 @@ const LISTING_BOOKING_IDS = new Set([
   "b-011", // completed
   "b-014", // confirmed
   "b-018", // completed
+  // The rest of the estate and the other businesses. The listing is a curated
+  // subset, so a booking absent from here is invisible however well it is
+  // seeded — which is what left Sharjah, Purr Palace and Sota empty.
+  "b-030", // Sharjah
+  "b-031", // Purr Palace
+  "b-032", // Purr Palace
+  "b-033", // Sota, no pet
+  "b-034", // Sota
 ])
 
 // Anchor demo dates on 18 May 2026 so the listing reads like the figma.
@@ -224,12 +232,19 @@ function AppointmentsListPageInner() {
   const [selectedClient, setSelectedClient] = useState<ClientDetailClient | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
+  // The scope resolved to branches, falling back to the whole grant on
+  // all-locations. Bookings are branch-scoped reads (R18), so an operator who
+  // narrows to two branches must not keep seeing the other seven's work.
+  const { scopedLocations, granted, isMultiLocation, locationName, scopeLabel } = useLocations()
+  const inScope = scopedLocations.length > 0 ? scopedLocations : granted
   const augmented: Augmented[] = MOCK_BOOKINGS.map(augment)
   // URL is the source of truth — find the booking that matches `?ref=<id>`.
   // Resolved against the full dataset so any b-id deep-link still opens.
   const selectedBooking = selectedRef ? (augmented.find((b) => b.id === selectedRef) ?? null) : null
   // The table renders a curated 10-row subset covering every status.
-  const listing = augmented.filter((b) => LISTING_BOOKING_IDS.has(b.id))
+  const listing = augmented
+    .filter((b) => LISTING_BOOKING_IDS.has(b.id))
+    .filter((b) => inScope.some((l) => l.id === b.locationId))
   const total = listing.length
 
   const q = query.trim().toLowerCase()
@@ -356,8 +371,15 @@ function AppointmentsListPageInner() {
           <EmptyState
             variant="card"
             icon={CalendarIcon}
-            title="No appointments match"
-            description="Try a different search."
+            {...(q
+              ? { title: "No appointments match", description: "Try a different search." }
+              : {
+                  // A branch with nothing booked is a real, correct state. Told
+                  // to try a different search, the operator retypes a query
+                  // they never entered.
+                  title: `No appointments at ${scopeLabel}`,
+                  description: "Nothing is booked here in this period.",
+                })}
           />
         ) : (
           <Table>
@@ -366,15 +388,15 @@ function AppointmentsListPageInner() {
                 <TableHead className="sticky left-0 z-20! shadow-[1px_0_0_0_var(--border)]">
                   Ref #
                 </TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Created by</TableHead>
-                <TableHead>Created Date</TableHead>
-                <TableHead>Scheduled Date</TableHead>
+                <TableHead className="whitespace-nowrap">Client</TableHead>
+                <TableHead className="whitespace-nowrap">Service</TableHead>
+                <TableHead className="whitespace-nowrap">Created by</TableHead>
+                <TableHead className="whitespace-nowrap">Created Date</TableHead>
+                <TableHead className="whitespace-nowrap">Scheduled Date</TableHead>
                 {/* Duration column hidden for now */}
-                <TableHead>Team member</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead className="whitespace-nowrap">Team member</TableHead>
+                <TableHead className="whitespace-nowrap">Price</TableHead>
+                <TableHead className="whitespace-nowrap">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -419,17 +441,37 @@ function AppointmentsListPageInner() {
                     </TableCell>
                     <TableCell className="text-sm text-foreground">{b.serviceName}</TableCell>
                     <TableCell className="text-sm text-foreground">{b.createdBy}</TableCell>
-                    <TableCell className="text-sm text-foreground">
+                    {/* A date never wraps. "18 May" over "2026" reads as two
+                        facts and makes every row in the table a different
+                        height. */}
+                    <TableCell className="whitespace-nowrap text-sm text-foreground">
                       {formatDateOnly(b.createdAt)}
                     </TableCell>
-                    <TableCell className="text-sm text-foreground">
+                    <TableCell className="whitespace-nowrap text-sm text-foreground">
                       {formatDateOnly(b.scheduledAt)}
                     </TableCell>
                     {/* Duration column hidden for now */}
+                    {/* The branch under the person, not beside them. A booking
+                        resolves its branch through whoever is doing it, so the
+                        two are one fact — and a tenth column is what pushed
+                        this table into a horizontal scroll. Absent for a
+                        single-branch business (DW1.2). */}
                     <TableCell className="text-sm text-foreground">
-                      {STAFF_BY_ID[b.staffId]?.name ?? "—"}
+                      <span className="flex flex-col leading-tight">
+                        <span className="whitespace-nowrap">
+                          {STAFF_BY_ID[b.staffId]?.name ?? "—"}
+                        </span>
+                        {isMultiLocation ? (
+                          <span className="whitespace-nowrap text-xs text-muted-foreground">
+                            {locationName(b.locationId)}
+                          </span>
+                        ) : null}
+                      </span>
                     </TableCell>
-                    <TableCell className="text-sm text-foreground tabular-nums">
+                    {/* A price never wraps either. "AED" over "100" reads as a
+                        currency and a number rather than one amount, and it
+                        makes the row taller than the ones around it. */}
+                    <TableCell className="text-sm whitespace-nowrap text-foreground tabular-nums">
                       {formatPrice(b.priceMinor)}
                     </TableCell>
                     <TableCell>

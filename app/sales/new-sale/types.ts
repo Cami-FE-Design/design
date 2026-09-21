@@ -99,8 +99,16 @@ export type AppointmentItem = {
   start: string
   /** End time, "11:00am". */
   end: string
-  /** Venue label shown in the appointment card header. */
-  location?: string
+  /**
+   * The branch it is booked at, resolved from the estate rather than stored as
+   * a label (R11, R18).
+   *
+   * It was a hardcoded name — "Shampooch JVC" on every row — which meant the
+   * cart printed one business's branch while signed into another, and the list
+   * could not be bounded by anybody's grant because there was no id to bound it
+   * by.
+   */
+  locationId?: string
   /** Booking status label, e.g. "Booked". */
   status?: string
   /** Pet subject — shown instead of the client on with-pets businesses. */

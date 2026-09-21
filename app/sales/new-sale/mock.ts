@@ -449,7 +449,7 @@ export const APPOINTMENTS: AppointmentItem[] = [
     clientName: "Adriana Martino",
     start: "9:00am",
     end: "11:00am",
-    location: "Shampooch JVC",
+    locationId: "shampooch-jvc",
     status: "Booked",
     pet: { name: "Bobo", breed: "French Bulldog", weight: "10 lbs", species: "dog" },
     lines: [
@@ -475,7 +475,7 @@ export const APPOINTMENTS: AppointmentItem[] = [
     clientName: "Bilal Haddad",
     start: "11:30am",
     end: "1:15pm",
-    location: "Shampooch JVC",
+    locationId: "shampooch-jumeirah",
     status: "Booked",
     pet: { name: "Rex", breed: "Beagle", weight: "22 lbs", species: "dog" },
     // Booked as a combo, so the appointment carries a line per component and
@@ -508,7 +508,7 @@ export const APPOINTMENTS: AppointmentItem[] = [
     clientName: "Carla Mendez",
     start: "2:00pm",
     end: "3:30pm",
-    location: "Shampooch JVC",
+    locationId: "shampooch-jvc",
     status: "Booked",
     pet: { name: "Milo", breed: "Persian Cat", weight: "9 lbs", species: "cat" },
     lines: [
