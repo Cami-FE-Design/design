@@ -122,10 +122,15 @@ describe("sale 20 — a refund paired with the sale it reverses", () => {
   const doc = invoiceFromSale(saleById(20))
   const t = invoiceTotals(doc)
 
-  it("cites the originating invoice", () => {
+  it("cites the originating invoice, as that invoice was actually numbered", () => {
     // Mirrors production's shape: adjacent numbers, same amount, and the
     // original left `completed` (live Sale 241 -> Refund 242, spec 0.6).
-    expect(doc.refundOf?.number).toBe("00019")
+    //
+    // Prefixed, because receipt sequences are per branch (R25) and a credit
+    // note that cites a bare number names a document that could belong to any
+    // of nine branches. Both rows sit at JVC — a refund and the sale it
+    // reverses are never at different branches.
+    expect(doc.refundOf?.number).toBe("JVC-000019")
   })
 
   it("leaves the original sale completed", () => {

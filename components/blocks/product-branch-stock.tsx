@@ -37,6 +37,7 @@
  */
 
 import { AlertTriangleIcon, PackageIcon } from "lucide-react"
+import { useState } from "react"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { Button } from "@/components/ui/button"
@@ -73,6 +74,8 @@ export function ProductBranchStock({
     patch: { lowStockLevel?: number; reorderQty?: number },
   ) => void
 }) {
+  // Above the early return: hooks cannot sit behind a branch.
+  const [showAll, setShowAll] = useState(false)
   // The granted set, not the estate. A branch manager sees their own shelf and
   // no one else's, and the bound is read here rather than passed so no caller
   // can widen it (R18).
@@ -101,6 +104,14 @@ export function ProductBranchStock({
   const attention = needsAttention(rows)
   const total = businessQuantity(stock, product.id, ids)
 
+  // Under four branches there is nothing worth hiding.
+  const COLLAPSE_FROM = 4
+  const attentionIds = new Set(attention.map((r) => r.locationId))
+  const shouldFold = rows.length >= COLLAPSE_FROM && attentionIds.size < rows.length
+  const shownRows =
+    shouldFold && !showAll ? rows.filter((r) => attentionIds.has(r.locationId)) : rows
+  const folded = shouldFold ? rows.length - shownRows.length : 0
+
   return (
     <div className="flex flex-col gap-3">
       {attention.length > 0 ? (
@@ -119,8 +130,24 @@ export function ProductBranchStock({
         </div>
       ) : null}
 
+      {/* Collapsed to what needs doing, the way per-branch pricing already
+          collapses (D5). Nine editable cards is a scroll whose interesting row
+          is below the fold — and the job here is spotting the branch that has
+          run out, not reading eight that have not. Under four branches nothing
+          folds, because hiding three cards behind a click is worse than three
+          cards. */}
+      {folded > 0 ? (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="self-start text-sm font-medium text-cami-violet-11 hover:underline"
+        >
+          {showAll ? "Show only what needs attention" : `Show all ${rows.length} locations`}
+        </button>
+      ) : null}
+
       <ul className="flex flex-col gap-2">
-        {rows.map((row) => {
+        {shownRows.map((row) => {
           const location = byId(row.locationId)
           const level = stockLevel(row)
           return (

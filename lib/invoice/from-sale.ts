@@ -11,6 +11,13 @@
 // file is the seam where that swap happens.
 
 import { MOCK_SALES, type Sale } from "@/app/sales/sales-list/page"
+import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
+import {
+  businessTaxIdentityFor,
+  formatReceiptNumber,
+  LOCATION_TAX_OVERRIDES,
+  resolveTaxIdentity,
+} from "@/lib/locations/tax-identity"
 import type {
   InvoiceDocument,
   InvoiceIssuer,
@@ -24,16 +31,54 @@ import type {
  * invoicing settings in production — PRD-9 owns the fields, this is the shape
  * the document needs from them.
  *
- * Deliberately Pet Loft Dubai with a TRN attached: the live output in §0.0 is
- * this business with no address and no TRN, so seeing the same name fully headed
- * is the before/after the ticket is about.
+ * The issuer was one hardcoded merchant for every sale — deliberately, when
+ * the point was showing a fully headed document against a live output that had
+ * no address and no TRN. It resolves from the branch now (R23, G6), so the
+ * before/after that comparison was making lives in `issuerFor` instead.
  */
-const PET_LOFT: InvoiceIssuer = {
-  legalName: "Pet Loft Pet Care Services L.L.C.",
-  tradingName: "Pet Loft Dubai",
-  addressLines: ["Shop 4, Marina Tower", "Al Marsa Street", "Dubai Marina, Dubai"],
-  trn: "100518274600003",
-  phone: "+971 50 873 9874",
+/**
+ * Who issued this receipt, resolved from the branch that took the money (G6).
+ *
+ * One issuer was hardcoded here for every sale, which made per-branch tax
+ * identity a thing an owner could configure and no receipt could ever carry.
+ * R23 puts the identity on the receipt and R25 the sequence; both are per
+ * branch, and INV-12 freezes them at sale — a later edit to a branch's TRN must
+ * not rewrite a receipt already issued.
+ *
+ * Resolved rather than stored per branch: a branch that has not overridden
+ * anything follows the business, and adding branch N costs nothing (R02). The
+ * registered address comes from the tax identity, not the shopfront — an
+ * issuer block is a legal field, and the two are often different buildings.
+ */
+function issuerFor(locationId: string): InvoiceIssuer {
+  const tax = resolveTaxIdentity(
+    businessTaxIdentityFor(locationId),
+    LOCATION_TAX_OVERRIDES[locationId],
+  ).value
+  const branch = NINE_BRANCH_ESTATE.find((l) => l.id === locationId)
+  return {
+    legalName: tax.legalName,
+    // Only when it says something the legal name does not.
+    tradingName: branch && branch.name !== tax.legalName ? branch.name : undefined,
+    addressLines: tax.invoiceAddress.split(", "),
+    trn: tax.trn,
+    phone: branch?.phone,
+  }
+}
+
+/**
+ * The receipt number as printed (R25).
+ *
+ * Per branch and prefixed, so two branches issuing their nth receipt on the
+ * same day produce different numbers — which is the whole reason the sequence
+ * is not one business-wide counter.
+ */
+export function receiptNumberFor(sale: Sale): string {
+  const tax = resolveTaxIdentity(
+    businessTaxIdentityFor(sale.locationId),
+    LOCATION_TAX_OVERRIDES[sale.locationId],
+  ).value
+  return formatReceiptNumber(tax.receiptPrefix, sale.id)
 }
 
 const FOOTER_NOTE = "Thank you. Please retain this invoice for your records."
@@ -177,13 +222,22 @@ function statusFor(sale: Sale): InvoiceStatus {
  * invoice, and citing the wrong one is worse than citing none — so when no
  * matching original exists the reference is omitted rather than invented.
  */
-function originalFor(sale: Sale): { number: string; issuedAt: Date } | undefined {
+export function originalFor(sale: Sale): { number: string; issuedAt: Date } | undefined {
   const amount = Math.abs(sale.grossMinor)
   const original = MOCK_SALES.find(
-    (s) => s.status === "completed" && s.grossMinor === amount && s.id < sale.id,
+    (s) =>
+      s.status === "completed" &&
+      s.grossMinor === amount &&
+      s.id < sale.id &&
+      // Same branch, always. A credit note cites a real invoice, and receipt
+      // sequences are per branch (R25) — so a refund at one branch citing an
+      // amount that happens to match another branch's sale would name a
+      // document that exists, belongs to someone else, and cannot be reconciled
+      // against either branch's books.
+      s.locationId === sale.locationId,
   )
   if (!original) return undefined
-  return { number: String(original.id).padStart(5, "0"), issuedAt: original.saleAt }
+  return { number: receiptNumberFor(original), issuedAt: original.saleAt }
 }
 
 /**
@@ -219,14 +273,14 @@ export function invoiceFromSale(sale: Sale): InvoiceDocument {
     // correct default for a consumer-facing service business (§2.1).
     type: "tax-simplified",
     status: statusFor(sale),
-    number: String(sale.id).padStart(5, "0"),
+    number: receiptNumberFor(sale),
     issuedAt: sale.saleAt,
     refundOf: isRefund ? originalFor(sale) : undefined,
     // Production captures a reason and does not print it (§0.6 finding 28).
     refundReason: isRefund ? "Product defect or damage" : undefined,
     refundedToDateMinor: refundedToDateFor(sale),
     voidedAt: sale.status === "voided" ? voidedAt : undefined,
-    issuer: PET_LOFT,
+    issuer: issuerFor(sale.locationId),
     recipient: {
       name: sale.client,
       email: `${sale.client.toLowerCase().replace(/\s+/g, ".")}@example.com`,

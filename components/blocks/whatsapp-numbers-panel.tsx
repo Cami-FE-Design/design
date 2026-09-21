@@ -18,6 +18,7 @@
  */
 
 import { CirclePlusIcon, InfoIcon, MessageCircleIcon } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
@@ -39,7 +40,17 @@ const TONE_CLASS: Record<"neutral" | "pending" | "good", string> = {
 }
 
 export function WhatsAppNumbersPanel() {
-  const { locations } = useLocations()
+  // The granted set, not the estate (R18). A manager holding one branch was
+  // shown every branch's number and migration state — including branches they
+  // cannot otherwise see.
+  const { granted: locations } = useLocations()
+  const [showAll, setShowAll] = useState(false)
+  // Connected and needing nothing is the quiet case; everything else is
+  // somebody's next job.
+  const needsSomebody = (id: string) => bindingFor(id).status !== "connected"
+  const shouldFold = locations.length >= 4 && locations.some((l) => !needsSomebody(l.id))
+  const shown = shouldFold && !showAll ? locations.filter((l) => needsSomebody(l.id)) : locations
+  const folded = shouldFold ? locations.length - shown.length : 0
   const totals = businessCommsTotals(BRANCH_WHATSAPP)
 
   function bindingFor(locationId: string): BranchWhatsApp {
@@ -81,7 +92,22 @@ export function WhatsAppNumbersPanel() {
           </span>
         </p>
 
-        {locations.map((loc) => {
+        {/* Folded to the branches that need a person, the way stock and
+            per-branch pricing already fold (D5). Nine cards is a scroll whose
+            interesting row — the migration stuck waiting for an OTP — is below
+            the fold, and a branch that is simply connected needs nothing from
+            anybody. Under four branches nothing folds. */}
+        {folded > 0 ? (
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className="self-start text-sm font-medium text-cami-violet-11 hover:underline"
+          >
+            {showAll ? "Show only what needs attention" : `Show all ${locations.length} locations`}
+          </button>
+        ) : null}
+
+        {shown.map((loc) => {
           const binding = bindingFor(loc.id)
           const copy = WHATSAPP_STATUS_COPY[binding.status]
           return (

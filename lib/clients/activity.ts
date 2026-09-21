@@ -277,6 +277,30 @@ const ACTIVITY: Record<string, ClientActivity> = {
         petId: "bobo",
         services: [{ name: "Full groom", staff: "Sophie", duration: "1h 30min", price: "AED 220" }],
       },
+      // Two more branches, because "visits elsewhere" is the whole of SCR-07
+      // and a three-branch history in a nine-branch estate barely tests it.
+      // These are the two an owner would actually be comparing: a different
+      // emirate, and the branch that charges differently for the same service.
+      {
+        id: "mc-5",
+        locationId: "shampooch-downtown-dubai",
+        status: "completed",
+        dayMonth: "Feb 21",
+        weekday: "Saturday",
+        time: "11:15am",
+        petId: "mochi",
+        services: [{ name: "Blow dry", staff: "Diego", duration: "45min", price: "AED 150" }],
+      },
+      {
+        id: "mc-6",
+        locationId: "shampooch-al-reem",
+        status: "completed",
+        dayMonth: "Jan 30",
+        weekday: "Friday",
+        time: "4:00pm",
+        petId: "bobo",
+        services: [{ name: "Nail trim", staff: "Rana", duration: "15min", price: "AED 45" }],
+      },
     ],
     sales: [
       {
@@ -306,6 +330,24 @@ const ACTIVITY: Record<string, ClientActivity> = {
           { name: "Nail trim", priceMinor: 4000 },
           { name: "De-shed treatment", priceMinor: 9000 },
         ],
+      },
+      // The sales that settled the two visits above. A visit elsewhere with no
+      // sale behind it reads as a branch that worked for free.
+      {
+        id: "mc-s4",
+        locationId: "shampooch-downtown-dubai",
+        status: "paid",
+        dayMonth: "Feb 21",
+        weekday: "Saturday",
+        items: [{ name: "Blow dry", priceMinor: 15000 }],
+      },
+      {
+        id: "mc-s5",
+        locationId: "shampooch-al-reem",
+        status: "paid",
+        dayMonth: "Jan 30",
+        weekday: "Friday",
+        items: [{ name: "Nail trim", priceMinor: 4500 }],
       },
     ],
   },

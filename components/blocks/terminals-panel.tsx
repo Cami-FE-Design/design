@@ -51,7 +51,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { LOCATIONS, locationName } from "@/lib/locations/mock"
+import { locationName } from "@/lib/locations/mock"
+import { useLocations } from "@/lib/locations/store"
 import {
   DEMO_SESSIONS,
   DEMO_TERMINALS,
@@ -129,10 +130,16 @@ export function TerminalsPanel({
   // Which field the edit dialog opens on. "Edit" alone didn't say what it
   // edits, so the menu names the two things a merchant actually changes.
   const [editing, setEditing] = useState<{ terminal: Terminal; field: EditField } | null>(null)
+  const { granted } = useLocations()
   const [regenerating, setRegenerating] = useState<Terminal | null>(null)
   const [removing, setRemoving] = useState<Terminal | null>(null)
 
-  const terminals =
+  // Bounded by the grant, like every other branch-scoped read (R18). Terminals
+  // are seeded against Shampooch's branches, so signing into another business
+  // showed its panel full of somebody else's card machines — and their Change
+  // location dropdown blank, because the branch they name is not in this
+  // business's estate.
+  const allTerminals =
     demoState === "empty"
       ? []
       : demoState === "full"
@@ -140,6 +147,7 @@ export function TerminalsPanel({
         : demoState === "typical"
           ? TYPICAL_TERMINALS
           : store.terminals
+  const terminals = allTerminals.filter((t) => granted.some((l) => l.id === t.locationId))
   const sessions =
     demoState === "empty"
       ? []
@@ -602,6 +610,7 @@ function RegisterTerminalDialog({
   onClose: () => void
   onCreate: (input: { id: string; name: string; locationId: string }) => void
 }) {
+  const { granted } = useLocations()
   const nameId = useId()
   const [name, setName] = useState("")
   const [locationId, setLocationId] = useState<string>("")
@@ -644,7 +653,11 @@ function RegisterTerminalDialog({
                 <SelectValue placeholder="Select a location" />
               </SelectTrigger>
               <SelectContent>
-                {LOCATIONS.map((loc) => (
+                {/* The granted estate, not the first three. This listed
+                    `LOCATIONS`, so six of the nine branches could never be
+                    given a card machine — and nothing on the screen said why
+                    they were missing (R18). */}
+                {granted.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>
                     {loc.name}
                   </SelectItem>
@@ -1088,6 +1101,7 @@ function EditTerminalDialog({
   onCancel: () => void
   onSave: (patch: { name: string; locationId: string }) => void
 }) {
+  const { granted } = useLocations()
   const nameId = useId()
   const [name, setName] = useState("")
   const [locationId, setLocationId] = useState<string>("")
@@ -1151,7 +1165,11 @@ function EditTerminalDialog({
                 <SelectValue placeholder="Select a location" />
               </SelectTrigger>
               <SelectContent>
-                {LOCATIONS.map((loc) => (
+                {/* The granted estate, not the first three. This listed
+                    `LOCATIONS`, so six of the nine branches could never be
+                    given a card machine — and nothing on the screen said why
+                    they were missing (R18). */}
+                {granted.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>
                     {loc.name}
                   </SelectItem>

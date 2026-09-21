@@ -15,8 +15,6 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 
-import { LOCATIONS } from "@/lib/locations/mock"
-
 const STORAGE_KEY = "cami-terminals-v5"
 
 /** A session runs 24 hours from sign-in. Open question 4: fixed or per-merchant. */
@@ -153,6 +151,59 @@ export const DEMO_TERMINALS: Terminal[] = [
     lockedFor: "12 min",
     lastSeenAt: "26 min ago",
   },
+  // The rest of the estate, in the ordinary state.
+  //
+  // The four above were chosen for the four statuses, and two branches is what
+  // that happened to cost — so the panel grouped nine branches and had rows
+  // under two of them. A reader cannot tell "this branch has no card machine"
+  // from "this demo only bothered with JVC", and the first is a thing an owner
+  // acts on. Every trading branch has a register; the exceptions stay the
+  // exceptions.
+  {
+    id: "TRM-5K1D9T",
+    name: "Front Desk Register",
+    locationId: "shampooch-downtown-dubai",
+    pairedAt: "Aug 04",
+    pin: "374018",
+    lockedFor: null,
+    lastSeenAt: "12 min ago",
+  },
+  {
+    id: "TRM-8J6R3Y",
+    name: "Front Desk Register",
+    locationId: "shampooch-dubai-marina",
+    pairedAt: "Aug 06",
+    pin: "590627",
+    lockedFor: null,
+    lastSeenAt: "41 min ago",
+  },
+  {
+    id: "TRM-4C2L7Z",
+    name: "Reception Counter",
+    locationId: "shampooch-mirdif",
+    pairedAt: "Aug 11",
+    pin: "618943",
+    lockedFor: null,
+    lastSeenAt: "2 hr ago",
+  },
+  {
+    id: "TRM-6N9V1B",
+    name: "Front Desk Register",
+    locationId: "shampooch-al-reem",
+    pairedAt: "Aug 14",
+    pin: "205871",
+    lockedFor: null,
+    lastSeenAt: "8 min ago",
+  },
+  {
+    id: "TRM-1P3G8W",
+    name: "Front Desk Register",
+    locationId: "shampooch-al-majaz",
+    pairedAt: "Aug 18",
+    pin: "463290",
+    lockedFor: null,
+    lastSeenAt: "55 min ago",
+  },
 ]
 
 // Two live sessions on one terminal. Sessions are uncapped — a device holds as
@@ -276,7 +327,12 @@ function readSaved(): TerminalsState | null {
     return {
       terminals: (saved.terminals ?? DEFAULT_TERMINALS_STATE.terminals).map((t) => ({
         ...t,
-        locationId: t.locationId ?? LOCATIONS[0].id,
+        // No default branch, ever (R11) — the PRD's release criterion names
+        // this exact fallback. A row saved before the field existed keeps an
+        // empty branch and the panel asks for one, which is the truth: nobody
+        // has said where that machine is. Silently calling it JVC lands its
+        // takings at a branch it may never have stood in.
+        locationId: t.locationId ?? "",
         pairedAt: t.pairedAt ?? null,
         pin: t.pin ?? generatePin(),
         lockedFor: t.lockedFor ?? null,

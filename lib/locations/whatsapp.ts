@@ -161,4 +161,61 @@ export const BRANCH_WHATSAPP: BranchWhatsApp[] = [
     conversations: 0,
     cost: 0,
   },
+
+  // ── The rest of the estate ─────────────────────────────────────────────────
+  //
+  // Seeded connected, because that is what a running chain looks like: numbers
+  // were migrated once and then nothing happens to them. Only two branches
+  // needed a person, and with seven unseeded — every one defaulting to "no
+  // number" — the panel read as an estate that had never been set up, and
+  // folding the quiet ones hid exactly one card.
+  {
+    locationId: "shampooch-downtown-dubai",
+    number: "+971 50 402 1007",
+    status: "connected",
+    coexistence: true,
+    conversations: 318,
+    cost: 131.4,
+  },
+  {
+    locationId: "shampooch-dubai-marina",
+    number: "+971 50 403 1014",
+    status: "connected",
+    coexistence: true,
+    conversations: 204,
+    cost: 84.6,
+  },
+  {
+    locationId: "shampooch-mirdif",
+    number: "+971 50 404 1021",
+    status: "connected",
+    coexistence: false,
+    conversations: 96,
+    cost: 39.8,
+  },
+  {
+    locationId: "shampooch-al-reem",
+    number: "+971 50 405 1028",
+    status: "connected",
+    coexistence: true,
+    conversations: 142,
+    cost: 58.9,
+  },
+  {
+    locationId: "shampooch-al-majaz",
+    number: "+971 50 406 1035",
+    status: "connected",
+    coexistence: false,
+    conversations: 61,
+    cost: 25.2,
+  },
+  {
+    // Suspended, and takes no bookings on any channel — so no number, and that
+    // is the correct state rather than an unfinished one (R12, G8).
+    locationId: "shampooch-yas-island",
+    status: "unassigned",
+    coexistence: false,
+    conversations: 0,
+    cost: 0,
+  },
 ]

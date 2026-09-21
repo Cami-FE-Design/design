@@ -76,6 +76,11 @@ const FIELDS: TaxIdentityField[] = [
  * The business default. One legal entity trading as one brand, which is the
  * common case — branches differentiate by receipt prefix and nothing else
  * until a branch is genuinely its own registered company.
+ *
+ * Shampooch's, and only Shampooch's. This was the default for every branch of
+ * every business, so Purr Palace's own Invoicing tab read "Shampooch Trading
+ * LLC" under its own TRN — another company's legal identity on the one screen
+ * that exists to state a legal identity, and on their receipts with it.
  */
 export const BUSINESS_TAX_IDENTITY: TaxIdentity = {
   legalName: "Shampooch Trading LLC",
@@ -84,6 +89,49 @@ export const BUSINESS_TAX_IDENTITY: TaxIdentity = {
   receiptPrefix: "SHP",
   servicesVatRate: "VAT (5%)",
   productsVatRate: "VAT (5%)",
+}
+
+/**
+ * Each seeded business's own default, by the slug its branches carry.
+ *
+ * A tax identity belongs to the business, not to the estate — which is why it
+ * cannot be one constant. The per-branch overrides below still sit on top of
+ * whichever of these applies (R23).
+ */
+const BUSINESS_TAX_IDENTITIES: Record<string, TaxIdentity> = {
+  shampooch: BUSINESS_TAX_IDENTITY,
+  "purr-palace": {
+    legalName: "Purr Palace Pet Care L.L.C.",
+    trn: "100774411900002",
+    invoiceAddress: "Warehouse 9, Al Quoz Industrial 2, Dubai",
+    receiptPrefix: "PPL",
+    servicesVatRate: "VAT (5%)",
+    productsVatRate: "VAT (5%)",
+  },
+  sota: {
+    legalName: "Sota Hair Studio L.L.C.",
+    trn: "100553388700001",
+    invoiceAddress: "Marina Promenade, Dubai Marina, Dubai",
+    receiptPrefix: "SOTA",
+    servicesVatRate: "VAT (5%)",
+    productsVatRate: "VAT (5%)",
+  },
+}
+
+/**
+ * The business default behind a branch.
+ *
+ * Resolved from the branch rather than from whoever is signed in, so it is the
+ * same answer on a receipt printed months ago and on the settings tab today —
+ * and so the pure invoice path can reach it without a React context.
+ */
+export function businessTaxIdentityFor(locationId: string): TaxIdentity {
+  for (const [slug, identity] of Object.entries(BUSINESS_TAX_IDENTITIES)) {
+    if (slug !== "shampooch" && (locationId === slug || locationId.startsWith(`${slug}-`))) {
+      return identity
+    }
+  }
+  return BUSINESS_TAX_IDENTITY
 }
 
 /**
@@ -101,6 +149,27 @@ export const LOCATION_TAX_OVERRIDES: Record<string, TaxIdentityOverrides> = {
     legalName: "Shampooch Jumeirah LLC",
     trn: "100998877600001",
   },
+  /**
+   * The rest of the estate carries a prefix too.
+   *
+   * Only JVC and Jumeirah had one, so the other seven branches fell through to
+   * the business default and issued receipts under a single "SHP" — which is
+   * the one thing a per-branch prefix exists to prevent. R23's example is
+   * "receipts differentiated by prefix while the legal entity stays one", and
+   * seven branches sharing a prefix differentiates nothing: an accountant
+   * holding two receipts cannot tell which branch either came from.
+   *
+   * Prefix only. The legal entity and the TRN stay inherited, because they
+   * genuinely are one — Jumeirah remains the single branch that is its own
+   * fiscal identity, which is the contrast the panel is there to show.
+   */
+  "shampooch-al-quoz": { receiptPrefix: "QUZ" },
+  "shampooch-downtown-dubai": { receiptPrefix: "DTD" },
+  "shampooch-dubai-marina": { receiptPrefix: "MAR" },
+  "shampooch-mirdif": { receiptPrefix: "MIR" },
+  "shampooch-al-reem": { receiptPrefix: "REM" },
+  "shampooch-al-majaz": { receiptPrefix: "MAJ" },
+  "shampooch-yas-island": { receiptPrefix: "YAS" },
 }
 
 /** Nearest wins, per field (INV-13). */
