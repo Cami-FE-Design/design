@@ -1635,6 +1635,21 @@ per-role location toggles (view/access all locations, manage venue hours,
 manage venue invoice, change venue state, update venues) **need to exist for
 every role, not just Manager**. That last one appears in no SCR- screen.
 
+## The end-of-day report, and where a nine-row card goes
+
+By location answers the first question an owner brings to this screen, so it
+goes above the transaction and cash summaries. Unbounded, that ordering fails at
+exactly the size this estate exists to test: nine rows push the two reports a
+till is reconciled against below the fold, so the card that answers "which
+branch" costs you the ones that answer "what did we take". The layout held at
+three and broke at nine, which is the shape this whole slice is built to catch.
+
+The rows scroll inside their own box at about five, header pinned, ordered
+biggest first so the rows worth seeing are the visible ones and scrolling is for
+completeness rather than for the answer. The business total sits **outside** that
+box: a roll-up you have to scroll to find is not a roll-up, and it is the check
+on the rows rather than one of them.
+
 ## Reports: what multi-location owes, and what it does not
 
 R18 asks for two different things and only one of them was done. **"The result

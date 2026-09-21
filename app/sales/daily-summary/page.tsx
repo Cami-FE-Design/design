@@ -193,72 +193,97 @@ function CashMovementSummary({ summary }: { summary: DailySummary }) {
  * went across nine branches is asking which one had a bad day, and a single
  * number sends them back to phoning each branch, which is what BG-05 measures.
  *
+ * ## Bounded height, because nine rows is a wall
+ *
+ * This card answers the first question, so it goes first — but first and
+ * unbounded means that at nine branches the transaction and cash summaries
+ * start below the fold, and the report a till is reconciled against is the one
+ * that got pushed off the screen. That is the layout holding at three and
+ * failing at nine, which is the whole reason the seeded estate is nine.
+ *
+ * So the rows scroll inside their own box at about five, with the header
+ * pinned, and the business total sits OUTSIDE that box — a roll-up you have to
+ * scroll to find is not a roll-up. Ordered biggest first, so the rows worth
+ * seeing are the ones already visible and scrolling is for completeness rather
+ * than for the answer.
+ *
  * Absent for a single-branch business: there is nothing to tell apart, and a
  * breakdown of one row is a label for nothing (DW1.2).
  */
 function ByLocationSummary({ summary }: { summary: DailySummary }) {
   const { locationName } = useLocations()
+
+  if (summary.byLocation.length === 0) {
+    return (
+      <SummaryCard title="By location" className="shrink-0">
+        <p className="px-5 pb-4 text-muted-foreground text-sm">
+          No takings anywhere in your locations on this day.
+        </p>
+      </SummaryCard>
+    )
+  }
+
   return (
     <SummaryCard title="By location" className="shrink-0">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Location</TableHead>
-            <TableHead className="text-right">Sales qty</TableHead>
-            <TableHead className="text-right">Refund qty</TableHead>
-            <TableHead className="text-right">Tips</TableHead>
-            <TableHead className="text-right">Gross total</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {summary.byLocation.map((row) => (
-            <TableRow key={row.locationId}>
-              <TableCell className="text-sm text-foreground">
-                {locationName(row.locationId)}
-              </TableCell>
-              <TableCell className="text-right text-sm text-foreground tabular-nums">
-                {row.salesQty}
-              </TableCell>
-              <TableCell className="text-right text-sm text-foreground tabular-nums">
-                {row.refundQty}
-              </TableCell>
-              <TableCell className="text-right text-sm text-foreground tabular-nums">
-                {money(row.tipsMinor)}
-              </TableCell>
-              <TableCell
-                className={cn(
-                  "text-right text-sm tabular-nums",
-                  row.grossMinor < 0 ? "text-tomato-11" : "text-foreground",
-                )}
-              >
-                {money(row.grossMinor)}
-              </TableCell>
-            </TableRow>
-          ))}
-          {summary.byLocation.length === 0 ? (
+      {/* `overscroll-contain` keeps the wheel here instead of chaining it into
+          the page behind, which is what made the client picker read as frozen. */}
+      <div className="max-h-[19rem] overflow-y-auto overscroll-contain">
+        <Table>
+          <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
-              <TableCell colSpan={5} className="text-sm text-muted-foreground">
-                No takings anywhere in your locations on this day.
-              </TableCell>
+              <TableHead>Location</TableHead>
+              <TableHead className="text-right">Sales qty</TableHead>
+              <TableHead className="text-right">Refund qty</TableHead>
+              <TableHead className="text-right">Tips</TableHead>
+              <TableHead className="text-right">Gross total</TableHead>
             </TableRow>
-          ) : (
-            <TableRow className="border-t border-border/60 bg-muted/30">
-              <TableCell className="text-sm font-semibold text-foreground">
-                Business total — the sum of {summary.byLocation.length}{" "}
-                {summary.byLocation.length === 1 ? "location" : "locations"}
-              </TableCell>
-              <TableCell colSpan={3} />
-              <TableCell className="text-right text-sm font-semibold tabular-nums">
-                {money(summary.rollUpMinor)}
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {summary.byLocation.map((row) => (
+              <TableRow key={row.locationId}>
+                <TableCell className="text-foreground text-sm">
+                  {locationName(row.locationId)}
+                </TableCell>
+                <TableCell className="text-right text-foreground text-sm tabular-nums">
+                  {row.salesQty}
+                </TableCell>
+                <TableCell className="text-right text-foreground text-sm tabular-nums">
+                  {row.refundQty}
+                </TableCell>
+                <TableCell className="text-right text-foreground text-sm tabular-nums">
+                  {money(row.tipsMinor)}
+                </TableCell>
+                <TableCell
+                  className={cn(
+                    "text-right text-sm tabular-nums",
+                    row.grossMinor < 0 ? "text-tomato-11" : "text-foreground",
+                  )}
+                >
+                  {money(row.grossMinor)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Outside the scroll on purpose. The rows are the answer and the total is
+          the check on it, so the check cannot be the thing you have to go
+          looking for. */}
+      <div className="flex items-center justify-between gap-3 border-border/60 border-t bg-muted/30 px-5 py-3">
+        <span className="font-semibold text-foreground text-sm">
+          Business total — the sum of {summary.byLocation.length}{" "}
+          {summary.byLocation.length === 1 ? "location" : "locations"}
+        </span>
+        <span className="font-semibold text-foreground text-sm tabular-nums">
+          {money(summary.rollUpMinor)}
+        </span>
+      </div>
+
       {/* Named, never dropped: "nothing at Al Quoz today" and "Al Quoz is
           missing from this report" are different answers. */}
       {summary.quietLocations.length > 0 ? (
-        <p className="px-5 pb-4 text-xs text-muted-foreground">
+        <p className="px-5 pt-3 pb-4 text-muted-foreground text-xs">
           No takings this day at {summary.quietLocations.map(locationName).join(", ")}.
         </p>
       ) : null}
