@@ -92,51 +92,76 @@ const MOCK_SERVICES = [
  */
 function WorksAtCard({ grants }: { grants?: LocationGrants }) {
   const { granted, locationName, isMultiLocation } = useLocations()
+  const [showAll, setShowAll] = useState(false)
 
   // Nothing to tell apart at one branch, and a "Works at" card naming the only
   // branch there is repeats the business back at the reader (DW1.2).
   if (!isMultiLocation) return null
 
-  const rows =
-    grants === "all" || grants == null ? granted : granted.filter((l) => grants.includes(l.id))
-  const holdsEverything = grants === "all"
+  // An owner holds the estate, and the sentence says so completely. Listing
+  // nine branches underneath it adds no fact — it only pushes Services and
+  // Notes off the bottom of the dialog, and it would go on being wrong as the
+  // tenth is added, which is the very thing the sentence is promising.
+  if (grants === "all" || grants == null) {
+    return (
+      <SectionCard title="Works at">
+        <p className="text-muted-foreground text-sm">Every location, including any added later.</p>
+      </SectionCard>
+    )
+  }
 
-  return (
-    <SectionCard title="Works at">
-      {grants !== "all" && rows.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
+  const held = granted.filter((l) => grants.includes(l.id))
+  if (held.length === 0) {
+    return (
+      <SectionCard title="Works at">
+        <p className="text-muted-foreground text-sm">
           No locations yet, so this member cannot open or change anything. An owner can grant
           access.
         </p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {holdsEverything ? (
-            <p className="text-sm text-muted-foreground">
-              Every location, including any added later.
-            </p>
-          ) : null}
-          <ul className="flex flex-col divide-y divide-border/60">
-            {rows.map((location) => (
-              <li key={location.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-11">
-                  <BuildingIcon className="size-4" strokeWidth={1.5} />
-                </div>
-                <span className="flex min-w-0 flex-1 items-center gap-2">
-                  <span className="truncate font-medium text-foreground text-sm">
-                    {locationName(location.id)}
-                  </span>
-                  {location.status === "live" ? null : (
-                    <LocationStatusBadge status={location.status} />
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      </SectionCard>
+    )
+  }
+
+  // A named set, so the branches are the answer and worth listing — but capped,
+  // because an area manager on seven of nine is the case that turns this card
+  // into the same wall the owner's list was.
+  const rows = showAll ? held : held.slice(0, VISIBLE_BRANCHES)
+  const hidden = held.length - rows.length
+
+  return (
+    <SectionCard title="Works at">
+      <ul className="flex flex-col divide-y divide-border/60">
+        {rows.map((location) => (
+          <li key={location.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-cami-violet-3 text-cami-violet-11">
+              <BuildingIcon className="size-4" strokeWidth={1.5} />
+            </div>
+            <span className="flex min-w-0 flex-1 items-center gap-2">
+              <span className="truncate font-medium text-foreground text-sm">
+                {locationName(location.id)}
+              </span>
+              {location.status === "live" ? null : <LocationStatusBadge status={location.status} />}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {hidden > 0 || showAll ? (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="mt-3 w-fit text-left font-medium text-cami-violet-11 text-sm hover:underline"
+        >
+          {showAll
+            ? "Show fewer locations"
+            : `Show ${hidden} more ${hidden === 1 ? "location" : "locations"}`}
+        </button>
+      ) : null}
     </SectionCard>
   )
 }
+
+/** Branches listed before the card starts pushing the rest of the dialog down. */
+const VISIBLE_BRANCHES = 4
 
 type TeamMemberDetailDialogProps = {
   open: boolean

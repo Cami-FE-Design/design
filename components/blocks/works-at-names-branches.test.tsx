@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { beforeAll, describe, expect, it, vi } from "vitest"
 
 import { TeamMemberDetailDialog } from "@/components/blocks/team-member-detail-dialog"
@@ -72,9 +73,27 @@ describe("the Works at card", () => {
 
   it("keeps an owner's grant as a named set rather than a list of nine", () => {
     // Ticking every branch today and holding the estate are different claims,
-    // and the second is the one an owner has.
+    // and the second is the one an owner has. The sentence says it completely,
+    // so listing nine branches under it adds no fact and only pushes the rest
+    // of the dialog down — and it would go on being wrong as the tenth arrives,
+    // which is exactly what the sentence promises it will not.
     open("all")
     expect(screen.getByText(/Every location, including any added later/)).toBeInTheDocument()
+    expect(screen.queryByText("Shampooch JVC")).not.toBeInTheDocument()
+  })
+
+  it("caps a long named set, so an area manager's card is not a wall either", async () => {
+    open([
+      "shampooch-jvc",
+      "shampooch-jumeirah",
+      "shampooch-downtown-dubai",
+      "shampooch-dubai-marina",
+      "shampooch-mirdif",
+      "shampooch-al-reem",
+    ])
+    expect(screen.queryByText("Shampooch Al Reem")).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: /Show 2 more locations/ }))
+    expect(screen.getByText("Shampooch Al Reem")).toBeInTheDocument()
   })
 
   it("says an empty grant out loud, because it must never read as all (R24)", () => {

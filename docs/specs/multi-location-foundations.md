@@ -1653,6 +1653,26 @@ saying "show all", because seven of nine hidden is a different decision from two
 The business total sits outside the list either way: it is the check on the rows
 rather than one of them, and a roll-up behind a toggle is not a roll-up.
 
+## Before listing an estate, ask whether the list is the answer
+
+This defect has now arrived five times, each in a different card, and the fix
+was not always the same one:
+
+- **Daily sales, money roll-up, HQ branch list** — the branches *are* the
+  answer, so they are listed, shortest-first and capped with a counted door.
+- **"Works at", for an owner** — the branches are *not* the answer. "Every
+  location, including any added later" states the grant completely; the nine
+  rows beneath it added no fact, pushed Services and Notes off the dialog, and
+  would have gone on being wrong the moment a tenth branch arrived, which is
+  precisely what the sentence promises it will not. The list is gone; the
+  sentence stays.
+- **"Works at", for a named set** — the branches are the answer again, because
+  which four of nine is the whole point, so it lists and caps like the rest.
+
+The question to ask first is not "how do I shorten this list" but "does the
+reader want branches, or a fact about branches". A grant of *all* is a fact. A
+grant of four is a list.
+
 ## Three rows, then a door — everywhere a branch list sits above something
 
 The same rule now governs three lists, because the same defect kept arriving:
