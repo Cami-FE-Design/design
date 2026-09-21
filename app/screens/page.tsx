@@ -1182,6 +1182,11 @@ const SECTIONS: Section[] = [
         note: "Role × location, the two axes access resolves on (R04). The roster now shows a Role and a Locations column, so a wrong scope is visible without opening anyone. Action → Edit Roles & Permissions (it was a console.log) opens the grants dialog: role capability read-only because it is defined once for the business, location grant editable because that is the per-person half. Maz is Owner — untickable, since an owner holds every branch including ones added later, stored as 'all' rather than today's ids. Aziz is a Manager granted only Jumeirah, which is the pilot configuration's 'one manager, one branch'. Ahmed is invited with no grant: no access, said out loud, never 'every branch' (R24).",
       },
       {
+        path: "/settings/team",
+        label: "Services per branch · DW2.1 (route)",
+        note: "Team → a member → Services. The list was flat — one set for the person, whatever branch they stood in — so a colourist who does colour at Jumeirah and only washes at JVC could not be described. DW2.1 is explicit that an assignment at one branch, 'including which services they are enabled to perform there', grants nothing at another. One list stays the default, because making an owner tick nine identical lists to say 'she does the same everywhere' is the setup cost R02 rules out; turn off 'Same services at every location' and the branches THEY HOLD appear, each with its own count, seeded from the shared list so the owner edits a difference rather than re-entering the set. Absent entirely for somebody who holds one branch.",
+      },
+      {
         path: "/playground#multi-location-branch-access-grants",
         label: "Branch access grants · SCR-03 (playground)",
         note: "The same dialog against three roster rows, isolated. The location permission list marks four of five codes Proposed — the product ships one venues:read that bundles viewing a branch with changing it, so a manager who sets hours cannot yet be stopped from editing tax details or archiving a branch (blueprint §03).",
