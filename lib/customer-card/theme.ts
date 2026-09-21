@@ -24,7 +24,7 @@
 // approximation of it. The rest of the app stays theme-aware; this one surface
 // is intentionally not.
 
-import { findPublicBusinessByName } from "@/lib/public-business"
+import { brandingSlugFor, findPublicBusinessByName } from "@/lib/public-business"
 
 export type CustomerCardTheme = {
   id: string
@@ -135,15 +135,26 @@ const DEFAULT_THEME_ID = "violet"
  * What each venue starts on before anyone opens Branding — a seed, not the
  * answer. The merchant's own choice lives in lib/customer-card/store.tsx and
  * wins over this.
+ *
+ * Keyed by **business**, never by branch. Shampooch's seed sat under
+ * `shampooch-jvc` — one branch of the chain — so the other eight branches
+ * matched nothing here and fell through to the generic default. A seed a
+ * business only gets at one of its addresses is not that business's seed.
+ * Sota and Purr Palace are single-site, so their business and branch slugs are
+ * the same string and both readings already agreed.
  */
 export const DEFAULT_THEME_BY_SLUG: Readonly<Record<string, string>> = {
   sota: "gold",
-  "shampooch-jvc": "violet",
+  shampooch: "violet",
   "purr-palace": "sage",
 }
 
 export function getCustomerCardTheme(slug: string, override?: string | null): CustomerCardTheme {
-  const id = override ?? DEFAULT_THEME_BY_SLUG[slug] ?? DEFAULT_THEME_ID
+  // Asked about a branch, answer for its business. Callers hand this whatever
+  // slug their surface happens to hold — the card knows the branch it was
+  // opened at, the panel knows the business — and branding must not depend on
+  // which of the two asked.
+  const id = override ?? DEFAULT_THEME_BY_SLUG[brandingSlugFor(slug)] ?? DEFAULT_THEME_ID
   return (
     CUSTOMER_CARD_THEMES.find((t) => t.id === id) ??
     CUSTOMER_CARD_THEMES.find((t) => t.id === DEFAULT_THEME_ID) ??

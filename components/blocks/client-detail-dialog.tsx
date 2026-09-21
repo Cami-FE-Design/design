@@ -6,6 +6,7 @@ import {
   CalendarIcon,
   ChevronDownIcon,
   ChevronRightIcon,
+  LockIcon,
   MapPinIcon,
   MoreHorizontalIcon,
   PawPrintIcon,
@@ -28,6 +29,7 @@ import {
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { DocumentsFormsAndFiles } from "@/components/blocks/documents-files-card"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { NoteDialog } from "@/components/blocks/note-dialog"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
 import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
@@ -67,6 +69,15 @@ import {
   type PetDetail,
 } from "@/lib/clients/activity"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { useLocations } from "@/lib/locations/store"
+import {
+  branchSpread,
+  grantCovers,
+  spansBranches,
+  type VisitWriteBlock,
+  visitWriteBlock,
+  visitWriteBlockMessage,
+} from "@/lib/locations/visit-access"
 import { cn } from "@/lib/utils"
 
 export type ClientTag = {
@@ -334,6 +345,11 @@ export function ClientDetailDialog({
   const notes = [...addedNotes, ...clientNotesFor(client.id)]
   const appointments = profile.appointments
   const noShowAppointments = appointments.filter((a) => a.status === "no-show")
+  // Branch chrome appears because *this client* has been to more than one, not
+  // because the business has more than one. A chain's client who only ever
+  // visits JVC has nothing to disambiguate, and a branch stamped on every row
+  // of a single-branch history is a column of one repeated word (PRD §12).
+  const showBranch = spansBranches(branchedVisits([...appointments, ...profile.sales]))
   const selectedPet = profile.pets.find((p) => p.id === selectedPetId) ?? null
   const [addPetOpen, setAddPetOpen] = useState(false)
   const [editClientOpen, setEditClientOpen] = useState(false)
@@ -654,7 +670,12 @@ export function ClientDetailDialog({
                         isLast={i === filteredAppointments.length - 1}
                         leading={<TimelineDate dayMonth={appt.dayMonth} weekday={appt.weekday} />}
                       >
-                        <AppointmentCard appt={appt} pets={profile.pets} hasPets={hasPets} />
+                        <AppointmentCard
+                          appt={appt}
+                          pets={profile.pets}
+                          hasPets={hasPets}
+                          showBranch={showBranch}
+                        />
                       </TimelineRow>
                     ))}
                   </ul>
@@ -737,7 +758,7 @@ export function ClientDetailDialog({
                         isLast={i === filteredSales.length - 1}
                         leading={<TimelineDate dayMonth={sale.dayMonth} weekday={sale.weekday} />}
                       >
-                        <SaleCard sale={sale} />
+                        <SaleCard sale={sale} showBranch={showBranch} />
                       </TimelineRow>
                     ))}
                   </ul>
@@ -1040,7 +1061,13 @@ export function ClientDetailDialog({
               <EmptyState icon={CalendarIcon} title="No no-show appointments." />
             ) : (
               noShowAppointments.map((appt) => (
-                <AppointmentCard key={appt.id} appt={appt} pets={profile.pets} hasPets={hasPets} />
+                <AppointmentCard
+                  key={appt.id}
+                  appt={appt}
+                  pets={profile.pets}
+                  hasPets={hasPets}
+                  showBranch={showBranch}
+                />
               ))
             )}
           </div>
@@ -1230,24 +1257,99 @@ const STATUS_BADGE_CLASS: Record<Exclude<ApptStatus, "all">, string> = {
   "no-show": "bg-tomato-8 text-tomato-12",
 }
 
+/**
+ * Everything a visit row needs of its branch: the name to print, the branch
+ * itself so a paused one can wear its badge, and why it takes no writes.
+ */
+function branchedVisits(
+  rows: ReadonlyArray<{ locationId?: string }>,
+): Array<{ locationId: string }> {
+  return rows.flatMap((r) => (r.locationId ? [{ locationId: r.locationId }] : []))
+}
+
+function useVisitBranch(locationId: string | undefined) {
+  const { byId, grants, locationName } = useLocations()
+  if (!locationId) return { branch: undefined, name: "", block: null }
+  return {
+    branch: byId(locationId),
+    name: locationName(locationId),
+    block: visitWriteBlock(byId(locationId), grants, locationId),
+  }
+}
+
+/**
+ * The sentence that stands where the buttons were.
+ *
+ * Deliberately not a tinted notice. Nothing has gone wrong — the visit belongs
+ * to a branch this reader cannot act on — and a coloured block would raise an
+ * alarm on the one row that is merely somebody else's. It is said at all
+ * because an absent row of buttons and a visit with nothing to do about it look
+ * identical, and only one of those is the reader's to fix.
+ */
+function ReadOnlyNote({ block, branchName }: { block: VisitWriteBlock; branchName: string }) {
+  return (
+    <p className="flex items-start gap-1.5 text-xs leading-5 text-muted-foreground">
+      <LockIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+      <span>{visitWriteBlockMessage(block, branchName)}</span>
+    </p>
+  )
+}
+
+/**
+ * One branch's share of a client's history.
+ *
+ * Read-only is marked here as well as on the rows, because this card is where
+ * an owner scans the estate. Discovering that half a client's visits sit at a
+ * branch you cannot act on, only once you have scrolled back to March, is
+ * discovering it late.
+ */
+function BranchSpreadRow({ locationId, count }: { locationId: string; count: number }) {
+  const { grants } = useLocations()
+  const { branch, name } = useVisitBranch(locationId)
+  return (
+    <li className="flex items-center justify-between gap-3 text-sm">
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="truncate text-foreground">{name}</span>
+        {branch && branch.status !== "live" ? <LocationStatusBadge status={branch.status} /> : null}
+        {grantCovers(grants, locationId) ? null : (
+          <span className="shrink-0 text-xs text-muted-foreground">Read-only</span>
+        )}
+      </span>
+      <span className="font-medium tabular-nums">{count}</span>
+    </li>
+  )
+}
+
 function AppointmentCard({
   appt,
   pets,
   hasPets,
+  showBranch,
 }: {
   appt: ClientAppointment
   pets: MockPet[]
   hasPets: boolean
+  /** Only once this client's own history spans branches (PRD §12). */
+  showBranch: boolean
 }) {
   const { name: businessName } = useDemoBusiness()
+  const { branch, name: branchName, block } = useVisitBranch(appt.locationId)
   const pet = pets.find((p) => p.id === appt.petId)
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
             <span className="font-semibold text-foreground">{appt.time}</span>
-            <span className="truncate text-muted-foreground">· {businessName}</span>
+            {/* The branch, not the business. Every name in a chain starts with
+                the business, so "10:00am · Shampooch" spends the line on the one
+                word that cannot tell nine branches apart. */}
+            <span className="truncate text-muted-foreground">
+              · {showBranch && branchName ? branchName : businessName}
+            </span>
+            {showBranch && branch && branch.status !== "live" ? (
+              <LocationStatusBadge status={branch.status} />
+            ) : null}
           </div>
           {hasPets && pet ? (
             <div className="flex items-center gap-2">
@@ -1284,12 +1386,17 @@ function AppointmentCard({
           </li>
         ))}
       </ul>
-      <AppointmentActions status={appt.status} />
+      {block ? (
+        <ReadOnlyNote block={block} branchName={branchName} />
+      ) : (
+        <AppointmentActions status={appt.status} />
+      )}
     </div>
   )
 }
 
-function SaleCard({ sale }: { sale: ClientSale }) {
+function SaleCard({ sale, showBranch }: { sale: ClientSale; showBranch: boolean }) {
+  const { branch, name: branchName, block } = useVisitBranch(sale.locationId)
   const totalMinor = sale.items.reduce((sum, item) => sum + item.priceMinor, 0)
   const showViewSale =
     sale.status === "part-paid" || sale.status === "unpaid" || sale.status === "draft"
@@ -1297,8 +1404,16 @@ function SaleCard({ sale }: { sale: ClientSale }) {
     <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex min-w-0 items-baseline gap-1.5 text-sm">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
             <span className="font-semibold text-foreground">Sale</span>
+            {/* Which branch took the money. A receipt sequence is per branch
+                (G6), so a sale without one is a sale nobody can trace. */}
+            {showBranch && branchName ? (
+              <span className="truncate text-muted-foreground">· {branchName}</span>
+            ) : null}
+            {showBranch && branch && branch.status !== "live" ? (
+              <LocationStatusBadge status={branch.status} />
+            ) : null}
           </div>
         </div>
         <Badge className={cn("border-transparent", SALE_BADGE_CLASS[sale.status])}>
@@ -1326,7 +1441,12 @@ function SaleCard({ sale }: { sale: ClientSale }) {
           <span className="font-semibold">{formatAed(totalMinor)}</span>
         </li>
       </ul>
-      {showViewSale ? (
+      {block ? (
+        // The amounts above stay readable — it is one business, and reception
+        // cannot answer "what did I pay last time" by telephoning the other
+        // branch. Only the way in to change it goes.
+        <ReadOnlyNote block={block} branchName={branchName} />
+      ) : showViewSale ? (
         <div className="flex">
           <Button variant="outline" size="sm" radius="full">
             View sale
@@ -1598,6 +1718,9 @@ export function ClientOverview({
   onAddPet?: () => void
   onSelectPet?: (petId: string) => void
 }) {
+  // Derived here rather than passed in, so the playground's standalone render
+  // of this component answers the same as the dialog's.
+  const visitsByBranch = branchSpread(branchedVisits(profile.appointments))
   return (
     <div className="flex flex-col gap-3">
       <OverviewHeaderBlock
@@ -1616,6 +1739,17 @@ export function ClientOverview({
         hasPets={hasPets}
         onRebook={onRebook}
       />
+      {/* The one thing the rows themselves stop telling you once nine branches
+          and a scroll are between them. */}
+      {visitsByBranch.length > 1 ? (
+        <SectionCard title="Visits by branch">
+          <ul className="flex flex-col gap-2.5">
+            {visitsByBranch.map((row) => (
+              <BranchSpreadRow key={row.locationId} {...row} />
+            ))}
+          </ul>
+        </SectionCard>
+      ) : null}
       <WalletCard profile={profile} />
       <PreferencesCard preferences={profile.preferences} onEdit={onEditPreferences} />
       {hasPets ? (

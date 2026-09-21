@@ -4,6 +4,7 @@ import {
   AlertOctagonIcon,
   AlertTriangleIcon,
   ArrowLeftIcon,
+  BuildingIcon,
   CalendarClockIcon,
   CalendarXIcon,
   CheckIcon,
@@ -47,6 +48,7 @@ import {
 import { CancelAppointmentDialog } from "@/components/blocks/cancel-appointment-dialog"
 import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
 import { ComboLineIcon } from "@/components/blocks/combo-badge"
+import { MoveToBranchDialog } from "@/components/blocks/move-to-branch-dialog"
 import { NavigateToAddress } from "@/components/blocks/navigate-to-address"
 import { PetNotesList } from "@/components/blocks/pet-notes-fields"
 import { Avatar } from "@/components/ui/avatar"
@@ -68,6 +70,7 @@ import {
 } from "@/components/ui/sheet"
 import type { PlaceRef } from "@/lib/address"
 import { clientNotesFor } from "@/lib/client-notes"
+import { useLocations } from "@/lib/locations/store"
 import { useNotifications } from "@/lib/notifications/store"
 import {
   CHANNEL_LABEL,
@@ -806,9 +809,12 @@ function PetNotesSection({ notes }: { notes: ReadonlyArray<PetNoteEntry> }) {
 function QuickActionsMenu({
   onViewActivity,
   onViewSale,
+  onMove,
 }: {
   onViewActivity: () => void
   onViewSale?: () => void
+  /** Omitted for a single-branch business — there is nowhere to move it to. */
+  onMove?: () => void
 }) {
   const [open, setOpen] = useState(false)
   return (
@@ -849,6 +855,20 @@ function QuickActionsMenu({
             onViewSale?.()
           }}
         />
+        {/* SCR-06, reachable from where the appointment actually is. The flow
+            existed and had eleven unit tests behind it, and the only way to
+            open it was the playground — which is a flow nobody can try. Absent
+            for a single-branch business, where there is nowhere to move it. */}
+        {onMove ? (
+          <QuickActionItem
+            icon={MapPinIcon}
+            label="Move to another location"
+            onClick={() => {
+              setOpen(false)
+              onMove()
+            }}
+          />
+        ) : null}
         <DropdownMenuSeparator />
         <QuickActionItem icon={RepeatIcon} label="Rebook" onClick={() => setOpen(false)} />
       </PopoverContent>
@@ -1033,6 +1053,8 @@ export function AppointmentDetailSheet({
   onCheckout,
   initialMode,
 }: AppointmentDetailSheetProps) {
+  const { isMultiLocation, locationName } = useLocations()
+  const [moveOpen, setMoveOpen] = useState(false)
   const [status, setStatus] = useState<MockBookingStatus>(booking?.status ?? "booked")
   const [agreementBannerOpen, setAgreementBannerOpen] = useState(true)
   // Only for partners that manage pets: the agreement is the pet-handling
@@ -1180,6 +1202,47 @@ export function AppointmentDetailSheet({
                     <span className="font-medium">{timeLabel}</span>
                     <span aria-hidden>, </span>
                     <span>{recurrence}</span>
+                    {/* Which branch it is at, beside when it is — the two facts
+                        an operator reads first, and the one this sheet never
+                        carried. Absent for a single-branch business, where
+                        there is nothing to tell apart (DW1.2).
+
+                        It was `font-medium` and nothing else, and three people
+                        in a row failed to find it on this screen. Weight was
+                        never the problem: the whole line is 12px at 70% opacity
+                        (`theme.subText`), and the branch was the third item in
+                        a comma list whose second — "doesn't repeat" — is true
+                        of nearly every appointment. Bold at 70% of 12px, behind
+                        a phrase that usually says nothing, is not findable.
+
+                        So it takes the header's full-strength colour while the
+                        rest of the line keeps the muted one, and a pin to stop
+                        the eye. It is now the only thing on that line at full
+                        contrast, which is the point: of the three facts there,
+                        it is the one that changes what an operator does next.
+                        The wording is untouched — dropping "doesn't repeat"
+                        would read better still, but what that line says is not
+                        a rendering decision to make here. */}
+                    {isMultiLocation && booking.locationId ? (
+                      <>
+                        <span aria-hidden>, </span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center gap-1 align-middle font-medium",
+                            theme.text,
+                          )}
+                        >
+                          {/* The switcher's icon, not the pin. A pin already
+                              means two other things on this sheet — the
+                              "Arrived" status and the pet's address — and a
+                              third meaning is how an icon stops being a
+                              shortcut. BuildingIcon is what the location
+                              switcher uses, so it means "branch" everywhere. */}
+                          <BuildingIcon className="size-3.5 shrink-0" aria-hidden />
+                          {locationName(booking.locationId)}
+                        </span>
+                      </>
+                    ) : null}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -1241,6 +1304,7 @@ export function AppointmentDetailSheet({
                 <QuickActionsMenu
                   onViewActivity={() => setMode("activity")}
                   onViewSale={onViewSale}
+                  onMove={isMultiLocation ? () => setMoveOpen(true) : undefined}
                 />
                 {/* One primary action, named for where it goes. "Pay now" +
                     "Complete now" side by side asked the front desk to decide
@@ -1267,6 +1331,24 @@ export function AppointmentDetailSheet({
         onOpenChange={setCancelOpen}
         totalMinor={booking.priceMinor}
         onConfirm={() => setStatus("cancelled")}
+      />
+
+      {/* SCR-06. The destination list bounds itself by the grant, refuses a
+          paused branch, and keeps the deposit credited where it was taken —
+          all of that already existed and had nowhere to be opened from. */}
+      <MoveToBranchDialog
+        open={moveOpen}
+        onOpenChange={setMoveOpen}
+        appointment={{
+          appointmentId: booking.id,
+          clientName: booking.clientName,
+          serviceName: booking.serviceName,
+          serviceId: booking.serviceCategory,
+          when: `${dateLabel}, ${timeLabel}`,
+          sourceLocationId: booking.locationId,
+          depositMinor: booking.depositAmountMinor ?? 0,
+        }}
+        onMoved={() => setMoveOpen(false)}
       />
     </>
   )

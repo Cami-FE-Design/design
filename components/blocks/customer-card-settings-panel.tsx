@@ -21,7 +21,7 @@ import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { getCustomerCard } from "@/lib/customer-card/mock"
+import { getCustomerCard, previewCardSlugForBusiness } from "@/lib/customer-card/mock"
 import { useCustomerCardTheme } from "@/lib/customer-card/store"
 import {
   CUSTOMER_CARD_THEMES,
@@ -32,8 +32,12 @@ import { useDemoBusiness } from "@/lib/demo-business"
 import { getPublicBusiness } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
 
-/** Where the demo lands when its business has been renamed to something unknown. */
-const FALLBACK_SLUG = "shampooch-jvc"
+/**
+ * Where the demo lands when its business has been renamed to something unknown.
+ * A business slug, not a branch's — branding is set for the business, so the
+ * fallback has to be the same kind of thing the real answer is.
+ */
+const FALLBACK_SLUG = "shampooch"
 
 export function CustomerCardSettingsPanel() {
   // The venue whose settings these are — the business you are signed into, not
@@ -43,8 +47,15 @@ export function CustomerCardSettingsPanel() {
   // one business; this panel has to be that business.
   const { name: businessName } = useDemoBusiness()
   const slug = venueForBusinessName(businessName)?.slug ?? FALLBACK_SLUG
-  const business = getPublicBusiness(slug)
-  const card = business ? getCustomerCard(slug) : undefined
+  // The palette is saved against `slug`, the business. The preview needs a
+  // branch, because a card is something a client opens at an address and a
+  // chain's own slug resolves to the picker rather than to one — so asking for
+  // the chain's card returned nothing and the preview rendered as an empty box.
+  // Which branch it is carries no meaning: branding is the business's, so every
+  // branch shows the same answer. This one is only here to be a real card.
+  const previewSlug = previewCardSlugForBusiness(slug)
+  const business = previewSlug ? getPublicBusiness(previewSlug) : undefined
+  const card = business && previewSlug ? getCustomerCard(previewSlug) : undefined
   const { themeFor, setTheme } = useCustomerCardTheme()
   const savedId = themeFor(slug)
   const saved = getCustomerCardTheme(slug, savedId)

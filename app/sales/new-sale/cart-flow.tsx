@@ -10,12 +10,21 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useMemo, useState } from "react"
+import {
+  PackageRedemptionPanel,
+  type RedeemableLine,
+} from "@/components/blocks/package-redemption-panel"
+import { WriteTargetLocation } from "@/components/blocks/write-target-location"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { locationName } from "@/lib/locations/mock"
+import { packageCovers, packageFor } from "@/lib/service-catalog/client-packages"
 import { useCreatedCombos } from "@/lib/service-catalog/created-combos"
+import { findOffering, resolveOffering } from "@/lib/service-catalog/offerings"
+import { useLocationOfferings } from "@/lib/service-catalog/offerings-store"
+import { eligibilityFor } from "@/lib/service-catalog/package-eligibility"
 import {
-  locationName,
   type Terminal,
   type TerminalSession,
   TYPICAL_SESSIONS,
@@ -225,6 +234,10 @@ function CartFlowInner({
     deepStep === "tip" ||
     deepStep === "payment"
 
+  // Where this sale lands (R11). Null until named — there is no default, ever.
+  const [saleLocationId, setSaleLocationId] = useState<string | null>(null)
+  const [appliedPackages, setAppliedPackages] = useState<string[]>([])
+  const { offerings } = useLocationOfferings()
   const [attachment, setAttachment] = useState<ClientAttachment>(
     initialAttachment ?? (seedCheckout ? { type: "client", client: CLIENTS[1] } : { type: "none" }),
   )
@@ -315,6 +328,39 @@ function CartFlowInner({
   }))
 
   const hasClient = attachment.type !== "none"
+
+  // What this client's package is worth at the branch this sale is landing on.
+  // Both halves are required before anything can be judged: the package belongs
+  // to a client, and the terms it is measured against belong to a branch.
+  const heldPackage = packageFor(attachment.type === "client" ? attachment.client.id : undefined)
+  const redeemableLines: RedeemableLine[] = useMemo(() => {
+    if (!heldPackage || !saleLocationId) return []
+    return lines
+      .filter((line) => line.kind === "service" && packageCovers(heldPackage, line.sourceId))
+      .map((line) => {
+        const offering = findOffering(heldPackage.serviceId, saleLocationId, offerings)
+        const resolved = resolveOffering(
+          {
+            priceType: "Fixed",
+            price: heldPackage.soldPriceMinor / 100,
+            duration: heldPackage.soldDurationMin,
+          },
+          offering,
+        )
+        return {
+          uid: line.uid,
+          serviceId: heldPackage.serviceId,
+          serviceName: line.name,
+          priceMinor: line.priceMinor,
+          soldAtLocationId: heldPackage.soldAtLocationId,
+          eligibility: eligibilityFor(heldPackage.serviceId, heldPackage, {
+            offered: resolved.enabled,
+            priceMinor: Math.round(resolved.price * 100),
+            durationMin: resolved.duration,
+          }),
+        }
+      })
+  }, [heldPackage, saleLocationId, lines, offerings])
   const hasGiftCard = lines.some((l) => l.kind === "gift-card")
   const editingLine = lines.find((l) => l.uid === editingUid) ?? null
 
@@ -322,7 +368,20 @@ function CartFlowInner({
   const baseMinor = Math.max(0, totals(lines).totalMinor - discountMinor)
   const tipMinor = tipId === "custom" ? customTipMinor : tipForPreset(tipId)
   const toPayMinor = baseMinor + tipMinor
-  const paidMinor = payments.reduce((sum, p) => sum + p.amountMinor, 0)
+  /**
+   * What the client's package has already paid for, in fils.
+   *
+   * The built product's own model, confirmed against `packagePayments.ts`: the
+   * API keeps a covered line at its gross price and books the coverage as a
+   * captured `customer_package` payment, so the money leaves through the
+   * tenders rather than by discounting the line. Applying a package that
+   * changed no figure at all — which is what this did — is a button that says
+   * it worked and does nothing.
+   */
+  const packagePaidMinor = lines
+    .filter((l) => appliedPackages.includes(l.uid))
+    .reduce((sum, l) => sum + l.priceMinor * l.qty, 0)
+  const paidMinor = payments.reduce((sum, p) => sum + p.amountMinor, 0) + packagePaidMinor
   const leftToPayMinor = Math.max(0, toPayMinor - paidMinor)
   const fullyPaid = toPayMinor > 0 && paidMinor >= toPayMinor
   const payerName = attachment.type === "client" ? attachment.client.name : "Walk-In"
@@ -654,7 +713,27 @@ function CartFlowInner({
     leave()
   }
 
-  const blockedReason = CLIENT_REQUIRED && !hasClient ? "Attach a client to continue" : undefined
+  // Two things a sale cannot proceed without: somebody to bill, and a branch to
+  // bill them at.
+  //
+  // Each is said beside the control that answers it, not in the footer. Printed
+  // under the totals they sat inside the money — an operator reading for a
+  // figure met an error about neither, whose control was at the other end of
+  // the cart. It is the same rule the branch picker already follows when it
+  // explains a paused branch: the answer belongs where the question is.
+  //
+  // So both can now show at once, where the footer could only ever name the
+  // first. That is the honest state — two things are missing — and it is what
+  // stops an operator fixing one and being told about the other afterwards.
+  const needsLocation = saleLocationId === null
+  const needsClient = CLIENT_REQUIRED && !hasClient
+  // Still computed for the footer, which uses it to keep Continue shut. The
+  // footer no longer prints it.
+  const blockedReason = needsLocation
+    ? "Choose a location to continue"
+    : needsClient
+      ? "Attach a client to continue"
+      : undefined
 
   // A locked sale — link out, or routed to the card machine — has no dismissal.
   // Escape and the overlay are the last two ways the "Discard draft sale?"
@@ -745,6 +824,7 @@ function CartFlowInner({
                       onAddAppointment={addAppointment}
                       onAddGiftCard={addGiftCard}
                       addedApptIds={addedApptIds}
+                      locationId={saleLocationId}
                     />
                   ) : step === "tip" ? (
                     <TipView
@@ -793,6 +873,46 @@ function CartFlowInner({
                         onClear={() => setAttachment({ type: "none" })}
                         onSearchingChange={setClientSearching}
                       />
+                      {/* Beside the panel that answers it. Not while the client
+                          search is open — the operator is already doing the
+                          thing it would be asking for. */}
+                      {needsClient && !clientSearching ? (
+                        <p className="text-xs leading-5 text-destructive">
+                          Attach a client to continue
+                        </p>
+                      ) : null}
+                      {/* A sale is an operational write, so it names one branch
+                          (R11) — and G6 hangs off it: the receipt sequence is
+                          that branch's, prefixed, and its tax identity is what
+                          the receipt freezes at sale. Until this, one issuer was
+                          hardcoded for every sale, which made per-branch tax
+                          identity a thing an owner could configure and no
+                          receipt could ever carry. Renders nothing for a
+                          single-branch business (DW1.2).
+
+                          After the client, before the cart — the same order as
+                          the appointment sheet, because the constraint is the
+                          same one: the item picker reads its offerings against
+                          this branch, and the client does not depend on it at
+                          all. It sat first, above a client this file's own
+                          blocked-reason comment already calls "the thing an
+                          operator is already reaching for".
+
+                          Card variant: the client above it and every cart line
+                          below are white bordered cards, and a grey borderless
+                          field between them read as something left over from
+                          another screen. */}
+                      <WriteTargetLocation
+                        value={saleLocationId}
+                        onChange={setSaleLocationId}
+                        action="This sale"
+                        variant="card"
+                        requiredNote="Choose a location to continue"
+                        // Due once there is something to sell. An empty cart
+                        // with no branch is not a mistake yet — it is a sale
+                        // nobody has started.
+                        requiredDue={lines.length > 0}
+                      />
                       {clientSearching ? null : (
                         <CartContent
                           lines={lines}
@@ -800,8 +920,26 @@ function CartFlowInner({
                           onRemove={removeLine}
                           onSetQty={setQty}
                           onEditLine={setEditingUid}
+                          packageCovered={appliedPackages}
                         />
                       )}
+                      {/* SCR-13, reachable from the till rather than only the
+                          playground. It renders nothing until this client holds
+                          a package covering something in the cart — and then it
+                          warns and still completes, because an operator works
+                          around a block by hand anyway, slowly, in front of the
+                          client (KC1.5). */}
+                      {redeemableLines.length > 0 ? (
+                        <PackageRedemptionPanel
+                          lines={redeemableLines}
+                          redeemingAt={saleLocationId}
+                          applied={appliedPackages}
+                          onApply={(uid) => setAppliedPackages((c) => [...c, uid])}
+                          onRemove={(uid) =>
+                            setAppliedPackages((c) => c.filter((id) => id !== uid))
+                          }
+                        />
+                      ) : null}
                     </>
                   ) : (
                     <>
@@ -879,6 +1017,7 @@ function CartFlowInner({
                     tipMinor={tipMinor}
                     payments={step === "payment" ? payments : []}
                     onRemovePayment={removePayment}
+                    packagePaidMinor={packagePaidMinor}
                     ctaLabel={
                       step === "tip"
                         ? "Continue to payment"

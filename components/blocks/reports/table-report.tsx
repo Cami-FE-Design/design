@@ -64,6 +64,7 @@ import {
   formatNumber,
   formatPercent,
 } from "@/lib/format"
+import { useLocations } from "@/lib/locations/store"
 import { MOCK_GROUPED, MOCK_ROWS, PET_DETAILS, type ReportRow } from "@/lib/reports/mock"
 import type { ColumnDef, ColumnKind, ReportDef } from "@/lib/reports/types"
 import { findTeamMemberByName } from "@/lib/team/mock"
@@ -201,6 +202,17 @@ function TableReportInner({ report }: { report: ReportDef }) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const columns = report.columns ?? []
+  // The active scope, falling back to the grant (R03, R18).
+  //
+  // This read `granted` alone, so the topbar switcher — the control every other
+  // surface in the product obeys — did nothing here: narrowing to one branch
+  // left every report showing the whole estate. No leak, because the grant
+  // still bounded the rows, but R03 says the session scope is what a user sets
+  // and reads, and R18 asks for "a bounded single-Location report" as a thing
+  // you can actually run. With the filter sheet's selection unwired, the
+  // switcher was the only way to ask for one branch, and it was ignored.
+  const { granted, scopedLocations } = useLocations()
+  const inScope = scopedLocations.length > 0 ? scopedLocations : granted
   const groupedData = MOCK_GROUPED[report.id]
 
   // Drill-through arrivals: any query param matching a column key becomes a
@@ -251,10 +263,23 @@ function TableReportInner({ report }: { report: ReportDef }) {
   // drill filter (Sales summary: clicking "Service" → its items).
   const rows = useMemo(() => {
     const base = groupedData ? (groupedData[groupBySel] ?? []) : (MOCK_ROWS[report.id] ?? [])
-    const drilled = drillType ? base.filter((r) => r._group === drillType) : base
+    // Bounded by the grant before anything is summed (G7, R18). A report
+    // grouped by Location was showing every branch's figures to whoever opened
+    // it, including branches they cannot open — and a total built from them
+    // with nothing on screen to say so. Only the Location grouping carries a
+    // branch per row; the others are business-level and stay whole.
+    const held = new Set(inScope.map((l) => l.name))
+    const scoped =
+      groupBySel === "Location"
+        ? base.filter((r) => {
+            const name = String(r.location ?? r.type ?? "")
+            return name === "" || held.has(name)
+          })
+        : base
+    const drilled = drillType ? scoped.filter((r) => r._group === drillType) : scoped
     if (drillFilters.length === 0) return drilled
     return drilled.filter((r) => drillFilters.every((f) => String(r[f.key]) === f.value))
-  }, [groupedData, groupBySel, drillType, report.id, drillFilters])
+  }, [groupedData, groupBySel, drillType, report.id, drillFilters, inScope])
 
   // On the top-level dimension, the first-column rows drill into the next level.
   const canDrill =
@@ -340,6 +365,10 @@ function TableReportInner({ report }: { report: ReportDef }) {
         supplyPrice: Number(row.avgCost ?? row.totalCost ?? 0),
         retailPrice: Number(row.retailPrice ?? 0),
         status: "active",
+        // A report row carries no stock flag, and a report is not the place to
+        // guess one — counted is the ordinary case for a product that appears
+        // in a sales report at all.
+        trackStock: true,
       })
     },
     saleNo: (row) => {

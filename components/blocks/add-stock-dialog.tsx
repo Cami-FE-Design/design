@@ -2,6 +2,7 @@
 
 import { MinusIcon, PlusIcon, XIcon } from "lucide-react"
 import { useState } from "react"
+import { WriteTargetLocation } from "@/components/blocks/write-target-location"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -26,7 +27,8 @@ type AddStockDialogProps = {
   onOpenChange: (open: boolean) => void
   productName: string
   stockOnHand: number
-  onSave?: (qty: number, supplyPrice: string, reason: string) => void
+  /** The movement, with the branch it happened at (R11, R16). */
+  onSave?: (qty: number, supplyPrice: string, reason: string, locationId: string) => void
 }
 
 export function AddStockDialog({
@@ -40,9 +42,16 @@ export function AddStockDialog({
   const [supplyPrice, setSupplyPrice] = useState("0.00")
   const [savePrice, setSavePrice] = useState(true)
   const [reason, setReason] = useState("new-stock")
+  /**
+   * Where this delivery landed (R11, R16). A stock movement is an operational
+   * write, so it names one branch and there is no default — receiving a case of
+   * shampoo at "the business" is not a thing that happens.
+   */
+  const [locationId, setLocationId] = useState<string | null>(null)
 
   function handleSave() {
-    onSave?.(qty, supplyPrice, reason)
+    if (!locationId) return
+    onSave?.(qty, supplyPrice, reason, locationId)
     onOpenChange(false)
     setQty(1)
   }
@@ -70,6 +79,10 @@ export function AddStockDialog({
               {stockOnHand} in stock
             </span>
           </div>
+
+          {/* Asked before the quantity, because "how many" has no meaning
+              until "where" is settled. */}
+          <WriteTargetLocation value={locationId} onChange={setLocationId} action="This delivery" />
 
           {/* Quantity stepper */}
           <div className="flex flex-col items-center gap-2">
@@ -156,7 +169,7 @@ export function AddStockDialog({
           <Button variant="outline" radius="full" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button radius="full" onClick={handleSave}>
+          <Button radius="full" disabled={!locationId} onClick={handleSave}>
             Save
           </Button>
         </div>

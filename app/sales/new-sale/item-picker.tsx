@@ -16,6 +16,8 @@ import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
+import { useLocations } from "@/lib/locations/store"
+import { useBranchOfferingNote } from "@/lib/service-catalog/use-branch-offering-note"
 import { cn } from "@/lib/utils"
 import { AppointmentSubject } from "./appointment-subject"
 import { GiftCardDialog, newGiftCardDraft } from "./gift-card-dialog"
@@ -43,6 +45,8 @@ type ItemPickerProps = {
   onAddGiftCard: (draft: GiftCardDraft) => void
   /** Appointment ids already in the cart — shown as "Added", not re-addable. */
   addedApptIds: Set<string>
+  /** The branch this sale is landing on, once it has been named (R11). */
+  locationId?: string | null
 }
 
 const ROOT_TILES: {
@@ -60,6 +64,7 @@ const ROOT_TILES: {
 
 export function ItemPicker({
   services = SERVICES,
+  locationId,
   onAddService,
   onAddProduct,
   onAddAppointment,
@@ -72,7 +77,14 @@ export function ItemPicker({
   const searching = view === "root" && rootQuery.trim().length > 0
 
   if (view === "services") {
-    return <ServicesView services={services} onBack={() => setView("root")} onAdd={onAddService} />
+    return (
+      <ServicesView
+        services={services}
+        onBack={() => setView("root")}
+        onAdd={onAddService}
+        locationId={locationId}
+      />
+    )
   }
   if (view === "products") {
     return <ProductsView onBack={() => setView("root")} onAdd={onAddProduct} />
@@ -187,13 +199,16 @@ function ServicesView({
   services,
   onBack,
   onAdd,
+  locationId,
 }: {
   services: ServiceItem[]
   onBack: () => void
   onAdd: (service: ServiceItem) => void
+  locationId?: string | null
 }) {
   const [query, setQuery] = useState("")
   const filtered = useMemo(() => filterServices(query, services), [query, services])
+  const offeringNote = useBranchOfferingNote(locationId)
 
   return (
     <div className="flex flex-col gap-5">
@@ -204,7 +219,12 @@ function ServicesView({
       ) : (
         <div className="flex flex-col gap-2">
           {filtered.map((service) => (
-            <ServiceRow key={service.id} service={service} onAdd={() => onAdd(service)} />
+            <ServiceRow
+              key={service.id}
+              service={service}
+              onAdd={() => onAdd(service)}
+              note={offeringNote(service.id)}
+            />
           ))}
         </div>
       )}
@@ -212,7 +232,16 @@ function ServicesView({
   )
 }
 
-function ServiceRow({ service, onAdd }: { service: ServiceItem; onAdd: () => void }) {
+function ServiceRow({
+  service,
+  onAdd,
+  note,
+}: {
+  service: ServiceItem
+  onAdd: () => void
+  /** Set when this branch does not run the service — said, never hidden. */
+  note?: string | null
+}) {
   const accent =
     SERVICE_CATEGORIES.find((c) => c.id === service.categoryId)?.accent ?? "bg-cami-violet-9"
   return (
@@ -234,6 +263,10 @@ function ServiceRow({ service, onAdd }: { service: ServiceItem; onAdd: () => voi
               ? ` · ${comboServicesLabel(service.componentNames.length)}`
               : ""}
           </span>
+          {/* Still pickable. Reception is the person who can say "not here,
+              but Jumeirah does it", and a disabled row invites a second try
+              rather than answering it (KC1.5). */}
+          {note ? <span className="mt-1 text-xs text-cami-yellow-11">{note}</span> : null}
         </div>
       </div>
       <span className="shrink-0 text-sm font-medium text-foreground">
@@ -384,14 +417,19 @@ function AppointmentsView({
   addedApptIds: Set<string>
 }) {
   const [query, setQuery] = useState("")
+  const { granted } = useLocations()
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const matched = q
-      ? APPOINTMENTS.filter((a) => a.clientName.toLowerCase().includes(q))
-      : APPOINTMENTS
+    // Bounded by the estate before anything else (R18). This listed every
+    // seeded appointment whatever business you were signed into, so a Purr
+    // Palace sale offered Shampooch's bookings — by name, on screen.
+    const mine = APPOINTMENTS.filter(
+      (a) => !a.locationId || granted.some((l) => l.id === a.locationId),
+    )
+    const matched = q ? mine.filter((a) => a.clientName.toLowerCase().includes(q)) : mine
     // Chronological by start time, earliest first.
     return [...matched].sort((a, b) => startMinutes(a.start) - startMinutes(b.start))
-  }, [query])
+  }, [query, granted])
 
   return (
     <div className="flex flex-col gap-5">
@@ -424,6 +462,7 @@ function AppointmentCard({
   added: boolean
   onAdd: () => void
 }) {
+  const { locationName, isMultiLocation } = useLocations()
   return (
     <button
       type="button"
@@ -441,8 +480,14 @@ function AppointmentCard({
         <div className="flex min-w-0 flex-col gap-2">
           <div className="flex min-w-0 items-center text-sm">
             <span className="font-semibold text-foreground">{appt.start}</span>
-            {appt.location ? (
-              <span className="truncate text-muted-foreground"> · {appt.location}</span>
+            {/* Resolved from the estate, so a branch renamed in Settings is
+                renamed here too — and a single-branch business shows no branch
+                at all, because there is nothing to tell apart (DW1.2). */}
+            {appt.locationId && isMultiLocation ? (
+              <span className="truncate text-muted-foreground">
+                {" "}
+                · {locationName(appt.locationId)}
+              </span>
             ) : null}
           </div>
           <AppointmentSubject appt={appt} />

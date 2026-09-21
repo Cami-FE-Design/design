@@ -1,4 +1,5 @@
 import type { Emirate } from "@/lib/business-profile"
+import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import type { BusinessNotificationConfig } from "@/lib/notifications/types"
 
 export type BusinessState = "onboarding" | "live" | "suspended" | "archived"
@@ -76,6 +77,21 @@ export type AdminBusiness = {
   staffPreview: StaffMember[]
   servicesCount: number
   servicesPreview: string[]
+  /**
+   * The branches this partner trades from (R02, R18, HQ1.1, HQ1.2).
+   *
+   * CamiHQ modelled a partner as a single site: one `street`, one `phone`, and
+   * a demo partner literally named after a branch ("Shampooch JVC"). An Account
+   * Manager could not tell a chain from a single site, which is the first thing
+   * they need to know about a signed account.
+   *
+   * Ids into `lib/locations`, not copies — the estate has one home, and an
+   * address changed by the owner is the address HQ sees. Absent or a single id
+   * means a single-site partner, and every chain surface stays away (the HQ
+   * reading of G3: nobody should pay attention to a concept they do not have).
+   */
+  locationIds?: ReadonlyArray<string>
+  /** The primary address. For a chain this is its first branch — HQ reads the estate. */
   street: string
   city: string
   emirate: Emirate
@@ -106,8 +122,16 @@ export const adminBusinesses: AdminBusiness[] = [
   {
     id: "biz_shampooch",
     code: "CM-4821",
-    name: "Shampooch JVC",
-    slug: "shampooch-jvc",
+    // The partner is the business, not one of its branches. This said
+    // "Shampooch JVC" — the name of a branch — which is the same confusion the
+    // topbar's fake workspace row carried, one plane over.
+    name: "Shampooch",
+    slug: "shampooch",
+    // The estate, not a hand-kept copy of its first three. HQ read "3 locations"
+    // for a nine-branch chain, and its Locations tab listed three — the same
+    // two-lists-of-one-thing that made the public record disagree with the
+    // operator's.
+    locationIds: NINE_BRANCH_ESTATE.map((l) => l.id),
     ownerName: "Maz Khan",
     ownerEmail: "maaz@getcami.io",
     ownerPhotoUrl: "https://i.pravatar.cc/144?u=maz-khan",

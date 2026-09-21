@@ -48,10 +48,13 @@ import {
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { addressPlaceRef, EMPTY_ADDRESS, hasPrecisePoint, type PlaceRef } from "@/lib/address"
 import {
-  BOOKING_DAYS,
-  BOOKING_STAFF,
+  type BookingCatalog,
+  type BookingDay,
+  type BookingStaff,
+  bookingDaysForLocation,
   bookingLines,
   bookingRef,
+  bookingStaffForLocation,
   businessHasPets,
   type CatalogService,
   EMPTY_PICKUP_DETAILS,
@@ -62,10 +65,16 @@ import {
   type ReturningClient,
   resolvePickupAddress,
   resolvePickupPlace,
+  SERVICE_CATEGORIES,
+  type SlotGroup,
   serviceTotals,
+  slotGroupsForLocation,
 } from "@/lib/booking"
+import { slotsForStaff } from "@/lib/locations/cross-branch-availability"
+import type { WeekSchedule } from "@/lib/locations/hours"
 import { type PetNoteEntry, petNoteLabel, petNotesComplete } from "@/lib/pet-notes"
 import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
+import { ROSTER_LEAVES, ROSTER_SHIFTS } from "@/lib/team/shifts-mock"
 import { cn } from "@/lib/utils"
 
 // Luma single-column flow, sibling to checkout-flow. ONE flat surface, hairline
@@ -90,14 +99,16 @@ function StepHeading({ title, hint }: { title: string; hint?: string }) {
 function ServiceStep({
   selectedIds,
   onToggle,
+  categories,
 }: {
   selectedIds: ReadonlyArray<string>
   onToggle: (id: string) => void
+  categories: BookingCatalog
 }) {
   return (
     <div className="flex flex-col gap-5">
       <StepHeading title="Select services" hint="Add one or more — pick a category to browse." />
-      <ServicePicker selectedIds={selectedIds} onToggle={onToggle} />
+      <ServicePicker selectedIds={selectedIds} onToggle={onToggle} categories={categories} />
     </div>
   )
 }
@@ -111,6 +122,10 @@ function SlotStep({
   onDay,
   time,
   onTime,
+  days,
+  staff,
+  slotGroups,
+  unavailableStaff,
 }: {
   staffId: string
   onStaff: (id: string) => void
@@ -118,6 +133,11 @@ function SlotStep({
   onDay: (id: string) => void
   time: string | null
   onTime: (t: string) => void
+  days: ReadonlyArray<BookingDay>
+  staff: ReadonlyArray<BookingStaff>
+  slotGroups: ReadonlyArray<SlotGroup>
+  /** Set when the grid is empty because *this person* is not here that day. */
+  unavailableStaff?: string
 }) {
   const staffRailRef = useRef<HTMLDivElement>(null)
   const scrollStaff = (dir: -1 | 1) =>
@@ -160,7 +180,7 @@ function SlotStep({
             label="Any"
             sub="Soonest"
           />
-          {BOOKING_STAFF.map((s) => (
+          {staff.map((s) => (
             <StaffChip
               key={s.id}
               active={staffId === s.id}
@@ -174,10 +194,15 @@ function SlotStep({
       </div>
 
       {/* Day — circle picker with month header */}
-      <DayPicker dayId={dayId} onDay={onDay} />
+      <DayPicker dayId={dayId} onDay={onDay} days={days} />
 
       {/* Available times — full-width stacked rows */}
-      <TimeList time={time} onTime={onTime} />
+      <TimeList
+        time={time}
+        onTime={onTime}
+        groups={slotGroups}
+        unavailableStaff={unavailableStaff}
+      />
 
       {time ? (
         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -872,6 +897,7 @@ function ConfirmStep({
   pickupAddress,
   pickupPinned = false,
   petNotes,
+  catalog,
 }: {
   business: PublicBusiness
   services: ReadonlyArray<CatalogService>
@@ -887,10 +913,14 @@ function ConfirmStep({
    */
   pickupPinned?: boolean
   petNotes?: ReadonlyArray<PetNoteEntry>
+  catalog: BookingCatalog
 }) {
   const total = services.reduce((n, s) => n + s.priceAed, 0)
   const duration = services.reduce((n, s) => n + s.durationMinutes, 0)
-  const lines = bookingLines(services.map((s) => s.id))
+  const lines = bookingLines(
+    services.map((s) => s.id),
+    catalog,
+  )
   const subtotal = Math.round(total / 1.05)
   const vat = total - subtotal
 
@@ -1056,6 +1086,7 @@ function DesktopSummary({
   canContinue,
   isLast,
   onCta,
+  catalog,
 }: {
   business: PublicBusiness
   services: ReadonlyArray<CatalogService>
@@ -1065,8 +1096,12 @@ function DesktopSummary({
   canContinue: boolean
   isLast: boolean
   onCta: () => void
+  catalog: BookingCatalog
 }) {
-  const lines = bookingLines(services.map((s) => s.id))
+  const lines = bookingLines(
+    services.map((s) => s.id),
+    catalog,
+  )
 
   const address = [business.street, business.city, business.emirate].filter(Boolean).join(", ")
 
@@ -1162,11 +1197,40 @@ function DesktopSummary({
   )
 }
 
-export function BookingFlow({ business }: { business: PublicBusiness }) {
+export function BookingFlow({
+  business,
+  catalog = SERVICE_CATEGORIES,
+  locationId,
+  hours,
+}: {
+  business: PublicBusiness
+  /**
+   * The catalog this booking is priced against. Defaults to the business's; a
+   * branch's flow is handed its own resolved one, so a price the operator set
+   * for that branch is what the picker shows, the summary totals, and the
+   * review step confirms (R15). It has to reach all three, because a flow that
+   * quotes one price and confirms another is worse than one that is simply
+   * wrong.
+   */
+  catalog?: BookingCatalog
+  /**
+   * The branch this booking is at. Absent for a business-wide surface, which is
+   * what the playground and a single-site business are — availability then falls
+   * back to the business's week and its whole roster.
+   */
+  locationId?: string
+  /** That branch's hours, so the days and slots offered are the ones it keeps. */
+  hours?: WeekSchedule
+}) {
   const hasPets = businessHasPets(business)
   // Pet is picked/captured inside Identify after phone verify (feature-flagged),
   // not a separate step — see docs/specs/PRO-80.
   const steps: StepId[] = ["service", "slot", "identify", "confirm"]
+
+  // Availability, resolved for this branch. R15 asks for "that Location's
+  // offering and availability"; the offering was done and this is the rest.
+  const days = bookingDaysForLocation(hours)
+  const staff = bookingStaffForLocation(locationId)
 
   const [stepIndex, setStepIndex] = useState(0)
   const [done, setDone] = useState(false)
@@ -1174,7 +1238,10 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
 
   const [serviceIds, setServiceIds] = useState<string[]>([])
   const [staffId, setStaffId] = useState("any")
-  const [dayId, setDayId] = useState(BOOKING_DAYS[0]!.id)
+  // Opens on the first day the branch is actually open, rather than on a
+  // Sunday it never trades — a closed chip is disabled, so defaulting to one
+  // leaves the step looking broken.
+  const [dayId, setDayId] = useState(() => (days.find((d) => !d.closed && !d.full) ?? days[0]!).id)
   const [time, setTime] = useState<string | null>(null)
   const [customer, setCustomer] = useState<Customer>({
     firstName: "",
@@ -1188,19 +1255,43 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
   const [pickup, setPickup] = useState<PickupDetails>(EMPTY_PICKUP_DETAILS)
 
   const step = steps[stepIndex]!
-  const services = serviceIds.map(findCatalogService).filter(Boolean) as CatalogService[]
-  const totals = serviceTotals(serviceIds)
+  const services = serviceIds
+    .map((id) => findCatalogService(id, catalog))
+    .filter(Boolean) as CatalogService[]
+  const totals = serviceTotals(serviceIds, catalog)
 
   function toggleService(id: string) {
     setServiceIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
-  const day = BOOKING_DAYS.find((d) => d.id === dayId)!
+  const day = days.find((d) => d.id === dayId) ?? days[0]!
+  const branchSlots = slotGroupsForLocation(hours, day)
+  // Picking a person narrows the grid to the hours they work *here* and drops
+  // anything they are committed to at another branch (DW2.3, DW2.4 — blocked,
+  // per Maaz on 15 Sep). "Any team member" leaves it alone: the branch is open,
+  // and somebody can take it.
+  const slotGroups =
+    staffId === "any"
+      ? branchSlots
+      : slotsForStaff(
+          branchSlots,
+          ROSTER_SHIFTS,
+          staffId,
+          locationId ?? "",
+          day.weekDay,
+          totals.durationMinutes,
+          ROSTER_LEAVES,
+        )
+  // An empty grid means two different things and must not read as one. The
+  // branch being shut or fully booked is the day's fault; a chosen person not
+  // working here is theirs, and sends the client to a different person rather
+  // than a different day.
+  const emptyBecauseOfStaff = slotGroups.length === 0 && branchSlots.length > 0
   const whenLabel = `${day.label ?? `${day.weekday} ${day.dayNum}`}${time ? ` · ${time}` : ""}`
   const staffLabel =
     staffId === "any"
       ? "Any team member"
-      : (BOOKING_STAFF.find((s) => s.id === staffId)?.name ?? "Any team member")
+      : (staff.find((member) => member.id === staffId)?.name ?? "Any team member")
   const petLabel = hasPets && pet.name.trim() ? pet.name : undefined
   // Same resolver the identify step uses, so the review line shows whichever
   // address will actually be collected from.
@@ -1264,15 +1355,28 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
 
   const stepBody =
     step === "service" ? (
-      <ServiceStep selectedIds={serviceIds} onToggle={toggleService} />
+      <ServiceStep selectedIds={serviceIds} onToggle={toggleService} categories={catalog} />
     ) : step === "slot" ? (
       <SlotStep
         staffId={staffId}
-        onStaff={setStaffId}
+        onStaff={(id) => {
+          setStaffId(id)
+          // The grid is about to change under the selection. Keeping a 4pm that
+          // the new person does not work would carry an unbookable time into
+          // the summary, and it is chosen again in one tap.
+          setTime(null)
+        }}
         dayId={dayId}
-        onDay={setDayId}
+        onDay={(id) => {
+          setDayId(id)
+          setTime(null)
+        }}
         time={time}
         onTime={setTime}
+        days={days}
+        staff={staff}
+        slotGroups={slotGroups}
+        unavailableStaff={emptyBecauseOfStaff ? staffLabel.split(" ")[0] : undefined}
       />
     ) : step === "identify" ? (
       <IdentifyStep
@@ -1288,6 +1392,7 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
       <ConfirmStep
         business={business}
         services={services}
+        catalog={catalog}
         whenLabel={whenLabel}
         staffLabel={staffLabel}
         petLabel={petLabel}
@@ -1332,6 +1437,7 @@ export function BookingFlow({ business }: { business: PublicBusiness }) {
             <DesktopSummary
               business={business}
               services={services}
+              catalog={catalog}
               totals={totals}
               whenLabel={whenLabel}
               hasSlot={Boolean(time)}

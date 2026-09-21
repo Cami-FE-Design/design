@@ -5,9 +5,11 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
+  closingTime,
   formatTime12h,
   getDayIdFromDate,
   isOpenNow,
+  nextOpeningTime,
   type PublicBusiness,
   type WeekDay,
 } from "@/lib/public-business"
@@ -25,6 +27,8 @@ export function PublicBookingCard({ business }: { business: PublicBusiness }) {
   const today: WeekDay | null = now ? getDayIdFromDate(now) : null
   const open = now ? isOpenNow(business.hours, now) : null
   const todaySchedule = today ? business.hours[today] : null
+  const closesAt = todaySchedule && now ? closingTime(todaySchedule, now) : null
+  const opensAt = todaySchedule && now ? nextOpeningTime(todaySchedule, now) : null
 
   const fullAddress = [business.street, business.city, business.emirate].filter(Boolean).join(", ")
   const mapsHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`
@@ -45,18 +49,21 @@ export function PublicBookingCard({ business }: { business: PublicBusiness }) {
               )}
               aria-hidden
             />
-            {open && !todaySchedule.closed ? (
+            {/* Shift-aware: "until" is the close of the range running now, and
+                "opens" is the next range today — a branch on a lunch break is
+                not closed until tomorrow. */}
+            {open && closesAt ? (
               <span className="flex items-center gap-1">
                 <span className="font-medium text-cami-green-11">Open</span>
-                <span className="text-foreground">until {formatTime12h(todaySchedule.close)}</span>
+                <span className="text-foreground">until {formatTime12h(closesAt)}</span>
               </span>
-            ) : todaySchedule.closed ? (
-              <span className="text-muted-foreground">Closed today</span>
-            ) : (
+            ) : opensAt ? (
               <span className="flex items-center gap-1">
                 <span className="font-medium text-muted-foreground">Closed</span>
-                <span className="text-foreground">opens {formatTime12h(todaySchedule.open)}</span>
+                <span className="text-foreground">opens {formatTime12h(opensAt)}</span>
               </span>
+            ) : (
+              <span className="text-muted-foreground">Closed today</span>
             )}
           </div>
         )}

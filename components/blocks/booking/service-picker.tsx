@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { type CatalogService, SERVICE_CATEGORIES } from "@/lib/booking"
+import { type CatalogService, SERVICE_CATEGORIES, type ServiceCategory } from "@/lib/booking"
 import { formatDuration, formatPriceAed } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
 
@@ -81,12 +81,22 @@ function ServiceCard({
 export function ServicePicker({
   selectedIds,
   onToggle,
+  categories = SERVICE_CATEGORIES,
 }: {
   selectedIds: ReadonlyArray<string>
   onToggle: (id: string) => void
+  /**
+   * The catalog to browse. Defaults to the business's, which is what the
+   * playground and any business-wide surface wants; a branch's flow passes its
+   * own resolved one so the prices here are the prices that branch charges
+   * (R15).
+   */
+  categories?: ReadonlyArray<ServiceCategory>
 }) {
-  const [activeId, setActiveId] = useState(SERVICE_CATEGORIES[0]!.id)
-  const active = SERVICE_CATEGORIES.find((c) => c.id === activeId) ?? SERVICE_CATEGORIES[0]!
+  const [activeId, setActiveId] = useState(categories[0]!.id)
+  // A branch that does not offer the previously active category has none by
+  // that id, so fall back rather than render an empty tab.
+  const active = categories.find((c) => c.id === activeId) ?? categories[0]!
   const selected = new Set(selectedIds)
 
   return (
@@ -95,7 +105,7 @@ export function ServicePicker({
           below the z-20 header so it tucks under it, no seam). */}
       <div className="-mx-1 sticky top-20 z-10 flex items-center gap-2 bg-background/85 px-1 py-2 backdrop-blur-md lg:top-24">
         <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1">
-          {SERVICE_CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const on = cat.id === activeId
             // Count of selected services in this category — a subtle badge on the tab.
             const n = cat.services.filter((s) => selected.has(s.id)).length
@@ -138,7 +148,7 @@ export function ServicePicker({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="max-h-[60vh] w-56 overflow-y-auto">
-            {SERVICE_CATEGORIES.map((cat) => {
+            {categories.map((cat) => {
               const n = cat.services.filter((s) => selected.has(s.id)).length
               return (
                 <DropdownMenuItem

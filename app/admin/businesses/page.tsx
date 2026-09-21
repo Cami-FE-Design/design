@@ -216,7 +216,19 @@ function BusinessRow({
         <div className="flex items-center gap-3">
           <BusinessAvatar name={business.name} photoUrl={business.photoUrl} />
           <div className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-medium text-foreground">{business.name}</span>
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="truncate text-sm font-medium text-foreground">{business.name}</span>
+              {/* Whether a partner is a chain is the first thing an Account
+                  Manager needs about an account, and the list could not say it:
+                  every partner looked like one site (SCR-16, HQ1.2). Absent for
+                  a single site rather than showing "1 location" — a badge on
+                  every row stops being information. */}
+              {(business.locationIds?.length ?? 0) > 1 ? (
+                <span className="shrink-0 rounded-full bg-cami-violet-3 px-2 py-0.5 text-xs font-medium text-cami-violet-11">
+                  {business.locationIds?.length} locations
+                </span>
+              ) : null}
+            </span>
             {/* Code first: it is the identifier support quotes, and unlike the
                 slug it never changes (DSG-82). Inline, not the copy chip — a
                 button on every row is twelve buttons nobody asked for. */}

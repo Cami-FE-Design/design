@@ -185,14 +185,14 @@ export type ActivityFilter = {
   rail?: CamiPayRail | null
   fromIso?: string
   toIso?: string
-  locationName?: string
+  locationId?: string
 }
 
 export function filterActivity(txs: ReadonlyArray<MoneyTx>, filter: ActivityFilter): MoneyTx[] {
   return txs.filter((tx) => {
     if (filter.kinds?.length && !filter.kinds.includes(tx.kind)) return false
     if (filter.rail && tx.rail !== filter.rail) return false
-    if (filter.locationName && tx.locationName !== filter.locationName) return false
+    if (filter.locationId && tx.locationId !== filter.locationId) return false
     if (filter.fromIso && tx.at.slice(0, 10) < filter.fromIso) return false
     if (filter.toIso && tx.at.slice(0, 10) > filter.toIso) return false
     return true

@@ -86,7 +86,10 @@ export const topMenu: MenuItem[] = [
   {
     icon: UsersIcon,
     label: "Team",
-    children: [{ label: "Team Members", href: "/settings/team" }, { label: "Scheduled Shifts" }],
+    children: [
+      { label: "Team Members", href: "/settings/team" },
+      { label: "Scheduled Shifts", href: "/team/scheduled-shifts" },
+    ],
   },
   {
     icon: ChartNoAxesCombinedIcon,

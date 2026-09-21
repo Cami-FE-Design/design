@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { SearchInput } from "@/components/ui/search-input"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
 /**
@@ -164,6 +165,7 @@ type GlobalSearchDialogProps = {
 
 export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogProps) {
   const { name: businessName } = useDemoBusiness()
+  const { locationName } = useLocations()
   const [query, setQuery] = useState("")
   const [selectedClient, setSelectedClient] = useState<ClientDetailClient | null>(null)
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null)
@@ -297,7 +299,12 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                               <span className="flex min-w-0 items-baseline gap-1.5 text-sm">
                                 <span className="font-semibold text-foreground">{appt.start}</span>
                                 <span className="truncate text-muted-foreground">
-                                  · {appt.location ?? businessName}
+                                  {/* The branch, resolved from the estate — it
+                                      was a stored label, which printed one
+                                      business's branch while signed into
+                                      another. Falls back to the business name
+                                      where there is no branch to name. */}
+                                  · {appt.locationId ? locationName(appt.locationId) : businessName}
                                 </span>
                               </span>
                               <AppointmentSubject appt={appt} />

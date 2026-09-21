@@ -16,11 +16,19 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
+import { useBranchOfferingNote } from "@/lib/service-catalog/use-branch-offering-note"
 
 type ServicePickerPanelProps = {
   onBack: () => void
   /** Fires when the operator commits a service. The caller closes the picker. */
   onSelectService: (service: MockServiceCatalogItem) => void
+  /**
+   * The branch this appointment is landing on (R11), once it has been named.
+   *
+   * Null before the question is answered, and on a single-branch business,
+   * where there is nothing to say about where a service runs.
+   */
+  locationId?: string | null
 }
 
 /**
@@ -28,7 +36,12 @@ type ServicePickerPanelProps = {
  * content (replacing the appointment view) rather than a full-screen modal.
  * The caller toggles between this and the appointment view via a mode state.
  */
-export function ServicePickerPanel({ onBack, onSelectService }: ServicePickerPanelProps) {
+export function ServicePickerPanel({
+  onBack,
+  onSelectService,
+  locationId,
+}: ServicePickerPanelProps) {
+  const offeringNote = useBranchOfferingNote(locationId)
   const [search, setSearch] = useState("")
   const catalog = useAppointmentServiceCatalog()
 
@@ -69,6 +82,7 @@ export function ServicePickerPanel({ onBack, onSelectService }: ServicePickerPan
                 label={label}
                 items={items}
                 onPick={onSelectService}
+                offeringNote={offeringNote}
               />
             ))
           )}
@@ -91,10 +105,12 @@ function ServiceCategoryGroup({
   label,
   items,
   onPick,
+  offeringNote,
 }: {
   label: string
   items: MockServiceCatalogItem[]
   onPick: (item: MockServiceCatalogItem) => void
+  offeringNote: (serviceId: string) => string | null
 }) {
   return (
     <section className="flex flex-col gap-2">
@@ -133,13 +149,17 @@ function ServiceCategoryGroup({
                     {formatAed(item.priceMinor)}
                   </span>
                 </div>
-                {item.warnings && item.warnings.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5">
-                    {item.warnings.map((w) => (
-                      <ServiceWarningPill key={w} text={w} />
-                    ))}
-                  </div>
-                ) : null}
+                {(() => {
+                  const branchNote = offeringNote(item.id)
+                  const pills = [...(item.warnings ?? []), ...(branchNote ? [branchNote] : [])]
+                  return pills.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {pills.map((w) => (
+                        <ServiceWarningPill key={w} text={w} />
+                      ))}
+                    </div>
+                  ) : null
+                })()}
               </div>
             </button>
           </li>

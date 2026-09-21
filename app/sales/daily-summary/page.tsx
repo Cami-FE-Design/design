@@ -1,10 +1,13 @@
 "use client"
 
 import { ChevronDownIcon, FileSpreadsheetIcon, FileTextIcon, PlusIcon } from "lucide-react"
-import { useState } from "react"
+import { useSearchParams } from "next/navigation"
+import { Suspense, useMemo, useState } from "react"
 import { CartFlow } from "@/app/sales/new-sale/cart-flow"
+import { MOCK_SALES } from "@/app/sales/sales-list/page"
 import { AppShell } from "@/components/blocks/app-shell"
 import { DateSelector } from "@/components/blocks/date-selector"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -20,62 +23,55 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useLocations } from "@/lib/locations/store"
+import {
+  type DailySummary,
+  dayIso,
+  latestTradingDay,
+  summarizeDay,
+} from "@/lib/sales/daily-summary"
 import { cn } from "@/lib/utils"
 
-// ─── Mock data (matches the figma values) ─────────────────────────────────────
+/**
+ * Beyond this the card stops being a glance and starts pushing the report off.
+ *
+ * Three, not five. The card sits above the two summaries a till is reconciled
+ * against, so every row it shows is a row of those pushed down — and the
+ * question it answers is which branch is worth looking at, which the top three
+ * answer as well as the top five. The rest is one click away.
+ */
+const VISIBLE_LOCATIONS = 3
+
+// ─── Derived from the sales log ───────────────────────────────────────────────
+//
+// Every figure on this page comes from `summarizeDay`, bounded by the grant
+// before it sums (G7, R18). It used to be two cards of constants typed to match
+// a Figma frame, with no branch anywhere on them — so an owner of nine branches
+// read one merged number, which is exactly the failure the PRD's first user
+// story names: "the roll-up shows a per-location breakdown side by side, not a
+// merged total. A single number destroys the job."
+
+function money(minor: number) {
+  const aed = Math.round(minor / 100)
+  if (aed < 0) return `- ${CURRENCY} ${Math.abs(aed).toLocaleString()}`
+  return `${CURRENCY} ${aed.toLocaleString()}`
+}
 
 const CURRENCY = "AED"
 
-function money(amount: number) {
-  if (amount < 0) {
-    return `- ${CURRENCY} ${Math.abs(amount).toLocaleString()}`
-  }
-  return `${CURRENCY} ${amount.toLocaleString()}`
-}
-
-type TxnRow = { label: string; salesQty: number; refundQty: number; grossTotal: number }
-
-const TRANSACTION_ROWS: TxnRow[] = [
-  { label: "Services", salesQty: 1, refundQty: 0, grossTotal: 25 },
-  { label: "Service add-ons", salesQty: 0, refundQty: 0, grossTotal: 0 },
-  { label: "Products", salesQty: 0, refundQty: 0, grossTotal: 0 },
-  { label: "Shipping", salesQty: 0, refundQty: 0, grossTotal: 0 },
-  { label: "Gift cards", salesQty: 0, refundQty: 0, grossTotal: 0 },
-  { label: "Memberships", salesQty: 0, refundQty: 0, grossTotal: 0 },
-  { label: "Late cancellation fees", salesQty: 0, refundQty: 0, grossTotal: 0 },
-  { label: "No-show fees", salesQty: 0, refundQty: 0, grossTotal: 0 },
-  { label: "Refund amount", salesQty: 0, refundQty: 1, grossTotal: -9 },
-]
-
-const TRANSACTION_TOTAL = TRANSACTION_ROWS.reduce(
-  (acc, row) => ({
-    salesQty: acc.salesQty + row.salesQty,
-    refundQty: acc.refundQty + row.refundQty,
-    grossTotal: acc.grossTotal + row.grossTotal,
-  }),
-  { salesQty: 0, refundQty: 0, grossTotal: 0 },
-)
-
-type CashRow = {
-  label: string
-  paymentsCollected: number
-  refundsPaid: number
-  emphasis?: boolean
-}
-
-const CASH_ROWS: CashRow[] = [
-  { label: "Cash", paymentsCollected: 11, refundsPaid: -9 },
-  { label: "Other", paymentsCollected: 0, refundsPaid: 0 },
-  { label: "Gift card redemptions", paymentsCollected: 0, refundsPaid: 0 },
-  { label: "Payments collected", paymentsCollected: 11, refundsPaid: -9, emphasis: true },
-  { label: "Of which tips", paymentsCollected: 0, refundsPaid: 0 },
-]
-
 // ─── Cards ────────────────────────────────────────────────────────────────────
 
-function SummaryCard({ title, children }: { title: string; children: React.ReactNode }) {
+function SummaryCard({
+  title,
+  children,
+  className,
+}: {
+  title: string
+  children: React.ReactNode
+  className?: string
+}) {
   return (
-    <div className="overflow-hidden bg-card">
+    <div className={cn("overflow-hidden bg-card", className)}>
       <div className="px-5 py-4">
         <h2 className="font-heading text-base font-semibold text-foreground">{title}</h2>
       </div>
@@ -84,7 +80,7 @@ function SummaryCard({ title, children }: { title: string; children: React.React
   )
 }
 
-function TransactionSummary() {
+function TransactionSummary({ summary }: { summary: DailySummary }) {
   return (
     <SummaryCard title="Transaction summary">
       <Table>
@@ -97,7 +93,7 @@ function TransactionSummary() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {TRANSACTION_ROWS.map((row) => (
+          {summary.transactions.map((row) => (
             <TableRow key={row.label}>
               <TableCell className="text-sm text-foreground">{row.label}</TableCell>
               <TableCell className="text-right text-sm text-foreground tabular-nums">
@@ -109,23 +105,46 @@ function TransactionSummary() {
               <TableCell
                 className={cn(
                   "text-right text-sm tabular-nums",
-                  row.grossTotal < 0 ? "text-tomato-11" : "text-foreground",
+                  row.grossMinor < 0 ? "text-tomato-11" : "text-foreground",
                 )}
               >
-                {money(row.grossTotal)}
+                {money(row.grossMinor)}
               </TableCell>
             </TableRow>
           ))}
           <TableRow className="border-t border-border/60 bg-muted/30">
             <TableCell className="text-sm font-semibold text-foreground">Total Sales</TableCell>
             <TableCell className="text-right text-sm font-semibold tabular-nums">
-              {TRANSACTION_TOTAL.salesQty}
+              {summary.transactionTotal.salesQty}
             </TableCell>
             <TableCell className="text-right text-sm font-semibold tabular-nums">
-              {TRANSACTION_TOTAL.refundQty}
+              {summary.transactionTotal.refundQty}
             </TableCell>
             <TableCell className="text-right text-sm font-semibold tabular-nums">
-              {money(TRANSACTION_TOTAL.grossTotal)}
+              {money(summary.transactionTotal.grossMinor)}
+            </TableCell>
+          </TableRow>
+          {/* Below the total and outside it. Confirmed against the built
+              summary: a gift card sold is deferred revenue, so counting it as
+              takings overstates the day by the face value of every card and
+              puts the till out with the books at month close. The money is in
+              the drawer — it appears in Cash movement — but the revenue arrives
+              when somebody redeems it, at whichever branch does the work. */}
+          <TableRow className="border-t-2 border-border">
+            <TableCell className="text-muted-foreground text-sm">
+              Gift cards sold
+              <Badge variant="primary-soft" size="sm" className="ml-1.5">
+                Liability
+              </Badge>
+            </TableCell>
+            <TableCell className="text-right text-muted-foreground text-sm tabular-nums">
+              {summary.giftCardsSold.salesQty}
+            </TableCell>
+            <TableCell className="text-right text-muted-foreground text-sm tabular-nums">
+              {summary.giftCardsSold.refundQty}
+            </TableCell>
+            <TableCell className="text-right text-muted-foreground text-sm tabular-nums">
+              {money(summary.giftCardsSold.grossMinor)}
             </TableCell>
           </TableRow>
         </TableBody>
@@ -134,7 +153,7 @@ function TransactionSummary() {
   )
 }
 
-function CashMovementSummary() {
+function CashMovementSummary({ summary }: { summary: DailySummary }) {
   return (
     <SummaryCard title="Cash movement summary">
       <Table>
@@ -146,7 +165,7 @@ function CashMovementSummary() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {CASH_ROWS.map((row) => (
+          {summary.cash.map((row) => (
             <TableRow key={row.label} className={cn(row.emphasis && "bg-muted/30")}>
               <TableCell className={cn("text-sm text-foreground", row.emphasis && "font-semibold")}>
                 {row.label}
@@ -157,16 +176,16 @@ function CashMovementSummary() {
                   row.emphasis ? "font-semibold text-foreground" : "text-foreground",
                 )}
               >
-                {money(row.paymentsCollected)}
+                {money(row.collectedMinor)}
               </TableCell>
               <TableCell
                 className={cn(
                   "text-right text-sm tabular-nums",
-                  row.refundsPaid < 0 ? "text-tomato-11" : "text-foreground",
+                  row.refundedMinor < 0 ? "text-tomato-11" : "text-foreground",
                   row.emphasis && "font-semibold",
                 )}
               >
-                {money(row.refundsPaid)}
+                {money(row.refundedMinor)}
               </TableCell>
             </TableRow>
           ))}
@@ -176,15 +195,180 @@ function CashMovementSummary() {
   )
 }
 
+/**
+ * Which branch, not just how much (KH1.1, R09).
+ *
+ * The total sits after the rows and is labelled as their sum, rather than being
+ * a headline with a breakdown hidden underneath — an owner asking how the day
+ * went across nine branches is asking which one had a bad day, and a single
+ * number sends them back to phoning each branch, which is what BG-05 measures.
+ *
+ * ## Five rows, then a door — not a second scrollbar
+ *
+ * This card answers the first question, so it goes first — but first and
+ * unbounded means that at nine branches the transaction and cash summaries
+ * start below the fold, and the report a till is reconciled against is the one
+ * that got pushed off the screen. That is the layout holding at three and
+ * failing at nine, which is the whole reason the seeded estate is nine.
+ *
+ * Capping the card's height and letting the rows scroll inside it fixed that
+ * and bought a worse problem: a scrollbar inside a scrollbar, two of them on
+ * screen at once, and no way to tell which one a wheel is about to move. So the
+ * list is simply short by default — the five biggest — and everything else is
+ * one click away, which grows the page rather than nesting inside it. Ordered
+ * biggest first, so the five worth seeing are the five you get.
+ *
+ * The business total sits outside the list either way: it is the check on the
+ * rows rather than one of them, and a roll-up that hides behind a toggle is not
+ * a roll-up.
+ *
+ * Absent for a single-branch business: there is nothing to tell apart, and a
+ * breakdown of one row is a label for nothing (DW1.2).
+ */
+function ByLocationSummary({ summary }: { summary: DailySummary }) {
+  const { locationName } = useLocations()
+  const [showAll, setShowAll] = useState(false)
+  const rows = showAll ? summary.byLocation : summary.byLocation.slice(0, VISIBLE_LOCATIONS)
+  const hidden = summary.byLocation.length - rows.length
+
+  if (summary.byLocation.length === 0) {
+    return (
+      <SummaryCard title="By location" className="shrink-0">
+        <p className="px-5 pb-4 text-muted-foreground text-sm">
+          No takings anywhere in your locations on this day.
+        </p>
+      </SummaryCard>
+    )
+  }
+
+  return (
+    <SummaryCard title="By location" className="shrink-0">
+      <div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Location</TableHead>
+              <TableHead className="text-right">Sales qty</TableHead>
+              <TableHead className="text-right">Refund qty</TableHead>
+              <TableHead className="text-right">Tips</TableHead>
+              <TableHead className="text-right">Gross total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.locationId}>
+                <TableCell className="text-foreground text-sm">
+                  {locationName(row.locationId)}
+                </TableCell>
+                <TableCell className="text-right text-foreground text-sm tabular-nums">
+                  {row.salesQty}
+                </TableCell>
+                <TableCell className="text-right text-foreground text-sm tabular-nums">
+                  {row.refundQty}
+                </TableCell>
+                <TableCell className="text-right text-foreground text-sm tabular-nums">
+                  {money(row.tipsMinor)}
+                </TableCell>
+                <TableCell
+                  className={cn(
+                    "text-right text-sm tabular-nums",
+                    row.grossMinor < 0 ? "text-tomato-11" : "text-foreground",
+                  )}
+                >
+                  {money(row.grossMinor)}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* The door to the rest. A count rather than "Show all", because how many
+          branches are hidden is the thing worth knowing before you decide to
+          look — and at seven of nine it is a different decision than at two. */}
+      {hidden > 0 || showAll ? (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="w-full border-border/60 border-t px-5 py-2.5 text-left font-medium text-cami-violet-11 text-sm transition-colors hover:bg-muted/40"
+        >
+          {showAll
+            ? "Show fewer locations"
+            : `Show ${hidden} more ${hidden === 1 ? "location" : "locations"}`}
+        </button>
+      ) : null}
+
+      {/* Outside the list on purpose. The rows are the answer and the total is
+          the check on it, so the check cannot be the thing you have to go
+          looking for. */}
+      <div className="flex items-center justify-between gap-3 border-border/60 border-t bg-muted/30 px-5 py-3">
+        <span className="font-semibold text-foreground text-sm">
+          Business total — the sum of {summary.byLocation.length}{" "}
+          {summary.byLocation.length === 1 ? "location" : "locations"}
+        </span>
+        <span className="font-semibold text-foreground text-sm tabular-nums">
+          {money(summary.rollUpMinor)}
+        </span>
+      </div>
+
+      {/* Named, never dropped: "nothing at Al Quoz today" and "Al Quoz is
+          missing from this report" are different answers. */}
+      {summary.quietLocations.length > 0 ? (
+        <p className="px-5 pt-3 pb-4 text-muted-foreground text-xs">
+          No takings this day at {summary.quietLocations.map(locationName).join(", ")}.
+        </p>
+      ) : null}
+    </SummaryCard>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DailySummaryPage() {
+  // useSearchParams() opts a route out of static prerendering unless it runs
+  // inside a Suspense boundary — the failure that only a production build
+  // catches, and that took /settings/team down on Vercel.
+  return (
+    <Suspense>
+      <DailySummaryInner />
+    </Suspense>
+  )
+}
+
+function DailySummaryInner() {
+  // The granted set, not the estate (R18). A manager holding one branch reads
+  // their own day, labelled as theirs — not a business figure built from
+  // branches they cannot open.
+  const { granted, scopedLocations, isMultiLocation } = useLocations()
+  const inScope = scopedLocations.length > 0 ? scopedLocations : granted
+  const allowed = useMemo(() => inScope.map((l) => l.id), [inScope])
+
+  // Opening on today met every reviewer with an empty report and no way to
+  // tell an empty day from a broken one — the seeded log's last sale is months
+  // back. The landing day is this scope's own last trading day.
+  // `?d=YYYY-MM-DD` opens a named day, the way every other reviewable state in
+  // this repo is a link — /screens hands these out and a review message pastes
+  // them. Without it the only way to reach the busy day was to guess it with
+  // the arrows.
+  const params = useSearchParams()
   const [date, setDate] = useState<Date>(() => {
-    const d = new Date()
+    const asked = params.get("d")
+    if (asked && /^\d{4}-\d{2}-\d{2}$/.test(asked)) {
+      const [y, m, d] = asked.split("-").map(Number)
+      return new Date(y!, m! - 1, d!)
+    }
+    const latest = latestTradingDay(MOCK_SALES, allowed)
+    const d = latest ? new Date(latest) : new Date()
     d.setHours(0, 0, 0, 0)
     return d
   })
   const [cartOpen, setCartOpen] = useState(false)
+
+  const summary = useMemo(() => summarizeDay(MOCK_SALES, dayIso(date), allowed), [date, allowed])
+  const latest = useMemo(() => latestTradingDay(MOCK_SALES, allowed), [allowed])
+  const today = new Date()
+  const landedOnLastTradingDay =
+    latest != null && dayIso(date) === dayIso(latest) && dayIso(date) !== dayIso(today)
 
   return (
     <AppShell
@@ -229,12 +413,33 @@ export default function DailySummaryPage() {
         </div>
       }
     >
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">
+      {/* The date picker stays put and the report scrolls under it — the same
+          shape the sales list uses. Putting the scroll on the outer max-width
+          wrapper looked equivalent and was not: the page grew a third card,
+          overflowed, and clipped it with no scrollbar anywhere. */}
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4">
         <DateSelector value={date} onChange={setDate} />
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <TransactionSummary />
-          <CashMovementSummary />
+        {/* Why you are looking at a day that is not today. Landing somewhere
+            unexplained reads as a broken date picker; the seeded log simply
+            stops before today, and a real merchant's would not. */}
+        {landedOnLastTradingDay ? (
+          <p className="text-muted-foreground text-sm">
+            Nothing has been sold since, so this is your last trading day.
+          </p>
+        ) : null}
+
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-4">
+          {/* First, not last. The question an owner brings to an end-of-day
+              report is which branch had a bad day, and that answer sitting
+              under two full-height tables is an answer nobody scrolls to —
+              which is the merged-total failure again, wearing a breakdown. */}
+          {isMultiLocation ? <ByLocationSummary summary={summary} /> : null}
+
+          <div className="grid shrink-0 grid-cols-1 gap-4 lg:grid-cols-2">
+            <TransactionSummary summary={summary} />
+            <CashMovementSummary summary={summary} />
+          </div>
         </div>
       </div>
 

@@ -44,6 +44,7 @@ import {
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatTime } from "@/lib/format"
+import { useLocations } from "@/lib/locations/store"
 import {
   formatDayHeading,
   formatMoney,
@@ -53,7 +54,13 @@ import {
   txKindLabel,
 } from "@/lib/money/format"
 import { filterActivity, groupByDay, paginateDays } from "@/lib/money/ledger"
-import { DESTINATION_LAST4, defaultRange, TODAY_ISO } from "@/lib/money/mock"
+import {
+  BUSINESS_NAME,
+  BUSINESS_WIDE,
+  DESTINATION_LAST4,
+  defaultRange,
+  TODAY_ISO,
+} from "@/lib/money/mock"
 import type { CamiPayRail, MerchantRails, MoneyTx, MoneyTxKind, Payout } from "@/lib/money/types"
 import { custodianLabel, custodianOf } from "@/lib/money/types"
 import { cn } from "@/lib/utils"
@@ -116,18 +123,32 @@ export function MoneyActivityView({ txs, payouts, rails, loading = false }: Prop
   // Forward-compatible with multi-location (OBJ-P6): the filter reads the
   // locations present in the data rather than a hardcoded list, so it starts
   // working the day a second location exists.
-  const locations = useMemo(() => [...new Set(txs.map((t) => t.locationName))].sort(), [txs])
+  // Built from the grant, never from the rows. Reading the data meant a
+  // manager granted one branch saw every branch in this filter and every
+  // branch's rows beneath it — G7's "bounded by the grant before it sums", not
+  // after (R18). Rows belonging to the business rather than a branch — payouts,
+  // platform fees — stay in: they are the merchant's, not a shopfront's.
+  const { scopedLocations, granted, locationName } = useLocations()
+  const inScope = scopedLocations.length > 0 ? scopedLocations : granted
+  const scoped = useMemo(
+    () =>
+      txs.filter(
+        (t) => t.locationId === BUSINESS_WIDE || inScope.some((l) => l.id === t.locationId),
+      ),
+    [txs, inScope],
+  )
+  const locations = useMemo(() => inScope.map((l) => l.id), [inScope])
 
   const filtered = useMemo(
     () =>
-      filterActivity(txs, {
+      filterActivity(scoped, {
         kinds: kind === "all" ? undefined : [kind],
         rail: rail === "all" ? null : rail,
-        locationName: location === "all" ? undefined : location,
+        locationId: location === "all" ? undefined : location,
         fromIso: bounds.fromIso,
         toIso: bounds.toIso,
       }),
-    [txs, kind, rail, location, bounds.fromIso, bounds.toIso],
+    [scoped, kind, rail, location, bounds.fromIso, bounds.toIso],
   )
 
   const allGroups = useMemo(() => groupByDay(filtered), [filtered])
@@ -180,7 +201,7 @@ export function MoneyActivityView({ txs, payouts, rails, loading = false }: Prop
               <SelectItem value="all">All locations</SelectItem>
               {locations.map((l) => (
                 <SelectItem key={l} value={l}>
-                  {l}
+                  {locationName(l)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -355,6 +376,7 @@ function Row({
   first: boolean
   onOpen: () => void
 }) {
+  const { locationName } = useLocations()
   const Icon = KIND_ICON[tx.kind]
   const isOut = tx.amountMinor < 0
   const who = custodianLabel(custodianOf(tx.rail))
@@ -390,7 +412,11 @@ function Row({
         </span>
         <span className="truncate text-xs text-muted-foreground">
           {[tx.client, tx.reference?.label, tx.note].filter(Boolean).join(" · ") ||
-            (tx.kind === "payout" ? `to •••• ${DESTINATION_LAST4}` : tx.locationName)}
+            (tx.kind === "payout"
+              ? `to •••• ${DESTINATION_LAST4}`
+              : tx.locationId === BUSINESS_WIDE
+                ? BUSINESS_NAME
+                : locationName(tx.locationId))}
         </span>
       </div>
 

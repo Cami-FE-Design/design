@@ -24,9 +24,16 @@ import { ServiceCardInner } from "./ServiceCard"
 // PRD-143 — combos share the service list with single services, so the row has
 // to say which it is, and saving a combo has to put one in that list.
 
-const combo = seedServices.find((s) => s.id === "svc-8")
-const single = seedServices.find((s) => s.id === "svc-1")
-if (!combo || !single) throw new Error("seed services missing")
+// Found by kind rather than by id: the seed is derived from the one catalog in
+// lib/booking.ts now, so hardcoding an id ties this test to which service
+// happens to sit where.
+const seededCombo = seedServices.find(
+  (s) => s.serviceType === "combo" && s.components?.length === 2,
+)
+const seededSingle = seedServices.find((s) => s.serviceType !== "combo")
+if (!seededCombo || !seededSingle) throw new Error("seed services missing")
+const combo = seededCombo
+const single = seededSingle
 
 function categoryOf(categoryId: string) {
   const category = seedCategories.find((c) => c.id === categoryId)
@@ -74,16 +81,13 @@ describe("saving a combo", () => {
           onClick={() =>
             createCombo.mutate({
               name: "Test Bundle",
-              categoryId: "cat-3",
+              categoryId: single.categoryId,
               priceType: "Fixed",
               price: 60,
               duration: 75,
               scheduleType: "sequence",
               comboPriceType: "service",
-              components: [
-                { id: "svc-6", name: "Classic Manicure" },
-                { id: "svc-7", name: "Gel Manicure" },
-              ],
+              components: combo.components ?? [],
             })
           }
         >

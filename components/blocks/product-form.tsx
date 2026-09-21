@@ -12,6 +12,7 @@ import { useState } from "react"
 import { SelectBrandDialog } from "@/components/blocks/select-brand-dialog"
 import { SelectCategoryDialog } from "@/components/blocks/select-category-dialog"
 import { SelectSupplierDialog } from "@/components/blocks/select-supplier-dialog"
+import { WriteTargetLocation } from "@/components/blocks/write-target-location"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -24,6 +25,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
 // ─── Local helpers ────────────────────────────────────────────────────────────
@@ -178,7 +180,7 @@ export const PRODUCT_SECTIONS: Array<{
 }> = [
   { id: "basics", label: "Basic info", icon: InfoIcon },
   { id: "pricing", label: "Pricing", icon: BadgeDollarSignIcon },
-  { id: "inventory", label: "Inventory", icon: BoxesIcon, badge: "WIP" },
+  { id: "inventory", label: "Inventory", icon: BoxesIcon },
   { id: "photos", label: "Photos", icon: ImageIcon },
 ]
 
@@ -219,6 +221,13 @@ export function ProductForm({
   section?: ProductFormSectionId
 }) {
   const iv = initialValues ?? {}
+  /**
+   * Editing an existing product rather than creating one. The distinction
+   * matters to the stock block below: a product that already exists has a
+   * count at every branch, so there is no opening count to ask for and no one
+   * branch the question belongs to.
+   */
+  const isEdit = initialValues !== undefined
 
   // Basic info
   const [name, setName] = useState(iv.name ?? "")
@@ -249,6 +258,9 @@ export function ProductForm({
   const [lowStockLevel, setLowStockLevel] = useState(iv.lowStockLevel ?? "")
   const [reorderQty, setReorderQty] = useState(iv.reorderQty ?? "")
   const [lowStockNotif, setLowStockNotif] = useState(iv.lowStockNotif ?? false)
+  /** Which branch the opening count and thresholds belong to (R11, R16). */
+  const [stockLocationId, setStockLocationId] = useState<string | null>(null)
+  const { isMultiLocation } = useLocations()
 
   const measureLabel = MEASURE_OPTIONS.find((m) => m.value === measure)?.value ?? "ml"
 
@@ -517,10 +529,7 @@ export function ProductForm({
 
       {/* ── Inventory ──────────────────────────────────────────────────── */}
       {showInventory && (
-        <FormSection
-          title="Inventory"
-          description="Manage stock levels of this product through Fresha."
-        >
+        <FormSection title="Inventory" description="Manage stock levels of this product.">
           {/* SKU fields */}
           <div className="flex flex-col gap-3">
             {skus.map((sku, index) => (
@@ -598,18 +607,51 @@ export function ProductForm({
               onCheckedChange={setTrackStock}
             />
 
-            {trackStock && (
-              <FieldRow>
-                <Label htmlFor="current-stock">Current stock quantity</Label>
-                <Input
-                  id="current-stock"
-                  type="number"
-                  min="0"
-                  placeholder="0"
-                  value={currentStock}
-                  onChange={(e) => setCurrentStock(e.target.value)}
+            {/* An opening count exists only at creation. On an existing product
+                every branch already has a count, changed by a movement and read
+                per branch — so this asked a question with no answer ("opening
+                count at") and printed a zero beside a product holding 49. It
+                says where to go instead. */}
+            {trackStock && isEdit && isMultiLocation ? (
+              <p className="rounded-xl bg-muted/40 p-3 text-sm text-muted-foreground">
+                Each location keeps its own count, and this product&apos;s are on its Stock by
+                location card. Change one with Add or Remove stock, which records the location it
+                happened at — the business quantity is the sum of them and is never set directly.
+              </p>
+            ) : null}
+
+            {trackStock && !isEdit && (
+              <>
+                {/* R11 and R16: an opening count is a stock movement, so it
+                    names one branch. Asked before the number, because "how
+                    many" has no meaning until "where" is settled — and a
+                    create form is not the place to type nine opening balances,
+                    which is why the other branches receive stock rather than
+                    being filled in here. */}
+                <WriteTargetLocation
+                  value={stockLocationId}
+                  onChange={setStockLocationId}
+                  label="Opening count at"
+                  action="An opening count"
                 />
-              </FieldRow>
+                <FieldRow>
+                  <Label htmlFor="current-stock">Current stock quantity</Label>
+                  <Input
+                    id="current-stock"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={currentStock}
+                    onChange={(e) => setCurrentStock(e.target.value)}
+                  />
+                  {isMultiLocation ? (
+                    <p className="text-xs text-muted-foreground">
+                      This location&apos;s count. Every other location starts at zero and takes its
+                      own deliveries — the business quantity is the sum of them, never set directly.
+                    </p>
+                  ) : null}
+                </FieldRow>
+              </>
             )}
           </div>
 
@@ -624,38 +666,49 @@ export function ProductForm({
                   <p className="text-sm text-muted-foreground">
                     Cami will automatically notify you and pre-fill the reorder quantity set for
                     future stock orders.
+                    {isMultiLocation
+                      ? isEdit
+                        ? " Each location sets its own, on its Stock by location card — a busy location and a quiet one rarely reorder at the same number."
+                        : " These apply to the location above; every other location sets its own."
+                      : ""}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FieldRow>
-                    <Label htmlFor="low-stock-level">Low stock level</Label>
-                    <Input
-                      id="low-stock-level"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={lowStockLevel}
-                      onChange={(e) => setLowStockLevel(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      The level to get notified to reorder
-                    </p>
-                  </FieldRow>
+                {/* Hidden for a chain: these are per branch, and one pair of
+                    fields with no location beside copy saying "each location
+                    sets its own" is the claim without the path. The card in the
+                    product detail is where they are set. */}
+                {isMultiLocation && isEdit ? null : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <FieldRow>
+                      <Label htmlFor="low-stock-level">Low stock level</Label>
+                      <Input
+                        id="low-stock-level"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={lowStockLevel}
+                        onChange={(e) => setLowStockLevel(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        The level to get notified to reorder
+                      </p>
+                    </FieldRow>
 
-                  <FieldRow>
-                    <Label htmlFor="reorder-qty">Reorder quantity</Label>
-                    <Input
-                      id="reorder-qty"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      value={reorderQty}
-                      onChange={(e) => setReorderQty(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">The default amount to order</p>
-                  </FieldRow>
-                </div>
+                    <FieldRow>
+                      <Label htmlFor="reorder-qty">Reorder quantity</Label>
+                      <Input
+                        id="reorder-qty"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={reorderQty}
+                        onChange={(e) => setReorderQty(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">The default amount to order</p>
+                    </FieldRow>
+                  </div>
+                )}
 
                 <SwitchRow
                   id="low-stock-notif"

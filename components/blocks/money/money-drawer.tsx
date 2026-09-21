@@ -29,7 +29,7 @@
 // "balance" (spec §2.1). This drawer shows the SAME `summarize()` output the
 // summary page shows, per custodian, so the two surfaces cannot disagree.
 
-import { ArrowUpRightIcon } from "lucide-react"
+import { ArrowUpRightIcon, BuildingIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import type * as React from "react"
 import { Suspense, useState } from "react"
@@ -51,9 +51,11 @@ import {
 } from "@/components/ui/sheet"
 import { formatDate } from "@/lib/format"
 import { CamiPayProvider } from "@/lib/hq-camipay/store"
+import { useLocations } from "@/lib/locations/store"
 import { formatDayHeading, formatMoney, txKindLabel } from "@/lib/money/format"
 import { groupByDay, paginateDays, summarizeByRail } from "@/lib/money/ledger"
 import {
+  BUSINESS_WIDE,
   defaultRange,
   nextPayoutDay,
   PAYOUT_SCHEDULE,
@@ -128,6 +130,7 @@ export function MoneyDrawer(props: Props) {
 }
 
 function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props) {
+  const { locationName, scopedLocations, granted, isMultiLocation, scopeLabel } = useLocations()
   const params = useSearchParams()
   const router = useRouter()
   const stateParam = params.get("state")
@@ -173,11 +176,30 @@ function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props
   }
 
   const bounds = periodBounds("month-to-date")
-  const byRail = summarizeByRail(txs, bounds)
-  const { groups } = paginateDays(groupByDay(txs), DRAWER_DAYS)
+  /**
+   * Bounded before it sums, exactly as the account summary does it (G7, R18).
+   *
+   * This drawer sits in the topbar of every AppShell page and was the one money
+   * surface that skipped the bound: `summarizeByRail` and `groupByDay` were
+   * handed the whole ledger, so a manager granted one branch read a held figure
+   * built from nine, and a feed of other branches' sales under it. The summary
+   * behind the same button was bounded, which made the two disagree — the
+   * defect DSG-73 exists to avoid, arriving through the one screen nobody had
+   * to open on purpose.
+   *
+   * Business-wide rows stay in for the same reason they do there: a payout
+   * leaves one account and a platform fee is billed to the merchant, so neither
+   * belongs to a branch that could be scoped away (GP1.4).
+   */
+  const inScope = scopedLocations.length > 0 ? scopedLocations : granted
+  const scopedTxs = txs.filter(
+    (t) => t.locationId === BUSINESS_WIDE || inScope.some((l) => l.id === t.locationId),
+  )
+  const byRail = summarizeByRail(scopedTxs, bounds)
+  const { groups } = paginateDays(groupByDay(scopedTxs), DRAWER_DAYS)
 
   const rails = (["online", "terminal"] as const).filter(
-    (r) => txs.some((t) => t.rail === r) || payouts.some((p) => p.rail === r),
+    (r) => scopedTxs.some((t) => t.rail === r) || payouts.some((p) => p.rail === r),
   )
 
   const drawer = (
@@ -193,6 +215,18 @@ function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props
           <SheetDescription className="text-sm leading-5">
             What is held for you right now, and what has moved in the last few days.
           </SheetDescription>
+          {/* Which branches this is, in words. The figures are the estate's
+              unless the switcher narrows them, and a balance that does not say
+              whose it is invites the owner to read one branch's takings as all
+              nine — or the reverse. The switcher is in the topbar behind this
+              sheet, so it cannot answer for it. Absent for a single-site
+              business, where there is nothing to tell apart. */}
+          {isMultiLocation ? (
+            <p className="flex items-center gap-1.5 text-muted-foreground text-xs">
+              <BuildingIcon className="size-3.5 shrink-0" strokeWidth={1.5} />
+              <span>Across {scopeLabel === "All locations" ? "all locations" : scopeLabel}</span>
+            </p>
+          ) : null}
         </SheetHeader>
 
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-6 pb-6">
@@ -250,7 +284,7 @@ function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props
                               {txKindLabel(tx.kind)}
                             </span>
                             <span className="truncate text-xs text-muted-foreground">
-                              {tx.client ?? tx.reference?.label ?? tx.locationName}
+                              {tx.client ?? tx.reference?.label ?? locationName(tx.locationId)}
                             </span>
                           </div>
                           <span

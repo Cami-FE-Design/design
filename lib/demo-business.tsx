@@ -1,7 +1,7 @@
 "use client"
 
 // Demo-only business identity. Lets a presenter rebrand the whole prototype to a
-// prospect's salon name on the fly (e.g. "Shampooch JVC" → "Glow Beauty Lounge").
+// prospect's salon name on the fly (e.g. "Shampooch" → "Glow Beauty Lounge").
 // Every client surface that shows the business/location name reads from here, so
 // one edit propagates app-wide. Persisted to localStorage so it survives navigation
 // and reload mid-demo. Pure presentation — no backend, no auth.
@@ -11,13 +11,17 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { findPublicBusinessByName, listPublicBusinesses } from "@/lib/public-business"
 
 const STORAGE_KEY = "cami-demo-business-name"
-const DEFAULT_NAME = "Shampooch JVC"
+// The business, not one of its branches. Was "Shampooch JVC", which named a
+// branch in the place the brand belongs — the same conflation the topbar's
+// fabricated second workspace row had. JVC is one of three locations now, and
+// branches live in the LocationSwitcher beside this.
+const DEFAULT_NAME = "Shampooch"
 
 type DemoBusinessValue = {
   /** Primary business / location name shown across the app. */
   name: string
   setName: (name: string) => void
-  /** Back to the default ("Shampooch JVC"). */
+  /** Back to the default ("Shampooch"). */
   reset: () => void
 }
 
@@ -75,9 +79,15 @@ export type DemoWorkspace = { id: string; name: string; imageSrc?: string }
  * for one job, and the one that looked official was the one that could not do
  * it: switching to Sota in the icon left this trigger reading Shampooch.
  *
- * So: every live venue is a row, picking one signs the demo into it, and the
- * signed-in venue is the only one that shows its second branch — the others'
- * branches are not the user's to stand in.
+ * So: every live venue is a row, and picking one signs the demo into it.
+ *
+ * **Branches are not rows here.** This list used to end with "Sota · Downtown"
+ * — a branch wearing a workspace's clothes, from before the product had
+ * anywhere else to put one. It has somewhere now: the LocationSwitcher sits
+ * beside this control and is the whole of SCR-04. Two ways into the same branch
+ * is how they disagree — pick Downtown here and the switcher still reads "All
+ * locations" — and capability and location are separate axes by requirement
+ * (R04), not by layout.
  *
  * The freehand rename is still a real case (a pitch to a prospect), and a name
  * that matches no venue gets a row of its own rather than disappearing.
@@ -93,7 +103,7 @@ export function useDemoWorkspaces(override?: DemoWorkspace[]): {
   select: (id: string) => void
 } {
   const { name, setName } = useDemoBusiness()
-  const [branchPick, setBranchPick] = useState<string | null>(null)
+  const [pick, setPick] = useState<string | null>(null)
 
   const venue = findPublicBusinessByName(name)
   const baseId = venue?.slug ?? CUSTOM_ID
@@ -101,37 +111,27 @@ export function useDemoWorkspaces(override?: DemoWorkspace[]): {
   const workspaces = useMemo<DemoWorkspace[]>(() => {
     if (override) return override
     const rows: DemoWorkspace[] = []
-    if (!venue)
-      rows.push({ id: CUSTOM_ID, name }, { id: branchIdOf(CUSTOM_ID), name: `${name} · Jumeirah` })
+    // A freehand rename is a real case — a pitch to a prospect — and a name
+    // matching no venue gets a row rather than disappearing.
+    if (!venue) rows.push({ id: CUSTOM_ID, name })
     for (const b of listPublicBusinesses()) {
       rows.push({ id: b.slug, name: b.businessName, imageSrc: b.logoUrl })
-      if (b.slug === venue?.slug && b.secondLocation) {
-        rows.push({
-          id: branchIdOf(b.slug),
-          name: `${b.displayName} · ${b.secondLocation}`,
-          imageSrc: b.logoUrl,
-        })
-      }
     }
     return rows
   }, [override, venue, name])
 
   // An override list is somebody else's data, so a pick is all there is to go
-  // on. The derived-from-name rule only applies to the venues we own.
-  const derivedId = override
-    ? (branchPick ?? workspaces[0]?.id)
-    : branchPick === branchIdOf(baseId)
-      ? branchPick
-      : baseId
+  // on. For the venues we own, the name is the selection — a stored id drifts
+  // the moment the name changes some other way.
+  const derivedId = override ? (pick ?? workspaces[0]?.id) : baseId
   const selected = workspaces.find((w) => w.id === derivedId) ?? workspaces[0]
   const selectedId = selected?.id ?? derivedId
 
   const select = useCallback(
     (id: string) => {
-      setBranchPick(id)
+      setPick(id)
       if (override) return
-      const slug = id.replace(BRANCH_SUFFIX, "")
-      const picked = listPublicBusinesses().find((b) => b.slug === slug)
+      const picked = listPublicBusinesses().find((b) => b.slug === id)
       if (picked) setName(picked.businessName)
     },
     [override, setName],
@@ -141,8 +141,3 @@ export function useDemoWorkspaces(override?: DemoWorkspace[]): {
 }
 
 const CUSTOM_ID = "custom"
-const BRANCH_SUFFIX = ":branch"
-
-function branchIdOf(id: string) {
-  return `${id}${BRANCH_SUFFIX}`
-}

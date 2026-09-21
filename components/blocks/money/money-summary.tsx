@@ -33,9 +33,11 @@ import {
   ReceiptTextIcon,
   TrendingUpIcon,
 } from "lucide-react"
+import { useMemo } from "react"
 import { toast } from "sonner"
 import { type DateRange, DateRangePopover } from "@/components/blocks/date-range-popover"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { MoneyByLocationView } from "@/components/blocks/money/money-by-location"
 import { RailBadge } from "@/components/blocks/money/rail-badge"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -46,6 +48,7 @@ import {
   formatRate,
   useCamiPay,
 } from "@/lib/hq-camipay/store"
+import { useLocations } from "@/lib/locations/store"
 import {
   formatMoney,
   fromDayIso,
@@ -55,7 +58,13 @@ import {
   toDayIso,
 } from "@/lib/money/format"
 import { summarize, summarizeByRail } from "@/lib/money/ledger"
-import { nextPayoutDay, PAYOUT_MINIMUM_MINOR, PAYOUT_SCHEDULE, TODAY_ISO } from "@/lib/money/mock"
+import {
+  BUSINESS_WIDE,
+  nextPayoutDay,
+  PAYOUT_MINIMUM_MINOR,
+  PAYOUT_SCHEDULE,
+  TODAY_ISO,
+} from "@/lib/money/mock"
 import type {
   CamiPayRail,
   MerchantRails,
@@ -95,8 +104,23 @@ export function MoneySummaryView({
   block,
 }: Props) {
   const bounds = { fromIso: toDayIso(range.from), toIso: toDayIso(range.to) }
-  const blended = summarize(txs, bounds)
-  const byRail = summarizeByRail(txs, bounds)
+  // Bounded before it sums, not after (G7, R18). Summed across the estate, a
+  // manager granted one branch would read a figure built from branches they
+  // cannot open — two people under one heading seeing different numbers, with
+  // nothing on the card to explain the gap. Business-wide rows stay in: a
+  // payout leaves one account and a platform fee is billed to the merchant,
+  // so neither belongs to a branch that could be scoped away.
+  const { scopedLocations, granted, isMultiLocation } = useLocations()
+  const inScope = scopedLocations.length > 0 ? scopedLocations : granted
+  const scoped = useMemo(
+    () =>
+      txs.filter(
+        (t) => t.locationId === BUSINESS_WIDE || inScope.some((l) => l.id === t.locationId),
+      ),
+    [txs, inScope],
+  )
+  const blended = summarize(scoped, bounds)
+  const byRail = summarizeByRail(scoped, bounds)
 
   const activeRails = (["online", "terminal"] as const).filter((r) => rails[r])
   const singleRail = activeRails.length === 1 ? activeRails[0] : null
@@ -139,6 +163,23 @@ export function MoneySummaryView({
             summary={singleRail ? byRail[singleRail] : blended}
             custodianName={singleRail ? custodianLabel(custodianOf(singleRail)) : "Cami and NeoPay"}
           />
+
+          {/* Which branch, not just how much (SCR-15, KH1.1). The headline
+              above is the roll-up, and a roll-up cannot answer the question an
+              owner with nine branches is actually asking — which one had a bad
+              day. Activity has carried a branch filter since DSG-78; this side
+              of the drawer summed the estate into one figure and offered no way
+              down, so the breakdown existed, was tested, and was reachable only
+              from CamiHQ and the playground. HQ's own story says it must show
+              "the same breakdown and roll-up an owner sees" — which the owner
+              could not see.
+
+              It bounds itself by the grant (R18), so it is handed the raw
+              ledger rather than this view's already-scoped copy. Absent for a
+              single-site business, the way the HQ tab is (G3); a manager
+              granted one branch of nine still gets their row and a roll-up
+              equal to it, which is KH1.3 and not an empty state. */}
+          {isMultiLocation ? <MoneyByLocationView txs={txs} filter={bounds} /> : null}
 
           {showRailSplit ? <RailDetail byRail={byRail} payouts={payouts} /> : null}
 

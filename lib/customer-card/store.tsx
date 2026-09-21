@@ -12,7 +12,13 @@
 // server so the first client render matches and hydration stays quiet. Pure
 // presentation — no backend.
 //
-// Keyed by slug because a theme belongs to a venue, and the demo has several.
+// Keyed by business, because branding belongs to the business and not to any
+// one of its addresses: a chain sets its palette once and every branch's card
+// carries it. Callers may hand us either slug — the card knows the branch it
+// was opened at, the Branding panel knows the business — so both are resolved
+// to the business before this map is touched, on the way in and the way out.
+// Keyed by branch, Shampooch JVC and Shampooch Jumeirah were two separate
+// palettes a merchant had no way to set and no reason to expect.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
@@ -22,6 +28,7 @@ import {
   getCustomerCardTheme,
   venueForBusinessName,
 } from "@/lib/customer-card/theme"
+import { brandingSlugFor } from "@/lib/public-business"
 
 const STORAGE_KEY = "cami-customer-card-themes"
 
@@ -52,8 +59,9 @@ export function CustomerCardThemeProvider({ children }: { children: React.ReactN
   }, [])
 
   const setTheme = useCallback((slug: string, themeId: string) => {
+    const key = brandingSlugFor(slug)
     setSaved((current) => {
-      const next = { ...current, [slug]: themeId }
+      const next = { ...current, [key]: themeId }
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
       return next
     })
@@ -66,7 +74,10 @@ export function CustomerCardThemeProvider({ children }: { children: React.ReactN
 
   const value = useMemo<CardThemeValue>(
     () => ({
-      themeFor: (slug) => saved[slug] ?? DEFAULT_THEME_BY_SLUG[slug],
+      themeFor: (slug) => {
+        const key = brandingSlugFor(slug)
+        return saved[key] ?? DEFAULT_THEME_BY_SLUG[key]
+      },
       setTheme,
       reset,
     }),
@@ -85,7 +96,7 @@ export function useCustomerCardTheme(): CardThemeValue {
   const ctx = useContext(CardThemeContext)
   if (ctx) return ctx
   return {
-    themeFor: (slug) => DEFAULT_THEME_BY_SLUG[slug],
+    themeFor: (slug) => DEFAULT_THEME_BY_SLUG[brandingSlugFor(slug)],
     setTheme: () => {},
     reset: () => {},
   }

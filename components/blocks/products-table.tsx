@@ -14,6 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { needsAttention, stockForProduct, stockLevel } from "@/lib/inventory/branch-stock"
+import { useBranchStock } from "@/lib/inventory/store"
+import { useLocations } from "@/lib/locations/store"
+import { cn } from "@/lib/utils"
 
 export type Product = {
   id: string
@@ -26,8 +30,69 @@ export type Product = {
   supplyPrice: number
   retailPrice: number
   status: "active" | "archived"
+  /**
+   * Whether this product is counted at all (R16). False is **Unlimited**, not
+   * zero — a shampoo bottle that is counted and a consumable that never is are
+   * different things, and showing the second as "0 in stock" reads as an
+   * outage. The name and the behaviour are the built product's
+   * (`cami-business`, `Product.trackStock`), which already ships this column.
+   *
+   * The balance itself is not here: it resolves per location, and the business
+   * quantity is derived from those and never stored (R16). See
+   * lib/inventory/branch-stock.ts.
+   */
+  trackStock: boolean
   /** Seed strings for placeholder tiles in the detail dialog. Empty/undefined hides the photos card. */
   photos?: string[]
+}
+
+/**
+ * SCR-11 · The quantity a row shows, resolved for the branches in scope
+ * (R16, R18, DW4.1, DW4.2).
+ *
+ * A sum is correct and, on its own, insufficient. Two branches holding 18 and
+ * -2 add up to a healthy-looking 16, and the -2 is the row that needs a stock
+ * take. So the cell carries the derived total **and** says when a branch inside
+ * it needs attention — the number stays the answer to "how many do we have",
+ * and the marker stops it being the answer to "is anything wrong".
+ *
+ * Scope-aware because R18 is: a manager granted one branch sees their own
+ * shelf, which is DW4.1's whole point, and it is labelled as theirs rather
+ * than dressed up as a business total.
+ */
+function QuantityCell({ product }: { product: Product }) {
+  const { scopedLocations, granted, isMultiLocation } = useLocations()
+  const { stock } = useBranchStock()
+  const inScope = (scopedLocations.length > 0 ? scopedLocations : granted).map((l) => l.id)
+
+  if (!product.trackStock) {
+    return <span className="text-sm text-muted-foreground">Unlimited</span>
+  }
+
+  const rows = stockForProduct(stock, product.id, inScope)
+  const total = rows.reduce((sum, row) => sum + row.quantity, 0)
+  const attention = needsAttention(rows)
+  const worst = attention[0] ? stockLevel(attention[0]) : "ok"
+
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span
+        className={cn(
+          "text-sm",
+          worst === "negative" || worst === "out" ? "text-destructive" : "text-foreground",
+        )}
+      >
+        {total} in stock
+      </span>
+      {attention.length > 0 && isMultiLocation ? (
+        <span className="text-xs text-muted-foreground">
+          {attention.length === 1
+            ? `1 location needs attention`
+            : `${attention.length} locations need attention`}
+        </span>
+      ) : null}
+    </span>
+  )
 }
 
 export const MOCK_PRODUCTS: Product[] = [
@@ -42,6 +107,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 450,
     retailPrice: 750,
     status: "active",
+    trackStock: true,
     photos: ["a", "b", "c", "d", "e"],
   },
   {
@@ -54,6 +120,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 1200,
     retailPrice: 1800,
     status: "active",
+    trackStock: true,
     photos: ["a", "b"],
   },
   {
@@ -67,6 +134,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 320,
     retailPrice: 550,
     status: "active",
+    trackStock: true,
   },
   {
     id: "p4",
@@ -77,6 +145,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 3500,
     retailPrice: 5200,
     status: "archived",
+    trackStock: true,
     photos: ["a", "b", "c"],
   },
   {
@@ -89,6 +158,7 @@ export const MOCK_PRODUCTS: Product[] = [
     supplyPrice: 280,
     retailPrice: 450,
     status: "archived",
+    trackStock: false,
     photos: ["a"],
   },
 ]
@@ -200,6 +270,9 @@ export function ProductsTable({
           </TableHead>
           <TableHead className="min-w-36">Category</TableHead>
           <TableHead className="min-w-40">Supplier</TableHead>
+          {/* Between Supplier and Retail price, which is where the shipped
+              Products list puts it. */}
+          <TableHead className="min-w-32">Quantity</TableHead>
           <TableHead className="min-w-32">
             <button
               type="button"
@@ -246,6 +319,9 @@ export function ProductsTable({
             <TableCell className="text-sm text-muted-foreground">{product.category}</TableCell>
             <TableCell className="text-sm text-muted-foreground">
               {product.supplier ?? "–"}
+            </TableCell>
+            <TableCell className="whitespace-nowrap">
+              <QuantityCell product={product} />
             </TableCell>
             <TableCell className="text-sm whitespace-nowrap text-foreground">
               {formatPrice(product.retailPrice)}

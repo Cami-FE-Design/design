@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { formatDateTime } from "@/lib/format"
+import { useLocations } from "@/lib/locations/store"
 import {
   billingPeriodOf,
   channelLabel,
@@ -36,7 +37,7 @@ import {
   txKindLabel,
 } from "@/lib/money/format"
 import { relatedTxs } from "@/lib/money/ledger"
-import { BUSINESS_NAME, DESTINATION_LAST4 } from "@/lib/money/mock"
+import { BUSINESS_NAME, BUSINESS_WIDE, DESTINATION_LAST4 } from "@/lib/money/mock"
 import type { MoneyTx, Payout } from "@/lib/money/types"
 import { custodianLabel, custodianOf } from "@/lib/money/types"
 import { cn } from "@/lib/utils"
@@ -51,6 +52,7 @@ type Props = {
 }
 
 export function TransactionDetailDialog({ tx, txs, payouts, onOpenChange, onOpenPayout }: Props) {
+  const { locationName } = useLocations()
   if (!tx) return null
 
   const custodian = custodianOf(tx.rail)
@@ -119,7 +121,10 @@ export function TransactionDetailDialog({ tx, txs, payouts, onOpenChange, onOpen
             ) : null}
             {tx.client ? <Field term="Client" value={tx.client} /> : null}
             <Field term="Channel" value={channelLabel(tx.rail)} />
-            <Field term="Location" value={tx.locationName} />
+            <Field
+              term="Location"
+              value={tx.locationId === BUSINESS_WIDE ? BUSINESS_NAME : locationName(tx.locationId)}
+            />
             {tx.method ? <Field term="Payment method" value={tx.method} /> : null}
             <Field term="Billing period" value={billingPeriodOf(tx.at)} />
           </dl>

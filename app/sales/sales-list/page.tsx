@@ -83,8 +83,9 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { type CamiPayRail, type CamiPayRate, railLabel } from "@/lib/hq-camipay/store"
-import { invoiceFromSale } from "@/lib/invoice/from-sale"
+import { invoiceFromSale, originalFor, receiptNumberFor } from "@/lib/invoice/from-sale"
 import { documentTitle } from "@/lib/invoice/totals"
+import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -419,6 +420,16 @@ export type Sale = {
   id: number
   client: string
   status: SaleStatus
+  /**
+   * The branch that took the money (R11, G1).
+   *
+   * Not optional. A sale is the clearest operational write there is, and G6
+   * hangs off it: the receipt sequence is per branch and prefixed, and the tax
+   * identity is frozen onto the receipt at sale. A sale without a branch can
+   * have neither, so leaving it absent would put the two facts a receipt
+   * legally needs beyond reach.
+   */
+  locationId: string
   saleAt: Date
   tipsMinor: number
   grossMinor: number
@@ -454,6 +465,7 @@ export const MOCK_SALES: Sale[] = [
   // refunded rows sat next to a voided and a part-paid sale.
   {
     id: 20,
+    locationId: "shampooch-jvc",
     client: "Yamen Haddad",
     status: "refunded",
     saleAt: new Date(2026, 4, 25, 17, 20),
@@ -462,6 +474,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 19,
+    locationId: "shampooch-jvc",
     client: "Yamen Haddad",
     status: "completed",
     saleAt: new Date(2026, 4, 25, 17, 5),
@@ -474,6 +487,7 @@ export const MOCK_SALES: Sale[] = [
   // a non-zero tip is the shape that breaks a single-Total receipt.
   {
     id: 17,
+    locationId: "shampooch-jvc",
     client: "Haroon Zafar",
     status: "completed",
     saleAt: new Date(2026, 4, 25, 16, 10),
@@ -482,6 +496,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 16,
+    locationId: "shampooch-jumeirah",
     client: "Tom Cassidy",
     status: "completed",
     saleAt: new Date(2026, 4, 25, 14, 30),
@@ -491,6 +506,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 15,
+    locationId: "shampooch-jvc",
     client: "Karen Dougall",
     status: "part-paid",
     saleAt: new Date(2026, 4, 25, 12, 5),
@@ -502,6 +518,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 14,
+    locationId: "shampooch-jvc",
     client: "Millie Cassidy",
     status: "unpaid",
     saleAt: new Date(2026, 4, 25, 11, 20),
@@ -510,6 +527,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 13,
+    locationId: "shampooch-jumeirah",
     client: "Aya Hassan",
     status: "refunded",
     saleAt: new Date(2026, 4, 25, 10, 45),
@@ -518,6 +536,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 12,
+    locationId: "shampooch-jvc",
     client: "Charmaine Hayes",
     status: "voided",
     saleAt: new Date(2026, 4, 25, 9, 50),
@@ -527,6 +546,7 @@ export const MOCK_SALES: Sale[] = [
   // Older rows — preserved so /screens?sale=N deep-links don't break.
   {
     id: 7,
+    locationId: "shampooch-jumeirah",
     client: "Jane Doe",
     status: "completed",
     saleAt: new Date(2026, 4, 24, 10, 15),
@@ -536,6 +556,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 6,
+    locationId: "shampooch-jumeirah",
     client: "Jane Doe",
     status: "part-paid",
     saleAt: new Date(2026, 4, 24, 10, 15),
@@ -544,6 +565,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 3,
+    locationId: "shampooch-jvc",
     client: "John Doe",
     status: "refunded",
     saleAt: new Date(2026, 4, 22, 10, 45),
@@ -552,6 +574,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 2,
+    locationId: "shampooch-jvc",
     client: "John Doe",
     status: "part-paid",
     saleAt: new Date(2026, 4, 22, 10, 33),
@@ -560,6 +583,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 1,
+    locationId: "shampooch-jvc",
     client: "John Doe",
     status: "voided",
     saleAt: new Date(2026, 4, 22, 10, 2),
@@ -572,6 +596,7 @@ export const MOCK_SALES: Sale[] = [
   // the listing too (single source of truth, no duplicated sale data).
   {
     id: 24,
+    locationId: "shampooch-al-reem",
     client: "Aamena Fatta",
     status: "completed",
     saleAt: new Date(2026, 5, 1, 15, 33),
@@ -585,6 +610,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 23,
+    locationId: "shampooch-al-quoz",
     client: "Luke Williams",
     status: "completed",
     saleAt: new Date(2025, 1, 20, 12, 10),
@@ -594,6 +620,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 22,
+    locationId: "shampooch-jumeirah",
     client: "Tom Cassidy",
     status: "completed",
     saleAt: new Date(2026, 3, 3, 16, 45),
@@ -603,6 +630,7 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 21,
+    locationId: "shampooch-jumeirah",
     client: "Millie Cassidy",
     status: "completed",
     saleAt: new Date(2026, 4, 12, 9, 5),
@@ -612,12 +640,109 @@ export const MOCK_SALES: Sale[] = [
   },
   {
     id: 20,
+    locationId: "shampooch-downtown-dubai",
     client: "Walk-In",
     status: "unpaid",
     saleAt: new Date(2026, 5, 29, 11, 20),
     tipsMinor: 0,
     grossMinor: 180000,
     giftCard: { cardId: "gc-1", code: "YYOSNPHO", status: "Unpaid", valueAed: 1800 },
+  },
+
+  // ── The rest of the estate, and the other businesses ───────────────────────
+  //
+  // Six branches had no sales at all, so every screen that bounds by branch
+  // showed an empty table the moment the operator narrowed to one of them —
+  // indistinguishable from a broken filter. Same for Purr Palace and Sota:
+  // signing into either left the whole money side blank.
+  //
+  // Dated the same day as the rows above, so the default "Today" range holds
+  // them. Each still belongs to exactly one branch (R11), and every surface
+  // bounds by the reader's grant before it reads (R18) — so a Purr Palace
+  // merchant sees Purr Palace's and nothing else.
+  {
+    id: 30,
+    locationId: "shampooch-dubai-marina",
+    client: "Layla Nasser",
+    status: "completed",
+    saleAt: new Date(2026, 4, 25, 15, 40),
+    tipsMinor: 1500,
+    grossMinor: 32000,
+  },
+  {
+    id: 31,
+    locationId: "shampooch-al-majaz",
+    client: "Hind Al Suwaidi",
+    status: "completed",
+    saleAt: new Date(2026, 4, 25, 12, 15),
+    tipsMinor: 0,
+    grossMinor: 19000,
+  },
+  {
+    id: 32,
+    locationId: "shampooch-mirdif",
+    client: "Rashid Al Blooshi",
+    status: "part-paid",
+    saleAt: new Date(2026, 4, 25, 10, 5),
+    tipsMinor: 0,
+    grossMinor: 15000,
+  },
+  {
+    id: 33,
+    locationId: "shampooch-al-reem",
+    client: "Maryam Al Hosani",
+    status: "unpaid",
+    saleAt: new Date(2026, 4, 25, 9, 30),
+    tipsMinor: 0,
+    grossMinor: 24000,
+  },
+  {
+    id: 34,
+    locationId: "shampooch-downtown-dubai",
+    client: "Walk-In",
+    status: "completed",
+    saleAt: new Date(2026, 4, 25, 13, 50),
+    tipsMinor: 500,
+    grossMinor: 26000,
+  },
+  {
+    // Purr Palace — one site, so one branch and its slug is the business's.
+    id: 40,
+    locationId: "purr-palace",
+    client: "Dana Khalil",
+    status: "completed",
+    saleAt: new Date(2026, 4, 25, 16, 10),
+    tipsMinor: 1000,
+    grossMinor: 21000,
+  },
+  {
+    id: 41,
+    locationId: "purr-palace",
+    client: "Omar Sultan",
+    status: "unpaid",
+    saleAt: new Date(2026, 4, 25, 11, 45),
+    tipsMinor: 0,
+    grossMinor: 9000,
+  },
+  {
+    // Sota — the non-pet business, which is what makes it a useful check on
+    // anything that assumes a pet is on the sale.
+    id: 50,
+    locationId: "sota",
+    client: "Maaz Shaffi",
+    status: "completed",
+    saleAt: new Date(2026, 4, 25, 14, 20),
+    tipsMinor: 2000,
+    grossMinor: 38000,
+  },
+  {
+    id: 51,
+    locationId: "sota",
+    client: "Aisha Rahman",
+    status: "part-paid",
+    saleAt: new Date(2026, 4, 25, 10, 40),
+    tipsMinor: 0,
+    grossMinor: 52000,
   },
 ]
 
@@ -646,9 +771,40 @@ const STATUS_META: Record<SaleStatus, { label: string; className: string }> = {
 type Draft = {
   id: string
   client: string
+  /**
+   * Where it will land when it is taken (R11).
+   *
+   * A draft is a sale that has not been completed, not a sale with no branch:
+   * the receipt it becomes is numbered against this, so losing it would leave
+   * the sequence to be guessed at the till.
+   */
+  locationId: string
   createdAt: Date
   tipsMinor: number
   grossMinor: number
+}
+
+/**
+ * Why the table is empty, in its own words.
+ *
+ * It said "Try a different search" whatever the reason, so a branch that has
+ * simply never taken a sale read as a failed search — and the operator retyped
+ * a query they had not entered. Nothing here is broken in that case: it is a
+ * real, correct state of a real branch, and saying so is the whole job.
+ */
+function emptyCopy(
+  tab: "sales" | "drafts",
+  searching: boolean,
+  scopeLabel: string,
+): { title: string; description: string } {
+  const noun = tab === "drafts" ? "drafts" : "sales"
+  if (searching) {
+    return { title: `No ${noun} match`, description: "Try a different search." }
+  }
+  return {
+    title: `No ${noun} at ${scopeLabel}`,
+    description: `Nothing has been ${tab === "drafts" ? "started" : "sold"} here in this period.`,
+  }
 }
 
 // Build a Draft for a ref that isn't in MOCK_DRAFTS — see `selectedDraft`.
@@ -658,12 +814,15 @@ function synthesizeDraft(
   id: string,
   totalMinor: string | null,
   client: string | null,
+  /** The branch in view, since a URL-built draft names none of its own. */
+  locationId: string,
 ): Draft | null {
   const grossMinor = Number(totalMinor)
   if (!totalMinor || !Number.isFinite(grossMinor) || grossMinor <= 0) return null
   return {
     id,
     client: client || "Walk-In",
+    locationId,
     createdAt: new Date(),
     tipsMinor: 0,
     grossMinor,
@@ -693,6 +852,7 @@ const MOCK_DRAFTS: Draft[] = [
   {
     id: "31A06EA3",
     client: "Walk-In",
+    locationId: "shampooch-downtown-dubai",
     createdAt: new Date(2026, 5, 2, 17, 22),
     tipsMinor: 0,
     grossMinor: 2500,
@@ -700,6 +860,7 @@ const MOCK_DRAFTS: Draft[] = [
   {
     id: "7F2B19C4",
     client: "Karen Dougall",
+    locationId: "shampooch-jvc",
     createdAt: new Date(2026, 5, 2, 14, 10),
     tipsMinor: 0,
     grossMinor: 6400,
@@ -707,6 +868,7 @@ const MOCK_DRAFTS: Draft[] = [
   {
     id: "A4D8E0F1",
     client: "Tom Cassidy",
+    locationId: "shampooch-jumeirah",
     createdAt: new Date(2026, 5, 1, 16, 45),
     tipsMinor: 0,
     grossMinor: 3800,
@@ -714,6 +876,7 @@ const MOCK_DRAFTS: Draft[] = [
   {
     id: "C9B3A77D",
     client: "Walk-In",
+    locationId: "shampooch-downtown-dubai",
     createdAt: new Date(2026, 4, 30, 11, 5),
     tipsMinor: 0,
     grossMinor: 1200,
@@ -858,13 +1021,25 @@ function SalesListPageInner() {
   // effect on every pass.
   const draftTotalParam = searchParams.get("draftTotal")
   const draftClientParam = searchParams.get("draftClient")
+  // The scope resolved to branches, falling back to the whole grant when the
+  // switcher is on all-locations.
+  const { scopedLocations, granted, isMultiLocation, locationName, scopeLabel } = useLocations()
+  const inScope = scopedLocations.length > 0 ? scopedLocations : granted
+
   const selectedDraft = useMemo(
     () =>
       selectedDraftId
         ? (MOCK_DRAFTS.find((d) => d.id === selectedDraftId) ??
-          synthesizeDraft(selectedDraftId, draftTotalParam, draftClientParam))
+          synthesizeDraft(
+            selectedDraftId,
+            draftTotalParam,
+            draftClientParam,
+            // The branch in view. A draft reached by URL names none of its own,
+            // and a sale has to resolve to exactly one (R11).
+            inScope[0]?.id ?? "",
+          ))
         : null,
-    [selectedDraftId, draftTotalParam, draftClientParam],
+    [selectedDraftId, draftTotalParam, draftClientParam, inScope[0]?.id],
   )
 
   function openClientFor(name: string) {
@@ -882,12 +1057,20 @@ function SalesListPageInner() {
     const from = startOfDay(range.from).getTime()
     const to = endOfDay(range.to).getTime()
     return MOCK_SALES.filter((s) => {
+      // Bounded by the scope before anything else (G7, R18). A money view that
+      // ignores the switcher is worse than one with no switcher: the operator
+      // narrows to two branches, the totals do not move, and nothing says why.
+      if (!inScope.some((l) => l.id === s.locationId)) return false
       const t = s.saleAt.getTime()
       if (t < from || t > to) return false
       if (!q) return true
-      return s.client.toLowerCase().includes(q) || String(s.id).includes(q)
+      return (
+        s.client.toLowerCase().includes(q) ||
+        receiptNumberFor(s).toLowerCase().includes(q) ||
+        String(s.id).includes(q)
+      )
     })
-  }, [tab, range, q])
+  }, [tab, range, q, inScope])
 
   const sorted = useMemo(
     () => [...filtered].sort((a, b) => compareSales(a, b, sort)),
@@ -898,11 +1081,13 @@ function SalesListPageInner() {
   // sales, but drafts are unfinished work the user always wants to see in full
   // regardless of when they were started.
   const filteredDrafts = useMemo(() => {
-    if (!q) return MOCK_DRAFTS
-    return MOCK_DRAFTS.filter(
-      (d) => d.client.toLowerCase().includes(q) || d.id.toLowerCase().includes(q),
-    )
-  }, [q])
+    // Scoped like everything else on this page: a draft belongs to the branch
+    // it will be taken at, so a branch you are not looking at should not offer
+    // you its unfinished work.
+    const mine = MOCK_DRAFTS.filter((d) => inScope.some((l) => l.id === d.locationId))
+    if (!q) return mine
+    return mine.filter((d) => d.client.toLowerCase().includes(q) || d.id.toLowerCase().includes(q))
+  }, [q, inScope])
   const sortedDrafts = useMemo(
     () => [...filteredDrafts].sort((a, b) => compareDrafts(a, b, sort)),
     [filteredDrafts, sort],
@@ -910,17 +1095,22 @@ function SalesListPageInner() {
 
   const sortLabel = SORT_OPTIONS.find((o) => o.key === sort)?.label ?? "Sort"
 
-  // Tab counts — Sales is the in-range fixture rows (independent of search),
-  // Drafts is always 0 in the demo.
+  // Tab counts — the in-range rows, independent of search but bounded by the
+  // same scope the table is. Counted across the estate while the rows were
+  // narrowed to two branches, the tab said 8 above an empty table and nothing
+  // on screen reconciled the two.
   const salesCount = useMemo(() => {
     const from = startOfDay(range.from).getTime()
     const to = endOfDay(range.to).getTime()
     return MOCK_SALES.filter((s) => {
       const t = s.saleAt.getTime()
-      return t >= from && t <= to
+      return t >= from && t <= to && inScope.some((l) => l.id === s.locationId)
     }).length
-  }, [range])
-  const draftsCount = MOCK_DRAFTS.length
+  }, [range, inScope])
+  const draftsCount = useMemo(
+    () => MOCK_DRAFTS.filter((d) => inScope.some((l) => l.id === d.locationId)).length,
+    [inScope],
+  )
 
   return (
     <AppShell
@@ -1023,8 +1213,7 @@ function SalesListPageInner() {
             <EmptyState
               variant="card"
               icon={tab === "drafts" ? FileTextIcon : TagIcon}
-              title={tab === "drafts" ? "No drafts match" : "No sales match"}
-              description="Try a different search."
+              {...emptyCopy(tab, q.length > 0, scopeLabel)}
             />
           ) : tab === "drafts" ? (
             <Table>
@@ -1073,10 +1262,11 @@ function SalesListPageInner() {
                           Draft
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      {/* A date never wraps — see the appointments table. */}
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                         {formatDateOnly(d.createdAt)}
                       </TableCell>
-                      <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
+                      <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground tabular-nums">
                         {money(Math.round(d.tipsMinor / 100))}
                       </TableCell>
                       <TableCell className="text-right text-sm whitespace-nowrap text-foreground tabular-nums">
@@ -1095,6 +1285,7 @@ function SalesListPageInner() {
                     label="Sale #"
                     className="sticky left-0 z-20! shadow-[1px_0_0_0_var(--border)]"
                   />
+
                   <SortableHead label="Client" />
                   <TableHead>Status</TableHead>
                   <SortableHead label="Sale date" />
@@ -1113,7 +1304,24 @@ function SalesListPageInner() {
                           onClick={() => setSelectedSaleId(s.id)}
                           className="cursor-pointer text-start text-sm font-medium text-cami-violet-11 hover:underline"
                         >
-                          {s.id}
+                          {/* The number as it was actually issued, prefixed by
+                              the branch that issued it (R25). A bare id here and
+                              a prefixed one on the document are two spellings of
+                              one fact, and the operator has to match them by
+                              eye — which is the reconciliation this column
+                              exists to make easy. */}
+                          <span className="flex flex-col leading-tight">
+                            <span className="whitespace-nowrap">{receiptNumberFor(s)}</span>
+                            {/* The prefix already names the branch, but a code
+                                is only readable to somebody who knows the
+                                estate — and a column of its own was what
+                                pushed this table into a horizontal scroll. */}
+                            {isMultiLocation ? (
+                              <span className="font-normal whitespace-nowrap text-muted-foreground text-xs">
+                                {locationName(s.locationId)}
+                              </span>
+                            ) : null}
+                          </span>
                         </button>
                       </TableCell>
                       <TableCell>
@@ -1135,10 +1343,10 @@ function SalesListPageInner() {
                           {status.label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                         {formatDateOnly(s.saleAt)}
                       </TableCell>
-                      <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
+                      <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground tabular-nums">
                         {money(Math.round(s.tipsMinor / 100))}
                       </TableCell>
                       <TableCell
@@ -1158,8 +1366,12 @@ function SalesListPageInner() {
 
           {(tab === "drafts" ? sortedDrafts.length : sorted.length) > 0 ? (
             <div className="py-2 text-center text-xs text-muted-foreground">
+              {/* "Showing 8 of 8" whatever you filtered — both halves read the
+                  same value, so the line could never say anything. The second
+                  is the unfiltered total, which is the only reason to print a
+                  ratio at all. */}
               Showing {tab === "drafts" ? sortedDrafts.length : sorted.length} of{" "}
-              {tab === "drafts" ? sortedDrafts.length : sorted.length} results
+              {tab === "drafts" ? draftsCount : salesCount} results
             </div>
           ) : null}
         </Tabs>
@@ -1590,7 +1802,9 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
               {data.status === "refunded" ? (
                 <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5">
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-lg font-semibold text-foreground">Refund #{data.id}</span>
+                    <span className="text-lg font-semibold text-foreground">
+                      Refund {receiptNumberFor(data)}
+                    </span>
                     <span className="text-sm text-muted-foreground">
                       {formatDateOnly(data.saleAt)}
                     </span>
@@ -1643,8 +1857,15 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
               <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-5">
                 <div className="flex flex-col gap-0.5">
                   <span className="text-lg font-semibold text-foreground">
-                    {/* For refunded, point to the originating sale id (id - 1 in demo data). */}
-                    Sale #{data.status === "refunded" ? data.id - 1 : data.id}
+                    {/* Resolved, never guessed. This said `id - 1`, which on this
+                        very data cites sale 12 — a VOIDED one — and now that
+                        sequences are per branch it could also name another
+                        branch's document entirely. Same resolver the invoice
+                        uses, so the two cannot disagree. */}
+                    Sale{" "}
+                    {data.status === "refunded"
+                      ? (originalFor(data)?.number ?? "—")
+                      : receiptNumberFor(data)}
                   </span>
                   <span className="text-sm text-muted-foreground">
                     {formatDateOnly(data.saleAt)}

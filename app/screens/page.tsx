@@ -252,6 +252,11 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/shampooch-jvc/book",
+        label: "Booking flow · one person, two branches (R05, DW2.3, DW2.4)",
+        note: "Pick Lena on the slot step and Today’s grid stops well before the branch shuts at 7pm: she is rostered at JVC until 1pm and due at Jumeirah from 3pm, and a two-hour groom has to be finished by one, Pick Sara and move to Wednesday for the same thing from a clash rather than a gap — she is rostered at both branches from 2pm, which is the overlap Maaz ruled blocked on 15 Sep. A longer service narrows it further, because the appointment has to finish before she is due elsewhere. The branch is never named to the client: the slot is simply gone, the way one another parent already holds is (BG-06). When a chosen person empties the day the list says so by name rather than “nothing free”, which would send the parent to a different day instead of a different groomer. Any team member leaves the grid at the branch’s own hours, and so does anyone the roster does not model — an empty rota is not a closed one.",
+      },
+      {
+        path: "/shampooch-jvc/book",
         label: "Booking flow · Combo services",
         note: "PRD-143 — Grooming carries 'Full groom & nails' and Spa add-ons carries 'Spa pamper duo', each a single card badged Combo with a bundled-services count. Picking one books the services it bundles: the sticky summary and the Review step list them as 'Combo - Service' rows led by the layers glyph, each showing its share of the combo price with what it would cost alone struck through. The footer counts the components (2 services) but keeps the combo's own duration and total, so a parent sees the bundle's slot and price, not the sum of the parts. 'Spa pamper duo' is set to run in parallel, which is why its slot is the longer add-on rather than both added up.",
       },
@@ -419,6 +424,11 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/appointments",
+        label: "New / edit sheet · the branch it books at",
+        note: "R11: an appointment is a write, so it names one branch. 'New booking' asks for it — after the client, before the services, because the service picker reads its offerings against the branch and the client does not depend on it; paused branches are listed and badged rather than hidden, and picking one says why it cannot hold the booking instead of leaving Save mysteriously shut. 'Edit existing appointment (demo)' states it instead of asking: an existing booking already belongs somewhere and moving it is SCR-06. The same line, in the same order, as the detail sheet at /sales/appointments-list?ref=b-014 — and the tile's hover card carries it too, in /playground under 'Appointments — pickup & pet notes'. BuildingIcon throughout, never the pin: the pin is the pet's address. All of it absent for a single-branch business (DW1.2).",
+      },
+      {
+        path: "/appointments",
         label: "New / edit sheet · Quick message",
         note: "Open the create sheet via 'New booking' (or 'Edit existing appointment (demo)'). Select a client to reveal the Quick message dropdown in the client action row — lists the business's WhatsApp templates with a resolved-text preview, plus a Message center link to the inbox. Picking a template opens the send dialog: edit the resolved body → Send → sending → 'Message sent' confirmation.",
       },
@@ -569,7 +579,7 @@ const SECTIONS: Section[] = [
         note: "Category sidebar + grouped service list. Drag service rows to reorder within a category or move them between categories. 'Add' menu creates a single service (full-screen takeover), a category (dialog), or a combo (own page). 'Order' / Options → 'Set menu order' opens the reorder sheet. Search filters by service name. Per-card and per-category kebabs offer Edit / Archive / Delete. All mutations update local state live. PRD-143: combos share this list with single services, so their rows now carry a tinted 'Combo' badge (layers icon) plus a count of the services they bundle — see 'Colour & Cut Combo' under Color treatments and 'Wash, Treat & Style' under Hair & styling; the same badge marks them in the Set-menu-order sheet.",
       },
       {
-        path: "/catalogs/service-menu/combos/svc-8/edit",
+        path: "/catalogs/service-menu/combos/groom-and-nails-combo/edit",
         label: "Edit combo",
         note: "PRD-143 — a combo card's kebab → Edit lands here, not in the single-service takeover, which had no field for components, schedule type or combo pricing. Opens the builder on the saved combo: name, category, description, its bundled services resolved back out of the catalog, Booked in sequence/parallel, and the price type it was saved with (service pricing / custom / percentage / free) with the percentage or retail price filled in. Save writes back to the same combo. This link opens the seeded 'Colour & Cut Combo'; a combo you create yourself edits from its own row.",
       },
@@ -722,7 +732,7 @@ const SECTIONS: Section[] = [
       {
         path: "/sales/appointments-list?ref=b-002&view=activity",
         label: "Appointment detail sheet",
-        note: "Opens the right-side sheet over the listing via ?ref=<id>. Try b-001…b-024 for different states (b-002 is ready-for-pickup, b-003 confirmed, etc.). Status-colored header band (blue=booked, gray=completed, tomato=no-show), Services list, sale total with inline-expand breakdown, Quick actions popover. Status pill behavior: terminal statuses (completed/cancelled) are static, no-show only offers Undo, others get the full dropdown — pill + band update live.",
+        note: "Opens the right-side sheet over the listing via ?ref=<id>. Try b-001…b-024 for different states (b-002 is ready-for-pickup, b-003 confirmed, etc.). Status-colored header band (blue=booked, gray=completed, tomato=no-show), Services list, sale total with inline-expand breakdown, Quick actions popover. Status pill behavior: terminal statuses (completed/cancelled) are static, no-show only offers Undo, others get the full dropdown — pill + band update live. The header band also names the branch, beside the time: it is one of the two facts an operator reads first, and it carries full contrast against the band's muted 70% because bold alone at 12px, third in a comma list after 'doesn't repeat', was there and could not be found.",
       },
       {
         path: "/sales/appointments-list?ref=b-002",
@@ -888,12 +898,12 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?money=drawer",
         label: "Topbar money drawer · the entry point",
-        note: "The money icon sits in the topbar on every screen, so it has no route of its own — these links open it over the bare shell. It is the only way in, because a routed Money section was an orphan nothing linked to. One card per sender (Cami / NeoPay) with what each holds and when it lands, the last three days of activity, then a way into the full screens. Reads the same derivation as the account summary, so the drawer and the page cannot disagree — which is exactly what they do in the reference product.",
+        note: "Says which branches it is counting and is bounded by the grant, like every other money surface — it was the one that summed the whole ledger regardless. The money icon sits in the topbar on every screen, so it has no route of its own — these links open it over the bare shell. It is the only way in, because a routed Money section was an orphan nothing linked to. One card per sender (Cami / NeoPay) with what each holds and when it lands, the last three days of activity, then a way into the full screens. Reads the same derivation as the account summary, so the drawer and the page cannot disagree — which is exactly what they do in the reference product.",
       },
       {
         path: "/shell-demo?money=summary",
         label: "Account summary (DSG-77) · two rails",
-        note: "The recommended D6 layout. Cami-held money is the headline (the only timing Cami controls), NeoPay's sits beside it at lower weight. Follow the breakdown down: money in → what Cami charged → adjustments → already paid to your bank → still held. The running totals between blocks are the point — the arithmetic is visible, not asserted.",
+        note: "Carries the per-branch breakdown (SCR-15) — Activity has had a branch filter since DSG-78, while this side summed the estate into one figure and offered no way down. Absent for a single-site business. The recommended D6 layout. Cami-held money is the headline (the only timing Cami controls), NeoPay's sits beside it at lower weight. Follow the breakdown down: money in → what Cami charged → adjustments → already paid to your bank → still held. The running totals between blocks are the point — the arithmetic is visible, not asserted.",
       },
       {
         path: "/shell-demo?money=summary&variant=blended",
@@ -1042,6 +1052,159 @@ const SECTIONS: Section[] = [
         path: "/sales/sales-list?settings=payments&pp=camipay",
         label: "Partner settings, CamiPay rates",
         note: "Settings → Payments → CamiPay rates. Read-only with no disabled controls, no gateway named, no processing fee. Reads the same store HQ writes to, so change a rate in HQ and it appears here.",
+      },
+    ],
+  },
+  {
+    lane: "business",
+    title: "Multi-location (PRD-43 / PRO-71)",
+    description:
+      "One business, many branches. The initiative is 25 requirements, 15 epics and 16 screens (SCR-01 to SCR-16 in the PRD's §6 reference); this group grows a row per slice. Requirements live in Slite, not the repo — see docs/specs/multi-location-foundations.md for the doc ids and how to read them.",
+    screens: [
+      {
+        path: "/playground#multi-location-branch-switcher",
+        label: "Branch switcher · SCR-04 (playground)",
+        note: "Five scopes side by side, each in its own provider: owner on all branches, one branch, a two-branch subset, a single-branch business (renders nothing at all — DW1.2, and the frame says so), and a staff member granted none (locked, because an empty scope is never 'all' — R24). Live in the shell too: the control sits beside the workspace switcher in the topbar on every route, and toggling it there persists across navigation. The seeded estate is three branches, one of them suspended, so the 'Paused' state shows without clicking anything. See docs/specs/multi-location-foundations.md.",
+      },
+      {
+        path: "/shell-demo?settings=locations",
+        label: "Locations, the estate (settings)",
+        note: "SCR-01 and SCR-12 — where a branch is created and configured. Reads the shared source in lib/locations, so the same branches appear here, in the topbar switcher and on the terminals panel. Three seeded: JVC and Jumeirah live, Al Quoz suspended, so the Paused badge and the 'Booking page hidden' line show without clicking. Open a branch → Manage for the lifecycle: Suspend / Reactivate is a state change in both directions, Archive asks first and says what survives it. 'Add locations' opens chain setup. Every tab saves and survives a reload — basic info, business type, address, invoicing and Hours (its own week and timezone per branch), all through one seam, so ‘did this stick’ is the same answer on every tab. Branches you add in chain setup persist too. That now includes the three that resolve from a business default — tax defaults, receipt sequencing and tipping. Every dialog on this panel commits.",
+      },
+      {
+        path: "/playground#multi-location-per-branch-hours",
+        label: "Per-branch hours · SCR-01 (playground)",
+        note: 'R01 + R19, three seeded weeks side by side — one branch at a time cannot show that a week is the branch\'s own. JVC closes Sunday, Jumeirah trades seven days, Al Quoz shuts 1pm–4pm. That split day is why a day holds shifts and not one open/close (PRO-363 is the same bug from the other side), and pinned to a Tuesday mid-afternoon it reads Closed now while the others are open, with the public card saying "opens 4pm" rather than naming tomorrow. One definition and now the round trip: edit the hours in settings, open the branch page, and the change is there — same for a per-branch price, on the branch page and in the booking flow both, which is what R15 means by both entry paths. Name, address and phone come from the same place as of this pass, so all five branch-owned facts follow an edit. The page stays server-rendered; the cover, address, booking card, menu and hours re-resolve on the client, and the chain picker does too so branches are never compared on stale rows.',
+      },
+      {
+        path: "/playground#multi-location-per-branch-availability",
+        label: "Per-branch availability · SCR-08 (playground)",
+        note: "R15 asks for that location’s offering AND availability. The offering was per branch; the availability was one hardcoded week plus all twelve staff on every branch page. Both are derived now. Day chips come from the branch’s hours, and a day it does not open reads Closed rather than Fully booked — different facts, and showing one as the other sends a client back to a day that will never have a slot. Slots are the hours at half-hour steps, so Al Quoz’s 1–4pm gap is absent rather than filtered afterwards, and the last slot sits half an hour before closing. Staff filter by the branches they work at, and someone covering two sites shows at both. Friday is on screen because all three branches differ there.",
+      },
+      {
+        path: "/admin/businesses?business=shampooch",
+        label: "CamiHQ chain view · SCR-16",
+        note: "Open the Shampooch partner → Locations. E15 (HQ1.1, HQ1.2), and both stories decide the design: HQ-assisted setup must produce the same result as the owner doing it, with no lesser HQ-only path, and viewing from HQ must show the same breakdown and roll-up an owner sees. So this reuses the owner’s components rather than drawing a second chain dashboard — the estate is read from lib/locations, and the per-branch money is literally MoneyByLocationView. What HQ adds is which partner am I looking at, and that this is not my data: there is no write path here, because standing a chain up happens as the owner, in a session, where the change has an actor on the record (INV-08). The businesses list now badges a chain, which it could not before — every partner looked like one site. The tab is absent for the four single-site partners (G3 in the HQ plane); open Velvet Paw to see that.",
+      },
+      {
+        path: "/playground#multi-location-package-redemption-at-checkout",
+        label: "Package redemption · SCR-13 host (playground)",
+        note: "The host the rule and the warning never had. cami-business already ships the contract and no UI calls it: eligibility returns a verdict per service (covered, exhausted, expired, not_covered) with the package’s sessions, and redeem consumes one — so the verdicts and the counting are taken, not invented. What the contract has no room for is the branch, and that is the design: a branch-shaped verdict would block the redemption KC1.5 insists must complete, so a mismatch rides alongside a covered verdict and Apply stays reachable. Try ‘not offered here’ — the strongest form of the rule, where the branch does not do the service at all and the client is still honoured. An unusable verdict reads differently: a sentence a receptionist can repeat, and no button, because a disabled Apply invites a second try. A redemption resolves to one location first (R11), and the decision is recorded so an owner reading a discount can see why.",
+      },
+      {
+        path: "/team/scheduled-shifts",
+        label: "Scheduled shifts · SCR-10 (route)",
+        note: "What the nav’s Team › Scheduled Shifts item points at — it carried no href before this slice. The same route the built product has, and the multi-location layer on it: one grid per branch in scope rather than one merged week, because a merged week has to pick one row per person and silently drop whichever branch loses. One branch’s week at a time, picked from a strip that carries the estate: people and hours per branch, and “Nobody assigned” on the one worth acting on. Stacking a grid per branch worked at three and fails at nine — the page becomes an endless scroll and nothing on it answers which branch needs you — which is the same third-axis problem the calendar’s branch strip already solves, so this borrows its shape rather than inventing a second way to pick a branch. The strip is local: looking at a rota does not narrow the topbar scope for every other surface. It hides itself for a single-branch business (DW1.2). Bounded by grants throughout, so a manager granted one branch of nine sees one grid with no sign the others exist. The page keeps its full width on purpose — the grid is 820px at its narrowest and a reading column would make it unusable, which is the exception the built product makes too. Writable, and the writes are where the multi-location rules show. Hover a cell for Set repeating shifts / Add shift / Add time off, or use the row menu. Editing Lena’s Tuesday at JVC leaves her Jumeirah evening alone, and the row menu says “Clear this week at Shampooch JVC” rather than “delete all shifts”, because she keeps the other branch. The shift dialog refuses what the built one refuses — overlap, a duplicate, an end before its start, under thirty minutes between windows, a window across time off — one message at a time. Time off names every branch it will reach before you save it: a shift is the branch’s, an absence is the person’s, so Lena’s JVC leave closes her Jumeirah day too — the location on the dialog records who entered it, not where it applies. A repeating pattern belongs to one branch, so somebody working two has two. Edits persist across a reload; Reset schedule appears once you have changed something. A suspended branch keeps its week on screen and refuses every write (R12), because those hours are still worked and still owed. The nine-branch estate is on /playground, which is where every multi-location defect in this repo has surfaced first.",
+      },
+      {
+        path: "/playground#multi-location-scheduled-shifts",
+        label: "Scheduled shifts · SCR-10 (playground)",
+        note: "The built product’s Scheduled shifts grid, per branch: members against Mon–Sun, hours per person and per day, today marked, sorted the way the built list sorts (R05, DW2.3, DW2.4). A schedule belongs to one location, and somebody assigned to two appears on both with the hours they work there, because DW2.3’s acceptance is that booking offers them at a branch only during those hours. Lena is JVC mornings and Jumeirah evenings: two branches in one day, no conflict. Sara is rostered at both over the same hours — the one clash DW2.4 names, and booking refuses those hours, so the grid names it as a pair and the rota is where it gets fixed. Overlapping shifts at one branch are not seeded, because they cannot happen: the built shift dialog refuses two windows that overlap and requires at least thirty minutes between them. That is the point — the one overlap nothing refuses today is the one that spans branches, because each branch’s rota is written under its own venue and nothing compares two of them. Mariam’s Thursday is a split shift with a proper break, which is the legal shape. Shifts and leave are deliberately different kinds of thing — a shift is the branch’s and shows at one, leave is the person’s and Lena’s Thursday is off at both. A block time (Sara’s lunch, Mariam’s training) stays at its own branch, counts as worked and cannot be sold. Omar’s Tuesday has half a day’s sick leave inside a shift, so the window splits around it. Page the week forward and the rota repeats while the leave does not, because a rota is a rule and leave is a date.",
+      },
+      {
+        path: "/playground#multi-location-per-branch-stock",
+        label: "Per-branch stock · SCR-11 (playground)",
+        note: "R16: quantity and reorder configuration resolve per location, and the business quantity is derived from them and never stored — which is what makes DW4.2 (‘I never reconcile it by hand’) true by construction. Rows first and the total after, because a sum is correct and insufficient: 18 at one branch and -2 at another add up to a healthy-looking 16, and the -2 is the only row worth acting on. Empty and negative stay apart — zero is a reorder, below zero is a stock take, and one red state for both sends a manager to the wrong action. Thresholds are per branch since a busy branch and a quiet one do not reorder at the same number. The model and its shipped wording come from cami-business (trackStock, currentStock, lowStockLevel, reorderQty), which this repo did not have. Also live in the Products table — the Quantity column, scope-aware, with a marker when a branch inside the total needs attention. Nothing moves stock between branches: transfer and a central warehouse are future backlog.",
+      },
+      {
+        path: "/playground#multi-location-nine-branches-d5",
+        label: "Nine branches · D5 (playground)",
+        note: "The designs at the scale the PRD assumes. Three branches is the demo; nine is where the layouts fail, always the same way — most rows say nothing and the one that matters is below the fold. Both states are drawn, and the call was made by looking — collapsed is the default (D5, 10 Sep): at nine branches the one that differs is the only row worth reading, and a default that puts it below the fold loses what the screen is for. Collapsed folds the inheriting branches into one line that names them; Show all is the nine cards it replaces. Under four quiet branches nothing collapses, because folding three cards into a click is worse than three cards. The switcher, the money roll-up and the calendar strip are here at nine too — the switcher had no height cap until this pass.",
+      },
+      {
+        path: "/playground#multi-location-chain-setup",
+        label: "Chain setup · SCR-02 (playground)",
+        note: "N branches in one pass (R02, SU1.2). All or none — submit with one bad row and nothing is created, because a partial create leaves the owner unable to tell which of nine landed. Two rows with the same name collide on the link and the second row says so; 'Shampooch JVC' collides with an existing branch. New branches land as Draft, not Live: created is not trading. Isolated from the app's own estate, so creating here changes nothing.",
+      },
+      {
+        path: "/playground#multi-location-all-branches-calendar",
+        label: "All-branches calendar · SCR-05 (playground)",
+        note: "R07's view half, as a filter rather than columns: a day grid is already staff × time, so a third axis turns 11 columns into 99. Click a branch to narrow the day, click it again for all. The counts are why it is a strip and not a dropdown — an owner opening the calendar across branches is asking which branch is busy. While more than one branch is in view it says a booking needs one chosen first, which is R11's all-locations-is-read-only said where someone would otherwise drag one in. Every seeded booking now carries a locationId (the R20 backfill); none is locationless.",
+      },
+      {
+        path: "/playground#multi-location-cross-branch-move",
+        label: "Cross-branch move · SCR-06 (playground)",
+        note: "R07 + R17. The destination list is bounded by grants, so a branch you cannot reach is never offered. The allowed case spells out that the deposit stays credited where it was taken while the work moves — both branches on the sale, neither rewritten. The third frame has an unresolvable payment: rejected whole, nothing changed, rather than losing the money's trail (GB1.3). Eleven unit tests in lib/locations/cross-branch-move.test.ts cover each denial and the dual attribution.",
+      },
+      {
+        path: "/playground#multi-location-package-mismatch-at-checkout",
+        label: "Package mismatch · SCR-13 (playground)",
+        note: "KC1.5, corrected 2026-09-03: warn, never block. Gift cards and memberships travel across branches; a package is sold against one specific priced service and does not. Four cases — same terms (nothing renders), priced differently, different duration, not offered here. Both figures are shown so reception can decide in front of the client, and the choice is recorded on the sale so an owner can see why a package redeemed below its value. The blueprint's 'can only be redeemed there' is superseded.",
+      },
+      {
+        path: "/sales/daily-summary",
+        label: "End of day, per branch · RP-A1 (route)",
+        note: "The PRD's FIRST user story — 'an EOD view per branch and a business total in one place, so I stop calling each location' — and the one BG-05 times. It was two cards of constants typed to match a Figma frame, with no branch anywhere on them, so an owner of nine branches read one merged number: the exact outcome the story names as the failure. Every figure now derives from the sales log, bounded by the grant before it sums (G7, R18), and the By location card puts the branches side by side with the total after them, labelled as their sum (KH1.1). A granted branch that took nothing is named rather than dropped. The page lands on this scope's own last trading day, because opening on today met every reviewer with an empty report and no way to tell an empty day from a broken one. Absent for a single-branch business (DW1.2).",
+      },
+      {
+        path: "/playground#multi-location-the-duplicate-caught-before-booking",
+        label: "Duplicate caught before booking · CL-A1 / RC-B1 (playground)",
+        note: "The last user story's Done-when is 'duplicate caught BEFORE booking', and only its readable half had shipped — SCR-07 put a client's visits across the estate on the client record, which answers the question if reception thinks to open it, and somebody mid-booking does not. It now arrives unprompted under the client picker in the new-appointment sheet. Unbounded by the grant on purpose: the duplicate worth catching is the one at a branch you cannot see, which is R13's floor and why R13 fixes the field set as uniform. States, never blocks — two appointments in a day is routinely correct, and reception has the client in front of them. Also live at /appointments → New appointment → pick Millie Cassidy.",
+      },
+      {
+        path: "/playground#multi-location-money-by-branch",
+        label: "Money by branch · SCR-15 (playground)",
+        note: "KH1.1's side-by-side, never merged — a single number destroys the job, because the question is which branch had a bad day. The total sits after the rows and is labelled as their sum. The second frame is a manager granted only Jumeirah: one row, roll-up equal to it (KH1.3). The bound is a grant, not a filter (R18). Payouts are business-level in this market, so they are not broken out per branch, and the footnote says so rather than leaving a gap. Nine tests in lib/money/by-location.test.ts, including that the roll-up never leaks a branch the rows withheld.",
+      },
+      {
+        path: "/playground#multi-location-branch-whatsapp-numbers",
+        label: "Branch WhatsApp numbers · SCR-14 (playground)",
+        note: "R21, R22, KC2.2, KC2.4. Also at /shell-demo?settings=whatsapp-numbers. Three states: connected, stuck on the OTP (the step that needs a person standing in that branch), and no number at all — which says so in words, because the consequence is no WhatsApp bookings here and nothing rerouted. Contrast with SMS: an unapproved sender ID falls back to CAMI on purpose, since a generic sender still reaches the right person; a wrong WhatsApp number reaches the wrong branch.",
+      },
+      {
+        path: "/shell-demo?settings=locations",
+        label: "Branch tax identity · SCR-12",
+        note: "Open a branch → Invoicing. Every inheritable row says whose value it is (R23), because two branches showing the same legal name look identical whether one means it or is merely following along. JVC overrides only its receipt prefix; Jumeirah is a separate registered company with its own TRN — both cases the 'keep it flexible' decision exists to support. The receipt number shows as it prints, prefix included, which is what stops two branches at 21857 colliding (R25). The forward-only warning is the load-bearing copy: editing changes future receipts and no issued one (INV-12). The three dialogs save as of this pass. Tax defaults are per field with a Custom chip and a Reset; Reset deletes the branch value rather than copying today’s business one in, because a copy looks identical and stops following a later change. Receipt sequencing treats its two fields differently on purpose — the prefix is inherited, the next number is not, since there is no business-level next receipt number to inherit. Tipping is whole-block (Workspace defaults or Custom for this location), and on Workspace the controls are shown disabled rather than hidden, so an operator can see what they would be changing from. Al Quoz is seeded custom — boarding, so card tips only on a shorter scale. Logic tested in lib/locations/tax-identity.test.ts and tipping.test.ts.",
+      },
+      {
+        path: "/shampooch",
+        label: "Public branch picker · SCR-08",
+        note: "A chain's public page (R15, GB3.1). It asks where before showing anything branch-shaped, because it has three addresses, hours and menus rather than one. Compare /shampooch-jvc and /shampooch-jumeirah: the branch link skips the picker (GB3.2), and Jumeirah's menu is its own — bath at AED 75 instead of 60, and no daycare at all. /shampooch-al-quoz 404s: it is suspended, so it is in the record but on no public surface. /purr-palace is the single-site case, where the business page is the branch page and no picker renders.",
+      },
+      {
+        path: "/playground#multi-location-public-branch-picker",
+        label: "Public branch picker · SCR-08 (playground)",
+        note: "The picker in isolation with 'Open now' pinned to a Tuesday 11am. Entry order was left to design (PRD §16): this picks location first, and the component's own note says why — price and availability are per branch, so a service-first list would show a price that is wrong until a branch is chosen, and the client who already knows what they want has the branch link instead.",
+      },
+      {
+        path: "/catalogs/service-menu",
+        label: "Per-branch service pricing · SCR-09",
+        note: "Open any service → Locations. One definition, configured per branch (R06): a switch to offer it here at all (DW3.3), and price and duration that show the inherited value with a marker saying whose it is. Typing over a field creates the override, clearing it or pressing Reset returns only that field to inheriting (DW3.2). The nav badge counts branches that differ, not branches that exist. Held with the service's form, so it saves when the service does.",
+      },
+      {
+        path: "/playground#multi-location-per-branch-service-pricing",
+        label: "Per-branch service pricing · SCR-09 (playground)",
+        note: "The same section with the business default under your thumb — press 'Raise the business default' and the inherited branches follow while the overridden price does not (DW3.1). That divergence is the requirement, and a static screen cannot show it. Seeded as the story's own example: Jumeirah deliberately at AED 75, Al Quoz not offering it at all. Resolution logic is unit-tested in lib/service-catalog/offerings.test.ts.",
+      },
+      {
+        path: "/settings/team",
+        label: "Branch access grants · SCR-03",
+        note: "Role × location, the two axes access resolves on (R04). The roster now shows a Role and a Locations column, so a wrong scope is visible without opening anyone. Action → Edit Roles & Permissions (it was a console.log) opens the grants dialog: role capability read-only because it is defined once for the business, location grant editable because that is the per-person half. Maz is Owner — untickable, since an owner holds every branch including ones added later, stored as 'all' rather than today's ids. Aziz is a Manager granted only Jumeirah, which is the pilot configuration's 'one manager, one branch'. Ahmed is invited with no grant: no access, said out loud, never 'every branch' (R24).",
+      },
+      {
+        path: "/playground#multi-location-branch-access-grants",
+        label: "Branch access grants · SCR-03 (playground)",
+        note: "The same dialog against three roster rows, isolated. The location permission list marks four of five codes Proposed — the product ships one venues:read that bundles viewing a branch with changing it, so a manager who sets hours cannot yet be stopped from editing tax details or archiving a branch (blueprint §03).",
+      },
+      {
+        path: "/playground#multi-location-a-write-names-one-branch",
+        label: "A write names one branch · G1, R11 (playground)",
+        note: "Every operational write lands on exactly one branch, and there is no default — the PRD's release criterion says the fallback comes out of the repo rather than being flagged off, and the built calendar still derives one from 'the first venue of the first staff member who has one'. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A paused branch is never a target (R12), so it is absent rather than offered and refused. Now on the appointment sheet — the most-made write in the product, and the one surface that never asked. Save waits for the branch, and the service picker reads against it: a service the branch does not run is marked and one that does is named (DW3.3), while staying pickable, because reception is the person who can say 'not here, but Jumeirah does it'.",
+      },
+      {
+        path: "/appointments",
+        label: "Booking names a branch · G1 (route)",
+        note: "The rule on the surface it matters most. Open New appointment: Location sits first, because it is what the write resolves to and what the service list is read against — asked after the services were chosen, every one of them would need rechecking. Nothing renders for a single-branch business (DW1.2).",
+      },
+      {
+        path: "/playground#multi-location-client-visits-at-another-branch",
+        label: "Client visits at another branch · SCR-07 (playground)",
+        note: "What a branch reads of a client's visits elsewhere (R13, R18). Drawn wide — date, branch, service, price, notes — because R13 exists to make those visits readable, and franchise views are out of scope: one business, one owner, one P&L. The grant gates what you can *do*, not what you can read. Open it as the owner, then as JVC reception: the Jumeirah visit and its part-paid sale stay legible either way, and only the buttons go, replaced by the reason. Al Quoz is paused, so it takes no writes from anyone — the state a grant cannot unlock. Overview gains 'Visits by branch'; the Total sales KPI now counts every branch and says so, rather than showing AED 0 above three sales.",
+      },
+      {
+        path: "/playground#multi-location-branch-lifecycle",
+        label: "Branch state badge · SCR-01 (playground)",
+        note: "The four lifecycle states in one row (R01, R12). Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find.",
       },
     ],
   },
@@ -1231,7 +1394,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=branding",
         label: "Branding",
-        note: 'Where a merchant picks the palette their clients see — until now it was assigned by hand in code, which survives one pilot and nothing after it. Filed under Workspace beside Business details rather than under Messaging: Messaging is about messages, whether one sends and what it says, and this is a page reached from one. The palette set here themes the messages too, which is why it is not called "Customer card". Five themes, a live card as the preview rather than five coloured rectangles, and nothing else — type is Cami\'s for every venue and imagery is out, so the panel is small on purpose rather than unfinished.',
+        note: 'Where a merchant picks the palette their clients see — until now it was assigned by hand in code, which survives one pilot and nothing after it. Filed under Workspace beside Business details rather than under Messaging: Messaging is about messages, whether one sends and what it says, and this is a page reached from one. The palette set here themes the messages too, which is why it is not called "Customer card". Five themes, a live card as the preview rather than five coloured rectangles, and nothing else — type is Cami\'s for every venue and imagery is out, so the panel is small on purpose rather than unfinished. The palette belongs to the business, not to a branch: set it once and all nine Shampooch branches carry it. Keyed per branch it was nine separate settings nobody could reach, and the preview — which needs a real card, and a chain has none of its own — rendered as an empty box.',
       },
       {
         path: "/shell-demo?settings=comms-templates&ce=booking-confirmed:email",
@@ -1334,7 +1497,7 @@ const SECTIONS: Section[] = [
         note: "Sort state lives in the URL, so a roster ordered by weekly volume can be pasted into a thread.",
       },
       {
-        path: "/admin/businesses?business=shampooch-jvc",
+        path: "/admin/businesses?business=shampooch",
         label: "Detail modal, Live state",
         note: "Dark green Access row, Manage tab with Sign in / Suspend / Archive. General › Profile also carries the Google review link (PRD-168) — this Partner has one, so compare it with any other in the roster, where it reads ‘Not set’ and that merchant’s Thank You goes out with no review ask. Edit opens the same listing-vs-review validation the merchant gets, in the same tinted notice: ops backfill these in bulk out of WhatsApp messages, so they are the ones most likely to paste a Maps URL.",
       },
@@ -1368,7 +1531,7 @@ const SECTIONS: Section[] = [
       "R1 HQ billing spine. Settings tab on the Partner detail modal: CamiPay rail flags, a gateway per rail, and an append-only rate card. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off. Open a Partner below, then the Settings tab. Rate changes are forward-only, they never re-price captured payments.",
     screens: [
       {
-        path: "/admin/businesses?business=shampooch-jvc",
+        path: "/admin/businesses?business=shampooch",
         label: "Settings tab, live Partner",
         note: "Both rails on NeoPay, terminal cut from 2% to 1.8% and online to 3% + AED 0.75 under AED 100, both on 01 May. Show rate history to see the append-only rows, then Change to append another; the dialog previews the fee on either side of the bracket before you save.",
       },
@@ -1408,7 +1571,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/terminals?q=NP5-2419-8830",
         label: "Reverse lookup, the reason this screen exists",
-        note: "Lands with the serial off a support ticket already in the box, resolved to Shampooch JVC. Tab and search live in the URL, so a filtered fleet view is a link you can send. Search also matches pairing code, model, location, Partner name and Partner code — try CM-5107.",
+        note: "Lands with the serial off a support ticket already in the box, resolved to the Shampooch partner. Tab and search live in the URL, so a filtered fleet view is a link you can send. Search also matches pairing code, model, location, Partner name and Partner code — try CM-5107.",
       },
       {
         path: "/admin/terminals?tab=in-stock",
@@ -1426,7 +1589,7 @@ const SECTIONS: Section[] = [
         note: "Written-off unit, never offered for assignment again and not deleted — leased hardware written off is a thing finance asks about later.",
       },
       {
-        path: "/admin/businesses?business=shampooch-jvc&section=settings",
+        path: "/admin/businesses?business=shampooch&section=settings",
         label: "Partner card, three units assigned",
         note: "Active (2 signed in), No sessions, and Not set up — shipped and signed for, nobody has switched it on. Assign picks a unit from stock; the fleet listing picks a Partner for a unit. Same write, opposite starting point.",
       },
@@ -1448,7 +1611,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/businesses?q=CM-4821",
         label: "Roster, searched by Partner code",
-        note: "Lands with CM-4821 in the search box, resolved to Shampooch JVC — a support thread quoting the code is one paste from the Partner. The code reads inline under each business name next to the slug, and the copy chip sits in the detail modal header. Immutable by design: the slug already exists for the identifier that can change.",
+        note: "Lands with CM-4821 in the search box, resolved to the Shampooch partner — a support thread quoting the code is one paste from the Partner. The code reads inline under each business name next to the slug, and the copy chip sits in the detail modal header. Immutable by design: the slug already exists for the identifier that can change.",
       },
     ],
   },
@@ -1464,7 +1627,7 @@ const SECTIONS: Section[] = [
         note: "New route — the Billing menu item has been pointing at a page that didn't exist. Per-partner sends × the rate that applies, with the per-channel totals above and the amount due this period. A rate override is labelled as one on the cell, so nobody debugs an invoice discrepancy by guessing. A cell reads 'Off' when the channel isn't granted and '0' when it is granted but nothing was sent — a blank cell would mean two different things. Amounts use the rate stamped on each send, so changing a rate never rewrites a closed period. Scoped to messaging: Cami Pay subscription and transaction fees are a separate ledger, and the page says so.",
       },
       {
-        path: "/admin/businesses?business=shampooch-jvc&section=notifications",
+        path: "/admin/businesses?business=shampooch&section=notifications",
         label: "Partner record → Notifications tab",
         note: 'Opens straight on the Notifications tab (&section=notifications). Three sections in the order someone debugging a partner asks about them. Channels: master switches — turning one off locks that column in the merchant\'s own settings without clearing what they had, so turning it back on restores exactly that. Sender ID: the registered name, the Approve / Reject decision, and — only when it differs — what customers actually see. Approved, the two are the same word, so the second box is hidden; it renders in submitted and rejected, where a registration is in flight or refused and customers are still on CAMI. The null guard there is load-bearing: with no Sender ID on file the value is null while the effective sender is CAMI, so a bare inequality showed "CUSTOMERS SEE CAMI" beside "CAMI (default)" — walk Velvet Paw or Furry Tales, which both land in that state. Rates: blank now genuinely means inherited, which is what the card always claimed and the field never did — it rendered the resolved rate, so nothing was ever blank and inheriting looked identical to overridden. The placeholder carries the inherited number. Clearing the field, or typing the global value back, returns the partner to inheriting; previously touching the field made them overridden with no way back. Same decimal fix and same above-AED-1.00 warning as the global rates screen. Every change writes to the Activity tab — channel toggles, Sender ID approve/reject with its reason, and rate edits, one entry per edit on blur rather than per keystroke.',
       },
@@ -1549,7 +1712,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo",
         label: "Business app shell",
-        note: "The workspace menu top-left is where you change venue: Shampooch JVC, Purr Palace and Sota Hair Studio are the three live ones, and only the signed-in venue shows its second branch. Picking one rebrands the whole demo, so Branding edits that venue's palette and the message previews wear it. The building icon beside it only renames — a prospect's name matches no venue, which is the case where the default palette is correct rather than broken. Known seam: the client directory is shared, so switching venue does not change who is in /clients.",
+        note: "The workspace menu top-left is where you change venue: Shampooch, Purr Palace and Sota Hair Studio are the three live ones. Branches are not in this menu — they are the LocationSwitcher beside it (SCR-04), because two ways into the same branch is how the two end up disagreeing. Picking one rebrands the whole demo and swaps the estate with it — the LocationSwitcher offers that venue's branches, not the last one's, and the scope resets because the branch you were looking at does not exist here. Branding edits that venue's palette and the message previews wear it. The building icon beside it only renames — a prospect's name matches no venue, which is the case where the default palette is correct rather than broken. Known seam: the client directory is shared, so switching venue does not change who is in /clients.",
       },
       { path: "/playground", label: "Component states" },
       {

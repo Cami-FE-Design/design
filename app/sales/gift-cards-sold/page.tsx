@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -127,6 +128,15 @@ type GiftCardSold = {
   expiresAt: Date
   status: GiftCardStatus
   saleNo: number
+  /**
+   * The branch that sold it (R11).
+   *
+   * A gift card is sold at one branch and, unlike a package, is redeemable at
+   * any of them — the spec's own line: gift cards and memberships travel, a
+   * package is sold against one priced service and does not. The branch is kept
+   * because the *sale* belongs to it: its receipt, its takings, its books.
+   */
+  locationId: string
   purchaser: string
   owner: string
   totalAed: number
@@ -148,6 +158,7 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
     expiresAt: new Date(2027, 5, 29),
     status: "unpaid",
     saleNo: 20,
+    locationId: "shampooch-jvc",
     purchaser: "Walk-In",
     owner: "Not claimed",
     totalAed: 1800,
@@ -160,6 +171,7 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
     expiresAt: new Date(2027, 4, 12),
     status: "active",
     saleNo: 21,
+    locationId: "shampooch-jumeirah",
     purchaser: "Millie Cassidy",
     owner: "Millie Cassidy",
     totalAed: 3500,
@@ -172,6 +184,7 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
     expiresAt: new Date(2027, 3, 3),
     status: "redeemed",
     saleNo: 22,
+    locationId: "shampooch-jvc",
     purchaser: "Tom Cassidy",
     owner: "Sarah Johnson",
     totalAed: 5300,
@@ -184,6 +197,7 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
     expiresAt: new Date(2026, 1, 20),
     status: "expired",
     saleNo: 23,
+    locationId: "shampooch-mirdif",
     purchaser: "Luke Williams",
     owner: "Not claimed",
     totalAed: 7000,
@@ -196,6 +210,7 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
     expiresAt: new Date(2027, 5, 1),
     status: "active",
     saleNo: 24,
+    locationId: "shampooch-jvc",
     purchaser: "Aamena Fatta",
     owner: "Aamena Fatta",
     totalAed: 10500,
@@ -872,6 +887,7 @@ function ActivityIcon({ event }: { event: ActivityEvent }) {
 }
 
 function GiftCardDetails({ card, onOpenSale }: { card: GiftCardSold; onOpenSale: () => void }) {
+  const { isMultiLocation, locationName } = useLocations()
   const status = STATUS_META[card.status]
   return (
     <div className="rounded-2xl border border-border/60 bg-card">
@@ -881,6 +897,15 @@ function GiftCardDetails({ card, onOpenSale }: { card: GiftCardSold; onOpenSale:
             <DetailField label="Original amount" value={money(card.totalAed)} />
             <DetailField label="Redeemed" value={money(card.redeemedAed)} />
             <DetailField label="Remaining" value={money(card.totalAed - card.redeemedAed)} />
+            {/* Where it was sold, not where it may be spent. A gift card travels
+                across the estate — the spec's own line is that gift cards and
+                memberships do and a package does not — but the *sale* belongs to
+                one branch: its receipt, its takings, its books (R11). Without
+                this the branch on the record was invisible, and the card looked
+                like it belonged nowhere. */}
+            {isMultiLocation ? (
+              <DetailField label="Sold at" value={locationName(card.locationId)} />
+            ) : null}
           </div>
         </DetailSection>
 

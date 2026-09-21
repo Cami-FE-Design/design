@@ -1,0 +1,1737 @@
+# Multi-location · the design pass (SCR-01–06, SCR-08–16; SCR-07 blocked)
+
+The design side of multi-location, built bottom-up: one definition of a branch,
+the scope control every other screen is read through, and the branch lifecycle
+those two make legible. It starts by removing an ambiguity rather than adding a
+feature — before this, four different files each had their own idea of what a
+location was.
+
+Covered here: **SCR-04** branch switcher, **SCR-01** branch list, state, hours
+and lifecycle, **SCR-02** chain setup, **SCR-03** branch access grants, **SCR-09**
+per-branch service pricing, **SCR-08** the public branch picker, **SCR-05**
+the all-branches calendar, **SCR-06** the cross-branch move, **SCR-12** branch
+tax identity, **SCR-13** the package mismatch at checkout, **SCR-14** branch
+WhatsApp numbers, **SCR-15** money by branch, and **SCR-16** the CamiHQ chain view.
+
+Four are not done, and three of those are not startable — see
+[Screen coverage](#screen-coverage-against-the-prds-6-reference) and
+[Blocked on a decision](#blocked-on-a-decision).
+
+## Which source answers which question
+
+Two different questions, and an earlier version of this document conflated them
+under a header that read "read the built product before designing against a
+doc". That has the priority backwards.
+
+- **What has to be true** — the PRD, and only the PRD. R01 to R25, the stories,
+  the release criteria. A requirement does not stop applying because the code
+  has no counterpart for it, and half the screens here have none.
+- **What already exists** — `cami-business`. Continuous work happens there, so
+  before building something that may already ship, check it: field names, copy,
+  states, payload shapes. It is **reference and support**, never authority on
+  scope.
+
+Getting that backwards in either direction costs something. Treating the code as
+authority means never building what is not there yet — which is most of this
+feature. Ignoring it means inventing a second model for something already
+shipped, which is the mistake this section was written about.
+
+The blueprint's own summaries of the shipped product are lossy in ways that
+changed this work:
+
+| The docs said | `cami-business` actually ships |
+| --- | --- |
+| "Five shipped roles" (Owner/Admin, Manager, Receptionist, Stylist, Marketing) | Three seeded role codes, read-only on the backend: `merchant_owner`, `receptionist`, `staff`. Everything else is a **custom role the merchant created** — `modules/rbac` ships add, rename, edit and delete for exactly that. So the five are one account's catalog, not the product's roles |
+| Five per-role location toggles | One permission code: `venues:read`, "view and manage business locations". The other four exist nowhere. They are a **proposal**, and the dialog labels them as such |
+| — | "Works at" is already a per-venue checkbox list against `assignedVenueIds`, with loading, error-and-retry and empty states, and the whole list disabled for an owner |
+| — | A **venue slice already exists** (`store/slices/venue.slice.ts`: `activeVenueId` + `venueList`) and feeds an `x-venue-id` header on every request via `lib/http/interceptors.ts`. **Nothing dispatches `setActiveVenue` or `setVenueList`** — see [What is actually built](#what-is-actually-built) |
+| — | The service catalog carries one `priceType`, `price` and `duration` per service, business-level. No venue dimension, no inheritance — SCR-09 is a proposal, not a mirror |
+| — | Suspend, unsuspend and delete already ship in `LocationsPanel.tsx` against `useChangeVenueState()`, each taking a **reason code plus an optional internal note**, and suspend/delete are mutually exclusive moves |
+
+Two things were rebuilt after reading it rather than before: the lifecycle
+actions (wrong copy, missing reason codes, wrong disabled rules) and the role
+model (invented five fixed roles with invented capability defaults). Both were
+surfaces that **already existed** — which is exactly when the dev repo earns a
+look, and exactly the case where a doc's summary of it is not good enough.
+
+## What is actually built
+
+PRD §16's first and only **blocking** question is "what is actually built?
+Partition (PRO-71) versus attribute (domain model and glossary) versus
+aggregate-with-fallback (Faisal's brief). These cannot all be true."
+
+From the frontend, the answer today is **none of the three**:
+
+- `store/slices/venue.slice.ts` holds `activeVenueId?: string` and
+  `venueList: VenueSummary[]`, and `store/bootstrap.ts` wires `activeVenueId`
+  into an `x-venue-id` request header for every service.
+- **No code dispatches `setActiveVenue` or `setVenueList`.** So
+  `activeVenueId` is always `undefined`, the header is never sent, and every
+  request is implicitly business-wide.
+- Consumers already read it as though it were set: `useCalendar`,
+  `useCalendarPage` (which falls back to `activeVenueId ?? ""`) and
+  `EditSaleDetailsDialog`.
+
+So the venue dimension exists as plumbing and carries no value. That is worth
+saying to Faisal plainly, because it also settles a design question: **there is
+no shipped branch switcher to match**, and the header shape can express one
+active venue but not a subset or a roll-up. SCR-04's subset and all-branches
+scopes need an API shape the header does not have.
+
+## What the live PRD says that this repo's copy does not
+
+Checked against Slite `5hKLTw-Tfm0psh` on **2026-09-21**. The PRD there was last
+edited **2026-09-04**; the copy under `cami design with dotzero/PMOS/` is dated
+**2026-08-16** and is 19 days behind, which is the staleness this section has
+always warned about, arriving.
+
+Three things the live document settles that the mirror does not:
+
+- **R10 and R14 are not missing numbers.** The register runs R01–R09 and
+  R11–R25: there is no R10. R14 exists and is real — events, jobs, audit
+  records, notifications, exports and subscriptions carry location context and
+  never deliver outside the recipient's grant.
+- **What the 2026-09-03 cross-check added** — GB1.3, GP1.4, KH1.5, SU1.4's
+  90-day soft delete and SU1.5 suspend — is all built: a move that cannot
+  attribute a captured payment is rejected whole, an archived branch still
+  reports its VAT, and a deleted branch soft-deletes for 90 days before its slug
+  frees.
+- **GB2.1 / GB2.2 contradict what we built, and §16 says the question is still
+  open.** See below.
+
+### The one live conflict: R13's ceiling
+
+GB2.1 is the duplicate-before-booking story, now built. Its coupled partner
+GB2.2 draws the opposite conclusion to ours about the field set: *"viewing that
+visit shows only date, branch, and service. No charges, no notes."* We built
+SCR-07 **wide** — price included — on the reasoning in
+`lib/locations/visit-access.ts`.
+
+It is not a defect on either side yet, because §16 of the same document still
+lists *"R13's readable field set"* as an open decision owned by **Maaz**, and
+names GB2.2 as what it blocks. A drafted story and an open decision cannot both
+be authoritative. The note now lives in `visit-access.ts`, which is the file
+that changes if Maaz settles it narrow — `grantCovers()` already decides per
+visit, so the narrow field set is a second consumer of an answer that exists.
+
+## Where the real documents live
+
+Slite, not this repo. They move faster than any copy of them, so read them there
+rather than trusting a mirror — `cami design with dotzero/PMOS/` already went
+two weeks stale, and the user-stories file its own header names is not in it.
+
+| Doc | Slite id |
+| --- | --- |
+| PRD: Multi-Location — supersedes the separate BRD and PRD; §5 is the single home for R01–R25 | `5hKLTw-Tfm0psh` |
+| BRD: Multi-Location | `LDBT5aVEuHKAdP` |
+| User Stories: Multi-Location — the same 49 stories, grouped by journey area | `7pg149CiWujY8B` |
+
+The web URLs are a client-rendered SPA behind auth, so fetching one gets an
+empty shell. Read them through the API instead, with a personal key from
+Slite → Settings → API (turn off "can write" — nothing here needs it):
+
+```bash
+curl -H "Authorization: Bearer $SLITE_KEY" \
+  "https://api.slite.com/v1/notes/5hKLTw-Tfm0psh?format=md"
+```
+
+There is also a **Multi-Location Blueprint** artifact (architecture brief, §01
+mental model through §12 appendix). Useful for §02's field-level data-ownership
+planes and §03's authorization model, both of which the PRD does not restate.
+Treat it as older than the PRD: see [Where the blueprint is stale](#where-the-blueprint-is-stale).
+
+## What these slices implement
+
+| Rule | Where |
+| --- | --- |
+| R03 · scope is one branch, a subset, or all granted, and filters survive a change | `lib/locations/store.tsx`, `components/blocks/location-switcher.tsx` |
+| R04 · capability and location scope are independent axes | `grants` in the store, separate from any role |
+| R11 · no operational write resolves a default location | `requiresTargetLocation` / `activeLocation` |
+| R24 · no grant means no access, and never means all | `hasNoAccess`, and the switcher's locked state |
+| DW1.1 · switching branch never costs the user their place | the switcher never navigates and holds no view state |
+| DW1.2 · a single-branch business sees no switcher at all | `isMultiLocation`, read from `granted` not `locations` |
+| R12 · a suspended or archived branch is readable but takes no writes | `acceptsWrites()`, and `activeLocation` skipping non-live branches |
+| R04 · capability and scope are independent axes | `lib/team/roles.ts`, and `TeamAccessDialog`’s two asymmetric halves |
+| R06 · enable per branch, and inherit / override / reset per field | `lib/service-catalog/offerings.ts`, `ServiceLocationsSection` |
+| R07 · view one / subset / all calendars, and move with destination checks | `lib/locations/calendar-scope.ts`, `lib/locations/cross-branch-move.ts` |
+| R08 · stored value is business-wide, consumption resolves to one branch | `lib/service-catalog/package-branch-check.ts` (the warn-never-block half) |
+| R05 · one person, many branches, never booked at two at once | `lib/team/shifts.ts` for the rota, `lib/locations/cross-branch-availability.ts` for the block |
+| R19 · a business timezone default with per-location overrides | `lib/locations/timezone.ts`, resolved on the Hours tab |
+| R09 / R18 · per-branch money breakdown, bounded by the grant | `lib/money/by-location.ts`, `MoneyByLocationView` |
+| R15 · a client picks a branch, or arrives on its own link | `resolvePublicView()`, `PublicBranchPicker` |
+| R17 · a sale records collection and fulfilment, and rewrites neither | `MoveAttribution` in `cross-branch-move.ts` |
+| R20 · every pre-existing record resolves to one branch | `locationId` required on `MockBooking`, backfilled in the seed |
+| R21 / R22 · a branch's own number, no fallback, cost attributed | `lib/locations/whatsapp.ts`, `WhatsAppNumbersPanel` |
+| R23 / R25 · tax identity per field, receipts prefixed per branch | `lib/locations/tax-identity.ts`, the Invoicing tab |
+| R01 · create, configure, suspend, archive, discover | `setStatus` / `addLocations` in the store, `ManageTab` and `AddLocationsTakeover` |
+| R02 · every branch in one setup pass, and one more later, with no migration | `AddLocationsTakeover` — one `addLocations` call, so all-or-none by construction |
+| SU1.4 / SU1.5 · archive is a close-out, suspend is a reversible pause | two separate actions with separate copy, and `StateBanner` naming the consequence |
+
+### Branch lifecycle (SCR-01)
+
+Suspend and archive were already described correctly in the copy but wired to
+nothing. Both work now, and one copy line was wrong: Delete said data is
+"permanently removed" after 90 days, which contradicts R12 — a branch is never
+deleted and its history stays readable forever. Only the **slug** frees up. The
+action is now called Archive, and the confirmation says what survives it.
+
+Archiving is **reversible**, because the built product has a `restore`
+transition and R12 forbids deletion rather than recovery. An earlier version of
+this document asserted it was one-way, which was an invention that contradicted
+the endpoint for no requirement's sake.
+
+The lifecycle is the as-built's: `PATCH /merchant/venues/{id}/state` with
+suspend, unsuspend, archive and restore over three states. There is no `draft` —
+see [What the cross-check found](#what-the-cross-check-found).
+
+**Deliberately not invented:** what happens to a branch's future appointments
+and unsettled sales when it is archived. That disposition is undecided (PRD
+§16, Michelle, and PRO-557), so the dialog states the settled rules and implies
+nothing about the unsettled ones.
+
+### A branch's profile persists, on one seam (SCR-01)
+
+The profile tabs pre-dated this work and were never wired: every field was an
+uncontrolled `defaultValue`, and Save closed the dialog and changed nothing.
+Basic info, business type, address and invoicing now write through the store.
+
+The reason this could not wait: hours started persisting in the slice above, and
+a reviewer who finds Hours surviving a reload and Address not concludes the
+feature is broken. They are not wrong to.
+
+Persistence had also grown a key per surface — statuses first, then hours, and
+the profile would have been a third. Whether an edit survived a reload would
+have depended on which tab you were in. It is one seam now:
+`updateLocation(id, patch)`, one stored key, and `setStatus` and `setHours` are
+two-line wrappers over it. Branches created in chain setup persist too, which
+they did not before.
+
+Stored as a **patch per branch**, not a copy of the location. Add a field to
+`Location` and every stored edit stays valid, where a stored copy would be
+missing it — and editing the address does not drop yesterday's hours.
+
+Three decisions inside the forms are worth naming, because each is a place the
+obvious behaviour is the wrong one:
+
+- **Renaming a branch does not rename its slug.** The slug is the branch's
+  public URL and the id every operational record carries. Renaming "Shampooch
+  JVC" must not break a link a client already has. A slug change is its own
+  decision, with a redirect.
+- **The map pin is not re-derived from the typed address.** Geocoding is a real
+  service; a pin quietly moved to the wrong side of a road is worse than one
+  left where the operator put it.
+- **"Same as business location" stores the tick, not a copy of today's
+  address.** A copy would silently stop following when the address changed,
+  which is the one thing ticking it promised.
+
+### The last three dialogs, and two shapes of inheritance
+
+Tax defaults, receipt sequencing and tipping were the last dialogs whose Save
+closed and changed nothing. Not an oversight of the same kind as the profile
+tabs: those write a field, while these write an **override**, which needs
+somewhere for "no opinion" to live. `undefined` is that place, and
+`BranchSettingsProvider` is where it lives — one provider, because the three are
+cards on one tab all answering the same question, and three would let two of
+them disagree about which branch is open.
+
+**Reset deletes the key.** Writing today's business value in its place leaves the
+field looking inherited while no longer following a later change to the default,
+which is G5's failure mode rather than its behaviour. And a branch with nothing
+left holds no row at all, so "9 branches inherit everything" stays a fact about
+the data. Both rules are `applyTaxOverride` in `tax-identity.ts`, pure and
+tested, because they are the easy ones to get wrong in a reducer.
+
+**Two shapes, deliberately.** The tax identity resolves **per field**: a branch
+really does differ on one alone — its receipt prefix while sharing a legal
+entity, or a boarding branch setting its own services rate while keeping the
+business products rate. Tipping resolves **per block**, and the dialog said so
+before anything was wired: its first control is "Workspace defaults" or "Custom
+for this location". An operator does not want this branch's percentages with the
+business's cart rules; they want "this branch tips differently", and then they
+configure it. Field-level markers there would name six states nobody asked for.
+
+**On Workspace defaults the tipping controls are disabled, not hidden.** Hidden,
+an operator has to switch to Custom to find out what they would be changing
+from.
+
+**Receipt sequencing has two fields that look alike and are not.** The prefix is
+inherited, so it carries a marker and a Reset. The next number is not: every
+branch has its own sequence and there is no business-level "next receipt number"
+to inherit from, so a marker there would name a state that cannot exist. Save is
+refused on a number that is not a whole number above zero — 0 would leave the
+branch's first receipt unnumbered.
+
+### A branch's public name
+
+Deriving the public label from `location.district` held for all three seeded
+branches, so it shipped as the rule with a note that a branch wanting something
+else would need a real field. **Chaps & Co settled it, and they are the Tier 1
+account this whole feature gates.**
+
+Their own site lists branches as **"Bloomingdale's"** and "Dubai Design
+District". Bloomingdale's is a store inside Dubai Mall; its district is
+**Downtown Dubai**. Fresha lists the same branch as "Chaps & Co -
+Bloomingdale's" with Downtown Dubai on a separate line — which is the shape: the
+name and the area are two facts, shown together and never substituted.
+
+Derived from the district, that branch would have read "Chaps & Co Downtown
+Dubai" — neither what they call it nor what a client searches for.
+
+So `Location` carries an optional `publicName`, and the area is the **fallback**
+rather than the rule. Absent means the district is the label, which is the
+ordinary case and what the three Shampooch branches still are. The nine-branch
+estate seeds one mall branch so the case is on screen rather than hypothetical.
+
+**One rule, one place.** `publicLabel()` is the whole of it, and both sides call
+it — the server render resolving from the seed and the client render resolving
+from the store. Those were two copies of the same mapping before this, which is
+exactly how the two would have drifted the moment one gained a case.
+
+### The fifth copy: name, address and phone
+
+`PublicBranch` carried its own `name`, `street`, `city`, `emirate` and `phone`
+— the same five facts an operator edits in settings. So the round trip above
+worked for hours and prices and silently did not for an address: change a
+branch's street in settings, open its public page, nothing.
+
+The values matched to the character, which is what made it invisible. Two
+copies that agree are not a smaller problem than two that disagree, they are
+the same problem before anyone has noticed.
+
+All five resolve from `lib/locations` now, and the fields are optional as a set:
+a branch either carries its own profile or resolves one. Both paths are live —
+the chain's three branches resolve, and Purr Palace keeps its own literals
+because it is a second business with no location record.
+
+Two mappings needed a decision, because the two sides name the same fact
+differently:
+
+- **`emirate` reads `state`.** The Location form says State because the field
+  serves every country; the public page says what a client in the UAE would.
+- **The public name reads `district`, not `Location.name`.** A branch's public
+  name is the area ("JVC"); its operator-facing name carries the brand too
+  ("Shampooch JVC"), and the page composes the brand back on — so using the
+  full name would have read "Shampooch Shampooch JVC". District is what an
+  operator already types and it matched all three labels exactly. Where the
+  area is not the label, that needs a real field; listed under Known gaps
+  rather than guessed at.
+
+The cover and the address block moved inside `PublicBranchLive` with this,
+since a name and an address are now things an operator can change. Only
+`about` and the page metadata stay on the server — neither is per-branch, and
+metadata cannot read a client store at all.
+
+### The round trip to the client page
+
+The operator side and the client side already shared one definition — a branch's
+hours live in `lib/locations`, its menu in the service catalog, and the public
+page resolved both rather than carrying copies. What it did not have was the
+round trip: `/{branchSlug}` is a static server component, so it rendered the
+seed. An operator could change a price or an opening time, see it in settings,
+and find the client page unchanged. That is the shape of bug where the screen
+looks like it works.
+
+`branchAsBusiness()` and `publicMenuForLocation()` now take the live values as
+an argument instead of reading them. Omitted, both fall back to the seed, which
+is exactly what a server render has — so the static HTML is byte-identical for a
+branch nobody has edited.
+
+`PublicBranchLive` supplies them. Only the three sections an operator can edit
+sit inside it (booking card, menu, hours); cover, about, address and the page
+metadata stay on the server, and because the sections land in their own
+`[grid-area:...]` slots the layout does not care that they arrive together. Both
+stores seed from the module the server read, so the first client render matches
+the server byte for byte and the saved values arrive on the effect after — no
+mismatch, no flash.
+
+The chain page's picker gets the same treatment. Each row states that branch's
+hours today, and comparing branches on stale hours is exactly the comparison the
+picker exists to get right.
+
+**This wrapper is scaffolding, not the design.** A real client's browser holds
+none of the operator's storage; in the product the page reads an API. It exists
+so a reviewer can check the thing they could not check before — edit in
+settings, open the client page, see it.
+
+### Per-branch hours and timezone (SCR-01)
+
+`HoursTab()` used to take no location and print "9:00 AM – 9:00 PM, Time zone
+Asia/Dubai" for every branch. That is not a cosmetic gap: if all three branches
+show one week, per-branch hours do not exist, and R01 is the requirement the
+whole screen is for.
+
+Three hour models were in the repo, which is why this took a model decision
+before it took a component change:
+
+| Where | Shape |
+| --- | --- |
+| The operator's edit dialog | per day, **multiple shifts**, 12-hour labels |
+| The public `WeekSchedule` | per day, one `open`/`close`, 24-hour |
+| `cami-business` venue | one `startTime`/`endTime` for the entire week |
+
+Shifts win, and PRO-363 ("user is unable to add more than 2 shifts in business
+hours for a day") is the evidence — a bug filed *because* shifts are the real
+concept. `lib/locations/hours.ts` is now the one model: a day is
+`{ closed: true }` or `{ closed: false, ranges: [...] }`, in 24-hour time, in
+the branch's own zone. `DAYS_FULL` in `location-form.tsx` was a fourth copy of
+the seven days and is gone.
+
+Consequences worth reviewing:
+
+- **A closed day says "Closed"**, rather than being dropped from the list. A
+  missing row reads as an oversight; the word is a fact.
+- **"Open until" names the shift running now**, not the last close of the day.
+  A branch open 9–1 and 4–8 closes at 1pm at noon — saying 8pm sends a client
+  away at ten past one. Likewise "opens 4pm" instead of naming tomorrow, which
+  is `closingTime()` and `nextOpeningTime()` in the same module.
+- **Unticking a day stores closed**, not an empty range list — a day with no
+  ranges would render as open with nothing in it.
+- **A new branch inherits the business default** rather than an empty week,
+  because that is what inheriting means: an owner adjusts the days this branch
+  actually differs on.
+
+The seeded estate is deliberately three different weeks (JVC closed Sunday,
+Jumeirah seven days, Al Quoz split 8–1 and 4–8) because identical hours cannot
+demonstrate that hours are per branch.
+
+**One definition, like the menu.** `PublicBranch.hours` is now optional and a
+branch resolves its hours from `lib/locations` rather than carrying a copy, so
+there is one place a branch's week is defined. Only a business with no location
+record still carries its own.
+
+And now the round trip too, in one slice covering hours and service overrides
+together — see [The round trip to the client page](#the-round-trip-to-the-client-page).
+
+### Branch access grants (SCR-03)
+
+Two axes, owned at different levels, and the screen is asymmetric because of it
+(R04). **Role** is defined once for the business, so its capabilities are shown
+read-only — editing them here would change what every holder of that role may
+do. **Locations** are granted per person, and that is the half an owner changes.
+
+**An owner's list is not editable**, matching the shipped section. An owner
+holds every branch by definition, *including branches added later*, so the grant
+is stored as `"all"` rather than as today's ids. A ticked set would silently
+exclude branch ten.
+
+**An empty grant is named, not blank.** It is a real state with a real
+consequence (R24): the member reads and writes nothing, and it must never
+resolve to every branch. Left as an unticked list it reads as an unfinished
+form rather than a decision.
+
+**The roster gained Role and Locations columns.** A grant nobody can see is a
+grant nobody audits, and nine branches with one wrong scope is exactly BG-06's
+failure mode.
+
+The four proposed `venues:*` codes are labelled Proposed in the dialog. The
+substance of the proposal is splitting `venues:read`: an area manager who may
+set a branch's hours must not thereby be able to edit its tax identity, which
+changes every future receipt (R23), or archive it (R01). One code cannot say
+that.
+
+### Per-branch service pricing (SCR-09)
+
+One service definition, an offering per branch. A branch that charges more does
+not get a second Dog Wash; it gets an override on one field of the shared one.
+
+**Overrides are sparse, and that is load-bearing.** DW3.1 — "raising the
+business default leaves an overridden branch untouched" — only holds if a
+branch stores *what it deliberately differs on*. Copy the whole service per
+branch and a business-wide price change silently stops reaching nine branches,
+which is the failure the requirement is written against. So an absent field
+means inherited, and inherited means **live**.
+
+**Reset deletes the key rather than writing today's default.** That is the
+difference between inheriting and coincidentally matching: write the value and
+the branch stops following the next change. Clearing a field in the UI is the
+same operation, for the same reason.
+
+**Reset is per field and manual** (DW3.2). There is no "reset this branch"
+button, which would throw away decisions the operator never mentioned.
+
+**The marker is on the field, not the row.** A branch can differ on price while
+still following the business duration, and a row-level badge would hide which
+is which.
+
+**An offering that says nothing is not stored.** Enabled with no overrides is
+the default, so the row is dropped — otherwise every branch accumulates a row
+meaning "no opinion", and reasoning about a default change means reading rows
+that do nothing.
+
+It lives on the **service's** sheet, next to Team members, not in each branch's
+settings: the question is "where do I sell this, and for how much", asked once
+per service. The other way round, a nine-branch chain opens nine settings
+panels per service.
+
+Resolution, reset and counting are pure functions in
+`lib/service-catalog/offerings.ts`, unit-tested in `offerings.test.ts` —
+including the default-raise divergence, and that a branch price of `0` is an
+override rather than an absent value.
+
+### Public branch picker (SCR-08)
+
+Two entry paths, and the asymmetry is the point — the BRD's "front door, per
+channel". A **branch** slug is the link a branch shares and it skips the
+picker, because the client already stated where (GB3.2). A **business** slug is
+the undecided client's entry, and it asks (GB3.1). Neither guesses, which is
+R11 satisfied two ways.
+
+**Two open decisions were settled here, both assigned to "design, with the
+booking page work".**
+
+*Entry order — location first.* Price, duration and whether a service exists at
+all are per branch (R06), so service-first means listing a union across
+branches and showing a price that is a range or wrong until a branch is chosen.
+The client who already knows what they want has a better door anyway: the
+branch's own link. So this page's job is the undecided client, and what they
+are undecided about is where. Service-first is a later additive — a "find a
+service" entry that narrows to the branches offering it — and it needs
+per-branch availability to be real first.
+
+*URL scheme — flat, one namespace.* `cami.app/shampooch` is the chain page,
+`cami.app/shampooch-jvc` is the branch. Not nested, because Settings →
+Locations already shows `cami.app/{slug}` per location, so branches already
+believe they have a top-level link, and nesting would lengthen the thing a
+branch actually shares. The cost is a shared namespace where a business slug
+and a branch slug can collide — which is why chain setup checks slug
+collisions and archiving frees a slug only after 90 days.
+
+**A branch slug wins over a business slug.** For a single-site business the two
+are the same string, and resolving to the branch is what makes its page the
+branch page with no picker in it — the public half of DW1.2.
+
+**Only published branches appear.** A suspended branch is in the record and on
+no public surface: absent from the picker, and its direct URL 404s. Not greyed
+out — offering a client a place they cannot book is worse than not mentioning
+it (SU1.5, R12).
+
+**`branchAsBusiness()` is why nothing else changed.** It returns the business
+with the branch's address, hours, phone and menu resolved in, so the page's
+existing sections never learned about branches. That is also what the real
+thing does: resolve the location, then render its offering.
+
+**`/{businessSlug}/book` 404s on purpose.** Booking without a branch is the
+default-venue fallback R11 deletes, so there is no such page — only
+`/{branchSlug}/book`.
+
+### The chain, seen from CamiHQ (SCR-16)
+
+E15's two stories decide this screen, and they decide it against building one:
+
+- **HQ1.1** — "HQ-assisted setup produces the same result as if the owner had
+  done it themselves. **There is no lesser HQ-only path.**"
+- **HQ1.2** — "Viewing from HQ shows **the same** per-branch breakdown and
+  roll-up an owner would see."
+
+A bespoke HQ chain dashboard would be a second implementation of both, and the
+second one is the one that drifts. So the Locations tab on a partner reads the
+estate from `lib/locations` and renders the per-branch money with
+`MoneyByLocationView` — the owner's component, not a copy of it. What HQ adds is
+the two things it genuinely has: which partner am I looking at, and that this is
+not my data.
+
+**CamiHQ modelled a partner as a single site.** `AdminBusiness` carried one
+`street`, one `phone`, and the demo partner was named **"Shampooch JVC"** — the
+name of a branch. An Account Manager could not tell a chain from a single site,
+which is the first thing they need about a signed account. The partner is
+`Shampooch` now, with `locationIds` into the estate rather than copies, and the
+list badges a chain. The badge is absent for a single site rather than reading
+"1 location", because a badge on every row stops being information.
+
+**No write path, deliberately.** Standing a chain up happens *as the owner*, in
+an impersonation session, which is what puts an actor on the record (INV-08). A
+create-and-configure surface here would be exactly the lesser HQ-only path
+HQ1.1 rules out. The section says so and links into a session.
+
+**Single-site partners see no chain view at all** — G3 read in the HQ plane.
+Four of the five seeded partners trade from one address, and a tab full of chain
+concepts would make an Account Manager reason about branches for an account that
+has none.
+
+**Still open, and Michelle's** (PRD §16): whether chain onboarding is
+CamiHQ-ops-driven like PRO-737, partner self-serve, or both — and whether E15
+being entirely P2 is *confirmed* deferrable rather than assumed so. Neither
+changes what is drawn here: HQ1.1's "same result, no lesser path" holds under
+every answer.
+
+### What nine branches actually broke
+
+Seeding nine was supposed to expose the layouts that only hold at three. It did,
+and five of the six things it found were mine — four of them invisible until the
+estate got bigger. Reviewed off screenshots rather than reasoned about, which is
+the only way this class of defect surfaces.
+
+- **A draft branch was told it would "reopen".** The service catalog's row had
+  two states where the model has three, so `draft` fell into the `suspended`
+  sentence. A branch being set up and a branch that stopped trading are not the
+  same fact, and the one word separating them was the wrong one.
+- **The calendar strip truncated the word that identifies a branch.** Every name
+  in a chain starts with the business, so nine cards spent their width on
+  "Shampooch " and cut what came after: "Shampooch Al Quoz" rendered as
+  "Shampooch…". It shows the branch's own label now, with the full name on hover
+  and for a screen reader. Inside the business the prefix is already known.
+- **The strip's last row stretched one card across the full width.** A wrapped
+  flex row with `flex-1` made Yas Island three times the size of every other
+  branch, which reads as importance. A grid with equal columns instead.
+- **"No takings this period at …" became seven names in one sentence.** The
+  count is the fact an owner wants; seven names inline hide it. Up to three it
+  stays a sentence, after that it is a count above a list.
+- **"Business total — the sum of 1 location"** restated the single row above it,
+  and told a manager granted one branch that their branch is the business. Their
+  number was right; the label was not. The roll-up row is absent below two rows.
+- **The availability chips read "T W T F S S M"** — two T and two S, so Friday
+  and Sunday, the two days these branches differ on most, could not be picked
+  out. Three letters now.
+
+Two empty states were missing entirely, both reachable. The public picker with
+every branch paused (a chain closed for Eid) would have read "Shampooch has 0
+locations. Each one has its own team, hours and prices." above nothing; it now
+says it is not taking bookings and offers the phone. And the service catalog's
+Locations section with no branches yet — a service can exist before anywhere to
+sell it does — promised inheritance above an empty space.
+
+**Loading is drawn once, on purpose.** The design definition of done asks for
+empty, loading and error, and the only branch surface with a loading state worth
+drawing is the money roll-up: a grant-bounded query summing a row per branch,
+and the one the product has a budget for — `PRD-78` is an E2E whose subject is
+that this query stays inside it. It renders a placeholder per branch in scope,
+because the count is known before the money is; an owner on nine branches should
+see nine rows coming rather than a spinner that could resolve to anything. Every
+other branch surface reads data it already has, and a skeleton there would be a
+wait that never happens.
+
+### The estate belongs to the business
+
+The layout seeded one fixed list of nine, so signing the demo into Sota left the
+LocationSwitcher offering Shampooch's branches under a Sota heading. The
+layout's own comment already claimed the opposite — "a branch is scoped by the
+business, never the other way round", which is the blueprint's §02 — so this
+was a rule the code asserted and did not keep, and a comment that lies is worse
+than none.
+
+This is not the franchise view the PRD puts out of scope. That is one operator
+reading *across* businesses. This is ordinary containment: the branches you can
+stand in are the ones belonging to the business you are signed into.
+
+`locationsForBusiness` in `lib/locations/from-business.ts` is the whole of it.
+An authored estate wins where there is one — Shampooch's nine carry a suspended
+branch, a timezone override and a mall's public name, facts no public record
+holds and no rule could invent. A business without one has its estate derived
+from its public branches, and the fields a branch never carries come from the
+business: email, owner, trading name, invoicing. Those *are* business-level
+facts, which is why a branch never had them.
+
+**Two lists of one thing, reduced to one.** Shampooch's public record listed
+three branches by hand while the operator held nine, and nothing said which was
+wrong. The public record now derives from the estate, and `isPublished` reads
+the lifecycle — so the two suspended branches are in the record and absent from
+every public surface (R12, G9), which is what the requirement always said.
+
+**What that exposed.** `locationContact` and `locationHours` looked up the first
+three branches only. Six more became public in the same change, and
+/shampooch-mirdif rendered with the business's name and no sign of which branch
+it was. Both now read the estate; it opens with the same three, so nothing that
+resolved before resolves differently.
+
+**Scope and grants are checked, not cleared.** Both outlive a change of
+business, and an id from the estate you have left resolves to nothing — a scope
+pointing at `shampooch-jvc` while signed into Sota empties every screen with no
+sign of why. `idsWithin` narrows them to what the estate holds rather than
+dropping them on any mismatch, so switching away and back keeps what the session
+had. An empty survivor list is not applied: a grant of none is R24's state and
+has to be asked for, never arrived at by a business switch.
+
+### Nine branches, and the collapse (D5)
+
+Three branches is the demo. Nine is what the PRD assumes, and it is where the
+layouts fail — always the same way: most rows say nothing, and the one that
+matters is below the fold. That could be argued about indefinitely without a way
+to see it, so `NINE_BRANCH_ESTATE` in `lib/locations/mock.ts` seeds nine and
+`LocationsProvider` takes an `initialLocations` seam to mount it.
+
+The estate is deliberately mostly-identical. Nine branches sharing a menu with
+one exception is the honest shape of a chain, and a seed where every branch was
+interestingly different would make the collapse look unnecessary — when the
+collapse exists precisely because most rows say nothing. Three of the nine are
+the real seed, so nothing reading the estate changes shape; the other six are
+generated, because six more hand-written profiles add no information. One is a
+draft and two are in other emirates, which is what makes per-branch tax identity
+(R23) more than a hypothetical.
+
+**What counts as saying something.** A branch deviates when a field is
+overridden, the service is off there, or its lifecycle state changes what
+"offered here" means. Everything else is a card repeating the business default
+back at you.
+
+**The collapse has a floor.** Under four quiet branches nothing collapses:
+folding three cards into a line you have to click is a worse screen than three
+cards. The summary names the branches it hides, because "6 branches inherit"
+without saying which is a fact the operator cannot check.
+
+**D5, decided 10 Sep 2026 (Hussain): collapsed stays the default.** Both states
+were built so the call could be made by looking, and it was. The reason: at nine
+branches the branch that differs is the only one worth reading, and a default
+that puts it below the fold loses the thing the screen is for. The click is paid
+by the operator who wants to audit a branch that has nothing to say, which is
+the rarer errand.
+
+The floor stays at four quiet branches, so a three-branch business — which is
+most of them — never sees a collapse at all.
+
+**Found at nine, fixed:** the switcher had no height cap — at three nothing
+needed one. Its branch list scrolls on its own now while "All locations" stays
+put, since a roll-up you have to scroll back up to reach is the row an owner
+uses most.
+
+### Availability per branch, not just the offering (R15)
+
+R15 asks that both entry paths yield "that Location's offering **and
+availability**". The offering was done; availability was one hardcoded week and
+all twelve staff, shown on every branch's page.
+
+**Days come from the branch's hours.** A day it does not open is `closed`, which
+is deliberately not `full`. "Fully booked" invites a client to check back;
+"closed on Sundays" is a fact about the branch. Rendering one as the other sends
+people back to a day that will never have a slot. `full` still exists for the
+days the seed marks busy, but only where the branch is actually open.
+
+**Slots are the hours at half-hour steps.** They used to be a fixed
+Morning/Afternoon grid, which contradicted the hours printed on the same page —
+Al Quoz shuts 1pm to 4pm and was still offering 1:30pm. Deriving them means the
+two cannot disagree, a shift contributes its own slots so the midday gap is
+absent rather than filtered out afterwards, and the last slot of a range is half
+an hour before it closes because a slot at closing time is not one.
+
+Which slots read as taken is hashed from the day and the time. Deterministic on
+purpose: a demo that reshuffles between renders — or between server and client —
+is a demo nobody can point at.
+
+**Staff filter by the branches they work at.** The rail offered a client someone
+who is not there, which is the same error as a business-wide catalog. Absent
+`locationIds` means every branch, so a single-site business is untouched, and
+somebody covering two sites appears at both rather than forcing the operator to
+invent a duplicate person.
+
+Fourteen tests in `lib/booking-availability.test.ts`, including the two that
+would have caught the old behaviour: no open day is left with nothing bookable,
+and JVC and Jumeirah resolve to different weeks and different last slots.
+
+### One catalog for the client side
+
+The public page used to carry its own hand-written service list, and the
+booking flow read a second one. The page's five services were an **exact subset
+of the flow's ids**, copied across by hand — so the two agreed only while
+somebody kept them in step, and a branch's price override had to be written
+twice to be visible in both.
+
+R15 says both entry paths "yield that Location's offering", singular. So the
+page now resolves its menu from the one catalog, per branch
+(`lib/public-offering.ts`), and the branch deviations are data in
+`lib/service-catalog/offerings.ts` rather than a filter-and-map in the public
+mock. Jumeirah's higher wash price and its lack of daycare are written once.
+
+Two consequences worth knowing:
+
+**The page lists the whole offering, grouped by category.** The curated five
+was itself a shortcut — a client comparing branches is comparing what each one
+*does*, and five of nineteen answers that wrongly. Grouping is how the booking
+flow already presents it, so a client sees the same shape before and after
+they press Book now. Combos are excluded from the price list because a combo
+books as its components, which are listed individually (PRD-143).
+
+**A branch may still carry its own list.** `PublicBranch.services` is optional
+now: absent means "resolve from the catalog", which is what the chain's branches
+do. Purr Palace keeps a literal list because it is a second business and only
+one catalog is modelled in this repo.
+
+#### Both entry paths, not just one
+
+R15 says both entry paths "yield that Location's offering", and only one of them
+did. The branch page resolved per branch; the booking flow read the business
+default straight off the module. So an operator could set JVC's full groom to
+240, see 240 on the branch page, press **Book now**, and be quoted **260**.
+
+A page and a flow disagreeing about the same branch is worse than either being
+wrong alone — by the time the client notices, they have already been told a
+price.
+
+`bookingCatalogForLocation()` is the flow's resolver, sitting beside the price
+list's. Same resolution, different shape: the flow needs combos, the qualifier
+next to a duration, and the component ids a bundle books as, so it returns
+`ServiceCategory[]` rather than dropping those. `findCatalogService`,
+`bookingLines` and `serviceTotals` all take the catalog now and default to the
+business's, and the flow threads it to the picker, the sticky summary **and** the
+review step — a flow that quotes one price and confirms another is the failure
+this was meant to fix, not a smaller version of it.
+
+**A combo goes only where every component goes.** A bundle whose parts a branch
+does not do is not a cheaper option, it is an unfulfillable one, and offering it
+books work the branch cannot deliver.
+
+#### The operator's side was reading a different business
+
+Found in review, and worse than a duplicate. `lib/service-catalog/mock-data.ts`
+— the only source for the Service menu and Categories screens — held a **hair
+salon**: Hair Color, Brazilian Blowout, "Color treatments", ids `svc-1`…
+Everything client-facing read `SERVICE_CATEGORIES` in `lib/booking.ts`, a **pet
+groomer**: Full groom, Bath & brush, ids `full-groom`, `bath-small`…
+
+So the two lists were not copies of each other that had drifted. They were
+different businesses, and the consequence landed squarely on SCR-09: setting a
+branch price on "Hair Color" wrote an override keyed `svc-1`, and
+`publicMenuForLocation()` never looks that id up. The per-branch pricing screen
+could not reach a client page **at all** — the seeded deviations worked
+(`bath-small`, `daycare-day` are catalog ids), so the gap was invisible until
+someone made an override themselves.
+
+The as-built settles the shape. `src/types/service-catalog.ts` has one `Service`
+record carrying a `showInPublicBooking` flag — "this only hides the service from
+the public booking widget" — and `src/types/booking.ts`'s
+`CatalogService.serviceId` is documented as *"the underlying service UUID"*. One
+record set, two projections; the operator's menu and the client's catalog cannot
+disagree because they are the same rows.
+
+`seedServices` and the merchant categories are now **derived** from
+`SERVICE_CATEGORIES` rather than written again. Derived rather than retyped for
+the same reason `lib/public-offering.ts` exists: two lists agree only while
+somebody keeps them in step. The `admin-*` system categories stay hand-written —
+those are the platform's business types, not this merchant's menu.
+
+Two things this changed that a reviewer should expect: the Service menu lists
+the nineteen services a client sees (Full groom, not Hair Color), and the
+seeded per-branch overrides are now editable in the sheet that owns them. Tests
+and playground rows that named `svc-8` now find a combo **by kind**, because
+pinning an id ties them to which service happens to sit where.
+
+One seeded row was arguing with itself, found while checking the above:
+Jumeirah's wash override was **75** against the business's 120, while both its
+own comment and this spec said "charges more". The branch rendered as the
+cheaper one. It is 145 now.
+
+### Chain setup (SCR-02)
+
+Three fields per branch — name, city, timezone — and everything else inherited
+from the business. That is the whole point of BG-03's "zero operator migration
+steps": asking for tax identity and invoicing per branch would make standing up
+nine branches feel like nine onboardings, when R23 already says those are a
+business default with a per-field override.
+
+**All or none.** Submit with one bad row and nothing is created. A partial
+create is worse than a rejection: the owner cannot tell which of the nine
+landed, and retrying duplicates the ones that did. It is one `addLocations`
+call, so atomicity is structural rather than defended.
+
+**Two collisions are checked, not one.** A name colliding with an existing
+branch's slug, and two rows in the same batch resolving to the same slug — the
+second is the one an owner cannot see coming, so it is named on the later row
+rather than silently overwriting the earlier.
+
+**New branches land as `draft`.** Created is not trading; hours and staff still
+have to be set. `activeLocation` skips non-live branches, so a draft is never
+the target an operational write falls onto.
+
+Not implemented, and deliberately: every other screen in the reference.
+
+### All-branches calendar (SCR-05)
+
+"Per-branch columns or filter, drill into one" — this is the **filter** half,
+and it is a filter on purpose. A day grid is already staff × time; adding branch
+as a third axis turns 11 columns into 99, and nobody reads that.
+
+**The counts are why it is a strip and not a dropdown.** An owner opening the
+calendar across branches is asking which branch is busy, and a dropdown makes
+them try each one to find out. Clicking a branch narrows to it; clicking it
+again returns to all, so drilling in and back out is one gesture.
+
+**An all-branches view is read-only for creating.** `calendarWriteTarget()`
+returns a reason rather than a boolean, so the grid cannot resolve a target by
+picking whichever branch is first (R11). The strip says a booking needs one
+branch chosen, at the point where someone would otherwise try to drag one in.
+
+**Every seeded booking now carries a `locationId`, and the field is required.**
+That is the R20 backfill done rather than deferred: an operational record with no
+location is the state R20 exists to eliminate, and an optional field would let
+one back in every time someone adds to the seed.
+
+### Cross-branch move (SCR-06)
+
+The one operation that touches both branches at once, and every way it fails is
+a way money or access fails. `evaluateMove()` returns a decision **with a
+reason**, because reception has to be able to tell a client why not — "this move
+isn't allowed" is what sends them to the phone.
+
+**The money keeps both branches, forever.** The deposit was genuinely taken at
+the source, and the work now happens at the destination; both are facts, so both
+are recorded (R17, INV-01). Overwriting the collection location would be simpler
+and would quietly credit the destination for money it never took, which is the
+reconciliation failure BG-04 measures.
+
+**Both ends are checked, not just the destination.** A receptionist holding the
+destination but not the source is moving something they cannot see.
+
+**A fixable reason is reported before an unfixable one.** No slot and an
+unresolvable payment are both wrong; reception can act on the slot, so that is
+what they are told. And an unresolvable payment rejects the move **whole** —
+nothing partial, the client keeps their appointment and their payment where they
+were (GB1.3).
+
+**Availability is an input, not a computation.** There is no per-branch
+availability model yet, so `destinationHasSlot` is supplied. Pretending to
+compute it would be the more misleading choice.
+
+### Branch tax identity (SCR-12)
+
+Every inheritable row says whose value it is, because "business default with a
+per-field override" is invisible otherwise: two branches showing
+"Shampooch Trading LLC" look identical whether one of them means it or is merely
+following along, and the difference decides what happens when the default
+changes.
+
+The seed carries both real cases — JVC overrides only its receipt prefix,
+Jumeirah is a separate registered company with its own TRN. That is what
+"let's keep this flexible, it will allow us to add unique tax numbers/VAT"
+asked for.
+
+**The forward-only warning is the load-bearing copy.** Editing here changes
+every future receipt and no issued one (INV-12, R23). An operator who expects a
+correction to fix last month's invoices will be wrong in a way that matters at
+filing.
+
+**The receipt number is shown as it prints, prefix included.** "21857" alone
+does not show that two branches at the same number cannot collide; "JVC-021857"
+next to "JUM-021857" does (R25).
+
+### Package mismatch at checkout (SCR-13)
+
+**Warn, never block** — and the earlier design had this backwards, as did the
+blueprint's §07 "can only be redeemed there". Corrected 2026-09-03 from Maaz's
+live walkthrough of Chaps & Co's real Fresha account: gift cards and memberships
+travel across branches, packages do not, because a package is sold against one
+specific priced service.
+
+Blocking does not prevent the outcome. Operators already work around it by hand
+— a 100% discount, a gift-card credit — so a block only makes reception do it
+slowly in front of the client. `canCompleteSale()` is a function that always
+returns true rather than an omitted check, because somebody reading the module
+needs to see that completion is not conditional.
+
+**Both figures are in the warning.** "This package may not apply here" sends
+reception to the phone; "sold at AED 60, AED 75 here" lets them decide there and
+then. The two offered choices are the two things businesses already do by hand.
+
+**The decision is recorded**, and not out of suspicion. Staff already discount
+to zero and comp friends (EC-4); the point is that an owner reading a branch's
+numbers can see why a package redeemed below its value rather than finding an
+unexplained hole at month end.
+
+⚠️ **Not wired to a host flow.** There is no package redemption at checkout in
+this repo — only gift cards — so building one to hang a warning on would have
+been the packages feature rather than multi-location work. The rule and the
+warning are built and tested; the cart line that triggers them is not.
+
+### Branch WhatsApp numbers (SCR-14)
+
+WhatsApp is the front door, and per branch it becomes what decides which branch
+a message belongs to: inbound resolves from the number it arrived on, and
+`resolveInboundLocation()` returns `undefined` rather than a default, because a
+third answer is the silent misroute R21 exists to delete.
+
+**The contrast with SMS is deliberate and worth keeping in mind.**
+`effectiveSenderId()` falls back to `CAMI` on purpose — a generic sender still
+reaches the right person. A WhatsApp number is an address, not a label, so
+falling back would deliver one branch's conversation to another branch's inbox,
+which is a cross-branch leak (BG-06) rather than a cosmetic downgrade.
+
+**Migration is shown as the sequence it is, not a spinner.** The step that
+surprises people is the OTP, because the code goes to the number and somebody
+has to be standing in that branch. Nine branches is nine of those, and that
+gates the go-live date rather than the build — so the panel states the step and
+who has to do it instead of offering a retry that cannot help.
+
+**Coexistence is flagged while it is still avoidable.** Migrating a number off
+the WhatsApp Business app loses that branch's chat history without it, and the
+longer the branch has traded the worse that is (EC-45).
+
+### Money by branch (SCR-15)
+
+**Side by side, never merged.** KH1.1 is unusually explicit, and the reason is
+that the obvious implementation destroys the job: an owner asking how the day
+went across nine branches is asking *which branch* had a bad one. So the total
+is rendered as what it is — the sum of the rows, placed after them and labelled
+as derived — rather than a headline with a breakdown hidden underneath.
+
+**Bounded by the grant, not filtered by it.** `allowed` bounds the result before
+anything is summed, so "run a report on everything" can never exceed what the
+caller holds (R18), and the roll-up cannot leak a branch the rows withheld. A
+filter narrows a wider result; this never has the wider result.
+
+**A quiet branch is named, not dropped.** "No takings at Al Quoz today" and
+"Al Quoz is missing from this report" are different answers, and an owner needs
+the first.
+
+**The topbar drawer is bounded too, and says so.** It was the one money surface
+that skipped the bound — `summarizeByRail` and `groupByDay` took the whole
+ledger — so a manager granted one branch read a held figure built from nine,
+while the summary behind the same button was bounded and disagreed with it. It
+now applies the summary's expression verbatim, and prints which branches it is
+counting: the switcher that would otherwise answer sits in the topbar *behind*
+the sheet, so the sheet has to answer for itself. A balance that does not say
+whose it is invites an owner to read one branch's takings as all nine, or the
+reverse.
+
+**Reachable by the owner, not only by HQ.** The breakdown was mounted at
+CamiHQ and on the playground and nowhere else, while the owner's own Account
+summary rolled the estate into one figure with no way down — so HQ1.2's promise
+that HQ shows "the same breakdown and roll-up an owner sees" held in one
+direction only. It now sits in the Account summary between the custody
+breakdown and the rail detail, absent for a single-site business the way the HQ
+tab is (G3). Activity's branch dropdown is the other half of the pair and
+predates this by a release, which is why the gap read as deliberate.
+
+**Payouts are not branch rows.** UAE v0 settles per business into one account
+(GP1.4), so attributing a payout to a branch would double-count against takings
+already attributed on the sale. The footnote says so rather than leaving a
+suspicious gap. ⚠️ This is the line the neopay clarification may move — see
+Known gaps.
+
+**A fixture that covers two branches is a screen that lies, so a test asserts
+the estate.** The money ledger was not the only one: `BRANCH_STOCK` held rows
+for two live branches, so `stockForProduct()` backfilled zero at the other five
+and every product read as out of stock there — five false alarms on every
+product, drowning the negative balance and the empty shelf the fixture exists to
+show. `LOCATION_TAX_OVERRIDES` gave two branches a receipt prefix, so seven
+traded under one shared "SHP", which is precisely what a per-branch prefix
+exists to prevent (R23). Al Reem had no staff, and a booking resolves its branch
+through whoever performs it, so that branch could take no booking at all — and
+seeding the people was only half of it, because it then had a team and still no
+bookings. `DEMO_TERMINALS` covered two branches, so "no card machine here" and
+"this demo did not bother" looked the same.
+
+None of these threw, none made a total wrong, and none was reachable by
+reasoning about the code — the only evidence was a branch that never appeared,
+and absence is what no assertion was looking at. Each was found by someone
+opening a screen and asking why five branches were empty, which is not a way to
+find defects. `lib/locations/estate-coverage.test.ts` now asserts it directly:
+a live branch appears in every fixture, a suspended one may be absent from
+anything forward-looking but keeps its history, and adding branch ten fails the
+file until it is seeded.
+
+**Every trading branch is actually in the ledger — and only one business is.**
+`locationFor()` weights the estate across an 18-entry table and was fed the
+per-day row index, which a day of 3–7 rows never pushes past 6. The table's back
+half was unreachable, so five of the seven trading branches never received a
+transaction in any period: Money by branch showed four rows and five
+permanently quiet ones, which reads as a slow month rather than as missing
+data. It now takes a counter that runs across the whole ledger. The same
+unreachable tail held the other seeded businesses, and the day they became
+reachable the arithmetic broke — a payout is business-wide (GP1.4) and survives
+the grant bound while the takings behind it do not, so Shampooch subtracted
+payouts carrying Purr Palace's money from takings that excluded it and reported
+a negative balance held. Attributing payouts per business needs a business
+dimension this ledger does not have; it is CamiPay's, and CamiPay is signed up
+to per business. So the ledger is Shampooch's, and a business with no CamiPay
+account has no money to show — a true empty state, not a seeding gap.
+
+**The seed was spread across branches without moving any money.** `locationFor()`
+derives a branch from the row index rather than drawing from the generator's
+random stream, because that stream is a fixture other tests assert exact figures
+against. Spreading money across branches must not change how much money there
+is.
+
+**A fee, tip or refund carries its payment's branch.** Resolved once per payment
+and reused, so the breakdown never shows a cost with no matching sale — and a
+refund keeps the branch the money was taken at, not the branch doing the
+refunding (R17, INV-01).
+
+## What the first review round changed
+
+Six defects, and the three the reviewer found were all real:
+
+| Found | Cause, and the fix |
+| --- | --- |
+| The public booking card read the same on every branch | `branchAsBusiness()` overrode `businessName`, but the card, cover and title all read `displayName`. Both are resolved now, and a single-site business is left alone so Purr Palace does not become "Purr Palace Al Quoz" |
+| The branch switcher sat in the middle of the topbar | The bar is `justify-between` with two children; a third was distributed to the centre. Both switchers now sit in one left-hand group |
+| The Add locations form did not look like a settings form | Rebuilt on the `sales-settings.tsx` idiom: section heading, fields at `max-w-md` rather than full width, helper line under the field, `hr` between sections, circled-plus pill for the add action. It had a bordered card per row, which is what the read-mode summaries use |
+| About copy named a branch on every branch page | `longDescription` said "Shampooch JVC is a boutique…", and `shortDescription` "in the heart of JVC" — brand-level copy naming one of three. Both are brand-level now |
+| The topbar named a branch where the business belonged | `DEFAULT_NAME` was "Shampooch JVC". The same conflation the fabricated second workspace row had |
+| A branch page had no way to the other branch | A client who followed a branch link never saw the picker. One line back to the chain page, and only for a chain |
+
+And four the review prompted:
+
+- **"Set for this location" looked like a link** — violet, under the field,
+  where the eye looks for an action, while Reset (the only interactive thing)
+  was small and grey by the label. The status is a quiet "Custom" chip beside
+  the label now.
+- **Price and Duration side by side broke their own alignment** — "Duration
+  (min)" wrapped, and a wrapped header in one column pushed its input out of
+  line with the other. Stacked at `max-w-md`, like every other settings form,
+  and the unit moved to the helper line.
+- **A bare switch beside a branch name did not say what it switched**, and "on"
+  next to a Paused badge read as "bookable here". It is labelled *Offered here*
+  now, and a paused branch says nothing is bookable there yet.
+- **The roles dialog showed `venues:read` and four "Proposed" rows** —
+  engineering detail in a merchant's dialog, and a product promise to anyone
+  who had not followed the thread. It lists only what exists; the proposal is
+  in this spec and in `lib/team/roles.ts`.
+- **The money share bar was decoration** — no scale, and nine of them would be
+  a texture rather than a comparison. The share is a figure, and the rows are
+  ordered biggest-first so the ordering carries the answer.
+- **The WhatsApp panel was a page you could only read**, while its own copy told
+  the operator to turn Coexistence on. A migration is nine OTPs received at nine
+  branches; a self-serve wizard would promise control the owner does not have.
+  There is a request that reaches Customer Success instead, and the copy names
+  who acts.
+
+## The seven sources this replaced
+
+`lib/locations/mock.ts` is now the only place a branch is defined.
+
+| Was | Held | Now |
+| --- | --- | --- |
+| `LOCATIONS` in `components/blocks/location-form.tsx` | one rich branch, module const, no store | moved to `lib/locations/mock.ts`, types to `lib/locations/types.ts` |
+| `TERMINAL_LOCATIONS` in `lib/terminals/store.tsx` | "Downtown Clinic", "Field team" — names that existed nowhere else | deleted; seeded terminals remapped onto real branch ids |
+| the topbar's second workspace row | `` `${businessName} · Jumeirah` `` — a branch dressed as a workspace | deleted; branches live in `LocationSwitcher`, on their own axis |
+| `const LOCATION = BUSINESS_NAME` in `lib/money/mock.ts` | every transaction attributed to the *business* | points at a branch; see [Known gaps](#known-gaps) |
+| the public page's own service list | five services, hand-copied from the flow's nineteen | resolved per branch from the one catalog (`lib/public-offering.ts`) |
+| three hour models | shifts on the operator side, one range on the public side, one week in the dev repo's venue | one model in `lib/locations/hours.ts`, shifts everywhere |
+| `PublicBranch`'s name, street, city, emirate, phone | the same five facts an operator edits in settings, agreeing to the character | resolved from the branch's record (`locationContact`) |
+
+That third row is the one worth remembering. A workspace holds exactly one
+business (blueprint §01), and multi-brand under one login is explicitly out of
+scope — so a branch listed as a workspace is not a shortcut, it is the exact
+confusion multi-location exists to remove.
+
+## Switcher design decisions
+
+**One interaction, not two.** Every row is a toggle, and the scope *kind* falls
+out of what ends up selected: everything is `all`, one is `one`, anything
+between is a subset. The alternative — a mode picker plus a checkbox list —
+makes the user hold a concept the product does not need them to hold.
+
+**The last selected branch cannot be unchecked.** A scope of nothing is not a
+view of nothing, it is a broken session. R24's empty state comes from a missing
+grant, never from a user clearing a menu.
+
+**The menu stays open while toggling.** Building a subset takes more than one
+click.
+
+**Absent, not disabled, for a single branch.** DW1.2 is a real requirement, not
+a nicety, and it reads the granted set — so a manager holding one branch of nine
+gets the same nothing an owner of one shop does.
+
+**`persist={false}` on a nested provider.** The playground shows five scopes at
+once; a showcase must not write the scope the operator is working in.
+
+## Screen coverage, against the PRD's §6 reference
+
+The design definition of done is "SCR-01 to SCR-16 drawn including empty,
+loading, and error, with the single-branch case showing no switcher at all".
+
+| Screen | State |
+| --- | --- |
+| SCR-01 branch list, state and lifecycle | **built** — four states badged, suspend / unsuspend / delete with reason codes, matching the shipped panel; hours and timezone are per branch and persist |
+| SCR-02 chain setup | **built** — N branches in one pass, all-or-none |
+| SCR-03 branch access grants | **built** — role × location, roster columns, grants dialog |
+| SCR-04 branch switcher | **built** — one / subset / all, absent for a single branch |
+| SCR-05 all-branches calendar | **built** — branch strip with counts, drill-down, all-branches read-only for creating |
+| SCR-06 cross-branch move | **built** — destination bounded by grants, dual attribution, whole-move rejection |
+| SCR-08 public business page | **page built** — picker, per-branch pages, published-only. The booking *flow* is not branch-scoped |
+| SCR-09 branch service catalog | **built** — per-field inherit / override / reset, per-branch enablement |
+| SCR-12 branch tax identity | **built** — per-field source, forward-only warning, prefixed receipt number; tax defaults, receipt sequencing and tipping all save |
+| SCR-13 checkout, package mismatch | **built** — redemption panel against the shipped eligibility contract, mismatch beside a covered verdict |
+| SCR-14 branch WhatsApp number | **built** — bound / migrating / unassigned, cost attribution |
+| SCR-15 money by branch | **built** — side by side, roll-up as a sum, grant-bounded; mounted in the owner's Account summary as well as at CamiHQ |
+| SCR-07 client record, visits elsewhere | **built** — visits across the estate on the client record, read wide (one business, one P&L); a grant narrows what you may *do*, not what you may read. The open half stays open: whether a franchise view ever narrows the read is Maaz's, and nothing here forecloses it |
+| SCR-10 scheduled shifts | **built** — the as-built week grid per branch, with leave, block times and hours; cross-branch overlap named as a pair and refused in booking |
+| SCR-11 branch stock | **built** — per-branch quantity and reorder config, derived business total, grant-bounded; Quantity column on the Products table |
+| SCR-16 CamiHQ chain view | **built** — a Locations tab on the partner, reusing the owner's estate and money roll-up; chain badged in the list; no HQ write path |
+
+### Two stories the screens table did not cover
+
+The screen list is drawn from the PRD's §6 screen reference, and two of the
+PRD's eight *user stories* have no screen of their own — so both passed every
+screen review and neither was built.
+
+**`RP-A1` / `RP-C1`, the end-of-day view.** The PRD's first story: "an EOD view
+per branch and a business total in one place, so I stop calling each location",
+done when "the roll-up shows a per-location breakdown side by side, not a merged
+total (R09). A single number destroys the job." `/sales/daily-summary` existed
+and was two cards of constants typed to match a Figma frame, with no branch
+anywhere on them — an owner of nine branches read exactly the single number the
+story names as its own failure. Every figure now derives from the sales log,
+bounded by the grant before it sums, with the branches side by side and the
+total after them as their sum. It lands on the scope's own last trading day,
+because opening on today met every reviewer with an empty report.
+
+**`CL-A1` / `RC-B1`, the duplicate.** Done when "date, location and service of
+visits at any location are readable… **duplicate caught before booking**".
+SCR-07 built the readable half and stopped there, which satisfies a screen
+review and not the story: a record answers only when somebody opens it, and
+somebody mid-booking does not. The check now sits under the client picker in the
+new-appointment sheet. It reads the client's history *unbounded* by the grant —
+the duplicate worth catching is the one at a branch you cannot see, which is
+what R13's uniform field set is for — and it states rather than blocks, because
+two appointments in a day is routinely correct and reception has the client in
+front of them.
+
+### Blocked on a decision
+
+One screen is deliberately not designed, because designing it means inventing
+the answer to a question somebody else owns.
+
+| Screen | The question, and whose it is |
+| --- | --- |
+| **SCR-07's open half** | Built wide rather than left undrawn — franchise views are out of scope, so this is one business with one owner and one P&L. R13 fixes the readable field set as *uniform* across branches but does not say what is in it. Does branch A see what branch B charged this client, and B's notes, or only that the visits happened? It is a revenue-integrity call (EC-4), **Maaz's**, and PRD §16 lists it. Guessing narrow hides money from an owner; guessing wide leaks a branch's pricing. |
+
+### Package redemption, and the host the warning never had (SCR-13)
+
+The rule and the warning were built first and had nowhere to fire. I reported
+that as "no package redemption at checkout" twice, and both times I had looked
+in the wrong place — the sales module is `src/modules/invoice/components/new-sale/`,
+and customer packages have their own type file. The contract is fully built:
+
+```
+GET  /merchant/customer-packages/eligibility
+POST /merchant/customer-packages/:id/redeem     — "redeem one session"
+```
+
+with `verdict: "covered" | "exhausted" | "expired" | "not_covered"`, the
+package's `sessionsRemaining` / `sessionsTotal`, and
+`source: "appointment" | "direct"`. `customerPackageService` has every method
+and **no UI calls it**. So the missing piece was the surface, and it could be
+built against the real shape: the verdicts, the session counting and the
+reversal concept are taken rather than invented.
+
+**The branch is not a fifth verdict, and that is the design.** A verdict decides
+whether the package can be applied, so a `not_covered_here` would block the
+redemption KC1.5 insists must complete — "a clear warning rather than a hard
+block… checkout still completes, and the staff decision is recorded". The
+mismatch therefore rides **alongside** a `covered` verdict: the package still
+covers the service, and the branch difference is information for the person
+standing in front of the client. `canApply` deliberately does not look at it.
+
+**Not offered here is the strongest form of the same rule.** The branch does not
+do the service at all and the client is *still* honoured, because they already
+paid for it. That is the case where a block feels most defensible and is most
+wrong.
+
+**An unusable verdict reads differently.** Exhausted, expired and nothing
+covering it each get a sentence a receptionist can repeat to the client, and no
+button — a disabled Apply beside the reason invites a second try at something
+that cannot work.
+
+**A redemption resolves to one location before it happens** (R11, R08). The
+package is held at the business; the session is consumed at the branch doing the
+work, and the branch comes from `WriteTargetLocation` rather than a default.
+
+Seven tests. The load-bearing one: a mismatch never makes `canApply` false, in
+every one of its three shapes.
+
+### Scheduled shifts, per branch (SCR-10)
+
+The built product already has this screen: `ShiftsTable` under
+business/team/scheduled-shifts, members against Mon–Sun, fetched from
+`/merchant/team-members/schedules` under the active venue, with per-member and
+per-day hour totals and a member filter headed "Team members at
+{locationName}". This repo draws that grid rather than a separate roster, so
+the multi-location layer lands on the screen the team already uses.
+
+DW2.3 and DW2.4 read as opposites — "one unified timeline or one roster per
+branch" — and are not. They stack:
+
+- **DW2.3** puts a roster on **each branch** — "a stylist working Marina
+  mornings and JLT evenings is scheduled correctly at each", with the
+  acceptance that "booking only offers them at a branch during their rostered
+  hours there".
+- **DW2.4** adds a **cross-branch overlap block** on top — "never booked at two
+  branches at the same time", while two overlapping bookings at the *same*
+  branch still go through unchanged.
+
+Release criterion 12 states both in one line, and the built product has already
+chosen that shape: `ShiftsTable` reads `activeVenueId` and its filter dialog is
+headed "Team members at {locationName}".
+
+**A person assigned to two branches appears on both**, with the hours they work
+*there*. Not cosmetic: a roster showing their whole day at every branch would
+have booking offer them everywhere, which is the opposite of DW2.3.
+
+**Two overlaps, and only one of them is ours.** ADR-023 / INV-B7 allows
+overlapping **appointments** when staff book from Cami Business, and is
+untouched. A **shift** is the opposite: the built shift dialog refuses two
+windows that overlap at one branch, refuses a duplicate, refuses a window that
+overlaps a leave, and requires at least thirty minutes between windows. So an
+overlapping rota at one branch cannot be created.
+
+That is exactly why the cross-branch check has to exist. Each branch's rota is
+written under its own venue and nothing compares two of them, so the one overlap
+the product cannot refuse today is the one that spans branches — the gap
+multi-location opens and DW2.4 closes. `crossBranchClashes` compares the branch
+as well as the time, so a same-branch pair is never reported even if one reached
+the data, and `validDayWindows` keeps the seed itself to a rota the product
+would accept.
+
+**A cross-branch overlap is blocked, not warned.** Maaz settled this on a call
+on 15 Sep, and it is written down nowhere else yet: someone committed at one
+branch is not offered at another for an overlapping time. It matches DW2.4's own
+wording and release criterion 12; what the PRD marks 🔴 is the ADR-023 extension
+that carries it, which is engineering's to write.
+
+The rule lives in `lib/locations/cross-branch-availability.ts` and is enforced
+where a slot is offered, not on the roster. A roster is where a manager sees a
+clash and fixes the rota; refusing a booking there would be refusing the wrong
+person at the wrong moment. So the roster still names the clash as a **pair**,
+because a conflict is a relationship — flagging one of the two shifts would send
+the operator to change whichever they happened to be looking at.
+
+**Two refusals, kept apart.** Not working here (DW2.3) and working somewhere
+else (DW2.4) look identical on a grid and are not the same fact: one is a gap in
+a rota, the other is a clash between branches, and only the second is Maaz's
+rule. `slotRefusal` returns which, so an estate can tell under-rostering from
+double-booking.
+
+**The client is told the slot is gone, never where the person is.** Which other
+branches someone works is not a client's business — BG-06 is the gate — so the
+public flow drops the slot the way it drops one another client already holds,
+and the reason stays behind for the operator surfaces. When a chosen person
+empties the day, the flow says so in their name rather than "fully booked",
+which would send the client to a different day instead of a different person.
+
+**The leave rule is the product's, not an inference.** "Online bookings cannot
+be placed during time off" is the built time-off dialog's own sentence, and the
+shift dialog refuses a window overlapping a leave. Multi-location only widens
+it: the refusal applies at every branch the person is rostered at, not only the
+one that filed the leave.
+
+**Only a roster that exists is enforced.** Someone with no shifts anywhere is a
+rota nobody has filled in, not someone who works nowhere, so the branch's own
+hours stand for them — the same reading absent `locationIds` gets. Narrowing a
+grid on missing data would make a business unbookable the day it turned
+multi-location.
+
+**A branch holds its own shifts. An absence is the person's.** DW2.2 is P0 and
+lists assignment, schedules, time off and capability together as per-branch —
+but the criterion it is accepted on is "another branch's **roster change** never
+affects mine", and an absence is not a roster change. Those two halves of the
+requirement pull apart, and the gap between them was D6 on the ticket.
+
+**Settled 2026-09-16 (Hussain): away is away.** A leave closes every branch the
+person is rostered at. Built the other way, Lena's Thursday leave at JVC left
+her bookable at Jumeirah on a day she is out of the country — a failure nobody
+would defend, protecting nothing anybody asked for. The reading also survives
+the requirement: DW2.2's acceptance is about a rota, and a rota is still
+strictly per branch. A manager at one branch neither sees nor moves another's
+shifts, which is the half of DW2.2 that does the work.
+
+Two guards enforced the old reading and both are gone — the leave filter in
+`dayCell` and the branch check in `slotRefusal`. `Leave.locationId` survives as
+**provenance**: somebody entered and approved it somewhere, and that is worth
+being able to say. Nothing scopes off it, and the time-off dialog now names
+every branch the leave will reach before it is saved rather than promising it
+applies at one.
+
+**A block time goes the other way.** A lunch or a training hour is a hole in one
+branch's day, not a fact about the person, so it stays at its branch. It counts
+as worked and cannot be sold, which is why it is deducted from availability and
+not from the hours total — the opposite of leave on both counts.
+
+**An empty day says "Not working".** A blank cell reads as a rota nobody has
+filled in. Booking treats the two identically, but an operator deciding whether
+to call somebody in must not have to guess which one they are looking at.
+
+**Bookable hours come from the roster, never the branch's opening hours.**
+`bookableHours` returns nothing on a day someone does not work there, and the
+absence is the answer — falling back to opening hours is how a groomer gets
+booked on their day off.
+
+Twelve tests in `lib/team/shifts.test.ts`. The load-bearing ones: back-to-back
+shifts are not an overlap, two branches in one day with a gap is not a clash,
+and an overlap inside one branch never is.
+
+### Stock per branch (SCR-11)
+
+R16: "Stock quantity, reorder configuration, movements, depletion, and
+adjustments resolve per Location while the Business quantity is **derived** from
+its Locations and **never stored independently**."
+
+That last clause is the design. A stored business total is a second number that
+can disagree with the branches, and DW4.2 is written about exactly that: "the
+business-wide stock total always equals the sum of every branch, so that I never
+reconcile it by hand". So there is no field for it — `businessQuantity()` is a
+function over the rows, with no path by which it can be set.
+
+**A sum is correct and insufficient.** 18 at one branch and -2 at another add up
+to a healthy-looking 16, and the -2 is the only row worth acting on. Rows first,
+total after and labelled as a sum; and the Products table's Quantity column
+carries the total *plus* a marker when a branch inside it needs attention,
+because a number alone answers "how many do we have" and not "is anything
+wrong".
+
+**Empty and negative are different problems.** Zero means the shelf is empty and
+the action is a reorder. Below zero means the count is wrong — something was
+sold that was never booked in — and the action is a stock take. The built
+product allows negative balances and shows them, so the row names which of the
+two it is rather than colouring both red.
+
+**Thresholds are per branch.** R16 puts reorder configuration on the Location,
+and a busy branch and a quiet one do not reorder at the same number — one shared
+threshold makes the busy branch run out or the quiet one overstock. `undefined`
+is no opinion rather than zero, so a branch with no threshold is never "low".
+
+**Nothing moves stock between branches.** Per-branch stock is the v0 model,
+confirmed at the 2026-09-02 workshop ("we can just assign essentially in each
+location the stock"), with cross-branch transfer and a central warehouse in
+future backlog. So the affordance orders from a supplier rather than borrowing
+from a sibling.
+
+Fourteen tests in `lib/inventory/branch-stock.test.ts`. The load-bearing ones:
+the total equals the sum of its rows, a negative branch reduces it rather than
+being clamped away, the grant bounds it, and the one bad branch a healthy total
+hides is still found.
+
+**Where it is reachable, which was the first thing wrong with it.** The
+Quantity column said "3 locations need attention" with nowhere to go and see
+which — a surface stating something the app had no path to. Hussain caught it
+off a screenshot. Three places now carry the location dimension:
+
+- **View** — a "Stock by location" card in the product detail, which is where a
+  row click already goes. Only for a chain: a single-site business has one
+  shelf, and the card would be the same number twice. The dialog's stock figure
+  was a hardcoded `0` before this, so it reported an empty shelf for every
+  product.
+- **Movements** — `AddStockDialog` and `RemoveStockDialog` existed and were
+  business-wide. A movement is an operational write, so both now name a branch
+  and Save is refused without one (R11, R16). Receiving a case of shampoo at
+  "the business" is not a thing that happens, and removing stock from it would
+  leave every branch's count unchanged and the total wrong — the failure DW4.1
+  is written about.
+- **Create and edit** — the form already had every stock field; what it lacked
+  was which branch they belong to. The opening count names a location, and the
+  copy says the others start at zero and take their own deliveries. A create
+  form is not the place to type nine opening balances.
+
+`WriteTargetLocation` is the control all three share, and it is where R11 starts
+being **enforced** rather than modelled: `requiresTargetLocation` and
+`activeLocation` had been in the store since the scope was built with no callers
+at all. It resolves the branch when there is only one it can be, asks when there
+is more than one, and says so plainly when a write is impossible — and it never
+offers a suspended or archived branch, which takes no new writes (R12).
+
+**Gap, named rather than invented:** a branch with no row reads "Out of stock",
+but a branch that never carried the product and one that ran out are different
+facts. The built model has no "not stocked here" — a product is business-wide
+and every branch has a count — so zero is the honest answer today. Whether
+products get per-branch enablement the way services did (DW3.3) is a product
+question.
+
+## What the cross-check found
+
+Hussain asked for the whole of `cami-business` to be read against everything
+built here — on the suspicion that some of it rested on assumptions or was
+overthought when the answer already existed. It did. Five things were wrong and
+three are engineering gaps worth reporting.
+
+### Wrong here, now fixed
+
+**`draft` was invented.** R01 lists "create, configure, suspend, archive" and an
+"active state" — three. The built product agrees:
+`PATCH /merchant/venues/{id}/state` takes suspend, unsuspend, archive, restore.
+`draft` appears nowhere in the PRD and nowhere in the product. It cost every
+surface a state it did not need and produced a real defect — the service catalog
+telling a draft branch its menu applied "when it reopens", to a branch that had
+never opened. Removed. A new venue is created **active**, and an owner who is
+not ready suspends it, which already means "not bookable yet".
+
+**Archive was described as one-way.** It is not: there is a `restore`
+transition, and R12 forbids *deletion*, not recovery. The assertion was an
+invention that contradicted the endpoint for no requirement's sake.
+
+**The as-built's hours were described wrongly**, and that description was part
+of the argument for the new model. `VenueOperatingHour` is
+`{ dayOfWeek: 0–6, startTime, endTime }` in an **array** — so several rows per
+day are already expressible, which is shifts. The commit that introduced
+`lib/locations/hours.ts` said the venue "carries a single startTime/endTime for
+the whole week". Wrong. The model landed on the right shape; one of its three
+reasons was false.
+
+**There are two tax models here, and the second one renamed the product's
+fields.** `Location.invoicing` matches `VenueInvoiceDetails` — `companyName`,
+`address`, `vatNumber`, `invoiceNotes`, per venue, and it ships. Then
+`tax-identity.ts` introduced `legalName`, `trn` and `receiptPrefix` for the same
+facts the product calls `companyName` and `vatNumber`. The receipt prefix is
+genuinely new (R23/R25 have no counterpart in the product), but two of the three
+names were a rename of something that already existed.
+
+**`SelectTrigger` styling was hand-rolled** in three of my components when the
+repo's idiom for a Select among Inputs already existed — and `h-12` silently
+does nothing on a trigger, so they were taller and outlined. Fixed where I made
+it and in three pre-existing cases.
+
+### Right here, and confirmed as new work
+
+Worth stating so nobody looks for a counterpart that does not exist:
+
+| Built here | In `cami-business` |
+| --- | --- |
+| Three-way scope: one / subset / all granted | **Required.** R03 is a Must and says "one Location, a subset, or all granted" |
+| Per-branch service pricing (R06) | Nothing. `service-catalog.ts` has no venue dimension at all |
+| Per-branch WhatsApp number (R21) | Nothing. Only per-customer notification preferences |
+| Receipt prefix and per-branch sequence (R23, R25) | Nothing anywhere |
+| Per-branch VAT defaults | Nothing. `taxRate` is per invoice line and per package |
+| Per-branch stock (R16) | The **product** model ships (`trackStock`, `currentStock`, `lowStockLevel`, `reorderQty`); the location dimension is new |
+| Per-branch roster (DW2.3) | Shifts already carry `venueId`, and `ShiftsTable` reads the active venue |
+
+### Engineering gaps, for the implementation side
+
+**`x-venue-id` is a single id, and R03 and R11 both require a set.** The header
+is set from `activeVenueId` in `interceptors.ts`, one value. R03 asks for "one
+Location, a **subset**, or all granted", and R11 for "an explicit Location **or
+an explicit granted Location set**". A subset cannot be expressed in a request
+today, so an all-branches roll-up is either N requests or an unbounded
+business-wide one — and the second loses the grant bound R18 depends on.
+
+**Moving an appointment between branches is an unguarded PATCH.**
+`UpdateAppointmentSchema.venueId` is optional, so a move is a field change with
+no rules attached. R17's guardrails — the deposit stays credited where it was
+taken, both branches on the sale, an unresolvable payment rejects the whole
+move — exist only in this repo's `cross-branch-move.ts`. Nothing enforces them.
+
+**The default-branch fallback**, already described above:
+`useCalendarPage.ts:492` and `shifts.service.ts:76`.
+
+## Corrections after reading the built product again
+
+Two claims in earlier versions of this document were wrong, both because they
+were made from this repo rather than from `cami-business`. Reading the built
+product is the standing rule for a reason.
+
+### SCR-11 is not blocked on a missing feature
+
+This said "there is no stock quantity in the product model to make per-branch".
+The **design repo's** `Product` has no stock fields — but the built one does,
+and the shipped Products list renders the column today ("Unlimited", "-2 in
+stock"). `cami-business` `src/types/product.ts`:
+
+| Field | Meaning |
+| --- | --- |
+| `trackStock` | false is **Unlimited** — the product is not counted at all |
+| `currentStock` | on hand, and it is allowed to go negative |
+| `lowStockLevel` | the threshold below which it is low |
+| `reorderQty` | how many to order |
+| `lowStockNotif` | whether to notify |
+
+R16 wants exactly these resolving **per Location**, with the business quantity
+derived and never stored. So SCR-11 is unblocked design work, and the gap was in
+this repo's model rather than in the product.
+
+### A default-branch fallback exists, and here it is
+
+R11 says an operational write names one branch with **no default, ever**, and
+the PRD's release criterion is blunter: *"the default-branch fallback removed
+from the repo rather than flagged off"*. It is in the repo, in two places:
+
+```
+src/modules/calendar/hooks/useCalendarPage.ts:492
+  // Derive venueId from the calendar API response (first member's first venue)
+  for (const entry of members) {
+    if (entry.venues.length > 0) return entry.venues[0]?.id;
+  }
+
+src/services/shifts.service.ts:76
+  const venueId = data.venue?.id ?? data.members[0]?.venues?.[0]?.id ?? null;
+```
+
+Every appointment created from the calendar is attributed to **the first venue
+of the first staff member who has one**. `CreateAppointmentSchema.venueId` is
+required, so the write cannot happen without a branch — and this is where the
+branch comes from. The shifts one at least falls through to `null`.
+
+That is the concrete answer to the release criterion, and it is the reason R11's
+"no default" needs a switcher that actually dispatches: `activeVenueId` is read
+in six places and **set in none** — `setActiveVenue` and `setVenueList` have no
+dispatch site outside the slice that defines them. So the fallback is not a
+belt-and-braces default, it is the only source.
+
+### The as-built already carries more of the location dimension than expected
+
+Worth knowing before designing against it:
+
+- **Team members have assigned locations.** `TeamMemberDetailAssignedLocation`
+  is `{ id, venueId, venueName }` — R05's data half ships. This repo's
+  `locationGrants` is the same idea under a different name.
+- **Shifts carry `venueId`, and the shipped roster is already per-venue.**
+  `ShiftsTable` reads `activeVenueId` and its filter dialog is headed "Team
+  members at {locationName}" — so the built product has already chosen DW2.3's
+  shape. It does not behave that way yet, because `activeVenueId` is never set,
+  so the name falls back to "this location" and the roster is business-wide in
+  practice. Decided, not wired.
+- **Appointments require `venueId`; sales do not.** `CreateAppointmentSchema`
+  has it as `z.string()`, while `ComposePaymentLinkSchema` has it nullable and
+  optional. Two write paths, two different rules, which is R11 and R20 pulling
+  in opposite directions inside the built product.
+- **Bookable staff is not the team roster, and this answers D4.**
+  `CreateTeamMemberPayload` carries `profile.allowCalendarBooking` ("whether
+  this team member is bookable on the public calendar"), `assignedVenueIds` and
+  `assignedServiceIds`. So who a client can pick is one roster narrowed three
+  ways — bookable at all, at this branch, for this service. Not two lists, as
+  this repo's separate `BOOKING_STAFF` implies. Nothing to ask Maaz.
+- **"Closed periods" is already written for the estate.** The scheduling
+  settings panel says "Add closed periods for a single or multiple locations.
+  E.g. Christmas break or a renovation" — the one place shipped copy names more
+  than one location. A dated shutdown across a chosen set of branches is neither
+  hours (R01) nor leave, and this repo has no such concept.
+- **Timezone is one business setting in the as-built.** Scheduling settings hold
+  one "(GMT +05:00) Karachi", one time format and one first-day-of-week for the
+  whole business. R19 is a **Must** and asks for both halves — "a Business
+  timezone default and per-Location overrides" — so this repo now carries the
+  default in `lib/locations/timezone.ts` with an optional per-branch override,
+  resolved the way tax identity already resolves. The first day of the week is
+  still one business setting and nobody has asked for it per branch.
+- **Closed periods have no requirement behind them.** The as-built settings
+  panel offers them "for a single or multiple locations", which is the only
+  shipped copy naming more than one location — but the PRD has no closure, no
+  holiday and no closed period. Its answer to a renovation is SU1.5: **suspend
+  the branch**. So this is not built here. It is worth asking whether the
+  as-built feature is meant to survive multi-location or be replaced by
+  suspension.
+- **The schedule's cache key has no venue in it.** `useScheduledShifts` keys on
+  `["shifts","schedules", tenantId, weekStart]` while the request is scoped by
+  the `x-venue-id` header. `useCalendar` and `useSalesAppointments` do include
+  `venueId`. Nothing is wrong today — there is one venue — but switching
+  branches would serve the previous branch's rota from cache, which is a BG-06
+  path and belongs on the multi-location build list.
+- **Slot granularity and the booking window are configurable.** "Display time
+  slot intervals of 15 minutes", "Show all available time slots", "book
+  immediately before start time and no more than 12 months in the future". This
+  repo generates slots at a fixed half hour, which is a simplification to
+  retire, not a rule.
+- **Block time types carry paid / unpaid.** Lunch is "30 min · Unpaid",
+  Training "1 hr · Paid", and `blockTimeType.isPaid` is on the contract. The
+  built hours total counts every block as worked either way, and this repo
+  matches it — but whether an unpaid lunch belongs in an hours column is a
+  payroll question for engineering, not a design one.
+- **A client record has no branch dimension at all.** `ClientDetailDialog` has
+  Overview, Appointments, Sales, Details, Pets and Documents, and "lifetime
+  revenue from this client" with nowhere for a venue. So today every branch
+  would read everything, and SCR-07's question (D1) is really *what to take
+  away*, not what to add — which is a stronger argument for asking than the one
+  this spec had.
+
+## Where the blueprint is stale
+
+The blueprint is dated 17 Aug and compiled 30 Aug; the PRD was last checked
+4 Sep. Five places disagree, and the PRD wins:
+
+| Blueprint | Current |
+| --- | --- |
+| §07 receipt numbering and tax identity, **open** | decided 17 Aug: per-location tax identity ships in v0, per-field override (R23). Confirmed again in `#multi-location` — "let's keep this flexible, it will allow us to add unique tax numbers/VAT" |
+| §07 settlement model, **open** | decided: ledger attribution per branch in every market, payout grouping a business-level setting |
+| §07 timezone, **open** | decided: UTC storage, business default plus per-location override (R19) |
+| §07 a package "can only be redeemed there" — a hard block | **inverted.** KC1.5, corrected 2026-09-03 from Maaz's walkthrough of Chaps & Co's real Fresha account: warn, never block. Checkout must complete, staff decide case by case |
+| §08 products "hold centrally in a warehouse and transfer stock out" | central warehouse is out of scope (2026-09-02 workshop); cross-branch transfer is v-next |
+
+Two things the blueprint has that the PRD does not, and that are worth keeping:
+§02's field-level assignment of every object to a plane, and §03's note that the
+per-role location toggles (view/access all locations, manage venue hours,
+manage venue invoice, change venue state, update venues) **need to exist for
+every role, not just Manager**. That last one appears in no SCR- screen.
+
+## The end-of-day report, and where a nine-row card goes
+
+By location answers the first question an owner brings to this screen, so it
+goes above the transaction and cash summaries. Unbounded, that ordering fails at
+exactly the size this estate exists to test: nine rows push the two reports a
+till is reconciled against below the fold, so the card that answers "which
+branch" costs you the ones that answer "what did we take". The layout held at
+three and broke at nine, which is the shape this whole slice is built to catch.
+
+Capping the card and scrolling the rows inside it fixed that and bought a worse
+problem — a scrollbar inside a scrollbar, both on screen, with no way to tell
+which one a wheel is about to move. So the list is simply short: the three
+biggest, ordered biggest first, and the rest one click away, which grows the page
+instead of nesting inside it. The control counts what is hidden rather than
+saying "show all", because seven of nine hidden is a different decision from two.
+The business total sits outside the list either way: it is the check on the rows
+rather than one of them, and a roll-up behind a toggle is not a roll-up.
+
+## Reports: what multi-location owes, and what it does not
+
+R18 asks for two different things and only one of them was done. **"The result
+set never exceeds the caller's granted Location Scope"** held from the start —
+rows are bounded by the grant before anything is summed, so there was never a
+leak. **"An authorized user can run a bounded single-Location report"** did not:
+`table-report.tsx` read `granted` alone, so the topbar switcher — the control
+every other surface in the product obeys — did nothing to a report. Narrowing to
+one branch still showed the estate, which also fails R03's plain reading, that
+the session scope is what a user sets and reads. It now reads the active scope
+and falls back to the grant, like every money surface.
+
+**The filter sheet's own selection is still unwired, and that is not this
+ticket's.** `FilterField` holds its value in local state and never lifts it, so
+*every* filter in the reports module is decorative — location, team member,
+channel alike. That is one defect in DSG-43's module with one fix, and doing it
+per-filter from here would leave the other filters broken and the module with
+two mechanisms. The branch axis needs no special case once it is fixed: the
+options are already grant-bounded.
+
+**Quiet hours is not multi-location's.** It appears once in the PRD, in §9's
+messaging table, as "existing policy, per location timezone (R19)" — no release
+criterion, no screen in SCR-01…16, no requirement of its own. The multi-location
+delta on it is the per-branch timezone, which is built and tested in
+`lib/locations/timezone.ts`. The policy surface it modifies exists in neither
+this repo nor `cami-business`, whose `notification` module is an empty folder.
+Building it would be inventing a comms feature, not completing this one.
+
+## Known gaps
+
+- **Payout grouping may be moving, and SCR-15 shows the current line.** The PRD
+  says payout is per business, one account, and GP1.4 says there is "no
+  location-level payout configuration in Cami" — so the money breakdown does not
+  break payouts out per branch and says why. But in `#multi-location`, Maaz:
+  "neopay just confirmed that their terminals can pay into separate business
+  bank accounts if the multiple locations do receive money in multiple banks."
+  If the v0 line changes, that footnote and the seed's business-level payout
+  rows change with it. **Confirm with Michelle before designing anything else in
+  payments.**
+- **The full test suite needs `--no-file-parallelism` on this machine.** Running
+  `npm test` alongside the dev server exhausted V8's heap mid-run and reported a
+  partial pass (12 of 21 files) with errors, which looks like a failure and is
+  not one. `npx vitest run --no-file-parallelism` gives 21 files / 286 tests
+  green.
+
+- ~~**There are two catalogs.**~~ Closed — `lib/service-catalog/mock-data.ts`
+  derives its services from `lib/booking.ts` rather than holding a second set,
+  so an override made on the operator's sheet lands on the id the client page
+  and the booking flow look up. See
+  [The operator's side was reading a different business](#the-operators-side-was-reading-a-different-business).
+- **The bookable roster and the team roster are two lists.** `BOOKING_STAFF` is
+  twelve groomers; `lib/team/mock.ts` is five people including an owner and a
+  pending invite. Which team members are bookable is a product question — an
+  owner is on the roster and is not a slot — so they were not collapsed. Branch
+  assignment lives on `BOOKING_STAFF` for now, which means a grant changed in
+  SCR-03 does not change who a client can pick.
+- **The session's grant is not the signed-in member's grant.** `LocationsProvider.grants`
+  is a demo control, and the roster's per-member grants are separate data.
+  Linking them needs a signed-in-member concept this prototype does not have:
+  `lib/current-user.tsx` holds a profile (Michelle You) that matches no roster
+  row, so there is nothing honest to join on. Until it exists, SU2.3 —
+  revoking a branch narrows every surface immediately — can be reasoned about
+  but not demonstrated end to end.
+- **`permission: "High" | "Medium" | "Low"`** is still on the roster type
+  because the reporting module and the older team surfaces read it. New
+  surfaces should read `roleId` and `locationGrants`.
+
+- **Nothing schedules against a branch's timezone yet.** Hours and timezone are
+  per branch and read everywhere they are displayed, but availability and date
+  bucketing still run on one clock. R19's display half is done; its scheduling
+  half needs the booking engine, which is not a design surface.
+- **Not multi-location, recorded here because it was found here: the phone
+  input.** Four hardcoded dial-code lists in this repo, four options each
+  (`+971 / +966 / +44 / +1`), in the location form, the booking flow's identify
+  step and two more places — while `cami-business` ships a searchable
+  199-country picker. A client or a branch with a number outside those four
+  cannot be entered here at all. Nothing to design, only to bring across, and it
+  belongs to whoever next touches a phone field rather than to this work.
+
+- ~~**A branch's public label is its district.**~~ Closed 15 Sep — see
+  [A branch's public name](#a-branchs-public-name).
+

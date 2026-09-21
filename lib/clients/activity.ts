@@ -121,6 +121,16 @@ export type ClientAppointment = {
   time: string
   /** Which of the client's own pets this was for. Absent for non-pet partners. */
   petId?: string
+  /**
+   * The branch it happened at (SCR-07, R13).
+   *
+   * Optional, because a single-location business has nothing to attribute and
+   * a record without one is not broken — it is a visit from before the estate
+   * existed. Surfaces show a branch only once a client's own history spans
+   * more than one, so a single-branch history never grows a column of the same
+   * repeated name (PRD §12).
+   */
+  locationId?: string
   services: Array<{ name: string; staff: string; duration: string; price: string }>
 }
 
@@ -133,6 +143,16 @@ export type ClientSale = {
   status: ClientSaleStatus
   dayMonth: string
   weekday: string
+  /**
+   * The branch it happened at (SCR-07, R13).
+   *
+   * Optional, because a single-location business has nothing to attribute and
+   * a record without one is not broken — it is a visit from before the estate
+   * existed. Surfaces show a branch only once a client's own history spans
+   * more than one, so a single-branch history never grows a column of the same
+   * repeated name (PRD §12).
+   */
+  locationId?: string
   items: Array<{ name: string; priceMinor: number }>
   /** Amount already paid. Only meaningful for part-paid. Minor units. */
   paidMinor?: number
@@ -216,6 +236,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
     appointments: [
       {
         id: "mc-1",
+        locationId: "shampooch-jvc",
         status: "booked",
         dayMonth: "May 22",
         weekday: "Friday",
@@ -228,6 +249,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
       },
       {
         id: "mc-2",
+        locationId: "shampooch-jvc",
         status: "no-show",
         dayMonth: "May 18",
         weekday: "Monday",
@@ -237,6 +259,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
       },
       {
         id: "mc-3",
+        locationId: "shampooch-jumeirah",
         status: "completed",
         dayMonth: "Apr 8",
         weekday: "Wednesday",
@@ -246,6 +269,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
       },
       {
         id: "mc-4",
+        locationId: "shampooch-al-quoz",
         status: "completed",
         dayMonth: "Mar 2",
         weekday: "Monday",
@@ -253,10 +277,35 @@ const ACTIVITY: Record<string, ClientActivity> = {
         petId: "bobo",
         services: [{ name: "Full groom", staff: "Sophie", duration: "1h 30min", price: "AED 220" }],
       },
+      // Two more branches, because "visits elsewhere" is the whole of SCR-07
+      // and a three-branch history in a nine-branch estate barely tests it.
+      // These are the two an owner would actually be comparing: a different
+      // emirate, and the branch that charges differently for the same service.
+      {
+        id: "mc-5",
+        locationId: "shampooch-downtown-dubai",
+        status: "completed",
+        dayMonth: "Feb 21",
+        weekday: "Saturday",
+        time: "11:15am",
+        petId: "mochi",
+        services: [{ name: "Blow dry", staff: "Diego", duration: "45min", price: "AED 150" }],
+      },
+      {
+        id: "mc-6",
+        locationId: "shampooch-al-reem",
+        status: "completed",
+        dayMonth: "Jan 30",
+        weekday: "Friday",
+        time: "4:00pm",
+        petId: "bobo",
+        services: [{ name: "Nail trim", staff: "Rana", duration: "15min", price: "AED 45" }],
+      },
     ],
     sales: [
       {
         id: "mc-s1",
+        locationId: "shampooch-jumeirah",
         status: "paid",
         dayMonth: "Apr 8",
         weekday: "Wednesday",
@@ -264,6 +313,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
       },
       {
         id: "mc-s2",
+        locationId: "shampooch-al-quoz",
         status: "part-paid",
         dayMonth: "Mar 2",
         weekday: "Monday",
@@ -272,6 +322,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
       },
       {
         id: "mc-s3",
+        locationId: "shampooch-jvc",
         status: "unpaid",
         dayMonth: "Feb 14",
         weekday: "Friday",
@@ -279,6 +330,24 @@ const ACTIVITY: Record<string, ClientActivity> = {
           { name: "Nail trim", priceMinor: 4000 },
           { name: "De-shed treatment", priceMinor: 9000 },
         ],
+      },
+      // The sales that settled the two visits above. A visit elsewhere with no
+      // sale behind it reads as a branch that worked for free.
+      {
+        id: "mc-s4",
+        locationId: "shampooch-downtown-dubai",
+        status: "paid",
+        dayMonth: "Feb 21",
+        weekday: "Saturday",
+        items: [{ name: "Blow dry", priceMinor: 15000 }],
+      },
+      {
+        id: "mc-s5",
+        locationId: "shampooch-al-reem",
+        status: "paid",
+        dayMonth: "Jan 30",
+        weekday: "Friday",
+        items: [{ name: "Nail trim", priceMinor: 4500 }],
       },
     ],
   },

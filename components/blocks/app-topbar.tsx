@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { appSettingsHref } from "@/components/blocks/app-settings-controller"
 import { DemoBusinessRename } from "@/components/blocks/demo-business-rename"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
+import { LocationSwitcher } from "@/components/blocks/location-switcher"
 import { MoneyDrawer } from "@/components/blocks/money/money-drawer"
 import { NotificationSheet } from "@/components/blocks/notification-sheet"
 import { ProfileMenu } from "@/components/blocks/profile-menu"
@@ -116,29 +117,38 @@ export function AppTopbar({
       className={cn("flex h-[72px] w-full items-center justify-between pr-3", className)}
       {...props}
     >
-      <WorkspaceSwitcher
-        trigger={
-          <Button
-            variant="secondary"
-            className="h-11 w-[240px] min-w-0 justify-start gap-2 bg-background px-3 text-sm font-medium text-foreground shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)] hover:bg-background/90"
-          >
-            <WorkspaceThumb
-              src={selected?.imageSrc}
-              size="sm"
-              alt={selected?.name ?? "Workspace"}
-            />
-            <span className="min-w-0 flex-1 truncate text-left">
-              {selected?.name ?? "Workspace"}
-            </span>
-            <ChevronDownIcon className="size-4 shrink-0" />
-          </Button>
-        }
-        currentWorkspace={{ ...selected, joinedDate: workspaceJoinedDate }}
-        workspaces={resolvedWorkspaces}
-        selectedWorkspaceId={selectedId}
-        user={{ firstName, lastName, avatarSrc }}
-        onSelectWorkspace={select}
-      />
+      {/* One left-hand group, because the bar is justify-between: a third
+          top-level child would be distributed to the centre rather than sitting
+          beside the workspace switcher. */}
+      <div className="flex min-w-0 items-center">
+        <WorkspaceSwitcher
+          trigger={
+            <Button
+              variant="secondary"
+              className="h-11 w-[240px] min-w-0 justify-start gap-2 bg-background px-3 text-sm font-medium text-foreground shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)] hover:bg-background/90"
+            >
+              <WorkspaceThumb
+                src={selected?.imageSrc}
+                size="sm"
+                alt={selected?.name ?? "Workspace"}
+              />
+              <span className="min-w-0 flex-1 truncate text-left">
+                {selected?.name ?? "Workspace"}
+              </span>
+              <ChevronDownIcon className="size-4 shrink-0" />
+            </Button>
+          }
+          currentWorkspace={{ ...selected, joinedDate: workspaceJoinedDate }}
+          workspaces={resolvedWorkspaces}
+          selectedWorkspaceId={selectedId}
+          user={{ firstName, lastName, avatarSrc }}
+          onSelectWorkspace={select}
+        />
+        {/* SCR-04. Beside the workspace switcher, not inside it: capability and
+          location are independent axes (R04), and so are business and branch.
+          Renders nothing at all for a single-branch business (DW1.2). */}
+        <LocationSwitcher className="ml-2" />
+      </div>
       <div className="flex items-center">
         <DemoBusinessRename />
         <QuickAddMenu
