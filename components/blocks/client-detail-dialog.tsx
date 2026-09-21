@@ -1387,7 +1387,30 @@ function AppointmentCard({
         ))}
       </ul>
       {block ? (
-        <ReadOnlyNote block={block} branchName={branchName} />
+        // Rebook survives the block; everything else does not.
+        //
+        // Rebooking is not an action on THIS visit — it starts a new one, and
+        // a new appointment names its own branch through the write-target
+        // control like every other write (G1, R11). Reception at JVC rebooking
+        // a client who last came to Jumeirah, into JVC, is the ordinary case;
+        // refusing it is the telephone call this whole feature exists to
+        // delete. Checkout, View sale and the rest act on the existing record
+        // at the branch that holds it, and those do need the grant.
+        //
+        // It disagreed with the Overview tab, which kept Rebook on the same
+        // visit — two tabs, one visit, two answers.
+        <div className="flex flex-col gap-2">
+          <ReadOnlyNote block={block} branchName={branchName} />
+          {appt.status === "completed" ||
+          appt.status === "canceled" ||
+          appt.status === "no-show" ? (
+            <div className="flex">
+              <Button variant="outline" size="sm" radius="full">
+                Rebook
+              </Button>
+            </div>
+          ) : null}
+        </div>
       ) : (
         <AppointmentActions status={appt.status} />
       )}
