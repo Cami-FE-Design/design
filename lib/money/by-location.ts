@@ -38,7 +38,7 @@ import type { MoneySummary, MoneyTx } from "@/lib/money/types"
  */
 
 export type LocationMoneyRow = {
-  locationName: string
+  locationId: string
   summary: MoneySummary
 }
 
@@ -58,18 +58,18 @@ export type MoneyByLocation = {
 export function summarizeByLocation(
   txs: ReadonlyArray<MoneyTx>,
   filter: PeriodFilter,
-  /** The caller's granted branch names. The result never exceeds this. */
+  /** The caller's granted branch ids. The result never exceeds this (R18). */
   allowed: ReadonlyArray<string>,
 ): MoneyByLocation {
   const allowedSet = new Set(allowed)
-  const inScope = txs.filter((t) => allowedSet.has(t.locationName))
+  const inScope = txs.filter((t) => allowedSet.has(t.locationId))
 
-  const names = Array.from(new Set(inScope.map((t) => t.locationName)))
-  const rows = names
-    .map((locationName) => ({
-      locationName,
+  const ids = Array.from(new Set(inScope.map((t) => t.locationId)))
+  const rows = ids
+    .map((locationId) => ({
+      locationId,
       summary: summarize(
-        inScope.filter((t) => t.locationName === locationName),
+        inScope.filter((t) => t.locationId === locationId),
         filter,
       ),
     }))
@@ -84,11 +84,11 @@ export function summarizeByLocation(
     .sort(
       (a, b) =>
         b.summary.moneyIn.totalMinor - a.summary.moneyIn.totalMinor ||
-        a.locationName.localeCompare(b.locationName),
+        a.locationId.localeCompare(b.locationId),
     )
 
   const rollUp = summarize(inScope, filter)
-  const loud = new Set(rows.map((r) => r.locationName))
+  const loud = new Set(rows.map((r) => r.locationId))
   const quietLocations = allowed.filter((n) => !loud.has(n)).sort()
 
   return { rows, rollUp, quietLocations }

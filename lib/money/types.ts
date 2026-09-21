@@ -87,7 +87,16 @@ export type MoneyTx = {
   client?: string
   /** "Visa •••• 6892", "Terminal — Front desk". Shown, never inferred. */
   method?: string
-  locationName: string
+  /**
+   * The branch that took it, by id (R11, R18).
+   *
+   * It was a stored name, which meant the activity filter was built from
+   * whatever rows happened to load rather than from the reader's grant — a
+   * manager granted one branch saw every branch's rows, and every branch's name
+   * in the filter beside them. A name also cannot survive a branch being
+   * renamed, or the demo being signed into another business.
+   */
+  locationId: string
   confirmation: TxConfirmation
   /**
    * Plain-language reason, on rows where the kind alone does not explain the

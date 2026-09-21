@@ -98,7 +98,11 @@ export function issuerFrom(details: BillingDetails): InvoiceIssuer {
 export const DEMO_BILLING_DETAILS: BillingDetails = {
   businessType: "company",
   legalName: "Shampooch Pet Grooming L.L.C",
-  tradingName: "Shampooch JVC",
+  // The business, not a branch. Cami bills the merchant, and a merchant is one
+  // legal entity however many shopfronts it has — "Shampooch JVC" here named
+  // the branch where the business belonged, which is the conflation R11 exists
+  // to delete.
+  tradingName: "Shampooch",
   trn: "104169608700003",
   address: {
     line: "Regina Tower, Jumeirah Village Circle\nAl Barsha South\nDubai",

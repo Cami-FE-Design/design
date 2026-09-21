@@ -63,7 +63,9 @@ export function MoneyByLocationView({
   // The granted set, not the estate: this is where R18's bound comes from, and
   // it is read rather than passed so no caller can widen it by accident.
   const { granted, scopedLocations, isMultiLocation } = useLocations()
-  const allowed = (scopedLocations.length > 0 ? scopedLocations : granted).map((l) => l.name)
+  // Ids, because that is what a transaction points at. The name is resolved
+  // where it is printed, so a branch renamed in Settings is renamed here.
+  const allowed = (scopedLocations.length > 0 ? scopedLocations : granted).map((l) => l.id)
   const data = summarizeByLocation(txs, filter, allowed)
 
   return (
@@ -126,6 +128,7 @@ function RowsSkeleton({ count }: { count: number }) {
 }
 
 function Rows({ data }: { data: MoneyByLocation }) {
+  const { locationName } = useLocations()
   if (data.rows.length === 0) {
     return (
       <p className="rounded-2xl bg-muted/30 p-4 text-sm text-muted-foreground">
@@ -140,12 +143,12 @@ function Rows({ data }: { data: MoneyByLocation }) {
         const share = shareOfRollUp(row, data.rollUp)
         return (
           <div
-            key={row.locationName}
+            key={row.locationId}
             className="flex flex-col gap-2 rounded-2xl border border-border/60 p-4"
           >
             <div className="flex items-baseline justify-between gap-3">
               <span className="truncate text-sm font-medium text-foreground">
-                {row.locationName}
+                {locationName(row.locationId)}
               </span>
               <span className="flex shrink-0 items-baseline gap-2">
                 {/* The share as a figure, not a bar. A bar with no scale reads
@@ -207,7 +210,7 @@ function Rows({ data }: { data: MoneyByLocation }) {
       {data.quietLocations.length > 0 ? (
         data.quietLocations.length <= 3 ? (
           <p className="text-xs text-muted-foreground">
-            No takings this period at {data.quietLocations.join(", ")}.
+            No takings this period at {data.quietLocations.map(locationName).join(", ")}.
           </p>
         ) : (
           <div className="flex flex-col gap-1">
@@ -215,9 +218,15 @@ function Rows({ data }: { data: MoneyByLocation }) {
               No takings this period at {data.quietLocations.length} locations:
             </p>
             <ul className="flex flex-wrap gap-x-3 gap-y-1">
-              {data.quietLocations.map((name) => (
-                <li key={name} className="text-xs text-muted-foreground">
-                  {name}
+              {/* Resolved here too. `quietLocations` carries ids, and only the
+                  sentence above was converted when it stopped carrying names —
+                  so this list printed "shampooch-al-quoz" to an operator. It is
+                  also the branch that runs most of the time: with nine branches
+                  granted, more than three quiet ones is the ordinary case, not
+                  the edge. */}
+              {data.quietLocations.map((id) => (
+                <li key={id} className="text-xs text-muted-foreground">
+                  {locationName(id)}
                 </li>
               ))}
             </ul>

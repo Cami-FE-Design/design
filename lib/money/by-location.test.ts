@@ -6,7 +6,7 @@ import type { MoneyTx } from "@/lib/money/types"
 const filter = { fromIso: "2026-08-01", toIso: "2026-08-31" }
 
 let seq = 0
-function sale(locationName: string, aed: number, day = "2026-08-10"): MoneyTx {
+function sale(locationId: string, aed: number, day = "2026-08-10"): MoneyTx {
   seq += 1
   return {
     id: `tx-${seq}`,
@@ -14,7 +14,7 @@ function sale(locationName: string, aed: number, day = "2026-08-10"): MoneyTx {
     rail: "terminal",
     amountMinor: aed * 100,
     at: `${day}T10:00:00+04:00`,
-    locationName,
+    locationId,
     confirmation: "confirmed",
   }
 }
@@ -28,8 +28,8 @@ describe("summarizeByLocation", () => {
 
     // Order is asserted separately; this case is about the rows existing and
     // the total being their sum.
-    expect(out.rows.map((r) => r.locationName).sort()).toEqual(["JVC", "Jumeirah"])
-    const jvc = out.rows.find((r) => r.locationName === "JVC")
+    expect(out.rows.map((r) => r.locationId).sort()).toEqual(["JVC", "Jumeirah"])
+    const jvc = out.rows.find((r) => r.locationId === "JVC")
     expect(jvc?.summary.moneyIn.totalMinor).toBe(14_000)
     expect(out.rollUp.moneyIn.totalMinor).toBe(20_000)
     expect(out.rows.reduce((sum, r) => sum + r.summary.moneyIn.totalMinor, 0)).toBe(
@@ -43,13 +43,13 @@ describe("summarizeByLocation", () => {
     // the quietest branch first as often as not.
     const txs = [sale("Alpha", 10), sale("Zulu", 900), sale("Mike", 400)]
     const out = summarizeByLocation(txs, filter, ["Alpha", "Zulu", "Mike"])
-    expect(out.rows.map((r) => r.locationName)).toEqual(["Zulu", "Mike", "Alpha"])
+    expect(out.rows.map((r) => r.locationId)).toEqual(["Zulu", "Mike", "Alpha"])
   })
 
   it("breaks a tie on name, so the order does not shuffle between renders", () => {
     const txs = [sale("Bravo", 100), sale("Alpha", 100)]
     const out = summarizeByLocation(txs, filter, ["Bravo", "Alpha"])
-    expect(out.rows.map((r) => r.locationName)).toEqual(["Alpha", "Bravo"])
+    expect(out.rows.map((r) => r.locationId)).toEqual(["Alpha", "Bravo"])
   })
 
   it("never returns a branch outside the granted set", () => {
@@ -59,7 +59,7 @@ describe("summarizeByLocation", () => {
     const txs = [sale("JVC", 100), sale("Jumeirah", 500)]
     const out = summarizeByLocation(txs, filter, ["JVC"])
 
-    expect(out.rows.map((r) => r.locationName)).toEqual(["JVC"])
+    expect(out.rows.map((r) => r.locationId)).toEqual(["JVC"])
     // The roll-up must not include the branch the caller cannot see, or the
     // total leaks the number the rows withheld.
     expect(out.rollUp.moneyIn.totalMinor).toBe(10_000)
@@ -79,14 +79,14 @@ describe("summarizeByLocation", () => {
     // "Nothing at Al Quoz today" and "Al Quoz is missing from this report" are
     // different answers, and an owner needs the first.
     const out = summarizeByLocation([sale("JVC", 100)], filter, ["JVC", "Al Quoz"])
-    expect(out.rows.map((r) => r.locationName)).toEqual(["JVC"])
+    expect(out.rows.map((r) => r.locationId)).toEqual(["JVC"])
     expect(out.quietLocations).toEqual(["Al Quoz"])
   })
 
   it("treats a branch whose only activity predates the period as quiet", () => {
     const txs = [sale("JVC", 100), sale("Jumeirah", 80, "2026-07-02")]
     const out = summarizeByLocation(txs, filter, ["JVC", "Jumeirah"])
-    expect(out.rows.map((r) => r.locationName)).toEqual(["JVC"])
+    expect(out.rows.map((r) => r.locationId)).toEqual(["JVC"])
     expect(out.quietLocations).toEqual(["Jumeirah"])
   })
 
@@ -105,7 +105,7 @@ describe("shareOfRollUp", () => {
       "JVC",
       "Jumeirah",
     ])
-    const jvc = out.rows.find((r) => r.locationName === "JVC")!
+    const jvc = out.rows.find((r) => r.locationId === "JVC")!
     expect(shareOfRollUp(jvc, out.rollUp)).toBeCloseTo(0.75)
   })
 
@@ -113,7 +113,7 @@ describe("shareOfRollUp", () => {
     // Dividing by an empty period would give Infinity or NaN, which would
     // render as a nonsense percentage; 0 is honest.
     const out = summarizeByLocation([], filter, ["JVC"])
-    expect(shareOfRollUp({ locationName: "JVC", summary: out.rollUp }, out.rollUp)).toBe(0)
+    expect(shareOfRollUp({ locationId: "JVC", summary: out.rollUp }, out.rollUp)).toBe(0)
   })
 })
 

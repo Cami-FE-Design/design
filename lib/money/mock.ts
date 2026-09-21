@@ -14,7 +14,7 @@
 // fee their rate card says they pay.
 
 import { type CamiPayRate, computeFee } from "@/lib/hq-camipay/store"
-import { LOCATIONS } from "@/lib/locations/mock"
+import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import type { CamiPayRail, MerchantRails, MoneyTx, Payout } from "./types"
 
 /** Fixed anchor. Everything relative ("Today", "arriving") reads from this. */
@@ -31,6 +31,15 @@ export const TODAY_ISO = "2026-08-24"
 export const BUSINESS_NAME = "Shampooch"
 
 /**
+ * Rows that belong to the business rather than to any branch — a payout leaves
+ * one account (the PRD keeps payouts per business), and a platform fee is billed
+ * to the merchant, not to a shopfront. Marked rather than assigned to a branch,
+ * so a branch-bounded view can drop them honestly instead of crediting them to
+ * whichever branch happened to be first.
+ */
+export const BUSINESS_WIDE = "business"
+
+/**
  * The branches money is attributed to (R09, R17).
  *
  * This used to be one `LOCATION = BUSINESS_NAME`, which conflated the two
@@ -38,12 +47,31 @@ export const BUSINESS_NAME = "Shampooch"
  * branch is where money actually happens. Money is location-operational and
  * never locationless.
  *
- * Only the two trading branches appear. Al Quoz is suspended, so it takes no
- * new sales — and that is worth seeing rather than smoothing over: SCR-15
- * names a granted branch with no activity instead of dropping it, because "no
- * sales there today" and "missing from this report" are different answers.
+ * Every trading branch of every seeded business appears. Two suspended
+ * Shampooch branches do not: a paused branch takes no new sales, and that is
+ * worth seeing rather than smoothing over — SCR-15 names a granted branch with
+ * no activity instead of dropping it, because "no sales there today" and
+ * "missing from this report" are different answers.
+ *
+ * ## One business, because a payout is one business's
+ *
+ * The other businesses were listed here too, so that a merchant signed into
+ * Purr Palace would not find an empty screen. They could never actually be
+ * reached — the weighting was indexed by a counter that stopped at 6 — and the
+ * day they were, the arithmetic broke: a payout is business-wide (GP1.4, one
+ * account for the whole business), so it survives the grant bound, while the
+ * takings behind it do not. Shampooch's summary then subtracted payouts
+ * carrying Purr Palace's money from takings that excluded it, and reported a
+ * negative balance held.
+ *
+ * Attributing payouts per business needs a business dimension this ledger does
+ * not have — it is CamiPay's, and CamiPay is signed up to per business. So
+ * this is Shampooch's ledger, and a business with no CamiPay account correctly
+ * has no money to show. That is a true empty state, not a seeding gap.
  */
-const TRADING_LOCATIONS = LOCATIONS.filter((l) => l.status === "live").map((l) => l.name)
+// Ids, not names: a transaction points at a branch, and the name is resolved
+// where it is shown (R18).
+const TRADING_LOCATIONS = NINE_BRANCH_ESTATE.filter((l) => l.status === "live").map((l) => l.id)
 
 /**
  * Which branch a seeded row lands on.
@@ -56,10 +84,25 @@ const TRADING_LOCATIONS = LOCATIONS.filter((l) => l.status === "live").map((l) =
  *
  * Uneven on purpose: a chain where every branch takes the same is a chain
  * where SCR-15 has nothing to show, since the job is spotting the branch
- * having a bad day. Two rows in three land on the first branch.
+ * having a bad day. The flagship still takes the largest share, and the tail
+ * gets enough to be worth reading.
  */
 function locationFor(index: number): string {
-  return index % 3 === 2 ? TRADING_LOCATIONS[1] : TRADING_LOCATIONS[0]
+  // Weighted, not round-robin. The flagship takes roughly a third and the rest
+  // share what is left, so a reviewer sees a chain with a busy branch and a
+  // quiet one rather than nine identical columns — which is the shape SCR-15
+  // exists to read.
+  //
+  // `index` must be a counter that runs across the whole ledger. Fed the
+  // per-day row index instead, it never got past 6 — the table's tail was
+  // unreachable, so five of the seven trading branches and both other
+  // businesses could not receive a single transaction, ever. Money by branch
+  // then showed four rows and five permanently quiet ones, which reads as
+  // "those branches had a slow month" rather than "those branches are not in
+  // the data".
+  const weighted = [0, 0, 1, 0, 2, 1, 3, 0, 4, 2, 5, 1, 6, 0, 7, 3, 8, 2]
+  const pick = weighted[index % weighted.length]!
+  return TRADING_LOCATIONS[pick % TRADING_LOCATIONS.length]!
 }
 
 /**
@@ -176,6 +219,17 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
   const txs: MoneyTx[] = []
   let seq = 0
   const nextId = (prefix: string) => `${prefix}_${(++seq).toString().padStart(4, "0")}`
+  /**
+   * Rows placed so far, across every day.
+   *
+   * Not `i`, the per-day index: a day holds 3–7 rows, so `i` never reached the
+   * back half of `locationFor`'s weighting and five branches were unreachable.
+   * Not `rand()` either — the generator's stream is a fixture other tests
+   * assert exact figures against, so drawing from it here would move every
+   * seeded amount. Spreading money across branches must not change how much
+   * money there is.
+   */
+  let row = 0
 
   for (const day of eachDay(FROM_ISO, TODAY_ISO)) {
     const rows = 3 + Math.floor(rand() * 5)
@@ -200,7 +254,7 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
       // ride on it. A fee attributed to a different branch than its payment
       // would show up in the breakdown as a cost with no matching sale, which
       // is the attribution drift INV-01 exists to prevent.
-      const locationName = locationFor(i)
+      const locationId = locationFor(row++)
 
       const payment: MoneyTx = {
         id: nextId("tx"),
@@ -211,7 +265,7 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
         reference,
         client,
         method,
-        locationName,
+        locationId,
         confirmation,
       }
       txs.push(payment)
@@ -228,7 +282,7 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
           reference,
           client,
           method,
-          locationName,
+          locationId,
           confirmation,
           causedByTxId: payment.id,
         })
@@ -246,7 +300,7 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
           amountMinor: -fee.totalMinor,
           at: at(day, i * 47 + 2),
           reference,
-          locationName,
+          locationId,
           confirmation: "confirmed",
           causedByTxId: payment.id,
           // Snapshotted here, not looked up later. See `rateSnapshot` on MoneyTx.
@@ -281,7 +335,7 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
           // The branch the money was taken at, not the branch doing the
           // refunding: a refund reverses a specific sale, and moving it would
           // credit one branch for another's reversal (R17, INV-01).
-          locationName: original.locationName,
+          locationId: original.locationId,
           confirmation: "confirmed",
           causedByTxId: original.id,
         })
@@ -299,7 +353,11 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
         at: at(day, 30),
         // Comms cost is attributed to the branch that sent or received it
         // (R22); the business total is derived from its branches.
-        locationName: locationFor(weekdayOf(day)),
+        // Was `locationFor(weekdayOf(day))` inside an `if (weekday === 1)`,
+        // so the argument was the constant 1 and every messaging charge in the
+        // ledger landed on the flagship — a per-branch comms cost that named
+        // one branch.
+        locationId: locationFor(row++),
         confirmation: "confirmed",
         note: "WhatsApp reminders and campaign sends",
       })
@@ -393,7 +451,7 @@ function schedulePayouts(txs: MoneyTx[], nextId: (prefix: string) => string): Pa
         // business into one account (GP1.4) — so it is not a branch row.
         // Attributing it to a branch would double-count against that branch's
         // takings, which are already attributed on the sale.
-        locationName: BUSINESS_NAME,
+        locationId: BUSINESS_WIDE,
         confirmation: "confirmed",
         payoutId: id,
       })
@@ -417,7 +475,7 @@ function schedulePayouts(txs: MoneyTx[], nextId: (prefix: string) => string): Pa
           rail,
           amountMinor,
           at: at(day, 540),
-          locationName: BUSINESS_NAME,
+          locationId: BUSINESS_WIDE,
           confirmation: "confirmed",
           payoutId: retryId,
           reversesPayoutId: id,
@@ -441,7 +499,7 @@ function schedulePayouts(txs: MoneyTx[], nextId: (prefix: string) => string): Pa
           rail,
           amountMinor: -amountMinor,
           at: at(retryDay, -180),
-          locationName: BUSINESS_NAME,
+          locationId: BUSINESS_WIDE,
           confirmation: "confirmed",
           payoutId: retryId,
           note: "Retry of the payout NeoPay returned",
