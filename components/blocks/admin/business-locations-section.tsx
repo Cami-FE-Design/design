@@ -37,10 +37,13 @@ import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { MoneyByLocationView } from "@/components/blocks/money/money-by-location"
 import { Button } from "@/components/ui/button"
 import type { AdminBusiness } from "@/lib/admin-businesses"
+import { locationsForBusiness } from "@/lib/locations/from-business"
+import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
-import { isPubliclyBookable } from "@/lib/locations/types"
+import { isPubliclyBookable, type Location } from "@/lib/locations/types"
 import type { PeriodFilter } from "@/lib/money/ledger"
 import { MONEY_TXS, periodBounds } from "@/lib/money/mock"
+import { getPublicBusinessBySlug } from "@/lib/public-business"
 
 /**
  * The period the roll-up opens on. Month to date, because the question an
@@ -85,10 +88,35 @@ export function BusinessLocationsSection({ business }: { business: AdminBusiness
   return (
     // Scoped to this partner's branches, and read-only by construction: an
     // Account Manager viewing a chain is not inside the owner's session.
-    <LocationsProvider persist={false} initialGrants={[...branchIds]}>
+    //
+    // The ESTATE has to be passed as well as the grants. Given grants alone the
+    // provider falls back to the three-branch demo estate, and nine ids
+    // resolved against three left the tab saying "9 locations" while the panel
+    // under it listed three and the money roll-up summed those three — HQ1.2
+    // says HQ shows the same breakdown an owner sees, and it was showing a
+    // third of it.
+    <LocationsProvider
+      persist={false}
+      initialLocations={estateFor(business)}
+      initialGrants={[...branchIds]}
+    >
       <ChainView business={business} />
     </LocationsProvider>
   )
+}
+
+/**
+ * This partner's own branches, read the way every other surface reads them.
+ *
+ * Falls back to the ids on the admin record when the partner has no public
+ * business behind it — a partner that has not published yet still has an
+ * estate, and an Account Manager still has to be able to see it.
+ */
+function estateFor(business: AdminBusiness): Location[] {
+  const published = getPublicBusinessBySlug(business.slug)
+  if (published) return locationsForBusiness(published)
+  const ids = new Set(business.locationIds ?? [])
+  return NINE_BRANCH_ESTATE.filter((l) => ids.has(l.id))
 }
 
 function ChainView({ business }: { business: AdminBusiness }) {
