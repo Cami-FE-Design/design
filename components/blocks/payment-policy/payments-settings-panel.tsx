@@ -51,6 +51,13 @@ import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { CamiPayProvider } from "@/lib/hq-camipay/store"
+import {
+  BRANCH_DEPOSIT,
+  branchesOverriding,
+  describeDeposit,
+  resolveDeposit,
+} from "@/lib/locations/deposit"
+import { useLocations } from "@/lib/locations/store"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
 import {
   type AmountValue,
@@ -96,6 +103,52 @@ function SummaryLine({ children }: { children: React.ReactNode }) {
       <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-cami-green-11" aria-hidden />
       <span>{children}</span>
     </li>
+  )
+}
+
+/**
+ * Which branches take a different deposit (DW3.5, R06, INV-13).
+ *
+ * The policy above is the business's. A branch with a no-show problem, or one
+ * doing week-long boarding stays where 20% is a very different sum from 20% of
+ * a nail trim, needs its own — and an owner reading this screen had no way to
+ * know whether any branch already did.
+ *
+ * Named, not counted: "2 locations differ" sends an owner hunting for which,
+ * and which is the answer. Inheriting branches are not listed, because
+ * inheriting is what this card already says.
+ *
+ * Absent for a single-branch business, where the business policy is the only
+ * policy there is (DW1.2).
+ */
+function BranchDepositNote() {
+  const { granted, locationName, isMultiLocation } = useLocations()
+  if (!isMultiLocation) return null
+
+  const differing = branchesOverriding(
+    BRANCH_DEPOSIT,
+    granted.map((l) => l.id),
+  )
+
+  return (
+    <div className="flex flex-col gap-1 rounded-xl bg-cami-yellow-2 p-3">
+      <p className="text-foreground text-sm leading-5">
+        This is the business default. A location can set its own deposit, and one that has not
+        follows this policy — including any change made here.
+      </p>
+      {differing.length > 0 ? (
+        <p className="text-muted-foreground text-sm leading-5">
+          {differing.map((id) => locationName(id)).join(", ")} take
+          {differing.length === 1 ? "s" : ""} a different deposit:{" "}
+          {differing
+            .map((id) => describeDeposit(resolveDeposit(BRANCH_DEPOSIT[id]).settings))
+            .join("; ")}
+          .
+        </p>
+      ) : (
+        <p className="text-muted-foreground text-sm leading-5">Every location follows it today.</p>
+      )}
+    </div>
   )
 }
 
@@ -394,6 +447,8 @@ function PaymentPolicySubScreen({
           </ul>
 
           <ExamplePolicyPreview text={examplePolicyText(policy, businessName)} />
+
+          <BranchDepositNote />
 
           <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-muted/40 p-4">
             <div className="flex flex-col gap-1">

@@ -1187,6 +1187,16 @@ const SECTIONS: Section[] = [
         note: "Team → a member → Services. The list was flat — one set for the person, whatever branch they stood in — so a colourist who does colour at Jumeirah and only washes at JVC could not be described. DW2.1 is explicit that an assignment at one branch, 'including which services they are enabled to perform there', grants nothing at another. One list stays the default, because making an owner tick nine identical lists to say 'she does the same everywhere' is the setup cost R02 rules out; turn off 'Same services at every location' and the branches THEY HOLD appear, each with its own count, seeded from the shared list so the owner edits a difference rather than re-entering the set. Absent entirely for somebody who holds one branch.",
       },
       {
+        path: "/shell-demo?settings=payments&pp=policy",
+        label: "Deposit per branch · DW3.5",
+        note: "The deposit policy was the business's only. A branch with a no-show problem, or one doing week-long boarding stays where 20% is a very different sum from 20% of a nail trim, can now take its own — on the catalogue's own inherit/override rule, so a branch that has NOT overridden follows the business rather than holding a copy of today's number. Raise the default and every inheriting branch moves; the one that deliberately differs is left alone. Al Quoz is the seeded exception, and the card names which branches differ rather than counting them.",
+      },
+      {
+        path: "/shell-demo?settings=comms-templates&ct=whatsapp",
+        label: "Which number a reminder leaves from · KC3.1",
+        note: "The template is the business's — one wording, edited once, which is what the plane split has templates as business-shared for. The NUMBER is the branch's, and nothing on this screen said so: 'if I reply, it lands with the people who know me' is the whole of KC3.1, and a reply goes wherever the send came from. It now says it, and names the branches whose clients get no WhatsApp reminder at all until a number is connected — never rerouted through a sister branch, which is KC2.2 arriving from the other direction.",
+      },
+      {
         path: "/playground#multi-location-branch-access-grants",
         label: "Branch access grants · SCR-03 (playground)",
         note: "The same dialog against three roster rows, isolated. The location permission list marks four of five codes Proposed — the product ships one venues:read that bundles viewing a branch with changing it, so a manager who sets hours cannot yet be stopped from editing tax details or archiving a branch (blueprint §03).",

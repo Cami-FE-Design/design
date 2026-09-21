@@ -1694,18 +1694,18 @@ total you have to expand to reach is not a total.
 ## Cross-check against the 49 user stories
 
 Michelle asked for the design to be checked against `User Stories:
-Multi-Location` (Slite `7pg149CiWujY8B`, last edited 2026-09-04). Forty of the
-forty-nine are covered. The nine that are not, and why:
+Multi-Location` (Slite `7pg149CiWujY8B`, last edited 2026-09-04). Forty-three of the
+forty-nine are covered. The six that are not, and why:
 
 | Story | Pri | Why not |
 | --- | --- | --- |
-| **DW2.1** | P0 | **Now built.** A person's branch assignment existed; *which services they perform at that branch* did not. |
+| **DW2.1** | P0 | **Built.** A person's branch assignment existed; *which services they perform at that branch* did not. |
+| **DW3.5** | P2 | **Built.** The deposit policy was the business's only. A branch can now take its own, on the catalogue's own inherit/override rule — and inheriting is live, so raising the default moves every branch that has not deliberately differed. |
+| **KC3.1** | P1 | **Built.** Templates stay the business's, which is what the plane split has them as; what was missing was anything saying which *number* a reminder leaves from. The WhatsApp card says it, and names the branches whose clients get no reminder at all until a number is connected — never rerouted through a sister branch. |
 | **GB2.2** | P1 | Built the opposite way, and Michelle has since settled it: reception **should** see what another branch charged. GB2.2 and PRD §16 both need updating to match. |
 | **SU2.3** | P0 | Covered for reports. Notifications, exports and realtime are backend paths with no screen — the export buttons are placeholders with nothing behind them. They must carry the same bound when wired. |
 | **GP1.2** | P0 | Receipt numbers under concurrency is a load test, and the PRD lists it as one. Nothing a prototype can show. |
-| **KC3.1** | P1 | A reminder sending from the branch's own number. Each branch has its number; nothing connects a send to it. The doc itself flags this story as having no requirement number. |
 | **DW3.4** | P2 | Promotions scoped to a branch. There is no promotions surface in this repo to scope. |
-| **DW3.5** | P2 | A branch's own deposit percentage. The payment-policy panel exists, so this one is buildable. |
 | **KH1.4** | P2 | An audit log scoped to a branch. There is no audit-log surface to scope. |
 | **HQ1.1** | P2 | Deliberate. HQ1.1 itself rules out a "lesser HQ-only path", so standing a chain up happens as the owner through impersonation, which the repo already has. Building it twice is how the two drift. |
 
