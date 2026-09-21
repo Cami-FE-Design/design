@@ -1197,6 +1197,11 @@ const SECTIONS: Section[] = [
         note: "The template is the business's — one wording, edited once, which is what the plane split has templates as business-shared for. The NUMBER is the branch's, and nothing on this screen said so: 'if I reply, it lands with the people who know me' is the whole of KC3.1, and a reply goes wherever the send came from. It now says it, and names the branches whose clients get no WhatsApp reminder at all until a number is connected — never rerouted through a sister branch, which is KC2.2 arriving from the other direction.",
       },
       {
+        path: "/playground#multi-location-where-a-promotion-runs",
+        label: "Where a promotion runs · DW3.4",
+        note: "A chain-wide January offer and a quiet branch discounting to fill a Tuesday are both real and must not be the same object. The scope is a named case or a list, never an empty list standing in for 'everywhere' — which is what the dev repo's promotions branch does today: its mapper turns allVenues into locationIds: [], so empty means ALL there, while R24 here is explicit that an empty scope never resolves to all. One shape, two opposite readings, in one product: that is how an offer meant for one branch runs at nine and a chain-wide one silently runs nowhere. Multi-location had not started when that mapper was written. Four states here, including the empty one being refused out loud rather than passing as chain-wide.",
+      },
+      {
         path: "/playground#multi-location-branch-access-grants",
         label: "Branch access grants · SCR-03 (playground)",
         note: "The same dialog against three roster rows, isolated. The location permission list marks four of five codes Proposed — the product ships one venues:read that bundles viewing a branch with changing it, so a manager who sets hours cannot yet be stopped from editing tax details or archiving a branch (blueprint §03).",

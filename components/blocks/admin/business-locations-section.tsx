@@ -30,7 +30,7 @@
  * (INV-08). So the action links into a session rather than acting from here.
  */
 
-import { ArrowUpRightIcon, MapPinIcon } from "lucide-react"
+import { ArrowUpRightIcon, BuildingIcon } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
@@ -73,7 +73,7 @@ export function BusinessLocationsSection({ business }: { business: AdminBusiness
         </div>
         <div className="flex items-start gap-3 rounded-2xl bg-muted/40 p-4">
           <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
-            <MapPinIcon className="size-4" />
+            <BuildingIcon className="size-4" />
           </span>
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="text-sm font-medium leading-5 text-foreground">{business.name}</span>
@@ -159,7 +159,7 @@ function ChainView({ business }: { business: AdminBusiness }) {
               className="flex items-start gap-3 rounded-2xl border border-border/60 p-3"
             >
               <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-                <MapPinIcon className="size-4" />
+                <BuildingIcon className="size-4" />
               </span>
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="flex min-w-0 items-center gap-2">

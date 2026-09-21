@@ -241,6 +241,12 @@ import { INVOICE_FIXTURES } from "@/lib/invoice/mock"
 import { bookingsInScope } from "@/lib/locations/calendar-scope"
 import { formatDayHours, isOpenNow, WEEK_DAYS } from "@/lib/locations/hours"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
+import {
+  describeScope,
+  isRunnable,
+  type PromotionScope,
+  reaches,
+} from "@/lib/locations/promotion-scope"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
 import { BUSINESS_TIMEZONE, resolveTimezone, timezoneLabel } from "@/lib/locations/timezone"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
@@ -1003,6 +1009,36 @@ function BranchAvailabilityDemo() {
  * one cart line each — so the states sit side by side rather than needing a
  * sale built up by hand.
  */
+/**
+ * One promotion's reach, said the way the switcher and the team grants say it.
+ *
+ * The badge is the whole point: "All locations" survives a tenth branch opening
+ * and "9 locations" does not, so they are different claims and read differently.
+ * An empty list is refused out loud rather than being allowed to look like the
+ * chain-wide case.
+ */
+function PromotionScopeRow({ scope }: { scope: PromotionScope }) {
+  const { granted, locationName } = useLocations()
+  const runnable = isRunnable(scope)
+  const covered = reaches(scope, granted)
+
+  return (
+    <div className="flex w-full max-w-md flex-col gap-2 rounded-2xl border border-border/60 bg-card p-4">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-medium text-foreground text-sm">January groom offer · 20% off</span>
+        <Badge variant={runnable ? "primary-soft" : "outline"} size="sm">
+          {describeScope(scope, locationName)}
+        </Badge>
+      </div>
+      <p className="text-muted-foreground text-sm">
+        {runnable
+          ? `Runs at ${covered.length} of your ${granted.length} locations.`
+          : "Nobody can use this. Choose a location, or make it chain-wide."}
+      </p>
+    </div>
+  )
+}
+
 function PackageRedemptionDemo({
   terms,
   redeemingAt,
@@ -2794,6 +2830,36 @@ export function PlaygroundShowcase() {
           <Row label="The seeded estate" align="start">
             <LocationsProvider persist={false}>
               <BranchAvailabilityDemo />
+            </LocationsProvider>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — where a promotion runs"
+          description="DW3.4 (R04, R24). A chain-wide January offer and a quiet branch discounting to fill a Tuesday are both real, and must not be the same object. The scope is a named case or a list, never an empty list standing in for 'everywhere' — which is exactly what the dev repo's promotions branch does today: its mapper turns allVenues into locationIds: [], so empty means ALL there, while R24 here is explicit that an empty scope never resolves to all. One shape, two opposite readings, in one product — that is how an offer meant for one branch runs at nine, and a chain-wide one silently runs nowhere. Multi-location had not started when that mapper was written, which is why it reads that way; this is the shape to build against. Rules and tests in lib/locations/promotion-scope.ts."
+        >
+          <Row label="Across the chain">
+            <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+              <PromotionScopeRow scope={{ kind: "estate" }} />
+            </LocationsProvider>
+          </Row>
+          <Row label="One branch only">
+            <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+              <PromotionScopeRow scope={{ kind: "branches", locationIds: ["shampooch-mirdif"] }} />
+            </LocationsProvider>
+          </Row>
+          <Row label="A named few">
+            <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+              <PromotionScopeRow
+                scope={{
+                  kind: "branches",
+                  locationIds: ["shampooch-jvc", "shampooch-jumeirah", "shampooch-al-reem"],
+                }}
+              />
+            </LocationsProvider>
+          </Row>
+          <Row label="Nothing chosen — refused, not treated as everywhere">
+            <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+              <PromotionScopeRow scope={{ kind: "branches", locationIds: [] }} />
             </LocationsProvider>
           </Row>
         </Section>

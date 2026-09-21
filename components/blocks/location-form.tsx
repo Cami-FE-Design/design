@@ -7,6 +7,7 @@ import {
   BedIcon,
   BriefcaseIcon,
   Building2Icon,
+  BuildingIcon,
   CheckCircle2Icon,
   CheckIcon,
   ChevronDownIcon,
@@ -526,7 +527,7 @@ function LocationDetailView({ location, onBack }: { location: Location; onBack: 
         <>
           <NotionBreadcrumb
             segments={[
-              { label: "Locations", icon: MapPinIcon, onClick: onBack },
+              { label: "Locations", icon: BuildingIcon, onClick: onBack },
               { label: location.name, photoUrl: location.photoUrl },
             ]}
           />
