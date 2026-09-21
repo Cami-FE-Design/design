@@ -622,6 +622,21 @@ export function getPublicBusiness(slug: string): PublicBusiness | undefined {
 }
 
 /**
+ * The business a public slug belongs to: a branch slug resolves to its chain,
+ * a business slug to itself, and anything unknown to itself.
+ *
+ * Branding is the business's, not the branch's — one palette, every branch,
+ * which is the promise the Branding panel makes in so many words. So every
+ * surface that reads or writes a palette has to agree on which key holds it.
+ * They did not: the card keyed on whichever branch a client had opened, while
+ * the message previews keyed on the business, so a merchant who saved in
+ * Branding moved one and left the other on the old colour.
+ */
+export function brandingSlugFor(slug: string): string {
+  return resolvePublicView(slug)?.business.slug ?? slug
+}
+
+/**
  * The business record for a slug, ignoring branch resolution. For surfaces that
  * need the chain itself — the picker demo, and anything reasoning about the
  * estate rather than about one branch.

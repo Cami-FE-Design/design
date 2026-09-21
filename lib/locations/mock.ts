@@ -176,7 +176,12 @@ export const LOCATIONS: Location[] = [
  * instead of resolving to a plausible-looking wrong branch.
  */
 export function locationName(locationId: string): string {
-  return LOCATIONS.find((l) => l.id === locationId)?.name ?? locationId
+  // The whole estate, not the first three. This resolved against `LOCATIONS`
+  // from before the nine-branch seed existed, so six branches printed their raw
+  // id — "shampooch-downtown-dubai" on an appointments table — and every
+  // surface that reads a name off an id was quietly wrong for two thirds of the
+  // business.
+  return findSeeded(locationId)?.name ?? locationId
 }
 
 /**

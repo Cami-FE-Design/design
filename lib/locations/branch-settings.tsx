@@ -31,7 +31,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import {
   applyTaxOverride,
-  BUSINESS_TAX_IDENTITY,
+  businessTaxIdentityFor,
   LOCATION_TAX_OVERRIDES,
   type ResolvedTaxIdentity,
   resolveTaxIdentity,
@@ -144,7 +144,8 @@ export function BranchSettingsProvider({
 
   const value = useMemo<BranchSettingsValue>(
     () => ({
-      taxFor: (locationId) => resolveTaxIdentity(BUSINESS_TAX_IDENTITY, stored.tax[locationId]),
+      taxFor: (locationId) =>
+        resolveTaxIdentity(businessTaxIdentityFor(locationId), stored.tax[locationId]),
       taxOverridesFor: (locationId) => stored.tax[locationId],
 
       // The two rules that matter here — Reset deletes the key, and an empty
@@ -191,7 +192,8 @@ export function useBranchSettings(): BranchSettingsValue {
   const ctx = useContext(BranchSettingsContext)
   if (ctx) return ctx
   return {
-    taxFor: (locationId) => resolveTaxIdentity(BUSINESS_TAX_IDENTITY, SEED.tax[locationId]),
+    taxFor: (locationId) =>
+      resolveTaxIdentity(businessTaxIdentityFor(locationId), SEED.tax[locationId]),
     taxOverridesFor: (locationId) => SEED.tax[locationId],
     setTaxField: () => {},
     sequenceFor: (locationId) => SEED.sequences[locationId] ?? FIRST_RECEIPT,

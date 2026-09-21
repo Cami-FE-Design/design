@@ -1,4 +1,5 @@
 import type { Emirate } from "@/lib/business-profile"
+import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import type { BusinessNotificationConfig } from "@/lib/notifications/types"
 
 export type BusinessState = "onboarding" | "live" | "suspended" | "archived"
@@ -126,7 +127,11 @@ export const adminBusinesses: AdminBusiness[] = [
     // topbar's fake workspace row carried, one plane over.
     name: "Shampooch",
     slug: "shampooch",
-    locationIds: ["shampooch-jvc", "shampooch-jumeirah", "shampooch-al-quoz"],
+    // The estate, not a hand-kept copy of its first three. HQ read "3 locations"
+    // for a nine-branch chain, and its Locations tab listed three — the same
+    // two-lists-of-one-thing that made the public record disagree with the
+    // operator's.
+    locationIds: NINE_BRANCH_ESTATE.map((l) => l.id),
     ownerName: "Maz Khan",
     ownerEmail: "maaz@getcami.io",
     ownerPhotoUrl: "https://i.pravatar.cc/144?u=maz-khan",

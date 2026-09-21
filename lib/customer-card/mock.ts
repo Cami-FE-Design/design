@@ -31,6 +31,7 @@
 
 import { MOCK_CLIENTS, type MockClient, patchTestState } from "@/app/clients/mock"
 import { type ClientAppointment, getClientActivity } from "@/lib/clients/activity"
+import { resolvePublicView } from "@/lib/public-business"
 
 export type WalletTile = {
   id: string
@@ -250,6 +251,28 @@ export function getCardCustomer(slug: string): MockClient | undefined {
 export function getCustomerCard(slug: string): CustomerCardData | undefined {
   const client = getCardCustomer(slug)
   return client ? buildCustomerCard(client, slug) : undefined
+}
+
+/**
+ * A branch whose card can stand in for the whole business, for a surface that
+ * has to show *a* card rather than a particular one — the Branding preview.
+ *
+ * Branding is the business's, so which branch this picks does not change what
+ * the merchant is looking at; it only has to be a branch that resolves. A
+ * chain's own slug resolves to a picker rather than to a branch, so asking for
+ * its card directly returns nothing — which is exactly what left the Branding
+ * preview an empty box for Shampooch while working for the two single-site
+ * venues, whose business and branch slugs happen to be the same string.
+ *
+ * Published *and* carrying card data, in that order: the demo seeds a card at
+ * some branches and not others, and a branch without one would blank the
+ * preview again for a different reason.
+ */
+export function previewCardSlugForBusiness(slug: string): string | undefined {
+  const view = resolvePublicView(slug)
+  if (!view) return undefined
+  const candidates = view.kind === "branch" ? [view.branch] : view.branches
+  return candidates.find((branch) => getCustomerCard(branch.slug))?.slug
 }
 
 /**

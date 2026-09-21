@@ -25,6 +25,7 @@
  */
 
 import { BuildingIcon, CheckIcon, ChevronDownIcon, LockIcon } from "lucide-react"
+import { useState } from "react"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { Button } from "@/components/ui/button"
@@ -36,12 +37,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { SearchInput } from "@/components/ui/search-input"
 import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
+
+/** Past this, finding a branch by eye costs more than typing its name. */
+const SEARCH_FROM = 8
 
 export function LocationSwitcher({ className }: { className?: string }) {
   const { granted, isMultiLocation, hasNoAccess, setScope, scopedLocations, scopeLabel } =
     useLocations()
+  const [query, setQuery] = useState("")
+  const q = query.trim().toLowerCase()
+  const shown = q
+    ? granted.filter((l) =>
+        `${l.name} ${l.location.district} ${l.location.city}`.toLowerCase().includes(q),
+      )
+    : granted
 
   // R24. An empty scope is a real state with a real consequence, so it is said
   // out loud — an operator who can see nothing should know that is why.
@@ -123,6 +135,21 @@ export function LocationSwitcher({ className }: { className?: string }) {
           <span className="text-xs text-muted-foreground">{granted.length}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        {/* Search, once the list stops being scannable. Nine names that all
+            begin with the business is a column you read rather than glance at,
+            and the branch you want is usually one you can spell. */}
+        {granted.length >= SEARCH_FROM ? (
+          <div className="px-2 pb-1">
+            <SearchInput
+              containerClassName="w-full"
+              className="h-9! border-0 bg-muted/40 focus-visible:ring-0"
+              placeholder="Search locations"
+              aria-label="Search locations"
+              onValueChange={setQuery}
+              onKeyDown={(e) => e.stopPropagation()}
+            />
+          </div>
+        ) : null}
         <DropdownMenuLabel className="text-xs font-medium text-muted-foreground">
           Locations
         </DropdownMenuLabel>
@@ -131,7 +158,12 @@ export function LocationSwitcher({ className }: { className?: string }) {
             than a laptop popover, and a roll-up you have to scroll back up to
             reach is the one row an owner uses most. */}
         <div className="max-h-[min(20rem,var(--radix-dropdown-menu-content-available-height,20rem))] overflow-y-auto">
-          {granted.map((loc) => {
+          {shown.length === 0 ? (
+            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+              No locations match your search.
+            </p>
+          ) : null}
+          {shown.map((loc) => {
             const checked = selectedIds.has(loc.id)
             const isLastSelected = checked && selectedIds.size === 1
             return (

@@ -29,7 +29,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { idsWithin } from "@/lib/locations/from-business"
 import { CLOSED_DAY, openFor, type WeekSchedule } from "@/lib/locations/hours"
-import { LOCATIONS, locationName } from "@/lib/locations/mock"
+import { LOCATIONS, locationName, NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import type { Location, LocationScope, LocationStatus } from "@/lib/locations/types"
 import { acceptsWrites } from "@/lib/locations/types"
 
@@ -515,7 +515,11 @@ export function LocationsProvider({
 export function useLocations(): LocationsValue {
   const ctx = useContext(LocationsContext)
   if (ctx) return ctx
-  const locations = LOCATIONS
+  // The estate, not the first three. This fallback predates the nine-branch
+  // seed, so anything rendering outside a provider — a takeover, a portal, a
+  // standalone playground mount — silently saw a three-branch business and
+  // dropped every row belonging to the other six.
+  const locations = NINE_BRANCH_ESTATE as Location[]
   const writable = locations.filter((l) => acceptsWrites(l.status))
   return {
     locations,
