@@ -32,8 +32,15 @@ import {
 } from "@/lib/sales/daily-summary"
 import { cn } from "@/lib/utils"
 
-/** Beyond this the card stops being a glance and starts pushing the report off. */
-const VISIBLE_LOCATIONS = 5
+/**
+ * Beyond this the card stops being a glance and starts pushing the report off.
+ *
+ * Three, not five. The card sits above the two summaries a till is reconciled
+ * against, so every row it shows is a row of those pushed down — and the
+ * question it answers is which branch is worth looking at, which the top three
+ * answer as well as the top five. The rest is one click away.
+ */
+const VISIBLE_LOCATIONS = 3
 
 // ─── Derived from the sales log ───────────────────────────────────────────────
 //

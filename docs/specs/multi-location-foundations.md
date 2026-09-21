@@ -1646,7 +1646,7 @@ three and broke at nine, which is the shape this whole slice is built to catch.
 
 Capping the card and scrolling the rows inside it fixed that and bought a worse
 problem — a scrollbar inside a scrollbar, both on screen, with no way to tell
-which one a wheel is about to move. So the list is simply short: the five
+which one a wheel is about to move. So the list is simply short: the three
 biggest, ordered biggest first, and the rest one click away, which grows the page
 instead of nesting inside it. The control counts what is hidden rather than
 saying "show all", because seven of nine hidden is a different decision from two.
