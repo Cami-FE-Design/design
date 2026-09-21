@@ -1653,6 +1653,24 @@ saying "show all", because seven of nine hidden is a different decision from two
 The business total sits outside the list either way: it is the check on the rows
 rather than one of them, and a roll-up behind a toggle is not a roll-up.
 
+## Three rows, then a door — everywhere a branch list sits above something
+
+The same rule now governs three lists, because the same defect kept arriving:
+the end-of-day breakdown, the money roll-up (`MoneyByLocationView`, which the
+owner's account summary and the CamiHQ partner dialog both mount), and the HQ
+branch list. Each sits above content that matters, and each was unbounded, so at
+nine branches the thing underneath went off the screen — the two reports a till
+is reconciled against, the payout detail, the money roll-up in a dialog.
+
+Capping the height and scrolling inside was tried first and is worse: a
+scrollbar inside a scrollbar, with no way to tell which one a wheel will move.
+So each list is simply short — three rows, four in the HQ dialog — ordered
+biggest first, with the rest behind a control that **counts what is hidden**
+rather than saying "show all", because four of nine is a different decision from
+one. The heading still states the true total, so a short list reads as a choice
+rather than as the whole account. Roll-ups stay outside the collapsed part: a
+total you have to expand to reach is not a total.
+
 ## Reports: what multi-location owes, and what it does not
 
 R18 asks for two different things and only one of them was done. **"The result

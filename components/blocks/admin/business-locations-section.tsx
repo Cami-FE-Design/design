@@ -32,15 +32,19 @@
 
 import { ArrowUpRightIcon, MapPinIcon } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { MoneyByLocationView } from "@/components/blocks/money/money-by-location"
 import { Button } from "@/components/ui/button"
 import type { AdminBusiness } from "@/lib/admin-businesses"
+import { locationsForBusiness } from "@/lib/locations/from-business"
+import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
-import { isPubliclyBookable } from "@/lib/locations/types"
+import { isPubliclyBookable, type Location } from "@/lib/locations/types"
 import type { PeriodFilter } from "@/lib/money/ledger"
 import { MONEY_TXS, periodBounds } from "@/lib/money/mock"
+import { getPublicBusinessBySlug } from "@/lib/public-business"
 
 /**
  * The period the roll-up opens on. Month to date, because the question an
@@ -85,15 +89,53 @@ export function BusinessLocationsSection({ business }: { business: AdminBusiness
   return (
     // Scoped to this partner's branches, and read-only by construction: an
     // Account Manager viewing a chain is not inside the owner's session.
-    <LocationsProvider persist={false} initialGrants={[...branchIds]}>
+    //
+    // The ESTATE has to be passed as well as the grants. Given grants alone the
+    // provider falls back to the three-branch demo estate, and nine ids
+    // resolved against three left the tab saying "9 locations" while the panel
+    // under it listed three and the money roll-up summed those three — HQ1.2
+    // says HQ shows the same breakdown an owner sees, and it was showing a
+    // third of it.
+    <LocationsProvider
+      persist={false}
+      initialLocations={estateFor(business)}
+      initialGrants={[...branchIds]}
+    >
       <ChainView business={business} />
     </LocationsProvider>
   )
 }
 
+/**
+ * This partner's own branches, read the way every other surface reads them.
+ *
+ * Falls back to the ids on the admin record when the partner has no public
+ * business behind it — a partner that has not published yet still has an
+ * estate, and an Account Manager still has to be able to see it.
+ */
+function estateFor(business: AdminBusiness): Location[] {
+  const published = getPublicBusinessBySlug(business.slug)
+  if (published) return locationsForBusiness(published)
+  const ids = new Set(business.locationIds ?? [])
+  return NINE_BRANCH_ESTATE.filter((l) => ids.has(l.id))
+}
+
+/**
+ * Branches listed before the dialog becomes a scroll.
+ *
+ * This sits in a partner dialog with a money roll-up under it and five tabs
+ * around it. Nine two-line cards push the roll-up off the bottom, and an
+ * Account Manager opening Locations wants to know the shape of the account
+ * before they want its ninth address.
+ */
+const VISIBLE_BRANCHES = 4
+
 function ChainView({ business }: { business: AdminBusiness }) {
   const { granted } = useLocations()
   const live = granted.filter((location) => location.status === "live")
+  const [showAll, setShowAll] = useState(false)
+  const shown = showAll ? granted : granted.slice(0, VISIBLE_BRANCHES)
+  const hidden = granted.length - shown.length
 
   return (
     <div className="flex flex-col gap-6">
@@ -111,7 +153,7 @@ function ChainView({ business }: { business: AdminBusiness }) {
         </div>
 
         <ul className="flex flex-col gap-2">
-          {granted.map((location) => (
+          {shown.map((location) => (
             <li
               key={location.id}
               className="flex items-start gap-3 rounded-2xl border border-border/60 p-3"
@@ -150,6 +192,21 @@ function ChainView({ business }: { business: AdminBusiness }) {
             </li>
           ))}
         </ul>
+
+        {/* Counted, because four of nine hidden is a different decision from
+            one — and the heading above already says how many there are, so the
+            list being short is a choice rather than the whole account. */}
+        {hidden > 0 || showAll ? (
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className="w-fit text-left font-medium text-cami-violet-11 text-sm hover:underline"
+          >
+            {showAll
+              ? "Show fewer locations"
+              : `Show ${hidden} more ${hidden === 1 ? "location" : "locations"}`}
+          </button>
+        ) : null}
       </section>
 
       {/* No heading of its own: MoneyByLocationView brings one ("Money by

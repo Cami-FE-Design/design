@@ -28,6 +28,7 @@
  *   footnote says so rather than leaving a suspicious gap.
  */
 
+import { useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatAed } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
@@ -127,8 +128,23 @@ function RowsSkeleton({ count }: { count: number }) {
   )
 }
 
+/**
+ * Rows shown before the list becomes a scroll rather than a comparison.
+ *
+ * Three, because this sits inside surfaces that have their own content below it
+ * — an account summary, a partner dialog — and at nine branches nine cards push
+ * all of it off the screen. The question is which branch carried the period,
+ * and the top three answer it; the rest is a click away, counted so you know
+ * what you are opening.
+ */
+const VISIBLE_ROWS = 3
+
 function Rows({ data }: { data: MoneyByLocation }) {
   const { locationName } = useLocations()
+  const [showAll, setShowAll] = useState(false)
+  const rows = showAll ? data.rows : data.rows.slice(0, VISIBLE_ROWS)
+  const hidden = data.rows.length - rows.length
+
   if (data.rows.length === 0) {
     return (
       <p className="rounded-2xl bg-muted/30 p-4 text-sm text-muted-foreground">
@@ -139,7 +155,7 @@ function Rows({ data }: { data: MoneyByLocation }) {
 
   return (
     <div className="flex flex-col gap-2">
-      {data.rows.map((row) => {
+      {rows.map((row) => {
         const share = shareOfRollUp(row, data.rollUp)
         return (
           <div
@@ -183,6 +199,20 @@ function Rows({ data }: { data: MoneyByLocation }) {
           </div>
         )
       })}
+
+      {/* The door to the rest, counted. The total below stays put either way —
+          a roll-up you have to expand to reach is not a roll-up. */}
+      {hidden > 0 || showAll ? (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          className="w-fit text-left font-medium text-cami-violet-11 text-sm hover:underline"
+        >
+          {showAll
+            ? "Show fewer locations"
+            : `Show ${hidden} more ${hidden === 1 ? "location" : "locations"}`}
+        </button>
+      ) : null}
 
       {/* After the rows, and named as a sum. The order is the argument.
           Absent when there is one row: "Business total — the sum of 1 location"
