@@ -32,6 +32,7 @@
 
 import { ArrowUpRightIcon, MapPinIcon } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { MoneyByLocationView } from "@/components/blocks/money/money-by-location"
@@ -119,9 +120,22 @@ function estateFor(business: AdminBusiness): Location[] {
   return NINE_BRANCH_ESTATE.filter((l) => ids.has(l.id))
 }
 
+/**
+ * Branches listed before the dialog becomes a scroll.
+ *
+ * This sits in a partner dialog with a money roll-up under it and five tabs
+ * around it. Nine two-line cards push the roll-up off the bottom, and an
+ * Account Manager opening Locations wants to know the shape of the account
+ * before they want its ninth address.
+ */
+const VISIBLE_BRANCHES = 4
+
 function ChainView({ business }: { business: AdminBusiness }) {
   const { granted } = useLocations()
   const live = granted.filter((location) => location.status === "live")
+  const [showAll, setShowAll] = useState(false)
+  const shown = showAll ? granted : granted.slice(0, VISIBLE_BRANCHES)
+  const hidden = granted.length - shown.length
 
   return (
     <div className="flex flex-col gap-6">
@@ -139,7 +153,7 @@ function ChainView({ business }: { business: AdminBusiness }) {
         </div>
 
         <ul className="flex flex-col gap-2">
-          {granted.map((location) => (
+          {shown.map((location) => (
             <li
               key={location.id}
               className="flex items-start gap-3 rounded-2xl border border-border/60 p-3"
@@ -178,6 +192,21 @@ function ChainView({ business }: { business: AdminBusiness }) {
             </li>
           ))}
         </ul>
+
+        {/* Counted, because four of nine hidden is a different decision from
+            one — and the heading above already says how many there are, so the
+            list being short is a choice rather than the whole account. */}
+        {hidden > 0 || showAll ? (
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className="w-fit text-left font-medium text-cami-violet-11 text-sm hover:underline"
+          >
+            {showAll
+              ? "Show fewer locations"
+              : `Show ${hidden} more ${hidden === 1 ? "location" : "locations"}`}
+          </button>
+        ) : null}
       </section>
 
       {/* No heading of its own: MoneyByLocationView brings one ("Money by
