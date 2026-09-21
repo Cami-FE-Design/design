@@ -1700,13 +1700,13 @@ forty-nine are covered. The six that are not, and why:
 | Story | Pri | Why not |
 | --- | --- | --- |
 | **DW2.1** | P0 | **Built.** A person's branch assignment existed; *which services they perform at that branch* did not. |
-| **DW3.5** | P2 | **Built.** The deposit policy was the business's only. A branch can now take its own, on the catalogue's own inherit/override rule — and inheriting is live, so raising the default moves every branch that has not deliberately differed. |
-| **KC3.1** | P1 | **Built.** Templates stay the business's, which is what the plane split has them as; what was missing was anything saying which *number* a reminder leaves from. The WhatsApp card says it, and names the branches whose clients get no reminder at all until a number is connected — never rerouted through a sister branch. |
+| **DW3.5** | P2 | **Built.** A branch sets its own deposit from its own settings, beside tipping and tax identity, on the same follow-or-override control. Following deletes the override rather than copying today's figures, so inherited stays live. |
+| **KC3.1** | P1 | **Built.** Templates stay the business's, which is what the plane split has them as; the *number* is the branch's. The preview's From line read the business name and a number typed into the markup — the opposite of the rule it was previewing — and now names the branch and its own number, switchable, because the fact is only visible when it changes. |
 | **GB2.2** | P1 | Built the opposite way, and Michelle has since settled it: reception **should** see what another branch charged. GB2.2 and PRD §16 both need updating to match. |
 | **SU2.3** | P0 | Covered for reports. Notifications, exports and realtime are backend paths with no screen — the export buttons are placeholders with nothing behind them. They must carry the same bound when wired. |
 | **GP1.2** | P0 | Receipt numbers under concurrency is a load test, and the PRD lists it as one. Nothing a prototype can show. |
-| **DW3.4** | P2 | Promotions scoped to a branch. There is no promotions surface in this repo to scope. |
-| **KH1.4** | P2 | An audit log scoped to a branch. There is no audit-log surface to scope. |
+| **DW3.4** | P2 | Promotions scoped to a branch. No promotions surface here — but one is being built in the dev repo on `promotion-discount-ui`, and it already carries the axis: `PromotionAvailability` holds `allVenues` + `venues`. **One thing to raise there:** its mapper turns `allVenues: true` into `locationIds: []`, so empty means *all*. Everywhere else in this product an empty location set means **none** (R24, "an empty scope never resolves to all"). Two opposite conventions for the same shape, in one product, is how a promotion meant for one branch ends up running at nine. |
+| **KH1.4** | P2 | An audit log scoped to a branch. Nothing merchant-facing to scope: the dev repo's audit module has no components, and its only screen is CamiHQ's own internal log at `/cami-hq/audit-log`, which is Cami reading Cami rather than a branch manager reading their branch. |
 | **HQ1.1** | P2 | Deliberate. HQ1.1 itself rules out a "lesser HQ-only path", so standing a chain up happens as the owner through impersonation, which the repo already has. Building it twice is how the two drift. |
 
 ## Reports: what multi-location owes, and what it does not

@@ -30,6 +30,12 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import {
+  BRANCH_DEPOSIT,
+  type BranchDeposit,
+  type DepositSettings,
+  resolveDeposit,
+} from "@/lib/locations/deposit"
+import {
   applyTaxOverride,
   businessTaxIdentityFor,
   LOCATION_TAX_OVERRIDES,
@@ -66,6 +72,8 @@ type Stored = {
   tax: Record<string, TaxIdentityOverrides>
   sequences: Record<string, number>
   tipping: Record<string, BranchTipping>
+  /** A branch's own deposit, absent when it follows the business (DW3.5). */
+  deposit: Record<string, BranchDeposit>
 }
 
 type BranchSettingsValue = {
@@ -81,6 +89,10 @@ type BranchSettingsValue = {
   setSequence: (locationId: string, next: number) => void
 
   tippingFor: (locationId: string) => { mode: "workspace" | "custom"; settings: TippingSettings }
+  depositFor: (locationId: string) => { mode: "workspace" | "custom"; settings: DepositSettings }
+  /** Drop the override, so the branch follows the business again — and stays following it. */
+  followBusinessDeposit: (locationId: string) => void
+  setCustomDeposit: (locationId: string, settings: DepositSettings) => void
   /**
    * Follow the business default again, discarding this branch's own settings.
    * Not named `use*`: it is an action, and the prefix makes both the linter and
@@ -96,6 +108,7 @@ const SEED: Stored = {
   tax: LOCATION_TAX_OVERRIDES,
   sequences: SEEDED_SEQUENCES,
   tipping: BRANCH_TIPPING,
+  deposit: BRANCH_DEPOSIT,
 }
 
 function readStored(): Stored | null {
@@ -108,6 +121,7 @@ function readStored(): Stored | null {
       tax: parsed.tax ?? {},
       sequences: parsed.sequences ?? {},
       tipping: parsed.tipping ?? {},
+      deposit: parsed.deposit ?? {},
     }
   } catch {
     return null
@@ -175,6 +189,22 @@ export function BranchSettingsProvider({
           ...current,
           tipping: { ...current.tipping, [locationId]: { mode: "custom", settings } },
         })),
+
+      depositFor: (locationId) => resolveDeposit(stored.deposit[locationId]),
+      // Deleting the key, not writing today's business figures into the branch.
+      // A branch that "follows the business" has to keep following it when the
+      // default moves, and a copy stops the day it is made (INV-13).
+      followBusinessDeposit: (locationId) =>
+        write((current) => {
+          const deposit = { ...current.deposit }
+          delete deposit[locationId]
+          return { ...current, deposit }
+        }),
+      setCustomDeposit: (locationId, settings) =>
+        write((current) => ({
+          ...current,
+          deposit: { ...current.deposit, [locationId]: { mode: "custom", settings } },
+        })),
     }),
     [stored, write],
   )
@@ -199,6 +229,9 @@ export function useBranchSettings(): BranchSettingsValue {
     sequenceFor: (locationId) => SEED.sequences[locationId] ?? FIRST_RECEIPT,
     setSequence: () => {},
     tippingFor: (locationId) => resolveTipping(SEED.tipping[locationId]),
+    depositFor: (locationId) => resolveDeposit(SEED.deposit[locationId]),
+    followBusinessDeposit: () => {},
+    setCustomDeposit: () => {},
     followWorkspaceTipping: () => {},
     setCustomTipping: () => {},
   }

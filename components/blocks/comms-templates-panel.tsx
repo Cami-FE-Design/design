@@ -178,12 +178,51 @@ function WhatsAppPreview({ businessName, body }: { businessName: string; body: s
   // paints its own bubbles and gives a venue exactly one brand surface, the
   // business profile at the top of the thread. The logo is all there is to use.
   const branding = useVenueBranding(businessName)
+  const { isMultiLocation, locationName } = useLocations()
+
+  /**
+   * Which branch this preview is for (KC3.1, R21).
+   *
+   * The From line read the BUSINESS name and a number typed into the markup.
+   * KC3.1 is "a reminder for an appointment at one branch sends from that
+   * branch's number", and its reason is the client's: "if I reply, it lands
+   * with the people who know me". A reply goes wherever the send came from, so
+   * a preview showing one shared sender was showing the opposite of the rule.
+   *
+   * Switchable, because the fact only becomes visible when it changes — one
+   * branch's number in a preview is indistinguishable from a hardcoded one.
+   */
+  const sending = BRANCH_WHATSAPP.filter(takesWhatsAppBookings)
+  const [fromId, setFromId] = useState(sending[0]?.locationId ?? null)
+  const from = sending.find((b) => b.locationId === fromId) ?? sending[0]
+
   return (
     <div className="flex flex-col gap-3">
+      {isMultiLocation && sending.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-muted-foreground text-xs">Appointment at</span>
+          {sending.map((b) => (
+            <button
+              key={b.locationId}
+              type="button"
+              onClick={() => setFromId(b.locationId)}
+              className={cn(
+                "rounded-full border px-2.5 py-1 font-medium text-xs transition-colors",
+                b.locationId === from?.locationId
+                  ? "border-transparent bg-cami-violet-3 text-cami-violet-11"
+                  : "border-border text-muted-foreground hover:bg-muted/50",
+              )}
+            >
+              {locationName(b.locationId)}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <p className="text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">From</span> {businessName} ·{" "}
-        <span className="font-medium text-foreground">To</span> {TOKEN_EXAMPLE.client} · +971 50 123
-        4567
+        <span className="font-medium text-foreground">From</span>{" "}
+        {from && isMultiLocation ? locationName(from.locationId) : businessName}
+        {from ? ` · ${from.number}` : null} ·{" "}
+        <span className="font-medium text-foreground">To</span> {TOKEN_EXAMPLE.client}
       </p>
       {/* Left-aligned and light, not green. The preview is the customer's view,
           where the business's message is the incoming one — and WhatsApp only
