@@ -96,6 +96,8 @@ type NewServiceSheetProps = {
   defaultCategoryId?: string
   service?: Service
   isLoading?: boolean
+  /** Which section to open on. Deep links land on the one being reviewed. */
+  initialSection?: NavSection
   onSave: (data: AddServiceInput) => Promise<void>
   onClose: () => void
 }
@@ -124,6 +126,7 @@ export function NewServiceSheet({
   defaultCategoryId,
   service,
   isLoading,
+  initialSection = "basic",
   onSave,
   onClose,
 }: NewServiceSheetProps) {
@@ -138,7 +141,7 @@ export function NewServiceSheet({
   // previously had no variants — these are the cases where base will be prepended on save.
   const showBaseInVariantList = !isEdit || hadNoVariantsInitially
   const [isSaving, setIsSaving] = useState(false)
-  const [activeSection, setActiveSection] = useState<NavSection>("basic")
+  const [activeSection, setActiveSection] = useState<NavSection>(initialSection)
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(service?.imageDataUrl ?? null)
 
   const form = useForm<AddServiceInput>({
