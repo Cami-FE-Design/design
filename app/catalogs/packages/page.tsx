@@ -31,7 +31,7 @@ import {
 
 // ─── Mock data ──────────────────────────────────────────────────────────────────
 
-type Package = {
+export type Package = {
   id: string
   name: string
   serviceCount: number
@@ -42,7 +42,12 @@ type Package = {
   color: string
 }
 
-const MOCK_PACKAGES: Package[] = [
+/**
+ * Exported so the deal wizard's package picker chooses from the packages this
+ * business actually sells, rather than a second list written for that screen —
+ * the same reason `MOCK_SALES` is read off the sales list.
+ */
+export const MOCK_PACKAGES: Package[] = [
   {
     id: "bath-brush-5",
     name: "Bath & Brush 5+1",

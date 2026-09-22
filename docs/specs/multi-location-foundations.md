@@ -1653,6 +1653,70 @@ saying "show all", because seven of nine hidden is a different decision from two
 The business total sits outside the list either way: it is the check on the rows
 rather than one of them, and a roll-up behind a toggle is not a roll-up.
 
+## Deals: read the branch before inventing the shape
+
+`/catalogs/deals` was built against the story and not against the module that
+already exists on the dev repo's `promotion-discount-ui` — `types/deal.ts`, a
+five-step wizard, a list, a detail view and a scope picker. Two things were
+therefore invented and both were wrong:
+
+- **Status.** `live | scheduled | ended` against an as-built
+  `active | scheduled | inactive | archived`. Two of the three names were wrong,
+  and `ended` silently merged two different facts: a deal somebody switched off,
+  and one whose season is over.
+- **Dates.** A `runs` string, where the built product carries `startDate` /
+  `endDate` and formats them with `formatDateRange` — including collapsing a
+  range inside one month to "Apr 1 – 30, 2026".
+
+Both now match. The one thing kept from the first attempt is the rule that
+survives the correction: **a status a calendar can settle is derived, and one
+somebody set by hand is not.** A deal whose end date passed reads Inactive
+without anyone editing it; a deal switched off mid-run stays off, because
+deriving from its dates would switch it back on.
+
+There is also a real inconsistency inside that branch worth raising. Its
+`DealScope` models `mode: "all" | "none" | "selected"` — three states, with
+"none" explicit — for services, products and packages. Locations get none of
+that: `locationIds: allVenues ? [] : venues`, where empty means *all*. The same
+module holds both conventions, and R24 says an empty scope never resolves to
+all.
+
+## A dialog inside AppShell renders twice
+
+`AppShell` renders its children **twice** — a narrow layout and a wide one, with
+CSS hiding whichever does not apply. That is fine for content, which the hidden
+container hides. It is not fine for a dialog: a dialog portals to the body, so
+the CSS hiding its container does not reach it, and **both instances appear,
+stacked, each with its own state**. The Deals list showed two "Where does this
+deal run?" dialogs at once, one of them mid-edit.
+
+Dialogs therefore go **outside** `<AppShell>`, as a sibling in a fragment.
+
+This is repo-wide, not new: `/clients`, `/catalogs/packages` and others all
+mount their dialogs inside the shell. Only the Deals one is moved here, because
+that is the screen this ticket owns — but every dialog in the repo has the same
+defect and it is worth its own pass.
+
+## Before listing an estate, ask whether the list is the answer
+
+This defect has now arrived five times, each in a different card, and the fix
+was not always the same one:
+
+- **Daily sales, money roll-up, HQ branch list** — the branches *are* the
+  answer, so they are listed, shortest-first and capped with a counted door.
+- **"Works at", for an owner** — the branches are *not* the answer. "Every
+  location, including any added later" states the grant completely; the nine
+  rows beneath it added no fact, pushed Services and Notes off the dialog, and
+  would have gone on being wrong the moment a tenth branch arrived, which is
+  precisely what the sentence promises it will not. The list is gone; the
+  sentence stays.
+- **"Works at", for a named set** — the branches are the answer again, because
+  which four of nine is the whole point, so it lists and caps like the rest.
+
+The question to ask first is not "how do I shorten this list" but "does the
+reader want branches, or a fact about branches". A grant of *all* is a fact. A
+grant of four is a list.
+
 ## Three rows, then a door — everywhere a branch list sits above something
 
 The same rule now governs three lists, because the same defect kept arriving:
@@ -1670,6 +1734,31 @@ rather than saying "show all", because four of nine is a different decision from
 one. The heading still states the true total, so a short list reads as a choice
 rather than as the whole account. Roll-ups stay outside the collapsed part: a
 total you have to expand to reach is not a total.
+
+## Cross-check against the 49 user stories
+
+Michelle asked for the design to be checked against `User Stories:
+Multi-Location` (Slite `7pg149CiWujY8B`, last edited 2026-09-04). Forty-four of
+the forty-nine are covered. The five that are not, and why:
+
+| Story | Pri | Why not |
+| --- | --- | --- |
+| **GB2.2** | P1 | Built the opposite way, and Michelle has since settled it: reception **should** see what another branch charged. GB2.2 and PRD §16 both need updating to match. |
+| **SU2.3** | P0 | Covered for reports. Notifications, exports and realtime are backend paths with no screen — the export buttons are placeholders with nothing behind them. They must carry the same bound when wired. |
+| **GP1.2** | P0 | Receipt numbers under concurrency is a load test, and the PRD lists it as one. Nothing a prototype can show. |
+| **KH1.4** | P2 | An audit log scoped to a branch. Nothing merchant-facing to scope: the dev repo's audit module has no components, and its only screen is CamiHQ's own internal log at `/cami-hq/audit-log`, which is Cami reading Cami rather than a branch manager reading their branch. |
+| **HQ1.1** | P2 | Deliberate. HQ1.1 itself rules out a "lesser HQ-only path", so standing a chain up happens as the owner through impersonation, which the repo already has. Building it twice is how the two drift. |
+
+Four more were uncovered when this check was first written and have since been
+built. They stay listed because the story each one answers is not obvious from
+the screen that answers it:
+
+| Story | Pri | Built |
+| --- | --- | --- |
+| **DW2.1** | P0 | A person's branch assignment existed; *which services they perform at that branch* did not. |
+| **DW3.5** | P2 | A branch sets its own deposit from its own settings, beside tipping and tax identity, on the same follow-or-override control. Following deletes the override rather than copying today's figures, so inherited stays live. |
+| **KC3.1** | P1 | Templates stay the business's, which is what the plane split has them as; the *number* is the branch's. The preview's From line read the business name and a number typed into the markup — the opposite of the rule it was previewing — and now names the branch and its own number, switchable, because the fact is only visible when it changes. |
+| **DW3.4** | P2 | **`/catalogs/deals`, a real route, and the dev repo's whole promotions module with it.** The list, the five-step wizard, the catalogue pickers, the filters, the limits and the three-tab detail read are all replicated off `promotion-discount-ui`; the axis it does not have is the location. Its wizard creates **every** deal with `locationIds: []` and its mapper reads that empty array as every venue, which is why its Availability tab can only ever print "All locations" behind an Edit button that says editing is coming soon. R24 says an empty scope never resolves to all, so here the reach is a wizard step, a column on the list, a filter axis and a named panel on the detail. `lib/locations/promotion-scope.ts` holds the rule — a named chain-wide case or a list, never an empty list standing in for "everywhere" — and `fromAvailability()` converts without inheriting the ambiguity. Two things the module had wrong on its own terms were fixed rather than copied: the discount was free text (an owner typing "15 off" could not say whether that was AED or a percentage, and a regex behind it took nothing off for half the strings they would write), and the limits were collected, stored, printed and then ignored by the one screen that spends money. **Worth raising with Faisal.** |
 
 ## Reports: what multi-location owes, and what it does not
 

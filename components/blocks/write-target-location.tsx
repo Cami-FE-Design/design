@@ -38,7 +38,7 @@
  * lifecycle to stay correct.
  */
 
-import { InfoIcon, MapPinIcon } from "lucide-react"
+import { BuildingIcon, InfoIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
@@ -182,9 +182,18 @@ export function WriteTargetLocation({
           asCard ? "rounded-2xl border border-border/60 bg-card" : "rounded-xl bg-muted/40",
         )}
       >
-        <MapPinIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        <span className="text-sm text-foreground">
-          Recording at <span className="font-medium">{only.name}</span>
+        {/* A building, not a pin. A pin marks an address; this names the
+            branch the write lands on, which is what the topbar switcher says
+            with a building two inches above it. */}
+        <BuildingIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        {/* A full sentence, and the same verb this component's other three
+            messages already use ("cannot be recorded anywhere", "nowhere to
+            record"). "Recording at Shampooch JVC" read like a video was being
+            taken, and said nothing about WHAT was landing there — which is the
+            only fact this line exists to give, since there is no choice to
+            make when the scope holds one branch. */}
+        <span className="text-foreground text-sm">
+          {action} will be recorded at <span className="font-medium">{only.name}</span>
         </span>
       </div>
     ) : null

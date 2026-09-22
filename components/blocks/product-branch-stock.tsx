@@ -28,6 +28,16 @@
  * them, so the row says which of the two it is rather than colouring both red
  * and leaving the manager to guess.
  *
+ * ## Scanning is the default, editing is a mode
+ *
+ * Seven branches needing attention is seven cards, and with a labelled Low at
+ * and Reorder input on each that is a dialog-length scroll whose rows are
+ * mostly two empty fields — six "Not set" pairs say nothing about which branch
+ * to act on. So a row reads as one line with its thresholds summarised beside
+ * it, and the inputs appear only when the operator says they are editing.
+ * Setting a reorder point is a deliberate act; finding the branch that ran out
+ * is the thing being done every time this card is opened.
+ *
  * ## Out of scope, per the PRD
  *
  * Moving stock between branches. Per-branch stock is the v0 model, confirmed at
@@ -44,9 +54,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
+  attentionNotice,
   type BranchStock,
   type BranchStockLevel,
   businessQuantity,
+  canReorder,
+  collapseStock,
   needsAttention,
   type StockedProduct,
   stockForProduct,
@@ -76,6 +89,7 @@ export function ProductBranchStock({
 }) {
   // Above the early return: hooks cannot sit behind a branch.
   const [showAll, setShowAll] = useState(false)
+  const [editing, setEditing] = useState(false)
   // The granted set, not the estate. A branch manager sees their own shelf and
   // no one else's, and the bound is read here rather than passed so no caller
   // can widen it (R18).
@@ -102,31 +116,24 @@ export function ProductBranchStock({
   const ids = inScope.map((location) => location.id)
   const rows = stockForProduct(stock, product.id, ids)
   const attention = needsAttention(rows)
+  const notice = attentionNotice(rows)
   const total = businessQuantity(stock, product.id, ids)
 
-  // Under four branches there is nothing worth hiding.
-  const COLLAPSE_FROM = 4
-  const attentionIds = new Set(attention.map((r) => r.locationId))
-  const shouldFold = rows.length >= COLLAPSE_FROM && attentionIds.size < rows.length
-  const shownRows =
-    shouldFold && !showAll ? rows.filter((r) => attentionIds.has(r.locationId)) : rows
-  const folded = shouldFold ? rows.length - shownRows.length : 0
+  // Two bounds, both in the lib so they can be tested: healthy branches fold,
+  // and the ones that need attention are capped — see collapseStock.
+  const collapsed = collapseStock(rows)
+  const shownRows = showAll ? rows : collapsed.shown
 
   return (
     <div className="flex flex-col gap-3">
-      {attention.length > 0 ? (
+      {notice ? (
         <div className="flex items-start gap-3 rounded-xl bg-cami-yellow-2 p-3">
           <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" />
-          <p className="text-sm leading-5 text-foreground">
-            {/* Said before the rows, because at nine branches the row that
-                needs attention is below the fold. The count, not the names —
-                the rows underneath carry those. */}
-            {attention.length === 1
-              ? "1 location needs attention."
-              : `${attention.length} locations need attention.`}{" "}
-            A location below zero has sold more than it received, which a stock take fixes rather
-            than a reorder.
-          </p>
+          {/* Said before the rows, because at nine branches the row that needs
+              attention is below the fold. The count, not the names — the rows
+              underneath carry those — and the reason named for the states
+              actually present, not the worst one imaginable. */}
+          <p className="text-sm leading-5 text-foreground">{notice}</p>
         </div>
       ) : null}
 
@@ -136,14 +143,37 @@ export function ProductBranchStock({
           run out, not reading eight that have not. Under four branches nothing
           folds, because hiding three cards behind a click is worse than three
           cards. */}
-      {folded > 0 ? (
-        <button
-          type="button"
-          onClick={() => setShowAll((v) => !v)}
-          className="self-start text-sm font-medium text-cami-violet-11 hover:underline"
-        >
-          {showAll ? "Show only what needs attention" : `Show all ${rows.length} locations`}
-        </button>
+      {collapsed.hidden > 0 || onThresholds ? (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          {collapsed.hidden > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowAll((v) => !v)}
+              className="text-sm font-medium text-cami-violet-11 hover:underline"
+            >
+              {/* "Show only what needs attention" is a promise the collapsed
+                  view cannot keep once the cap is what hid the rows — at twenty
+                  branches all twenty may need it. */}
+              {showAll
+                ? attention.length < rows.length
+                  ? "Show only what needs attention"
+                  : `Show the first ${collapsed.shown.length}`
+                : `Show all ${rows.length} locations`}
+            </button>
+          ) : null}
+          {/* One switch for the whole list rather than a control per row:
+              thresholds are set in a sitting, and seven disclosure arrows is
+              the scroll this was meant to remove. */}
+          {onThresholds ? (
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              className="text-sm font-medium text-cami-violet-11 hover:underline"
+            >
+              {editing ? "Done" : "Edit reorder points"}
+            </button>
+          ) : null}
+        </div>
       ) : null}
 
       <ul className="flex flex-col gap-2">
@@ -154,7 +184,8 @@ export function ProductBranchStock({
             <li
               key={row.locationId}
               className={cn(
-                "flex flex-col gap-2 rounded-2xl border p-3",
+                "flex flex-col rounded-2xl border px-3",
+                editing ? "gap-2 py-3" : "gap-0.5 py-2.5",
                 level === "negative" ? "border-destructive/40" : "border-border/60",
               )}
             >
@@ -188,22 +219,35 @@ export function ProductBranchStock({
                   one pair of fields with no location while telling the operator
                   that each location sets its own, which is a claim with nowhere
                   to act on it. */}
-              <div className="flex flex-wrap items-end gap-3">
-                <ThresholdField
-                  id={`low-${row.locationId}`}
-                  label="Low at"
-                  value={row.lowStockLevel}
-                  onChange={(next) => onThresholds?.(row.locationId, { lowStockLevel: next })}
-                  readOnly={!onThresholds}
-                />
-                <ThresholdField
-                  id={`reorder-${row.locationId}`}
-                  label="Reorder"
-                  value={row.reorderQty}
-                  onChange={(next) => onThresholds?.(row.locationId, { reorderQty: next })}
-                  readOnly={!onThresholds}
-                />
-              </div>
+              {/* A branch nobody has configured says so once, rather than
+                  twice in the same breath. Worth saying at all: an empty shelf
+                  with no reorder point is the reason it was never reported low
+                  before it ran out. */}
+              {!editing && row.lowStockLevel === undefined && row.reorderQty === undefined ? (
+                <span className="text-xs text-muted-foreground">No reorder point set</span>
+              ) : (
+                <div
+                  className={cn(
+                    "flex flex-wrap gap-x-4",
+                    editing ? "items-end gap-y-3" : "items-baseline gap-y-1",
+                  )}
+                >
+                  <ThresholdField
+                    id={`low-${row.locationId}`}
+                    label="Low at"
+                    value={row.lowStockLevel}
+                    onChange={(next) => onThresholds?.(row.locationId, { lowStockLevel: next })}
+                    readOnly={!onThresholds || !editing}
+                  />
+                  <ThresholdField
+                    id={`reorder-${row.locationId}`}
+                    label="Reorder"
+                    value={row.reorderQty}
+                    onChange={(next) => onThresholds?.(row.locationId, { reorderQty: next })}
+                    readOnly={!onThresholds || !editing}
+                  />
+                </div>
+              )}
             </li>
           )
         })}
@@ -229,7 +273,10 @@ export function ProductBranchStock({
           : "A sale, adjustment or delivery changes this location's count."}
       </p>
 
-      {attention.length > 0 ? (
+      {/* Only when ordering is actually one of the fixes. A branch below zero
+          is not short of stock — its count is wrong — and the notice above says
+          so, so offering a purchase order there argued with itself. */}
+      {canReorder(rows) ? (
         <Button type="button" variant="outline" radius="full" className="w-fit">
           {/* Ordering from a supplier, not borrowing from a sibling branch:
               cross-branch transfer is explicitly future backlog. */}

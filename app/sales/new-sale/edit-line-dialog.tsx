@@ -14,10 +14,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { dealDiscountMinor, offersAtTill } from "@/lib/deals/eligible"
+import { formatDiscountValue, MOCK_DEALS } from "@/lib/deals/mock"
+import { useLocations } from "@/lib/locations/store"
+import { TODAY_ISO } from "@/lib/money/mock"
 import { money, STAFF } from "./mock"
 import type { CartLine } from "./types"
 
-export type LinePatch = { priceMinor: number; qty: number; staffName?: string }
+export type LinePatch = {
+  priceMinor: number
+  qty: number
+  staffName?: string
+  /** The deal on this line, or undefined for none (DW3.4). */
+  dealId?: string
+  /** What it reads as on the line, the footer and the receipt. */
+  dealName?: string
+  /** What that deal takes off this line, in fils. */
+  dealDiscountMinor?: number
+}
 
 type EditLineDialogProps = {
   line: CartLine
@@ -26,7 +40,28 @@ type EditLineDialogProps = {
   onApply: (uid: string, patch: LinePatch) => void
   /** Omit on read-only steps (Tip / Payment) to hide the delete control. */
   onDelete?: (uid: string) => void
+  /**
+   * The branch this sale is being taken at (R11).
+   *
+   * Required to answer which deals are on offer at all — a deal scoped to
+   * another branch is not shown, and a sale with no branch is offered none.
+   */
+  locationId: string | null
+  /**
+   * The cart's total before this line's deal, in fils — a deal's minimum spend
+   * is about the cart, not the line it is attached to.
+   */
+  cartTotalMinor?: number
+  /**
+   * How many times the attached client has already used each deal. `null` for
+   * a walk-in, which is not zero: nobody can say whether an unnamed client has
+   * had a once-per-client offer before.
+   */
+  clientRedemptions?: number | null
 }
+
+/** The select's "nothing chosen" value. Radix refuses an empty string. */
+const NO_DEAL = "none"
 
 export function EditLineDialog({
   line,
@@ -34,16 +69,53 @@ export function EditLineDialog({
   onOpenChange,
   onApply,
   onDelete,
+  locationId,
+  cartTotalMinor = 0,
+  clientRedemptions = null,
 }: EditLineDialogProps) {
   const [price, setPrice] = useState((line.priceMinor / 100).toFixed(2))
   const [qty, setQty] = useState(line.qty)
   const [staff, setStaff] = useState(line.staffName ?? "Any")
 
+  const [dealId, setDealId] = useState(line.dealId ?? NO_DEAL)
+
+  // Only what runs at the branch this sale is being taken at (R11, R18).
+  const { locationName } = useLocations()
+  // The line's own kind as well as the branch: a grooming offer takes nothing
+  // off a bottle of conditioner, which is what this screen showed before the
+  // applicability axis existed here.
+  // Every offer that belongs on this screen, each carrying the reason it
+  // cannot be taken yet — a minimum spend not reached, a cap used up, a
+  // once-per-client offer this client has had. Those rows stay visible and
+  // disabled: "spend AED 40 more" is something the person at the counter can
+  // act on, and hiding it makes the offer look as though it never existed.
+  const offers = offersAtTill(MOCK_DEALS, locationId, TODAY_ISO, line.kind, {
+    cartTotalMinor,
+    clientRedemptions,
+    totalRedemptions: 0,
+  })
+
   const priceMinor = Math.round((Number.parseFloat(price) || 0) * 100)
-  const totalMinor = priceMinor * qty
+  const grossMinor = priceMinor * qty
+  const deal = offers.find((o) => o.deal.id === dealId && !o.block)?.deal
+  // Computed against this line's gross, the way the built product does it — a
+  // line discount is one flat amount for the whole line, not a per-unit one.
+  const discountMinor = deal ? dealDiscountMinor(deal, grossMinor) : 0
+  const totalMinor = Math.max(0, grossMinor - discountMinor)
 
   function apply() {
-    onApply(line.uid, { priceMinor, qty, staffName: staff })
+    onApply(line.uid, {
+      priceMinor,
+      qty,
+      staffName: staff,
+      dealId: deal?.id,
+      // Named here, once, rather than re-derived by each surface downstream.
+      // The line is what the cart, the footer and the receipt all read from,
+      // and the deal it was taken under may not exist by the time one of them
+      // is reprinted.
+      dealName: deal ? `${deal.name} · ${formatDiscountValue(deal)} off` : undefined,
+      dealDiscountMinor: discountMinor,
+    })
     onOpenChange(false)
   }
 
@@ -125,14 +197,56 @@ export function EditLineDialog({
           </Field>
         </div>
 
+        {/* A deal attaches to a LINE, which is where the built product puts it
+            (`edit-line-dialog.tsx` on promotion-discount-ui: a select of
+            eligible promotions, and the discount computed against that line's
+            gross). It was a disabled select here, and the first attempt at
+            wiring it up was a panel floating under the cart — which offered a
+            percentage of nothing on an empty cart.
+
+            The list is the deals running at THIS SALE'S BRANCH today (DW3.4).
+            A deal scoped elsewhere is not shown, and there is no override: it
+            is another branch's decision about its own diary, unlike a client's
+            package, which is theirs and only warns (KC1.5). */}
         <Field label="Discounts">
-          {/* Read-only scaffolding — discounts are applied by the backend (PRO-395). */}
-          <Select disabled>
-            <SelectTrigger className="h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium text-sm data-[size=default]:h-12">
+          <Select value={dealId} onValueChange={setDealId}>
+            <SelectTrigger
+              className="h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium text-sm data-[size=default]:h-12"
+              aria-label="Discounts"
+            >
               <SelectValue placeholder="None selected" />
             </SelectTrigger>
-            <SelectContent />
+            <SelectContent>
+              <SelectItem value={NO_DEAL}>No discount</SelectItem>
+              {offers.map(({ deal, block }) => (
+                <SelectItem key={deal.id} value={deal.id} disabled={Boolean(block)}>
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate">
+                      {deal.name} · {formatDiscountValue(deal)} off
+                    </span>
+                    {/* The reason, on the row it belongs to. A greyed line with
+                        no explanation is a control the reader has to guess at,
+                        and this one has an answer they can act on. */}
+                    {block ? (
+                      <span className="text-muted-foreground text-xs">
+                        {block.reason}
+                        {block.detail ? ` · ${block.detail}` : ""}
+                      </span>
+                    ) : null}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
+          {offers.length === 0 && locationId ? (
+            <span className="text-muted-foreground text-xs">
+              {line.kind === "gift-card"
+                ? "Deals do not apply to gift cards."
+                : `No deal running at ${locationName(locationId)} today applies to ${
+                    line.kind === "product" ? "products" : "services"
+                  }.`}
+            </span>
+          ) : null}
         </Field>
 
         <Field label="Team member">
@@ -155,7 +269,9 @@ export function EditLineDialog({
 
         <div className="flex items-center justify-between gap-3 pt-2">
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-xs">Item total</span>
+            <span className="text-muted-foreground text-xs">
+              {discountMinor > 0 ? `Item total · ${money(discountMinor)} off` : "Item total"}
+            </span>
             <span className="font-semibold text-foreground text-lg tabular-nums">
               {money(totalMinor)}
             </span>

@@ -62,6 +62,8 @@ import {
 import { useVenueBranding } from "@/lib/customer-card/store"
 import { themeVars } from "@/lib/customer-card/theme"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { useLocations } from "@/lib/locations/store"
+import { BRANCH_WHATSAPP, takesWhatsAppBookings } from "@/lib/locations/whatsapp"
 import { useNotifications } from "@/lib/notifications/store"
 import { channelEnabled, eventLabel, type ReminderEvent } from "@/lib/notifications/types"
 import { cn } from "@/lib/utils"
@@ -176,12 +178,51 @@ function WhatsAppPreview({ businessName, body }: { businessName: string; body: s
   // paints its own bubbles and gives a venue exactly one brand surface, the
   // business profile at the top of the thread. The logo is all there is to use.
   const branding = useVenueBranding(businessName)
+  const { isMultiLocation, locationName } = useLocations()
+
+  /**
+   * Which branch this preview is for (KC3.1, R21).
+   *
+   * The From line read the BUSINESS name and a number typed into the markup.
+   * KC3.1 is "a reminder for an appointment at one branch sends from that
+   * branch's number", and its reason is the client's: "if I reply, it lands
+   * with the people who know me". A reply goes wherever the send came from, so
+   * a preview showing one shared sender was showing the opposite of the rule.
+   *
+   * Switchable, because the fact only becomes visible when it changes — one
+   * branch's number in a preview is indistinguishable from a hardcoded one.
+   */
+  const sending = BRANCH_WHATSAPP.filter(takesWhatsAppBookings)
+  const [fromId, setFromId] = useState(sending[0]?.locationId ?? null)
+  const from = sending.find((b) => b.locationId === fromId) ?? sending[0]
+
   return (
     <div className="flex flex-col gap-3">
+      {isMultiLocation && sending.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-muted-foreground text-xs">Appointment at</span>
+          {sending.map((b) => (
+            <button
+              key={b.locationId}
+              type="button"
+              onClick={() => setFromId(b.locationId)}
+              className={cn(
+                "rounded-full border px-2.5 py-1 font-medium text-xs transition-colors",
+                b.locationId === from?.locationId
+                  ? "border-transparent bg-cami-violet-3 text-cami-violet-11"
+                  : "border-border text-muted-foreground hover:bg-muted/50",
+              )}
+            >
+              {locationName(b.locationId)}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <p className="text-xs text-muted-foreground">
-        <span className="font-medium text-foreground">From</span> {businessName} ·{" "}
-        <span className="font-medium text-foreground">To</span> {TOKEN_EXAMPLE.client} · +971 50 123
-        4567
+        <span className="font-medium text-foreground">From</span>{" "}
+        {from && isMultiLocation ? locationName(from.locationId) : businessName}
+        {from ? ` · ${from.number}` : null} ·{" "}
+        <span className="font-medium text-foreground">To</span> {TOKEN_EXAMPLE.client}
       </p>
       {/* Left-aligned and light, not green. The preview is the customer's view,
           where the business's message is the incoming one — and WhatsApp only
@@ -603,6 +644,8 @@ function ChannelCard({
           so there were two scrollbars for one list. And this panel is going to
           gain cards (PRO-865's manual templates), which an inner port doesn't
           scale to. */}
+      {channel === "whatsapp" ? <SendsFromBranchNote /> : null}
+
       <div className="flex flex-col">
         {COMMS_EVENTS.map((e) => (
           <TemplateRow
@@ -615,6 +658,45 @@ function ChannelCard({
         ))}
       </div>
     </section>
+  )
+}
+
+/**
+ * Which number a reminder leaves from (KC3.1, R21, R22).
+ *
+ * The template is the business's — one wording, edited once, which is what the
+ * plane split has templates as business-shared for. The *number* is the
+ * branch's, and nothing on this screen said so: an owner editing a reminder had
+ * no way to know whether it left from the branch the client actually goes to or
+ * from one shared line. "If I reply, it lands with the people who know me" is
+ * the whole of KC3.1, and a reply goes wherever the send came from.
+ *
+ * The branches with no number are named rather than counted, because the
+ * consequence is specific and per branch: that branch's clients get no WhatsApp
+ * reminder at all. It is not rerouted through a sister branch — the same rule
+ * KC2.2 states for inbound, arriving from the other direction. Silence is the
+ * correct behaviour and a surprise if nobody says it.
+ */
+function SendsFromBranchNote() {
+  const { isMultiLocation, locationName } = useLocations()
+  if (!isMultiLocation) return null
+
+  const silent = BRANCH_WHATSAPP.filter((b) => !takesWhatsAppBookings(b))
+
+  return (
+    <div className="flex flex-col gap-1 rounded-xl bg-cami-yellow-2 p-3">
+      <p className="text-foreground text-sm leading-5">
+        Sent from the number of the location the appointment is at, so a reply lands with that
+        branch.
+      </p>
+      {silent.length > 0 ? (
+        <p className="text-muted-foreground text-sm leading-5">
+          No WhatsApp reminders go out for{" "}
+          {silent.map((b) => locationName(b.locationId)).join(", ")} until a number is connected —
+          they are never sent from another branch's.
+        </p>
+      ) : null}
+    </div>
   )
 }
 

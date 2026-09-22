@@ -7,6 +7,7 @@ import {
   BedIcon,
   BriefcaseIcon,
   Building2Icon,
+  BuildingIcon,
   CheckCircle2Icon,
   CheckIcon,
   ChevronDownIcon,
@@ -61,6 +62,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { REASON_CODES } from "@/lib/admin-businesses"
 import { BUSINESS_TIPPING, useBranchSettings } from "@/lib/locations/branch-settings"
+import { BUSINESS_DEPOSIT, type DepositSettings, describeDeposit } from "@/lib/locations/deposit"
 import {
   CLOSED_DAY,
   formatDayHours,
@@ -525,7 +527,7 @@ function LocationDetailView({ location, onBack }: { location: Location; onBack: 
         <>
           <NotionBreadcrumb
             segments={[
-              { label: "Locations", icon: MapPinIcon, onClick: onBack },
+              { label: "Locations", icon: BuildingIcon, onClick: onBack },
               { label: location.name, photoUrl: location.photoUrl },
             ]}
           />
@@ -916,14 +918,16 @@ function InvoicingTab({ location }: { location: Location }) {
   const [taxEditing, setTaxEditing] = useState(false)
   const [receiptEditing, setReceiptEditing] = useState(false)
   const [tippingEditing, setTippingEditing] = useState(false)
+  const [depositEditing, setDepositEditing] = useState(false)
 
   // Read through the store, not the module const, so an edit made in any of
   // the three dialogs below is the value this tab shows afterwards.
-  const { taxFor, taxOverridesFor, sequenceFor, tippingFor } = useBranchSettings()
+  const { taxFor, taxOverridesFor, sequenceFor, tippingFor, depositFor } = useBranchSettings()
   const overrides = taxOverridesFor(location.id)
   const { value: tax, source } = taxFor(location.id)
   const ownFields = taxOverrideCount(overrides)
   const tipping = tippingFor(location.id)
+  const deposit = depositFor(location.id)
 
   return (
     <div className="flex flex-col gap-4">
@@ -1003,6 +1007,28 @@ function InvoicingTab({ location }: { location: Location }) {
         </div>
       </SummaryCard>
 
+      <SummaryCard heading="Deposit" onEdit={() => setDepositEditing(true)}>
+        <div className="flex flex-col gap-3">
+          {/* Whole-block inheritance, like tipping above: a branch either takes
+              the business's deposit or sets its own, and saying the source once
+              is honest about that. */}
+          <SummaryRow
+            label="Taken upfront"
+            value={`${deposit.settings.percent}%`}
+            source={deposit.mode === "custom" ? "location" : "business"}
+          />
+          <SummaryRow
+            label="Only on bookings over"
+            value={
+              deposit.settings.minBookingAed > 0
+                ? `AED ${deposit.settings.minBookingAed.toLocaleString("en-US")}`
+                : "Every booking"
+            }
+          />
+          <SummaryRow label="Refunds" value={describeDeposit(deposit.settings).split(" · ")[1]} />
+        </div>
+      </SummaryCard>
+
       <TaxDefaultsEditDialog location={location} open={taxEditing} onOpenChange={setTaxEditing} />
       <ReceiptSequencingEditDialog
         location={location}
@@ -1013,6 +1039,11 @@ function InvoicingTab({ location }: { location: Location }) {
         location={location}
         open={tippingEditing}
         onOpenChange={setTippingEditing}
+      />
+      <DepositEditDialog
+        location={location}
+        open={depositEditing}
+        onOpenChange={setDepositEditing}
       />
     </div>
   )
@@ -2566,6 +2597,140 @@ function ReceiptSequencingEditDialog({
  * business does, rather than being hidden. Hidden, an operator has to switch to
  * Custom to find out what they would be changing from.
  */
+/**
+ * A branch's own deposit (DW3.5, R06, INV-13).
+ *
+ * The policy screen carries the business default and could not be told that a
+ * branch differs, so a branch with a no-show problem — or one doing week-long
+ * boarding stays, where 20% is a very different sum from 20% of a nail trim —
+ * was stuck with the business-wide rule.
+ *
+ * Built on the tipping dialog rather than as a second shape for the same idea:
+ * one switch between following the business and setting your own, the fields
+ * shown either way so the reader can see what they are inheriting, and disabled
+ * while they are following it.
+ *
+ * "Following" deletes the override rather than copying today's numbers in.
+ * Inherited has to mean *live*, or raising the business default silently
+ * misses every branch that once looked at this dialog (INV-13).
+ */
+function DepositEditDialog({
+  location,
+  open,
+  onOpenChange,
+}: {
+  location: Location
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}) {
+  const { depositFor, followBusinessDeposit, setCustomDeposit } = useBranchSettings()
+
+  const [mode, setMode] = useState<"workspace" | "custom">("workspace")
+  const [draft, setDraft] = useState<DepositSettings>(BUSINESS_DEPOSIT)
+
+  useEffect(() => {
+    if (!open) return
+    const current = depositFor(location.id)
+    setMode(current.mode)
+    // Seeded from what this branch takes today, so switching to Custom starts
+    // from the real figure rather than an empty field.
+    setDraft(current.settings)
+  }, [open, location.id, depositFor])
+
+  const custom = mode === "custom"
+  const patch = (next: Partial<DepositSettings>) => setDraft((cur) => ({ ...cur, ...next }))
+
+  const save = () => {
+    if (custom) setCustomDeposit(location.id, draft)
+    else followBusinessDeposit(location.id)
+    onOpenChange(false)
+  }
+
+  return (
+    <FullScreenEditDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Deposit"
+      subtitle={`Change the deposit for ${location.name}`}
+      description="What this location takes upfront, and when it is refundable."
+      onSave={save}
+    >
+      <section className="flex flex-col gap-3">
+        <Field label="Deposit">
+          <Select value={mode} onValueChange={(v) => setMode(v as "workspace" | "custom")}>
+            <SelectTrigger className={triggerOverride}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="workspace">Business default</SelectItem>
+              <SelectItem value="custom">Custom for this location</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <p className="text-xs leading-5 text-muted-foreground">
+          {custom
+            ? "This location has its own deposit. It will not follow a later change to the business default."
+            : "This location follows the business default, shown below. Change the business and this location follows."}
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+          What this location takes
+        </h3>
+        <Field label="Taken upfront">
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={draft.percent}
+              disabled={!custom}
+              onChange={(e) => patch({ percent: Number(e.target.value) })}
+              className="sm:w-40"
+            />
+            <span className="text-muted-foreground text-sm">% of the booking</span>
+          </div>
+        </Field>
+        <Field label="Only on bookings over">
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              min={0}
+              value={draft.minBookingAed}
+              disabled={!custom}
+              onChange={(e) => patch({ minBookingAed: Number(e.target.value) })}
+              className="sm:w-40"
+            />
+            {/* Zero is a real answer, not an empty field — it means every
+                booking takes a deposit, which is a different statement from
+                "nobody has set a floor yet". */}
+            <span className="text-muted-foreground text-sm">
+              AED · 0 takes a deposit on every booking
+            </span>
+          </div>
+        </Field>
+        <Field label="Refunds">
+          <Select
+            value={draft.refundRule}
+            disabled={!custom}
+            onValueChange={(v) => patch({ refundRule: v as DepositSettings["refundRule"] })}
+          >
+            <SelectTrigger className={triggerOverride}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="non-refundable">Non-refundable</SelectItem>
+              <SelectItem value="refundable-24h">Refundable up to 24 hours before</SelectItem>
+              <SelectItem value="refundable-48h">Refundable up to 48 hours before</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+      </section>
+    </FullScreenEditDialog>
+  )
+}
+
 function TippingEditDialog({
   location,
   open,

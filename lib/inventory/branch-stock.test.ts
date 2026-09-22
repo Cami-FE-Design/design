@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  attentionNotice,
   type BranchStock,
   businessQuantity,
+  canReorder,
+  collapseStock,
   formatQuantity,
   needsAttention,
   type StockedProduct,
@@ -121,5 +124,135 @@ describe("formatQuantity", () => {
   it("uses the wording the built product uses", () => {
     expect(formatQuantity(counted, 34)).toBe("34 in stock")
     expect(formatQuantity(counted, -2)).toBe("-2 in stock")
+  })
+})
+
+describe("attentionNotice", () => {
+  const row = (locationId: string, quantity: number, lowStockLevel?: number): BranchStock => ({
+    productId: "p1",
+    locationId,
+    quantity,
+    lowStockLevel,
+  })
+
+  it("says nothing when every branch is fine", () => {
+    expect(attentionNotice([row("a", 40, 5)])).toBeNull()
+  })
+
+  it("does not send a manager to a stock take over a branch that is merely low", () => {
+    const notice = attentionNotice([row("a", 3, 5)])
+    expect(notice).toContain("1 location needs attention.")
+    expect(notice).toContain("reorder point")
+    expect(notice).not.toContain("below zero")
+  })
+
+  it("names the stock take when a branch is below zero", () => {
+    const notice = attentionNotice([row("a", -2)])
+    expect(notice).toContain("below zero")
+    expect(notice).toContain("stock take")
+  })
+
+  it("does not tell a manager to order before a shelf runs out that already has", () => {
+    // Six empty branches and one low, which is the screen that caught this:
+    // the copy claimed every one of them sat at a reorder point — six have
+    // none — and offered to order "before they run out".
+    const rows = [
+      ...["a", "b", "c", "d", "e", "f"].map((id) => row(id, 0)),
+      row("g", 7, 8),
+      row("h", 20, 5),
+      row("i", 20, 5),
+    ]
+    const notice = attentionNotice(rows)
+    expect(notice).toContain("7 locations need attention")
+    expect(notice).toContain("6 out of stock")
+    expect(notice).toContain("1 at or below its reorder point")
+    expect(notice).not.toContain("before they run out")
+  })
+
+  it("never puts an out-of-stock branch at a reorder point it does not have", () => {
+    // `stockLevel` cannot return "low" without a threshold, so "at or below
+    // their reorder point" is only ever allowed to cover the low ones.
+    const notice = attentionNotice([row("a", 0), row("b", 0)])
+    expect(notice).toContain("They have run out")
+    expect(notice).not.toContain("reorder point")
+  })
+
+  it("counts each state separately when all three are on screen", () => {
+    const notice = attentionNotice([row("a", -2), row("b", 0), row("c", 3, 5)])
+    expect(notice).toBe(
+      "3 locations need attention: 1 below zero, which a stock take fixes rather than a reorder, 1 out of stock, and 1 at or below its reorder point.",
+    )
+  })
+
+  it("reads as one sentence for a single empty branch", () => {
+    expect(attentionNotice([row("a", 0)])).toBe(
+      "1 location needs attention. It has run out, so nothing can be sold there until it is restocked.",
+    )
+  })
+})
+
+describe("canReorder", () => {
+  it("offers ordering for an empty or low branch", () => {
+    expect(canReorder([{ productId: "p1", locationId: "a", quantity: 0 }])).toBe(true)
+    expect(canReorder([{ productId: "p1", locationId: "a", quantity: 2, lowStockLevel: 5 }])).toBe(
+      true,
+    )
+  })
+
+  it("does not offer ordering as the fix for a count that is wrong", () => {
+    expect(canReorder([{ productId: "p1", locationId: "a", quantity: -2 }])).toBe(false)
+  })
+
+  it("offers nothing when no branch needs anything", () => {
+    expect(canReorder([{ productId: "p1", locationId: "a", quantity: 40 }])).toBe(false)
+  })
+})
+
+describe("collapseStock", () => {
+  const row = (locationId: string, quantity: number, lowStockLevel?: number): BranchStock => ({
+    productId: "p1",
+    locationId,
+    quantity,
+    lowStockLevel,
+  })
+
+  it("hides nothing at three branches, because three rows beat three behind a click", () => {
+    const rows = [row("a", 0), row("b", 0), row("c", 40)]
+    expect(collapseStock(rows).shown).toHaveLength(3)
+    expect(collapseStock(rows).hidden).toBe(0)
+  })
+
+  it("folds the healthy branches away", () => {
+    const rows = [row("a", 0), ...["b", "c", "d", "e"].map((id) => row(id, 40))]
+    const { shown, hidden } = collapseStock(rows)
+    expect(shown.map((r) => r.locationId)).toEqual(["a"])
+    expect(hidden).toBe(4)
+  })
+
+  it("caps the list when every branch needs attention", () => {
+    // Twenty branches, all of them out: folding the healthy ones hides nothing,
+    // so without a cap this is a twenty-row scroll.
+    const rows = Array.from({ length: 20 }, (_, i) => row(`loc-${i}`, 0))
+    const { shown, hidden } = collapseStock(rows)
+    expect(shown).toHaveLength(5)
+    expect(hidden).toBe(15)
+  })
+
+  it("keeps the worst branches when it caps, not the first ones listed", () => {
+    // The wrong count is last in location order and must still survive.
+    const rows = [
+      ...Array.from({ length: 8 }, (_, i) => row(`out-${i}`, 0)),
+      row("low", 3, 5),
+      row("negative", -2),
+    ]
+    const shown = collapseStock(rows).shown.map((r) => r.locationId)
+    expect(shown[0]).toBe("negative")
+    expect(shown).not.toContain("low")
+    expect(shown).toHaveLength(5)
+  })
+
+  it("shows every row when nothing needs attention at a small chain", () => {
+    const rows = [row("a", 40), row("b", 40), row("c", 40)]
+    expect(collapseStock(rows).hidden).toBe(0)
   })
 })

@@ -39,9 +39,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { businessQuantity } from "@/lib/inventory/branch-stock"
+import {
+  businessQuantity,
+  formatQuantity,
+  needsAttention,
+  stockForProduct,
+  stockLevel,
+} from "@/lib/inventory/branch-stock"
 import { useBranchStock } from "@/lib/inventory/store"
 import { useLocations } from "@/lib/locations/store"
+import { cn } from "@/lib/utils"
 
 // ─── Field ────────────────────────────────────────────────────────────────────
 
@@ -96,6 +103,21 @@ export function ProductDetailDialog({
   // hardcoded 0, so the dialog reported an empty shelf for every product.
   const stockOnHand = product.trackStock ? businessQuantity(stock, product.id, inScopeIds) : 0
 
+  // Money the shelf is worth, derived from the same scoped quantity for the
+  // same reason — price × what is actually on hand. An uncounted product has
+  // no quantity to value, so it has no total either.
+  const money = (amount: number) => `AED ${amount.toLocaleString()}`
+  const totalRetailValue = product.trackStock ? money(product.retailPrice * stockOnHand) : undefined
+  const totalSupplyValue = product.trackStock ? money(product.supplyPrice * stockOnHand) : undefined
+
+  // The worst state among the branches in scope, which is what the header badge
+  // colours by. Not the roll-up: 18 at one branch and -2 at another sum to a
+  // healthy 16, and the -2 is the thing the badge exists to surface.
+  const worst = product.trackStock
+    ? needsAttention(stockForProduct(stock, product.id, inScopeIds))[0]
+    : undefined
+  const level = worst ? stockLevel(worst) : "ok"
+
   function handleEdit() {
     onOpenChange(false)
     router.push(`/products/${product!.id}/edit`)
@@ -129,11 +151,22 @@ export function ProductDetailDialog({
                   </DialogTitle>
                   <DialogDescription asChild>
                     <div>
+                      {/* Coloured by the state, not always red. Alarm on every
+                          product made "running low" and "sold more than we
+                          received" look identical, and an uncounted product
+                          read as an outage rather than Unlimited. */}
                       <Badge
                         variant="secondary"
-                        className="rounded-full bg-tomato-3 text-tomato-11 hover:bg-tomato-3"
+                        className={cn(
+                          "rounded-full",
+                          level === "negative" || level === "out"
+                            ? "bg-tomato-3 text-tomato-11 hover:bg-tomato-3"
+                            : level === "low"
+                              ? "bg-cami-yellow-3 text-cami-yellow-11 hover:bg-cami-yellow-3"
+                              : undefined,
+                        )}
                       >
-                        {stockOnHand} in stock
+                        {formatQuantity(product, stockOnHand)}
                       </Badge>
                     </div>
                   </DialogDescription>
@@ -272,14 +305,18 @@ export function ProductDetailDialog({
                       label="Retail price"
                       value={`AED ${product.retailPrice.toLocaleString()}`}
                     />
-                    <Field label="Total retail value" value="AED 0" />
+                    {/* Cost figures come from booked-in deliveries, which this
+                        repo does not model yet — so they read "–" rather than
+                        "AED 0", which would claim the stock is worth nothing.
+                        The built product passes undefined on the same path. */}
+                    <Field label="Total retail value" value={totalRetailValue} />
                     <Field
                       label="Supply price"
                       value={`AED ${product.supplyPrice.toLocaleString()}`}
                     />
-                    <Field label="Total supply value" value="AED 0" />
-                    <Field label="Average cost" value="AED 0" />
-                    <Field label="Total cost" value="AED 0" />
+                    <Field label="Total supply value" value={totalSupplyValue} />
+                    <Field label="Average cost" />
+                    <Field label="Total cost" />
                   </FieldGrid>
                 </SectionCard>
 

@@ -99,7 +99,24 @@ const formSchema = z.object({
   calendarColor: z.string(),
   jobTitle: z.string().trim().optional(),
   allowBookings: z.boolean(),
+  /**
+   * What they perform. Business-level when `sameServicesEverywhere`, and the
+   * starting point for each branch's own list when it is turned off.
+   */
   services: z.array(z.string()),
+  /**
+   * Whether one list covers the whole estate (DW2.1).
+   *
+   * On by default, because the ordinary case is a groomer who does the same
+   * work wherever they stand, and making an owner tick nine identical lists to
+   * express that is precisely the migration cost R02 rules out. Turned off, the
+   * list is per branch — which is the half of DW2.1 that was missing: an
+   * assignment at one branch "including which services they are enabled to
+   * perform there" must grant nothing at another.
+   */
+  sameServicesEverywhere: z.boolean(),
+  /** Per branch, and read only while `sameServicesEverywhere` is false. */
+  servicesByLocation: z.record(z.string(), z.array(z.string())),
   /** What they may do (R04). Defined once per role, in lib/team/roles.ts. */
   roleId: z.string(),
   /**
@@ -126,6 +143,8 @@ const defaultValues: AddTeamMemberValues = {
   jobTitle: "",
   allowBookings: true,
   services: [],
+  sameServicesEverywhere: true,
+  servicesByLocation: {},
   // Not the owner: there is exactly one, and inviting a second by default is
   // the wrong shape. Staff is the narrowest useful starting point.
   roleId: "staff",
@@ -198,7 +217,16 @@ export function AddTeamMemberDialog({
   // The nav carries both counts, the way the built form does — how many
   // services and how many locations, so a section says what is in it before
   // you open it.
-  const serviceCount = (form.watch("services") ?? []).length
+  // The badge counts what the section is actually editing. With one list it is
+  // that list; with a list per branch it is the widest of them, because "12
+  // services" against a person who does 12 at one branch and 3 at another is
+  // true of the person and of neither branch.
+  const sameEverywhere = form.watch("sameServicesEverywhere") ?? true
+  const byLocation = form.watch("servicesByLocation") ?? {}
+  const sharedServices = form.watch("services") ?? []
+  const serviceCount = sameEverywhere
+    ? sharedServices.length
+    : Math.max(0, ...Object.values(byLocation).map((ids) => ids.length), sharedServices.length)
   const sectionCounts = {
     services: serviceCount > 0 ? String(serviceCount) : undefined,
     locations: grantedCount > 0 ? String(grantedCount) : undefined,
@@ -662,8 +690,39 @@ function CalendarColorField({ form }: { form: FormReturn }) {
   )
 }
 
+/**
+ * What this person performs, and where (DW2.1, R05).
+ *
+ * The list was flat: one set of services for the person, whatever branch they
+ * stood in. DW2.1 asks for the other half — "a staff member's work assignment
+ * at one branch, **including which services they are enabled to perform
+ * there**, grants nothing at another" — and a colourist who does colour at
+ * Jumeirah and only washes at JVC had no way to be described.
+ *
+ * One list stays the default, because it is the ordinary case and because
+ * making an owner tick nine identical lists to say "she does the same
+ * everywhere" is exactly the setup cost R02 rules out. Turning it off reveals a
+ * branch to edit against, and the branch's list starts as a copy of the shared
+ * one rather than empty — the difference an owner is expressing is a small one,
+ * and starting from nothing makes them re-enter what they already said.
+ *
+ * Only offered once the member holds more than one branch. Before that there is
+ * nothing to tell apart, and a "same at every location" switch over a single
+ * location is a control for a decision nobody has.
+ */
 function ServicesSection({ form }: { form: FormReturn }) {
-  const selected = form.watch("services") ?? []
+  const { byId, locationName } = useLocations()
+  const granted = form.watch("assignedLocationIds") ?? []
+  const same = form.watch("sameServicesEverywhere") ?? true
+  const perLocation = form.watch("servicesByLocation") ?? {}
+  const multi = granted.length > 1
+
+  const [editing, setEditing] = useState<string | null>(null)
+  const branch = editing && granted.includes(editing) ? editing : (granted[0] ?? null)
+
+  const shared = form.watch("services") ?? []
+  const perBranch = branch ? (perLocation[branch] ?? shared) : shared
+  const selected = same || !multi ? shared : perBranch
 
   // The real catalog, not a five-row fixture. A team member's services is a
   // list of dozens — that is what makes Select all worth having and what a
@@ -673,15 +732,97 @@ function ServicesSection({ form }: { form: FormReturn }) {
   const allSelected = services.length > 0 && services.every((s) => selected.includes(s.id))
   const someSelected = selected.length > 0 && !allSelected
 
+  function write(ids: string[]) {
+    if (same || !multi || !branch) {
+      form.setValue("services", ids, { shouldDirty: true })
+      return
+    }
+    form.setValue("servicesByLocation", { ...perLocation, [branch]: ids }, { shouldDirty: true })
+  }
+
   function toggle(id: string, value: boolean) {
     const next = new Set(selected)
     if (value) next.add(id)
     else next.delete(id)
-    form.setValue("services", Array.from(next), { shouldDirty: true })
+    write(Array.from(next))
   }
 
   return (
-    <SectionShell title="Services" description="Choose the services this team member provides.">
+    <SectionShell
+      title="Services"
+      description={
+        same || !multi
+          ? "Choose the services this team member provides."
+          : `Choose what they provide at ${branch ? locationName(branch) : "this location"}.`
+      }
+    >
+      {multi ? (
+        <div className="-mx-5 -mt-1 flex flex-col gap-3 border-border/60 border-b px-5 pb-4">
+          <label
+            htmlFor="svc-same-everywhere"
+            className="flex cursor-pointer items-start gap-3 pt-1"
+          >
+            <Checkbox
+              id="svc-same-everywhere"
+              className="mt-0.5"
+              checked={same}
+              onCheckedChange={(v) => {
+                const next = v === true
+                form.setValue("sameServicesEverywhere", next, { shouldDirty: true })
+                // Turning it off seeds each branch from the shared list, so the
+                // owner edits a difference rather than re-entering the whole
+                // set. Turning it back on drops the per-branch lists, which is
+                // what "same everywhere" means — kept would be a set nothing on
+                // screen is reading.
+                form.setValue(
+                  "servicesByLocation",
+                  next
+                    ? {}
+                    : Object.fromEntries(granted.map((id) => [id, perLocation[id] ?? shared])),
+                  { shouldDirty: true },
+                )
+              }}
+            />
+            <span className="flex min-w-0 flex-col">
+              <span className="font-medium text-foreground text-sm">
+                Same services at every location
+              </span>
+              <span className="text-muted-foreground text-sm">
+                Turn this off if they do different work at different branches.
+              </span>
+            </span>
+          </label>
+
+          {/* The branches they hold, not the estate: this is what they perform
+              where they actually work, and a branch they are not assigned to
+              has nothing to configure (R04). */}
+          {!same ? (
+            <div className="flex flex-wrap gap-1.5">
+              {granted.map((id) => {
+                const count = (perLocation[id] ?? shared).length
+                const active = id === branch
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setEditing(id)}
+                    className={cn(
+                      "rounded-full border px-3 py-1.5 font-medium text-sm transition-colors",
+                      active
+                        ? "border-transparent bg-cami-violet-3 text-cami-violet-11"
+                        : "border-border text-muted-foreground hover:bg-muted/50",
+                    )}
+                  >
+                    {byId(id)?.location.district ?? locationName(id)}
+                    <span className="ml-1.5 text-xs tabular-nums opacity-70">{count}</span>
+                  </button>
+                )
+              })}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* The rules run edge to edge. Inside the card's padding they stopped
           short of both sides and read as a boxed sub-list rather than as the
           section's own rows — `-mx-5 px-5` is the same trick the shell uses
@@ -694,11 +835,7 @@ function ServicesSection({ form }: { form: FormReturn }) {
           <Checkbox
             id="svc-select-all"
             checked={allSelected ? true : someSelected ? "indeterminate" : false}
-            onCheckedChange={(v) =>
-              form.setValue("services", v === true ? services.map((x) => x.id) : [], {
-                shouldDirty: true,
-              })
-            }
+            onCheckedChange={(v) => write(v === true ? services.map((x) => x.id) : [])}
           />
           <span className="flex-1 font-medium text-foreground text-sm">Select all</span>
         </label>
