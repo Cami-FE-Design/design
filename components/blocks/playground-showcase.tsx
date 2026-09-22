@@ -237,6 +237,8 @@ import { groupIssues } from "@/lib/imports/issues"
 import { applySummaryFor, getScenario, type ImportScenarioId } from "@/lib/imports/mock"
 import { placeholderSkuRows, reviewCounts } from "@/lib/imports/outcome"
 import type { ProductImportPreviewRow, RowOverride } from "@/lib/imports/types"
+import type { BranchStock } from "@/lib/inventory/branch-stock"
+import { BRANCH_STOCK } from "@/lib/inventory/mock"
 import { INVOICE_FIXTURES } from "@/lib/invoice/mock"
 import { bookingsInScope } from "@/lib/locations/calendar-scope"
 import { formatDayHours, isOpenNow, WEEK_DAYS } from "@/lib/locations/hours"
@@ -1131,6 +1133,31 @@ function ChainSetupDemo() {
         ))}
       </ul>
     </div>
+  )
+}
+
+/**
+ * The editable half of SCR-11: rows read as one line until the operator says
+ * they are editing, because seven branches needing attention is seven cards and
+ * fourteen labelled inputs nobody opened the card to fill in.
+ */
+function BranchStockThresholdsDemo() {
+  const [stock, setStock] = useState<BranchStock[]>(() => [...BRANCH_STOCK])
+
+  return (
+    <ProductBranchStock
+      product={STOCK_DEMO_PRODUCTS.lowAndOut}
+      stock={stock}
+      onThresholds={(locationId, patch) =>
+        setStock((rows) =>
+          rows.map((row) =>
+            row.productId === STOCK_DEMO_PRODUCTS.lowAndOut.id && row.locationId === locationId
+              ? { ...row, ...patch }
+              : row,
+          ),
+        )
+      }
+    />
   )
 }
 
@@ -3024,7 +3051,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — per-branch stock"
-          description="SCR-11 (R16, R18, DW4.1–DW4.2). Stock quantity and reorder configuration resolve per location, and the business quantity is derived from them and never stored — which is what makes 'I never reconcile it by hand' true by construction. Rows first, total after, because a sum is correct and insufficient: 18 at one branch and -2 at another add up to a healthy-looking 16, and the -2 is the only row worth acting on. Empty and negative are kept apart on purpose — zero is a reorder, below zero is a stock take, and one red state for both sends a manager to the wrong action. Thresholds are per branch because a busy branch and a quiet one do not reorder at the same number. Nothing here moves stock between branches: cross-branch transfer and a central warehouse are future backlog, confirmed at the 2026-09-02 workshop."
+          description="SCR-11 (R16, R18, DW4.1–DW4.2). Stock quantity and reorder configuration resolve per location, and the business quantity is derived from them and never stored — which is what makes 'I never reconcile it by hand' true by construction. Rows first, total after, because a sum is correct and insufficient: 18 at one branch and -2 at another add up to a healthy-looking 16, and the -2 is the only row worth acting on. Empty and negative are kept apart on purpose — zero is a reorder, below zero is a stock take, and one red state for both sends a manager to the wrong action. Thresholds are per branch because a busy branch and a quiet one do not reorder at the same number. Two bounds keep the card short at any size: healthy branches fold away, and the ones needing attention are capped at five, worst first — at twenty branches all twenty can need attention, and an eighth identical ‘Out of stock, 0’ row tells the manager nothing the notice above has not already counted. Rows read as one line with their thresholds summarised beside them and the inputs appear only in edit mode — seven branches needing attention was seven cards of mostly empty fields, and finding the branch that ran out is what this card is opened for, not setting reorder points. Nothing here moves stock between branches: cross-branch transfer and a central warehouse are future backlog, confirmed at the 2026-09-02 workshop."
         >
           <Row label="Two branches disagree" align="start">
             <div className="w-full max-w-[560px]">
@@ -3046,6 +3073,15 @@ export function PlaygroundShowcase() {
                   manager's shelf the business. */}
               <LocationsProvider persist={false} initialGrants={["shampooch-jumeirah"]}>
                 <ProductBranchStock product={STOCK_DEMO_PRODUCTS.negative} />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Reading · thresholds summarised" align="start">
+            <div className="w-full max-w-[560px]">
+              {/* Same card with an editor attached: "Edit reorder points"
+                  swaps every row's summary for its two fields, and back. */}
+              <LocationsProvider persist={false}>
+                <BranchStockThresholdsDemo />
               </LocationsProvider>
             </div>
           </Row>

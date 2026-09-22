@@ -133,3 +133,120 @@ export function formatQuantity(product: StockedProduct, quantity: number): strin
   if (!product.trackStock) return "Unlimited"
   return `${quantity} in stock`
 }
+
+/**
+ * The sentence above the rows, for the states actually on screen.
+ *
+ * Two passes of this got it wrong in the same way, so the rule is written down
+ * here: **each of the three states has its own action, and the copy may only
+ * name an action for a state that is present.**
+ *
+ * - Below zero is a wrong count. A stock take fixes it; ordering does not.
+ * - Out is an empty shelf. Restocking fixes it, and telling the manager to
+ *   order "before it runs out" is a week late.
+ * - Low is a shelf heading that way, and the only one of the three that has a
+ *   reorder point by definition — `stockLevel` cannot return "low" without
+ *   one. An out branch usually has none ("Not set"), so a sentence that puts
+ *   every attention row "at or below their reorder point" describes a
+ *   threshold that does not exist.
+ *
+ * Hence: one state on screen gets that state's sentence; two or three get a
+ * counted breakdown, which cannot silently generalise one state's action to
+ * another. Null when nothing needs attention, so the caller renders no notice
+ * rather than an empty one.
+ */
+export function attentionNotice(rows: ReadonlyArray<BranchStock>): string | null {
+  const attention = needsAttention(rows)
+  if (attention.length === 0) return null
+
+  const tally: Record<Exclude<BranchStockLevel, "ok">, number> = {
+    negative: attention.filter((row) => stockLevel(row) === "negative").length,
+    out: attention.filter((row) => stockLevel(row) === "out").length,
+    low: attention.filter((row) => stockLevel(row) === "low").length,
+  }
+  const heading =
+    attention.length === 1
+      ? "1 location needs attention"
+      : `${attention.length} locations need attention`
+
+  const present = (["negative", "out", "low"] as const).filter((level) => tally[level] > 0)
+
+  // One state: say it in full, with its action.
+  if (present.length === 1) {
+    const only = present[0]
+    const many = attention.length > 1
+    if (only === "negative") {
+      return `${heading}. A location below zero has sold more than it received, which a stock take fixes rather than a reorder.`
+    }
+    if (only === "out") {
+      return many
+        ? `${heading}. They have run out, so nothing can be sold there until they are restocked.`
+        : `${heading}. It has run out, so nothing can be sold there until it is restocked.`
+    }
+    return many
+      ? `${heading}. They are at or below their reorder point, so it is worth ordering before they run out.`
+      : `${heading}. It is at or below its reorder point, so it is worth ordering before it runs out.`
+  }
+
+  // More than one: a counted breakdown, so no state borrows another's action.
+  const clauses = present.map((level) => {
+    const n = tally[level]
+    if (level === "negative") {
+      return `${n} below zero, which a stock take fixes rather than a reorder`
+    }
+    if (level === "out") return `${n} out of stock`
+    return n === 1 ? `${n} at or below its reorder point` : `${n} at or below their reorder point`
+  })
+  const list =
+    clauses.length === 2
+      ? `${clauses[0]} and ${clauses[1]}`
+      : `${clauses.slice(0, -1).join(", ")}, and ${clauses[clauses.length - 1]}`
+  return `${heading}: ${list}.`
+}
+
+/**
+ * Whether ordering is one of the fixes on screen.
+ *
+ * A branch below zero is not short of stock — its count is wrong — so offering
+ * a purchase order there contradicts the notice sitting above it.
+ */
+export function canReorder(rows: ReadonlyArray<BranchStock>): boolean {
+  return needsAttention(rows).some((row) => {
+    const level = stockLevel(row)
+    return level === "out" || level === "low"
+  })
+}
+
+/**
+ * How many rows the list shows before the operator asks for the rest.
+ *
+ * Folding the healthy branches was enough while most branches were healthy. It
+ * stops being enough at the shape that prompted this: nine branches, eight of
+ * them out of stock, so nothing folded and the card became a scroll of eight
+ * identical rows. Twenty branches would make it twenty.
+ *
+ * So there are two bounds, not one. Healthy rows fold because they are not the
+ * job, and the rows that *are* the job are capped too — past five, an eighth
+ * "Out of stock, 0" tells the manager nothing the notice above has not already
+ * counted, and the branch worth reading first is pushed under the fold by
+ * branches that say the same thing. Worst first, so what survives the cap is
+ * the wrong count before the empty shelf before the low one.
+ */
+const COLLAPSE_FROM = 4
+const MAX_COLLAPSED = 5
+
+export function collapseStock(rows: ReadonlyArray<BranchStock>): {
+  shown: BranchStock[]
+  /** How many of `rows` the collapsed view leaves out. Zero means it shows all. */
+  hidden: number
+} {
+  const attention = needsAttention(rows)
+  // Under four branches there is nothing worth hiding: folding three rows
+  // behind a click is a worse screen than three rows.
+  const worthFolding =
+    rows.length >= COLLAPSE_FROM &&
+    (attention.length < rows.length || attention.length > MAX_COLLAPSED)
+  if (!worthFolding) return { shown: [...rows], hidden: 0 }
+  const shown = attention.slice(0, MAX_COLLAPSED)
+  return { shown, hidden: rows.length - shown.length }
+}
