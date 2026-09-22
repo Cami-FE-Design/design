@@ -133,10 +133,13 @@ export function PerformanceDashboard({ report }: { report: ReportDef }) {
   /**
    * Scrolls the report's scroll container; `null` means back to the top.
    *
-   * AppShell renders two shells — a hidden mobile one and the desktop one — so
-   * both the target and the scroll container exist twice in the DOM.
-   * getElementById returns the hidden copy first, whose container has no
-   * height, and the scroll silently did nothing. Pick the rendered one.
+   * Picks the element that is actually on screen. AppShell used to render two
+   * shells — a hidden mobile one and the desktop one — so both the target and
+   * the scroll container existed twice, `getElementById` returned the hidden
+   * copy first, whose container has no height, and the scroll silently did
+   * nothing. The shell renders once now; the visibility check stays because a
+   * scroll that silently does nothing is expensive to diagnose and this costs
+   * one predicate.
    */
   const scrollTo = (elementId: string | null) => {
     requestAnimationFrame(() => scrollToNow(elementId))
