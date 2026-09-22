@@ -32,6 +32,7 @@ import {
   Trash2Icon,
   XIcon,
 } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { Fragment, useEffect, useRef, useState } from "react"
 import { CitySelect } from "@/components/blocks/city-select"
@@ -184,12 +185,30 @@ export function LocationForm() {
   // costs an owner nothing — and stops a manager holding one branch from
   // seeing, assigning to, or configuring the other eight.
   const { granted: locations } = useLocations()
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  // `?loc=<id>` opens that branch, `?lt=<tab>` picks its tab. A review link
+  // about a branch's receipt prefix or its deposit has to land on Invoicing;
+  // dropping the reader on a list of nine and trusting them to guess which
+  // branch and which tab is how a linked fact goes unlooked-at.
+  const params = useSearchParams()
+  const locParam = params?.get("loc") ?? null
+  const tabParam = params?.get("lt") ?? null
+  const [selectedId, setSelectedId] = useState<string | null>(locParam)
+  const [openedFor, setOpenedFor] = useState(locParam)
+  if (locParam !== openedFor) {
+    setOpenedFor(locParam)
+    setSelectedId(locParam)
+  }
   const [addOpen, setAddOpen] = useState(false)
   const selected = locations.find((l) => l.id === selectedId) ?? null
 
   if (selected) {
-    return <LocationDetailView location={selected} onBack={() => setSelectedId(null)} />
+    return (
+      <LocationDetailView
+        location={selected}
+        initialTab={selected.id === locParam ? tabParam : null}
+        onBack={() => setSelectedId(null)}
+      />
+    )
   }
 
   return (
@@ -519,7 +538,17 @@ function LocationListCard({ location, onOpen }: { location: Location; onOpen: ()
 // Per-location detail view (inner-page, no popup)
 // ============================================================================
 
-function LocationDetailView({ location, onBack }: { location: Location; onBack: () => void }) {
+const LOCATION_TABS = ["general", "hours", "address", "invoicing", "manage"] as const
+
+function LocationDetailView({
+  location,
+  initialTab,
+  onBack,
+}: {
+  location: Location
+  initialTab?: string | null
+  onBack: () => void
+}) {
   return (
     <SettingsPanel
       className="animate-in duration-300 ease-[cubic-bezier(0.33,1,0.68,1)] slide-in-from-right-12"
@@ -568,7 +597,14 @@ function LocationDetailView({ location, onBack }: { location: Location; onBack: 
         </>
       }
     >
-      <Tabs defaultValue="general" className="flex flex-col gap-6">
+      <Tabs
+        defaultValue={
+          LOCATION_TABS.includes(initialTab as (typeof LOCATION_TABS)[number])
+            ? (initialTab as string)
+            : "general"
+        }
+        className="flex flex-col gap-6"
+      >
         <TabsList variant="ghost">
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="hours">Hours</TabsTrigger>

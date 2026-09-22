@@ -1152,9 +1152,9 @@ const SECTIONS: Section[] = [
         note: "R21, R22, KC2.2, KC2.4 — connected, stuck on the OTP, and no number at all, which says so in words because nothing reroutes to a sister branch. Contrast SMS, where an unapproved sender ID falls back to CAMI. Also at /shell-demo?settings=whatsapp-numbers.",
       },
       {
-        path: "/shell-demo?settings=locations",
+        path: "/shell-demo?settings=locations&loc=shampooch-jvc&lt=invoicing",
         label: "Branch tax identity · SCR-12",
-        note: "Open a branch → Invoicing. Every inheritable row says whose value it is (R23). JVC overrides only its receipt prefix; Jumeirah is a separate registered company with its own TRN. Receipt numbers print with the prefix, which is what stops two branches colliding at 21857 (R25), and the forward-only warning is load-bearing (INV-12). Tipping is whole-block — Al Quoz is the seeded custom case.",
+        note: "Opens JVC's Invoicing tab directly — `?loc=<id>&lt=<tab>` on the Locations panel. Every inheritable row says whose value it is (R23). JVC overrides only its receipt prefix; Jumeirah is a separate registered company with its own TRN. Receipt numbers print with the prefix, which is what stops two branches colliding at 21857 (R25), and the forward-only warning is load-bearing (INV-12). Tipping is whole-block — Al Quoz is the seeded custom case.",
       },
       {
         path: "/shampooch",
@@ -1167,9 +1167,9 @@ const SECTIONS: Section[] = [
         note: "The picker in isolation, 'Open now' pinned to a Tuesday 11am. Entry order was left to design (PRD §16): location first, because price and availability are per branch and a service-first list would show a price that is wrong until a branch is chosen.",
       },
       {
-        path: "/catalogs/service-menu",
+        path: "/catalogs/service-menu?service=bath-small&ss=locations",
         label: "Per-branch service pricing · SCR-09",
-        note: "Open any service → Locations. One definition configured per branch (R06): a switch to offer it here at all (DW3.3), plus price and duration showing the inherited value and whose it is. Typing creates the override, Reset returns that field to inheriting (DW3.2). Saves with the service.",
+        note: "`?service=<id>&ss=locations` opens a service's editor on its Locations section — this one is the small bath, which Jumeirah prices at 145 against the business's 120. One definition configured per branch (R06): a switch to offer it here at all (DW3.3), plus price and duration showing the inherited value and whose it is. Typing creates the override, Reset returns that field to inheriting (DW3.2). Saves with the service.",
       },
       {
         path: "/playground#multi-location-per-branch-service-pricing",
@@ -1177,14 +1177,14 @@ const SECTIONS: Section[] = [
         note: "The same section with the business default under your thumb — raise it and the inheriting branches follow while the overridden price does not (DW3.1). Seeded as the story's example: Jumeirah at AED 75, Al Quoz not offering it. lib/service-catalog/offerings.test.ts.",
       },
       {
-        path: "/settings/team",
+        path: "/settings/team?access=m_aziz",
         label: "Branch access grants · SCR-03",
-        note: "Role × location, the two axes access resolves on (R04). The roster shows both columns, so a wrong scope is visible without opening anyone. Action → Edit Roles & Permissions opens the grants dialog: role read-only, location grant editable. Maz is Owner (stored as 'all'), Aziz holds only Jumeirah, Ahmed is invited with none — no access, said out loud (R24).",
+        note: "Role × location, the two axes access resolves on (R04). `?access=<id>` opens the grants dialog on that member — this one lands on Aziz. The roster shows both columns too, so a wrong scope is visible without opening anyone. Role is read-only, role read-only, location grant editable. Maz is Owner (stored as 'all'), Aziz holds only Jumeirah, Ahmed is invited with none — no access, said out loud (R24).",
       },
       {
-        path: "/settings/team",
+        path: "/settings/team?services=m_beth",
         label: "Services per branch · DW2.1 (route)",
-        note: "Team → a member → Services. One list stays the default, because ticking nine identical lists is the setup cost R02 rules out; turn off 'Same services at every location' and the branches they hold appear with their own counts, seeded from the shared list. Absent for somebody holding one branch.",
+        note: "`?services=<id>` opens that member's editor on Services — Beth, who works two sites. One list stays the default, because ticking nine identical lists is the setup cost R02 rules out; turn off 'Same services at every location' and the branches they hold appear with their own counts, seeded from the shared list. Absent for somebody holding one branch.",
       },
       {
         path: "/shell-demo?settings=payments&pp=policy",

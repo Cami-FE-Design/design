@@ -57,12 +57,18 @@ type ServiceMenuPageProps = {
   initialServices?: import("@/lib/service-catalog/types").Service[]
   /** Open the add-service takeover on mount (used for deep links like ?new=1). */
   initialNewService?: boolean
+  /** Open a service's editor on mount (`?service=<id>`). */
+  initialEditServiceId?: string | null
+  /** Which section that editor opens on (`?ss=locations`). */
+  initialEditSection?: "basic" | "team" | "locations" | "online-booking" | "portfolio" | "settings"
 }
 
 export function ServiceMenuPage({
   initialCategories,
   initialServices,
   initialNewService = false,
+  initialEditServiceId = null,
+  initialEditSection = "basic",
 }: ServiceMenuPageProps) {
   // Permissions are intentionally omitted in this prototype repo — all
   // management actions are always available.
@@ -116,7 +122,9 @@ export function ServiceMenuPage({
   const [menuOrderOpen, setMenuOrderOpen] = useState(false)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [defaultNewCategoryId, setDefaultNewCategoryId] = useState<string | undefined>()
-  const [editServiceTargetId, setEditServiceTargetId] = useState<string | null>(null)
+  const [editServiceTargetId, setEditServiceTargetId] = useState<string | null>(
+    initialEditServiceId,
+  )
   const { data: editServiceDetail, isLoading: isLoadingEditService } =
     useService(editServiceTargetId)
   const editServiceTarget = editServiceDetail ?? null
@@ -371,6 +379,7 @@ export function ServiceMenuPage({
         defaultCategoryId={editServiceTarget?.categoryId ?? defaultNewCategoryId}
         service={editServiceTarget ?? undefined}
         isLoading={!!editServiceTargetId && isLoadingEditService}
+        initialSection={editServiceTargetId === initialEditServiceId ? initialEditSection : "basic"}
         onSave={editServiceTargetId ? handleEditService : handleAddService}
         onClose={() => {
           setNewServiceOpen(false)

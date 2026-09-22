@@ -271,17 +271,29 @@ function TeamSettingsContent() {
   const [query, setQuery] = useState("")
   // Opened from elsewhere — the scheduled-shifts row menu links here with the
   // member on the URL, because "View team member" that lands you on a list of
-  // everyone is a link that did not go anywhere.
-  const memberParam = useSearchParams()?.get("member") ?? null
+  // everyone is a link that did not go anywhere. `?access=` and `?services=`
+  // are the same idea one level in: a review link for "role × location" or
+  // "what she performs at Jumeirah" has to open that dialog, not a roster of
+  // five people with no sign of which row carries the thing being reviewed.
+  const params = useSearchParams()
+  const memberParam = params?.get("member") ?? null
+  const accessParam = params?.get("access") ?? null
+  const servicesParam = params?.get("services") ?? null
+  const deepLink = `${memberParam ?? ""}|${accessParam ?? ""}|${servicesParam ?? ""}`
   const [viewMemberId, setViewMemberId] = useState<string | null>(memberParam)
-  const [openedFor, setOpenedFor] = useState(memberParam)
-  if (memberParam !== openedFor) {
-    setOpenedFor(memberParam)
+  const [accessMemberId, setAccessMemberId] = useState<string | null>(accessParam)
+  const [editMemberId, setEditMemberId] = useState<string | null>(servicesParam)
+  const [editSection, setEditSection] = useState<"profile" | "services">(
+    servicesParam ? "services" : "profile",
+  )
+  const [openedFor, setOpenedFor] = useState(deepLink)
+  if (deepLink !== openedFor) {
+    setOpenedFor(deepLink)
     setViewMemberId(memberParam)
+    setAccessMemberId(accessParam)
+    setEditMemberId(servicesParam)
+    setEditSection(servicesParam ? "services" : "profile")
   }
-  const [accessMemberId, setAccessMemberId] = useState<string | null>(null)
-  const [editMemberId, setEditMemberId] = useState<string | null>(null)
-  const [editSection, setEditSection] = useState<"profile" | "services">("profile")
   const [timeOffMemberId, setTimeOffMemberId] = useState<string | null>(null)
   const timeOffMember = members.find((m) => m.id === timeOffMemberId) ?? null
   const editMember = members.find((m) => m.id === editMemberId) ?? null
