@@ -1738,20 +1738,27 @@ total you have to expand to reach is not a total.
 ## Cross-check against the 49 user stories
 
 Michelle asked for the design to be checked against `User Stories:
-Multi-Location` (Slite `7pg149CiWujY8B`, last edited 2026-09-04). Forty-three of the
-forty-nine are covered. The six that are not, and why:
+Multi-Location` (Slite `7pg149CiWujY8B`, last edited 2026-09-04). Forty-four of
+the forty-nine are covered. The five that are not, and why:
 
 | Story | Pri | Why not |
 | --- | --- | --- |
-| **DW2.1** | P0 | **Built.** A person's branch assignment existed; *which services they perform at that branch* did not. |
-| **DW3.5** | P2 | **Built.** A branch sets its own deposit from its own settings, beside tipping and tax identity, on the same follow-or-override control. Following deletes the override rather than copying today's figures, so inherited stays live. |
-| **KC3.1** | P1 | **Built.** Templates stay the business's, which is what the plane split has them as; the *number* is the branch's. The preview's From line read the business name and a number typed into the markup — the opposite of the rule it was previewing — and now names the branch and its own number, switchable, because the fact is only visible when it changes. |
 | **GB2.2** | P1 | Built the opposite way, and Michelle has since settled it: reception **should** see what another branch charged. GB2.2 and PRD §16 both need updating to match. |
 | **SU2.3** | P0 | Covered for reports. Notifications, exports and realtime are backend paths with no screen — the export buttons are placeholders with nothing behind them. They must carry the same bound when wired. |
 | **GP1.2** | P0 | Receipt numbers under concurrency is a load test, and the PRD lists it as one. Nothing a prototype can show. |
-| **DW3.4** | P2 | **Built — `/catalogs/deals`, a real route, and the dev repo's whole promotions module with it.** The list, the five-step wizard, the catalogue pickers, the filters, the limits and the three-tab detail read are all replicated off `promotion-discount-ui`; the axis it does not have is the location. Its wizard creates **every** deal with `locationIds: []` and its mapper reads that empty array as every venue, which is why its Availability tab can only ever print "All locations" behind an Edit button that says editing is coming soon. R24 says an empty scope never resolves to all, so here the reach is a wizard step, a column on the list, a filter axis and a named panel on the detail. `lib/locations/promotion-scope.ts` holds the rule — a named chain-wide case or a list, never an empty list standing in for "everywhere" — and `fromAvailability()` converts without inheriting the ambiguity. Two things the module had wrong on its own terms were fixed rather than copied: the discount was free text (an owner typing "15 off" could not say whether that was AED or a percentage, and a regex behind it took nothing off for half the strings they would write), and the limits were collected, stored, printed and then ignored by the one screen that spends money. **Worth raising with Faisal.** |
 | **KH1.4** | P2 | An audit log scoped to a branch. Nothing merchant-facing to scope: the dev repo's audit module has no components, and its only screen is CamiHQ's own internal log at `/cami-hq/audit-log`, which is Cami reading Cami rather than a branch manager reading their branch. |
 | **HQ1.1** | P2 | Deliberate. HQ1.1 itself rules out a "lesser HQ-only path", so standing a chain up happens as the owner through impersonation, which the repo already has. Building it twice is how the two drift. |
+
+Four more were uncovered when this check was first written and have since been
+built. They stay listed because the story each one answers is not obvious from
+the screen that answers it:
+
+| Story | Pri | Built |
+| --- | --- | --- |
+| **DW2.1** | P0 | A person's branch assignment existed; *which services they perform at that branch* did not. |
+| **DW3.5** | P2 | A branch sets its own deposit from its own settings, beside tipping and tax identity, on the same follow-or-override control. Following deletes the override rather than copying today's figures, so inherited stays live. |
+| **KC3.1** | P1 | Templates stay the business's, which is what the plane split has them as; the *number* is the branch's. The preview's From line read the business name and a number typed into the markup — the opposite of the rule it was previewing — and now names the branch and its own number, switchable, because the fact is only visible when it changes. |
+| **DW3.4** | P2 | **`/catalogs/deals`, a real route, and the dev repo's whole promotions module with it.** The list, the five-step wizard, the catalogue pickers, the filters, the limits and the three-tab detail read are all replicated off `promotion-discount-ui`; the axis it does not have is the location. Its wizard creates **every** deal with `locationIds: []` and its mapper reads that empty array as every venue, which is why its Availability tab can only ever print "All locations" behind an Edit button that says editing is coming soon. R24 says an empty scope never resolves to all, so here the reach is a wizard step, a column on the list, a filter axis and a named panel on the detail. `lib/locations/promotion-scope.ts` holds the rule — a named chain-wide case or a list, never an empty list standing in for "everywhere" — and `fromAvailability()` converts without inheriting the ambiguity. Two things the module had wrong on its own terms were fixed rather than copied: the discount was free text (an owner typing "15 off" could not say whether that was AED or a percentage, and a regex behind it took nothing off for half the strings they would write), and the limits were collected, stored, printed and then ignored by the one screen that spends money. **Worth raising with Faisal.** |
 
 ## Reports: what multi-location owes, and what it does not
 
