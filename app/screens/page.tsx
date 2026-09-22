@@ -1114,7 +1114,7 @@ const SECTIONS: Section[] = [
       {
         path: "/playground#multi-location-chain-setup",
         label: "Chain setup · SCR-02 (playground)",
-        note: "N branches in one pass (R02, SU1.2). All or none — one bad row creates nothing. Duplicate names collide on the link. New branches land as Draft, not Live. Isolated from the app's own estate.",
+        note: "N branches in one pass (R02, SU1.2). All or none — one bad row creates nothing. Duplicate names collide on the link. A created branch is live — the built product creates a venue trading, and an owner who is not ready suspends it rather than there being a fourth state. Isolated from the app's own estate.",
       },
       {
         path: "/playground#multi-location-all-branches-calendar",
