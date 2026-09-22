@@ -69,6 +69,7 @@ import { CardJourney } from "@/components/blocks/customer-card/card-journey"
 import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
 import { TwoFaces } from "@/components/blocks/customer-card/two-faces"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
+import { DealsTable } from "@/components/blocks/deals/deals-table"
 import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
@@ -230,6 +231,7 @@ import { openAppointmentsFor } from "@/lib/clients/open-appointments"
 import { getCustomerCard } from "@/lib/customer-card/mock"
 import { CUSTOMER_CARD_THEMES, getCustomerCardTheme } from "@/lib/customer-card/theme"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
+import { MOCK_DEALS } from "@/lib/deals/mock"
 import { CamiPayProvider, ZERO_RATE } from "@/lib/hq-camipay/store"
 import { type HqTerminalStatus, HqTerminalsProvider } from "@/lib/hq-terminals/store"
 import { type ClientPetScenarioId, getClientPetScenario } from "@/lib/imports/client-pet-mock"
@@ -242,7 +244,7 @@ import { BRANCH_STOCK } from "@/lib/inventory/mock"
 import { INVOICE_FIXTURES } from "@/lib/invoice/mock"
 import { bookingsInScope } from "@/lib/locations/calendar-scope"
 import { formatDayHours, isOpenNow, WEEK_DAYS } from "@/lib/locations/hours"
-import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
+import { locationName as estateLocationName, NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import {
   describeScope,
   isRunnable,
@@ -254,7 +256,7 @@ import { BUSINESS_TIMEZONE, resolveTimezone, timezoneLabel } from "@/lib/locatio
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
 import type { TerminalFeeModel } from "@/lib/money/fees"
-import { defaultRange, MONEY_TXS, PAYOUTS, periodBounds } from "@/lib/money/mock"
+import { defaultRange, MONEY_TXS, PAYOUTS, periodBounds, TODAY_ISO } from "@/lib/money/mock"
 import type { MerchantRails, SettlementBlock } from "@/lib/money/types"
 import {
   type AmountValue,
@@ -2773,6 +2775,41 @@ export function PlaygroundShowcase() {
         label="Business app features"
         blurb="Ticketed work on the operator's surfaces, newest thinking first."
       >
+        <Section
+          title="Multi-location — a deal, and where it runs"
+          description="DW3.4. The dev repo's promotions module is replicated on /catalogs/deals; these are the row states it can be in, side by side. A chain-wide offer is a NAMED set that a branch opened next month joins; '3 locations' is today's three and is not. The last one was saved with nothing chosen — the dev repo's mapper turns allVenues into locationIds: [], so that same empty shape means ALL there, while R24 here says an empty scope never resolves to all. One shape, two opposite readings, in one product: that is how an offer meant for one branch runs at nine, and a chain-wide one silently runs nowhere. The status badge is derived where a calendar can settle it and stored where somebody switched it by hand, and a deal that reaches nobody can never read Active — 'Active' beside 'cannot run' is a row contradicting itself, and an owner believes the badge."
+        >
+          {MOCK_DEALS.slice(0, 4).map((deal) => (
+            <Row
+              key={deal.id}
+              label={
+                isRunnable(deal.scope)
+                  ? deal.scope.kind === "estate"
+                    ? "Chain-wide — a named set"
+                    : `A named few — ${deal.scope.locationIds.length}`
+                  : "Saved with nothing chosen"
+              }
+            >
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <div className="w-full max-w-3xl">
+                  <DealsTable
+                    deals={[deal]}
+                    todayIso={TODAY_ISO}
+                    locationName={estateLocationName}
+                    inScope={NINE_BRANCH_ESTATE}
+                    estateSize={NINE_BRANCH_ESTATE.length}
+                    isMultiLocation
+                    onSelect={() => {}}
+                    onEdit={() => {}}
+                    onSetStatus={() => {}}
+                    onDuplicate={() => {}}
+                  />
+                </div>
+              </LocationsProvider>
+            </Row>
+          ))}
+        </Section>
+
         <Section
           title="Multi-location — branch switcher"
           description="SCR-04. The control every other multi-location surface is read through: which branch am I acting on? Scope spans one branch, a named subset, or all granted branches (R03), and never resets the filters or date range a user already set (DW1.1). Each frame below is its own scope, so the states sit side by side."

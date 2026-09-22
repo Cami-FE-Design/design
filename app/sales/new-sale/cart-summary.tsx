@@ -28,6 +28,8 @@ import { cn } from "@/lib/utils"
 import {
   APPOINTMENTS,
   bundleDiscounts,
+  dealDiscounts,
+  dealDiscountTotalMinor,
   formatAedDecimal,
   formatDuration,
   grossTotalMinor,
@@ -135,6 +137,42 @@ export function CartContent({
   )
 }
 
+/**
+ * What a deal has taken off this line, in fils — or `null` for a line with no
+ * deal on it (DW3.4).
+ *
+ * The row was printing its gross while the cart's base had already been
+ * reduced. Nothing was wrong with the arithmetic; nothing on screen said the
+ * arithmetic had happened, which at a counter is the same defect — an operator
+ * checking a client's total against the lines in front of them found the two
+ * did not agree, and no row explained the gap.
+ */
+function dealPricing(line: CartLine): { netMinor: number; grossMinor: number } | null {
+  const off = line.dealDiscountMinor ?? 0
+  if (off <= 0) return null
+  const grossMinor = line.priceMinor * line.qty
+  return { netMinor: Math.max(0, grossMinor - off), grossMinor }
+}
+
+/**
+ * The marker on a discounted line, naming the offer.
+ *
+ * A struck-through figure says a number changed; it does not say why, and "why"
+ * is the question asked out loud at the counter. Same shape as the package
+ * chip a line over — one glance tells an operator which of the two moved this
+ * line's price, and they are settled very differently (a package is a tender, a
+ * deal is a discount).
+ */
+function DealChip({ line }: { line: CartLine }) {
+  if (!line.dealDiscountMinor || !line.dealName) return null
+  return (
+    <Badge variant="secondary" size="sm" className="mt-1 w-fit gap-1">
+      <TagIcon className="size-3" />
+      {line.dealName}
+    </Badge>
+  )
+}
+
 // Service line — deep-violet accent bar, bold name, and "duration · subject"
 // meta (no staff while building the cart); an edit + remove control set reveals
 // on hover (Figma 2686-24022).
@@ -186,6 +224,7 @@ function ServiceLineRow({
                 Included in package
               </Badge>
             ) : null}
+            <DealChip line={line} />
           </div>
           {/* The covered line keeps its gross price. Confirmed against the
               built cart: a package is booked as a captured payment, not as a
@@ -193,11 +232,17 @@ function ServiceLineRow({
               same money out twice — once off the line and again in the
               tenders — and the footer would stop adding up. */}
           <RowActions
-            value={money(line.priceMinor)}
+            value={money(dealPricing(line)?.netMinor ?? line.priceMinor)}
             strikeValue={
-              line.listPriceMinor && line.listPriceMinor > line.priceMinor
-                ? money(line.listPriceMinor)
-                : undefined
+              // A deal wins the strike over a bundle's list price. Both are
+              // "what this would have cost", and two struck figures on one row
+              // is a row nobody reads — the bundle's saving is stated in the
+              // footer regardless, and the deal is the one just chosen.
+              dealPricing(line)
+                ? money(line.priceMinor)
+                : line.listPriceMinor && line.listPriceMinor > line.priceMinor
+                  ? money(line.listPriceMinor)
+                  : undefined
             }
             name={line.name}
             onEdit={onEdit}
@@ -240,9 +285,11 @@ function ProductLineRow({
             ) : line.qty > 1 ? (
               <span className="text-muted-foreground text-sm">Qty {line.qty}</span>
             ) : null}
+            <DealChip line={line} />
           </div>
           <RowActions
-            value={money(line.priceMinor * line.qty)}
+            value={money(dealPricing(line)?.netMinor ?? line.priceMinor * line.qty)}
+            strikeValue={dealPricing(line) ? money(line.priceMinor * line.qty) : undefined}
             name={line.name}
             onEdit={onEdit}
             onRemove={onRemove}
@@ -428,8 +475,14 @@ export function CartFooter({
   onCancelSale,
 }: CartFooterProps) {
   const { totalMinor } = totals(lines)
+  // A deal is subtracted here as well as named below. It was subtracted only in
+  // `cart-flow.tsx` — the Cart step's To pay did not move when one was applied,
+  // so the control appeared to do nothing, and the money then vanished a step
+  // later on Tip where the base had quietly been reduced all along.
+  const deals = dealDiscounts(lines)
+  const dealsMinor = dealDiscountTotalMinor(lines)
   // Discount reduces the gross; To pay is the discounted total.
-  const discountedMinor = Math.max(0, totalMinor - discountMinor)
+  const discountedMinor = Math.max(0, totalMinor - discountMinor - dealsMinor)
   // A combo's saving is already inside each line's price, so the footer states
   // it rather than subtracting it again: gross first, one row per discounted
   // line, then To pay — the same breakdown the as-built cart shows.
@@ -443,7 +496,9 @@ export function CartFooter({
     <footer className="border-border border-t bg-card px-6 py-4">
       <div className="mb-3 flex flex-col gap-1">
         <BreakdownRow
-          label={bundles.length > 0 ? "Total amount (excl. discounts)" : "Total"}
+          label={
+            bundles.length > 0 || deals.length > 0 ? "Total amount (excl. discounts)" : "Total"
+          }
           value={formatAedDecimal(bundles.length > 0 ? grossMinor : totalMinor)}
           muted
         />
@@ -452,6 +507,17 @@ export function CartFooter({
             key={b.uid}
             label={`${formatAedDecimal(b.amountMinor)} off · Bundle discount`}
             value={`- ${formatAedDecimal(b.amountMinor)}`}
+            muted
+          />
+        ))}
+        {/* One row per deal, named. Rolling them into a single "Discounts"
+            figure is what a cart with two offers on two lines cannot be checked
+            against — the reader has to be able to point at each one. */}
+        {deals.map((d) => (
+          <BreakdownRow
+            key={d.uid}
+            label={d.label}
+            value={`- ${formatAedDecimal(d.amountMinor)}`}
             muted
           />
         ))}
@@ -553,6 +619,15 @@ type CheckoutFooterProps = {
    * Packages panel, next to the client it belongs to.
    */
   packagePaidMinor?: number
+  /**
+   * What came off before this footer's `baseMinor`, named (DW3.4).
+   *
+   * `baseMinor` arrives already reduced, so without these rows the Tip step
+   * simply showed a smaller number than the lines above it and offered no
+   * account of the difference. The cart discount had the same hole; both go
+   * through here, so a reader can add the screen up.
+   */
+  deductions?: ReadonlyArray<{ key: string; label: string; amountMinor: number }>
 }
 
 export function CheckoutFooter({
@@ -568,9 +643,14 @@ export function CheckoutFooter({
   payments = [],
   onRemovePayment,
   packagePaidMinor = 0,
+  deductions = [],
 }: CheckoutFooterProps) {
   const [expanded, setExpanded] = useState(true)
   const toPay = baseMinor + tipMinor
+  // What the lines came to before anything was taken off — reconstructed, since
+  // this footer is handed the reduced figure.
+  const deductedMinor = deductions.reduce((sum, d) => sum + d.amountMinor, 0)
+  const grossMinor = baseMinor + deductedMinor
   const paid = payments.reduce((sum, p) => sum + p.amountMinor, 0) + packagePaidMinor
   const left = Math.max(0, toPay - paid)
   const change = Math.max(0, paid - toPay)
@@ -602,6 +682,17 @@ export function CheckoutFooter({
                   value={formatAedDecimal(taxMinor)}
                   muted
                 />
+                {/* Named on the Payment step too. A part-paid sale is the one
+                    reopened days later, by somebody who was not at the counter
+                    — the offer that reduced it has to still be on the screen. */}
+                {deductions.map((d) => (
+                  <BreakdownRow
+                    key={d.key}
+                    label={d.label}
+                    value={`- ${formatAedDecimal(d.amountMinor)}`}
+                    muted
+                  />
+                ))}
                 {tipMinor > 0 ? (
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-cami-violet-11">Tips</span>
@@ -659,7 +750,19 @@ export function CheckoutFooter({
         </>
       ) : (
         <div className="mb-3 flex flex-col gap-1">
-          <BreakdownRow label="Total" value={formatAedDecimal(baseMinor)} muted />
+          <BreakdownRow
+            label={deductions.length > 0 ? "Total amount (excl. discounts)" : "Total"}
+            value={formatAedDecimal(grossMinor)}
+            muted
+          />
+          {deductions.map((d) => (
+            <BreakdownRow
+              key={d.key}
+              label={d.label}
+              value={`- ${formatAedDecimal(d.amountMinor)}`}
+              muted
+            />
+          ))}
           {tipMinor > 0 ? (
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="text-cami-violet-11">Tips</span>

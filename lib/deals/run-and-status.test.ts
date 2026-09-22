@@ -22,8 +22,15 @@ describe("the date range, as the built product writes it", () => {
     expect(formatDateRange("2026-04-01", "2026-04-30")).toBe("Apr 1 – 30, 2026")
   })
 
-  it("spells both ends when they span months", () => {
-    expect(formatDateRange("2026-03-01", "2026-04-30")).toBe("Mar 1, 2026 – Apr 30, 2026")
+  it("prints the year once when both ends share it", () => {
+    // The dev repo spells it twice — "Mar 1, 2026 – Apr 30, 2026" — which says
+    // the same thing sixty pixels wider. In a six-column table that width is
+    // what pushed the row into a horizontal scrollbar.
+    expect(formatDateRange("2026-03-01", "2026-04-30")).toBe("Mar 1 – Apr 30, 2026")
+  })
+
+  it("spells both when the range actually crosses a year", () => {
+    expect(formatDateRange("2026-11-01", "2027-01-15")).toBe("Nov 1, 2026 – Jan 15, 2027")
   })
 
   it("shows the start alone for an offer with no end", () => {

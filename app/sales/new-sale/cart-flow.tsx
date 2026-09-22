@@ -47,6 +47,8 @@ import {
   CLIENTS,
   comboCartLines,
   createdComboToServiceItem,
+  dealDiscounts,
+  dealDiscountTotalMinor,
   formatAedDecimal,
   SERVICES,
   totals,
@@ -237,6 +239,7 @@ function CartFlowInner({
   // Where this sale lands (R11). Null until named — there is no default, ever.
   const [saleLocationId, setSaleLocationId] = useState<string | null>(null)
   const [appliedPackages, setAppliedPackages] = useState<string[]>([])
+
   const { offerings } = useLocationOfferings()
   const [attachment, setAttachment] = useState<ClientAttachment>(
     initialAttachment ?? (seedCheckout ? { type: "client", client: CLIENTS[1] } : { type: "none" }),
@@ -365,7 +368,16 @@ function CartFlowInner({
   const editingLine = lines.find((l) => l.uid === editingUid) ?? null
 
   // Base = cart total less any cart discount; tip and checkout totals build on it.
-  const baseMinor = Math.max(0, totals(lines).totalMinor - discountMinor)
+  /**
+   * What the deals on the lines take off, in fils.
+   *
+   * Summed from the lines, because a deal attaches to a line — the way the
+   * built product does it. The first attempt held it as one cart-level figure
+   * applied from a panel under the cart, which offered a percentage of nothing
+   * while the cart was still empty.
+   */
+  const dealDiscountMinor = dealDiscountTotalMinor(lines)
+  const baseMinor = Math.max(0, totals(lines).totalMinor - discountMinor - dealDiscountMinor)
   const tipMinor = tipId === "custom" ? customTipMinor : tipForPreset(tipId)
   const toPayMinor = baseMinor + tipMinor
   /**
@@ -589,6 +601,9 @@ function CartFlowInner({
               priceMinor: patch.priceMinor,
               qty: Math.max(1, patch.qty),
               staffName: patch.staffName,
+              dealId: patch.dealId,
+              dealName: patch.dealName,
+              dealDiscountMinor: patch.dealDiscountMinor,
             }
           : l,
       ),
@@ -1018,6 +1033,19 @@ function CartFlowInner({
                     payments={step === "payment" ? payments : []}
                     onRemovePayment={removePayment}
                     packagePaidMinor={packagePaidMinor}
+                    // `baseMinor` arrives already reduced by both of these, so
+                    // without them this footer just showed a smaller number
+                    // than the lines above it.
+                    deductions={[
+                      ...dealDiscounts(lines).map((d) => ({
+                        key: d.uid,
+                        label: d.label,
+                        amountMinor: d.amountMinor,
+                      })),
+                      ...(discountMinor > 0
+                        ? [{ key: "cart", label: "Cart discount", amountMinor: discountMinor }]
+                        : []),
+                    ]}
                     ctaLabel={
                       step === "tip"
                         ? "Continue to payment"
@@ -1178,6 +1206,13 @@ function CartFlowInner({
           }}
           onApply={applyLineEdit}
           onDelete={step === "cart" ? removeLine : undefined}
+          locationId={saleLocationId}
+          // A deal's minimum spend is about the cart, not the line it hangs
+          // off — AED 150 minimum on a AED 20 nail trim inside a AED 400 cart
+          // is met, and checking the line alone would refuse it.
+          cartTotalMinor={totals(lines).totalMinor}
+          // A walk-in has no history, which is not the same as none.
+          clientRedemptions={attachment.type === "client" ? 0 : null}
         />
       ) : null}
 

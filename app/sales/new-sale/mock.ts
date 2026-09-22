@@ -352,6 +352,39 @@ export function grossTotalMinor(lines: CartLine[]): number {
 }
 
 /**
+ * What the deals on these lines take off, one row each (DW3.4).
+ *
+ * Deliberately the same shape as `bundleDiscounts` above, because the footer
+ * has to print them the same way: a named row saying what came off, then a
+ * To pay the reader can arrive at themselves.
+ *
+ * It did not exist, and the money went missing because of it. A deal chosen on
+ * a line was subtracted from the cart's base in `cart-flow.tsx` and named
+ * nowhere — the Cart step's total did not move at all, and stepping on to Tip
+ * showed a figure lower than the lines above it with nothing accounting for the
+ * difference. An operator cannot check a total they cannot reconstruct, and a
+ * client asking "why is this less" gets no answer from the screen.
+ */
+export function dealDiscounts(
+  lines: CartLine[],
+): Array<{ uid: string; label: string; amountMinor: number }> {
+  return lines
+    .filter((l) => (l.dealDiscountMinor ?? 0) > 0)
+    .map((l) => ({
+      uid: l.uid,
+      // Falls back to the line's own name for a sale saved before the deal was
+      // named on it — better a row that says which line than a bare figure.
+      label: l.dealName ?? `Deal on ${l.name}`,
+      amountMinor: l.dealDiscountMinor ?? 0,
+    }))
+}
+
+/** Σ of the above, for the footers that only need the one number. */
+export function dealDiscountTotalMinor(lines: CartLine[]): number {
+  return lines.reduce((sum, l) => sum + (l.dealDiscountMinor ?? 0), 0)
+}
+
+/**
  * Map a combo created on the service menu into a POS catalog entry (PRD-143).
  *
  * Its merchant category has no equivalent in this demo catalog's four, so the

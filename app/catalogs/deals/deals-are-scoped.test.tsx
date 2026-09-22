@@ -1,11 +1,14 @@
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 
 // AppShell's sidebar and topbar read the router. Nothing here exercises
 // navigation, so it is stubbed rather than provided.
 //
-// AppShell also renders its children twice — a narrow layout and a wide one —
-// so every assertion below counts matches rather than expecting exactly one.
+// Assertions below count matches rather than expecting exactly one. That began
+// as a workaround — AppShell rendered its children twice, once per breakpoint —
+// and the shell renders once now, so the counts are simply tolerant rather than
+// necessary.
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -52,7 +55,7 @@ function open(grants: LocationGrants) {
 describe("what an owner sees", () => {
   it("lists the chain-wide deal as a named set, not a count of today's branches", () => {
     open("all")
-    expect(screen.getAllByText("January groom offer").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Summer groom offer").length).toBeGreaterThan(0)
     expect(screen.getAllByText("All locations").length).toBeGreaterThan(0)
   })
 
@@ -65,7 +68,10 @@ describe("what an owner sees", () => {
 
   it("says a deal with nothing chosen cannot run, rather than letting it pass as chain-wide", () => {
     open("all")
-    expect(screen.getAllByText(/No locations — cannot run/).length).toBeGreaterThan(0)
+    // Two lines in the Locations column, matching the shape of the rows above
+    // it: the claim, then what follows from it.
+    expect(screen.getAllByText("No locations").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("cannot run").length).toBeGreaterThan(0)
   })
 })
 
@@ -74,7 +80,7 @@ describe("what a one-branch manager sees", () => {
     open(["shampooch-mirdif"])
     expect(screen.getAllByText("Mirdif Tuesdays").length).toBeGreaterThan(0)
     // A chain-wide deal does run at their branch, so it belongs to them too.
-    expect(screen.getAllByText("January groom offer").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Summer groom offer").length).toBeGreaterThan(0)
   })
 
   it("is not shown a deal scoped to branches they do not hold", () => {
@@ -107,5 +113,43 @@ describe("a single-branch business", () => {
       </TooltipProvider>,
     )
     expect(screen.queryByRole("columnheader", { name: "Locations" })).not.toBeInTheDocument()
+  })
+})
+
+describe("the row menu only offers what it can do", () => {
+  it("does not let you activate a deal whose dates have passed", async () => {
+    // It offered "Activate", did nothing when pressed, and left the reader to
+    // guess why: the dates decide, so a stored active resolves straight back.
+    // Spring refresh starts 10 Aug with today at 24 Aug — its dates are wide
+    // open. What stops it is having no location, and the menu said the
+    // opposite until the two blockers stopped sharing a flag.
+    open("all")
+    await userEvent.click(screen.getAllByRole("button", { name: /Options for Spring refresh/ })[0]!)
+    const item = screen.getByRole("menuitem", { name: /Activate/ })
+    expect(item).toHaveAttribute("aria-disabled", "true")
+    expect(item).toHaveTextContent("choose a location first")
+  })
+
+  it("offers Activate on a deal somebody stopped mid-run", async () => {
+    open("all")
+    await userEvent.click(screen.getAllByRole("button", { name: /Options for Refer a friend/ })[0]!)
+    expect(screen.getByRole("menuitem", { name: "Activate" })).toBeInTheDocument()
+  })
+
+  it("actually changes the row when you stop a running deal", async () => {
+    // "Nothing changes when I press it" was the whole complaint.
+    open("all")
+    const before = screen.queryAllByText("Active").length
+    await userEvent.click(
+      screen.getAllByRole("button", { name: /Options for Summer groom offer/ })[0]!,
+    )
+    await userEvent.click(screen.getByRole("menuitem", { name: "Deactivate" }))
+    expect(screen.queryAllByText("Active").length).toBeLessThan(before)
+  })
+
+  it("does not leave an archived deal with an empty menu", async () => {
+    open("all")
+    await userEvent.click(screen.getAllByRole("button", { name: /Options for Eid weekend/ })[0]!)
+    expect(screen.getByRole("menuitem", { name: "Restore" })).toBeInTheDocument()
   })
 })

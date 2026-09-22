@@ -177,6 +177,22 @@ export type CartLine = {
   listPriceMinor?: number
   /** Set when this line was snapshotted from an appointment — one appointment per cart. */
   apptId?: string
+  /** The deal applied to this line, if any (DW3.4). */
+  dealId?: string
+  /**
+   * What the deal reads as, e.g. "Summer groom offer · 20% off grooming".
+   *
+   * Carried on the line rather than looked up from the id by each surface that
+   * prints it. A saved sale outlives the deal it was taken under — the offer
+   * ends, the row is edited, and a receipt reprinted next March still has to
+   * say what came off and why. The invoice already expects exactly this
+   * (`discountLabel` in `lib/invoice/types.ts`), named for a promotion and
+   * generic for an ad-hoc cart discount.
+   */
+  dealName?: string
+  /** What that deal takes off this line, in fils. Kept beside the id so the
+   *  footer can subtract it without recomputing a percentage. */
+  dealDiscountMinor?: number
   /** Gift-card payload — present only when `kind === "gift-card"`. */
   giftCard?: GiftCardDraft
 }

@@ -51,12 +51,21 @@ export function LocationMultiSelect({
   selectedIds,
   onChange,
   disabled,
+  scrollList = true,
 }: {
   locations: ReadonlyArray<Location>
   selectedIds: ReadonlyArray<string>
   onChange: (ids: string[]) => void
   /** An owner's set is the estate and is not edited here. */
   disabled?: boolean
+  /**
+   * Whether this list scrolls itself.
+   *
+   * True on a page, where a fixed height keeps whatever is below it still. False
+   * inside a dialog that already scrolls — a scrollbar inside a scrollbar gives
+   * the reader two bars and no way to tell which one a wheel will move.
+   */
+  scrollList?: boolean
 }) {
   const [query, setQuery] = useState("")
   const selected = new Set(selectedIds)
@@ -139,7 +148,9 @@ export function LocationMultiSelect({
         {/* `overscroll-contain` keeps the wheel on this list instead of chaining
             it into whatever is behind — inside a dialog that is a page which
             does not scroll, so the list read as frozen. */}
-        <div className="max-h-[13.5rem] overflow-y-auto overscroll-contain py-1">
+        <div
+          className={cn("py-1", scrollList && "max-h-[13.5rem] overflow-y-auto overscroll-contain")}
+        >
           {groups.map((group) => (
             <div key={group.city}>
               {/* Only when there is more than one city to tell apart. A single

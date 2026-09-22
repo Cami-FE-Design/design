@@ -1,9 +1,14 @@
 /**
  * Promotions, and the branches each one runs at (DW3.4, R04, R18, R24).
  *
- * The rule lives in `lib/locations/promotion-scope.ts`; this is the seed the
- * screen reads, shaped so every state that carries a rule is on screen without
- * anyone having to click:
+ * The shape here is the dev repo's `src/types/deal.ts` on `promotion-discount-ui`,
+ * reduced to the fields this prototype puts on screen — not a parallel model.
+ * Where a field exists there it is spelled the same way here, so a reviewer can
+ * hold the two side by side.
+ *
+ * The rule about *where* a deal runs lives in `lib/locations/promotion-scope.ts`;
+ * this is the seed the screen reads, shaped so every state that carries a rule
+ * is on screen without anyone having to click:
  *
  * - one chain-wide offer, which is a *named* set and not "the nine that exist
  *   today" — the distinction that survives a tenth branch opening;
@@ -27,11 +32,95 @@ import type { PromotionScope } from "@/lib/locations/promotion-scope"
  */
 export type DealStatus = "active" | "scheduled" | "inactive" | "archived"
 
+/**
+ * What kind of offer this is (`DealTypeSchema`).
+ *
+ * Three, and they differ in how a client reaches them rather than in what they
+ * take off: a promotion is quoted by code, a flash sale is simply on, and a
+ * last-minute offer fires only close to the appointment. The arithmetic is the
+ * same for all three, which is why the type sits beside the discount rather
+ * than inside it.
+ */
+export type DealType = "promotion" | "flash-sale" | "last-minute-offer"
+
+export const DEAL_TYPE_LABEL: Record<DealType, string> = {
+  promotion: "Promotion",
+  "flash-sale": "Flash sale",
+  "last-minute-offer": "Last-minute offer",
+}
+
+/**
+ * How the discount is expressed (`DiscountKindSchema`).
+ *
+ * This was a free-text "Offer" field — the owner typed "20% off grooming" and a
+ * regex downstream tried to work out what came off. Two things wrong with that,
+ * and the second is the serious one: nobody filling the form can tell whether
+ * the number they type is a percentage or an amount, and neither can the till.
+ * "15 off" is AED 15 or 15%, and the same string means both.
+ */
+export type DiscountKind = "percentage" | "fixed"
+
+/**
+ * What a deal discounts (`DealScope` / `DealApplicability` on the dev repo).
+ *
+ * `all` and `none` are both real and are not an empty list: a chain-wide sale is
+ * `all` and stays true as the catalogue grows, while a services-only offer is
+ * `none` for products rather than an empty set that could be read either way.
+ * It is R24's lesson one axis over, and the built product reaches the same
+ * conclusion independently.
+ *
+ * `selected` narrows to an explicit id set, chosen in the wizard's catalogue
+ * picker (`DealScopePickerDialog`). Ticking every box there stores `all`, not
+ * the ids — so the offer keeps covering the catalogue as it grows.
+ */
+export type DealScopeMode = "all" | "none" | "selected"
+export type DealResourceScope = { mode: DealScopeMode; ids: string[] }
+
+export type DealApplicability = {
+  services: DealResourceScope
+  products: DealResourceScope
+  packages: DealResourceScope
+  /**
+   * Whether the offer comes off a gift card bought in store.
+   *
+   * A flag of its own, because discounting stored value sells AED 100 of credit
+   * for AED 80 and books the loss as a promotion. An earlier pass here made
+   * that decision permanently by never offering a deal on a gift-card line; the
+   * built product leaves it to the merchant and defaults it on, so this does
+   * too. The default is the argument, not the ban.
+   */
+  giftCardsInStore: boolean
+}
+
+/**
+ * How often the offer may be taken (`DealLimitsSchema`).
+ *
+ * The till does not enforce these yet — see `dealsAtTill`, which bounds by
+ * branch, date and kind only. They are collected and shown because a deal
+ * created without them is a deal with no ceiling, and "unlimited" should be a
+ * decision somebody made rather than a field that was never on the form.
+ */
+export type DealLimits = {
+  oneUsePerClient: boolean
+  totalUsesEnabled: boolean
+  totalUses: number | null
+  minimumPurchaseEnabled: boolean
+  /** Whole AED, as the built product collects it. */
+  minimumPurchaseAmount: number | null
+}
+
 export type Deal = {
   id: string
+  type: DealType
   name: string
-  /** e.g. "20% off" — the offer as a client would hear it. */
-  offer: string
+  description: string
+  discountKind: DiscountKind
+  /** Percent (1–100) or whole AED, per `discountKind`. */
+  discountValue: number
+  /** Optional code a client quotes. Empty means the offer needs no code. */
+  discountCode: string
+  /** Whether the till may offer it at all (`enableAtPointOfSale`). */
+  enableAtPointOfSale: boolean
   status: DealStatus
   /** ISO date. Required — a deal with no start has nothing to show in the list. */
   startDate: string
@@ -39,69 +128,210 @@ export type Deal = {
   endDate: string | null
   /** Where it applies. Never an empty array standing in for "everywhere". */
   scope: PromotionScope
+  /** Which kinds of line it takes money off. */
+  applicability: DealApplicability
+  limits: DealLimits
+  /**
+   * Which team members may be booked with this offer (`teamMemberIds`).
+   *
+   * Empty is **everybody**, which is the built product's reading and the one
+   * place this repo does not argue with an empty array — a deal nobody may sell
+   * is not a state anyone asks for, whereas a deal nobody may sell *anywhere*
+   * is exactly the mistake R24 is about. The two empties are not symmetric.
+   */
+  teamMemberIds: string[]
   /** Redemptions so far, so a branch-scoped deal can be seen to be working. */
   redemptions: number
+  /** Gross taken through this deal, in fils — the list's "Total sales". */
+  totalSalesMinor: number
+  /** Distinct clients who have used it. */
+  totalClients: number
+  /** ISO timestamp, shown as "Date created" on the detail view. */
+  createdAt: string
 }
 
+export const DEFAULT_DEAL_APPLICABILITY: DealApplicability = {
+  services: { mode: "all", ids: [] },
+  products: { mode: "all", ids: [] },
+  packages: { mode: "all", ids: [] },
+  giftCardsInStore: true,
+}
+
+export const DEFAULT_DEAL_LIMITS: DealLimits = {
+  oneUsePerClient: false,
+  totalUsesEnabled: false,
+  totalUses: null,
+  minimumPurchaseEnabled: false,
+  minimumPurchaseAmount: null,
+}
+
+/** Services only — the commonest offer, and the one this fixture uses most. */
+const SERVICES_ONLY: DealApplicability = {
+  services: { mode: "all", ids: [] },
+  products: { mode: "none", ids: [] },
+  packages: { mode: "none", ids: [] },
+  giftCardsInStore: false,
+}
+
+/**
+ * Seeded around the demo's today (24 Aug 2026), not around a calendar year.
+ *
+ * The first cut dated everything Jan–Apr, which is months behind `TODAY_ISO` —
+ * so every row resolved to Inactive or Archived and the list had no running
+ * deal in it at all. A fixture that cannot show its own main state is not a
+ * fixture.
+ */
 export const MOCK_DEALS: Deal[] = [
   {
-    id: "january-groom",
-    name: "January groom offer",
-    offer: "20% off grooming",
+    id: "summer-groom",
+    type: "promotion",
+    name: "Summer groom offer",
+    description: "Seasonal offer on the full grooming menu.",
+    discountKind: "percentage",
+    discountValue: 20,
+    discountCode: "",
+    enableAtPointOfSale: true,
     status: "active",
-    startDate: "2026-01-01",
-    endDate: "2026-01-31",
-    // Named, not enumerated. A branch opened in the middle of January is in it.
+    startDate: "2026-08-01",
+    endDate: "2026-09-30",
+    // Named, not enumerated. A branch opened mid-season is in it.
     scope: { kind: "estate" },
+    // Grooming, so it takes nothing off a bottle of conditioner.
+    applicability: SERVICES_ONLY,
+    limits: { ...DEFAULT_DEAL_LIMITS, oneUsePerClient: true },
+    teamMemberIds: ["m_aziz", "m_sara"],
     redemptions: 148,
+    totalSalesMinor: 128400,
+    totalClients: 132,
+    createdAt: "2026-07-21T09:12:00Z",
   },
   {
     id: "mirdif-tuesdays",
+    type: "flash-sale",
     name: "Mirdif Tuesdays",
-    offer: "AED 30 off",
+    description: "Filling the quietest day of the week.",
+    discountKind: "fixed",
+    discountValue: 30,
+    discountCode: "",
+    enableAtPointOfSale: true,
     status: "active",
-    startDate: "2026-01-06",
-    endDate: "2026-03-31",
+    startDate: "2026-08-04",
+    endDate: "2026-10-27",
     // The case DW3.4 exists for: one quiet branch filling a slow day, without
     // the chain paying for it.
     scope: { kind: "branches", locationIds: ["shampooch-mirdif"] },
+    applicability: SERVICES_ONLY,
+    limits: { ...DEFAULT_DEAL_LIMITS, minimumPurchaseEnabled: true, minimumPurchaseAmount: 150 },
+    teamMemberIds: [],
     redemptions: 22,
+    totalSalesMinor: 41800,
+    totalClients: 19,
+    createdAt: "2026-07-30T14:03:00Z",
+  },
+  {
+    // Stopped by hand while its dates still cover today — the one case where
+    // Activate has something to do, and the one a calendar cannot infer.
+    id: "referral-bonus",
+    type: "promotion",
+    name: "Refer a friend",
+    description: "Credit for the client who sent them.",
+    discountKind: "fixed",
+    discountValue: 25,
+    discountCode: "FRIEND25",
+    enableAtPointOfSale: true,
+    status: "inactive",
+    startDate: "2026-07-01",
+    endDate: "2026-12-31",
+    scope: { kind: "estate" },
+    // A referral credit comes off anything.
+    applicability: DEFAULT_DEAL_APPLICABILITY,
+    limits: { ...DEFAULT_DEAL_LIMITS, oneUsePerClient: true },
+    teamMemberIds: [],
+    redemptions: 61,
+    totalSalesMinor: 105000,
+    totalClients: 55,
+    createdAt: "2026-06-24T11:40:00Z",
   },
   {
     id: "abu-dhabi-launch",
+    type: "last-minute-offer",
     name: "Abu Dhabi launch",
-    offer: "First groom half price",
-    status: "scheduled",
-    startDate: "2026-02-01",
+    description: "Opening offer for the three newest branches.",
+    discountKind: "percentage",
+    discountValue: 50,
+    discountCode: "",
+    enableAtPointOfSale: true,
+    status: "active",
+    startDate: "2026-10-01",
     endDate: null,
     scope: {
       kind: "branches",
       locationIds: ["shampooch-al-reem", "shampooch-downtown-dubai", "shampooch-jumeirah"],
     },
+    applicability: {
+      services: { mode: "all", ids: [] },
+      products: { mode: "none", ids: [] },
+      packages: { mode: "all", ids: [] },
+      giftCardsInStore: false,
+    },
+    limits: { ...DEFAULT_DEAL_LIMITS, totalUsesEnabled: true, totalUses: 500 },
+    teamMemberIds: [],
     redemptions: 0,
+    totalSalesMinor: 0,
+    totalClients: 0,
+    createdAt: "2026-09-02T08:25:00Z",
   },
   {
     id: "unscoped-draft",
+    type: "promotion",
     name: "Spring refresh",
-    offer: "15% off",
-    status: "scheduled",
-    startDate: "2026-04-01",
+    description: "",
+    discountKind: "percentage",
+    discountValue: 15,
+    discountCode: "",
+    enableAtPointOfSale: true,
+    status: "active",
+    startDate: "2026-08-10",
     endDate: null,
     // Saved with nothing chosen. Under the dev repo's mapper this shape reads
     // as the whole chain; here it runs nowhere and the row says so, which is
     // the difference R24 is about.
     scope: { kind: "branches", locationIds: [] },
+    applicability: {
+      services: { mode: "all", ids: [] },
+      products: { mode: "all", ids: [] },
+      packages: { mode: "none", ids: [] },
+      giftCardsInStore: false,
+    },
+    limits: DEFAULT_DEAL_LIMITS,
+    teamMemberIds: [],
     redemptions: 0,
+    totalSalesMinor: 0,
+    totalClients: 0,
+    createdAt: "2026-08-09T16:55:00Z",
   },
   {
     id: "eid-weekend",
+    type: "flash-sale",
     name: "Eid weekend",
-    offer: "Free nail trim",
+    description: "",
+    discountKind: "percentage",
+    discountValue: 100,
+    discountCode: "",
+    // Switched off at the till while it ran — the offer was a free add-on the
+    // team applied by hand, not something a client could ask for.
+    enableAtPointOfSale: false,
     status: "archived",
     startDate: "2026-04-05",
     endDate: "2026-04-12",
     scope: { kind: "estate" },
+    applicability: SERVICES_ONLY,
+    limits: DEFAULT_DEAL_LIMITS,
+    teamMemberIds: [],
     redemptions: 310,
+    totalSalesMinor: 276000,
+    totalClients: 241,
+    createdAt: "2026-03-28T10:05:00Z",
   },
 ]
 
@@ -112,26 +342,93 @@ export const DEAL_STATUS_LABEL: Record<DealStatus, string> = {
   archived: "Archived",
 }
 
+/** "20%" or "AED 30" — `formatDiscountValue` on the dev repo, with the unit. */
+export function formatDiscountValue(deal: Pick<Deal, "discountKind" | "discountValue">): string {
+  return deal.discountKind === "percentage"
+    ? `${deal.discountValue}%`
+    : `AED ${deal.discountValue.toLocaleString("en-US")}`
+}
+
+function scopeLabel(scope: DealResourceScope, singular: string, plural: string): string {
+  if (scope.mode === "all") return `all ${plural}`
+  if (scope.mode === "none") return `no ${plural}`
+  return scope.ids.length === 1 ? `1 ${singular}` : `${scope.ids.length} ${plural}`
+}
+
 /**
- * The date range on a row, as the built product formats it.
+ * "all services, no products, no gift cards, all packages".
  *
- * Copied from `formatDateRange` in the dev repo's `deals/lib/deal-format.ts`
- * rather than invented: same collapsing of a range inside one month
- * ("Apr 1 – 30, 2026"), and the same reading of a null end as an open run. This
- * file had its own `runs` string before anybody read that branch, which no
- * amount of care would have kept in step with it.
+ * `formatApplicabilitySummary` on the dev repo, same order. It states the
+ * negatives out loud rather than listing only what is included: "all services"
+ * alone does not tell an owner whether the offer also comes off the shampoo
+ * they sell on the way out, and that is the question they have.
+ */
+export function formatApplicabilitySummary(a: DealApplicability): string {
+  return [
+    scopeLabel(a.services, "service", "services"),
+    scopeLabel(a.products, "product", "products"),
+    a.giftCardsInStore ? "all gift cards" : "no gift cards",
+    scopeLabel(a.packages, "package", "packages"),
+  ].join(", ")
+}
+
+/** "20% off all services, no products, no gift cards, no packages". */
+export function formatDealSummary(deal: Deal): string {
+  return `${formatDiscountValue(deal)} off ${formatApplicabilitySummary(deal.applicability)}`
+}
+
+/**
+ * The same offer, for a list row: "20% off services".
+ *
+ * Only what it *does* come off. The long form states all four categories
+ * including the negatives, which is right on a detail surface — "does this come
+ * off the shampoo they buy on the way out" is the question somebody opens a
+ * deal to answer — and wrong in a table, where it is seventy unbroken
+ * characters of mostly "no". A row is scanned; the negatives are read.
+ */
+export function formatDealSummaryShort(deal: Deal): string {
+  const a = deal.applicability
+  const on: string[] = []
+  if (a.services.mode !== "none") on.push("services")
+  if (a.products.mode !== "none") on.push("products")
+  if (a.packages.mode !== "none") on.push("packages")
+  if (a.giftCardsInStore) on.push("gift cards")
+  // A deal that comes off nothing is refused at the wizard, so this is the
+  // shape of a row somebody saved before that rule existed.
+  if (on.length === 0) return `${formatDiscountValue(deal)} off nothing`
+  if (on.length === 4) return `${formatDiscountValue(deal)} off everything`
+  return `${formatDiscountValue(deal)} off ${on.join(", ")}`
+}
+
+/**
+ * The date range on a row.
+ *
+ * Taken from `formatDateRange` in the dev repo's `deals/lib/deal-format.ts` —
+ * same collapsing of a range inside one month ("Apr 1 – 30, 2026"), same
+ * reading of a null end as an open run — with the collapse extended one step.
+ *
+ * It prints the year **once** when both ends share it, so a season reads
+ * "Aug 1 – Sep 30, 2026" rather than "Aug 1, 2026 – Sep 30, 2026". The second
+ * says the same thing sixty pixels wider, and in a six-column table that width
+ * is what pushed the row into a horizontal scrollbar and wrapped the dates onto
+ * two lines. A year repeated inside one range is noise either way; the only
+ * case that needs both is a range that actually crosses a year, and that one
+ * still prints them.
  */
 export function formatDateRange(startDate: string, endDate: string | null): string {
   const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" }
   const start = new Date(`${startDate}T00:00:00`)
   if (!endDate) return start.toLocaleDateString("en-US", opts)
   const end = new Date(`${endDate}T00:00:00`)
-  const sameYear = start.getFullYear() === end.getFullYear()
-  if (sameYear && start.getMonth() === end.getMonth()) {
+  if (start.getFullYear() !== end.getFullYear()) {
+    return `${start.toLocaleDateString("en-US", opts)} – ${end.toLocaleDateString("en-US", opts)}`
+  }
+  const dayMonth: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" }
+  if (start.getMonth() === end.getMonth()) {
     const month = start.toLocaleDateString("en-US", { month: "short" })
     return `${month} ${start.getDate()} – ${end.getDate()}, ${end.getFullYear()}`
   }
-  return `${start.toLocaleDateString("en-US", opts)} – ${end.toLocaleDateString("en-US", opts)}`
+  return `${start.toLocaleDateString("en-US", dayMonth)} – ${end.toLocaleDateString("en-US", opts)}`
 }
 
 /**
@@ -156,4 +453,98 @@ export function statusFor(
   if (!startDate || startDate > todayIso) return "scheduled"
   if (endDate && endDate < todayIso) return "inactive"
   return "active"
+}
+
+/**
+ * What the row menu may offer on this deal, and why not.
+ *
+ * Pulled out of the page because eyeballing it produced a message that lied:
+ * "Activate · its dates have passed" appeared on a deal starting 10 Aug with
+ * today at 24 Aug, because *not runnable* and *window closed* had been folded
+ * into one flag. Two different reasons, one sentence, and the sentence was
+ * wrong for the commoner of the two.
+ *
+ * `reason` is the whole point. A disabled item that does not say why is a
+ * control the reader has to guess at.
+ */
+export type DealAction =
+  | { kind: "stop" }
+  | { kind: "activate" }
+  | { kind: "restore" }
+  | { kind: "blocked"; reason: string }
+
+export function dealAction(
+  resolved: DealStatus,
+  runnable: boolean,
+  endDate: string | null,
+  todayIso: string,
+): DealAction {
+  // Archived is not a dead end: restoring returns it to stopped, never straight
+  // to running — whoever archived it did not ask for it to start selling again.
+  if (resolved === "archived") return { kind: "restore" }
+
+  // Both of these are running or about to. Stopping is the useful action, and
+  // "Activate" on a deal that starts next month reads as though it were broken.
+  if (resolved === "active" || resolved === "scheduled") return { kind: "stop" }
+
+  // Inactive, so why — and each answer is a different thing to go and do.
+  if (!runnable) return { kind: "blocked", reason: "choose a location first" }
+  if (endDate && endDate < todayIso) return { kind: "blocked", reason: "its dates have passed" }
+  return { kind: "activate" }
+}
+
+/**
+ * "All services" / "No products" / "3 packages" — one category's half of
+ * `formatApplicabilitySummary`.
+ *
+ * Split out because the detail view wants a row per category rather than one
+ * combined sentence: a merchant checking what an offer covers reads down a
+ * list, not across a paragraph.
+ */
+export function scopeStatusLabel(
+  scope: DealResourceScope,
+  singular: string,
+  plural: string,
+): string {
+  if (scope.mode === "all") return `All ${plural}`
+  if (scope.mode === "none") return `No ${plural}`
+  return scope.ids.length === 1 ? `1 ${singular}` : `${scope.ids.length} ${plural}`
+}
+
+/**
+ * The order the detail view lists categories in: narrowed first, then all,
+ * then none.
+ *
+ * A merchant auditing a promotion cares most about the categories somebody
+ * deliberately narrowed — the ones left at their defaults are the unremarkable
+ * ones, and burying "3 services" under two rows of "All …" is how a mistake
+ * stays hidden.
+ */
+export function applyToRows(a: DealApplicability): Array<{
+  key: "services" | "products" | "packages"
+  label: string
+  scope: DealResourceScope
+  value: string
+}> {
+  const priority = (s: DealResourceScope) => (s.mode === "selected" ? 0 : s.mode === "all" ? 1 : 2)
+  return [
+    {
+      key: "services" as const,
+      label: "Services",
+      scope: a.services,
+      value: scopeStatusLabel(a.services, "service", "services"),
+    },
+    {
+      key: "products" as const,
+      label: "Products",
+      scope: a.products,
+      value: scopeStatusLabel(a.products, "product", "products"),
+    },
+    {
+      key: "packages" as const,
+      label: "Packages",
+      scope: a.packages,
+      value: scopeStatusLabel(a.packages, "package", "packages"),
+    },
+  ].sort((x, y) => priority(x.scope) - priority(y.scope))
 }
