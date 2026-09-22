@@ -2556,7 +2556,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Address search field"
-          description="Search first, structured fields second: picking a place fills the grid, and the grid stays editable because a places result is a starting point and the trade licence is what has to match. Manual entry is the first row of the dropdown, not a fallback reached by failing. PRD-144: a picked place stores its placeId and coordinates, and editing the text afterwards drops them — watch the line under the field flip as you type. See docs/specs/address-search-field.md."
+          description="Search first, structured fields second — picking a place fills the grid, which stays editable because the trade licence is what has to match, not the places result. Manual entry is the first row of the dropdown, not a fallback reached by failing. A picked place stores its placeId and coordinates; edit the text afterwards and the line under the field drops them (PRD-144)."
         >
           <Row label="Empty — search only">
             <AddressSearchFieldDemo />
@@ -2593,7 +2593,7 @@ export function PlaygroundShowcase() {
         <Section
           lazy
           title="PDF viewer"
-          description="<PdfViewer> renders PDFs in-app on a canvas (react-pdf / pdf.js) inside our own themed, scrolling container — no native viewer chrome. Pages fit the container width (= 100% zoom); a floating dark toolbar carries zoom (−/+, 50–250%) and page navigation (Prev · Page X/Y · Next, tracked as you scroll). Loaded client-only (dynamic, ssr:false). Used by the public signer flow (/sign), the operator 'View form' split layout, and the Files → Preview action. Here it shows a consent PDF built client-side from copy."
+          description="<PdfViewer> renders PDFs on a canvas (react-pdf / pdf.js) inside our own themed scrolling container — no native viewer chrome. Pages fit the container width; a floating dark toolbar carries zoom (50–250%) and page navigation, tracked as you scroll. Client-only. Used by /sign, the operator 'View form' layout and Files → Preview."
         >
           <Row label="Document">
             <div className="w-full max-w-xl">
@@ -2615,7 +2615,7 @@ export function PlaygroundShowcase() {
       >
         <Section
           title="Client detail dialog"
-          description="Centered Dialog modeled on <BusinessDetailDialog>. ~630px wide; sticky header with avatar + name + meta + Book now + Actions + Close; horizontal underline tabs with a 'More' overflow dropdown for less-used sections (Documents, Settings). Overview leads with one block — identity chips (locality, source + since, tags) over a condensed lifetime strip (appts / AED sales / no-shows / upcoming; no-shows opens the list) — then Visits (Next above Last, with one-tap Rebook), Wallet (loyalty, gift card, membership, packages), Preferences, Pets as chips, Notes. Everything is per client: address, source, active-since, tags, pets, sales, appointments and packages all come off the client record, so no two clients read alike. Open several from /clients rather than judging it on one."
+          description="Centered Dialog modelled on <BusinessDetailDialog>, ~630px, sticky header with Book now + Actions, underline tabs with a 'More' overflow for Documents and Settings. Overview leads with identity chips over a lifetime strip, then Visits (Next above Last, one-tap Rebook), Wallet, Preferences, Pets, Notes. Every field is the client's own, so open several from /clients rather than judging it on one."
         >
           <Row label="Pets">
             <SegmentedToggle
@@ -2667,7 +2667,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Team member detail dialog"
-          description="Same centered Dialog shell as Client / Pet detail. Sticky header (avatar + name + permission access · email · phone + Edit + Actions + Close), underline tabs: Overview (KPIs, Works at, Services, Notes) · Details (Profile, Settings incl. permission role, Addresses, Emergency contacts). Owner rows lock profile/role edits; a pending invite shows an empty Overview. Opened from a row on /settings/team; Add uses the full-screen takeover."
+          description="The Client / Pet detail shell for a team member. Sticky header (avatar, permission access, email, phone, Edit, Actions) over two tabs: Overview (KPIs, Works at, Services, Notes) and Details (profile, role, addresses, emergency contacts). Owner rows lock profile and role edits; a pending invite shows an empty Overview. Add uses the full-screen takeover instead."
         >
           <Row label="Status">
             <SegmentedToggle
@@ -2709,7 +2709,7 @@ export function PlaygroundShowcase() {
         <Section
           lazy
           title="Boarding & daycare booking drawers"
-          description="Right-side Sheet detail drawers modeled on <AppointmentDetailSheet>. Boarding is night-based (rate/night, check-in/out, N Nights, Subtotal by nights); daycare is duration-based (plan label 'Full Day · Up to 8 hours', time range, Subtotal by minutes). Both share: collapsible customer card, pet card, editable status pill (Booked → Checked in → Checked out → No-show/Canceled), add-on chips + Add menu (Primary Service/Add-on/Product/Custom Item), Late check out fee toggle, notes, sticky Check Out. The New boarding stay create sheet mirrors the add-appointment shell."
+          description="Right-side Sheet drawers on the <AppointmentDetailSheet> model. Boarding is night-based (rate/night, check-in/out, Subtotal by nights); daycare is duration-based ('Full Day · Up to 8 hours', Subtotal by minutes). Both share the collapsible customer card, pet card, editable status pill, add-on chips + Add menu, late-checkout toggle, notes and a sticky Check Out."
         >
           <Row label="Boarding">
             <div className="flex gap-2">
@@ -2740,7 +2740,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="My profile (settings panel)"
-          description="Personal info panel for the signed-in user (Settings → Account → My profile), scoped exactly to DSG-63 'view and edit contact details': one Contact card (Business-details pattern) with Legal name + masked mobile/email and a single Edit → full-screen takeover. Name saves directly; new mobile number → 6-digit OTP dialog (any 6 digits in the demo, shared OtpInput boxes); new email → 'Check your inbox' dialog (Resend with 30s cooldown / Cancel; the link click itself is simulated by a subtle bottom-right 'Demo: open confirmation link' control in the settings panel). Pending changes show as a neutral 'Pending' badge inline on the affected row that reopens the matching dialog; duplicates of team-member values blocked inline."
+          description="Personal info for the signed-in user, scoped to DSG-63's 'view and edit contact details': one Contact card with legal name and masked mobile/email behind a single Edit takeover. A new mobile goes through a 6-digit OTP, a new email through a 'Check your inbox' dialog with a 30s resend — the link click itself is the faint demo control bottom-right. Pending changes show as a badge on the affected row."
         >
           <div className="max-w-2xl rounded-2xl border border-border/60 bg-muted/20 p-6">
             <MyProfilePanel />
@@ -2762,7 +2762,7 @@ export function PlaygroundShowcase() {
         <Section
           lazy
           title="Global search takeover"
-          description="Full-screen search opened from the topbar magnifier (or Cmd/Ctrl+K). Reuses <FullScreenEditDialog> (same sticky header + pill Close as add/edit takeovers) with an xl <SearchInput>. Searches clients by name, mobile, email, or pet, and bookings by client name or booking reference (try 'B-77342'). Empty query shows Upcoming appointments + Clients (recently added). Clicking a client opens <ClientDetailDialog>; clicking an appointment opens <AppointmentDetailSheet> — both stack over the takeover."
+          description="Full-screen search from the topbar magnifier or Cmd/Ctrl+K, reusing <FullScreenEditDialog>. Searches clients by name, mobile, email or pet, and bookings by client name or reference (try 'B-77342'). An empty query shows upcoming appointments and recently added clients. A result opens its detail dialog or sheet, stacked over the takeover."
         >
           <Row label="Open">
             <Button onClick={() => setGlobalSearchOpen(true)}>Open global search</Button>
@@ -2777,7 +2777,7 @@ export function PlaygroundShowcase() {
       >
         <Section
           title="Multi-location — a deal, and where it runs"
-          description="DW3.4. The dev repo's promotions module is replicated on /catalogs/deals; these are the row states it can be in, side by side. A chain-wide offer is a NAMED set that a branch opened next month joins; '3 locations' is today's three and is not. The last one was saved with nothing chosen — the dev repo's mapper turns allVenues into locationIds: [], so that same empty shape means ALL there, while R24 here says an empty scope never resolves to all. One shape, two opposite readings, in one product: that is how an offer meant for one branch runs at nine, and a chain-wide one silently runs nowhere. The status badge is derived where a calendar can settle it and stored where somebody switched it by hand, and a deal that reaches nobody can never read Active — 'Active' beside 'cannot run' is a row contradicting itself, and an owner believes the badge."
+          description="DW3.4 — the row states /catalogs/deals can be in, side by side. 'All locations' is a NAMED set that a branch opened next month joins; '3 locations' is today's three and is not. The last was saved with nothing chosen: the dev repo's mapper reads that same empty shape as ALL, while R24 says an empty scope never resolves to all. A deal that reaches nobody can never read Active — an owner believes the badge."
         >
           {MOCK_DEALS.slice(0, 4).map((deal) => (
             <Row
@@ -2863,7 +2863,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — branch lifecycle"
-          description="SCR-01's state half (R01, R12). Four states, and the consequence of each is what the badge is for: paused means the booking page is hidden and the calendar is off, archived means no new writes ever again. Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find. The full panel, with the Suspend / Reactivate / Archive actions and the archive confirmation, is at /shell-demo?settings=locations."
+          description="SCR-01's state half (R01, R12). Four states, each named for its consequence: paused hides the booking page and stops the calendar, archived takes no writes ever again. Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find. The full panel, with Suspend / Reactivate / Archive, is at /shell-demo?settings=locations."
         >
           <Row label="Status badge">
             {(["live", "suspended", "archived"] as const).map((status) => (
@@ -2879,7 +2879,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — per-branch hours"
-          description="SCR-01's hours half (R01, R19). Every branch keeps its own week and its own timezone: JVC closes Sunday, Jumeirah trades seven days and later at the weekend, Al Quoz shuts over the middle of the day. That last one is why a day holds shifts rather than one open and one close — pinned to a Tuesday mid-afternoon below, Al Quoz reads Closed now while both others are open, and the public card says 'opens 4pm' rather than naming tomorrow. Editable at /shell-demo?settings=locations → a branch → Hours, and the edit survives a reload and reaches the client page: change JVC's Monday and /shampooch-jvc says so, as does the chain picker's row for it."
+          description="SCR-01's hours half (R01, R19). Each branch keeps its own week and timezone: JVC closes Sunday, Jumeirah trades seven days, Al Quoz shuts over the middle of the day — which is why a day holds shifts rather than one open and one close. Pinned to a Tuesday afternoon, Al Quoz reads Closed now and its public card says 'opens 4pm'. Editable in settings, and the edit reaches /shampooch-jvc."
         >
           <Row label="The seeded estate" align="start">
             <LocationsProvider persist={false}>
@@ -2889,7 +2889,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — per-branch availability"
-          description="R15's other half (R04, R15). The offering was per branch; the availability was one hardcoded week and all twelve staff on every branch's page. Now both are derived: the day chips come from the branch's hours, and a day it does not open is Closed rather than Fully booked — those are different facts, and showing one as the other sends a client back to a day that will never have a slot. Slots are the hours at half-hour steps, so Al Quoz's midday gap is simply absent instead of being filtered out, and the last slot is half an hour before closing. Staff are filtered by the branches they work at; someone covering two sites appears at both. Friday below, because that is where all three differ."
+          description="R15's other half. Day chips come from the branch's hours, so a day it does not open reads Closed rather than Fully booked — different facts, and showing one as the other sends a client back to a day that will never have a slot. Slots are the hours at half-hour steps, so Al Quoz's midday gap is absent rather than filtered. Staff filter by the branches they work at. Friday below, because all three differ there."
         >
           <Row label="The seeded estate" align="start">
             <LocationsProvider persist={false}>
@@ -2899,7 +2899,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — where a promotion runs"
-          description="DW3.4 (R04, R24). A chain-wide January offer and a quiet branch discounting to fill a Tuesday are both real, and must not be the same object. The scope is a named case or a list, never an empty list standing in for 'everywhere' — which is exactly what the dev repo's promotions branch does today: its mapper turns allVenues into locationIds: [], so empty means ALL there, while R24 here is explicit that an empty scope never resolves to all. One shape, two opposite readings, in one product — that is how an offer meant for one branch runs at nine, and a chain-wide one silently runs nowhere. Multi-location had not started when that mapper was written, which is why it reads that way; this is the shape to build against. Rules and tests in lib/locations/promotion-scope.ts."
+          description="DW3.4 (R04, R24). A chain-wide January offer and a quiet branch discounting a Tuesday are both real and must not be the same object. The scope is a named case or a list, never an empty list standing in for 'everywhere' — which is what the dev repo's mapper does, turning allVenues into locationIds: []. One shape, two opposite readings: that is how an offer meant for one branch runs at nine. Rules in lib/locations/promotion-scope.ts."
         >
           <Row label="Across the chain">
             <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
@@ -2929,7 +2929,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — the duplicate caught before booking"
-          description="CL-A1 / RC-B1, EC-1, R13. The PRD's last user story ends 'duplicate caught BEFORE booking', and only its readable half had shipped: SCR-07 put a client's visits across the estate on the client record, which answers the question if reception thinks to go and ask it — and somebody mid-booking does not. So it arrives unprompted, under the client picker in the new-appointment sheet, beside the notes banner and by the same rule: a fact that changes what gets booked belongs before the booking. It reads the client's own history UNBOUNDED by the grant, because the duplicate worth catching is the one at a branch you cannot see; that is R13's floor, and why R13 fixes the field set as uniform — date, location, service, whether the visit was yours or not. It states and never blocks (KC1.5's shape): two appointments in a day is routinely correct — a second pet, a partner on the same account — and reception has the client in front of them while the system does not."
+          description="CL-A1 / RC-B1, R13. The story ends 'duplicate caught BEFORE booking', and only its readable half had shipped — SCR-07 answers the question if reception thinks to ask it, and somebody mid-booking does not. So it arrives unprompted under the client picker. Unbounded by the grant, because the duplicate worth catching is the one at a branch you cannot see. States, never blocks: two appointments in a day is routinely correct."
         >
           <Row label="Already booked at another branch" align="start">
             <div className="w-full max-w-md">
@@ -2961,7 +2961,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — package redemption at checkout"
-          description="SCR-13's host, which the rule and the warning never had (R08, KC1.5, R11). The contract exists in cami-business and no UI calls it: eligibility returns a verdict per service — covered, exhausted, expired, not_covered — with the package's sessions, and redeem consumes one session. So the verdicts and the counting here are taken rather than invented. What the contract has no room for is the branch, and that is deliberate: a branch-shaped verdict would block the redemption KC1.5 insists must complete, so a mismatch rides alongside a covered verdict and Apply stays reachable. An unusable verdict is a different thing and reads differently — a sentence a receptionist can repeat, and no button. A redemption resolves to one location before it can happen (R11), and the operator's decision is recorded on the sale so an owner reading a discount can see why. What it then does to the sale is the built product's model, read off packagePayments.ts: the covered line keeps its gross price and the coverage is booked as a captured customer_package payment, so the money leaves through the tenders — a chip on the line, a Package row in the footer — rather than by discounting the line."
+          description="SCR-13's host (R08, KC1.5, R11). The eligibility contract exists in cami-business and no UI calls it: a verdict per service — covered, exhausted, expired, not_covered — with redeem consuming a session. The branch has no room in it by design, because a branch-shaped verdict would block the redemption KC1.5 insists must complete; a mismatch rides alongside and Apply stays reachable. An unusable verdict reads differently — a sentence reception can repeat, and no button."
         >
           <Row label="Covered, terms match" align="start">
             <div className="w-full max-w-[560px]">
@@ -3028,7 +3028,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — scheduled shifts"
-          description="SCR-10 (R05, DW2.3, DW2.4). The built product’s Scheduled shifts grid, drawn per branch: members against Mon–Sun, hours per person and per day, today marked. The week, the sort and which branch is open live on the route, not on the grid — the route shows one branch’s week and a strip carries the rest of the estate, because a grid per branch is an endless scroll by nine of them. A schedule belongs to one location, and somebody assigned to two appears on both with the hours they work there — not their whole day, because DW2.3’s acceptance is that booking offers them at a branch only during their rostered hours there. Lena is JVC mornings and Jumeirah evenings, two branches in one day and no conflict, which is the arrangement the story is written for. Sara is rostered at both over the same hours, which is the one clash DW2.4 names; booking refuses those hours, and the grid is where the rota gets fixed. Overlapping shifts at one branch are not seeded, because they cannot happen: the built shift dialog refuses two windows that overlap and requires at least thirty minutes between them. That is the point — the one overlap nothing refuses today is the one that spans branches, because each branch’s rota is written under its own venue and nothing compares two of them. Mariam’s Thursday is a split shift with a proper break, which is the legal shape. Leave and shifts are kept apart on purpose: a shift is the branch’s, so it shows at one; leave is the person’s, so Lena’s Thursday is off at both. A block time — Sara’s lunch, Mariam’s training — stays at its own branch, counts as worked, and cannot be sold. Omar’s Tuesday carries half a day’s sick leave inside a shift, so the window splits around it rather than drawing one pill over hours nobody is there for. Empty days say “Not working” rather than going blank, because a blank cell reads as a rota nobody filled in. Read-only here — the write surfaces (add or edit a day, set a repeating pattern, add time off, clear a week) are on the route, where a provider holds the schedule. At nine branches: Yara works three, Faris crosses an emirate line and clashes with himself on Saturday, and Hadi is rostered at a suspended branch — a rota does not stop when trading does, so the week is shown and only the writing stops (R12)."
+          description="SCR-10 (R05, DW2.3, DW2.4). The built product's grid, per branch: members against Mon–Sun, hours per person and per day. A schedule belongs to one location, so somebody assigned to two appears on both with the hours they work there. Lena is JVC mornings and Jumeirah evenings — no conflict. Sara is rostered at both over the same hours, the one clash DW2.4 names. Leave is the person's and shows at both; shifts and block time stay at their own branch. Read-only — the writes are on /team/scheduled-shifts."
         >
           <Row label="JVC" align="start">
             <div className="w-full">
@@ -3088,7 +3088,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — per-branch stock"
-          description="SCR-11 (R16, R18, DW4.1–DW4.2). Stock quantity and reorder configuration resolve per location, and the business quantity is derived from them and never stored — which is what makes 'I never reconcile it by hand' true by construction. Rows first, total after, because a sum is correct and insufficient: 18 at one branch and -2 at another add up to a healthy-looking 16, and the -2 is the only row worth acting on. Empty and negative are kept apart on purpose — zero is a reorder, below zero is a stock take, and one red state for both sends a manager to the wrong action. Thresholds are per branch because a busy branch and a quiet one do not reorder at the same number. Two bounds keep the card short at any size: healthy branches fold away, and the ones needing attention are capped at five, worst first — at twenty branches all twenty can need attention, and an eighth identical ‘Out of stock, 0’ row tells the manager nothing the notice above has not already counted. Rows read as one line with their thresholds summarised beside them and the inputs appear only in edit mode — seven branches needing attention was seven cards of mostly empty fields, and finding the branch that ran out is what this card is opened for, not setting reorder points. Nothing here moves stock between branches: cross-branch transfer and a central warehouse are future backlog, confirmed at the 2026-09-02 workshop."
+          description="SCR-11 (R16, R18, DW4.1–DW4.2). Quantity and reorder configuration resolve per location and the business quantity is derived, never stored — which is what makes 'I never reconcile it by hand' true by construction. Rows first, total after: 18 at one branch and -2 at another add up to a healthy-looking 16. Empty and negative stay apart — zero is a reorder, below zero is a stock take. Healthy branches fold and the rest cap at five worst-first. Thresholds summarise until you press Edit reorder points."
         >
           <Row label="Two branches disagree" align="start">
             <div className="w-full max-w-[560px]">
@@ -3132,7 +3132,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — nine branches (D5)"
-          description="The designs at the scale the PRD assumes. Three branches is the demo; nine is where the layouts fail, and the failure is the same one every time — most rows say nothing and the one that matters is below the fold. Both states are drawn so the decision can be made by looking: collapsed folds the branches that inherit everything into one line that names them, and expanded is the nine cards it replaces. Under four quiet branches nothing collapses, because folding three cards into a line you have to click is a worse screen than three cards. The switcher and the money roll-up are here at nine too. Neither had a height cap, because at three nothing needed one — the switcher’s branch list now scrolls on its own while All locations stays put, since a roll-up you have to scroll back up to reach is the row an owner uses most."
+          description="The designs at the scale the PRD assumes. Three branches is the demo; nine is where the layouts fail, the same way every time — most rows say nothing and the one that matters is below the fold. Both states are drawn so the call can be made by looking: collapsed folds the inheriting branches into one line that names them, expanded is the nine cards. Under four quiet branches nothing collapses. The switcher and the money roll-up are here at nine too."
         >
           <Row label="Per-branch pricing · collapsed" align="start">
             <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
@@ -3161,7 +3161,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — chain setup"
-          description="SCR-02 (R02, SU1.2). N branches in one pass, because growth must not be a second onboarding — BG-03 makes 'zero operator migration steps' a gate rather than a target. All or none: submit with one bad row and nothing is created, which is the whole point — a partial create leaves the owner unable to tell which of nine landed. Try two rows with the same name to see the link collision, or the existing 'Shampooch JVC' to see a taken slug. Isolated below, so creating here does not touch the app's own estate."
+          description="SCR-02 (R02, SU1.2). N branches in one pass, because growth must not be a second onboarding. All or none — submit with one bad row and nothing is created, since a partial create leaves the owner unable to tell which of nine landed. Try two rows with the same name for the link collision, or 'Shampooch JVC' for a taken slug. Isolated, so creating here does not touch the app's own estate."
         >
           <Row label="Add locations" align="start">
             <LocationsProvider persist={false}>
@@ -3171,7 +3171,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — branch access grants"
-          description="SCR-03 (R04, R24). Two independent axes: role capability is what, the location grant is where, and neither widens the other. Open the owner to see an untickable list — an owner holds every branch including ones added later, which is why that grant is stored as 'all' rather than as today's ids. Open Ahmed to see an empty grant said out loud: no access, never 'every branch'. The location permission list marks the four codes that do not exist yet — the product ships one venues:read that bundles viewing a branch with changing it."
+          description="SCR-03 (R04, R24). Two independent axes: role capability is what, the location grant is where, and neither widens the other. The owner's list is untickable — an owner holds every branch including ones added later, stored as 'all' rather than today's ids. Ahmed's empty grant is said out loud: no access, never 'every branch'. Four of the five location permission codes are marked Proposed."
         >
           <Row label="Open a member" align="start">
             <LocationsProvider persist={false}>
@@ -3181,7 +3181,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — a write names one branch"
-          description="G1 and R11 (SCR-05). Every operational write lands on exactly one branch and there is no default, ever — the PRD's release criterion says the default-branch fallback comes out of the repo rather than being flagged off, and the built calendar still derives one from 'the first venue of the first staff member who has one'. This control is the shape that replaces it, and it is three different sentences rather than one styled three ways: with one branch in scope it is resolved and stated, because a select with one option is a question with one answer; with several it is a required choice, which is the whole of 'all-locations is read only for creating'; with none it says no write is possible (R24). A paused branch is never a target — readable, and takes no new entries (R12) — but it is listed and badged rather than hidden. It used to be filtered out and explained in a footnote under the field: a rule stated before the operator had asked anything, about branches they could not see. Now it sits in the list where they are already looking, carrying the same Paused badge as everywhere else, and choosing it answers the question at the moment it is raised. The pick is held by the control and reported upward as nothing, so all six callers keep Save shut without knowing what a lifecycle is. It is now on the appointment sheet, which is the most-made write in the product and the one surface that never asked: Save stays disabled until the branch is named, and the service picker reads against it, marking a service the branch does not run and naming one that does (DW3.3). Pickable either way — reception is the person who can say 'not here, but Jumeirah does it', and hiding it leaves them to find that out by telephone. Same reading as KC1.5."
+          description="G1 and R11. Every operational write lands on exactly one branch, with no default — the PRD's release criterion takes that fallback out of the repo. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A paused branch is listed and badged rather than hidden (R12). Live on the appointment sheet, where Save waits for the branch and the service picker reads against it (DW3.3)."
         >
           <Row label="One branch in scope · resolved, not asked" align="start">
             <LocationsProvider
@@ -3235,7 +3235,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — client visits at another branch"
-          description="SCR-07 (R13, R18, G1). Millie: four visits and three sales across three branches. The read is never narrowed — franchise views are out of scope, so this is one business with one owner and one P&L, and reception cannot answer 'what did I pay last time' by telephoning the other branch. What a grant narrows is what you may *do*: open it as the owner and every visit carries its actions; open it as JVC reception and the Jumeirah visit still reads in full — price included — with its buttons replaced by the reason they are gone. Al Quoz is paused, so it takes no writes from anyone, owner included: the one state a grant cannot unlock. Overview gains 'Visits by branch', which is the thing the rows stop telling you once nine branches and a scroll are between them. The single-branch case — no branch anywhere on the screen, per PRD §12 — is the `spansBranches` rule, covered in lib/locations/visit-access.test.ts rather than here, because these fixtures always span."
+          description="SCR-07 (R13, R18, G1). Millie: four visits and three sales across three branches. The read is never narrowed — one business, one owner, one P&L. The grant narrows what you may DO: as the owner every visit carries its actions, as JVC reception the Jumeirah visit still reads in full, price included, with its buttons replaced by the reason. Al Quoz is paused, so it takes writes from nobody. Overview gains 'Visits by branch'."
         >
           <Row label="Owner · holds every branch" align="start">
             <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
@@ -3254,7 +3254,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — per-branch service pricing"
-          description="SCR-09 (R06, DW3.1–DW3.3). One service defined once, configured per branch. Type over a price to override that field; the marker under it says whose value it is, and Reset returns only that field to inheriting. Then press 'Raise the business default' — the inherited branches follow, the overridden field does not. That divergence is the requirement, and it only works because a branch stores what it deliberately differs on rather than a copy of everything."
+          description="SCR-09 (R06, DW3.1–DW3.3). One service defined once, configured per branch. Type over a price to override that field; the marker under it says whose value it is, and Reset returns only that field to inheriting. Then press 'Raise the business default' — the inherited branches follow, the overridden field does not. That divergence is the requirement."
         >
           <Row label="Locations section" align="start">
             <LocationsProvider persist={false}>
@@ -3264,7 +3264,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — public branch picker"
-          description="SCR-08 (R15, GB3.1). A chain's public page asks where before it shows anything branch-shaped, because it has N addresses, hours and menus rather than one. The branch's own link skips this entirely (GB3.2) — both paths bind the booking to one branch, and neither guesses. Entry order was left to design: location first, for the reasons in the component's own note. Only published branches are listed; the suspended one is absent rather than greyed out. 'Open now' is pinned to a Tuesday 11am here so the row is deterministic."
+          description="SCR-08 (R15, GB3.1). A chain's public page asks where before it shows anything branch-shaped, because it has N addresses, hours and menus rather than one. The branch's own link skips it (GB3.2), and neither path guesses. Only published branches are listed — the suspended one is absent rather than greyed out. 'Open now' is pinned to a Tuesday 11am so the row is deterministic."
         >
           <Row label="Chain page" align="start">
             <div className="w-full max-w-[560px]">
@@ -3278,7 +3278,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — branch WhatsApp numbers"
-          description="SCR-14 (R21, R22, KC2.2, KC2.4). WhatsApp is the front door, and per branch it becomes the thing that decides which branch a message belongs to — inbound resolves from the number it arrived on and never falls back. Three states seeded: JVC connected, Jumeirah stuck on the OTP (the step that needs a person standing in that branch), Al Quoz with no number at all, which says so in words because the consequence is no WhatsApp bookings here and nothing rerouted. Note the contrast with SMS: an unapproved sender ID falls back to CAMI on purpose, because a generic sender still reaches the right person — a wrong WhatsApp number reaches the wrong branch."
+          description="SCR-14 (R21, R22, KC2.2, KC2.4). Inbound resolves from the number it arrived on and never falls back, so per branch the number is what decides whose message it is. Three states: JVC connected, Jumeirah stuck on the OTP (the step that needs a person standing in that branch), Al Quoz with no number at all, which says so in words. Contrast SMS, where an unapproved sender ID falls back to CAMI — a generic sender still reaches the right person, a wrong WhatsApp number reaches the wrong branch."
         >
           <Row label="Numbers panel" align="start">
             <div className="w-full max-w-[640px]">
@@ -3290,7 +3290,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — money by branch"
-          description="SCR-15 (R09, R18, KH1.1–KH1.3). Side by side, never merged — KH1.1 says a single number destroys the job, because an owner asking how the day went is asking which branch had a bad one. The total sits after the rows and is labelled as their sum. The second frame is the same component for a manager granted only Jumeirah: one row, and a roll-up equal to it — their real number, not an error and not anyone else's (KH1.3). The bound is a grant, not a filter, so the wider result is never fetched (R18, KH1.2)."
+          description="SCR-15 (R09, R18, KH1.1–KH1.3). Side by side, never merged: an owner asking how the day went is asking which branch had a bad one. The total sits after the rows and is labelled as their sum. The second frame is the same component for a manager granted only Jumeirah — one row, roll-up equal to it, their real number rather than an error (KH1.3). The bound is a grant, not a filter, so the wider result is never fetched."
         >
           <Row label="Owner · all branches" align="start">
             <div className="w-full max-w-[560px]">
@@ -3322,7 +3322,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — cross-branch move"
-          description="SCR-06 (R07, R17, GB1.1–GB1.3). The one operation that touches both branches at once, and every way it fails is a way money or access fails. The destination list is bounded by grants, so a branch you cannot reach is never offered. Pick Jumeirah for the allowed case — the money panel says the deposit stays credited where it was taken while the work moves, because R17 records both and rewrites neither. Al Quoz is suspended, so it is refused as a destination (R12). The third frame has an unresolvable payment: the move is rejected whole and nothing changes, rather than losing the money's trail (GB1.3). Decision logic is unit-tested in lib/locations/cross-branch-move.test.ts."
+          description="SCR-06 (R07, R17, GB1.1–GB1.3). The one operation that touches both branches at once, and every way it fails is a way money or access fails. Destinations are bounded by grants. Pick Jumeirah for the allowed case — the deposit stays credited where it was taken while the work moves, because R17 records both and rewrites neither. Al Quoz is suspended and refused (R12). The third frame's payment cannot be resolved, so the move is rejected whole (GB1.3)."
         >
           <Row label="Deposit taken" align="start">
             <LocationsProvider persist={false}>
@@ -3342,7 +3342,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — all-branches calendar"
-          description="SCR-05 (R07, R11). 'Per-branch columns or filter, drill into one' — this is the filter half, and it is a filter on purpose: a day grid is already staff × time, so a third axis turns 11 columns into 99. Click a branch to narrow the day to it, click it again to go back to all. The counts are why it is a strip and not a dropdown: an owner opening the calendar across branches is asking which branch is busy. While more than one branch is in view the strip says a new booking needs one chosen first — R11's all-locations-is-read-only, said where someone would otherwise expect to drag one in."
+          description="SCR-05 (R07, R11). The filter half of 'per-branch columns or filter', and a filter on purpose: a day grid is already staff × time, so a third axis turns 11 columns into 99. Click a branch to narrow the day to it, click it again to go back. The counts are why it is a strip and not a dropdown — an owner opening the calendar across branches is asking which branch is busy. With more than one in view, a new booking needs one chosen first."
         >
           <Row label="Branch strip + day" align="start">
             <div className="w-full">
@@ -3354,7 +3354,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — package mismatch at checkout"
-          description="SCR-13 (R08, KC1.5). Corrected 2026-09-03 from Maaz's walkthrough of Chaps & Co's real Fresha account, and the earlier design had it backwards: gift cards and memberships travel across branches, packages do not — a package is sold against one specific priced service. The rule is warn, never block. Operators already work around a block by hand (a 100% discount, a gift-card credit), so blocking does not prevent the outcome, it makes reception do it slowly in front of the client. The warning carries both figures so they can decide there and then, and the choice is recorded on the sale — not out of suspicion, but so an owner reading a branch's numbers can see why a package redeemed below its value. The blueprint's §07 'can only be redeemed there' is the superseded version."
+          description="SCR-13 (R08, KC1.5), corrected 2026-09-03 off Chaps & Co's real Fresha account — the earlier design had it backwards. Gift cards and memberships travel across branches; a package is sold against one specific priced service and does not. Warn, never block: operators already work around a block by hand, so blocking does not prevent the outcome, it makes reception do it slowly in front of the client. Both figures are shown, and the choice is recorded on the sale."
         >
           {PACKAGE_MISMATCH_CASES.map((demo) => (
             <Row key={demo.label} label={demo.label} align="start">
@@ -3543,7 +3543,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Appointments — pickup & pet notes"
-          description="Pet-address capture on the staff sheet (<PickupFields>) and its read-only rendering on the calendar card. The tick is off by default and reuses the saved address when on; the field is the same map search as billing, so a picked place stores a pin and the line beneath says whether this one has it. Pet notes sit outside the tick — allergies and handling matter on every appointment. The card below is the ONE hover card (PRO-68's second click popover is gone): identity once, every service with its own performer and price, and the note rows. It now opens with the branch, on its own line above the client: the tile and this card carried none, so on 'All locations' the calendar said when and who and never where — and staff do not settle it, since Lena Petrov works JVC and Jumeirah both. BuildingIcon, the switcher's, not the pin: the pin is the pet's address further down this same card. Absent for a single-branch business (DW1.2), which the last row shows. See docs/specs/PRD-167-appointment-notes.md and address-search-field.md."
+          description="Pet-address capture on the staff sheet (<PickupFields>) and its read-only rendering on the calendar card. The field is the same map search as billing, so a picked place stores a pin and the line beneath says whether this one has it. Pet notes sit outside the tick — allergies and handling matter on every appointment. The card below is the ONE hover card: identity once, every service with its performer and price, the note rows, and the branch, because staff do not settle it — Lena Petrov works JVC and Jumeirah both."
         >
           <PickupFieldsStates />
           <Row label="Hover card — pinned address (Navigate)">
@@ -3571,7 +3571,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Client notes (Staff Alert)"
-          description="DZ-209 — three note kinds share these surfaces and telling them apart is the point: client notes travel with the person, the appointment note is the occasion, pet notes travel with the animal. The card is a PREVIEW, not the archive, and the bound is on the content (two notes at two lines, one note at one line on glance surfaces) so nothing is cut mid-glyph. Deliberately not an amber warning slab: ClientNote carries no severity, and that treatment marked every written-about client as a hazard. Karen Dougall's four notes on one afternoon are the case that forces per-note timestamps. See docs/specs/PRD-167-appointment-notes.md."
+          description="DZ-209 — three note kinds share these surfaces and telling them apart is the point: client notes travel with the person, the appointment note is the occasion, pet notes travel with the animal. The card is a PREVIEW, not the archive, and the bound is on the content (two notes at two lines) so nothing is cut mid-glyph. Deliberately not an amber warning slab — ClientNote carries no severity, and that treatment marked every written-about client as a hazard."
         >
           <Row label="Full (detail sheet) — heading outside, marker leading">
             <section className="flex w-full max-w-md flex-col gap-3">
@@ -3609,7 +3609,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Pet notes — structured categories"
-          description="Replaces the single free-text box. A blank box gets skipped or filled with prose nobody can filter on; tapping categories keeps it fast for the parent and gives groomers comparable data. Multi-select, and the specifics field is required once a chip is on — a selected chip with nothing typed is no better than the blank box it replaced, so it blocks Continue. 'Other' is a genuine fallback, not the default catch-all. Same component on the public booking flow and the staff appointment sheet."
+          description="Replaces the single free-text box, which gets skipped or filled with prose nobody can filter on. Multi-select chips keep it fast for the parent and give groomers comparable data; the specifics field is required once a chip is on, because a selected chip with nothing typed is no better than the blank box it replaced. 'Other' is a genuine fallback, not the default catch-all. Same component on the public flow and the staff sheet."
         >
           <Row label="Empty">
             <PetNotesFieldsDemo initial={[]} idPrefix="pg-notes-empty" />
@@ -3637,7 +3637,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Navigate to address"
-          description="The driver's half of PRD-144, used wherever a pet address is shown read-only. Opens Google Maps in directions mode rather than search mode: on a phone that hands off to the native app with the trip already loaded, one tap fewer than a pin you then press Directions on. Where the address was picked from the map search it routes to the stored coordinates; where it was typed it falls back to a text query and says 'Search in Maps' instead of 'Navigate', because a text query that lands on the wrong side of a villa cluster should not look like a promise. Two renderings — compact for the calendar popover, default for the detail sheet — and it renders nothing at all when there is no address."
+          description="The driver's half of PRD-144, wherever a pet address is shown read-only. Opens Google Maps in directions mode rather than search mode: on a phone that hands off to the native app with the trip already loaded. A picked address routes to its stored coordinates; a typed one falls back to a text query and says 'Search in Maps' instead of 'Navigate', because a query that lands on the wrong side of a villa cluster should not look like a promise."
         >
           <Row label="Pinned — routes to coordinates">
             <NavigateToAddress
@@ -3746,7 +3746,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Combos across surfaces"
-          description="PRD-143 — a combo is a bundle sold as one catalog entry. Where it is still being CHOSEN the row carries a Combo badge (layers icon) and a bundled-services count; once PICKED it stops being one row and becomes its component services, each named 'Combo - Service', led by the glyph, with the standalone price struck through. The POS cart footer states the saving as a Bundle discount rather than subtracting it twice. Rules and decisions: docs/specs/catalogs-service-menu-combo.md."
+          description="PRD-143 — a combo is a bundle sold as one catalog entry. While it is being CHOSEN the row carries a Combo badge and a bundled-services count; once PICKED it becomes its component services, each named 'Combo - Service' with the standalone price struck through. The cart footer states the saving as a Bundle discount rather than subtracting it twice. docs/specs/catalogs-service-menu-combo.md."
         >
           <Row label="Appointment service picker (clipped to 520px)" align="start">
             <div className="h-130 w-full max-w-md overflow-hidden rounded-2xl border border-border/60">
@@ -3803,7 +3803,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="New sale — Payment link (self checkout)"
-          description="The operator half of CamiPay (PRO-396, reworked in PRO-909). From the Payment step, 'Payment link' texts the client a secure link; they pay on their own phone at /[slug]/pay/[token]. Sending the link creates a draft sale and locks the cart — amount and method are frozen so the link and the sale can't drift apart — so the drawer body is replaced by the lock screen rather than narrating progress the operator can't act on. Links live 12 hours. Cancel invalidates the link (never edits it) and hands off to the draft sale it created; Checkout on that draft resumes the journey at Tip. Mark as paid is the manual settle path."
+          description="The operator half of CamiPay (PRO-396, reworked in PRO-909). 'Payment link' texts the client a link they pay on their own phone. Sending it creates a draft sale and locks the cart — amount and method frozen so the link and the sale cannot drift apart — so the drawer body becomes the lock screen rather than narrating progress the operator cannot act on. Links live 12 hours. Cancel invalidates the link and hands off to the draft it created; Mark as paid is the manual settle path."
         >
           <Row label="Payment step — method grid">
             <div className="w-full max-w-xl">
@@ -3832,7 +3832,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="New sale — POS Terminal (card present)"
-          description="The card-present adoption of PRO-909's locked cart: once a sale is sent to a machine the drawer body is replaced, so the operator cannot re-charge it or discard a sale that already took the money. Mark as paid stands in for the terminal callback; Collect another way is the only exit and keeps the cart. The tile lists the merchant's machines and lets only a signed-in one be picked, each other state carrying its reason. See docs/specs/terminal-checkout-locked-cart.md."
+          description="The card-present adoption of PRO-909's locked cart: once a sale is sent to a machine the drawer body is replaced, so the operator cannot re-charge it or discard a sale that already took the money. Mark as paid stands in for the terminal callback; Collect another way is the only exit and keeps the cart. Only a signed-in machine can be picked, and every other state carries its reason."
         >
           <Row label="Payment step — two machines, one tile each">
             <div className="w-full max-w-xl">
@@ -3897,7 +3897,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Payment policy — deposit & no-show config"
-          description="Payment policy (DSG-51) inside the Settings dialog (?settings=payments). Summary panel → policy editor takeover (?pp=edit), with the Customize-by-service table (?pp=services) and the client-facing terms editor (?pp=terms). Configured policy drives the Payment policy card in the appointment sheet: deposit amount from percent/fixed default + per-service overrides, hidden entirely when no policy is set. Shown here: the shared percent/AED amount input and the auto-generated client-facing example line."
+          description="Payment policy (DSG-51) inside the Settings dialog (?settings=payments). Summary panel → policy editor takeover, with the customise-by-service table and the client-facing terms editor. The configured policy drives the appointment sheet's Payment policy card — deposit from the percent/fixed default plus per-service overrides, hidden entirely when no policy is set. Shown here: the shared percent/AED input and the generated example line."
         >
           <Row label="Amount input — percent mode (deposit default)">
             <AmountInputDemo initial={{ mode: "percent", value: 25 }} />
@@ -3926,7 +3926,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Terminals (DSG-62)"
-          description="Per-device terminals: each unit registers itself with its own code and PIN, and a session is time-boxed — the superseded model shared one merchant PIN, so removing a terminal signed out every location. Rows lead with the device name, carry the session state, and the menu offers only what that state allows. The faint demo controls walk one unit through Not paired → No sessions → Active. See docs/specs/DSG-62-terminal-registration.md."
+          description="Per-device terminals: each unit registers with its own code and PIN, and a session is time-boxed. The superseded model shared one merchant PIN, so removing a terminal signed out every location. Rows lead with the device name, carry the session state, and the menu offers only what that state allows. The faint demo controls walk one unit through Not paired → No sessions → Active."
         >
           <Row label="Empty (nothing added yet)">
             <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
@@ -3957,7 +3957,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Notifications settings"
-          description="Three cards: Sender ID (the registered value, with 'Customers currently see CAMI' only when the two differ, and Edit disabled while a registration is pending), Reminders (6 events × 3 channels with per-message rates, event labels linking into their template editor, stacking into per-event blocks below sm), and Usage this month (share-of-cost meter, straight-line month-end estimate, totals from a period aggregate rather than the paginated log). Three faint demo controls bottom-right walk the Sender ID states and the WhatsApp grant. See docs/specs/notifications-sender-id-and-rates.md."
+          description="Three cards: Sender ID (with 'Customers currently see CAMI' only when the two differ, and Edit disabled while a registration is pending), Reminders (6 events × 3 channels with per-message rates, event labels linking into their template editor), and Usage this month (share-of-cost meter and a month-end estimate off a period aggregate rather than the paginated log). Three faint demo controls walk the Sender ID states and the WhatsApp grant."
         >
           <Row label="Live (Settings + Log tabs)">
             <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
@@ -3972,7 +3972,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Communication templates"
-          description="DSG-83 — Notifications decides whether an event sends, this decides its wording, so there is no send toggle here. Per-channel tabs over one card of 6 rows keyed on the same event list the Reminders matrix uses. The editor is form left, sticky preview right, with clickable {{placeholder}} chips; an unknown token sends as written rather than being blanked, because a typo has to be visible here and not in a customer's inbox. {{cardLink}} is the newest chip — the customer-card link the Client Card brief wants in every message, line-scoped like the review link so a venue without a card takes the whole line rather than leaving a dangling label. See docs/specs/DSG-83-communication-templates.md."
+          description="DSG-83 — Notifications decides whether an event sends, this decides its wording, so there is no send toggle here. Per-channel tabs over one card of 6 rows, keyed on the same event list the Reminders matrix uses. The editor is form left, sticky preview right, with clickable {{placeholder}} chips; an unknown token sends as written, because a typo has to be visible here and not in a customer's inbox. {{cardLink}} is line-scoped like the review link, so a venue without a card drops the whole line."
         >
           <Row label="Live (Email + WhatsApp tabs)">
             <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
@@ -3987,7 +3987,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Google review link (PRD-168)"
-          description="One merchant-level link, and the validation that decides whether the feature works at all. A Google Business Profile URL and a Google *review* URL are different things: the first drops the customer on the listing to hunt for “Write a review”, the second opens the review box. PILOT-30 exists because the previous tool got this wrong and the merchant lost ~50 reviews without noticing. A listing URL therefore saves with a warning rather than being rejected — better than an empty field — and anything non-Google is refused. When nothing is set the review line drops out of the Thank You message entirely instead of sending a dangling label, which is what DZ-263 reported. See docs/specs/PRD-168-google-business-profile.md."
+          description="PRD-168. A Google Business Profile URL and a Google review URL are different things: the first drops the customer on the listing to hunt for 'Write a review', the second opens the review box. PILOT-30 exists because the previous tool got that wrong and the merchant lost ~50 reviews without noticing. So a listing URL saves with a warning rather than being rejected, and anything non-Google is refused. With nothing set, the review line drops out of the Thank You message (DZ-263)."
         >
           <Row label="Field — live (writes the shared setting)">
             <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-6">
@@ -4037,7 +4037,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Money — bank account (DSG-75)"
-          description="The one control that can redirect every dirham the business takes, so changing it is a multi-step flow and never an inline edit. The reference version is a masked account and an Edit button; this one adds a verification state, both senders shown against the single account they pay into, and a permanent change log that keeps failed attempts. The state worth clicking is the gateway failure — it must leave the old account untouched and say so."
+          description="The one control that can redirect every dirham the business takes, so changing it is a multi-step flow and never an inline edit. The reference version is a masked account and an Edit button; this adds a verification state, both senders shown against the single account they pay into, and a change log that keeps failed attempts. The state worth clicking is the gateway failure — it must leave the old account untouched and say so."
         >
           <Row label="Verified">
             <BankAccountDemo state="verified" />
@@ -4057,7 +4057,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Money — invoices and fees (DSG-76)"
-          description="What Cami charged, per period, with the current month pending. Cami's statement is a different document from the benchmark's: no subscription line (the OS is free), the rate stated on the screen rather than only inside a download, and every fee expandable to the sale that caused it with the working shown. Each line renders the rate snapshotted at capture, so a past statement never re-rates after a renegotiation."
+          description="What Cami charged, per period, with the current month pending. Cami's statement is a different document from the benchmark's: no subscription line (the OS is free), the rate stated on screen rather than only inside a download, and every fee expandable to the sale that caused it. Each line renders the rate snapshotted at capture, so a past statement never re-rates after a renegotiation."
         >
           <Row label="NeoPay deducts">
             <MoneyFeesDemo terminalModel="gateway-deducts" />
@@ -4074,7 +4074,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Money — billing details (DSG-74)"
-          description="Four values, held once, printed on every tax invoice the merchant sends and every invoice Cami sends them. Missing fields collapse into an Add pill rather than a blank row, and the no-TRN state names its consequence: ordinary invoices with no tax wording. Edit opens the standard takeover, which says changes apply forward only, and takes the registered address through the address search field below rather than a free-text box."
+          description="Four values, held once, printed on every tax invoice the merchant sends and every invoice Cami sends them. Missing fields collapse into an Add pill rather than a blank row, and the no-TRN state names its consequence: ordinary invoices with no tax wording. Edit says changes apply forward only, and takes the registered address through the address search field rather than a free-text box."
         >
           <Row label="Complete">
             <BillingDetailsDemo state="complete" />
@@ -4088,7 +4088,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="CamiPay fee breakdown — Partner side"
-          description="PRO-737. What the Partner sees on their own sale detail (/sales/sales-list, open a sale paid by CamiPay). Sale amount → Cami fee → Net, with the calculation spelled out under the fee so the number is never a black box. The gateway's processing fee is deliberately absent: the Partner pays Cami's fee and nothing else. The rate is snapshotted onto the payment at capture, so a later rate change never restates it."
+          description="PRO-737. What the Partner sees on their own sale detail (/sales/sales-list, open a sale paid by CamiPay): Sale amount → Cami fee → Net, with the calculation spelled out under the fee so the number is never a black box. The gateway's processing fee is deliberately absent — the Partner pays Cami's fee and nothing else. The rate is snapshotted at capture, so a later change never restates it."
         >
           <Row label="Percentage only">
             <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
@@ -4134,7 +4134,7 @@ export function PlaygroundShowcase() {
         <Section
           lazy
           title="Invoice document — A4 downloadable"
-          description="DSG-72. One component renders the PDF download, the email attachment and the unique invoice link, so field order is identical across the three by construction. Paper, not app chrome: it stays white-with-dark-ink in dark mode and carries no badge chips — payment state is carried by the numbers (Balance), and only Refunded and Voided get a line of prose under the document date. Previews are scaled to 34%; open /sales/invoice-document?state=<id> for full size and the Print action."
+          description="DSG-72. One component renders the PDF download, the email attachment and the unique invoice link, so field order is identical across the three by construction. Paper, not app chrome: white-with-dark-ink in dark mode and no badge chips — payment state is carried by the Balance, and only Refunded and Voided get a line of prose. Previews scale to 34%; open /sales/invoice-document?state=<id> for full size."
         >
           <Row label="Status — carried by the numbers, no chips">
             <InvoicePreview
@@ -4250,7 +4250,7 @@ export function PlaygroundShowcase() {
         <Section
           lazy
           title="Product import — review states (DSG-80)"
-          description="The redesigned bulk-import review. Aya's migration from the Slack thread is the reference case: 100 rows, 83 added, 17 blocked for a missing SKU. The complaint was that those 17 rows shared one cause and the shipped UI made you expand each one to find it, so causes are now grouped and stated once and the table's last column says what happens in words rather than counting errors. Every frame reads the real mock payload; compare against what ships today at /products/import via the compare bar."
+          description="The redesigned bulk-import review. Aya's migration from the Slack thread is the reference case: 100 rows, 83 added, 17 blocked for a missing SKU. The complaint was that those 17 shared one cause and the shipped UI made you expand each row to find it — so causes are grouped and stated once, and the last column says what happens in words rather than counting errors. Compare with what ships today via the compare bar."
         >
           <Row label="Grouped causes" align="start">
             <IssueSummaryDemo
@@ -4368,7 +4368,7 @@ export function PlaygroundShowcase() {
         <Section
           lazy
           title="Clients and pets import — review states (DSG-84)"
-          description="The same wizard on the other two entities. Production serves all three from one component set, so these screens are the product import's parts with different counts: one CountLedger, one IssueSummary, one LookupsPanel, one OutcomePanel, and every string from lib/imports/copy.ts. What is genuinely specific is name matching — a row matched on first name alone, which products have no equivalent of — and a pet row, which carries an owner and a pet with separate outcomes. Both reference cases come from the #ui threads: Aya's 100-row client file and Maaz's 873-row pet file. Compare at /clients/import."
+          description="The same wizard on the other two entities. Production serves all three from one component set, so these are the product import's parts with different counts. What is genuinely specific: name matching — a row matched on first name alone, which products have no equivalent of — and a pet row, which carries an owner and a pet with separate outcomes. The reference cases are Aya's 100-row client file and Maaz's 873-row pet file. Compare at /clients/import."
         >
           <Row label="Row anatomy" align="start">
             <ClientRowDemo
@@ -4587,7 +4587,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Customer card — per-venue theming"
-          description="Task 2 + 3 of the Client Card brief. The same client record, faced at the customer: wallet (gift card / package / membership), loyalty balance with distance to the next reward, the next appointment, and staff-maintained preferences marked as such — then one path back to booking. Drawn from the same client row the operator dialog renders — one record, two faces, which is what the brief's side-by-side is a test for. The operator half leads with client notes, the same ones the calendar previews. Everything reception-only (no-shows, lifetime sales, source, tags, internal notes) is excluded where the view is built, so it cannot leak onto this face by a careless prop spread. Theming is settled: a venue picks one of five palettes and typography stays Cami's Manrope, because merchant fonts cost a licence, a load and a rendering difference per merchant forever. The previews below therefore read as five versions of one card rather than five brands — that is the shape of the trade, not a gap left to close. Behind the card sits the venue's own cover photo, blurred and scrimmed in the palette's shell colour; a venue with no photo keeps the flat ground. The empty card teaches the difference between the two kinds of nothing: the wallet keeps its outline because Purr Palace sells packages and this client has none, while loyalty is absent entirely because that venue runs no programme — gone reads as 'this venue doesn't show you that', which is the wrong sentence for an empty balance. Live at /sota/card; the door in from a message is /sota/card/[token]."
+          description="Task 2 + 3 of the Client Card brief, drawn from the same client row the operator dialog renders — one record, two faces. Wallet, loyalty, next appointment, staff-maintained preferences, and one path back to booking. Reception-only fields are excluded where the view is built, so they cannot leak by a careless prop spread. Theming is five palettes and Cami's Manrope throughout. The empty card teaches the two kinds of nothing: an outlined wallet with none yet, against a loyalty section absent because that venue runs no programme. Live at /sota/card."
           lazy
         >
           <Row label="Themes">
@@ -4621,7 +4621,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Client card — the two faces"
-          description="The brief's own side-by-side, runnable. Both halves are drawn from one client row (Maaz Shaffi) by the same resolver: identity, wallet, last/next appointment and preferences appear on both, and nothing about the layout, type or colour crosses between them. That is the test the brief sets for whether the record is venue-agnostic before Tech commits to a schema — and the asymmetries it caught are why preferences now exist on the operator side at all, and why gift card and membership stopped being visible to the customer but not to their own salon. Reception-only fields (no-shows, lifetime sales, source, tags, internal notes) are excluded where the customer view is built, not by remembering."
+          description="The brief's own side-by-side, runnable. Both halves come from one client row (Maaz Shaffi) through the same resolver: identity, wallet, last/next appointment and preferences appear on both, and nothing about the layout, type or colour crosses between them. That is the test for whether the record is venue-agnostic before Tech commits to a schema, and the asymmetries it caught are why preferences exist on the operator side at all."
           lazy
         >
           <Row label="One record" align="start">
@@ -4632,7 +4632,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Client card — message to card"
-          description="The brief's page 6, runnable: trigger → message → branded login → their card. Each of the four works on its own; four working screens is not the same as a journey that works. Two things this is for. The venue's mark now appears in panel 2 and carries through 3 and 4 unbroken — before, the message was a grey notification from nobody and the branded page was the first branded thing a customer met, one tap too late. And panel 3 is the only place the customer is told the link is personal while panel 4 is everything that link exposes: seeing them adjacent is the honest way to judge the token-as-credential trade."
+          description="The brief's page 6, runnable: trigger → message → branded login → their card. Four working screens is not the same as a journey that works. The venue's mark now appears in panel 2 and carries through unbroken — before, the message was a grey notification from nobody and the branded page was the first branded thing a customer met, one tap too late. Panel 3 tells the customer the link is personal; panel 4 is everything that link exposes."
           lazy
         >
           <Row label="End to end" align="start">
@@ -4645,7 +4645,7 @@ export function PlaygroundShowcase() {
       <Lane id="hq" label="Cami HQ" blurb="Our own control plane over Partners.">
         <Section
           title="Cami HQ — CamiPay settlement config"
-          description="PRO-737. The Settings tab of the HQ Partner detail dialog (/admin/businesses?business=…). One card, one section per rail: whether it is on, where it routes, and what Cami charges on it. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off (Shampooch Online, Pawhaus Online). Rates are append-only, so the only write is Change, which adds a row with an effective-from date; past rows have no edit or delete affordance on purpose. A live rail with no rate row earns Cami nothing and says so (Doggos Online). The switch and gateway are gated by billing.camipay.rails.edit, Change by billing.camipay.rates.edit, separately. One store is shared across the rows below, so a change made in one row shows up in the others."
+          description="PRO-737. The Settings tab of the HQ Partner detail dialog: one card, one section per rail — whether it is on, where it routes, and what Cami charges. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off. Rates are append-only, so the only write is Change, which adds a row with an effective-from date. A live rail with no rate row earns Cami nothing and says so."
         >
           <CamiPayProvider>
             <Row label="Live Partner, full edit rights">
@@ -4667,7 +4667,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Cami HQ — terminal fleet, Partner card"
-          description="DSG-82 — Cami owns the machines and leases them, so a terminal is an asset HQ assigns, not a device a merchant registered. Rows lead with the serial (what is printed on the box and quoted in a ticket); Return to Cami is the destructive item, not Block, because a block is undone from the same menu. The access switch writes the same rails.terminal.enabled flag as CamiPay Terminal. One store across the rows, so an assignment in one shows in the others. See docs/specs/DSG-82-hq-terminal-management.md."
+          description="DSG-82 — Cami owns the machines and leases them, so a terminal is an asset HQ assigns, not a device a merchant registered. Rows lead with the serial, which is what is printed on the box and quoted in a ticket. Return to Cami is the destructive item, not Block, because a block is undone from the same menu. The access switch writes the same rails.terminal.enabled flag as CamiPay Terminal."
         >
           <HqTerminalsProvider>
             <CamiPayProvider>
@@ -4701,7 +4701,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Terminal status — one vocabulary, two surfaces"
-          description="DSG-82. The fleet table and the Partner card read from components/blocks/hq-terminal-status.tsx so they cannot drift. The first three are fleet states only HQ sees; Not set up, Locked, Active and No sessions are the merchant's own words from DSG-62, so HQ and the merchant looking at one device read the same status. Order is first-match-wins: where the unit physically is, then whether HQ stopped it, then what the device is doing."
+          description="DSG-82. The fleet table and the Partner card both read components/blocks/hq-terminal-status.tsx, so they cannot drift. The first three are fleet states only HQ sees; Not set up, Locked, Active and No sessions are the merchant's own words from DSG-62. Order is first-match-wins: where the unit physically is, then whether HQ stopped it, then what the device is doing."
         >
           {(
             [
@@ -4722,7 +4722,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Partner code — CM-####"
-          description="DSG-82. The identifier a human says out loud. `id` (biz_shampooch) is internal and never rendered; the slug is public and changeable from the General tab; this one is issued at creation and immutable, which is why there is no edit affordance anywhere. Chip variant on the detail modal header and the Terminals card, click to copy; inline variant in dense listing rows, where a button per row would be twelve buttons nobody asked for."
+          description="DSG-82. The identifier a human says out loud. `id` is internal and never rendered, the slug is public and changeable, and this one is issued at creation and immutable — which is why there is no edit affordance anywhere. Chip variant on the detail header and the Terminals card, click to copy; inline variant in dense listing rows, where a button per row would be twelve buttons nobody asked for."
         >
           <Row label="Chip — click to copy">
             <MerchantCode code="CM-4821" />
@@ -4735,7 +4735,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Notifications, Cami HQ control plane"
-          description="The HQ half of the same store the merchant panel reads: Sender ID registrations to approve or reject, per-Partner channel grants, and rate overrides against the global rate card. Four Partners cover the states — Shampooch (approved, negotiated override), Pawhaus (pending), Doggos (rejected, SMS off), Furry Tales (no config, so every global default applies). See docs/specs/notifications-sender-id-and-rates.md."
+          description="The HQ half of the same store the merchant panel reads: Sender ID registrations to approve or reject, per-Partner channel grants, and rate overrides against the global rate card. Four Partners cover the states — Shampooch approved with a negotiated override, Pawhaus pending, Doggos rejected with SMS off, Furry Tales with no config at all."
         >
           <Row label="Approved Sender ID, global rates (Shampooch)">
             <div className="w-full max-w-2xl">
