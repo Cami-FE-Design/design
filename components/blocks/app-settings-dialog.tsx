@@ -4,6 +4,7 @@ import {
   BellIcon,
   Building2Icon,
   ChevronLeftIcon,
+  CirclePercentIcon,
   CreditCardIcon,
   FolderIcon,
   GlobeIcon,
@@ -22,6 +23,7 @@ import { useEffect, useState } from "react"
 import { BusinessProfileForm } from "@/components/blocks/business-profile-form"
 import { CommsTemplatesPanel } from "@/components/blocks/comms-templates-panel"
 import { CustomerCardSettingsPanel } from "@/components/blocks/customer-card-settings-panel"
+import { DealsPage } from "@/components/blocks/deals/deals-page"
 import { FilesSection } from "@/components/blocks/documents-files-card"
 import { LocationForm } from "@/components/blocks/location-form"
 import { BillingSettingsPanel } from "@/components/blocks/money/billing-settings-panel"
@@ -105,6 +107,19 @@ const GROUPS: SettingsGroup[] = [
         label: "Sales",
         description: "Gift cards for checkout.",
         icon: TagIcon,
+      },
+    ],
+  },
+  // Where the dev repo mounts it (`AppSettingsDialog`, groups.marketing): a
+  // settings tab, not a Catalogs route.
+  {
+    label: "Marketing",
+    items: [
+      {
+        id: "deals",
+        label: "Deals",
+        description: "Set up and manage the deals you offer to your clients.",
+        icon: CirclePercentIcon,
       },
     ],
   },
@@ -303,14 +318,22 @@ export function AppSettingsDialog({
           </DialogClose>
 
           {/* Padding and top offset live here; the scrolling belongs to the
-              panel, which pins its own header (settings-panel.tsx). */}
-          <div className="flex min-h-0 flex-1 flex-col px-6 pt-9 max-lg:pt-14 lg:px-10">
+              panel, which pins its own header (settings-panel.tsx). Deals
+              carries its own padding, as it does in the dev repo, because its
+              detail view runs a full-bleed header rule. */}
+          <div
+            className={cn(
+              "flex min-h-0 flex-1 flex-col",
+              active.id === "deals" ? "" : "px-6 pt-9 max-lg:pt-14 lg:px-10",
+            )}
+          >
             {active.id === "profile" ? <MyProfilePanel /> : null}
             {active.id === "business-details" ? <BusinessProfilePanel /> : null}
             {active.id === "locations" ? <LocationsPanel /> : null}
             {active.id === "language" ? <LanguagePanel /> : null}
             {active.id === "forms" ? <FilesPanel /> : null}
             {active.id === "sales" ? <SalesSettings /> : null}
+            {active.id === "deals" ? <DealsPage /> : null}
             {active.id === "payments" ? <PaymentsSettingsPanel /> : null}
             {active.id === "billing" ? <BillingSettingsPanel /> : null}
             {active.id === "notifications" ? <NotificationsSettingsPanel /> : null}

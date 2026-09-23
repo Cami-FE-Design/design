@@ -1,62 +1,51 @@
 "use client"
 
 /**
- * The deal wizard (DW3.4, R04, R11, R18, R24).
+ * The deal wizard — `DealWizardDialog` and `DealSuccessStep` on the dev repo's
+ * `promotion-discount-ui`: a full-viewport takeover, a sticky header with Back,
+ * Close and Continue over a progress bar, and a confirmation on create.
  *
- * A full-viewport takeover with a progress bar, as `DealWizardDialog` on the
- * dev repo's `promotion-discount-ui` does it — the same header column width, so
- * Close and Continue line up with the step content beneath them.
- *
- * Five steps here against its four: **locations** is added, and it is the whole
- * of PRD-169 on this screen. The built wizard creates every deal with
- * `locationIds: []`, which its own mapper reads as every venue — so a
- * chain-wide offer and a deal nobody scoped save as the same row, and the
- * Availability tab can only ever say "All locations".
+ * The built flow is details → limits. **Locations** follows as a third step
+ * (DW3.4, R24), and the confirmation gains the line it has no answer for.
  */
 
 import { ArrowLeftIcon, CheckIcon, CopyIcon } from "lucide-react"
-import type * as React from "react"
+import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 import {
   DealDetailsStep,
   DealLimitsStep,
   DealLocationsStep,
-  DealTeamStep,
-  DealTypeStep,
 } from "@/components/blocks/deals/deal-wizard-steps"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { describeLimits } from "@/lib/deals/limits"
+import { DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import {
   type Deal,
   formatApplicabilitySummary,
   formatDateRange,
   formatDiscountValue,
+  formatLocations,
 } from "@/lib/deals/mock"
 import {
   createEmptyDealDraft,
   DEAL_WIZARD_STEPS,
   type DealWizardDraft,
-  type DealWizardStepId,
   dealToWizardDraft,
   draftToDeal,
   stepBlocker,
 } from "@/lib/deals/wizard"
-import { describeScope, reaches } from "@/lib/locations/promotion-scope"
 import { useLocations } from "@/lib/locations/store"
-import { TEAM_MEMBERS } from "@/lib/team/mock"
 import { cn } from "@/lib/utils"
 
-const STEP_LABEL: Record<DealWizardStepId, string> = {
-  type: "Type",
-  details: "Details",
-  limits: "Limits",
-  locations: "Locations",
-  team: "Team",
-}
+const fullScreenDialogClass =
+  "fixed! inset-0! top-0! left-0! z-50! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! flex-col gap-0 border-0! bg-background! p-0 shadow-none!"
 
-/** Label-left, value-right — the confirmation card's row. */
+// Column width the header row and body share, so Close/Continue and the
+// progress bar line up with the step content below them.
+const columnClass = "w-full max-w-160"
+
 function SummaryRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-6">
@@ -68,19 +57,29 @@ function SummaryRow({ label, children }: { label: string; children: React.ReactN
 
 function DealSuccessStep({ deal, onDone }: { deal: Deal; onDone: () => void }) {
   const [copied, setCopied] = useState(false)
-  const { locationName, granted } = useLocations()
-  const limits = describeLimits(deal)
+  const { locationName } = useLocations()
+
+  function copyCode() {
+    if (!deal.discountCode) return
+    navigator.clipboard?.writeText(deal.discountCode)
+    setCopied(true)
+    toast.success("Discount code copied")
+    setTimeout(() => setCopied(false), 1500)
+  }
 
   return (
-    <div className="mx-auto flex w-full max-w-105 flex-col items-center gap-6 py-4 text-center">
+    <div className="mx-auto flex w-full max-w-105 flex-col items-center gap-8 py-6 text-center">
       <div className="flex flex-col items-center gap-4">
         <div className="flex size-14 items-center justify-center rounded-full bg-cami-green-3">
           <CheckIcon className="size-7 text-cami-green-11" strokeWidth={2.5} />
         </div>
         <div className="flex flex-col gap-2">
-          <h2 className="font-heading font-semibold text-2xl text-foreground">Your deal is set</h2>
+          <h1 className="font-heading font-semibold text-2xl text-foreground">
+            Your promotion is set!
+          </h1>
           <p className="mx-auto max-w-sm text-muted-foreground text-sm">
-            It will be applied to bookings and sales within its dates.
+            Your promotion has been created and will be applied to bookings and sales within its
+            dates.
           </p>
         </div>
       </div>
@@ -92,16 +91,10 @@ function DealSuccessStep({ deal, onDone }: { deal: Deal; onDone: () => void }) {
           {formatDateRange(deal.startDate, deal.endDate)}
           {!deal.endDate ? " onwards" : ""}
         </SummaryRow>
-        {/* The line the built confirmation cannot print, because it has no
-            answer to give: every deal it creates is chain-wide by omission. */}
-        <SummaryRow label="Runs at">
-          {describeScope(deal.scope, locationName)}
-          {deal.scope.kind === "estate" ? ` · ${reaches(deal.scope, granted).length} today` : ""}
-        </SummaryRow>
+        <SummaryRow label="Locations">{formatLocations(deal.scope, locationName)}</SummaryRow>
         <SummaryRow label="Redeem at">
-          {deal.enableAtPointOfSale ? "Point of Sale and online" : "Online only"}
+          {deal.enableAtPointOfSale ? "Point of Sale" : "Online only"}
         </SummaryRow>
-        {limits.length > 0 ? <SummaryRow label="Limits">{limits.join(" · ")}</SummaryRow> : null}
         {deal.discountCode ? (
           <SummaryRow label="Discount code">{deal.discountCode}</SummaryRow>
         ) : null}
@@ -118,11 +111,7 @@ function DealSuccessStep({ deal, onDone }: { deal: Deal; onDone: () => void }) {
             size="lg"
             radius="full"
             className="w-full"
-            onClick={() => {
-              navigator.clipboard?.writeText(deal.discountCode)
-              setCopied(true)
-              setTimeout(() => setCopied(false), 1500)
-            }}
+            onClick={copyCode}
           >
             {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
             {copied ? "Copied" : "Copy code"}
@@ -142,30 +131,45 @@ export function DealWizardDialog({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  /** `null` creates one; a deal opens the wizard prefilled and saves in place. */
-  dealToEdit: Deal | null
+  /** Unset creates one; a deal opens the wizard prefilled and saves in place. */
+  dealToEdit?: Deal
   todayIso: string
   onSave: (deal: Deal) => void
 }) {
-  const isEdit = dealToEdit !== null
+  const isEditMode = !!dealToEdit
   const [stepIndex, setStepIndex] = useState(0)
   const [created, setCreated] = useState<Deal | null>(null)
   const [draft, setDraft] = useState<DealWizardDraft>(() => createEmptyDealDraft(todayIso))
-  const { granted } = useLocations()
+  const { granted, grants } = useLocations()
 
-  // Re-derive fresh on every open — from the deal being edited, or blank.
-  // Covers switching between create and edit, and editing a different deal on
-  // a later open.
+  // Re-derive the draft fresh every time the dialog opens — from the deal
+  // being edited, or blank for a new one.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `granted` derives from `grants`; keying on it would re-seed a draft mid-edit
   useEffect(() => {
     if (!open) return
     setStepIndex(0)
     setCreated(null)
-    setDraft(dealToEdit ? dealToWizardDraft(dealToEdit) : createEmptyDealDraft(todayIso))
-  }, [open, dealToEdit, todayIso])
+    if (dealToEdit) {
+      setDraft(dealToWizardDraft(dealToEdit))
+      return
+    }
+    const blank = createEmptyDealDraft(todayIso)
+    // A manager cannot run a deal chain-wide (R04), so theirs starts on the
+    // branches they hold rather than on the estate.
+    setDraft(
+      grants === "all"
+        ? blank
+        : { ...blank, scope: { kind: "branches", locationIds: granted.map((l) => l.id) } },
+    )
+  }, [open, dealToEdit, todayIso, grants])
 
   const step = DEAL_WIZARD_STEPS[stepIndex] ?? "details"
   const isLast = stepIndex === DEAL_WIZARD_STEPS.length - 1
-  const blocker = stepBlocker(step, draft)
+  // The last step re-checks every earlier one too — editing seeds the draft
+  // from data that never passed through this wizard's own gate.
+  const canContinue = DEAL_WIZARD_STEPS.slice(0, stepIndex + 1).every(
+    (s) => stepBlocker(s, draft) === null,
+  )
 
   function back() {
     if (stepIndex === 0) onOpenChange(false)
@@ -173,33 +177,33 @@ export function DealWizardDialog({
   }
 
   function next() {
-    if (blocker) return
+    if (!canContinue) return
     if (!isLast) {
       setStepIndex((i) => i + 1)
       return
     }
-    const deal = draftToDeal(draft, todayIso, dealToEdit ?? undefined)
+    const deal = draftToDeal(draft, todayIso, dealToEdit)
     onSave(deal)
-    // Editing closes on save — the reader came from a row they can see change.
-    // Creating shows the confirmation, because a new deal has a code to copy
-    // and a reach worth stating before it disappears into a list.
-    if (isEdit) onOpenChange(false)
-    else setCreated(deal)
+    if (isEditMode) {
+      toast.success("Deal updated")
+      onOpenChange(false)
+    } else {
+      toast.success("Promotion created")
+      setCreated(deal)
+    }
   }
 
-  const reach = draft.scope.kind === "branches" ? draft.scope.locationIds : granted.map((l) => l.id)
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!fixed !inset-0 !top-0 !left-0 !h-dvh !max-h-none !w-screen !max-w-none !translate-x-0 !translate-y-0 !rounded-none !border-0 !bg-background !shadow-none z-50 flex flex-col gap-0 p-0 sm:!max-w-none">
-        <DialogTitle className="sr-only">{isEdit ? "Edit deal" : "Create deal"}</DialogTitle>
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={fullScreenDialogClass}>
+        <DialogTitle className="sr-only">{isEditMode ? "Edit deal" : "Create deal"}</DialogTitle>
         <DialogDescription className="sr-only">
-          Set up a promotion, flash sale or last-minute offer.
+          Set up a promotion, flash sale, or last-minute offer.
         </DialogDescription>
 
         {created ? null : (
-          <header className="shrink-0 border-border/40 border-b bg-background px-6 py-3.5 lg:px-10">
-            <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-4">
+          <header className="sticky top-0 z-10 shrink-0 border-border/40 border-b bg-background px-6 py-4 lg:px-10">
+            <div className={cn("mx-auto flex items-center justify-between gap-4", columnClass)}>
               <Button
                 type="button"
                 variant="ghost"
@@ -226,52 +230,32 @@ export function DealWizardDialog({
                   type="button"
                   size="lg"
                   radius="full"
-                  disabled={Boolean(blocker)}
+                  disabled={!canContinue}
                   onClick={next}
                 >
-                  {isLast ? (isEdit ? "Save" : "Create") : "Continue"}
+                  {isLast ? (isEditMode ? "Save" : "Create") : "Continue"}
                 </Button>
               </div>
             </div>
 
-            <div className="mx-auto mt-3 flex w-full max-w-2xl flex-col gap-2">
-              <div className="flex gap-1.5" aria-hidden>
-                {DEAL_WIZARD_STEPS.map((s, i) => (
-                  <span
-                    key={s}
-                    className={cn(
-                      "h-1 flex-1 rounded-full transition-colors",
-                      i <= stepIndex ? "bg-foreground" : "bg-muted",
-                    )}
-                  />
-                ))}
-              </div>
-              {/* The blocker sits under the bar, beside the button it disables.
-                  A greyed-out Continue with no reason on a form of eight fields
-                  leaves the reader hunting for which one it wants. */}
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground text-xs">
-                  Step {stepIndex + 1} of {DEAL_WIZARD_STEPS.length} · {STEP_LABEL[step]}
-                </span>
-                {blocker ? <span className="text-cami-tomato-11 text-xs">{blocker}</span> : null}
-              </div>
+            <div className={cn("mx-auto mt-4 flex gap-1.5", columnClass)} aria-hidden>
+              {DEAL_WIZARD_STEPS.map((s, i) => (
+                <span
+                  key={s}
+                  className={cn(
+                    "h-1 flex-1 rounded-full transition-colors",
+                    i <= stepIndex ? "bg-foreground" : "bg-muted",
+                  )}
+                />
+              ))}
             </div>
           </header>
         )}
 
-        {/* One scroll region, and it is this one. */}
-        {/* py-10 and a 40rem column came from the dev repo, where the step
-            heading is text-4xl. At this repo's scale that left a third of the
-            viewport empty above three fields. */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-8 lg:px-10">
-          <div className="mx-auto flex w-full max-w-2xl flex-col">
+        <div className="flex-1 overflow-y-auto px-6 py-12 lg:px-10">
+          <div className={cn("mx-auto flex flex-col", columnClass)}>
             {created ? (
               <DealSuccessStep deal={created} onDone={() => onOpenChange(false)} />
-            ) : step === "type" ? (
-              <DealTypeStep
-                value={draft.type}
-                onChange={(type) => setDraft((d) => ({ ...d, type }))}
-              />
             ) : step === "details" ? (
               <DealDetailsStep
                 type={draft.type}
@@ -289,10 +273,6 @@ export function DealWizardDialog({
                 onStartDate={(startDate) => setDraft((d) => ({ ...d, startDate }))}
                 endDate={draft.endDate}
                 onEndDate={(endDate) => setDraft((d) => ({ ...d, endDate }))}
-                enableAtPointOfSale={draft.enableAtPointOfSale}
-                onEnableAtPointOfSale={(enableAtPointOfSale) =>
-                  setDraft((d) => ({ ...d, enableAtPointOfSale }))
-                }
                 applicability={draft.applicability}
                 onApplicability={(applicability) => setDraft((d) => ({ ...d, applicability }))}
               />
@@ -301,22 +281,17 @@ export function DealWizardDialog({
                 value={draft.limits}
                 onChange={(limits) => setDraft((d) => ({ ...d, limits }))}
               />
-            ) : step === "locations" ? (
+            ) : (
               <DealLocationsStep
                 value={draft.scope}
                 onChange={(scope) => setDraft((d) => ({ ...d, scope }))}
-              />
-            ) : (
-              <DealTeamStep
-                value={draft.teamMemberIds}
-                onChange={(teamMemberIds) => setDraft((d) => ({ ...d, teamMemberIds }))}
-                members={TEAM_MEMBERS}
-                reach={reach}
+                locations={granted}
+                holdsEstate={grants === "all"}
               />
             )}
           </div>
         </div>
       </DialogContent>
-    </Dialog>
+    </DialogPrimitive.Root>
   )
 }

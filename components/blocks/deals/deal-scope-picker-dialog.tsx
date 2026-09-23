@@ -204,11 +204,7 @@ export function DealScopePickerDialog({
 
         <div className="flex items-center justify-between gap-2 border-border/40 border-t px-6 py-4">
           <span className="text-muted-foreground text-sm">
-            {/* Said out loud, because "all" and "every box ticked" look
-                identical here and store differently. */}
-            {allSelected
-              ? `All ${itemNounPlural}, including any added later`
-              : `${draft.size} ${draft.size === 1 ? itemNounSingular : itemNounPlural} selected`}
+            {draft.size} selected {draft.size === 1 ? itemNounSingular : itemNounPlural}
           </span>
           <Button
             radius="full"
