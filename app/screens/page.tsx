@@ -601,17 +601,27 @@ const SECTIONS: Section[] = [
       {
         path: "/catalogs/packages",
         label: "Packages",
-        note: "Sortable table of packages (name, services, sessions, validity, price) with search, a Filters dialog, and a row click that opens the package detail dialog. 'Add package' opens the create takeover; the Options menu links to sold packages. The Options menu's 'View sold packages' is disabled: that page is not routed yet, and the item pointed at a 404.",
+        note: "Rebuilt 22 Sep on the as-built's model. A package now carries what it covers, how it is paid for and where it sells: Grooming Club is recurring and reads 'AED 180 / monthly' with no expiry to print, Spa Day is unlimited, Puppy Starter covers three services. Search matches a service as well as a name, because 'which package has the groom in it' is the question. A row opens the detail; Add and Edit both save now, and Options carries a reset once you have changed something.",
+      },
+      {
+        path: "/catalogs/packages",
+        label: "A package's sales, bounded by the grant",
+        note: "Open Bath & Brush 5+1 → Sales. Real rows now, not a permanent empty state: who bought it, which branch sold it, sessions left, and when it expires. Bounded before it is counted (R18) — narrow the switcher to Jumeirah and the JVC sales go, with a line saying how many were withheld rather than leaving a manager to think the chain sold one. Abrar's row is the case worth reading: two sessions left and expired anyway, which is a different sentence to say to a client than 'you have none left'.",
       },
       {
         path: "/catalogs/packages/new",
         label: "Create package",
-        note: "Four-section takeover (Basic info · Customisation · Online sales · Terms & Conditions) on the same <FullScreenEditDialog> + sidenav shell as the service and combo builders. Basic info carries the Select-services dialog — combos are deliberately absent from it, because a package counts sessions against individual services and a combo already prices its own bundle.",
+        note: "Four-section takeover (Basic info · Customisation · Online sales · Terms & Conditions) on the same <FullScreenEditDialog> + sidenav shell as the service and combo builders. Basic info carries the Select-services dialog — combos are deliberately absent, because a package counts sessions against individual services and a combo already prices its own bundle. Pick Recurring and the expiry fields give way to a frequency and a length, so a saved package cannot contradict itself. Save commits and lands on the new row; a package with no name or no service says which is missing rather than greying Save out in silence.",
       },
       {
-        path: "/catalogs/packages/bath-brush-5/edit",
+        path: "/catalogs/packages/grooming-club/edit",
         label: "Edit package",
-        note: "The same takeover prefilled from the row, reached from a package's kebab → Edit. This link opens 'Bath & Brush 5+1'.",
+        note: "Every field starts from the saved package, not just its name — this one opens Grooming Club, which is recurring, so the form lands on a frequency and a length rather than an expiry. Save writes it and Delete removes it.",
+      },
+      {
+        path: "/catalogs/packages/nail-trim-10/edit?s=online",
+        label: "Where a package sells, per branch",
+        note: "Online sales. R08 keeps the package itself the business's — a client bought it from the chain and can redeem it anywhere — so it has no location scope of its own the way a deal does. What is per branch is where it is SOLD, because a chain's public page asks for a branch before it shows anything (R15). One switch for the business, and only the branches that deliberately differ are held: Al Quoz does not sell the nail pack online, everything else follows the switch, including a branch opened next month. Reset deletes the branch's answer rather than copying today's value into it (DW3.2).",
       },
       {
         path: "/catalogs/categories?add=1",
@@ -1087,9 +1097,29 @@ const SECTIONS: Section[] = [
         note: "Shampooch → Locations. E15 — reuses the owner's components (estate from lib/locations, money from MoneyByLocationView) rather than a second chain dashboard. Read-only: standing a chain up happens as the owner, where the change has an actor (INV-08). Absent for single-site partners — open Velvet Paw.",
       },
       {
-        path: "/playground#multi-location-package-redemption-at-checkout",
-        label: "Package redemption · SCR-13 host (playground)",
-        note: "The host for cami-business's eligibility contract: a verdict per service (covered / exhausted / expired / not_covered) and redeem consuming a session. The branch has no room in that contract by design, so a mismatch rides alongside a covered verdict and Apply stays reachable. Try 'not offered here'.",
+        path: "/playground#multi-location-who-may-change-what-about-a-branch",
+        label: "Who may change what · GNK §2, §3 (playground)",
+        note: "Roles across, actions down. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number; a manager changes service settings and only where they hold a branch; reception and a groomer cannot at all. The two refusals stay apart on purpose — 'Owner only' and 'Not their location' look identical in a greyed button and send a person to two different places. Wired to the signed-in member now, so the same rules refuse on the real panel — see 'Signed in as' below.",
+      },
+      {
+        path: "/shell-demo?settings=locations",
+        label: "Signed in as, and what it refuses · GNK §2",
+        note: "Bottom of the Locations panel: a faint 'Demo: signed in as' strip standing in for signing in as somebody else, which no product screen offers. Pick Aziz (holds Jumeirah only) and Add locations, Manage and the three Invoicing cards refuse with their reason rather than vanishing — a manager who cannot find the button goes looking for it. Pick Maz Khan and they open. Every refusal on this panel reads that member, so SU2.3 can be shown rather than argued.",
+      },
+      {
+        path: "/playground#multi-location-a-category-a-branch-has-emptied",
+        label: "A category a branch has emptied · GNK §4 (playground)",
+        note: "Answered by Maaz on 20 Sep, and it is what is built: “internally the staff can still view the category with no services (shown empty). For online bookings, the Category is hidden.” A category can hold nothing at a branch — three spa services, no spa room here — and the proposal is that the answer depends on who is reading: hidden for the client, who can do nothing with it and reads a heading over nothing as a dead end; shown for reception, who is the person able to say 'not here, but Jumeirah does it'. Same split `locationsOffering` already makes for one service, and the same reading as KC1.5. Add-ons is the control in both frames. Live at /catalogs/service-menu with the branch set to Mirdif, and on /shampooch-mirdif.",
+      },
+      {
+        path: "/playground#multi-location-packages-at-the-till",
+        label: "Packages at the till · SCR-13 (playground)",
+        note: "Rebuilt 22 Sep against the as-built: the product applies a client's packages itself, so there is no Apply button. Sessions are spent across the cart one per line, a covered line reads 0 with its real price struck beneath, and the chip counts down. Six rows — same branch, priced differently, not offered here, one session two lines want, two packages with one unlimited, and an expired one that is out of time rather than out of sessions.",
+      },
+      {
+        path: "/sales/new-sale",
+        label: "Packages at the till · SCR-13 (route)",
+        note: "Pick Aaishah Vaza and add Blow dry: the session applies on its own, the line reads 0 with its real price struck, and the chip counts what is left. The count is the client's WHOLE balance, not the one package that paid — Abbie Connelly holds two, one unlimited, so hers reads Unlimited. Abbey McDermaid has one session: add two blow dries and the second pays in full. The service picker carries the same chip before you add anything, built from what is still free to spend rather than what the cart started with. Abrar Mohammed is the quiet case made loud — two sessions left on a package that expired in January. Pick him and add Blow dry: the line charges in full, and a notice says why, because 'you have none left' is the wrong sentence for somebody holding two. It fires against the CART, not the client — add a product instead and nothing appears, since a notice nobody needed is one an operator learns to dismiss unread. The branch warning is ours (KC1.5): on the line, both figures, never blocks — and all three of its cases are reachable here, by moving the Location card after picking the client. Abbey McDermaid + Blow Dry & Style at Shampooch Jumeirah is the price case (sold 120 at JVC, 145 here). The same pair at Shampooch Dubai Marina is the duration case — same money, 60 min against the 45 it was sold as. Abbie Connelly + Deep Tissue Massage at Shampooch Mirdif is 'not offered here', which there is no massage room for.",
       },
       {
         path: "/team/scheduled-shifts",
@@ -1129,7 +1159,7 @@ const SECTIONS: Section[] = [
       {
         path: "/playground#multi-location-package-mismatch-at-checkout",
         label: "Package mismatch · SCR-13 (playground)",
-        note: "KC1.5, corrected 2026-09-03: warn, never block. Four cases — same terms (nothing renders), priced differently, different duration, not offered here. Both figures shown so reception can decide in front of the client, and the choice recorded on the sale.",
+        note: "KC1.5, corrected 2026-09-03: warn, never block. Four cases — same terms (nothing renders), priced differently, different duration, not offered here. Both figures shown so reception can decide in front of the client, and the choice recorded on the sale. The warning itself; the cart it sits in is under 'Packages at the till'.",
       },
       {
         path: "/sales/daily-summary",
@@ -1175,6 +1205,11 @@ const SECTIONS: Section[] = [
         path: "/playground#multi-location-per-branch-service-pricing",
         label: "Per-branch service pricing · SCR-09 (playground)",
         note: "The same section with the business default under your thumb — raise it and the inheriting branches follow while the overridden price does not (DW3.1). Seeded as the story's example: Jumeirah at AED 75, Al Quoz not offering it. lib/service-catalog/offerings.test.ts.",
+      },
+      {
+        path: "/catalogs/service-menu",
+        label: "A category a branch has emptied · GNK §4",
+        note: "One category list for the business; a branch sees only what it has switched on inside it. Switch the header's location to Shampooch Mirdif: 'Bath & coat' loses Medicated bath, and 'Spa add-ons' empties entirely — the heading stays with 'Not offered at Shampooch Mirdif', because reception is the person who can say 'not here, but Jumeirah does it'. Sidebar counts follow the branch. The client's own page hides the category instead (/shampooch-mirdif), there being nothing a client can do with it. lib/service-catalog/categories-at-branch.test.ts.",
       },
       {
         path: "/settings/team?access=m_aziz",

@@ -1,7 +1,7 @@
 "use client"
 
 import { CheckIcon, FileTextIcon, GlobeIcon, type LucideIcon, PaletteIcon } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { SelectPackageServicesDialog } from "@/components/blocks/select-package-services-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import type { Package } from "@/lib/packages/catalog"
 import { cn } from "@/lib/utils"
 
 // ─── Local helpers ────────────────────────────────────────────────────────────
@@ -110,37 +111,114 @@ export const PACKAGE_SECTIONS: Array<{ id: PackageSectionId; label: string; icon
 
 // ─── Component ──────────────────────────────────────────────────────────────────
 
+export type PackageDraft = Omit<Package, "id" | "createdAt" | "updatedAt" | "sales">
+
 export function PackageForm({
   section,
   initialName,
+  editing,
+  onDraftChange,
 }: {
   section?: PackageSectionId
   initialName?: string
+  /**
+   * Reports the form's current values upward.
+   *
+   * The page owns Save, because only it knows whether this is a create or an
+   * edit and where to go afterwards — and the form is split across four
+   * sections, so the fields the operator never opened still have to be in what
+   * gets written. Sending the whole draft on every change is what keeps a
+   * section they skipped from saving as empty.
+   */
+  onDraftChange?: (draft: PackageDraft) => void
+  /**
+   * The package being edited. Every field starts from it — an edit form that
+   * pre-fills the name and nothing else asks the merchant to retype what they
+   * already saved, and silently rewrites whatever they do not reach.
+   */
+  editing?: Package
 }) {
   const show = (id: PackageSectionId) => !section || section === id
 
-  const [name, setName] = useState(initialName ?? "")
-  const [description, setDescription] = useState("")
+  const [name, setName] = useState(editing?.name ?? initialName ?? "")
+  const [description, setDescription] = useState(editing?.description ?? "")
 
-  const [services, setServices] = useState<Set<string>>(new Set())
+  const [services, setServices] = useState<Set<string>>(new Set(editing?.services ?? []))
   const [servicesOpen, setServicesOpen] = useState(false)
-  const [sessionType, setSessionType] = useState("limited")
-  const [sessionCount, setSessionCount] = useState("5")
+  const [sessionType, setSessionType] = useState<string>(editing?.sessionType ?? "limited")
+  const [sessionCount, setSessionCount] = useState(String(editing?.sessionCount ?? 5))
 
-  const [payment, setPayment] = useState<"one-time" | "recurring">("one-time")
-  const [validFor, setValidFor] = useState("1m")
-  const [price, setPrice] = useState("")
-  const [frequency, setFrequency] = useState("monthly")
-  const [recurringPrice, setRecurringPrice] = useState("")
-  const [length, setLength] = useState("until-canceled")
-  const [taxRate, setTaxRate] = useState("none")
+  const [payment, setPayment] = useState<"one-time" | "recurring">(editing?.payment ?? "one-time")
+  const [validFor, setValidFor] = useState<string>(editing?.validFor ?? "1m")
+  const [price, setPrice] = useState(editing?.price != null ? String(editing.price / 100) : "")
+  const [frequency, setFrequency] = useState<string>(editing?.frequency ?? "monthly")
+  const [recurringPrice, setRecurringPrice] = useState(
+    editing?.recurringPrice != null ? String(editing.recurringPrice / 100) : "",
+  )
+  const [length, setLength] = useState<string>(editing?.length ?? "until-canceled")
+  const [taxRate, setTaxRate] = useState<string>(editing?.taxRate ?? "none")
+  /**
+   * The branches that answer differently from the switch above (R15, INV-13).
+   *
+   * An absence means inheriting, so a later change to the business switch still
+   * reaches every branch that never differed. Writing today's value into all of
+   * them would freeze them at it, which is the same mistake the service
+   * catalogue's reset avoids.
+   */
 
-  const [colour, setColour] = useState("violet")
+  const [colour, setColour] = useState(editing?.colour ?? "violet")
 
-  const [onlineSales, setOnlineSales] = useState(true)
-  const [onlineRedemption, setOnlineRedemption] = useState(true)
+  const [onlineSales, setOnlineSales] = useState(editing?.onlineSales ?? true)
+  const [onlineRedemption, setOnlineRedemption] = useState(editing?.onlineRedemption ?? true)
 
-  const [terms, setTerms] = useState("")
+  const [terms, setTerms] = useState(editing?.terms ?? "")
+
+  const draft = useMemo<PackageDraft>(
+    () => ({
+      name: name.trim(),
+      description: description.trim() || null,
+      services: [...services],
+      sessionType: sessionType === "unlimited" ? "unlimited" : "limited",
+      sessionCount: sessionType === "unlimited" ? null : Number(sessionCount) || 0,
+      payment,
+      // A one-time package has no frequency and a recurring one has no expiry.
+      // Writing both would save a row that contradicts itself, and the detail
+      // would then have to guess which half to believe.
+      validFor: payment === "one-time" ? (validFor as Package["validFor"]) : null,
+      price: payment === "one-time" ? Math.round((Number(price) || 0) * 100) : null,
+      frequency: payment === "recurring" ? (frequency as Package["frequency"]) : null,
+      recurringPrice:
+        payment === "recurring" ? Math.round((Number(recurringPrice) || 0) * 100) : null,
+      length: payment === "recurring" ? (length as Package["length"]) : null,
+      taxRate: taxRate === "none" ? null : taxRate,
+      colour,
+      onlineSales,
+      onlineRedemption,
+      terms: terms.trim() || null,
+    }),
+    [
+      name,
+      description,
+      services,
+      sessionType,
+      sessionCount,
+      payment,
+      validFor,
+      price,
+      frequency,
+      recurringPrice,
+      length,
+      taxRate,
+      colour,
+      onlineSales,
+      onlineRedemption,
+      terms,
+    ],
+  )
+
+  useEffect(() => {
+    onDraftChange?.(draft)
+  }, [draft, onDraftChange])
 
   return (
     <>

@@ -14,9 +14,11 @@ import {
 import { useMemo, useState } from "react"
 import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { SessionsRemainingChip } from "@/components/blocks/sessions-remaining-chip"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { useLocations } from "@/lib/locations/store"
+import type { ServiceCoverage } from "@/lib/packages/allocate"
 import { useBranchOfferingNote } from "@/lib/service-catalog/use-branch-offering-note"
 import { cn } from "@/lib/utils"
 import { AppointmentSubject } from "./appointment-subject"
@@ -39,6 +41,15 @@ type ItemPickerProps = {
    * is sellable; `SERVICES` is the fallback for standalone mounts.
    */
   services?: ServiceItem[]
+  /**
+   * Catalog id → a session still free to pay for it.
+   *
+   * Built from the allocation's live capacities, so a package the cart has
+   * already spent is absent rather than showing the count it started with —
+   * which is the difference between "you can still use this" and "you could
+   * have".
+   */
+  availableCoverage?: ReadonlyMap<string, ServiceCoverage>
   onAddService: (service: ServiceItem) => void
   onAddProduct: (product: ProductItem) => void
   onAddAppointment: (appt: AppointmentItem) => void
@@ -65,6 +76,7 @@ const ROOT_TILES: {
 export function ItemPicker({
   services = SERVICES,
   locationId,
+  availableCoverage,
   onAddService,
   onAddProduct,
   onAddAppointment,
@@ -83,6 +95,7 @@ export function ItemPicker({
         onBack={() => setView("root")}
         onAdd={onAddService}
         locationId={locationId}
+        availableCoverage={availableCoverage}
       />
     )
   }
@@ -200,11 +213,13 @@ function ServicesView({
   onBack,
   onAdd,
   locationId,
+  availableCoverage,
 }: {
   services: ServiceItem[]
   onBack: () => void
   onAdd: (service: ServiceItem) => void
   locationId?: string | null
+  availableCoverage?: ReadonlyMap<string, ServiceCoverage>
 }) {
   const [query, setQuery] = useState("")
   const filtered = useMemo(() => filterServices(query, services), [query, services])
@@ -224,6 +239,7 @@ function ServicesView({
               service={service}
               onAdd={() => onAdd(service)}
               note={offeringNote(service.id)}
+              coverage={availableCoverage?.get(service.id)}
             />
           ))}
         </div>
@@ -236,11 +252,22 @@ function ServiceRow({
   service,
   onAdd,
   note,
+  coverage,
 }: {
   service: ServiceItem
   onAdd: () => void
   /** Set when this branch does not run the service — said, never hidden. */
   note?: string | null
+  /**
+   * A session still free to pay for this one.
+   *
+   * The built product's picker carries the same chip, and it is what turns the
+   * coverage from something the operator discovers after adding a line into
+   * something they can see before. The count is what is LEFT to spend —
+   * `availableCoveredMap` is built from the allocation's live capacities, so a
+   * package the cart has already emptied is simply absent here.
+   */
+  coverage?: ServiceCoverage
 }) {
   const accent =
     SERVICE_CATEGORIES.find((c) => c.id === service.categoryId)?.accent ?? "bg-cami-violet-9"
@@ -267,6 +294,13 @@ function ServiceRow({
               but Jumeirah does it", and a disabled row invites a second try
               rather than answering it (KC1.5). */}
           {note ? <span className="mt-1 text-xs text-cami-yellow-11">{note}</span> : null}
+          {coverage ? (
+            <SessionsRemainingChip
+              colour={coverage.colour}
+              sessionsRemaining={coverage.sessionsRemaining}
+              sessionsTotal={coverage.sessionsTotal}
+            />
+          ) : null}
         </div>
       </div>
       <span className="shrink-0 text-sm font-medium text-foreground">

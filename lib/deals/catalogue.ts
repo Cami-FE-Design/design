@@ -11,9 +11,10 @@
  * promotion target of its own.
  */
 
-import { MOCK_PACKAGES } from "@/app/catalogs/packages/page"
 import { PRODUCTS, SERVICE_CATEGORIES, SERVICES } from "@/app/sales/new-sale/mock"
 import type { ScopeKind } from "@/lib/deals/wizard"
+import { priceLabel, sessionsLabel } from "@/lib/packages/catalog"
+import { PACKAGES } from "@/lib/packages/mock"
 
 export type ScopePickerItem = {
   id: string
@@ -66,11 +67,11 @@ function packageGroups(): ScopePickerGroup[] {
     {
       id: "packages",
       name: "",
-      items: MOCK_PACKAGES.map((pkg) => ({
+      items: PACKAGES.map((pkg) => ({
         id: pkg.id,
         name: pkg.name,
-        subtitle: pkg.sessions,
-        priceLabel: aed(pkg.price * 100),
+        subtitle: sessionsLabel(pkg),
+        priceLabel: aed(priceLabel(pkg).amountMinor),
       })),
     },
   ]

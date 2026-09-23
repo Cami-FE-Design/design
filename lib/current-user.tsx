@@ -16,6 +16,20 @@ import { TEAM_MEMBERS } from "@/lib/team/mock"
 const STORAGE_KEY = "cami-current-user"
 
 export type CurrentUser = {
+  /**
+   * Which roster row this profile IS.
+   *
+   * The profile used to match nobody: a name and an email with no team member
+   * behind them, which is why nothing could resolve the signed-in person's role
+   * or the branches they hold. Every permission rule in the repo was therefore
+   * written and left unwired, and SU2.3 — revoking a branch narrows every
+   * surface at once — could be reasoned about and not shown.
+   *
+   * Pointing at a row is the whole fix. The profile fields below stay editable
+   * (they are the ones My profile writes); the role and the grants are read
+   * from the roster, because they are the owner's to set, not the user's.
+   */
+  memberId: string
   firstName: string
   lastName: string
   email: string
@@ -37,6 +51,10 @@ export type PendingContact = {
 }
 
 export const DEFAULT_CURRENT_USER: CurrentUser = {
+  // The owner, because that is who reviews this prototype and the one role that
+  // is never refused anything. Switch it with `setMemberId` to read a screen as
+  // somebody else.
+  memberId: "m_owner",
   firstName: "Michelle",
   lastName: "You",
   email: "michelle.h.you@gmail.com",
@@ -50,8 +68,21 @@ export const DEFAULT_CURRENT_USER: CurrentUser = {
   calendarColor: "indigo",
 }
 
+/** The signed-in person as the permission rules need them (R04). */
+export type SignedInActor = {
+  memberId: string
+  name: string
+  roleId: string
+  /** "all" for an owner — every branch, including ones added later (R24). */
+  grants: "all" | ReadonlyArray<string>
+}
+
 type CurrentUserValue = {
   user: CurrentUser
+  /** Role and branches, read off the roster row this profile points at. */
+  actor: SignedInActor
+  /** Sign in as a different team member. A demo control, not a product action. */
+  setMemberId: (memberId: string) => void
   pending: PendingContact
   updateUser: (patch: Partial<CurrentUser>) => void
   /** Start an email change — held in `pending` until the link is "clicked". */
@@ -113,8 +144,26 @@ export function CurrentUserProvider({ children }: { children: React.ReactNode })
       })
     }
 
+    const member = TEAM_MEMBERS.find((m) => m.id === user.memberId)
+
     return {
       user,
+      /**
+       * Read off the roster, never off the profile.
+       *
+       * A person cannot promote themselves by editing My profile, and the
+       * `jobTitle` field there is a label they type — it has never decided
+       * anything. Falls back to the owner when the id names nobody, because a
+       * prototype that silently locks itself out of every screen is worse than
+       * one that is too permissive.
+       */
+      actor: {
+        memberId: user.memberId,
+        name: member?.name ?? `${user.firstName} ${user.lastName}`,
+        roleId: member?.roleId ?? "owner",
+        grants: member?.locationGrants ?? "all",
+      },
+      setMemberId: (memberId) => apply({ memberId }),
       pending,
       updateUser: (patch) => apply(patch),
       requestEmailChange: (email) => apply({}, { email: email.trim() }),
@@ -151,6 +200,11 @@ export function useCurrentUser(): CurrentUserValue {
   if (ctx) return ctx
   return {
     user: DEFAULT_CURRENT_USER,
+    // Outside a provider the owner is the honest default: a surface rendered in
+    // isolation should draw its controls, not hide them behind a role nobody
+    // set.
+    actor: { memberId: "m_owner", name: "Maz Khan", roleId: "owner", grants: "all" },
+    setMemberId: () => {},
     pending: {},
     updateUser: () => {},
     requestEmailChange: () => {},

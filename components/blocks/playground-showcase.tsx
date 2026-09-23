@@ -38,7 +38,7 @@ import {
   type MockBookingStatus,
   type MockServiceCategory,
 } from "@/app/appointments/mock"
-import { CartContent, CartFooter, CheckoutFooter } from "@/app/sales/new-sale/cart-summary"
+import { CartContent, CartFooter } from "@/app/sales/new-sale/cart-summary"
 import { GiftCardDialog, newGiftCardDraft } from "@/app/sales/new-sale/gift-card-dialog"
 import { comboCartLines, SERVICES } from "@/app/sales/new-sale/mock"
 import { PaymentLinkLockScreen } from "@/app/sales/new-sale/payment-link-lock"
@@ -60,6 +60,10 @@ import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { BranchDayStrip } from "@/components/blocks/branch-day-strip"
 import { BusinessNotificationsSection } from "@/components/blocks/business-detail-dialog"
 import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
+import {
+  CategoryAtBranchPreview,
+  type PreviewCategory,
+} from "@/components/blocks/category-at-branch-preview"
 import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { ClientNoteBanner } from "@/components/blocks/client-note-banner"
@@ -121,10 +125,6 @@ import {
   PackageBranchWarning,
   type PackageDecision,
 } from "@/components/blocks/package-branch-warning"
-import {
-  PackageRedemptionPanel,
-  type RedeemableLine,
-} from "@/components/blocks/package-redemption-panel"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
@@ -164,6 +164,7 @@ import {
 import { TerminalsPanel } from "@/components/blocks/terminals-panel"
 import { TimelineDate, TimelineRow } from "@/components/blocks/timeline-row"
 import { WhatsAppNumbersPanel } from "@/components/blocks/whatsapp-numbers-panel"
+import { WhoMayChangeBranch } from "@/components/blocks/who-may-change-branch"
 import { WriteTargetLocation } from "@/components/blocks/write-target-location"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -258,6 +259,8 @@ import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
 import type { TerminalFeeModel } from "@/lib/money/fees"
 import { defaultRange, MONEY_TXS, PAYOUTS, periodBounds, TODAY_ISO } from "@/lib/money/mock"
 import type { MerchantRails, SettlementBlock } from "@/lib/money/types"
+import { allocatePackageSessions } from "@/lib/packages/allocate"
+import { packagesFor } from "@/lib/packages/customer-packages"
 import {
   type AmountValue,
   DEFAULT_PAYMENT_POLICY,
@@ -281,9 +284,7 @@ import type { LocationOffering, ServiceDefaults } from "@/lib/service-catalog/of
 import {
   type BranchServiceTerms,
   checkPackageAtBranch,
-  type PackageEntitlement,
 } from "@/lib/service-catalog/package-branch-check"
-import { eligibilityFor } from "@/lib/service-catalog/package-eligibility"
 import { TEAM_MEMBERS } from "@/lib/team/mock"
 import { roleById } from "@/lib/team/roles"
 import { NINE_BRANCH_LEAVES, NINE_BRANCH_MEMBERS, NINE_BRANCH_SHIFTS } from "@/lib/team/shifts-mock"
@@ -1043,75 +1044,79 @@ function PromotionScopeRow({ scope }: { scope: PromotionScope }) {
   )
 }
 
-function PackageRedemptionDemo({
-  terms,
+/**
+ * A cart with the client's sessions already spent on it.
+ *
+ * The built product's model: no Apply anywhere, a covered line reads 0 with its
+ * price struck beneath, and the chip counts down. The branch warning is ours
+ * (R08, KC1.5) and hangs off the line it is about — the session is spent either
+ * way, and what changes is that reception is told.
+ */
+function PackageCoverageDemo({
+  clientId,
+  lines,
   redeemingAt,
 }: {
-  terms: "same" | "dearer" | "notOffered" | "unusable"
-  /** Standing in for a sale that has already named its branch. */
+  clientId: string
+  lines: CartLine[]
+  /** The branch this sale has already named (R11). */
   redeemingAt?: string
 }) {
-  const [applied, setApplied] = useState<string[]>([])
-  const entitlement: PackageEntitlement = {
-    packageId: "pkg-1",
-    serviceId: "bath-small",
-    soldAtLocationId: "shampooch-jvc",
-    soldPriceMinor: 6000,
-    soldDurationMin: 45,
-    remainingSessions: 3,
-  }
-  const branchTerms: Record<string, BranchServiceTerms> = {
-    same: { offered: true, priceMinor: 6000, durationMin: 45 },
-    dearer: { offered: true, priceMinor: 7500, durationMin: 45 },
-    notOffered: { offered: false, priceMinor: 0, durationMin: 0 },
-    unusable: { offered: true, priceMinor: 6000, durationMin: 45 },
-  }
-
-  const lines: RedeemableLine[] =
-    terms === "unusable"
-      ? [
-          {
-            uid: "l1",
-            serviceId: "bath-small",
-            serviceName: "Bath & brush, small dog",
-            priceMinor: 6000,
-            soldAtLocationId: "shampooch-jvc",
-            eligibility: eligibilityFor(
-              "bath-small",
-              { ...entitlement, remainingSessions: 0 },
-              branchTerms.unusable!,
-            ),
-          },
-          {
-            uid: "l2",
-            serviceId: "full-groom",
-            serviceName: "Full groom",
-            priceMinor: 26000,
-            soldAtLocationId: "shampooch-jvc",
-            eligibility: eligibilityFor("full-groom", entitlement, branchTerms.unusable!, {
-              expired: true,
-            }),
-          },
-        ]
-      : [
-          {
-            uid: "l1",
-            serviceId: "bath-small",
-            serviceName: "Bath & brush, small dog",
-            priceMinor: branchTerms[terms]!.priceMinor,
-            soldAtLocationId: "shampooch-jvc",
-            eligibility: eligibilityFor("bath-small", entitlement, branchTerms[terms]!),
-          },
-        ]
+  const [decisions, setDecisions] = useState<Record<string, PackageDecision>>({})
+  const held = packagesFor(clientId)
+  const coverage = allocatePackageSessions(
+    lines.map((l) => ({ uid: l.uid, catalogId: l.sourceId })),
+    held,
+    new Date("2026-09-22T10:00:00Z"),
+  ).byUid
 
   return (
-    <PackageRedemptionPanel
-      lines={lines}
-      redeemingAt={redeemingAt}
-      applied={applied}
-      onApply={(uid) => setApplied((current) => [...current, uid])}
-      onRemove={(uid) => setApplied((current) => current.filter((id) => id !== uid))}
-    />
+    <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+      <CartContent
+        lines={lines}
+        hasClient
+        readOnly
+        onRemove={() => {}}
+        onSetQty={() => {}}
+        coverage={coverage}
+        renderLineNotice={(line) => {
+          const session = coverage.get(line.uid)
+          const pkg = held.find((p) => p.id === session?.customerPackageId)
+          const sold = pkg?.soldTerms[line.sourceId]
+          if (!pkg || !sold || !redeemingAt) return null
+          // The playground has no offerings store, so the branch's terms are
+          // stated here rather than resolved — the rule under test is what the
+          // warning says, not where the price came from.
+          const here =
+            redeemingAt === "shampooch-jumeirah"
+              ? { offered: true, priceMinor: 14500, durationMin: sold.durationMin }
+              : redeemingAt === "shampooch-al-quoz"
+                ? { offered: false, priceMinor: 0, durationMin: 0 }
+                : { offered: true, priceMinor: sold.priceMinor, durationMin: sold.durationMin }
+          const mismatch = checkPackageAtBranch(
+            {
+              packageId: pkg.packageId,
+              serviceId: line.sourceId,
+              soldAtLocationId: pkg.soldAtLocationId,
+              soldPriceMinor: sold.priceMinor,
+              soldDurationMin: sold.durationMin,
+              remainingSessions: pkg.sessionsRemaining ?? 1,
+            },
+            here,
+          )
+          return (
+            <PackageBranchWarning
+              className="mx-3 mb-1"
+              mismatch={mismatch}
+              soldAtLocationId={pkg.soldAtLocationId}
+              serviceName={line.name}
+              decision={decisions[line.uid] ?? null}
+              onDecide={(d) => setDecisions((c) => ({ ...c, [line.uid]: d }))}
+            />
+          )
+        }}
+      />
+    </div>
   )
 }
 
@@ -1204,6 +1209,31 @@ const STOCK_DEMO_PRODUCTS = {
  * and says so with a chip, so "zero" and "already paid for" stay different
  * facts at the counter.
  */
+/**
+ * The example GNK's §4 asks about: a Spa category with three services, and a
+ * branch with no spa room that has turned all three off.
+ */
+const CATEGORIES_AT_BRANCH: PreviewCategory[] = [
+  {
+    id: "grooming",
+    name: "Grooming",
+    services: ["Bath & brush", "Full groom", "Puppy trim"],
+    offered: ["Bath & brush", "Full groom", "Puppy trim"],
+  },
+  {
+    id: "spa",
+    name: "Spa",
+    services: ["Deep tissue", "Aromatherapy", "Mud wrap"],
+    offered: [],
+  },
+  {
+    id: "addons",
+    name: "Add-ons",
+    services: ["Nail trim", "Teeth clean"],
+    offered: ["Nail trim"],
+  },
+]
+
 const PACKAGE_CART_LINES: CartLine[] = [
   {
     uid: "pkg-line-1",
@@ -1222,6 +1252,25 @@ const PACKAGE_CART_LINES: CartLine[] = [
     durationMin: 20,
     qty: 1,
     sourceId: "nail-trim",
+  },
+  // A second line the same package covers, so one session has to choose.
+  {
+    uid: "pkg-line-3",
+    kind: "service",
+    name: "Blow dry",
+    priceMinor: 12000,
+    durationMin: 45,
+    qty: 1,
+    sourceId: "blow-dry",
+  },
+  {
+    uid: "pkg-line-4",
+    kind: "service",
+    name: "Deep tissue massage",
+    priceMinor: 32000,
+    durationMin: 90,
+    qty: 1,
+    sourceId: "deep-tissue",
   },
 ]
 
@@ -2960,69 +3009,115 @@ export function PlaygroundShowcase() {
           </Row>
         </Section>
         <Section
-          title="Multi-location — package redemption at checkout"
-          description="SCR-13's host (R08, KC1.5, R11). The eligibility contract exists in cami-business and no UI calls it: a verdict per service — covered, exhausted, expired, not_covered — with redeem consuming a session. The branch has no room in it by design, because a branch-shaped verdict would block the redemption KC1.5 insists must complete; a mismatch rides alongside and Apply stays reachable. An unusable verdict reads differently — a sentence reception can repeat, and no button."
+          title="Multi-location — who may change what about a branch"
+          description="GNK §2 and §3 as one table, because six surfaces ask the same four questions and six inline answers drift — the one that drifts quietly is the one that lets somebody through. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number. A manager changes service settings, and only at the branches they hold; reception and a groomer cannot at all. The two refusals are kept visibly apart: 'Owner only' and 'Not their location' read the same in a greyed button and are two different conversations — one sends you to the owner for a decision, the other for a branch you should already have. Wired to the signed-in member: the same rules refuse on the real Locations panel, and the 'Demo: signed in as' strip at the bottom of it switches who is reading."
         >
-          <Row label="Covered, terms match" align="start">
-            <div className="w-full max-w-[560px]">
-              <LocationsProvider persist={false}>
-                <PackageRedemptionDemo terms="same" />
-              </LocationsProvider>
+          <Row label="The table" align="start">
+            <div className="w-full max-w-3xl">
+              <WhoMayChangeBranch />
             </div>
           </Row>
-          <Row label="Covered, dearer here" align="start">
-            <div className="w-full max-w-[560px]">
-              <LocationsProvider persist={false}>
-                <PackageRedemptionDemo terms="dearer" />
-              </LocationsProvider>
-            </div>
-          </Row>
-          <Row label="Covered, not offered here" align="start">
-            <div className="w-full max-w-[560px]">
-              <LocationsProvider persist={false}>
-                <PackageRedemptionDemo terms="notOffered" />
-              </LocationsProvider>
-            </div>
-          </Row>
-          <Row label="Exhausted and expired" align="start">
-            <div className="w-full max-w-[560px]">
-              <LocationsProvider persist={false}>
-                <PackageRedemptionDemo terms="unusable" />
-              </LocationsProvider>
-            </div>
-          </Row>
-          {/* Hosted in the sale, the branch is settled before the cart holds
-              anything. Asking a second time two panels down invites two
-              different answers to one question (R11). */}
-          <Row label="Hosted in a sale — branch already named" align="start">
-            <div className="w-full max-w-[560px]">
-              <LocationsProvider persist={false}>
-                <PackageRedemptionDemo terms="dearer" redeemingAt="shampooch-jumeirah" />
-              </LocationsProvider>
-            </div>
-          </Row>
-          <Row label="What it does to the cart line and the footer" align="start">
-            <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/60 bg-card">
-              <CartContent
-                lines={PACKAGE_CART_LINES}
-                hasClient
-                onRemove={() => {}}
-                onSetQty={() => {}}
-                readOnly
-                packageCovered={["pkg-line-1"]}
+        </Section>
+        <Section
+          title="Multi-location — a category a branch has emptied"
+          description="GNK §4 asked this; Maaz answered it on 20 Sep, and the answer is this split. One category list belongs to the whole business and a branch cannot re-file a service into another one — all that varies is which services it has turned on, so a category can hold nothing at a branch: three spa services, and no spa room here. The answer depends on who is reading. A CLIENT can do nothing with a category this branch does not run, and a heading over nothing is a dead end that invites them to leave — so it is hidden. RECEPTION is the person who can say 'not here, but Jumeirah does it', and hiding it leaves them to find that out by telephone — so it stays, with the absence said out loud. That is the split `locationsOffering` already makes for a single service, and the same reading as KC1.5: tell the operator, do not burden the client. Add-ons is the control in both frames: partly on, so the two have to agree about it."
+        >
+          <Row label="What a client sees" align="start">
+            <div className="w-full max-w-md">
+              <CategoryAtBranchPreview
+                categories={CATEGORIES_AT_BRANCH}
+                branchName="Shampooch JBR"
+                mode="hidden"
               />
-              <CheckoutFooter
-                baseMinor={18000}
-                tipMinor={0}
-                packagePaidMinor={12000}
-                ctaLabel="Pay now"
-                onCta={() => {}}
-                onAddTip={() => {}}
-                onAddCartDiscount={() => {}}
-                onAddSaleNote={() => {}}
-                onSaveDraft={() => {}}
-                onCancelSale={() => {}}
+            </div>
+          </Row>
+          <Row label="What reception sees" align="start">
+            <div className="w-full max-w-md">
+              <CategoryAtBranchPreview
+                categories={CATEGORIES_AT_BRANCH}
+                branchName="Shampooch JBR"
+                mode="empty"
               />
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — packages at the till"
+          description="SCR-13 (R08, KC1.5, R11), rebuilt 22 Sep against the as-built. The product applies a client's packages ITSELF — `allocatePackageSessions` spends the remaining sessions across the cart, one per line, in order — so there is no Apply button and never was. A covered line reads 0 with its real price struck beneath it, which the built sheet calls a display device rather than a price anyone typed, and the chip counts down as each line spends its own session. Ours is the branch half the contract has no room for: a package sold at one branch, redeemed at another that prices the service differently, warns and still completes. The warning sits on the line it is about and the decision is recorded, so an owner reading a discount can see why."
+        >
+          <Row label="Sold and redeemed at the same branch" align="start">
+            <div className="w-full max-w-md">
+              <LocationsProvider persist={false}>
+                <PackageCoverageDemo
+                  clientId="aaishah-vaza"
+                  lines={[PACKAGE_CART_LINES[0]!]}
+                  redeemingAt="shampooch-jvc"
+                />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Priced differently here — warns, still completes" align="start">
+            <div className="w-full max-w-md">
+              <LocationsProvider persist={false}>
+                <PackageCoverageDemo
+                  clientId="aaishah-vaza"
+                  lines={[PACKAGE_CART_LINES[0]!]}
+                  redeemingAt="shampooch-jumeirah"
+                />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Not offered at this branch at all" align="start">
+            <div className="w-full max-w-md">
+              <LocationsProvider persist={false}>
+                <PackageCoverageDemo
+                  clientId="aaishah-vaza"
+                  lines={[PACKAGE_CART_LINES[0]!]}
+                  redeemingAt="shampooch-al-quoz"
+                />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="One session, two lines that want it" align="start">
+            <div className="w-full max-w-md">
+              {/* Abbey has a single session left. The first line takes it and
+                  the second pays in full — which is the whole reason the
+                  allocation exists: "does this package cover this service"
+                  would zero both. */}
+              <LocationsProvider persist={false}>
+                <PackageCoverageDemo
+                  clientId="abbey-mcdermaid"
+                  lines={[PACKAGE_CART_LINES[0]!, PACKAGE_CART_LINES[2]!]}
+                  redeemingAt="shampooch-jvc"
+                />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Two packages, one of them unlimited" align="start">
+            <div className="w-full max-w-md">
+              {/* Abbie holds both. The daycare one never runs out, so its line
+                  reads Unlimited rather than a count. */}
+              <LocationsProvider persist={false}>
+                <PackageCoverageDemo
+                  clientId="abbie-connelly"
+                  lines={[PACKAGE_CART_LINES[0]!, PACKAGE_CART_LINES[3]!]}
+                  redeemingAt="shampooch-jvc"
+                />
+              </LocationsProvider>
+            </div>
+          </Row>
+          <Row label="Expired — out of time, not out of sessions" align="start">
+            <div className="w-full max-w-md">
+              {/* Two sessions on it and expired in January. Nothing is
+                  covered, and "you have none left" would be the wrong sentence
+                  to say to him. */}
+              <LocationsProvider persist={false}>
+                <PackageCoverageDemo
+                  clientId="abrar-mohammed"
+                  lines={[PACKAGE_CART_LINES[0]!]}
+                  redeemingAt="shampooch-jvc"
+                />
+              </LocationsProvider>
             </div>
           </Row>
         </Section>

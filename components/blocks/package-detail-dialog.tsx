@@ -28,22 +28,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { formatAed } from "@/lib/format"
+import { useLocations } from "@/lib/locations/store"
+import {
+  LENGTH_LABEL,
+  type Package,
+  priceLabel,
+  sessionsLabel,
+  VALID_FOR_LABEL,
+} from "@/lib/packages/catalog"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type PackageSummary = {
-  id: string
-  name: string
-  serviceCount: number
-  validFor: string
-  sessions: string
-  price: number
-  color: string
-  /** Optional richer fields shown in detail; sensible defaults when absent. */
-  payment?: string
-  tax?: string
-}
+/**
+ * Kept as an alias so nothing downstream had to be renamed when the seven-field
+ * card grew into the built product's model.
+ */
+export type PackageSummary = Package
 
 // ─── Field helpers ──────────────────────────────────────────────────────────────
 
@@ -79,8 +89,19 @@ export function PackageDetailDialog({
 }: PackageDetailDialogProps) {
   const router = useRouter()
   const [tab, setTab] = useState<TabId>("details")
+  const { granted, locationName, isMultiLocation, scopeLabel, scopedLocations } = useLocations()
 
   if (!pkg) return null
+
+  const price = priceLabel(pkg)
+  // Bounded before it is counted (R18): the scope a user has narrowed to, or
+  // their whole grant when they have not.
+  const inScope = new Set((scopedLocations.length > 0 ? scopedLocations : granted).map((l) => l.id))
+  const allSales = pkg.sales ?? []
+  const sales = isMultiLocation
+    ? allSales.filter((row) => inScope.has(row.soldAtLocationId))
+    : allSales
+  const withheld = allSales.length - sales.length
 
   function handleEdit() {
     onOpenChange(false)
@@ -114,7 +135,7 @@ export function PackageDetailDialog({
             <DialogHeader className="flex flex-row items-center gap-3 px-9 pt-8.5 pb-5">
               <span
                 className="flex size-12 shrink-0 items-center justify-center rounded-xl text-white"
-                style={{ backgroundColor: pkg.color }}
+                style={{ backgroundColor: pkg.colour }}
               >
                 <CalendarClockIcon className="size-5.5" />
               </span>
@@ -182,29 +203,124 @@ export function PackageDetailDialog({
             <TabsContent value="details" className="flex flex-col gap-3">
               <SectionCard title="Basic info" action={editAction}>
                 <FieldGrid>
-                  <Field label="Valid for" value={pkg.validFor} />
-                  <Field label="Sessions" value={pkg.sessions} />
-                  <Field label="Price" value={`AED ${pkg.price.toLocaleString("en-US")}`} />
-                  <Field label="Payment" value={pkg.payment ?? "One-time payment"} />
-                  <Field label="Tax rate" value={pkg.tax ?? "VAT (5%)"} />
+                  <Field label="Sessions" value={sessionsLabel(pkg)} />
+                  <Field
+                    label={pkg.payment === "recurring" ? "Billed" : "Price"}
+                    value={`${formatAed(Math.round(price.amountMinor / 100))}${price.suffix ? ` ${price.suffix}` : ""}`}
+                  />
+                  <Field
+                    label="Payment"
+                    value={pkg.payment === "recurring" ? "Recurring" : "One-time payment"}
+                  />
+                  {/* A one-time package expires; a recurring one runs for a
+                      length and is cancelled. Printing "Valid for" on both put a
+                      dash on every subscription. */}
+                  {pkg.payment === "recurring" ? (
+                    <Field label="Runs for" value={pkg.length ? LENGTH_LABEL[pkg.length] : null} />
+                  ) : (
+                    <Field
+                      label="Valid for"
+                      value={pkg.validFor ? VALID_FOR_LABEL[pkg.validFor] : null}
+                    />
+                  )}
+                  <Field label="Tax rate" value={pkg.taxRate ? "VAT (5%)" : null} />
                 </FieldGrid>
               </SectionCard>
 
               <SectionCard title="Included services" action={editAction}>
-                <Field
-                  label="Services"
-                  value={`${pkg.serviceCount} service${pkg.serviceCount === 1 ? "" : "s"}`}
-                />
+                {/* Named, not counted. "3 services" answers a question nobody
+                    asks — reception opens this to see whether the groom is in
+                    it. */}
+                <Field label="Services" value={pkg.services.join(", ")} />
               </SectionCard>
+
+              <SectionCard title="Online" action={editAction}>
+                <FieldGrid>
+                  <Field
+                    label="Sold online"
+                    value={pkg.onlineSales ? "Yes, on the booking page" : "In the salon only"}
+                  />
+                  <Field
+                    label="Redeemed online"
+                    value={pkg.onlineRedemption ? "Yes" : "In the salon only"}
+                  />
+                </FieldGrid>
+              </SectionCard>
+
+              {pkg.terms ? (
+                <SectionCard title="Terms" action={editAction}>
+                  <p className="text-sm leading-5 text-foreground">{pkg.terms}</p>
+                </SectionCard>
+              ) : null}
             </TabsContent>
 
             <TabsContent value="sales">
-              <EmptyState
-                icon={ShoppingBagIcon}
-                title="No sales yet"
-                description="Packages sold to clients will appear here."
-                className="py-16"
-              />
+              {sales.length === 0 ? (
+                <EmptyState
+                  icon={ShoppingBagIcon}
+                  title={withheld > 0 ? "No sales at your locations" : "No sales yet"}
+                  description={
+                    withheld > 0
+                      ? "It has sold elsewhere in the business."
+                      : "Packages sold to clients will appear here."
+                  }
+                  className="py-16"
+                />
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {/* R18: the rows are bounded by the grant before they are
+                      counted, and the bound is said out loud — a manager seeing
+                      one sale of six should know it is their branch's one
+                      rather than the whole book. */}
+                  {withheld > 0 ? (
+                    <p className="rounded-xl bg-cami-blue-2 p-3 text-sm leading-5 text-foreground">
+                      Showing sales at {scopeLabel}. {withheld} more{" "}
+                      {withheld === 1 ? "was" : "were"} sold at locations you do not hold.
+                    </p>
+                  ) : null}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Client</TableHead>
+                        {isMultiLocation ? <TableHead>Sold at</TableHead> : null}
+                        <TableHead>Sessions</TableHead>
+                        <TableHead>Purchased</TableHead>
+                        <TableHead>Expires</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sales.map((row) => (
+                        <TableRow key={row.customerPackageId}>
+                          <TableCell>
+                            <span className="text-sm text-foreground">{row.customerName}</span>
+                            <span className="block font-mono text-xs text-muted-foreground">
+                              {row.code}
+                            </span>
+                          </TableCell>
+                          {isMultiLocation ? (
+                            <TableCell className="text-sm text-muted-foreground">
+                              {locationName(row.soldAtLocationId)}
+                            </TableCell>
+                          ) : null}
+                          <TableCell className="text-sm text-muted-foreground">
+                            {row.sessionsRemaining == null
+                              ? `Unlimited · ${row.sessionsUsed ?? 0} used`
+                              : `${row.sessionsRemaining} of ${row.sessionsTotal} left`}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {row.purchasedAt}
+                          </TableCell>
+                          {/* Out of time and out of sessions are different
+                              states, and a client asks about them differently. */}
+                          <TableCell className="text-sm text-muted-foreground">
+                            {row.expiresAt ?? "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </TabsContent>
           </div>
         </Tabs>

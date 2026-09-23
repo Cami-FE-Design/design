@@ -27,6 +27,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { actsAsChain, type MultiLocationEnablement } from "@/lib/locations/enablement"
 import { idsWithin } from "@/lib/locations/from-business"
 import { CLOSED_DAY, openFor, type WeekSchedule } from "@/lib/locations/hours"
 import { LOCATIONS, locationName, NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
@@ -114,12 +115,26 @@ type LocationsValue = {
   granted: Location[]
 
   /**
-   * Whether to render a branch switcher at all. False for a single-branch
-   * business, and the whole of DW1.2: "a concept I don't need never clutters
-   * my screen". Note it reads `granted`, not `locations` — a manager granted
-   * one branch of nine also has nothing to switch between.
+   * Whether to render a branch switcher at all.
+   *
+   * Two things have to be true, and they are false for different reasons. HQ
+   * must have switched multi-location on for this business (GNK §2 — "before
+   * any of this appears, Cami HQ turns multi-location on… once its data check
+   * has passed"), and the reader must hold more than one branch. The second is
+   * DW1.2's half: "a concept I don't need never clutters my screen", and it
+   * reads `granted` rather than `locations`, because a manager holding one
+   * branch of nine also has nothing to switch between.
+   *
+   * Deriving it from the branch count alone read the ordering backwards: a
+   * half-migrated account would show every chain surface to its merchant with
+   * no way to stand them down short of deleting rows.
    */
   isMultiLocation: boolean
+
+  /** HQ's switch and the data check behind it (GNK §2). */
+  enablement: MultiLocationEnablement
+  /** HQ only. Recorded with who did it, because it is an HQ act (INV-08). */
+  setEnabled: (enabled: boolean) => void
 
   /** No grant at all. Performs no operational read or write, and never means "all" (R24). */
   hasNoAccess: boolean
@@ -168,6 +183,20 @@ export function slugify(name: string): string {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
+}
+
+/**
+ * The demo business is a chain HQ has already switched on.
+ *
+ * Every multi-location surface in this repo is reviewed against Shampooch, so
+ * the seed carries the enabled state — the OFF state is a thing to look at on
+ * the HQ side, not the state the whole prototype starts in.
+ */
+const ENABLED_DEMO: MultiLocationEnablement = {
+  enabled: true,
+  dataCheck: "passed",
+  enabledBy: "Michelle You",
+  enabledAt: "2026-09-14",
 }
 
 const LocationsContext = createContext<LocationsValue | null>(null)
@@ -307,6 +336,22 @@ export function LocationsProvider({
   const [locations, setLocations] = useState<Location[]>([...initialLocations])
   const [grants, setGrantsState] = useState<LocationGrants>(initialGrants)
   const [scope, setScopeState] = useState<LocationScope>(initialScope)
+  /**
+   * HQ's switch (GNK §2). Seeded ON for the demo chain, because every
+   * multi-location surface here is reviewed against it — the OFF state is
+   * something to look at in HQ, not the state the prototype starts in.
+   */
+  const [enablement, setEnablement] = useState<MultiLocationEnablement>(ENABLED_DEMO)
+  const setEnabled = useCallback(
+    (enabled: boolean) =>
+      setEnablement((current) => ({
+        ...current,
+        enabled,
+        enabledBy: enabled ? "Michelle You" : current.enabledBy,
+        enabledAt: enabled ? new Date().toISOString().slice(0, 10) : current.enabledAt,
+      })),
+    [],
+  )
 
   useEffect(() => {
     if (!persist) return
@@ -483,7 +528,9 @@ export function LocationsProvider({
       grants,
       setGrants,
       granted,
-      isMultiLocation: granted.length > 1,
+      isMultiLocation: actsAsChain(enablement, granted.length),
+      enablement,
+      setEnabled,
       hasNoAccess: granted.length === 0,
       scope,
       setScope,
@@ -502,6 +549,8 @@ export function LocationsProvider({
     addLocations,
     setGrants,
     setScope,
+    enablement,
+    setEnabled,
   ])
 
   return <LocationsContext.Provider value={value}>{children}</LocationsContext.Provider>
@@ -533,7 +582,9 @@ export function useLocations(): LocationsValue {
     grants: "all",
     setGrants: () => {},
     granted: locations,
-    isMultiLocation: locations.length > 1,
+    isMultiLocation: actsAsChain(ENABLED_DEMO, locations.length),
+    enablement: ENABLED_DEMO,
+    setEnabled: () => {},
     hasNoAccess: false,
     scope: { kind: "all" },
     setScope: () => {},

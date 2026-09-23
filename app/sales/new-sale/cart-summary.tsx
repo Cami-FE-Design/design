@@ -11,9 +11,10 @@ import {
   TagIcon,
   Trash2Icon,
 } from "lucide-react"
-import { useState } from "react"
+import { Fragment, useState } from "react"
 import { ComboLineIcon } from "@/components/blocks/combo-badge"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { SessionsRemainingChip } from "@/components/blocks/sessions-remaining-chip"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import type { AllocatedSession } from "@/lib/packages/allocate"
 import { cn } from "@/lib/utils"
 import {
   APPOINTMENTS,
@@ -64,14 +66,15 @@ type CartContentProps = {
   /** Read-only summary (Tip / Payment steps): no edit / remove / qty controls. */
   readOnly?: boolean
   /**
-   * Line uids a customer package has settled.
+   * Line uid → the package session that paid for it.
    *
-   * The built product renders these at AED 0 with the covered figure struck
-   * through, and books the package as a payment — see `comboCoverage.ts`. The
-   * struck figure is what the package actually paid, so every number on screen
-   * reconciles against the tender.
+   * A map rather than a list of uids, because the chip has to name which
+   * package paid and what is left on it — two packages on one cart are told
+   * apart by colour and count, and a boolean cannot carry either.
    */
-  packageCovered?: ReadonlyArray<string>
+  coverage?: ReadonlyMap<string, AllocatedSession>
+  /** Rendered directly under a line — the branch-mismatch warning (SCR-13). */
+  renderLineNotice?: (line: CartLine) => React.ReactNode
 }
 
 export function CartContent({
@@ -81,7 +84,8 @@ export function CartContent({
   onSetQty,
   onEditLine,
   readOnly = false,
-  packageCovered,
+  coverage,
+  renderLineNotice,
 }: CartContentProps) {
   if (lines.length === 0) {
     return (
@@ -112,15 +116,17 @@ export function CartContent({
               onRemove={readOnly ? undefined : () => onRemove(line.uid)}
             />
           ) : line.kind === "service" ? (
-            <ServiceLineRow
-              key={line.uid}
-              line={line}
-              subject={lineSubject(line.apptId)}
-              onEdit={onEditLine ? () => onEditLine(line.uid) : undefined}
-              // Read-only summaries (Tip / Payment) are editable but not deletable.
-              onRemove={readOnly ? undefined : () => onRemove(line.uid)}
-              covered={packageCovered?.includes(line.uid)}
-            />
+            <Fragment key={line.uid}>
+              <ServiceLineRow
+                line={line}
+                subject={lineSubject(line.apptId)}
+                onEdit={onEditLine ? () => onEditLine(line.uid) : undefined}
+                // Read-only summaries (Tip / Payment) are editable but not deletable.
+                onRemove={readOnly ? undefined : () => onRemove(line.uid)}
+                session={coverage?.get(line.uid)}
+              />
+              {renderLineNotice?.(line)}
+            </Fragment>
           ) : (
             <ProductLineRow
               key={line.uid}
@@ -181,14 +187,14 @@ function ServiceLineRow({
   subject,
   onEdit,
   onRemove,
-  covered = false,
+  session,
 }: {
   line: CartLine
   subject?: string
   onEdit?: () => void
   onRemove?: () => void
-  /** A customer package has settled this line. */
-  covered?: boolean
+  /** The package session that paid for this line, if one did. */
+  session?: AllocatedSession
 }) {
   const meta = [line.durationMin != null ? formatDuration(line.durationMin) : null, subject]
     .filter(Boolean)
@@ -215,34 +221,39 @@ function ServiceLineRow({
             {meta ? (
               <span className="truncate text-muted-foreground text-sm leading-5">{meta}</span>
             ) : null}
-            {/* The same chip the booking's own service row prints when a
-                session is drawn down rather than charged. Zero and "already
-                paid for" are different facts at the counter, and the struck
-                figure alone does not say which one this is. */}
-            {covered ? (
-              <Badge variant="primary-soft" size="sm" className="mt-1 w-fit">
-                Included in package
-              </Badge>
+            {/* Zero and "already paid for" are different facts at the
+                counter, and the struck figure alone does not say which one
+                this is. The count is what a client actually asks about. */}
+            {session ? (
+              <SessionsRemainingChip
+                colour={session.colour}
+                sessionsRemaining={session.sessionsRemaining}
+                sessionsTotal={session.sessionsTotal}
+              />
             ) : null}
             <DealChip line={line} />
           </div>
-          {/* The covered line keeps its gross price. Confirmed against the
-              built cart: a package is booked as a captured payment, not as a
-              discount on the line, so striking it to zero here would take the
-              same money out twice — once off the line and again in the
-              tenders — and the footer would stop adding up. */}
+          {/* A covered line reads 0 with its real price struck beneath it. The
+              zero is on the line itself, not applied here — the built cart's
+              own device, and what keeps every total downstream correct without
+              knowing packages exist. Losing the coverage restores the price
+              from `originalPriceMinor`. */}
           <RowActions
             value={money(dealPricing(line)?.netMinor ?? line.priceMinor)}
             strikeValue={
-              // A deal wins the strike over a bundle's list price. Both are
-              // "what this would have cost", and two struck figures on one row
-              // is a row nobody reads — the bundle's saving is stated in the
-              // footer regardless, and the deal is the one just chosen.
-              dealPricing(line)
-                ? money(line.priceMinor)
-                : line.listPriceMinor && line.listPriceMinor > line.priceMinor
-                  ? money(line.listPriceMinor)
-                  : undefined
+              // A session parked the real figure on the line, so the strike
+              // reads it rather than the price — which is now 0.
+              line.originalPriceMinor != null
+                ? money(line.originalPriceMinor)
+                : // A deal wins the strike over a bundle's list price. Both are
+                  // "what this would have cost", and two struck figures on one row
+                  // is a row nobody reads — the bundle's saving is stated in the
+                  // footer regardless, and the deal is the one just chosen.
+                  dealPricing(line)
+                  ? money(line.priceMinor)
+                  : line.listPriceMinor && line.listPriceMinor > line.priceMinor
+                    ? money(line.listPriceMinor)
+                    : undefined
             }
             name={line.name}
             onEdit={onEdit}

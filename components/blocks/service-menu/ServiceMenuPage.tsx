@@ -35,6 +35,9 @@ import {
   SearchInput,
   Skeleton,
 } from "@/components/ui"
+import { useLocations } from "@/lib/locations/store"
+import { servicesAtBranch } from "@/lib/service-catalog/categories-at-branch"
+import { useLocationOfferings } from "@/lib/service-catalog/offerings-store"
 import {
   useService,
   useServiceCatalogMutations,
@@ -74,6 +77,18 @@ export function ServiceMenuPage({
   // management actions are always available.
   const canManage = true
 
+  /**
+   * The branch this menu is being read as, when the switcher names exactly one.
+   *
+   * On "all locations" the menu is the business's own — there is no single
+   * branch whose switches could filter it, and showing the union with nothing
+   * marked would be the same list anyway.
+   */
+  const { scopedLocations, granted, locationName } = useLocations()
+  const inScope = scopedLocations.length > 0 ? scopedLocations : granted
+  const branchId = inScope.length === 1 ? (inScope[0]?.id ?? null) : null
+  const { offerings } = useLocationOfferings()
+
   const router = useRouter()
 
   const { data: rawCategories } = useServiceCategories({
@@ -91,6 +106,15 @@ export function ServiceMenuPage({
     status: activeFilters.status,
     teamMemberId: activeFilters.teamMemberId || undefined,
   })
+  /**
+   * The whole catalog, unfiltered, for the sidebar counts alone.
+   *
+   * `rawServices` above is narrowed to the selected category, which is right
+   * for the list and wrong for a sidebar: counted off that, every category but
+   * the open one reads 0 the moment you click one. The counts are a property of
+   * the catalog, not of what is on screen.
+   */
+  const { data: allServices } = useServices({ initialData: initialServices })
 
   const [categories, setCategories] = useState<ServiceCategory[]>(() =>
     (rawCategories ?? []).filter((c) => !c.isSystemManaged),
@@ -162,13 +186,24 @@ export function ServiceMenuPage({
     return filteredServices.filter((s) => !s.categoryId || !categoryIds.has(s.categoryId))
   }, [filteredServices, categories])
 
+  /**
+   * Counted for the branch when there is one, because a sidebar that says
+   * "Spa add-ons 5" beside a section that says "Not offered at Mirdif" is the
+   * screen arguing with itself. `servicesCount` is the business-wide number the
+   * catalogue keeps; at a branch the number is what that branch has switched on.
+   */
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const c of categories) {
-      counts[c.id] = c.servicesCount ?? 0
+      if (branchId) {
+        const all = (allServices ?? []).filter((s) => s.categoryId === c.id)
+        counts[c.id] = servicesAtBranch(all, branchId, offerings).length
+      } else {
+        counts[c.id] = c.servicesCount ?? 0
+      }
     }
     return counts
-  }, [categories])
+  }, [categories, allServices, branchId, offerings])
 
   const handleAddCategory = (data: Parameters<typeof mutations.createCategory.mutate>[0]) => {
     mutations.createCategory.mutate(data, {
@@ -545,7 +580,7 @@ export function ServiceMenuPage({
             counts={categoryCounts}
             totalCount={categories
               .filter((c) => c.isActive !== false)
-              .reduce((sum, c) => sum + (c.servicesCount ?? 0), 0)}
+              .reduce((sum, c) => sum + (categoryCounts[c.id] ?? 0), 0)}
             onSelect={setSelectedCategoryId}
             onAddCategory={() => setAddCategoryOpen(true)}
             onAddService={handleOpenNewService}
@@ -605,12 +640,24 @@ export function ServiceMenuPage({
                 className={`flex flex-col gap-6${isSearching ? " hidden" : ""}${isFetchingServices && selectedCategoryId ? " opacity-40 pointer-events-none" : ""}`}
               >
                 {visibleCategories.map((cat) => {
-                  const catServices = filteredServices.filter((s) => s.categoryId === cat.id)
+                  const all = filteredServices.filter((s) => s.categoryId === cat.id)
+                  // GNK §4: one category list for the business, and a branch
+                  // sees only the services it has turned on inside it. Shown
+                  // empty rather than hidden, because this is the OPERATOR's
+                  // menu: reception is the person who can say "not here, but
+                  // Jumeirah does it", and hiding the heading leaves them to
+                  // find that out by telephone. The client's own page hides it
+                  // — there is nothing a client can do with a category their
+                  // branch does not run (`publicMenuForLocation`).
+                  const catServices = branchId ? servicesAtBranch(all, branchId, offerings) : all
+                  const emptiedHere = branchId != null && all.length > 0 && catServices.length === 0
                   return (
                     <CategorySection
                       key={cat.id}
                       category={cat}
                       services={catServices}
+                      emptiedHere={emptiedHere}
+                      branchName={branchId ? locationName(branchId) : undefined}
                       canManage={canManage}
                       onDeleteService={handleDeleteService}
                       onAddService={() => handleOpenNewService(cat.id)}

@@ -17,6 +17,16 @@ import { ServiceCard } from "./ServiceCard"
 type CategorySectionProps = {
   category: ServiceCategory
   services: Service[]
+  /**
+   * The business has services in here and this branch has turned them all off.
+   *
+   * A different thing from a category nobody has filled in, and it needs a
+   * different sentence: one is a catalog to tidy, the other is this branch's own
+   * decision (GNK §4).
+   */
+  emptiedHere?: boolean
+  /** Named in that sentence, so the fact is about a place rather than "here". */
+  branchName?: string
   canManage?: boolean
   onDeleteService: (id: string) => void
   onAddService: () => void
@@ -31,6 +41,8 @@ type CategorySectionProps = {
 
 export function CategorySection({
   category,
+  emptiedHere = false,
+  branchName,
   services,
   canManage = false,
   onDeleteService,
@@ -113,7 +125,18 @@ export function CategorySection({
         </div>
       </SortableContext>
 
-      {services.length === 0 && (
+      {services.length === 0 && emptiedHere ? (
+        /* Not offered HERE, which is not the same as not existing. Kept on the
+           operator's menu rather than hidden, because reception is the person
+           who can say "not here, but Jumeirah does it" — and no Add button,
+           since the services exist and the branch switched them off. */
+        <p className="rounded-xl bg-muted/50 p-3 text-sm leading-5 text-muted-foreground">
+          Not offered at {branchName ?? "this location"}. The business has{" "}
+          {category.servicesCount ?? 0} in this category, all turned off here.
+        </p>
+      ) : null}
+
+      {services.length === 0 && !emptiedHere && (
         <EmptyState
           icon={ScissorsIcon}
           title="No services yet."

@@ -9,22 +9,34 @@ import {
   XIcon,
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useEffect, useMemo, useState } from "react"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
+import { ExpiredPackageWarning } from "@/components/blocks/expired-package-warning"
 import {
-  PackageRedemptionPanel,
-  type RedeemableLine,
-} from "@/components/blocks/package-redemption-panel"
+  PackageBranchWarning,
+  type PackageDecision,
+} from "@/components/blocks/package-branch-warning"
 import { WriteTargetLocation } from "@/components/blocks/write-target-location"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { locationName } from "@/lib/locations/mock"
-import { packageCovers, packageFor } from "@/lib/service-catalog/client-packages"
+import { useLocations } from "@/lib/locations/store"
+import {
+  type AllocatedSession,
+  aggregateSessionCoverage,
+  allocatePackageSessions,
+  expiredWithSessionsLeft,
+} from "@/lib/packages/allocate"
+import { packagesFor } from "@/lib/packages/customer-packages"
 import { useCreatedCombos } from "@/lib/service-catalog/created-combos"
 import { findOffering, resolveOffering } from "@/lib/service-catalog/offerings"
 import { useLocationOfferings } from "@/lib/service-catalog/offerings-store"
-import { eligibilityFor } from "@/lib/service-catalog/package-eligibility"
+import { checkPackageAtBranch } from "@/lib/service-catalog/package-branch-check"
+import { refusalMessage, refuseCharge } from "@/lib/terminals/charge-at-branch"
 import {
+  DEMO_SESSIONS,
+  DEMO_TERMINALS,
   type Terminal,
   type TerminalSession,
   TYPICAL_SESSIONS,
@@ -238,7 +250,10 @@ function CartFlowInner({
 
   // Where this sale lands (R11). Null until named — there is no default, ever.
   const [saleLocationId, setSaleLocationId] = useState<string | null>(null)
-  const [appliedPackages, setAppliedPackages] = useState<string[]>([])
+  /** How staff settled a branch mismatch, per line. Recorded on the sale (EC-4). */
+  const [packageDecisions, setPackageDecisions] = useState<Record<string, PackageDecision>>({})
+  /** Expired-package notices waved away — a fact about the client, not a decision. */
+  const [dismissedExpired, setDismissedExpired] = useState<string[]>([])
 
   const { offerings } = useLocationOfferings()
   const [attachment, setAttachment] = useState<ClientAttachment>(
@@ -308,20 +323,49 @@ function CartFlowInner({
   // store starts empty — a merchant's real first-run state — which would leave
   // checkout with no terminal to demo, so an unconfigured store falls back to
   // the two-terminal demo set rather than hiding the flow from review.
+  const { isMultiLocation } = useLocations()
   const terminalStore = useTerminals()
   const scenario = terminalScenario(deepTerminals)
-  const terminals =
+  // The unconfigured fallback spans the estate for a chain and stays the
+  // two-machine set for a single site. TYPICAL_TERMINALS is deliberately two
+  // registers at ONE branch, so once the list is scoped below it would leave
+  // every other branch with no card machine at all — which is the rule working
+  // correctly and a demo that looks broken.
+  const fallbackTerminals = isMultiLocation ? DEMO_TERMINALS : TYPICAL_TERMINALS
+  const fallbackSessions = isMultiLocation ? DEMO_SESSIONS : TYPICAL_SESSIONS
+  const registeredTerminals =
     scenario?.terminals ??
-    (terminalStore.terminals.length ? terminalStore.terminals : TYPICAL_TERMINALS)
+    (terminalStore.terminals.length ? terminalStore.terminals : fallbackTerminals)
   const terminalSessions =
     scenario?.sessions ??
-    (terminalStore.terminals.length ? terminalStore.sessions : TYPICAL_SESSIONS)
+    (terminalStore.terminals.length ? terminalStore.sessions : fallbackSessions)
+
+  /**
+   * Only this branch's machines (GNK §15, GP1.4).
+   *
+   * A card payment is recorded against the branch the machine belongs to, so
+   * offering every register in the estate is a way to book Jumeirah's money at
+   * JVC — silently, and correctly by its own rules. The sale has already named
+   * its branch (R11), so there is always an answer to filter by.
+   *
+   * A branch with no machine of its own shows none rather than a sister
+   * branch's: "there is no card machine here" is the true answer, and the other
+   * tender tiles are still on screen.
+   */
+  const terminals = useMemo(
+    () =>
+      isMultiLocation && saleLocationId
+        ? registeredTerminals.filter((t) => t.locationId === saleLocationId)
+        : registeredTerminals,
+    [registeredTerminals, isMultiLocation, saleLocationId],
+  )
+
   // Mirrors the real build's one backend boolean: no registered hardware, no
   // tile. Sign-in state is not part of it — a merchant whose device is simply
   // signed out still has a terminal, and the picker is where they learn that.
   const terminalAvailable = terminals.length > 0
-  // Every registered machine, each carrying why it can't be used if it can't.
-  // The grid lists them one by one instead of a generic tile, so the
+  // Every machine at this branch, each carrying why it can't be used if it
+  // can't. The grid lists them one by one instead of a generic tile, so the
   // receptionist taps the register in front of them once (Michelle, DSG
   // review) — and a signed-out one still holds its place, greyed.
   const machines = terminals.map((t) => ({
@@ -332,38 +376,155 @@ function CartFlowInner({
 
   const hasClient = attachment.type !== "none"
 
-  // What this client's package is worth at the branch this sale is landing on.
-  // Both halves are required before anything can be judged: the package belongs
-  // to a client, and the terms it is measured against belong to a branch.
-  const heldPackage = packageFor(attachment.type === "client" ? attachment.client.id : undefined)
-  const redeemableLines: RedeemableLine[] = useMemo(() => {
-    if (!heldPackage || !saleLocationId) return []
-    return lines
-      .filter((line) => line.kind === "service" && packageCovers(heldPackage, line.sourceId))
-      .map((line) => {
-        const offering = findOffering(heldPackage.serviceId, saleLocationId, offerings)
-        const resolved = resolveOffering(
-          {
-            priceType: "Fixed",
-            price: heldPackage.soldPriceMinor / 100,
-            duration: heldPackage.soldDurationMin,
-          },
-          offering,
-        )
-        return {
-          uid: line.uid,
-          serviceId: heldPackage.serviceId,
-          serviceName: line.name,
-          priceMinor: line.priceMinor,
-          soldAtLocationId: heldPackage.soldAtLocationId,
-          eligibility: eligibilityFor(heldPackage.serviceId, heldPackage, {
-            offered: resolved.enabled,
-            priceMinor: Math.round(resolved.price * 100),
-            durationMin: resolved.duration,
-          }),
-        }
+  /**
+   * Which lines a session pays for, and what the branch has to say about it.
+   *
+   * The allocation is the built product's (`lib/packages/allocate`): it spends
+   * the client's remaining sessions across the cart in order, one per line,
+   * with no Apply button anywhere — a covered line simply reads 0 with its
+   * price struck beneath and a chip saying what is left. Removing a line
+   * re-runs it, so a line that missed out inherits the freed session.
+   */
+  const heldPackages = packagesFor(attachment.type === "client" ? attachment.client.id : undefined)
+  const serviceLines = useMemo(() => lines.filter((l) => l.kind === "service"), [lines])
+  /**
+   * Which package funded each line last time round.
+   *
+   * Held in a ref rather than state: it is a hint for the next allocation, not
+   * something that renders, and putting it in state would re-run the very
+   * allocation that writes it. Without it, removing an unrelated line can move
+   * a line onto a different package — the client sees a different colour and
+   * count against a service nobody touched.
+   */
+  const fundedByRef = useRef<Map<string, string>>(new Map())
+  const allocation = useMemo(() => {
+    const { byUid, availableCoveredMap } = allocatePackageSessions(
+      serviceLines.map((l) => ({
+        uid: l.uid,
+        catalogId: l.sourceId,
+        preferPackageId: fundedByRef.current.get(l.uid),
+      })),
+      heldPackages,
+    )
+    // The chip reads the client's whole balance rather than the one package
+    // that funded this line — otherwise a client holding two reads a count off
+    // a package they were not asking about, and one holding an unlimited
+    // package reads a finite number beside it.
+    const byUidAggregate = new Map<string, AllocatedSession>()
+    for (const [uid, session] of byUid) {
+      const aggregate = aggregateSessionCoverage(session, heldPackages)
+      byUidAggregate.set(uid, {
+        ...session,
+        sessionsRemaining: aggregate?.sessionsRemaining ?? session.sessionsRemaining,
+        sessionsTotal: aggregate?.sessionsTotal ?? session.sessionsTotal,
       })
-  }, [heldPackage, saleLocationId, lines, offerings])
+    }
+    fundedByRef.current = new Map([...byUid].map(([uid, s]) => [uid, s.customerPackageId]))
+    return { coverage: byUidAggregate, availableCoveredMap }
+  }, [serviceLines, heldPackages])
+  const coverage = allocation.coverage
+
+  /**
+   * Packages that ran out of time with sessions still on them, and that would
+   * have paid for something in THIS cart.
+   *
+   * The allocation drops them silently — correctly, since they fund nothing —
+   * and silence is the wrong answer at the moment the client is charged in full
+   * for the very thing the package used to cover. Anywhere else it is noise:
+   * fired on the client alone, a shampoo sale carries a notice about a blow-dry
+   * package, and an operator learns to dismiss it without reading.
+   */
+  const expiredPackages = useMemo(
+    () =>
+      expiredWithSessionsLeft(
+        heldPackages,
+        serviceLines.map((l) => l.sourceId),
+      ).filter((p) => !dismissedExpired.includes(p.id)),
+    [heldPackages, serviceLines, dismissedExpired],
+  )
+
+  /**
+   * The branch half, which the built product has no room for (R08, KC1.5).
+   *
+   * A package was sold at one branch on that branch's terms. Redeemed at
+   * another, the service may be priced differently, run to a different length,
+   * or not be offered at all — and the rule is to warn and still complete, so
+   * this never touches the allocation above. The session is spent either way;
+   * what changes is that reception is told, and their decision is recorded.
+   */
+  const branchMismatches = useMemo(() => {
+    if (!saleLocationId) return new Map<string, ReturnType<typeof checkPackageAtBranch>>()
+    const out = new Map<string, ReturnType<typeof checkPackageAtBranch>>()
+    for (const line of serviceLines) {
+      const session = coverage.get(line.uid)
+      if (!session) continue
+      const pkg = heldPackages.find((p) => p.id === session.customerPackageId)
+      const sold = pkg?.soldTerms[line.sourceId]
+      if (!pkg || !sold) continue
+      const offering = findOffering(line.sourceId, saleLocationId, offerings)
+      const resolved = resolveOffering(
+        { priceType: "Fixed", price: sold.priceMinor / 100, duration: sold.durationMin },
+        offering,
+      )
+      const mismatch = checkPackageAtBranch(
+        {
+          packageId: pkg.packageId,
+          serviceId: line.sourceId,
+          soldAtLocationId: pkg.soldAtLocationId,
+          soldPriceMinor: sold.priceMinor,
+          soldDurationMin: sold.durationMin,
+          remainingSessions: pkg.sessionsRemaining ?? 1,
+        },
+        {
+          offered: resolved.enabled,
+          priceMinor: Math.round(resolved.price * 100),
+          durationMin: resolved.duration,
+        },
+      )
+      if (mismatch.kind !== "match") out.set(line.uid, mismatch)
+    }
+    return out
+  }, [serviceLines, coverage, heldPackages, saleLocationId, offerings])
+
+  /**
+   * Apply the allocation to the lines themselves.
+   *
+   * The built cart writes `priceMinor: 0` onto a covered line and parks the
+   * real figure in `originalPriceMinor`, and its footer knows nothing about
+   * packages as a result — every total is just a sum of the lines. The first
+   * cut here kept the line gross and subtracted the coverage inside each
+   * footer, which meant two footers had to remember, and the Cart step's one
+   * did not: the line read AED 0 and To pay asked for the full price two
+   * inches below it.
+   *
+   * The allocation keys off uid and sourceId, neither of which this touches,
+   * so there is no loop — and the guard below keeps object identity when a
+   * recompute lands on the same values.
+   */
+  useEffect(() => {
+    setLines((current) => {
+      let changed = false
+      const next = current.map((line) => {
+        if (line.kind !== "service") return line
+        const covered = coverage.has(line.uid)
+        if (covered) {
+          if (line.priceMinor === 0 && line.originalPriceMinor != null) return line
+          changed = true
+          return {
+            ...line,
+            priceMinor: 0,
+            originalPriceMinor: line.originalPriceMinor ?? line.priceMinor,
+          }
+        }
+        if (line.originalPriceMinor == null) return line
+        changed = true
+        const { originalPriceMinor, ...rest } = line
+        return { ...rest, priceMinor: originalPriceMinor }
+      })
+      return changed ? next : current
+    })
+  }, [coverage])
+
   const hasGiftCard = lines.some((l) => l.kind === "gift-card")
   const editingLine = lines.find((l) => l.uid === editingUid) ?? null
 
@@ -377,23 +538,12 @@ function CartFlowInner({
    * while the cart was still empty.
    */
   const dealDiscountMinor = dealDiscountTotalMinor(lines)
+  // A covered line is already 0 in `lines`, so nothing here has to know that
+  // packages exist — which is exactly how the built cart's totals work.
   const baseMinor = Math.max(0, totals(lines).totalMinor - discountMinor - dealDiscountMinor)
   const tipMinor = tipId === "custom" ? customTipMinor : tipForPreset(tipId)
   const toPayMinor = baseMinor + tipMinor
-  /**
-   * What the client's package has already paid for, in fils.
-   *
-   * The built product's own model, confirmed against `packagePayments.ts`: the
-   * API keeps a covered line at its gross price and books the coverage as a
-   * captured `customer_package` payment, so the money leaves through the
-   * tenders rather than by discounting the line. Applying a package that
-   * changed no figure at all — which is what this did — is a button that says
-   * it worked and does nothing.
-   */
-  const packagePaidMinor = lines
-    .filter((l) => appliedPackages.includes(l.uid))
-    .reduce((sum, l) => sum + l.priceMinor * l.qty, 0)
-  const paidMinor = payments.reduce((sum, p) => sum + p.amountMinor, 0) + packagePaidMinor
+  const paidMinor = payments.reduce((sum, p) => sum + p.amountMinor, 0)
   const leftToPayMinor = Math.max(0, toPayMinor - paidMinor)
   const fullyPaid = toPayMinor > 0 && paidMinor >= toPayMinor
   const payerName = attachment.type === "client" ? attachment.client.name : "Walk-In"
@@ -695,6 +845,31 @@ function CartFlowInner({
   }
 
   function routeToTerminal(terminal: Terminal) {
+    /**
+     * The refusal GNK's §15 asks for, behind the scoped grid rather than
+     * instead of it.
+     *
+     * The grid already offers only this branch's machines, so the operator
+     * cannot pick a wrong one. What it cannot cover is the machine moving
+     * afterwards: §15 says the merchant links a machine to a branch and can
+     * move it to another, and a draft sale reopened after that move is holding
+     * one that was the right machine when it was chosen.
+     *
+     * Moving an APPOINTMENT is not one of these cases — the move sets the
+     * booking's branch to the destination, so its sale is taken there and the
+     * destination's machines are the ones offered. Only the deposit stays
+     * credited at the source (R17).
+     *
+     * A card payment is recorded against the machine's branch, so sending it
+     * anyway books the money somewhere the sale never was, and nothing on
+     * either screen looks wrong afterwards.
+     */
+    const refusal = refuseCharge(terminal, saleLocationId, isMultiLocation)
+    if (refusal) {
+      setTerminalPickerOpen(false)
+      toast.error(refusalMessage(refusal, locationName))
+      return
+    }
     setTerminalCharge({
       amountMinor: leftToPayMinor,
       terminalName: terminal.name,
@@ -834,6 +1009,7 @@ function CartFlowInner({
                   {step === "cart" ? (
                     <ItemPicker
                       services={serviceCatalog}
+                      availableCoverage={allocation.availableCoveredMap}
                       onAddService={(s) => addService(s)}
                       onAddProduct={addProduct}
                       onAddAppointment={addAppointment}
@@ -917,17 +1093,37 @@ function CartFlowInner({
                           below are white bordered cards, and a grey borderless
                           field between them read as something left over from
                           another screen. */}
-                      <WriteTargetLocation
-                        value={saleLocationId}
-                        onChange={setSaleLocationId}
-                        action="This sale"
-                        variant="card"
-                        requiredNote="Choose a location to continue"
-                        // Due once there is something to sell. An empty cart
-                        // with no branch is not a mistake yet — it is a sale
-                        // nobody has started.
-                        requiredDue={lines.length > 0}
-                      />
+                      {/* Out of the way while the client search is open. The
+                          branch belongs to the sale and the search belongs to
+                          the client — two unrelated controls stacked under one
+                          set of results, and neither is the thing being
+                          answered. It comes back the moment a client is
+                          picked, which is before anything can be sold anyway. */}
+                      {clientSearching ? null : (
+                        <WriteTargetLocation
+                          value={saleLocationId}
+                          onChange={setSaleLocationId}
+                          action="This sale"
+                          variant="card"
+                          requiredNote="Choose a location to continue"
+                          // Due once there is something to sell. An empty cart
+                          // with no branch is not a mistake yet — it is a sale
+                          // nobody has started.
+                          requiredDue={lines.length > 0}
+                        />
+                      )}
+                      {/* Above the lines, because it is about the client rather
+                          than about any line — and there IS no covered line to
+                          hang it on, which is the whole point. */}
+                      {clientSearching || expiredPackages.length === 0
+                        ? null
+                        : expiredPackages.map((pkg) => (
+                            <ExpiredPackageWarning
+                              key={pkg.id}
+                              pkg={pkg}
+                              onDismiss={() => setDismissedExpired((c) => [...c, pkg.id])}
+                            />
+                          ))}
                       {clientSearching ? null : (
                         <CartContent
                           lines={lines}
@@ -935,26 +1131,34 @@ function CartFlowInner({
                           onRemove={removeLine}
                           onSetQty={setQty}
                           onEditLine={setEditingUid}
-                          packageCovered={appliedPackages}
+                          coverage={coverage}
+                          // SCR-13, on the line the session paid for rather than
+                          // in a panel of its own: the fact is about this
+                          // service at this branch, and it warns and still
+                          // completes (KC1.5).
+                          renderLineNotice={(line) => {
+                            const mismatch = branchMismatches.get(line.uid)
+                            if (!mismatch) return null
+                            const session = coverage.get(line.uid)
+                            const pkg = heldPackages.find(
+                              (p) => p.id === session?.customerPackageId,
+                            )
+                            if (!pkg) return null
+                            return (
+                              <PackageBranchWarning
+                                className="mx-3 mb-1"
+                                mismatch={mismatch}
+                                soldAtLocationId={pkg.soldAtLocationId}
+                                serviceName={line.name}
+                                decision={packageDecisions[line.uid] ?? null}
+                                onDecide={(decision) =>
+                                  setPackageDecisions((c) => ({ ...c, [line.uid]: decision }))
+                                }
+                              />
+                            )
+                          }}
                         />
                       )}
-                      {/* SCR-13, reachable from the till rather than only the
-                          playground. It renders nothing until this client holds
-                          a package covering something in the cart — and then it
-                          warns and still completes, because an operator works
-                          around a block by hand anyway, slowly, in front of the
-                          client (KC1.5). */}
-                      {redeemableLines.length > 0 ? (
-                        <PackageRedemptionPanel
-                          lines={redeemableLines}
-                          redeemingAt={saleLocationId}
-                          applied={appliedPackages}
-                          onApply={(uid) => setAppliedPackages((c) => [...c, uid])}
-                          onRemove={(uid) =>
-                            setAppliedPackages((c) => c.filter((id) => id !== uid))
-                          }
-                        />
-                      ) : null}
                     </>
                   ) : (
                     <>
@@ -1032,7 +1236,6 @@ function CartFlowInner({
                     tipMinor={tipMinor}
                     payments={step === "payment" ? payments : []}
                     onRemovePayment={removePayment}
-                    packagePaidMinor={packagePaidMinor}
                     // `baseMinor` arrives already reduced by both of these, so
                     // without them this footer just showed a smaller number
                     // than the lines above it.

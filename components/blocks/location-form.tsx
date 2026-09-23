@@ -41,6 +41,7 @@ import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
+import { SignedInAs } from "@/components/blocks/signed-in-as"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -62,6 +63,7 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { REASON_CODES } from "@/lib/admin-businesses"
+import { useCurrentUser } from "@/lib/current-user"
 import { BUSINESS_TIPPING, useBranchSettings } from "@/lib/locations/branch-settings"
 import { BUSINESS_DEPOSIT, type DepositSettings, describeDeposit } from "@/lib/locations/deposit"
 import {
@@ -73,7 +75,7 @@ import {
   type WeekSchedule,
 } from "@/lib/locations/hours"
 import { type NewLocationInput, slugify, useLocations } from "@/lib/locations/store"
-import { formatReceiptNumber, taxOverrideCount } from "@/lib/locations/tax-identity"
+import { formatReceiptNumber } from "@/lib/locations/tax-identity"
 import {
   BUSINESS_TIMEZONE,
   normaliseOverride,
@@ -90,6 +92,7 @@ import {
 } from "@/lib/locations/tipping"
 import type { Invoicing, Location, LocationAddress } from "@/lib/locations/types"
 import { isPubliclyBookable } from "@/lib/locations/types"
+import { mayChangeBranch, refusalFor } from "@/lib/locations/who-may"
 import { cn } from "@/lib/utils"
 
 /** Radix refuses "" as a value, so inheritance needs a name of its own. */
@@ -199,6 +202,8 @@ export function LocationForm() {
     setSelectedId(locParam)
   }
   const [addOpen, setAddOpen] = useState(false)
+  const { actor } = useCurrentUser()
+  const canCreate = mayChangeBranch(actor, "createBranch", "").allowed
   const selected = locations.find((l) => l.id === selectedId) ?? null
 
   if (selected) {
@@ -221,16 +226,25 @@ export function LocationForm() {
           <p className="text-sm leading-5 text-muted-foreground">
             Where you operate. Click a location to manage its details.
           </p>
+          {/* Owner only (GNK §2). Refused with its reason rather than hidden:
+              a manager who cannot find the button goes looking for it, and a
+              disabled one with a sentence beside it ends the search. */}
           <Button
             type="button"
             variant="outline"
             radius="full"
             className="self-start"
+            disabled={!canCreate}
             onClick={() => setAddOpen(true)}
           >
             <CirclePlusIcon className="size-4" />
             Add locations
           </Button>
+          {canCreate ? null : (
+            <span className="text-sm leading-5 text-muted-foreground">
+              Only the account owner can add a location.
+            </span>
+          )}
         </header>
       }
     >
@@ -240,6 +254,10 @@ export function LocationForm() {
         ))}
       </div>
       <AddLocationsTakeover open={addOpen} onOpenChange={setAddOpen} />
+      {/* Stands in for signing in as somebody else, which no product screen
+          offers. Every refusal on this panel and inside a branch reads the
+          person this picks. */}
+      <SignedInAs className="pt-2" />
     </SettingsPanel>
   )
 }
@@ -951,6 +969,14 @@ function HoursTab({ location }: { location: Location }) {
  * is going to be wrong in a way that matters at filing.
  */
 function InvoicingTab({ location }: { location: Location }) {
+  /**
+   * GNK §2 names a branch's tax details as the owner's alone, and R23 is why:
+   * what is on this tab is frozen onto every receipt the branch issues, and a
+   * receipt is a legal document the business signs, not a branch preference.
+   */
+  const { actor } = useCurrentUser()
+  const taxVerdict = mayChangeBranch(actor, "editTaxDetails", location.id)
+  const taxRefusal = refusalFor(taxVerdict, location.name)
   const [taxEditing, setTaxEditing] = useState(false)
   const [receiptEditing, setReceiptEditing] = useState(false)
   const [tippingEditing, setTippingEditing] = useState(false)
@@ -958,10 +984,8 @@ function InvoicingTab({ location }: { location: Location }) {
 
   // Read through the store, not the module const, so an edit made in any of
   // the three dialogs below is the value this tab shows afterwards.
-  const { taxFor, taxOverridesFor, sequenceFor, tippingFor, depositFor } = useBranchSettings()
-  const overrides = taxOverridesFor(location.id)
+  const { taxFor, sequenceFor, tippingFor, depositFor } = useBranchSettings()
   const { value: tax, source } = taxFor(location.id)
-  const ownFields = taxOverrideCount(overrides)
   const tipping = tippingFor(location.id)
   const deposit = depositFor(location.id)
 
@@ -972,17 +996,17 @@ function InvoicingTab({ location }: { location: Location }) {
       {/* Same footprint as the cards it sits between. Left to stretch it ran
           past both of them, and the column read as three different widths
           stacked. */}
+      {/* INV-12, and only INV-12. A count of overridden fields used to lead this
+          line; it named no field, and the one it counted at JVC sits two cards
+          below — so it read as an argument with the "Inherited from the
+          business" under every field above it. Each field already says which it
+          is. */}
       <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground sm:w-[36.5rem]">
-        {ownFields === 0
-          ? "This location follows the business tax identity on every field."
-          : ownFields === 1
-            ? "This location holds its own value for 1 field. The rest follow the business."
-            : `This location holds its own values for ${ownFields} fields. The rest follow the business.`}{" "}
         Changes here apply to future receipts only — an issued receipt keeps the details it was
         printed with.
       </p>
 
-      <SummaryCard heading="Tax identity" onEdit={() => setTaxEditing(true)}>
+      <SummaryCard heading="Tax identity" onEdit={() => setTaxEditing(true)} refusal={taxRefusal}>
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           <SummaryRow
             label="Legal / invoice name"
@@ -998,7 +1022,7 @@ function InvoicingTab({ location }: { location: Location }) {
         </div>
       </SummaryCard>
 
-      <SummaryCard heading="Tax defaults" onEdit={() => setTaxEditing(true)}>
+      <SummaryCard heading="Tax defaults" onEdit={() => setTaxEditing(true)} refusal={taxRefusal}>
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           <SummaryRow
             label="Services"
@@ -1012,7 +1036,11 @@ function InvoicingTab({ location }: { location: Location }) {
           />
         </div>
       </SummaryCard>
-      <SummaryCard heading="Receipt sequencing" onEdit={() => setReceiptEditing(true)}>
+      <SummaryCard
+        heading="Receipt sequencing"
+        onEdit={() => setReceiptEditing(true)}
+        refusal={taxRefusal}
+      >
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           <SummaryRow
             label="Receipt No. prefix"
@@ -1116,6 +1144,18 @@ function InvoicingTab({ location }: { location: Location }) {
  */
 function ManageTab({ location }: { location: Location }) {
   const { setStatus } = useLocations()
+  /**
+   * GNK §2: creating, suspending and archiving a branch are the owner's.
+   *
+   * The rule was written and tested and nothing read it, because nothing could
+   * resolve who was signed in. Now that the profile points at a roster row it
+   * can, and this is the first screen to obey it — refused with the reason,
+   * never a button that is simply missing, because a manager who cannot find
+   * Suspend goes looking for it rather than asking the owner.
+   */
+  const { actor } = useCurrentUser()
+  const verdict = mayChangeBranch(actor, "changeBranchState", location.id)
+  const refusal = refusalFor(verdict, location.name)
   const [suspendOpen, setSuspendOpen] = useState(false)
   const [unsuspendOpen, setUnsuspendOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -1125,6 +1165,13 @@ function ManageTab({ location }: { location: Location }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Said once, above both actions. Repeating it per button would make a
+          refusal look like two. */}
+      {refusal ? (
+        <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground">
+          {refusal}
+        </p>
+      ) : null}
       {location.status === "live" && (
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-cami-green-3 px-4 py-3">
           <div className="flex items-center gap-2.5">
@@ -1153,7 +1200,7 @@ function ManageTab({ location }: { location: Location }) {
               type="button"
               variant="outline"
               radius="full"
-              disabled={isArchived}
+              disabled={isArchived || !verdict.allowed}
               onClick={() => (isSuspended ? setUnsuspendOpen(true) : setSuspendOpen(true))}
             >
               {isSuspended ? "Unsuspend location" : "Suspend location"}
@@ -1175,7 +1222,7 @@ function ManageTab({ location }: { location: Location }) {
               type="button"
               variant="destructive"
               radius="full"
-              disabled={isArchived || isSuspended}
+              disabled={isArchived || isSuspended || !verdict.allowed}
               onClick={() => setDeleteOpen(true)}
             >
               Delete location
@@ -3045,20 +3092,35 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function SummaryCard({
   heading,
   onEdit,
+  refusal,
   children,
 }: {
   heading: string
   onEdit: () => void
+  /** Why Edit is shut. Disabled with the reason beside it, never hidden. */
+  refusal?: string | null
   children: React.ReactNode
 }) {
   return (
     <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-[36.5rem]">
       <header className="flex items-start justify-between gap-2">
         <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">{heading}</h3>
-        <Button type="button" variant="secondary" size="sm" radius="full" onClick={onEdit}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          radius="full"
+          disabled={Boolean(refusal)}
+          onClick={onEdit}
+        >
           Edit
         </Button>
       </header>
+      {refusal ? (
+        <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground">
+          {refusal}
+        </p>
+      ) : null}
       {children}
     </section>
   )
