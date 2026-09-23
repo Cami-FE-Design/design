@@ -10,7 +10,6 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
-import { toast } from "sonner"
 import { ExpiredPackageWarning } from "@/components/blocks/expired-package-warning"
 import {
   PackageBranchWarning,
@@ -143,6 +142,23 @@ function terminalScenario(
   // make the option vanish overnight and come back at lunch, so the picker
   // explains instead.
   if (key === "idle") return { terminals: TYPICAL_TERMINALS, sessions: [] }
+  /**
+   * The machine that was moved after it was chosen (GNK §15).
+   *
+   * §15 says the merchant links a machine to a branch **and can move it to
+   * another**, so a sale can be holding one that was right when it was picked.
+   * The scoped picker cannot produce that — it only ever offers this branch's
+   * machines — which left the refusal correct, tested, and impossible to reach
+   * by clicking. This is the state the guard exists for, pinned so it can be
+   * read on the screen it protects rather than only in a test.
+   */
+  if (key === "moved") {
+    const machine = { ...TYPICAL_TERMINALS[0]!, locationId: "shampooch-jumeirah" }
+    return {
+      terminals: [machine],
+      sessions: TYPICAL_SESSIONS.filter((s) => s.terminalId === machine.id).map((s) => ({ ...s })),
+    }
+  }
   if (key === "one")
     return {
       terminals: [TYPICAL_TERMINALS[0]],
@@ -314,6 +330,9 @@ function CartFlowInner({
   const [terminalCharge, setTerminalCharge] = useState<ActiveTerminalCharge | null>(null)
   // Which machine to send it to, asked only when there is a choice to make.
   const [terminalPickerOpen, setTerminalPickerOpen] = useState(false)
+  // Held on the payment screen rather than thrown as a toast — see
+  // PaymentView's `refusal`.
+  const [chargeRefusal, setChargeRefusal] = useState<string | null>(null)
   // Add-a-gift-card-to-cart dialog. Normally opened from the item picker; also
   // deep-linkable via ?dialog=gift-card on the route page.
   const [giftCardAddOpen, setGiftCardAddOpen] = useState(deepDialog === "gift-card")
@@ -354,10 +373,15 @@ function CartFlowInner({
    */
   const terminals = useMemo(
     () =>
-      isMultiLocation && saleLocationId
-        ? registeredTerminals.filter((t) => t.locationId === saleLocationId)
-        : registeredTerminals,
-    [registeredTerminals, isMultiLocation, saleLocationId],
+      // `?terminals=moved` stands for a machine already attached to this sale
+      // and moved to another branch since, so it is NOT filtered out — that is
+      // the whole case. Everything else is scoped.
+      deepTerminals === "moved"
+        ? registeredTerminals
+        : isMultiLocation && saleLocationId
+          ? registeredTerminals.filter((t) => t.locationId === saleLocationId)
+          : registeredTerminals,
+    [registeredTerminals, isMultiLocation, saleLocationId, deepTerminals],
   )
 
   // Mirrors the real build's one backend boolean: no registered hardware, no
@@ -867,9 +891,10 @@ function CartFlowInner({
     const refusal = refuseCharge(terminal, saleLocationId, isMultiLocation)
     if (refusal) {
       setTerminalPickerOpen(false)
-      toast.error(refusalMessage(refusal, locationName))
+      setChargeRefusal(refusalMessage(refusal, locationName))
       return
     }
+    setChargeRefusal(null)
     setTerminalCharge({
       amountMinor: leftToPayMinor,
       terminalName: terminal.name,
@@ -1036,6 +1061,7 @@ function CartFlowInner({
                       onSelect={selectPayment}
                       hasGiftCard={hasGiftCard}
                       terminalAvailable={terminalAvailable}
+                      refusal={chargeRefusal}
                       machines={machines}
                     />
                   )}

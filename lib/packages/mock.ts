@@ -118,6 +118,27 @@ export const PACKAGES: Package[] = [
         expiresAt: "2026-10-11",
         soldAtLocationId: "shampooch-jvc",
       },
+      /**
+       * The third status, because two of three is a legend nobody can read.
+       *
+       * Cancelled is not a worse Exhausted — that one did its job, this one was
+       * taken back — which is why the dev repo colours them apart. Sessions left
+       * on it on purpose: a package is cancelled while it still has value, and a
+       * row showing zero would read as exhausted by another name.
+       */
+      {
+        customerPackageId: "cp-hind-1",
+        code: "FG3-0247",
+        customerId: "hind-al-suwaidi",
+        customerName: "Hind Al Suwaidi",
+        status: "cancelled",
+        sessionsTotal: 4,
+        sessionsRemaining: 3,
+        sessionsUsed: 1,
+        purchasedAt: "2026-06-02",
+        expiresAt: "2026-12-02",
+        soldAtLocationId: "shampooch-al-majaz",
+      },
     ],
   },
   {

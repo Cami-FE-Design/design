@@ -9,6 +9,7 @@ import {
   MonitorSmartphoneIcon,
   SmartphoneIcon,
   SplitIcon,
+  TriangleAlertIcon,
   WalletIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -63,6 +64,15 @@ type PaymentViewProps = {
    * `terminal:<id>`.
    */
   machines?: { id: string; name: string; blockedReason: string | null }[]
+  /**
+   * A charge this screen refused, held until it is answered.
+   *
+   * It started as a toast and read as one: four lines that time out over the
+   * footer, on a screen whose whole job is the next decision. A refusal is not
+   * a notification — nothing happens until the operator does something about
+   * it — so it stays, above the tiles it is about.
+   */
+  refusal?: string | null
 }
 
 export function PaymentView({
@@ -70,6 +80,7 @@ export function PaymentView({
   hasGiftCard,
   terminalAvailable = true,
   machines = [],
+  refusal = null,
 }: PaymentViewProps) {
   // Per-machine tiles replace the generic one. The generic tile is what a
   // merchant past the cap gets — there the picker does the naming.
@@ -82,6 +93,13 @@ export function PaymentView({
       <h1 className="font-heading font-semibold text-2xl text-foreground leading-8">
         Select payment
       </h1>
+
+      {refusal ? (
+        <div className="flex items-start gap-3 rounded-xl bg-cami-yellow-2 p-3">
+          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" />
+          <p className="text-sm leading-5 text-foreground">{refusal}</p>
+        </div>
+      ) : null}
 
       {hasGiftCard ? (
         <div className="flex items-center gap-3 rounded-2xl bg-blue-3 px-4 py-3 text-blue-12">

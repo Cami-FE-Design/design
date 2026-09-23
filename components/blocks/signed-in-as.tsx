@@ -33,7 +33,26 @@ function describe(
 
 export function SignedInAs({ className }: { className?: string }) {
   const { user, actor, setMemberId } = useCurrentUser()
-  const { locationName } = useLocations()
+  const { locationName, setGrants, setScope } = useLocations()
+
+  /**
+   * Switching the person switches what they hold, not only what they may press.
+   *
+   * These were two halves of one fact kept in two places: the refusals read the
+   * signed-in member, while the branch list read the provider's own grant. So
+   * Aziz — a manager at Jumeirah — was refused the buttons and still shown all
+   * nine branches, which is the R04 failure the panel exists to demonstrate,
+   * performed by the panel itself. No access never means all branches (GNK §1).
+   *
+   * The scope goes back to "all of mine" because a scope naming a branch this
+   * person does not hold resolves to nothing, and an empty screen is the wrong
+   * way to say "you are somebody else now".
+   */
+  function signInAs(memberId: string, grants: "all" | ReadonlyArray<string>) {
+    setMemberId(memberId)
+    setGrants(grants === "all" ? "all" : [...grants])
+    setScope({ kind: "all" })
+  }
 
   return (
     <div className={cn("flex flex-col gap-1", className)}>
@@ -45,7 +64,7 @@ export function SignedInAs({ className }: { className?: string }) {
             <button
               key={member.id}
               type="button"
-              onClick={() => setMemberId(member.id)}
+              onClick={() => signInAs(member.id, member.locationGrants ?? "all")}
               className={cn(
                 "rounded-full border px-2.5 py-1 text-xs transition-colors",
                 active

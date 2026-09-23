@@ -33,10 +33,14 @@ describe("charging a sale on a card machine", () => {
     expect(refuseCharge({ locationId: "shampooch-jvc" }, "shampooch-jvc", false)).toBeNull()
   })
 
-  it("leaves a sale with no branch to the rule that already covers it", () => {
-    // R11 shuts the sale itself; a second sentence about machines would be a
-    // second answer to one question.
-    expect(refuseCharge({ locationId: "shampooch-jvc" }, null, true)).toBeNull()
+  it("refuses a sale that names no branch at all", () => {
+    // Sending to a machine is not Save. The machine books the money at its own
+    // branch while the sale belongs nowhere — §15's own outcome by another
+    // road, and a charge is the last place to find that out.
+    expect(refuseCharge({ locationId: "shampooch-jvc" }, null, true)).toEqual({
+      machineLocationId: "shampooch-jvc",
+      saleLocationId: null,
+    })
   })
 })
 
@@ -51,5 +55,15 @@ describe("what it says", () => {
 
   it("gives a way out, since the client is standing there either way", () => {
     expect(refusalMessage(refusal, name)).toMatch(/take the payment another way/)
+  })
+
+  it("says something else when the sale has no branch", () => {
+    const msg = refusalMessage(
+      { machineLocationId: "shampooch-jumeirah", saleLocationId: null },
+      name,
+    )
+    expect(msg).toContain("no location yet")
+    expect(msg).toContain("Shampooch Jumeirah")
+    expect(msg).toMatch(/Choose the sale's location first/)
   })
 })
