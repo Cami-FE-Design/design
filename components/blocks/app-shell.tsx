@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils"
  * whose CSS was hiding it, so **both** copies became visible — two dialogs
  * stacked, each with its own state, closing one leaving the other. Nine pages
  * mount a dialog inside this shell and every one of them had it; it was only
- * ever noticed on `/catalogs/deals`, where the fix was to move that page's
+ * ever noticed on the Deals page it then had, where the fix was to move that page's
  * dialogs outside the shell. That is a fix per page, and per page somebody
  * remembers.
  *

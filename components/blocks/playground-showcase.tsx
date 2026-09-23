@@ -2826,7 +2826,7 @@ export function PlaygroundShowcase() {
       >
         <Section
           title="Multi-location — a deal, and where it runs"
-          description="DW3.4 — the row states /catalogs/deals can be in, side by side. 'All locations' is a NAMED set that a branch opened next month joins; '3 locations' is today's three and is not. The last was saved with nothing chosen: the dev repo's mapper reads that same empty shape as ALL, while R24 says an empty scope never resolves to all. A deal that reaches nobody can never read Active — an owner believes the badge."
+          description="DW3.4 — the row states Settings → Marketing → Deals can be in, side by side. 'All locations' is a NAMED set that a branch opened next month joins; '3 locations' is today's three and is not. The last was saved with nothing chosen: the dev repo's mapper reads that same empty shape as ALL, while R24 says an empty scope never resolves to all. A deal that reaches nobody can never read Active — an owner believes the badge."
         >
           {MOCK_DEALS.slice(0, 4).map((deal) => (
             <Row
@@ -2840,14 +2840,11 @@ export function PlaygroundShowcase() {
               }
             >
               <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
-                <div className="w-full max-w-3xl">
+                <div className="w-full max-w-146">
                   <DealsTable
                     deals={[deal]}
                     todayIso={TODAY_ISO}
                     locationName={estateLocationName}
-                    inScope={NINE_BRANCH_ESTATE}
-                    estateSize={NINE_BRANCH_ESTATE.length}
-                    isMultiLocation
                     onSelect={() => {}}
                     onEdit={() => {}}
                     onSetStatus={() => {}}

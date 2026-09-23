@@ -378,29 +378,6 @@ export function formatDealSummary(deal: Deal): string {
 }
 
 /**
- * The same offer, for a list row: "20% off services".
- *
- * Only what it *does* come off. The long form states all four categories
- * including the negatives, which is right on a detail surface — "does this come
- * off the shampoo they buy on the way out" is the question somebody opens a
- * deal to answer — and wrong in a table, where it is seventy unbroken
- * characters of mostly "no". A row is scanned; the negatives are read.
- */
-export function formatDealSummaryShort(deal: Deal): string {
-  const a = deal.applicability
-  const on: string[] = []
-  if (a.services.mode !== "none") on.push("services")
-  if (a.products.mode !== "none") on.push("products")
-  if (a.packages.mode !== "none") on.push("packages")
-  if (a.giftCardsInStore) on.push("gift cards")
-  // A deal that comes off nothing is refused at the wizard, so this is the
-  // shape of a row somebody saved before that rule existed.
-  if (on.length === 0) return `${formatDiscountValue(deal)} off nothing`
-  if (on.length === 4) return `${formatDiscountValue(deal)} off everything`
-  return `${formatDiscountValue(deal)} off ${on.join(", ")}`
-}
-
-/**
  * The date range on a row.
  *
  * Taken from `formatDateRange` in the dev repo's `deals/lib/deal-format.ts` —
@@ -453,44 +430,6 @@ export function statusFor(
   if (!startDate || startDate > todayIso) return "scheduled"
   if (endDate && endDate < todayIso) return "inactive"
   return "active"
-}
-
-/**
- * What the row menu may offer on this deal, and why not.
- *
- * Pulled out of the page because eyeballing it produced a message that lied:
- * "Activate · its dates have passed" appeared on a deal starting 10 Aug with
- * today at 24 Aug, because *not runnable* and *window closed* had been folded
- * into one flag. Two different reasons, one sentence, and the sentence was
- * wrong for the commoner of the two.
- *
- * `reason` is the whole point. A disabled item that does not say why is a
- * control the reader has to guess at.
- */
-export type DealAction =
-  | { kind: "stop" }
-  | { kind: "activate" }
-  | { kind: "restore" }
-  | { kind: "blocked"; reason: string }
-
-export function dealAction(
-  resolved: DealStatus,
-  runnable: boolean,
-  endDate: string | null,
-  todayIso: string,
-): DealAction {
-  // Archived is not a dead end: restoring returns it to stopped, never straight
-  // to running — whoever archived it did not ask for it to start selling again.
-  if (resolved === "archived") return { kind: "restore" }
-
-  // Both of these are running or about to. Stopping is the useful action, and
-  // "Activate" on a deal that starts next month reads as though it were broken.
-  if (resolved === "active" || resolved === "scheduled") return { kind: "stop" }
-
-  // Inactive, so why — and each answer is a different thing to go and do.
-  if (!runnable) return { kind: "blocked", reason: "choose a location first" }
-  if (endDate && endDate < todayIso) return { kind: "blocked", reason: "its dates have passed" }
-  return { kind: "activate" }
 }
 
 /**
@@ -547,4 +486,27 @@ export function applyToRows(a: DealApplicability): Array<{
       value: scopeStatusLabel(a.packages, "package", "packages"),
     },
   ].sort((x, y) => priority(x.scope) - priority(y.scope))
+}
+
+/**
+ * "All locations" / "Shampooch JVC" / "3 locations" / "No locations".
+ *
+ * The Locations line the built Availability tab prints, given something to
+ * say. "All locations" is the named set a branch opened later joins; "3
+ * locations" is today's three and is not.
+ */
+export function formatLocations(
+  scope: PromotionScope,
+  locationName: (id: string) => string,
+): string {
+  if (scope.kind === "estate") return "All locations"
+  if (scope.locationIds.length === 0) return "No locations"
+  if (scope.locationIds.length === 1) return locationName(scope.locationIds[0]!)
+  return `${scope.locationIds.length} locations`
+}
+
+/** A deal that reaches nobody can never read Active, whatever was stored. */
+export function resolvedStatus(deal: Deal, todayIso: string): DealStatus {
+  const runnable = deal.scope.kind === "estate" || deal.scope.locationIds.length > 0
+  return runnable ? statusFor(deal.status, deal.startDate, deal.endDate, todayIso) : "inactive"
 }

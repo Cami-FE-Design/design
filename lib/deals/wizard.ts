@@ -2,19 +2,12 @@
  * The draft a deal is built from, and the steps that collect it (DW3.4).
  *
  * `deal-wizard.types.ts` on the dev repo's `promotion-discount-ui`, with one
- * step added and one kept honest.
+ * step added.
  *
- * ## The added step, and why it is not optional here
- *
- * The built wizard has four steps — type, details, limits, team — and creates
- * every deal with `locationIds: []`. Under its own mapper that empty array
- * means *every venue*, so a chain-wide offer and a deal nobody scoped are the
- * same saved row. That is precisely the reading R24 forbids, and it is why the
- * Availability tab's Locations row can only ever say "All locations" and its
- * Edit button says editing is coming soon.
- *
- * So there is a **locations** step, and it is not last: a promotion's reach is
- * a decision about money, not a detail to confirm on the way out.
+ * The built wizard runs details → limits and creates every deal with
+ * `locationIds: []`. Under its own mapper that empty array means *every venue*,
+ * so a chain-wide offer and a deal nobody scoped are the same saved row — the
+ * reading R24 forbids. So a **locations** step follows limits.
  */
 
 import {
@@ -31,27 +24,16 @@ import type { PromotionScope } from "@/lib/locations/promotion-scope"
 
 export type ScopeKind = "services" | "products" | "packages"
 
-export type DealWizardStepId = "type" | "details" | "limits" | "locations" | "team"
+export type DealWizardStepId = "details" | "limits" | "locations"
 
 /**
- * Every step, in order.
+ * The built product's two steps, then locations.
  *
- * The built product filters `type` and `team` out of this list — every deal is
+ * It also has `type` and `team` steps, filtered out of its flow: every deal is
  * created as a Promotion, and the Promotions API has no per-team-member scoping
- * yet, so collecting `teamMemberIds` there would be silently dropped on save.
- * Both steps stay in its codebase behind that filter.
- *
- * This is a prototype and nothing is dropped on save, so all five run. The
- * comment matters more than the list: if this is ever wired to that API, `team`
- * is the one that stops meaning anything.
+ * yet. They stay out here too.
  */
-export const DEAL_WIZARD_STEPS: DealWizardStepId[] = [
-  "type",
-  "details",
-  "limits",
-  "locations",
-  "team",
-]
+export const DEAL_WIZARD_STEPS: DealWizardStepId[] = ["details", "limits", "locations"]
 
 export type DealWizardDraft = {
   type: DealType
@@ -113,39 +95,36 @@ export function dealToWizardDraft(deal: Deal): DealWizardDraft {
 /**
  * Whether this step may be left, and what is missing if not.
  *
- * A reason per step rather than one disabled Continue: the built wizard greys
- * the button out on the details step and says nothing, which on a form of eight
- * fields leaves the reader hunting. Each blocker here names the field.
+ * The built wizard's `detailsValid` / `limitsValid` gates, one step at a time.
+ * The screen disables Continue and shows each error beside its own field.
  */
 export function stepBlocker(step: DealWizardStepId, draft: DealWizardDraft): string | null {
   if (step === "details") {
     if (draft.name.trim().length === 0) return "Give the deal a name."
     const value = Number(draft.discountValue)
-    if (!Number.isFinite(value) || value <= 0) return "Enter a discount value."
+    if (!Number.isFinite(value) || value <= 0) return "Enter a value greater than 0."
     if (draft.discountKind === "percentage" && value > 100) {
-      return "A percentage discount cannot exceed 100%."
+      return "A percentage discount can't exceed 100%."
     }
     if (draft.startDate.trim().length === 0) return "Give the deal a start date."
     if (draft.endDate && draft.endDate < draft.startDate) {
-      return "An end date cannot precede the start."
+      return "End date must be on or after the start date."
     }
     const a = draft.applicability
-    if (
-      a.services.mode === "none" &&
-      a.products.mode === "none" &&
-      a.packages.mode === "none" &&
-      !a.giftCardsInStore
-    ) {
-      return "Choose at least one thing for this deal to come off."
+    if (a.services.mode === "none" && a.products.mode === "none" && a.packages.mode === "none") {
+      return "Select at least one service, product or package."
     }
     return null
   }
   if (step === "limits") {
-    if (draft.limits.totalUsesEnabled && !draft.limits.totalUses) {
-      return "Enter how many uses in total, or switch the limit off."
+    if (draft.limits.totalUsesEnabled && !(draft.limits.totalUses && draft.limits.totalUses > 0)) {
+      return "Enter a number greater than 0."
     }
-    if (draft.limits.minimumPurchaseEnabled && !draft.limits.minimumPurchaseAmount) {
-      return "Enter a minimum spend, or switch the limit off."
+    if (
+      draft.limits.minimumPurchaseEnabled &&
+      !(draft.limits.minimumPurchaseAmount && draft.limits.minimumPurchaseAmount > 0)
+    ) {
+      return "Enter an amount greater than 0."
     }
     return null
   }
@@ -154,7 +133,7 @@ export function stepBlocker(step: DealWizardStepId, draft: DealWizardDraft): str
     // broad deal — it is a deal nobody can use, and saving it stores a row
     // whose meaning depends on who reads it (R24).
     if (draft.scope.kind === "branches" && draft.scope.locationIds.length === 0) {
-      return "Choose at least one location. A deal with none runs nowhere."
+      return "Select at least one location."
     }
     return null
   }

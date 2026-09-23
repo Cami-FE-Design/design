@@ -1237,19 +1237,19 @@ const SECTIONS: Section[] = [
         note: "The template is the business's, one wording edited once; the number is the branch's, and a reply goes wherever the send came from. The screen now says so, and names the branches whose clients get no WhatsApp reminder until a number is connected — never rerouted through a sister branch (KC2.2).",
       },
       {
-        path: "/catalogs/deals",
-        label: "Deals, and where each one runs · DW3.4 (route)",
-        note: "Catalogs → Deals — the dev repo's promotions module (list, wizard, filters, three-tab detail), redrawn to this repo's list conventions and given the locations axis it lacks. 'All locations' is a named set that a branch opened mid-January joins; '3 locations' is today's three. 'Spring refresh' has none and says it cannot run, because R24 holds that an empty scope never means all. Filters carry a Location axis including 'Runs nowhere'. Narrow the switcher to Mirdif and the Abu Dhabi deal goes (R18).",
+        path: "/shell-demo?settings=deals",
+        label: "Deals, and where each one runs · DW3.4",
+        note: "Settings → Marketing → Deals, where the dev repo mounts its promotions module — same card list, Options menu, sort and Add deal. Each row adds where the deal runs: 'All locations' is a named set a branch opened mid-January joins; '3 locations' is today's three. 'Spring refresh' has none, reads Inactive and refuses Activate, because R24 holds that an empty scope never means all. Narrow the switcher to Mirdif and the Abu Dhabi deal goes (R18).",
       },
       {
-        path: "/catalogs/deals?deal=summer-groom",
-        label: "One deal, in full · DW3.4 (route)",
-        note: "A dialog over the list, like every other read-only detail surface here, at a fixed height so the tab bar cannot jump under the pointer. Two tabs, not the built three. 'Where it runs' names the branches it reaches, capped at six and counted past that; a chain-wide deal names none, because listing today's nine says the opposite of what it means. The URL is the state — try ?deal=unscoped-draft for the deal that reaches nobody.",
+        path: "/shell-demo?settings=deals&deal=abu-dhabi-launch",
+        label: "One deal, in full · DW3.4",
+        note: "The built drill-down: breadcrumb, Overview / Details / Availability. On Availability the Locations row names the branches, and Edit opens the location picker — in the dev repo it can only print 'All locations' and says editing is coming soon. Try &deal=unscoped-draft for the deal that reaches nobody.",
       },
       {
-        path: "/catalogs/deals",
-        label: "Creating a deal, five steps · DW3.4 (route)",
-        note: "Add → the full-viewport wizard: Type → Details → Limits → Locations → Team, against the built product's four with no locations step. The discount is a kind and a number rather than free text, apply-to stores 'all' rather than today's ids, limits are enforced at the till, and each step names what is missing beside the button it disables.",
+        path: "/shell-demo?settings=deals",
+        label: "Creating a deal · DW3.4",
+        note: "Add deal → the built full-viewport wizard, details → limits, with a Locations step after them. Select all by an owner stores the named set, not today's nine; a manager's Select all is their own branches. An empty list disables Create.",
       },
       {
         path: "/playground#multi-location-branch-access-grants",

@@ -3,7 +3,7 @@
  *
  * ## The other half of "where a deal runs"
  *
- * `/catalogs/deals` settles where an offer applies. On its own that is a label:
+ * Settings → Deals settles where an offer applies. On its own that is a label:
  * the rule only exists once the place that spends money obeys it. The built
  * product asks the server — `promotionService.evaluateCart(lines)` through
  * `useEvaluateDiscountsMutation` in `NewSaleSheet` — and what comes back is

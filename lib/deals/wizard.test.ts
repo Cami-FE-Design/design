@@ -28,10 +28,8 @@ const draft = (over: Partial<DealWizardDraft> = {}): DealWizardDraft => ({
 })
 
 describe("the steps", () => {
-  it("asks where it runs before who sells it", () => {
-    // Reach is a decision about money. Confirming it on the way out, after the
-    // team roster, is how it becomes a formality nobody reads.
-    expect(DEAL_WIZARD_STEPS).toEqual(["type", "details", "limits", "locations", "team"])
+  it("runs the built product's details → limits, then locations", () => {
+    expect(DEAL_WIZARD_STEPS).toEqual(["details", "limits", "locations"])
   })
 
   it("starts a new deal chain-wide, never on an empty branch list", () => {
@@ -47,12 +45,14 @@ describe("the details step names what is missing", () => {
   })
 
   it("asks for a discount value", () => {
-    expect(stepBlocker("details", draft({ discountValue: "" }))).toBe("Enter a discount value.")
+    expect(stepBlocker("details", draft({ discountValue: "" }))).toBe(
+      "Enter a value greater than 0.",
+    )
   })
 
   it("refuses a percentage over 100", () => {
     expect(stepBlocker("details", draft({ discountValue: "150" }))).toBe(
-      "A percentage discount cannot exceed 100%.",
+      "A percentage discount can't exceed 100%.",
     )
   })
 
@@ -64,13 +64,12 @@ describe("the details step names what is missing", () => {
 
   it("refuses an end before the start", () => {
     expect(stepBlocker("details", draft({ startDate: "2026-08-01", endDate: "2026-07-01" }))).toBe(
-      "An end date cannot precede the start.",
+      "End date must be on or after the start date.",
     )
   })
 
-  it("refuses a deal that comes off nothing", () => {
-    // The same empty set R24 refuses on the location axis: a deal applying to
-    // no kind of line is not a broad deal, it never fires.
+  it("refuses a deal that covers no service, product or package", () => {
+    // The built wizard's `hasScope`: the same rule the Promotions API enforces.
     expect(
       stepBlocker(
         "details",
@@ -83,7 +82,7 @@ describe("the details step names what is missing", () => {
           },
         }),
       ),
-    ).toBe("Choose at least one thing for this deal to come off.")
+    ).toBe("Select at least one service, product or package.")
   })
 })
 
@@ -94,7 +93,7 @@ describe("the limits step refuses a switch with no number behind it", () => {
         "limits",
         draft({ limits: { ...createEmptyDealDraft(TODAY).limits, totalUsesEnabled: true } }),
       ),
-    ).toBe("Enter how many uses in total, or switch the limit off.")
+    ).toBe("Enter a number greater than 0.")
   })
 
   it("asks for the minimum spend", () => {
@@ -105,14 +104,14 @@ describe("the limits step refuses a switch with no number behind it", () => {
           limits: { ...createEmptyDealDraft(TODAY).limits, minimumPurchaseEnabled: true },
         }),
       ),
-    ).toBe("Enter a minimum spend, or switch the limit off.")
+    ).toBe("Enter an amount greater than 0.")
   })
 })
 
 describe("the locations step is the one this ticket added", () => {
-  it("refuses an empty branch list, and says what it would mean", () => {
+  it("refuses an empty branch list rather than reading it as everywhere", () => {
     expect(stepBlocker("locations", draft({ scope: { kind: "branches", locationIds: [] } }))).toBe(
-      "Choose at least one location. A deal with none runs nowhere.",
+      "Select at least one location.",
     )
   })
 

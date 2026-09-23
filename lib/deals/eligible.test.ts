@@ -6,13 +6,12 @@ import {
   DEFAULT_DEAL_LIMITS,
   type Deal,
   type DealApplicability,
-  formatDealSummaryShort,
 } from "@/lib/deals/mock"
 
 /**
  * Which deals the till may offer (DW3.4, R11, R18).
  *
- * `/catalogs/deals` settles where an offer applies, and on its own that is a
+ * Settings → Deals settles where an offer applies, and on its own that is a
  * label — the rule exists only once the place that spends money obeys it.
  *
  * The behaviour here is the opposite of the package rule, on purpose. A
@@ -174,42 +173,5 @@ describe("a deal only discounts what it says it does", () => {
 
   it("answers 'what runs here at all' when no line kind is asked about", () => {
     expect(dealsAtTill([groomingOnly], "x", TODAY).map((d) => d.id)).toEqual(["grooming"])
-  })
-})
-
-describe("what a row says an offer comes off", () => {
-  // The long form states all four categories including the negatives, which is
-  // right on a detail surface and wrong in a table: seventy unbroken characters
-  // of mostly "no" is what pushed the list into a horizontal scrollbar.
-  const shaped = (over: Partial<Deal["applicability"]>) =>
-    deal({
-      discountKind: "percentage",
-      discountValue: 20,
-      applicability: { ...servicesOnly, ...over },
-    })
-
-  it("names only what it does come off", () => {
-    expect(formatDealSummaryShort(shaped({}))).toBe("20% off services")
-  })
-
-  it("lists several", () => {
-    expect(formatDealSummaryShort(shaped({ products: { mode: "all", ids: [] } }))).toBe(
-      "20% off services, products",
-    )
-  })
-
-  it("says everything rather than naming all four", () => {
-    expect(formatDealSummaryShort(deal({ applicability: DEFAULT_DEAL_APPLICABILITY }))).toBe(
-      "20% off everything",
-    )
-  })
-
-  it("says so when a saved deal comes off nothing", () => {
-    // Refused at the wizard now, so this is a row saved before that rule.
-    expect(
-      formatDealSummaryShort(
-        shaped({ services: { mode: "none", ids: [] }, giftCardsInStore: false }),
-      ),
-    ).toBe("20% off nothing")
   })
 })

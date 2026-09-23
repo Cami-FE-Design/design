@@ -1164,7 +1164,7 @@ loading, and error, with the single-branch case showing no switcher at all".
 | SCR-08 public business page | **page built** — picker, per-branch pages, published-only. The booking *flow* is not branch-scoped |
 | SCR-09 branch service catalog | **built** — per-field inherit / override / reset, per-branch enablement |
 | SCR-12 branch tax identity | **built** — per-field source, forward-only warning, prefixed receipt number; tax defaults, receipt sequencing and tipping all save |
-| SCR-13 checkout, package mismatch | **built** — redemption panel against the shipped eligibility contract, mismatch beside a covered verdict |
+| SCR-13 checkout, package mismatch | **built** — rebuilt 23 Sep on `allocatePackageSessions`, the as-built's own allocation rather than the eligibility endpoint no screen calls. The product applies what a client holds, so there is no Apply; the mismatch rides on the line the session paid for, and all three of its shapes are reachable in a real cart |
 | SCR-14 branch WhatsApp number | **built** — bound / migrating / unassigned, cost attribution |
 | SCR-15 money by branch | **built** — side by side, roll-up as a sum, grant-bounded; mounted in the owner's Account summary as well as at CamiHQ |
 | SCR-07 client record, visits elsewhere | **built** — visits across the estate on the client record, read wide (one business, one P&L); a grant narrows what you may *do*, not what you may read. The open half stays open: whether a franchise view ever narrows the read is Maaz's, and nothing here forecloses it |
@@ -1722,26 +1722,24 @@ saying "show all", because seven of nine hidden is a different decision from two
 The business total sits outside the list either way: it is the check on the rows
 rather than one of them, and a roll-up behind a toggle is not a roll-up.
 
-## Deals: read the branch before inventing the shape
+## Deals: the dev repo's module, where it mounts it
 
-`/catalogs/deals` was built against the story and not against the module that
-already exists on the dev repo's `promotion-discount-ui` — `types/deal.ts`, a
-five-step wizard, a list, a detail view and a scope picker. Two things were
-therefore invented and both were wrong:
+Deals follow the module on the dev repo's `promotion-discount-ui` and sit where
+it mounts them: **Settings → Marketing → Deals**, a tab of the settings dialog,
+not a route. The list is its card rows with an Options menu, a sort menu and
+Add deal; a row drills into its Overview / Details / Availability view; the
+wizard is its full-viewport details → limits flow. Two things from its types
+matter to the rules here:
 
-- **Status.** `live | scheduled | ended` against an as-built
-  `active | scheduled | inactive | archived`. Two of the three names were wrong,
-  and `ended` silently merged two different facts: a deal somebody switched off,
-  and one whose season is over.
-- **Dates.** A `runs` string, where the built product carries `startDate` /
-  `endDate` and formats them with `formatDateRange` — including collapsing a
-  range inside one month to "Apr 1 – 30, 2026".
+- **Status** is `active | scheduled | inactive | archived`. A status a calendar
+  can settle is derived; one somebody set by hand is not. A deal whose end date
+  passed reads Inactive without anyone editing it; a deal switched off mid-run
+  stays off.
+- **Dates** are `startDate` / `endDate`, formatted with `formatDateRange`.
 
-Both now match. The one thing kept from the first attempt is the rule that
-survives the correction: **a status a calendar can settle is derived, and one
-somebody set by hand is not.** A deal whose end date passed reads Inactive
-without anyone editing it; a deal switched off mid-run stays off, because
-deriving from its dates would switch it back on.
+Multi-location adds three things and changes nothing else: a **Locations** step
+after limits, where on each row, and an Availability tab whose Locations row
+names the reach and whose Edit opens the location picker.
 
 There is also a real inconsistency inside that branch worth raising. Its
 `DealScope` models `mode: "all" | "none" | "selected"` — three states, with
@@ -1827,7 +1825,7 @@ the screen that answers it:
 | **DW2.1** | P0 | A person's branch assignment existed; *which services they perform at that branch* did not. |
 | **DW3.5** | P2 | A branch sets its own deposit from its own settings, beside tipping and tax identity, on the same follow-or-override control. Following deletes the override rather than copying today's figures, so inherited stays live. |
 | **KC3.1** | P1 | Templates stay the business's, which is what the plane split has them as; the *number* is the branch's. The preview's From line read the business name and a number typed into the markup — the opposite of the rule it was previewing — and now names the branch and its own number, switchable, because the fact is only visible when it changes. |
-| **DW3.4** | P2 | **`/catalogs/deals`, a real route, and the dev repo's whole promotions module with it.** The list, the five-step wizard, the catalogue pickers, the filters, the limits and the three-tab detail read are all replicated off `promotion-discount-ui`; the axis it does not have is the location. Its wizard creates **every** deal with `locationIds: []` and its mapper reads that empty array as every venue, which is why its Availability tab can only ever print "All locations" behind an Edit button that says editing is coming soon. R24 says an empty scope never resolves to all, so here the reach is a wizard step, a column on the list, a filter axis and a named panel on the detail. `lib/locations/promotion-scope.ts` holds the rule — a named chain-wide case or a list, never an empty list standing in for "everywhere" — and `fromAvailability()` converts without inheriting the ambiguity. Two things the module had wrong on its own terms were fixed rather than copied: the discount was free text (an owner typing "15 off" could not say whether that was AED or a percentage, and a regex behind it took nothing off for half the strings they would write), and the limits were collected, stored, printed and then ignored by the one screen that spends money. **Worth raising with Faisal.** |
+| **DW3.4** | P2 | **Settings → Marketing → Deals, the dev repo's promotions module where it mounts it.** The card list, Options menu, sort, the details → limits wizard, the catalogue pickers and the three-tab detail view follow `promotion-discount-ui`; the axis it does not have is the location. Its wizard creates **every** deal with `locationIds: []` and its mapper reads that empty array as every venue, which is why its Availability tab can only ever print "All locations" behind an Edit button that says editing is coming soon. R24 says an empty scope never resolves to all, so here the reach is a wizard step after limits, a line on every row, and an Availability tab that names the branches and edits them. A deal with none reads Inactive and refuses Activate. `lib/locations/promotion-scope.ts` holds the rule — a named chain-wide case or a list, never an empty list standing in for "everywhere" — and `fromAvailability()` converts without inheriting the ambiguity. The till enforces the limits (`lib/deals/limits.ts`). **Worth raising with Faisal.** |
 
 ## Reports: what multi-location owes, and what it does not
 

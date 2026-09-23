@@ -71,9 +71,9 @@ Below is every place a branch changes something, with what to do on each one. [E
 
 **Catalog, deals and stock**
 [A service, priced per branch](https://design-project-cami.vercel.app/catalogs/service-menu?service=bath-small&ss=locations) — Jumeirah charges 145 for the wash the business prices at 120. Type over a field to override it, press Reset and only that field goes back to inheriting
-[A category a branch has emptied](https://design-project-cami.vercel.app/catalogs/service-menu) — set the switcher to **Shampooch Mirdif**, which runs no spa. **Spa add-ons** keeps its heading with the absence said out loud, and the counts follow the branch. On [Mirdif's own page](https://design-project-cami.vercel.app/shampooch-mirdif) the category is gone entirely — the split Maaz confirmed on 20 Sep
-[Deals](https://design-project-cami.vercel.app/catalogs/deals) — the Locations column: all locations, a named few, or nowhere at all. Filter by **Runs nowhere** for the row nobody would think to look for
-[One deal in full](https://design-project-cami.vercel.app/catalogs/deals?deal=summer-groom) — what it takes off, the branches it reaches, and the limits the till now enforces
+[A category a branch has emptied](https://design-project-cami.vercel.app/catalogs/service-menu) — set the switcher to **Shampooch Mirdif**, which runs no spa. **Spa add-ons** keeps its heading with the absence said out loud, and the counts follow the branch. On [Mirdif's own page](https://design-project-cami.vercel.app/shampooch-mirdif) the category is gone entirely: reception can say "not here, but Jumeirah does it", and a client can do nothing with a heading over nothing
+[Deals](https://design-project-cami.vercel.app/shell-demo?settings=deals) — Settings → Marketing → Deals, as the product has it. Each row says where the deal runs: all locations, a named few, or none — **Spring refresh** has none, so it reads Inactive and refuses Activate. **Add deal** walks details → limits → locations
+[One deal in full](https://design-project-cami.vercel.app/shell-demo?settings=deals&deal=abu-dhabi-launch) — open **Availability**: the Locations row names the three branches, and Edit changes them
 [Stock per branch](https://design-project-cami.vercel.app/products?product=p2) — the deshedding tool: low at JVC, empty at Jumeirah. Same product, two different problems, and the business total is the sum of the rows rather than a number of its own
 
 **Clients**
@@ -94,6 +94,6 @@ Below is every place a branch changes something, with what to do on each one. [E
 [A manager who holds one branch](https://design-project-cami.vercel.app/playground#multi-location-money-by-branch) — one row, and a roll-up equal to it: their real number, not an error
 [Every scope side by side](https://design-project-cami.vercel.app/playground#multi-location-branch-switcher) — including a single-branch business, which renders nothing at all, and a staff member granted none
 
-Forty-four of the forty-nine user stories are covered. The five that are not are listed with the reason in `docs/specs/multi-location-foundations.md`.
+All 16 screens in the PRD's §6 reference are drawn, and 44 of the 49 user stories are covered. The 5 that are not are each waiting on something outside the design — happy to walk through those if useful.
 
 cc @armando
