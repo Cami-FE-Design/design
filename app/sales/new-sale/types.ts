@@ -175,6 +175,16 @@ export type CartLine = {
    * charged price, and the difference is the line's Bundle Discount.
    */
   listPriceMinor?: number
+  /**
+   * What this line cost before a package session paid for it, in fils.
+   *
+   * The built cart's own device: a covered line is set to `priceMinor: 0` and
+   * its real figure parked here — "that zero is a display device, not a price
+   * anyone typed". Keeping the reduction in the line rather than in each
+   * footer is what makes every total downstream correct without knowing
+   * packages exist; losing the coverage restores the price from this field.
+   */
+  originalPriceMinor?: number
   /** Set when this line was snapshotted from an appointment — one appointment per cart. */
   apptId?: string
   /** The deal applied to this line, if any (DW3.4). */

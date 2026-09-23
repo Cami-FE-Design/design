@@ -101,7 +101,12 @@ export function PackageBranchWarning({
           </button>
         </p>
       ) : (
-        <div className="flex flex-wrap gap-2">
+        /* Two halves rather than a wrapping row. This sits in the cart's
+           column, where the pair was a hair too wide and the second choice
+           dropped under the first — which reads as a primary action with an
+           afterthought beneath it, when they are two equal answers to the same
+           question. Labels shortened to the same end. */
+        <div className="grid grid-cols-2 gap-2">
           <Button
             type="button"
             variant="outline"
@@ -109,7 +114,7 @@ export function PackageBranchWarning({
             radius="full"
             onClick={() => onDecide("honour")}
           >
-            Honour the sold price
+            Honour sold price
           </Button>
           <Button
             type="button"
@@ -118,7 +123,7 @@ export function PackageBranchWarning({
             radius="full"
             onClick={() => onDecide("chargeDifference")}
           >
-            Charge the difference
+            Charge difference
           </Button>
         </div>
       )}

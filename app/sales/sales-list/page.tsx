@@ -416,6 +416,28 @@ export type SaleCamiPay = {
   rate: CamiPayRate
 }
 
+/**
+ * One line on a saved sale.
+ *
+ * Only what the detail has to print back. A covered line keeps the shape the
+ * cart gave it — charged 0, with what it was worth in `originalPriceMinor` —
+ * plus the id of the package that paid, because that is the whole record of
+ * WHICH ledger was debited. Re-deriving it later would spend today's sessions
+ * against a sale that settled months ago.
+ */
+export type SaleItem = {
+  name: string
+  /** What was charged, in fils. Zero on a line a package session paid for. */
+  priceMinor: number
+  /** What it was worth before the session paid for it. */
+  originalPriceMinor?: number
+  /** The client's package the session came out of. */
+  customerPackageId?: string
+  /** The client whose packages this line's coverage is read against. */
+  clientId?: string
+  meta?: string
+}
+
 export type Sale = {
   id: number
   client: string
@@ -433,6 +455,14 @@ export type Sale = {
   saleAt: Date
   tipsMinor: number
   grossMinor: number
+  /**
+   * The lines, when this sale has more to say than one figure.
+   *
+   * Absent on most of the seed, which is a list of totals — the detail falls
+   * back to the single row it always drew. Present where the lines carry
+   * something the total cannot: a package session, most of all.
+   */
+  items?: SaleItem[]
   /** Set when this sale is a gift-card purchase (drives the gift-card item UI). */
   giftCard?: SaleGiftCard
   /** Set when the payment went over CamiPay. Absent means cash. */
@@ -503,6 +533,34 @@ export const MOCK_SALES: Sale[] = [
     tipsMinor: 1000,
     grossMinor: 5400,
     camipay: { rail: "terminal", rate: RATE_TERMINAL },
+  },
+  /**
+   * A sale a package session paid for, kept so the detail has to read one back.
+   *
+   * The till writes the coverage onto the line and moves on; this is the other
+   * end of it — months later, somebody opens the sale and has to be told why a
+   * blow dry was charged at nothing. Without the package id on the line there
+   * is no answer, only a zero.
+   */
+  {
+    id: 18,
+    locationId: "shampooch-jvc",
+    client: "Aaishah Vaza",
+    status: "completed",
+    saleAt: new Date(2026, 4, 24, 11, 15),
+    tipsMinor: 0,
+    grossMinor: 4500,
+    items: [
+      {
+        name: "Blow Dry & Style",
+        priceMinor: 0,
+        originalPriceMinor: 12000,
+        customerPackageId: "cp-aaishah-1",
+        clientId: "aaishah-vaza",
+        meta: "45min · Husain NGI",
+      },
+      { name: "Nail trim", priceMinor: 4500, meta: "20min · Husain NGI" },
+    ],
   },
   {
     id: 15,
@@ -639,7 +697,10 @@ export const MOCK_SALES: Sale[] = [
     giftCard: { cardId: "gc-2", code: "QM4KTRZA", status: "Active", valueAed: 3500 },
   },
   {
-    id: 20,
+    // Was a second id 20 — the refunded Yamen Haddad sale already held it, so
+    // `?sale=20` and every `find` by id reached whichever came first and this
+    // row could not be opened at all.
+    id: 25,
     locationId: "shampooch-downtown-dubai",
     client: "Walk-In",
     status: "unpaid",
@@ -882,6 +943,41 @@ const MOCK_DRAFTS: Draft[] = [
     grossMinor: 1200,
   },
 ]
+
+/**
+ * One line of a saved sale.
+ *
+ * A line a package session paid for reads 0 with what it was worth struck
+ * beneath it, and that is all — the shape `InvoiceDetailDialog` uses in the
+ * built product, and deliberately WITHOUT the sessions chip the cart and the
+ * appointment sheets carry.
+ *
+ * The chip was here and came out. It counts what the client has left TODAY, and
+ * a sale from May records what was charged then: a live balance printed on a
+ * settled document moves under a figure that cannot, and a reader has no way to
+ * tell which of the two they are looking at. The struck price is the part that
+ * belongs to the sale and never changes.
+ */
+function SaleLineRow({ item }: { item: SaleItem }) {
+  return (
+    <li className="flex items-baseline justify-between gap-3 text-sm">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="font-medium text-foreground">{item.name}</span>
+        {item.meta ? (
+          <span className="truncate text-xs text-muted-foreground">{item.meta}</span>
+        ) : null}
+      </div>
+      <div className="flex shrink-0 flex-col items-end">
+        <span className="font-medium text-foreground tabular-nums">{money(item.priceMinor)}</span>
+        {item.originalPriceMinor != null ? (
+          <span className="text-muted-foreground text-xs tabular-nums line-through">
+            {money(item.originalPriceMinor)}
+          </span>
+        ) : null}
+      </div>
+    </li>
+  )
+}
 
 // Status pill used at the top of the centered sale-detail dialog header.
 // Same palette as the listing row badge for visual continuity between the
@@ -1872,23 +1968,36 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   </span>
                 </div>
 
-                <ul className="flex flex-col gap-2">
-                  <li className="flex items-baseline justify-between gap-3 text-sm">
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="font-medium text-foreground">
-                        {giftCard ? `${money(giftCard.valueAed)} - Gift Card` : "Haircut"}
+                {/* The lines, when the sale carries them. A saved sale is a
+                    list of totals for most of this seed, and the single row
+                    below is what it has always drawn — but a line a package
+                    session paid for cannot be told from a free one by its
+                    figure alone, so where the lines exist they are printed. */}
+                {data.items && data.items.length > 0 ? (
+                  <ul className="flex flex-col gap-2">
+                    {data.items.map((item) => (
+                      <SaleLineRow key={item.name} item={item} />
+                    ))}
+                  </ul>
+                ) : (
+                  <ul className="flex flex-col gap-2">
+                    <li className="flex items-baseline justify-between gap-3 text-sm">
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <span className="font-medium text-foreground">
+                          {giftCard ? `${money(giftCard.valueAed)} - Gift Card` : "Haircut"}
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {giftCard
+                            ? `${giftCard.code} · Husain NGI`
+                            : `${formatTimeOnly(data.saleAt)}, ${formatDateOnly(data.saleAt)} · 1h 30min · Hussain S…`}
+                        </span>
+                      </div>
+                      <span className="shrink-0 font-medium text-foreground tabular-nums">
+                        {money(totalAbs)}
                       </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {giftCard
-                          ? `${giftCard.code} · Husain NGI`
-                          : `${formatTimeOnly(data.saleAt)}, ${formatDateOnly(data.saleAt)} · 1h 30min · Hussain S…`}
-                      </span>
-                    </div>
-                    <span className="shrink-0 font-medium text-foreground tabular-nums">
-                      {money(totalAbs)}
-                    </span>
-                  </li>
-                </ul>
+                    </li>
+                  </ul>
+                )}
 
                 <div className="h-px bg-border/60" />
 

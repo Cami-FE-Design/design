@@ -924,10 +924,36 @@ to zero and comp friends (EC-4); the point is that an owner reading a branch's
 numbers can see why a package redeemed below its value rather than finding an
 unexplained hole at month end.
 
-⚠️ **Not wired to a host flow.** There is no package redemption at checkout in
-this repo — only gift cards — so building one to hang a warning on would have
-been the packages feature rather than multi-location work. The rule and the
-warning are built and tested; the cart line that triggers them is not.
+**Wired to the till, on the as-built's model.** The warning had no host for a
+while — this repo sold gift cards and nothing else — and the first attempt to
+give it one invented the wrong host: a panel listing the cart's covered lines
+with an **Apply** button on each, built off
+`GET /merchant/customer-packages/eligibility` and its four verdicts.
+
+That contract is real, and nothing calls it. What `cami-business` actually
+ships is `allocatePackageSessions` in `src/lib/membership.ts`, read by the
+new-sale sheet, the sales appointment sheet and the add-appointment sheet: the
+client's remaining sessions are spent across the cart **on their own**, one per
+line, in cart order, and a line that finds none left stays at full price. There
+is no Apply anywhere, so a panel asking an operator to press one was a different
+product. Rebuilt 22 Sep in `lib/packages/allocate.ts`, with its rules kept —
+finite sessions rather than a covers/does-not-cover map, `strict` matching so a
+package sold for one variant cannot comp another, and a covered line presented
+at 0 with its real price parked beside it ("that zero is a display device, not a
+price anyone typed").
+
+The branch half is ours and sits **on the line the session paid for**: sold at
+one branch, redeemed at another that prices the service differently, it warns,
+the sale completes, and the decision is recorded. It never touches the
+allocation — the session is spent either way.
+
+⚠️ **One thing the built model has no room for, and neither do we yet.** A
+session is spent at a branch, and the sale was taken at another. Nothing records
+the second half, so a package sold at JVC and redeemed twice at Jumeirah leaves
+JVC holding revenue for work it did not do. R17's cross-branch move already
+settled the shape for the same problem — record both, rewrite neither — and
+money-by-branch (KH1.1) will need it before either branch's number can be
+trusted.
 
 ### Branch WhatsApp numbers (SCR-14)
 
@@ -1615,6 +1641,49 @@ Worth knowing before designing against it:
   would read everything, and SCR-07's question (D1) is really *what to take
   away*, not what to add — which is a stronger argument for asking than the one
   this spec had.
+
+## GNK's "Multi-Location: How It Works", and Maaz's comments on it
+
+GNK circulated a fifteen-section document setting out their reading of the PRD,
+each section closing with a Coverage line and some with a Question. Maaz answered
+three of them in comments on 20 September. Two of those answers matter here.
+
+**§4, categories — settled, and it is what is built.** Maaz: *"internally the
+staff can still view the category with no services (shown empty). For online
+bookings, the Category is hidden."* That is the split this repo drew before the
+answer arrived — `emptyCategoriesAtBranch` behind the operator's menu, and
+`publicMenuForLocation` dropping the category on the client's page. Nothing to
+change; the question simply closes.
+
+**§5, packages — a live contradiction, and the only one blocking code.**
+
+| Source | Says |
+| --- | --- |
+| GNK §5, body text | "the system **warns but never blocks**. The sale still completes and the staff member's decision is recorded" |
+| Maaz, comment of 20 Sep | "if the service has a different price in Location A vs. Location B, then the Service-Package **cannot be redeemed**" |
+| This repo | Warns, completes, records the decision |
+| Where this repo got it | Maaz's own walkthrough of Chaps & Co's live Fresha account, **3 September** — the correction that inverted KC1.5 from a hard block |
+
+The 20 September comment reverses the 3 September finding, and contradicts the
+body of the document it is written on. Nothing here changes until that is
+answered, because the two readings are not a detail apart: blocking puts
+reception in front of a client with no way forward, and the operators this was
+corrected from already work around a block by hand. A block does not prevent the
+outcome; it makes someone do it slowly and off the books.
+
+**§14, tax identity — no question for design.** GNK's own Coverage line reads
+Requirements: Yes (R23), Openspecs: Yes. The "Question/Confirmation" under it
+asks product to confirm per-branch legal name and TRN on receipts, which is
+theirs to confirm, not ours to build. Built and correct.
+
+**§5's other half, which GNK states as settled and nobody has built.** "Each use
+is credited to the branch that did the work" appears as a plain rule with no
+question mark, and their Openspec line names only the price-mismatch warning as
+outstanding. But a redeemed session prices its line at zero, so the branch doing
+the work books nothing and the branch that sold the package keeps the whole
+amount. Both branches are recorded; the money does not move. See the ⚠ under
+SCR-13 — the rule for how much a session is worth is a finance decision, not a
+design one.
 
 ## Where the blueprint is stale
 

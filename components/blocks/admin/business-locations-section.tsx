@@ -37,7 +37,9 @@ import { useState } from "react"
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { MoneyByLocationView } from "@/components/blocks/money/money-by-location"
 import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
 import type { AdminBusiness } from "@/lib/admin-businesses"
+import { blockedReason, canEnable } from "@/lib/locations/enablement"
 import { locationsForBusiness } from "@/lib/locations/from-business"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
@@ -130,6 +132,62 @@ function estateFor(business: AdminBusiness): Location[] {
  */
 const VISIBLE_BRANCHES = 4
 
+/**
+ * HQ's own switch, and the only write on this tab (GNK §2).
+ *
+ * "Before any of this appears, Cami HQ turns multi-location on for that
+ * business, once its data check has passed." It is not a lesser HQ-only path
+ * to the owner's features — it is the gate in front of them, which only HQ
+ * holds, so it does not fall foul of HQ1.1 the way a duplicate setup flow would.
+ *
+ * The check is shown next to the switch rather than behind it. Hidden, "why
+ * can't I turn this on" becomes a support call; named, an Account Manager can
+ * see what has to be fixed and who has to fix it.
+ *
+ * Turning it OFF is never blocked. Somebody standing an account down should not
+ * be stopped by the reason they are standing it down.
+ */
+function EnablementCard({ business }: { business: AdminBusiness }) {
+  const { enablement, setEnabled } = useLocations()
+  const reason = blockedReason(enablement)
+  const allowed = canEnable(enablement)
+
+  return (
+    <section className="flex flex-col gap-3 rounded-2xl border border-border/60 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="text-sm font-medium leading-5 text-foreground">Multi-location</span>
+          <span className="text-sm leading-5 text-muted-foreground">
+            {enablement.enabled
+              ? `On since ${enablement.enabledAt}, switched on by ${enablement.enabledBy}.`
+              : `Off. ${business.name} sees no branch switcher and nothing per-branch until this is on.`}
+          </span>
+        </div>
+        <Switch
+          checked={enablement.enabled}
+          // Off is always allowed; on waits for the check.
+          disabled={!enablement.enabled && !allowed}
+          onCheckedChange={setEnabled}
+          aria-label="Multi-location"
+        />
+      </div>
+
+      {/* The check, said out loud whatever it found — including that it passed,
+          because an Account Manager about to switch an account on wants to know
+          the thing behind the switch actually ran. */}
+      <p
+        className={
+          reason
+            ? "rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground"
+            : "text-sm leading-5 text-muted-foreground"
+        }
+      >
+        {reason ?? "Data check passed — every record resolves to a location (R20)."}
+      </p>
+    </section>
+  )
+}
+
 function ChainView({ business }: { business: AdminBusiness }) {
   const { granted } = useLocations()
   const live = granted.filter((location) => location.status === "live")
@@ -139,6 +197,7 @@ function ChainView({ business }: { business: AdminBusiness }) {
 
   return (
     <div className="flex flex-col gap-6">
+      <EnablementCard business={business} />
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <h3 className="font-heading text-base font-semibold leading-6 text-foreground">

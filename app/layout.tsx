@@ -14,6 +14,7 @@ import { BranchStockProvider } from "@/lib/inventory/store"
 import { BranchSettingsProvider } from "@/lib/locations/branch-settings"
 import { HqNotificationsProvider } from "@/lib/notifications/hq-store"
 import { NotificationsProvider } from "@/lib/notifications/store"
+import { PackagesProvider } from "@/lib/packages/store"
 import { PaymentPolicyProvider } from "@/lib/payment-policy/store"
 import { LocationOfferingsProvider } from "@/lib/service-catalog/offerings-store"
 import { ServiceCatalogProvider } from "@/lib/service-catalog/store"
@@ -77,38 +78,43 @@ export default function RootLayout({
                       branch, and a movement recorded at the point of sale has
                       to change the same row the product screens read. */}
                       <BranchStockProvider>
-                        <BranchSettingsProvider>
-                          <DemoFilesProvider>
-                            <PaymentPolicyProvider>
-                              {/* Root, not /catalogs: a combo created on the service menu
+                        {/* Root, not /catalogs: a package created here has to
+                            be sellable at the till and readable on a client's
+                            record, and both live outside the catalog. */}
+                        <PackagesProvider>
+                          <BranchSettingsProvider>
+                            <DemoFilesProvider>
+                              <PaymentPolicyProvider>
+                                {/* Root, not /catalogs: a combo created on the service menu
                         has to turn up in the appointment service pickers, so
                         both sides of the app read one catalog. */}
-                              {/* Inside ServiceCatalogProvider: a per-branch offering is
+                                {/* Inside ServiceCatalogProvider: a per-branch offering is
                         an override on a service, so it has no meaning without
                         the catalog it overrides. */}
-                              <ServiceCatalogProvider>
-                                <LocationOfferingsProvider>
-                                  <TerminalsProvider>
-                                    <NotificationsProvider>
-                                      {/* Root, not the admin layout: HQ sets the rates but
+                                <ServiceCatalogProvider>
+                                  <LocationOfferingsProvider>
+                                    <TerminalsProvider>
+                                      <NotificationsProvider>
+                                        {/* Root, not the admin layout: HQ sets the rates but
                               both portals read them — a merchant sees the price
                               they're billed at. */}
-                                      <HqNotificationsProvider>
-                                        {/* Inside NotificationsProvider: a template row dims
+                                        <HqNotificationsProvider>
+                                          {/* Inside NotificationsProvider: a template row dims
                                 when the Reminders matrix has that channel off, so
                                 the panel reads both stores. */}
-                                        <CommsTemplatesProvider>
-                                          {children}
-                                          <Toaster />
-                                        </CommsTemplatesProvider>
-                                      </HqNotificationsProvider>
-                                    </NotificationsProvider>
-                                  </TerminalsProvider>
-                                </LocationOfferingsProvider>
-                              </ServiceCatalogProvider>
-                            </PaymentPolicyProvider>
-                          </DemoFilesProvider>
-                        </BranchSettingsProvider>
+                                          <CommsTemplatesProvider>
+                                            {children}
+                                            <Toaster />
+                                          </CommsTemplatesProvider>
+                                        </HqNotificationsProvider>
+                                      </NotificationsProvider>
+                                    </TerminalsProvider>
+                                  </LocationOfferingsProvider>
+                                </ServiceCatalogProvider>
+                              </PaymentPolicyProvider>
+                            </DemoFilesProvider>
+                          </BranchSettingsProvider>
+                        </PackagesProvider>
                       </BranchStockProvider>
                     </BusinessLinksProvider>
                   </CustomerCardThemeProvider>

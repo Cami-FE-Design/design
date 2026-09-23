@@ -30,7 +30,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import { LOCATION_OFFERINGS, type LocationOffering } from "@/lib/service-catalog/offerings"
 
-const STORAGE_KEY = "cami-location-offerings"
+/**
+ * Bumped when the seed gains rules a stored array would hide. What is saved
+ * REPLACES the seed rather than merging with it, so one override saved months
+ * ago pins that browser to the offerings of that day — and the branch rules
+ * added since read as code that does not work.
+ */
+const STORAGE_KEY = "cami-location-offerings-v2"
 
 type OfferingsValue = {
   /** Every stored offering, across every service. */

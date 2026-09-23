@@ -275,6 +275,20 @@ export const LOCATION_OFFERINGS: LocationOffering[] = [
     enabled: true,
     overrides: { price: 145 },
   },
+  /**
+   * Mirdif runs no spa at all — every add-on off, which is the case GNK §4 asks
+   * about: a category the business has and this branch has emptied.
+   *
+   * Seeded as a whole category rather than one service because the question is
+   * about the HEADING. One service off leaves the category standing and proves
+   * nothing; five off is the screen the answer has to be given for.
+   */
+  ...["teeth", "facial", "cologne", "gland", "spa-pamper-combo"].map((serviceId) => ({
+    serviceId,
+    locationId: "shampooch-mirdif",
+    enabled: false,
+    overrides: {},
+  })),
   {
     // No massage room at Mirdif: "we don't do that here", which the panel puts
     // ahead of a price difference because it is a different conversation.
@@ -282,6 +296,24 @@ export const LOCATION_OFFERINGS: LocationOffering[] = [
     locationId: "shampooch-mirdif",
     enabled: false,
     overrides: {},
+  },
+  /**
+   * The duration case, at the till rather than only in the playground.
+   *
+   * Two of SCR-13's three mismatches were reachable in a real cart and the
+   * third was not: nothing in this seed gave a service the POS actually sells a
+   * duration of its own. A case that can only be seen in isolation cannot be
+   * reviewed in the screen it is for.
+   *
+   * Price left alone deliberately — same money, longer slot, so the warning has
+   * to be about the booking rather than the bill.
+   */
+  {
+    // One stylist and one chair: the blow dry is booked long here.
+    serviceId: "blow-dry",
+    locationId: "shampooch-dubai-marina",
+    enabled: true,
+    overrides: { duration: 60 },
   },
 ]
 
