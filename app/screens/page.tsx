@@ -606,7 +606,7 @@ const SECTIONS: Section[] = [
       {
         path: "/catalogs/packages",
         label: "A package's sales, bounded by the grant",
-        note: "Open Bath & Brush 5+1 → Sales. Real rows now, not a permanent empty state: who bought it, which branch sold it, sessions left, and when it expires. Bounded before it is counted (R18) — narrow the switcher to Jumeirah and the JVC sales go, with a line saying how many were withheld rather than leaving a manager to think the chain sold one. Abrar's row is the case worth reading: two sessions left and expired anyway, which is a different sentence to say to a client than 'you have none left'.",
+        note: "Open Bath & Brush 5+1 → Sales. Real rows now, not a permanent empty state: who bought it, which branch sold it (under the client, not in a column — six columns do not fit this dialog), sessions left, when it expires, and the status. Active / Exhausted / Cancelled are the as-built's own three and are not degrees of one thing: exhausted did its job, cancelled was taken back, so grey and red rather than a shared 'inactive'. An expiry in the past turns and says Expired underneath — which is how a row reads Active and Expired at once, because time and sessions run out separately. Bounded before it is counted (R18) — narrow the switcher to Jumeirah and the JVC sales go, with a line saying how many were withheld rather than leaving a manager to think the chain sold one. Abrar's row is the case worth reading: two sessions left and expired anyway, which is a different sentence to say to a client than 'you have none left'.",
       },
       {
         path: "/catalogs/packages/new",
@@ -620,8 +620,8 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/catalogs/packages/nail-trim-10/edit?s=online",
-        label: "Where a package sells, per branch",
-        note: "Online sales. R08 keeps the package itself the business's — a client bought it from the chain and can redeem it anywhere — so it has no location scope of its own the way a deal does. What is per branch is where it is SOLD, because a chain's public page asks for a branch before it shows anything (R15). One switch for the business, and only the branches that deliberately differ are held: Al Quoz does not sell the nail pack online, everything else follows the switch, including a branch opened next month. Reset deletes the branch's answer rather than copying today's value into it (DW3.2).",
+        label: "Online sales, and the branch axis packages do not have",
+        note: "Two switches, and that is the whole section. A per-branch list of locations sat here until 23 Sep and came out: no requirement asks for it — R08 is the only branch axis packages have and it is about REDEMPTION, not where they sell. It was an inference from R06's per-branch pricing, on a tab the as-built has not opened. The package belongs to the business; what is per branch is which branch sold a given one and which branch spends a session, both on the Sales tab and at the till.",
       },
       {
         path: "/catalogs/categories?add=1",
@@ -1102,9 +1102,14 @@ const SECTIONS: Section[] = [
         note: "Roles across, actions down. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number; a manager changes service settings and only where they hold a branch; reception and a groomer cannot at all. The two refusals stay apart on purpose — 'Owner only' and 'Not their location' look identical in a greyed button and send a person to two different places. Wired to the signed-in member now, so the same rules refuse on the real panel — see 'Signed in as' below.",
       },
       {
+        path: "/sales/new-sale?terminals=moved",
+        label: "A charge that would land at the wrong branch · GNK §15",
+        note: "The picker only ever offers this branch's machines, so the refusal behind it could not be reached by clicking — correct, tested, and invisible. `?terminals=moved` pins the case §15 names: a machine linked to Jumeirah after this sale was drafted. Add a service, leave Location alone and tap Front Desk Register: refused, because a card payment books at the MACHINE's branch and the sale belongs nowhere. Set Location to JVC and it is refused differently — both branches named, and a way out. Set it to Jumeirah and it goes through. On the screen rather than in a toast: nothing moves until the operator answers it.",
+      },
+      {
         path: "/shell-demo?settings=locations",
         label: "Signed in as, and what it refuses · GNK §2",
-        note: "Bottom of the Locations panel: a faint 'Demo: signed in as' strip standing in for signing in as somebody else, which no product screen offers. Pick Aziz (holds Jumeirah only) and Add locations, Manage and the three Invoicing cards refuse with their reason rather than vanishing — a manager who cannot find the button goes looking for it. Pick Maz Khan and they open. Every refusal on this panel reads that member, so SU2.3 can be shown rather than argued.",
+        note: "Bottom of the Locations panel: a faint 'Demo: signed in as' strip standing in for signing in as somebody else, which no product screen offers. Pick Aziz, who holds Jumeirah only: the estate narrows from nine branches to his one, and Add locations, Manage and the three Invoicing cards refuse with their reason rather than vanishing — a manager who cannot find the button goes looking for it. Pick ahmed@getcami.io, invited and granted nothing: no branches, said out loud rather than shown as an empty list (R24). Pick Maz Khan and it all comes back. Switching the person switches what they hold as well as what they may press, which is SU2.3 shown rather than argued.",
       },
       {
         path: "/playground#multi-location-a-category-a-branch-has-emptied",

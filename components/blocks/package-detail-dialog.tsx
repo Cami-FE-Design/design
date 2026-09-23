@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { SectionCard } from "@/components/blocks/section-card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -37,17 +38,34 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { formatAed } from "@/lib/format"
+import { formatAed, formatDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import {
   LENGTH_LABEL,
   type Package,
+  type PackageSaleRow,
   priceLabel,
   sessionsLabel,
   VALID_FOR_LABEL,
 } from "@/lib/packages/catalog"
+import { cn } from "@/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+/**
+ * A sale's state, in the dev repo's own words and colours
+ * (`PackageDetailDialog.tsx`). Three states, and they are not degrees of the
+ * same thing: `exhausted` is a package that did its job, `cancelled` is one
+ * that was taken back. Grey and red rather than one "inactive".
+ */
+const SALE_STATUS: Record<
+  PackageSaleRow["status"],
+  { label: string; variant: "primary-soft" | "muted" | "destructive" }
+> = {
+  active: { label: "Active", variant: "primary-soft" },
+  exhausted: { label: "Exhausted", variant: "muted" },
+  cancelled: { label: "Cancelled", variant: "destructive" },
+}
 
 /**
  * Kept as an alias so nothing downstream had to be renamed when the seven-field
@@ -282,41 +300,70 @@ export function PackageDetailDialog({
                     <TableHeader>
                       <TableRow>
                         <TableHead>Client</TableHead>
-                        {isMultiLocation ? <TableHead>Sold at</TableHead> : null}
                         <TableHead>Sessions</TableHead>
                         <TableHead>Purchased</TableHead>
                         <TableHead>Expires</TableHead>
+                        {/* Last, because it summarises the row rather than
+                            opening it — and the eye reading a status first has
+                            to come back for the facts behind it. */}
+                        <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sales.map((row) => (
-                        <TableRow key={row.customerPackageId}>
-                          <TableCell>
-                            <span className="text-sm text-foreground">{row.customerName}</span>
-                            <span className="block font-mono text-xs text-muted-foreground">
-                              {row.code}
-                            </span>
-                          </TableCell>
-                          {isMultiLocation ? (
-                            <TableCell className="text-sm text-muted-foreground">
-                              {locationName(row.soldAtLocationId)}
+                      {sales.map((row) => {
+                        const expired = Boolean(
+                          row.expiresAt && new Date(row.expiresAt) <= new Date(),
+                        )
+                        return (
+                          <TableRow key={row.customerPackageId}>
+                            <TableCell>
+                              <span className="text-sm text-foreground">{row.customerName}</span>
+                              <span className="block font-mono text-xs text-muted-foreground">
+                                {row.code}
+                              </span>
+                              {/* The branch under the row rather than in a
+                                  column of its own. Six columns do not fit this
+                                  dialog, and a table you have to drag sideways
+                                  is worse than one fact read a line lower —
+                                  the appointments list resolves the same way. */}
+                              {isMultiLocation ? (
+                                <span className="block text-xs text-muted-foreground">
+                                  {locationName(row.soldAtLocationId)}
+                                </span>
+                              ) : null}
                             </TableCell>
-                          ) : null}
-                          <TableCell className="text-sm text-muted-foreground">
-                            {row.sessionsRemaining == null
-                              ? `Unlimited · ${row.sessionsUsed ?? 0} used`
-                              : `${row.sessionsRemaining} of ${row.sessionsTotal} left`}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {row.purchasedAt}
-                          </TableCell>
-                          {/* Out of time and out of sessions are different
+                            <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                              {row.sessionsRemaining == null
+                                ? `Unlimited · ${row.sessionsUsed ?? 0} used`
+                                : `${row.sessionsRemaining} of ${row.sessionsTotal}`}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
+                              {formatDate(row.purchasedAt)}
+                            </TableCell>
+                            {/* Out of time and out of sessions are different
                               states, and a client asks about them differently. */}
-                          <TableCell className="text-sm text-muted-foreground">
-                            {row.expiresAt ?? "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            {/* The date alone — the header already says Expires.
+                              Past, it turns and says so underneath, the same
+                              idiom the client code uses under the name. */}
+                            <TableCell
+                              className={cn(
+                                "whitespace-nowrap text-sm",
+                                expired ? "text-cami-tomato-11" : "text-muted-foreground",
+                              )}
+                            >
+                              {row.expiresAt ? formatDate(row.expiresAt) : "—"}
+                              {expired ? (
+                                <span className="block text-xs text-cami-tomato-11">Expired</span>
+                              ) : null}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={SALE_STATUS[row.status].variant} size="sm">
+                                {SALE_STATUS[row.status].label}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>

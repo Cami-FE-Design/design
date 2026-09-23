@@ -249,9 +249,18 @@ export function LocationForm() {
       }
     >
       <div className="flex flex-col gap-3">
-        {locations.map((loc) => (
-          <LocationListCard key={loc.id} location={loc} onOpen={() => setSelectedId(loc.id)} />
-        ))}
+        {/* Said out loud (R24). An empty list reads as a business with no
+            branches, which is a different fact from a person holding none —
+            and the second one has somebody to ask about it. */}
+        {locations.length === 0 ? (
+          <p className="rounded-xl bg-muted/50 p-3 text-sm leading-5 text-muted-foreground">
+            You have not been given any locations. Ask the account owner for access.
+          </p>
+        ) : (
+          locations.map((loc) => (
+            <LocationListCard key={loc.id} location={loc} onOpen={() => setSelectedId(loc.id)} />
+          ))
+        )}
       </div>
       <AddLocationsTakeover open={addOpen} onOpenChange={setAddOpen} />
       {/* Stands in for signing in as somebody else, which no product screen
