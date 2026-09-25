@@ -806,6 +806,89 @@ const SECTIONS: Section[] = [
   },
   {
     lane: "business",
+    title: "Inbox CRM, Phase 0 — T1 prototype (ENG3-33)",
+    description:
+      "The Phase 0 WhatsApp inbox, scoped to the story rows in cami-docs-v1 inbox-crm-phase-0 (IX-A1/A2/A4/A5/A6, IX-C3/C4/C6) and nothing beyond them. Three panes, all visible at 1280 and 1366. The dashed 'Design repo' chip at the top right opens the switches: page state, what the next send does, English/Arabic (RTL), pets on/off and a 1280/1366 width frame. Every switch is in the URL, so each frame is a link.",
+    screens: [
+      {
+        path: "/messages/inbox/phase-0",
+        label: "Live inbox · matched chat",
+        note: "Layla's chat: day grouping, each Cami-sent message signed with the staff name, the client pane with name, pet and last service. Type + Ctrl/⌘+Enter sends: Sending → Sent.",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=omar",
+        label: "Six months of history",
+        note: "Scroll up: older pages load 40 at a time (keyset) and keep your place, the day header stays pinned, imported messages carry no staff name, old media shows as on the phone only, and a phone-app reply reads 'Answered on phone'.",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=unmatched-saturday",
+        label: "Unmatched number",
+        note: "The number stands in for the name, marked Unmatched in the row and header; the chat reads normally and the client pane offers only Match and Add.",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=maryam",
+        label: "Window closes while typing",
+        note: "The countdown above the composer turns amber under an hour and closes about 2 minutes after load. Type something first: when it closes, the text is kept (copy or discard), free typing is replaced by the template picker. 'Client writes now' under the Design repo chip reopens it for 24 h with the text still there.",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=sara",
+        label: "Window closed · templates",
+        note: "Free typing is off, with the reason. Choose a template: the name and booking fill from the record (violet); Booking details on a client with no booking shows the blank in red and blocks the send, naming it. A sent template is labelled as one in the thread.",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=unmatched-closed",
+        label: "Window closed · unmatched",
+        note: "Any template with the client's name stays blocked — the name is blank until the chat is matched, and Cami never guesses one. 'Ask for a name' has no blanks and can go.",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=noura",
+        label: "Send failed · retry",
+        note: "A failed message says why and offers Retry, which resends the same message onto the same bubble. Switch 'Next send' under the Design repo chip to make a retry fail again (count shows), fail late (flips to failed ~6 s after Sent), or come back as WhatsApp's window-closed (the composer closes, and free text can no longer be retried).",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=unmatched-closed",
+        label: "Match · same number on two records",
+        note: "Match to client: with the search empty, both records on this number show — pick one. The confirm step says what happens to the number (saved / already there / different: Keep or Replace — Michelle's open call). After Match the thread gains 'Matched to … by Queenie' and every earlier message stays. 'Wrong client? Change the match' on any matched chat re-matches and keeps both lines.",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=unmatched-fatima",
+        label: "Add client · name guessed",
+        note: "Add new client opens a short form over the chat: phone filled, first name the only required field, and 'Fatima' filled from her message, marked as a guess. Save binds the chat and the pane shows the clean new-client state. The welcome pack PDF in the thread is a file sent from the chat.",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=unmatched-saturday",
+        label: "Add client · no name known",
+        note: "No name in the message: Save stays off and 'Ask for their name' sends one question and the pane waits. 'Client writes now' under the Design repo chip answers with a name; Add then fills it as a guess. Cami never makes a name up. The photo at the top is an unmatched chat receiving media.",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=omar",
+        label: "Media · photo, video, phone only",
+        note: "The client's photo and video open full size. Scroll up for old media shown as on the phone only (older than 2 weeks at connect), never a broken tile. The paperclip in the composer attaches from this computer; a type WhatsApp rejects (try a .zip) is blocked with the reason.",
+      },
+      {
+        path: "/messages/inbox/phase-0?state=visits-error",
+        label: "Client pane · partial and slow",
+        note: "Name, pet and last service paint with the messages; the last three visits (what, who, when, AED) and team-only notes are a second read. This link fails that read — the name stays, the visits say so with a retry. ?state=visits-slow shows the skeleton rows.",
+      },
+      {
+        path: "/messages/inbox/phase-0?state=read-only",
+        label: "Permission · read only",
+        note: "inbox:read without inbox:reply: chats read normally, the composer is replaced by the reason, and Match, Add and Retry are not offered. ?state=no-access and ?state=feature-off are the page-level versions.",
+      },
+      {
+        path: "/messages/inbox/phase-0?lang=ar&width=1280",
+        label: "Arabic, RTL, at 1280",
+        note: "The whole inbox mirrored with real Arabic copy; phone numbers stay left-to-right. The dashed outline is the 1280 frame minus the collapsed sidebar.",
+      },
+      {
+        path: "/messages/inbox/phase-0?state=list-loading",
+        label: "Page states",
+        note: "Loading, empty and error for the list and the thread — pick them under the Design repo chip.",
+      },
+    ],
+  },
+  {
+    lane: "business",
     title: "Bulk import — products, clients and pets (DSG-80 / DSG-84)",
     description:
       "One wizard on three entities, grouped here because production serves all three from a single component set — so a change to one screen is a change to all three. One block per entity, each in step order: upload, review, outcome. Every link lands on the step it names. The reference cases are the two reported in #ui: Aya's 100-row product and client files, and Maaz's 873-row pet file. The dashed bar on each screen switches case, and on products also switches to the version that ships today. Spec: docs/specs/DSG-80-product-import.md",

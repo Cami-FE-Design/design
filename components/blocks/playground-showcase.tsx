@@ -96,6 +96,7 @@ import { OutcomePanel } from "@/components/blocks/imports/redesign/outcome-panel
 import { OutcomeStrip } from "@/components/blocks/imports/redesign/outcome-strip"
 import { ReviewPanel } from "@/components/blocks/imports/redesign/review-panel"
 import { REVIEW_GRID_TEMPLATE, ReviewRow } from "@/components/blocks/imports/redesign/review-row"
+import { InboxPhase0Showcase } from "@/components/blocks/inbox-phase-0/showcase"
 import { InvoiceDocumentView } from "@/components/blocks/invoice-document"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
@@ -382,6 +383,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
     id: "business",
     label: "Business app features",
     sections: [
+      "Inbox Phase 0 — list, composer, client pane",
       "Multi-location — branch switcher",
       "Multi-location — branch lifecycle",
       "Multi-location — per-branch hours",
@@ -2824,6 +2826,13 @@ export function PlaygroundShowcase() {
         label="Business app features"
         blurb="Ticketed work on the operator's surfaces, newest thinking first."
       >
+        <Section
+          title="Inbox Phase 0 — list, composer, client pane"
+          description="ENG3-33 / T1 — the WhatsApp inbox pieces in the states they can be in: an unmatched number (the number is the title, never a made-up name), unread and failed rows, the chat list loading/empty/error, the composer with the window open, closing soon (red) and closed (templates only), and the client pane as ClientSummary or, unmatched, Match and Add only. The full flows — send, retry, templates, media, match, add — are on /messages/inbox/phase-0; docs/specs/ENG3-33-inbox-phase-0-walkthrough.md walks each one."
+          lazy
+        >
+          <InboxPhase0Showcase />
+        </Section>
         <Section
           title="Multi-location — a deal, and where it runs"
           description="DW3.4 — the row states Settings → Marketing → Deals can be in, side by side. 'All locations' is a NAMED set that a branch opened next month joins; '3 locations' is today's three and is not. The last was saved with nothing chosen: the dev repo's mapper reads that same empty shape as ALL, while R24 says an empty scope never resolves to all. A deal that reaches nobody can never read Active — an owner believes the badge."
