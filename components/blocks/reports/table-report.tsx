@@ -10,7 +10,14 @@
 // removable filter chip. Entity link cells open shared detail dialogs (Client
 // / Pet / Product) or navigate to the source list (Sale no. / Appt. ref.).
 
-import { ArrowUpDownIcon, CheckIcon, ChevronDownIcon, SearchIcon, XIcon } from "lucide-react"
+import {
+  ArrowUpDownIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  InfoIcon,
+  SearchIcon,
+  XIcon,
+} from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
 import { MOCK_BOOKINGS, MOCK_STAFF, type MockBooking } from "@/app/appointments/mock"
@@ -65,7 +72,13 @@ import {
   formatPercent,
 } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
-import { MOCK_GROUPED, MOCK_ROWS, PET_DETAILS, type ReportRow } from "@/lib/reports/mock"
+import {
+  MOCK_DISTINCT_TOTALS,
+  MOCK_GROUPED,
+  MOCK_ROWS,
+  PET_DETAILS,
+  type ReportRow,
+} from "@/lib/reports/mock"
 import type { ColumnDef, ColumnKind, ReportDef } from "@/lib/reports/types"
 import { findTeamMemberByName } from "@/lib/team/mock"
 import { cn } from "@/lib/utils"
@@ -245,8 +258,8 @@ function TableReportInner({ report }: { report: ReportDef }) {
     d.setHours(0, 0, 0, 0)
     return d
   })
-  const [sortKey, setSortKey] = useState<string | null>(null)
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+  const [sortKey, setSortKey] = useState<string | null>(report.defaultSort?.key ?? null)
+  const [sortDir, setSortDir] = useState<"asc" | "desc">(report.defaultSort?.dir ?? "asc")
   const [groupBySel, setGroupBySel] = useState(report.groupBy?.options[0] ?? "")
   const [drillType, setDrillType] = useState<string | null>(null)
   const [selectedClient, setSelectedClient] = useState<ClientDetailClient | null>(null)
@@ -304,19 +317,34 @@ function TableReportInner({ report }: { report: ReportDef }) {
     })
   }, [rows, sortKey, sortDir])
 
+  // On an overlapping dimension (an appointment with two services sits under
+  // both) summing the rows counts it twice, so the Total row takes the
+  // distinct figure for the columns that overlap. Only on the whole report: a
+  // drill filter narrows the rows and the stored figure no longer describes them.
+  const overlapNote = report.groupBy?.overlapNote?.[groupBySel]
+  const distinct =
+    overlapNote && !drillType && drillFilters.length === 0
+      ? MOCK_DISTINCT_TOTALS[report.id]
+      : undefined
+  const columnTotal = (key: string) =>
+    typeof distinct?.[key] === "number"
+      ? distinct[key]
+      : rows.reduce((sum, r) => sum + (Number(r[key]) || 0), 0)
+
   const totals = report.totalRow
     ? columns.map((col) => {
-        if (isSummableKind(col.kind)) {
-          return rows.reduce((sum, r) => sum + (Number(r[col.key]) || 0), 0)
+        // Ratio columns (e.g. % Occupancy, Average appt. value) can't be summed
+        // — compute a weighted total from their source columns: Σ numerator ÷
+        // Σ denominator, × 100 for a percent.
+        if (col.totalFrom) {
+          const num = columnTotal(col.totalFrom.numerator)
+          const den = columnTotal(col.totalFrom.denominator)
+          if (!den) return null
+          return col.kind === "percent"
+            ? Math.round((num / den) * 1000) / 10
+            : Math.round(num / den)
         }
-        // Ratio-percents (e.g. % Occupancy) can't be summed — compute a weighted
-        // total from their source columns: Σ numerator ÷ Σ denominator × 100.
-        if (col.kind === "percent" && col.totalFrom) {
-          const { numerator, denominator } = col.totalFrom
-          const num = rows.reduce((s, r) => s + (Number(r[numerator]) || 0), 0)
-          const den = rows.reduce((s, r) => s + (Number(r[denominator]) || 0), 0)
-          return den ? Math.round((num / den) * 1000) / 10 : null
-        }
+        if (isSummableKind(col.kind)) return columnTotal(col.key)
         return null
       })
     : null
@@ -491,6 +519,14 @@ function TableReportInner({ report }: { report: ReportDef }) {
         />
       ) : (
         <>
+          {/* Above the table, not under it: it explains the Total row, and a
+              caption below the rows is read after the numbers, if at all. */}
+          {overlapNote ? (
+            <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground">
+              <InfoIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" />
+              {overlapNote}
+            </p>
+          ) : null}
           <Table>
             <TableHeader>
               <TableRow>

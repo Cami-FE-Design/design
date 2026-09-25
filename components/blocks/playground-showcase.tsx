@@ -1544,6 +1544,8 @@ export function PlaygroundShowcase() {
   }
 
   const reportPaymentsSummary = getReport("payments-summary")
+  const reportDiscountSummary = getReport("discount-summary")
+  const reportAppointmentsSummary = getReport("appointments-summary")
   const reportFinanceSummary = getReport("finance-summary")
   const reportPerformanceDashboard = getReport("performance-dashboard")
   const reportPerformanceSummary = getReport("performance-summary")
@@ -4648,6 +4650,24 @@ export function PlaygroundShowcase() {
                 Table View — Payments summary (Total row, Cami payment methods)
               </p>
               <TableReport report={reportPaymentsSummary} />
+            </div>
+          ) : null}
+          {reportDiscountSummary ? (
+            <div className="py-3">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Table View — Discount summary (group-by re-slices the rows: name / type / category;
+                opens most used first)
+              </p>
+              <TableReport report={reportDiscountSummary} />
+            </div>
+          ) : null}
+          {reportAppointmentsSummary ? (
+            <div className="py-3">
+              <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Table View — Appointments summary (pick Team member or Service: rows overlap, the
+                Total row keeps the distinct count and a note says why)
+              </p>
+              <TableReport report={reportAppointmentsSummary} />
             </div>
           ) : null}
           {reportFinanceSummary ? (
