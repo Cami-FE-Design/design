@@ -123,9 +123,18 @@ export const REPORTS: ReportDef[] = [
     description: "Overview of discounts granted and their impact on sales.",
     template: "table",
     dateControl: "range",
-    groupBy: { label: "Discount category", options: ["Discount category", "Discount type"] },
+    // Leads with each deal by name, most used first, so "which promotion is
+    // doing the work" is the first row rather than a sum hidden in a category.
+    // Type and category re-slice the same sales (the totals agree across all
+    // three); names and types are the ones Settings → Deals uses.
+    groupBy: {
+      label: "Discount name",
+      options: ["Discount name", "Discount type", "Discount category"],
+    },
+    defaultSort: { key: "timesUsed", dir: "desc" },
     columns: [
-      { key: "discountCategory", label: "Discount category", kind: "text" },
+      { key: "discount", label: "Discount name", kind: "text" },
+      { key: "timesUsed", label: "Times used", kind: "number" },
       { key: "itemsDiscounted", label: "Items discounted", kind: "number" },
       { key: "grossSales", label: "Gross sales", kind: "money" },
       { key: "itemDiscounts", label: "Item discounts", kind: "money" },
@@ -216,7 +225,16 @@ export const REPORTS: ReportDef[] = [
       "General overview of appointment trends and patterns, including cancellations and no-shows.",
     template: "table",
     dateControl: "range",
-    groupBy: { label: "Location", options: ["Location", "Team member", "Service"] },
+    groupBy: {
+      label: "Location",
+      options: ["Location", "Team member", "Service"],
+      overlapNote: {
+        "Team member":
+          "An appointment with more than one team member is counted under each, so rows can add up to more than the total.",
+        Service:
+          "An appointment with more than one service is counted under each, so rows can add up to more than the total.",
+      },
+    },
     totalRow: true,
     // Each summary row drills into the Appointments list, filtered to the
     // clicked entity for whichever dimension is grouped (Fresha parity).
@@ -230,7 +248,12 @@ export const REPORTS: ReportDef[] = [
       { key: "services", label: "Services", kind: "number" },
       { key: "pctRequested", label: "% requested", kind: "percent" },
       { key: "totalApptValue", label: "Total appt. value", kind: "money" },
-      { key: "avgApptValue", label: "Average appt. value", kind: "money" },
+      {
+        key: "avgApptValue",
+        label: "Average appt. value",
+        kind: "money",
+        totalFrom: { numerator: "totalApptValue", denominator: "appointments" },
+      },
       { key: "pctOnline", label: "% online", kind: "percent" },
       { key: "pctCancelled", label: "% cancelled", kind: "percent" },
       { key: "pctNoShow", label: "% no show", kind: "percent" },

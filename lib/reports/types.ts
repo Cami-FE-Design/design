@@ -42,9 +42,10 @@ export type ColumnDef = {
   /** Emphasised (semibold) — used for the primary column. */
   emphasis?: boolean
   /**
-   * Ratio-percent columns can't be summed for the Total row (e.g. % Occupancy).
-   * Instead the total is a weighted ratio of two summable source columns:
-   * Σ numerator ÷ Σ denominator × 100 (% Occupancy = booked ÷ available).
+   * Ratio columns can't be summed for the Total row (e.g. % Occupancy, Average
+   * appt. value). Instead the total is a weighted ratio of two source columns:
+   * Σ numerator ÷ Σ denominator, × 100 for a percent (% Occupancy = booked ÷
+   * available; Average appt. value = total value ÷ appointments).
    */
   totalFrom?: { numerator: string; denominator: string }
 }
@@ -68,6 +69,13 @@ export type FilterKey =
 export type GroupBy = {
   label: string
   options: string[]
+  /**
+   * Dimensions where one record sits in several rows (an appointment with two
+   * services is under both), keyed by option, with the note the table shows
+   * while that option is picked. Rows then add up to more than the Total row,
+   * which carries the distinct count from MOCK_DISTINCT_TOTALS instead.
+   */
+  overlapNote?: Record<string, string>
 }
 
 /**
@@ -103,6 +111,8 @@ export type ReportDef = {
   held?: boolean
   heldReason?: string
   groupBy?: GroupBy
+  /** The order rows open in; the Sort menu still overrides it. Defaults to data order. */
+  defaultSort?: { key: string; dir: "asc" | "desc" }
   columns?: ColumnDef[]
   filters?: FilterKey[]
   /** First-column entity links through to a detail report pre-filtered to it. */
