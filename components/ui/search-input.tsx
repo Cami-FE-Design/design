@@ -26,25 +26,25 @@ type SearchInputProps = Omit<
 
 const SIZE_MAP = {
   default: {
-    input: "h-8 w-56 rounded-full pr-9 pl-9 text-sm",
+    input: "h-8 w-56 rounded-full pe-9 ps-9 text-sm",
     icon: "size-4",
-    iconLeft: "left-3",
+    iconLeft: "start-3",
     clearIcon: "size-4",
-    clearBtn: "right-2 size-5",
+    clearBtn: "end-2 size-5",
   },
   lg: {
-    input: "h-12 w-full rounded-2xl pr-12 pl-12 text-base",
+    input: "h-12 w-full rounded-2xl pe-12 ps-12 text-base",
     icon: "size-5",
-    iconLeft: "left-4",
+    iconLeft: "start-4",
     clearIcon: "size-5",
-    clearBtn: "right-3 size-7",
+    clearBtn: "end-3 size-7",
   },
   xl: {
-    input: "h-12 w-full rounded-full pr-12 pl-12 text-base",
+    input: "h-12 w-full rounded-full pe-12 ps-12 text-base",
     icon: "size-5",
-    iconLeft: "left-4",
+    iconLeft: "start-4",
     clearIcon: "size-5",
-    clearBtn: "right-3 size-7",
+    clearBtn: "end-3 size-7",
   },
 } as const
 
