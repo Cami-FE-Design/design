@@ -1,4 +1,4 @@
-import { FileTextIcon, ImageIcon, UserRoundSearchIcon, VideoIcon } from "lucide-react"
+import { FileTextIcon, ImageIcon, UserRoundIcon, VideoIcon } from "lucide-react"
 
 import type { InboxConversation, InboxMessage, MediaKind } from "@/app/messages/inbox/phase-0/mock"
 import { Avatar } from "@/components/ui/avatar"
@@ -28,37 +28,37 @@ export function ConversationTitle({ conversation }: { conversation: InboxConvers
   return name ?? <Phone e164={conversation.phoneE164} />
 }
 
-/** Last two digits, as two initials, for a chat that has no client name yet. */
-function phoneInitials(e164: string): string {
-  const digits = e164.replace(/\D/g, "").slice(-2)
-  if (digits.length < 2) return digits || "?"
-  return `${digits[0]} ${digits[1]}`
-}
-
+/** Named chats get initials. An unmatched chat gets a dashed person, never
+ *  digit initials and never a search icon beside the number. */
 export function ConversationAvatar({
   conversation,
   size = "md",
+  unmatchedLabel,
 }: {
   conversation: InboxConversation
   size?: "md" | "lg"
+  unmatchedLabel?: string
 }) {
   const name = customerName(conversation)
+  if (!name) {
+    const box = size === "lg" ? "size-12" : "size-9"
+    const icon = size === "lg" ? "size-5" : "size-4"
+    return (
+      <span
+        className={`inline-flex ${box} shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50 text-muted-foreground`}
+        title={unmatchedLabel}
+      >
+        <UserRoundIcon className={`${icon} stroke-[1.5]`} aria-hidden />
+        {unmatchedLabel ? <span className="sr-only">{unmatchedLabel}</span> : null}
+      </span>
+    )
+  }
   return (
     <Avatar
       size={size}
-      name={name ?? phoneInitials(conversation.phoneE164)}
+      name={name}
       hashSeed={conversation.customer?.publicId ?? conversation.publicId}
     />
-  )
-}
-
-/** Unmatched is an icon, the same one the unmatched pane uses. Not a pill. */
-export function UnmatchedMark({ copy }: { copy: InboxCopy }) {
-  return (
-    <span className="inline-flex shrink-0 text-muted-foreground" title={copy.unmatched}>
-      <UserRoundSearchIcon className="size-3.5" aria-hidden />
-      <span className="sr-only">{copy.unmatched}</span>
-    </span>
   )
 }
 

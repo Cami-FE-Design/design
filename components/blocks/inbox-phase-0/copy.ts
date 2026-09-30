@@ -8,6 +8,7 @@ export type Lang = "en" | "ar"
 
 const en = {
   inbox: "Inbox",
+  search: "Search",
   searchPlaceholder: "Search chats",
   unmatched: "Unmatched",
   noResults: "No chats match your search",
@@ -180,6 +181,7 @@ type Copy = { [K in keyof typeof en]: (typeof en)[K] }
 
 const ar: Copy = {
   inbox: "صندوق الوارد",
+  search: "بحث",
   searchPlaceholder: "ابحث في المحادثات",
   unmatched: "غير مرتبط",
   noResults: "لا توجد محادثات تطابق البحث",

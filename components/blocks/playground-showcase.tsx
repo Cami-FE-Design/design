@@ -2830,7 +2830,7 @@ export function PlaygroundShowcase() {
       >
         <Section
           title="Inbox Phase 0 — list, composer, client pane"
-          description="ENG3-33 / T1 — the WhatsApp inbox pieces in the states they can be in: an unmatched number (the number is the title, never a made-up name, marked with an icon), failed rows, the chat list loading/empty/error, the composer with the window open (one countdown line, colored under 2 hours), closing soon and closed (one sand row, templates only), and the client pane as ClientSummary or, unmatched, Match and Add only. Unread is out of Phase 0. The full flows, send, retry, templates, media, match, add, are on /messages/inbox/phase-0; docs/specs/ENG3-33-inbox-phase-0-walkthrough.md walks each one."
+          description="ENG3-33 / T1 — the WhatsApp inbox pieces in the states they can be in: an unmatched number (the number is the title, never a made-up name, dashed person avatar), failed rows, the chat list loading/empty/error, the composer with the window open (one countdown line, colored under 2 hours), closing soon and closed (one sand row, templates only), and the client pane as ClientSummary or, unmatched, Match and Add only. Unread is out of Phase 0. The full flows, send, retry, templates, media, match, add, are on /messages/inbox/phase-0; docs/specs/ENG3-33-inbox-phase-0-walkthrough.md walks each one."
           lazy
         >
           <InboxPhase0Showcase />

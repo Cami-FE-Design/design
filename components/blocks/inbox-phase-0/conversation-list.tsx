@@ -1,6 +1,12 @@
 "use client"
 
-import { AlertCircleIcon, AlertTriangleIcon, MessageCircleIcon, SearchXIcon } from "lucide-react"
+import {
+  AlertCircleIcon,
+  AlertTriangleIcon,
+  MessageCircleIcon,
+  SearchIcon,
+  SearchXIcon,
+} from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { CURRENT_STAFF, type InboxConversation } from "@/app/messages/inbox/phase-0/mock"
@@ -17,7 +23,6 @@ import {
   customerName,
   type PaneStatus,
   previewOf,
-  UnmatchedMark,
 } from "./shared"
 
 // ─── Pane 1 — the chat list (IX-A1) ───────────────────────────────────────────
@@ -68,13 +73,12 @@ function ConversationRow({
             aria-hidden
           />
         ) : null}
-        <ConversationAvatar conversation={conversation} />
+        <ConversationAvatar conversation={conversation} unmatchedLabel={copy.unmatched} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex items-center gap-2">
             <span className="truncate text-sm font-medium text-foreground">
               <ConversationTitle conversation={conversation} />
             </span>
-            {!conversation.customer ? <UnmatchedMark copy={copy} /> : null}
             <span className="flex-1" />
             <span className="shrink-0 text-xs text-muted-foreground">
               {listTimeLabel(conversation.lastMessageAt, now, lang)}
@@ -143,6 +147,12 @@ export function ConversationList({
   now: number
 }) {
   const [query, setQuery] = useState("")
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  function closeSearch() {
+    setQuery("")
+    setSearchOpen(false)
+  }
   const sorted = useMemo(
     () => [...conversations].sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt)),
     [conversations],
@@ -166,15 +176,36 @@ export function ConversationList({
       aria-label={copy.chatList}
       className="flex w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
     >
-      <div className="border-b border-border p-3">
-        <SearchInput
-          size="default"
-          containerClassName="w-full"
-          className="h-9 w-full"
-          onValueChange={setQuery}
-          placeholder={copy.searchPlaceholder}
-          disabled={status !== "ready"}
-        />
+      <div className="flex flex-col gap-2 border-b border-border px-4 py-3">
+        <div className="flex items-center gap-2">
+          <h1 className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">
+            {copy.inbox}
+          </h1>
+          <button
+            type="button"
+            aria-label={copy.search}
+            aria-expanded={searchOpen}
+            disabled={status !== "ready"}
+            onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-sand-3 text-foreground transition-colors hover:bg-sand-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cami-violet-8 disabled:opacity-50"
+          >
+            <SearchIcon className="size-4" aria-hidden />
+          </button>
+        </div>
+        {searchOpen ? (
+          <SearchInput
+            size="default"
+            containerClassName="w-full"
+            className="h-9 w-full"
+            autoFocus
+            onValueChange={setQuery}
+            onClear={closeSearch}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") closeSearch()
+            }}
+            placeholder={copy.searchPlaceholder}
+          />
+        ) : null}
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
         {status === "loading" ? (

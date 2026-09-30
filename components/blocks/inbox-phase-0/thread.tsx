@@ -32,14 +32,7 @@ import { cn } from "@/lib/utils"
 
 import { Composer } from "./composer"
 import { dayKey, dayLabel, formatBytes, type InboxCopy, type Lang, timeLabel } from "./copy"
-import {
-  ConversationTitle,
-  MEDIA_ICON,
-  mediaLabel,
-  type PaneStatus,
-  Phone,
-  UnmatchedMark,
-} from "./shared"
+import { ConversationTitle, MEDIA_ICON, mediaLabel, type PaneStatus, Phone } from "./shared"
 
 // ─── Pane 2 — the thread (IX-A1, IX-A2, IX-A5) ────────────────────────────────
 
@@ -52,25 +45,16 @@ const GROUP_GAP_MS = 5 * 60_000
 /** How long the floating day chip stays after scrolling stops. */
 const FLOATING_DAY_MS = 1200
 
-function ThreadHeader({
-  conversation,
-  copy,
-}: {
-  conversation: InboxConversation
-  copy: InboxCopy
-}) {
+function ThreadHeader({ conversation }: { conversation: InboxConversation }) {
   // Name and phone live here once. The client pane does not repeat them.
   // Unmatched, the number is the title, so it is not shown a second time.
   const matched = !!conversation.customer
   return (
     <header className="flex min-w-0 items-center gap-2 border-b border-border px-5 py-2.5">
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <h2 className="truncate text-sm font-semibold text-foreground">
-            <ConversationTitle conversation={conversation} />
-          </h2>
-          {!matched ? <UnmatchedMark copy={copy} /> : null}
-        </div>
+        <h2 className="truncate text-sm font-semibold text-foreground">
+          <ConversationTitle conversation={conversation} />
+        </h2>
         {matched ? (
           <Phone e164={conversation.phoneE164} className="text-xs text-muted-foreground" />
         ) : null}
@@ -759,7 +743,7 @@ export function Thread({
         />
       ) : (
         <>
-          <ThreadHeader conversation={conversation} copy={copy} />
+          <ThreadHeader conversation={conversation} />
           <MessageList
             key={conversation.publicId}
             conversation={conversation}

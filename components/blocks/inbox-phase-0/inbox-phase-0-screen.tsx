@@ -488,14 +488,13 @@ function InboxPhase0() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 bg-sand-3 p-3">
-      {/* A slim page header: the panes are the page. The design-repo controls
-          fold into one dashed chip, so the product is what the eye lands on. */}
+      {/* The list pane already titles itself Inbox. This row is only the
+          design-repo chip, so the word is not on the page twice. */}
       <div
         dir={lang === "ar" ? "rtl" : "ltr"}
         lang={lang}
         className="flex items-center gap-3 px-2 pt-1"
       >
-        <h1 className="text-xl font-medium text-foreground">{copy.inbox}</h1>
         <button
           type="button"
           aria-expanded={showControls}

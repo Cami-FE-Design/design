@@ -26,10 +26,11 @@ situation (§2). Nothing is stored between reloads.
 | T1-D6 | **Every identity change is a line in the thread** — auto-link by Cami, match, re-match (showing what it replaced), created — with who and when. These lines stay | INV-08 visible where the work happens; P6's Cami actor. Michelle, 2026-09-30: do not remove them |
 | T1-D7 | **Match and Add live in the right pane**; Add is a short dialog over the chat, with a link to the existing full client form. The unmatched pane itself is unchanged | `IX-C3`, `IX-C4` row 1 and the full-intake edge case |
 | T1-D8 | **Unread is out of Phase 0.** No story asks for it (Mike, 2026-09-28). The list does not show a count, a dot, a badge, or a bold name or preview. Read and unread rows look the same. `unreadCount` is not in the contract | Michelle, 2026-09-30, pointing at Mike's comment |
-| T1-D9 | **Unmatched is an icon.** `UserRoundSearch`, the same icon the unmatched pane already uses. Not the yellow pill, and not plain text. The word "Unmatched" stays for the screen reader | Michelle, 2026-09-30 |
-| T1-D10 | **Thread header is the name, and the phone when the chat is matched.** No "WhatsApp" subline and no avatar. List and pane avatars show initials (the last two digits when there is no name), not an empty circle | Michelle, 2026-09-30 |
+| T1-D9 | **An unmatched list avatar is a dashed circle with a person icon.** Not phone-digit initials, and not a search icon beside the number. The word "Unmatched" stays on that avatar for the screen reader. The unmatched right pane keeps its own search icon | Michelle, 2026-09-30 |
+| T1-D10 | **Thread header is the name, and the phone when the chat is matched.** No "WhatsApp" subline and no avatar. Named list and pane avatars show initials. Unmatched list avatars are the dashed person (T1-D9) | Michelle, 2026-09-30 |
 | T1-D11 | **Name and phone appear once, in the thread header.** The matched client pane does not repeat them. It keeps the initials avatar, pets, last service, visits and notes | Michelle, 2026-09-30 |
 | T1-D12 | **A failed message keeps the red "Not sent · reason" line and Retry.** The bubble has no red border and no red icon | Michelle, 2026-09-30 |
+| T1-D13 | **The list header is "Inbox" and a search icon in a pale circle.** The field is hidden until that icon is clicked. Clicking the icon again, or clearing the field, hides it and the list is unfiltered. The page does not title itself Inbox a second time above the panes | Michelle, 2026-09-30 |
 
 ## 2. States covered
 
@@ -37,7 +38,7 @@ Links are paths on the prototype route. `?c=` picks the seeded chat.
 
 | State | Frame | What it shows |
 | --- | --- | --- |
-| **Unmatched** *(feature)* | `?c=unmatched-saturday` | The number is the title, an unmatched icon on the row and header, the chat reads normally, the pane offers Match and Add only |
+| **Unmatched** *(feature)* | `?c=unmatched-saturday` | The number is the title. The list avatar is a dashed person, with no search icon beside the number. The chat reads normally and the pane offers Match and Add only |
 | **Free-text window closed** *(feature)* | `?c=sara` | Reason, no free typing, template picker, blanks filled from the record |
 | **Window closes while typing** *(feature)* | `?c=maryam` | Closes ~2 min after load. Type first: the text is kept, templates are offered |
 | **Send failed** *(feature)* | `?c=noura` | Reason + Retry on the same bubble; "Next send" in the Design repo bar makes a retry fail again, fail late, or come back as WhatsApp's window-closed |
@@ -181,7 +182,7 @@ Names are camelCase of the draft columns in
 | --- | --- | --- |
 | `publicId` | Row selection, URL | `inbox_conversation.public_id` |
 | `phoneE164` | Row title when unmatched | `inbox_conversation.phone_e164` |
-| `customer` `{ publicId, firstName, lastName }` or `null` | Row title, avatar, Unmatched marker | `customer_id` → customer module |
+| `customer` `{ publicId, firstName, lastName }` or `null` | Row title and avatar. Null shows the dashed person avatar, not a marker beside the number | `customer_id` → customer module |
 | `lastMessageAt` | Row time, sort | `inbox_conversation.last_message_at` |
 | `lastMessage` `{ direction, bodySnippet, mediaKind, deliveryState, sentByStaffName }` | Preview line, "You:", "Not sent" | Latest `inbox_message` (+ media kind), staff name via `sent_by_staff_id` |
 
@@ -295,7 +296,7 @@ to `ClientSummary`.
 ## 6. Interaction, accessibility, RTL
 
 - **Keyboard.** Ctrl/⌘+Enter sends. The shortcut is the Send button's tooltip. List rows, template picker, match results and dialogs are reachable by Tab with visible focus; dialogs trap focus and close on Esc (Radix).
-- **Screen readers.** The thread is `role="log"`. The unmatched icon has the word "Unmatched". Delivery icons for sending and sent have text labels. A failed send has no icon; the "Not sent" line is the label. The countdown is not a live region (a per-minute announcement is noise); the change that matters, closing, replaces the composer with the closed row. There is no unread announcement.
+- **Screen readers.** The thread is `role="log"`. The unmatched list avatar has the word "Unmatched". Delivery icons for sending and sent have text labels. A failed send has no icon; the "Not sent" line is the label. The countdown is not a live region (a per-minute announcement is noise); the change that matters, closing, replaces the composer with the closed row. There is no unread announcement.
 - **Colour is never the only signal.** Failed, blank, unmatched and closed all carry words.
 - **RTL.** Logical properties throughout; the send and back arrows mirror; phone numbers and English template bodies stay LTR inside Arabic. Every string exists in `en` and `ar`. In the prototype only the inbox region mirrors; the app shell around it is production's.
 - **Polling.** Thread 5 s, list 15 s, paused while hidden (decided). A new message scrolls into view; loading older pages keeps the reader's place.

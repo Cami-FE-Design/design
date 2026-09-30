@@ -823,7 +823,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?c=unmatched-saturday",
         label: "Unmatched number",
-        note: "The number stands in for the name, marked with the unmatched icon in the row and header. The chat reads normally and the client pane offers only Match and Add.",
+        note: "The number stands in for the name. The list avatar is a dashed circle with a person icon, and there is no search icon beside the number. The chat reads normally and the client pane offers only Match and Add.",
       },
       {
         path: "/messages/inbox/phase-0?c=maryam",

@@ -13,6 +13,8 @@ type SearchInputProps = Omit<
 > & {
   containerClassName?: string
   onValueChange?: (value: string) => void
+  /** Fired after the clear button empties the field. */
+  onClear?: () => void
   /**
    * Visual scale of the search field.
    *  - `default`: compact (h-8, w-56, rounded-full) — for inline filters in
@@ -53,6 +55,7 @@ export function SearchInput({
   containerClassName,
   defaultValue = "",
   onValueChange,
+  onClear,
   size = "default",
   ...props
 }: SearchInputProps) {
@@ -93,7 +96,10 @@ export function SearchInput({
       {value.length > 0 ? (
         <button
           type="button"
-          onClick={() => update("")}
+          onClick={() => {
+            update("")
+            onClear?.()
+          }}
           aria-label="Clear search"
           className={cn(
             "absolute top-1/2 flex -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground",
