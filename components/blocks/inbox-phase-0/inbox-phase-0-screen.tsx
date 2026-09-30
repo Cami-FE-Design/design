@@ -487,7 +487,7 @@ function InboxPhase0() {
   const frameWidth = width === "fit" ? undefined : Number(width) - SIDEBAR_COLLAPSED
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col bg-sand-3 p-3">
+    <div className="relative flex min-h-0 flex-1 flex-col p-3">
       {/* The chip floats over the panes. It is not a row, so the list starts
           at the top. The list pane is the only "Inbox" title. */}
       <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex flex-col items-end gap-2">
