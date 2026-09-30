@@ -184,7 +184,7 @@ Names are camelCase of the draft columns in
 | `phoneE164` | Row title when unmatched | `inbox_conversation.phone_e164` |
 | `customer` `{ publicId, firstName, lastName }` or `null` | Row title and avatar. Null shows the dashed person avatar, not a marker beside the number | `customer_id` → customer module |
 | `lastMessageAt` | Row time, sort | `inbox_conversation.last_message_at` |
-| `lastMessage` `{ direction, bodySnippet, mediaKind, deliveryState, sentByStaffName }` | Preview line, "You:", "Not sent". A failed last send also puts a red icon just left of the time | Latest `inbox_message` (+ media kind), staff name via `sent_by_staff_id` |
+| `lastMessage` `{ direction, bodySnippet, mediaKind, deliveryState, sentByStaffName }` | Preview line, same style as any row ("You:" and the message). A failed last send is not marked in the list: no "Not sent" text and no icon. A file attachment has no document icon | Latest `inbox_message` (+ media kind), staff name via `sent_by_staff_id` |
 
 ### 4.2 Thread read — `GET /inbox/conversations/{id}` + messages (keyset, `after` cursor, polled 5 s)
 

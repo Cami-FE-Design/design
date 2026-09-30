@@ -72,14 +72,16 @@ export function mediaLabel(kind: MediaKind, copy: InboxCopy) {
   return kind === "image" ? copy.photo : kind === "video" ? copy.video : copy.file
 }
 
-/** One-line summary of a message for the list row. */
+/** One-line summary of a message for the list row. A file attachment keeps
+ *  its text and does not get a document icon. */
 export function previewOf(
   m: InboxMessage,
   copy: InboxCopy,
 ): { icon?: typeof ImageIcon; text: string } {
   const media = m.media?.[0]
-  if (m.body) return { icon: media ? MEDIA_ICON[media.kind] : undefined, text: m.body }
-  if (media) return { icon: MEDIA_ICON[media.kind], text: mediaLabel(media.kind, copy) }
+  const icon = media && media.kind !== "file" ? MEDIA_ICON[media.kind] : undefined
+  if (m.body) return { icon, text: m.body }
+  if (media) return { icon, text: mediaLabel(media.kind, copy) }
   return { text: "" }
 }
 

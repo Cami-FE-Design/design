@@ -1,12 +1,6 @@
 "use client"
 
-import {
-  AlertCircleIcon,
-  AlertTriangleIcon,
-  MessageCircleIcon,
-  SearchIcon,
-  SearchXIcon,
-} from "lucide-react"
+import { AlertTriangleIcon, MessageCircleIcon, SearchIcon, SearchXIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { CURRENT_STAFF, type InboxConversation } from "@/app/messages/inbox/phase-0/mock"
@@ -47,14 +41,13 @@ function ConversationRow({
 }) {
   const last = conversation.messages[conversation.messages.length - 1]!
   const preview = previewOf(last, copy)
-  const lastFailed = last.direction === "outbound" && last.deliveryState === "failed"
   const who =
     last.direction === "outbound"
       ? last.sentByStaffName === CURRENT_STAFF
         ? copy.you
         : last.sentByStaffName
       : null
-  const PreviewIcon = lastFailed ? undefined : preview.icon
+  const PreviewIcon = preview.icon
 
   return (
     <li>
@@ -80,24 +73,14 @@ function ConversationRow({
               <ConversationTitle conversation={conversation} />
             </span>
             <span className="flex-1" />
-            {lastFailed ? (
-              <AlertCircleIcon className="size-3.5 shrink-0 text-tomato-11" aria-hidden />
-            ) : null}
             <span className="shrink-0 text-xs text-muted-foreground">
               {listTimeLabel(conversation.lastMessageAt, now, lang)}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "flex min-w-0 flex-1 items-center gap-1 text-xs",
-                lastFailed ? "text-tomato-11" : "text-muted-foreground",
-              )}
-            >
+            <span className="flex min-w-0 flex-1 items-center gap-1 text-xs text-muted-foreground">
               {PreviewIcon ? <PreviewIcon className="size-3.5 shrink-0" aria-hidden /> : null}
-              {lastFailed || who ? (
-                <span className="shrink-0">{lastFailed ? `${copy.notSent} ·` : `${who}:`}</span>
-              ) : null}
+              {who ? <span className="shrink-0">{`${who}:`}</span> : null}
               {/* The message follows its own direction: English stays LTR inside
                   the Arabic UI, so it truncates at its end, not its start. */}
               <span className="min-w-0 truncate" dir="auto">

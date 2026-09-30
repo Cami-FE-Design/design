@@ -211,13 +211,15 @@ describe("Inbox Phase 0 — templates and failed send", () => {
     unmount()
   })
 
-  it("puts the not-sent icon beside the time on every failed row", () => {
+  it("does not mark a failed send in the list, and a file preview has no icon", () => {
     const { unmount } = openAt("?c=noura")
-    const row = screen.getByRole("button", { name: /Noura Saeed/ })
-    const title = row.querySelector("span.truncate")?.parentElement
-    expect(title?.querySelector("svg")).toBeTruthy()
-    expect(row.querySelector("[dir=auto]")?.parentElement?.querySelector("svg")).toBeNull()
-    expect(row.textContent).toMatch(/Not sent/)
+    const noura = screen.getByRole("button", { name: /Noura Saeed/ })
+    expect(noura.querySelector("svg.lucide-circle-alert")).toBeNull()
+    expect(noura.textContent).not.toMatch(/Not sent/)
+    expect(noura.textContent).toMatch(/Yes! See you at 6pm/)
+    const pack = screen.getByRole("button", { name: /welcome pack/ })
+    expect(pack.querySelector("svg.lucide-file-text")).toBeNull()
+    expect(pack.textContent).toMatch(/Here's our welcome pack/)
     unmount()
   })
 
