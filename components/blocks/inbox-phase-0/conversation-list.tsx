@@ -64,15 +64,13 @@ function ConversationRow({
         aria-current={selected ? "true" : undefined}
         className={cn(
           "relative flex w-full items-start gap-3 border-b border-border/50 px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cami-violet-8",
-          selected ? "bg-cami-violet-3/50" : "hover:bg-muted/40",
+          // Same treatments as AppSidebar: ghost hover, and the flyout's white
+          // surface with shadow-overlay when the row is the open one.
+          selected
+            ? "z-[1] bg-white-a11 shadow-overlay"
+            : "hover:bg-black-a2 hover:text-foreground dark:hover:bg-white-a2",
         )}
       >
-        {selected ? (
-          <span
-            className="absolute inset-y-1 start-0 w-[3px] rounded-e-full bg-cami-violet-9"
-            aria-hidden
-          />
-        ) : null}
         <span className="relative inline-flex shrink-0">
           <ConversationAvatar conversation={conversation} unmatchedLabel={copy.unmatched} />
           {/* Not sent sits on the avatar. Unmatched is already its own avatar,
@@ -213,7 +211,7 @@ export function ConversationList({
           />
         ) : null}
       </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-sand-3">
         {status === "loading" ? (
           <ListSkeleton />
         ) : status === "error" ? (
