@@ -46,13 +46,15 @@ const GROUP_GAP_MS = 5 * 60_000
 const FLOATING_DAY_MS = 1200
 
 function ThreadHeader({ conversation }: { conversation: InboxConversation }) {
-  // One line, same type as the Inbox title. A matched chat states the name.
-  // Unmatched, the number is the title. The phone is not a second line, and
-  // it is not repeated in the client pane.
+  // Same shell as the Inbox list header (px-4 py-3). The title row is 32px,
+  // the search button's height, so the bottom borders line up. One line: the
+  // name, or the number when unmatched. No phone line and no search icon.
   return (
-    <header className="flex min-w-0 items-center border-b border-border px-5 py-3">
-      <h2 className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">
-        <ConversationTitle conversation={conversation} />
+    <header className="flex min-w-0 items-center border-b border-border px-4 py-3">
+      <h2 className="flex min-h-8 min-w-0 flex-1 items-center">
+        <span className="min-w-0 truncate text-base font-semibold text-foreground">
+          <ConversationTitle conversation={conversation} />
+        </span>
       </h2>
     </header>
   )
