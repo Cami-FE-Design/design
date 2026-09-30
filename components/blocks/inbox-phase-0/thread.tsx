@@ -60,14 +60,12 @@ function ThreadHeader({ conversation }: { conversation: InboxConversation }) {
   )
 }
 
-function DayChip({ label, floating = false }: { label: string; floating?: boolean }) {
+/** Same treatment as DateSeparator in messages-inbox.tsx: uppercase, small,
+ *  muted, centered. No fill and no radius. The words stay (Today, Yesterday,
+ *  a weekday); uppercase is the style, not a different label. */
+function DayChip({ label }: { label: string }) {
   return (
-    <span
-      className={cn(
-        "rounded-full bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground ring-1 ring-border/60",
-        floating ? "shadow-md" : "shadow-sm",
-      )}
-    >
+    <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
       {label}
     </span>
   )
@@ -108,8 +106,8 @@ function IdentityLine({
           : copy.eventCreated(event.customerName, event.actorName)
   const Icon = event.kind === "created" ? UserPlusIcon : LinkIcon
   return (
-    // Same plain centered line as DateSeparator in messages-inbox.tsx.
-    // The day chip stays a pill. This line has no fill and no radius.
+    // Centered, no fill and no radius. Day labels use DateSeparator's
+    // uppercase treatment; this sentence stays sentence case.
     <div className="mt-3 flex items-center justify-center">
       <span className="inline-flex max-w-[85%] items-center gap-1.5 text-center text-[11px] font-medium text-muted-foreground">
         <Icon className="size-3 shrink-0" aria-hidden />
@@ -588,7 +586,7 @@ function MessageList({
           floatingDay ? "opacity-100" : "opacity-0",
         )}
       >
-        {floatingDay ? <DayChip label={floatingDay} floating /> : null}
+        {floatingDay ? <DayChip label={floatingDay} /> : null}
       </div>
       <div
         ref={scrollRef}
@@ -623,7 +621,7 @@ function MessageList({
           return (
             <Fragment key={m.publicId}>
               {newDay ? (
-                <div data-day={label} className="mt-4 flex justify-center">
+                <div data-day={label} className="mt-4 flex items-center justify-center py-1">
                   <DayChip label={label} />
                 </div>
               ) : null}
