@@ -175,7 +175,7 @@ function ClientSummary({
     <div className="flex flex-col gap-5 p-4">
       {/* Painted with the messages — no spinner where the name should be. */}
       {/* Name and phone are on the thread header, once. The pane keeps the
-          initials avatar and any location badges. */}
+          pet-parent avatar and any location badges. */}
       <div className="flex items-center gap-3">
         <ConversationAvatar conversation={conversation} size="lg" />
         {directoryClient?.archived || directoryClient?.homeLocation ? (

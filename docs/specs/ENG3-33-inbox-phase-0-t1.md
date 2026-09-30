@@ -27,8 +27,8 @@ URL. The seeded chats each carry one situation (§2). Nothing is stored between 
 | T1-D7 | **Match and Add live in the right pane**; Add is a short dialog over the chat, with a link to the existing full client form. The unmatched pane itself is unchanged | `IX-C3`, `IX-C4` row 1 and the full-intake edge case |
 | T1-D8 | **Unread is out of Phase 0.** No story asks for it (Mike, 2026-09-28). The list does not show a count, a dot, a badge, or a bold name or preview. Read and unread rows look the same. `unreadCount` is not in the contract | Michelle, 2026-09-30, pointing at Mike's comment |
 | T1-D9 | **An unmatched list avatar is a dashed circle with a person icon.** Not phone-digit initials, and not a search icon beside the number. The word "Unmatched" stays on that avatar for the screen reader. The unmatched right pane keeps its own search icon | Michelle, 2026-09-30 |
-| T1-D10 | **Thread header is the name, and the phone when the chat is matched.** No "WhatsApp" subline and no avatar. Named list and pane avatars show initials. Unmatched list avatars are the dashed person (T1-D9) | Michelle, 2026-09-30 |
-| T1-D11 | **Name and phone appear once, in the thread header.** The matched client pane does not repeat them. It keeps the initials avatar, pets, last service, visits and notes | Michelle, 2026-09-30 |
+| T1-D10 | **Thread header is the name, and the phone when the chat is matched.** No "WhatsApp" subline and no avatar. Named list and pane avatars use the same pet-parent character avatar as Clients (`Avatar` with `fallback="character"`). Unmatched list avatars are the dashed person (T1-D9) | Michelle, 2026-09-30 |
+| T1-D11 | **Name and phone appear once, in the thread header.** The matched client pane does not repeat them. It keeps the pet-parent avatar, pets, last service, visits and notes | Michelle, 2026-09-30 |
 | T1-D12 | **A failed message keeps the red "Not sent · reason" line and Retry.** The bubble has no red border and no red icon | Michelle, 2026-09-30 |
 | T1-D13 | **The list header is "Inbox" and a search icon in a pale circle.** The field is hidden until that icon is clicked. Clicking the icon again, or clearing the field, hides it and the list is unfiltered. The page does not title itself Inbox a second time above the panes | Michelle, 2026-09-30 |
 
@@ -184,7 +184,7 @@ Names are camelCase of the draft columns in
 | `phoneE164` | Row title when unmatched | `inbox_conversation.phone_e164` |
 | `customer` `{ publicId, firstName, lastName }` or `null` | Row title and avatar. Null shows the dashed person avatar, not a marker beside the number | `customer_id` → customer module |
 | `lastMessageAt` | Row time, sort | `inbox_conversation.last_message_at` |
-| `lastMessage` `{ direction, bodySnippet, mediaKind, deliveryState, sentByStaffName }` | Preview line, same style as any row ("You:" and the message). A failed last send does not say "Not sent" in the preview. Its list signal is a small red circle on the initials avatar. An unmatched row keeps the dashed person avatar and is not marked again. A file attachment has no document icon | Latest `inbox_message` (+ media kind), staff name via `sent_by_staff_id` |
+| `lastMessage` `{ direction, bodySnippet, mediaKind, deliveryState, sentByStaffName }` | Preview line, same style as any row ("You:" and the message). A failed last send does not say "Not sent" in the preview. Its list signal is a small red circle on the pet-parent avatar. An unmatched row keeps the dashed person avatar and is not marked again. A file attachment has no document icon | Latest `inbox_message` (+ media kind), staff name via `sent_by_staff_id` |
 
 ### 4.2 Thread read — `GET /inbox/conversations/{id}` + messages (keyset, `after` cursor, polled 5 s)
 
@@ -193,7 +193,7 @@ Names are camelCase of the draft columns in
 | `lastInboundAt` | The one countdown line ("last wrote …") | `inbox_conversation.last_inbound_at` |
 | `windowClosesAt` | Countdown; open vs closed composer | Computed: `last_inbound_at + 24 h`, or the provider rejection time if earlier — needs `window_closed_by_provider_at` (**new**) |
 | `customer.firstName`, `lastName`, `phone` (the conversation's `phoneE164`) | Thread header, once. The pane does not repeat the name or the phone | Customer module, carried on the thread read (contract.md, latency) |
-| `customer.pets[] {name, species, breed}`, `lastService {name, at}` | Pane, under the initials avatar | Customer module, carried on the thread read |
+| `customer.pets[] {name, species, breed}`, `lastService {name, at}` | Pane, under the pet-parent avatar | Customer module, carried on the thread read |
 | `customer.nextBooking {service, startAt}` | Template blanks | Booking module — **new on the thread read** (or served by the template preview, §4.4) |
 | `events[] {publicId, kind, actorName, at, customerName, previousCustomerName}` | Identity lines in the thread | **New table** — §4.6 |
 | Message `publicId` | Stable id before confirm; retry target | `inbox_message.public_id` |
@@ -281,7 +281,7 @@ Match, Add (they change the record). Read without reply: `?state=read-only`.
 Display only; data through the customer module's hooks; the inbox passes the thread
 read's client fields as initial data.
 
-1. **Identity** — initials avatar on the pane. Full name and phone (LTR) are on the thread header, once, and are not repeated here (T1-D11). Badges: Archived; "Client at {location}" when their home location is another one. *(Painted with the messages.)*
+1. **Identity** — the same pet-parent avatar as Clients, on the pane. Full name and phone (LTR) are on the thread header, once, and are not repeated here (T1-D11). Badges: Archived; "Client at {location}" when their home location is another one. *(Painted with the messages.)*
 2. **Pets** — name, species icon, breed. Hidden when the business has no pets. *(Painted with the messages.)*
 3. **Last service** — service name and day. *(Painted with the messages.)*
 4. **Last visits** — three rows: service; staff · day; amount in AED. Skeleton rows while loading; an inline "Couldn't load visits · Retry" on failure, the rest of the summary stays.

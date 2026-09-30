@@ -138,17 +138,21 @@ describe("Inbox Phase 0 — media (IX-A6)", () => {
 })
 
 describe("Inbox Phase 0 — templates and failed send", () => {
-  it("shows initials on list and client-pane avatars, and none in the thread header", () => {
+  it("uses the Clients character avatar on list and pane, and none in the thread header", () => {
     const { unmount } = openAt("")
     const layla = screen.getByRole("button", { name: /Layla Haddad/ })
-    expect(layla.querySelector("[data-slot=avatar]")?.textContent).toBe("LH")
+    const listAvatar = layla.querySelector("[data-slot=avatar]")
+    expect(listAvatar?.getAttribute("data-fallback")).toBe("character")
+    expect(listAvatar?.querySelector("svg")).toBeTruthy()
+    expect(listAvatar?.textContent).not.toMatch(/LH/)
     const unmatched = screen.getByRole("button", { name: /\+971 55 447 1209/ })
     const dashed = unmatched.querySelector("span.border-dashed")
     expect(dashed?.querySelector("svg")).toBeTruthy()
     expect(dashed?.textContent).toBe("Unmatched")
     expect(unmatched.querySelector(".lucide-user-round-search")).toBeNull()
+    expect(unmatched.querySelector("[data-fallback=character]")).toBeNull()
     const pane = [...document.querySelectorAll("[data-slot=avatar]")].find(
-      (el) => el.textContent === "LH" && !layla.contains(el),
+      (el) => el.getAttribute("data-fallback") === "character" && !layla.contains(el),
     )
     expect(pane).toBeTruthy()
     expect(document.querySelector("header [data-slot=avatar]")).toBeNull()

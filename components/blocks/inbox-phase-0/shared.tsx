@@ -28,8 +28,9 @@ export function ConversationTitle({ conversation }: { conversation: InboxConvers
   return name ?? <Phone e164={conversation.phoneE164} />
 }
 
-/** Named chats get initials. An unmatched chat gets a dashed person, never
- *  digit initials and never a search icon beside the number. */
+/** Named chats use the same pet-parent character avatar as Clients.
+ *  An unmatched chat gets a dashed person, never digit initials and never
+ *  a search icon beside the number. */
 export function ConversationAvatar({
   conversation,
   size = "md",
@@ -56,6 +57,7 @@ export function ConversationAvatar({
   return (
     <Avatar
       size={size}
+      fallback="character"
       name={name}
       hashSeed={conversation.customer?.publicId ?? conversation.publicId}
     />
