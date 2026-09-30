@@ -63,11 +63,11 @@ function ConversationRow({
         onClick={onSelect}
         aria-current={selected ? "true" : undefined}
         className={cn(
-          "relative flex w-full items-start gap-3 border-b border-border/50 px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cami-violet-8",
-          // Same treatments as AppSidebar: ghost hover, and the flyout's white
-          // surface with shadow-overlay when the row is the open one.
+          "relative flex w-full items-start gap-3 border-b border-border/50 bg-white-a11 px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cami-violet-8",
+          // Default and active share the white fill. Active adds the sidebar
+          // menu's shadow. Hover stays the ghost button wash.
           selected
-            ? "z-[1] bg-white-a11 shadow-overlay"
+            ? "z-[1] shadow-overlay"
             : "hover:bg-black-a2 hover:text-foreground dark:hover:bg-white-a2",
         )}
       >
