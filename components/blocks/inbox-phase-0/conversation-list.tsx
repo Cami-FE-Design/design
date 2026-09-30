@@ -65,10 +65,13 @@ function ConversationRow({
         className={cn(
           "relative flex w-full items-start gap-3 px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cami-violet-8",
           // Active uses the combo takeover side list's selected fill
-          // (SectionNav). Default stays white. Hover stays the ghost wash.
+          // (SectionNav). Default stays white. Hover is the opaque gray the
+          // sidebar ghost wash paints on sand (black-a2 over sand-3). The
+          // translucent utility never shows here: it is gated on
+          // @media (hover: hover), and on white it is only a light veil.
           selected
             ? "bg-accent text-accent-foreground"
-            : "bg-white-a11 hover:bg-black-a2 hover:text-foreground dark:hover:bg-white-a2",
+            : "bg-white-a11 [&:hover]:bg-sand-6 hover:text-foreground dark:[&:hover]:bg-white-a2",
         )}
       >
         <span className="relative inline-flex shrink-0">
