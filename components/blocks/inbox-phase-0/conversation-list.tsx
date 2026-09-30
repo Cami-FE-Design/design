@@ -54,7 +54,7 @@ function ConversationRow({
         ? copy.you
         : last.sentByStaffName
       : null
-  const PreviewIcon = lastFailed ? AlertCircleIcon : preview.icon
+  const PreviewIcon = lastFailed ? undefined : preview.icon
 
   return (
     <li>
@@ -80,6 +80,9 @@ function ConversationRow({
               <ConversationTitle conversation={conversation} />
             </span>
             <span className="flex-1" />
+            {lastFailed ? (
+              <AlertCircleIcon className="size-3.5 shrink-0 text-tomato-11" aria-hidden />
+            ) : null}
             <span className="shrink-0 text-xs text-muted-foreground">
               {listTimeLabel(conversation.lastMessageAt, now, lang)}
             </span>

@@ -211,6 +211,16 @@ describe("Inbox Phase 0 — templates and failed send", () => {
     unmount()
   })
 
+  it("puts the not-sent icon beside the time on every failed row", () => {
+    const { unmount } = openAt("?c=noura")
+    const row = screen.getByRole("button", { name: /Noura Saeed/ })
+    const title = row.querySelector("span.truncate")?.parentElement
+    expect(title?.querySelector("svg")).toBeTruthy()
+    expect(row.querySelector("[dir=auto]")?.parentElement?.querySelector("svg")).toBeNull()
+    expect(row.textContent).toMatch(/Not sent/)
+    unmount()
+  })
+
   it("keeps the failed reason and drops the red bubble border", () => {
     const { unmount } = openAt("?c=noura")
     expect(screen.getByText(/Not sent · WhatsApp didn't accept it/)).toBeTruthy()
