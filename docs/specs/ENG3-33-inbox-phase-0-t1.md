@@ -7,10 +7,10 @@
 | Unblocks | [FND-2](https://github.com/getcami/cami-docs-v1/blob/main/platform-docs/features/inbox-crm-phase-0/stories/FND-2.md) (contract) from §4, [FND-4](https://github.com/getcami/cami-docs-v1/blob/main/platform-docs/features/inbox-crm-phase-0/stories/FND-4.md) (`ClientSummary`) from §5 |
 | Reviewers | Product — Maaz · Reception — Quinee · Backend owner — for §4 |
 
-**How to review.** Open the prototype, click the dashed **Design repo** chip at the top
-right. It switches the page state, what the next send does, English/Arabic, pets on/off
-and a 1280/1366 frame, and each switch is in the URL. The seeded chats each carry one
-situation (§2). Nothing is stored between reloads.
+**How to review.** Open the prototype, click the dashed **Design repo** chip floating
+over the top right. It does not take a row. It switches the page state, what the next
+send does, English/Arabic, pets on/off and a 1280/1366 frame, and each switch is in the
+URL. The seeded chats each carry one situation (§2). Nothing is stored between reloads.
 
 ---
 

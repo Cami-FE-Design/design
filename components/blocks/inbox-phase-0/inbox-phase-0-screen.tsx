@@ -487,19 +487,16 @@ function InboxPhase0() {
   const frameWidth = width === "fit" ? undefined : Number(width) - SIDEBAR_COLLAPSED
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 bg-sand-3 p-3">
-      {/* The list pane already titles itself Inbox. This row is only the
-          design-repo chip, so the word is not on the page twice. */}
-      <div
-        dir={lang === "ar" ? "rtl" : "ltr"}
-        lang={lang}
-        className="flex items-center gap-3 px-2 pt-1"
-      >
+    <div className="relative flex min-h-0 flex-1 flex-col bg-sand-3 p-3">
+      {/* The chip floats over the panes. It is not a row, so the list starts
+          at the top. The list pane is the only "Inbox" title. */}
+      <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex flex-col items-end gap-2">
         <button
           type="button"
+          dir={lang === "ar" ? "rtl" : "ltr"}
           aria-expanded={showControls}
           onClick={() => setShowControls((v) => !v)}
-          className="ms-auto inline-flex max-w-full items-center gap-1.5 rounded-full border border-dashed border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60"
+          className="pointer-events-auto inline-flex max-w-full items-center gap-1.5 rounded-full border border-dashed border-border bg-card/95 px-3 py-1.5 text-xs text-muted-foreground shadow-sm transition-colors hover:bg-muted/80"
         >
           <FlaskConicalIcon className="size-3.5 shrink-0" aria-hidden />
           <span className="truncate">
@@ -514,75 +511,84 @@ function InboxPhase0() {
             aria-hidden
           />
         </button>
-      </div>
-      {showControls ? (
-        <DesignRepoBar
-          label="switch the state, what the next send does, language and frame width"
-          note={scenario.note}
-        >
-          <Select value={scenario.id} onValueChange={(v) => go({ state: v === "live" ? null : v })}>
-            <SelectTrigger size="sm" className="w-60">
-              <SelectValue>{scenario.label}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {SCENARIOS.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={outcome} onValueChange={(v) => go({ send: v === "ok" ? null : v })}>
-            <SelectTrigger size="sm" className="w-72">
-              <SelectValue>{SEND_OUTCOMES.find((o) => o.value === outcome)?.label}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {SEND_OUTCOMES.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            radius="full"
-            disabled={!selected || threadStatus !== "ready"}
-            onClick={clientWrites}
+        {showControls ? (
+          <div
+            dir={lang === "ar" ? "rtl" : "ltr"}
+            lang={lang}
+            className="pointer-events-auto w-full"
           >
-            Client writes now
-          </Button>
-          <SegmentedToggle
-            size="sm"
-            ariaLabel="Language"
-            value={lang}
-            onValueChange={(v) => go({ lang: v === "ar" ? "ar" : null })}
-            options={[
-              { value: "en", label: "English" },
-              { value: "ar", label: "العربية" },
-            ]}
-          />
-          <SegmentedToggle
-            size="sm"
-            ariaLabel="Pets feature"
-            value={hasPets ? "on" : "off"}
-            onValueChange={(v) => go({ pets: v === "off" ? "off" : null })}
-            options={[
-              { value: "on", label: "With pets" },
-              { value: "off", label: "Without pets" },
-            ]}
-          />
-          <SegmentedToggle
-            size="sm"
-            ariaLabel="Frame width"
-            value={width}
-            onValueChange={(v) => go({ width: v === "fit" ? null : v })}
-            options={WIDTH_OPTIONS}
-          />
-        </DesignRepoBar>
-      ) : null}
+            <DesignRepoBar
+              label="switch the state, what the next send does, language and frame width"
+              note={scenario.note}
+            >
+              <Select
+                value={scenario.id}
+                onValueChange={(v) => go({ state: v === "live" ? null : v })}
+              >
+                <SelectTrigger size="sm" className="w-60">
+                  <SelectValue>{scenario.label}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SCENARIOS.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={outcome} onValueChange={(v) => go({ send: v === "ok" ? null : v })}>
+                <SelectTrigger size="sm" className="w-72">
+                  <SelectValue>{SEND_OUTCOMES.find((o) => o.value === outcome)?.label}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SEND_OUTCOMES.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>
+                      {o.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                radius="full"
+                disabled={!selected || threadStatus !== "ready"}
+                onClick={clientWrites}
+              >
+                Client writes now
+              </Button>
+              <SegmentedToggle
+                size="sm"
+                ariaLabel="Language"
+                value={lang}
+                onValueChange={(v) => go({ lang: v === "ar" ? "ar" : null })}
+                options={[
+                  { value: "en", label: "English" },
+                  { value: "ar", label: "العربية" },
+                ]}
+              />
+              <SegmentedToggle
+                size="sm"
+                ariaLabel="Pets feature"
+                value={hasPets ? "on" : "off"}
+                onValueChange={(v) => go({ pets: v === "off" ? "off" : null })}
+                options={[
+                  { value: "on", label: "With pets" },
+                  { value: "off", label: "Without pets" },
+                ]}
+              />
+              <SegmentedToggle
+                size="sm"
+                ariaLabel="Frame width"
+                value={width}
+                onValueChange={(v) => go({ width: v === "fit" ? null : v })}
+                options={WIDTH_OPTIONS}
+              />
+            </DesignRepoBar>
+          </div>
+        ) : null}
+      </div>
 
       {access === "no-access" || access === "feature-off" ? (
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-2xl border border-border bg-card">

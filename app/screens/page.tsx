@@ -808,7 +808,7 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Inbox CRM, Phase 0 — T1 prototype (ENG3-33)",
     description:
-      "The Phase 0 WhatsApp inbox, scoped to the story rows in cami-docs-v1 inbox-crm-phase-0 (IX-A1/A2/A4/A5/A6, IX-C3/C4/C6) and nothing beyond them. Three panes, all visible at 1280 and 1366. The dashed 'Design repo' chip at the top right opens the switches: page state, what the next send does, English/Arabic (RTL), pets on/off and a 1280/1366 width frame. Every switch is in the URL, so each frame is a link.",
+      "The Phase 0 WhatsApp inbox, scoped to the story rows in cami-docs-v1 inbox-crm-phase-0 (IX-A1/A2/A4/A5/A6, IX-C3/C4/C6) and nothing beyond them. Three panes, all visible at 1280 and 1366. The dashed 'Design repo' chip floats over the top right and does not take a row. It opens the switches: page state, what the next send does, English/Arabic (RTL), pets on/off and a 1280/1366 width frame. Every switch is in the URL, so each frame is a link.",
     screens: [
       {
         path: "/messages/inbox/phase-0",
