@@ -63,12 +63,12 @@ function ConversationRow({
         onClick={onSelect}
         aria-current={selected ? "true" : undefined}
         className={cn(
-          "relative flex w-full items-start gap-3 border-b border-border/50 bg-white-a11 px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cami-violet-8",
-          // Default and active share the white fill. Active adds the sidebar
-          // menu's shadow. Hover stays the ghost button wash.
+          "relative flex w-full items-start gap-3 border-b border-border/50 px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cami-violet-8",
+          // Active uses the combo takeover side list's selected fill
+          // (SectionNav). Default stays white. Hover stays the ghost wash.
           selected
-            ? "z-[1] shadow-overlay"
-            : "hover:bg-black-a2 hover:text-foreground dark:hover:bg-white-a2",
+            ? "bg-accent text-accent-foreground"
+            : "bg-white-a11 hover:bg-black-a2 hover:text-foreground dark:hover:bg-white-a2",
         )}
       >
         <span className="relative inline-flex shrink-0">
