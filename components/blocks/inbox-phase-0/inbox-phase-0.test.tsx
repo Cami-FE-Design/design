@@ -211,15 +211,23 @@ describe("Inbox Phase 0 — templates and failed send", () => {
     unmount()
   })
 
-  it("marks a failed row with an icon beside the time, not in the preview", () => {
+  it("marks not sent on the avatar, and leaves unmatched as the dashed person", () => {
     const { unmount } = openAt("?c=noura")
     const noura = screen.getByRole("button", { name: /Noura Saeed/ })
     const icon = noura.querySelector("svg.lucide-circle-alert")
     expect(icon).toBeTruthy()
+    const time = [...noura.querySelectorAll("span")].find((el) =>
+      /^\d{1,2}:\d{2}$/.test(el.textContent?.trim() ?? ""),
+    )
+    expect(time?.querySelector("svg")).toBeNull()
+    expect(time?.parentElement?.querySelector("svg")).toBeNull()
     expect(noura.querySelector("[dir=auto]")?.textContent).toMatch(/Yes! See you at 6pm/)
     expect(noura.querySelector("[dir=auto]")?.textContent).not.toMatch(/Not sent/)
     const layla = screen.getByRole("button", { name: /Layla Haddad/ })
     expect(layla.querySelector("svg.lucide-circle-alert")).toBeNull()
+    const saturday = screen.getByRole("button", { name: /\+971 55 447 1209/ })
+    expect(saturday.querySelector("span.border-dashed svg")).toBeTruthy()
+    expect(saturday.querySelector("svg.lucide-circle-alert")).toBeNull()
     const pack = screen.getByRole("button", { name: /welcome pack/ })
     expect(pack.querySelector("svg.lucide-file-text")).toBeNull()
     expect(pack.querySelector("svg.lucide-circle-alert")).toBeNull()

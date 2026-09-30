@@ -73,23 +73,28 @@ function ConversationRow({
             aria-hidden
           />
         ) : null}
-        <ConversationAvatar conversation={conversation} unmatchedLabel={copy.unmatched} />
+        <span className="relative inline-flex shrink-0">
+          <ConversationAvatar conversation={conversation} unmatchedLabel={copy.unmatched} />
+          {/* Not sent sits on the avatar. Unmatched is already its own avatar,
+              so a failed unmatched row is not marked a second time. */}
+          {lastFailed && customerName(conversation) ? (
+            <span
+              className="absolute -bottom-0.5 -end-0.5 flex size-4 items-center justify-center rounded-full bg-card text-tomato-11 ring-2 ring-card"
+              title={copy.notSent}
+            >
+              <AlertCircleIcon className="size-3.5" aria-hidden />
+              <span className="sr-only">{copy.notSent}</span>
+            </span>
+          ) : null}
+        </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex items-center gap-2">
             <span className="truncate text-sm font-medium text-foreground">
               <ConversationTitle conversation={conversation} />
             </span>
             <span className="flex-1" />
-            <span className="flex shrink-0 items-center gap-1">
-              {lastFailed ? (
-                <span className="inline-flex text-tomato-11" title={copy.notSent}>
-                  <AlertCircleIcon className="size-3.5" aria-hidden />
-                  <span className="sr-only">{copy.notSent}</span>
-                </span>
-              ) : null}
-              <span className="text-xs text-muted-foreground">
-                {listTimeLabel(conversation.lastMessageAt, now, lang)}
-              </span>
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {listTimeLabel(conversation.lastMessageAt, now, lang)}
             </span>
           </div>
           <div className="flex items-center gap-2">
