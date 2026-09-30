@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils"
 
 import { Composer } from "./composer"
 import { dayKey, dayLabel, formatBytes, type InboxCopy, type Lang, timeLabel } from "./copy"
-import { ConversationTitle, MEDIA_ICON, mediaLabel, type PaneStatus, Phone } from "./shared"
+import { ConversationTitle, MEDIA_ICON, mediaLabel, type PaneStatus } from "./shared"
 
 // ─── Pane 2 — the thread (IX-A1, IX-A2, IX-A5) ────────────────────────────────
 
@@ -46,19 +46,14 @@ const GROUP_GAP_MS = 5 * 60_000
 const FLOATING_DAY_MS = 1200
 
 function ThreadHeader({ conversation }: { conversation: InboxConversation }) {
-  // Name and phone live here once. The client pane does not repeat them.
-  // Unmatched, the number is the title, so it is not shown a second time.
-  const matched = !!conversation.customer
+  // One line, same type as the Inbox title. A matched chat states the name.
+  // Unmatched, the number is the title. The phone is not a second line, and
+  // it is not repeated in the client pane.
   return (
-    <header className="flex min-w-0 items-center gap-2 border-b border-border px-5 py-2.5">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <h2 className="truncate text-sm font-semibold text-foreground">
-          <ConversationTitle conversation={conversation} />
-        </h2>
-        {matched ? (
-          <Phone e164={conversation.phoneE164} className="text-xs text-muted-foreground" />
-        ) : null}
-      </div>
+    <header className="flex min-w-0 items-center border-b border-border px-5 py-3">
+      <h2 className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">
+        <ConversationTitle conversation={conversation} />
+      </h2>
     </header>
   )
 }
