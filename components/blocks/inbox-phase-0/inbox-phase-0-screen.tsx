@@ -238,17 +238,6 @@ function InboxPhase0() {
     [visible, selectedId],
   )
 
-  // An open chat is a read chat — whether it was clicked in the list or opened
-  // straight from a link.
-  useEffect(() => {
-    if (!selectedId) return
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.publicId === selectedId && c.unreadCount > 0 ? { ...c, unreadCount: 0 } : c,
-      ),
-    )
-  }, [selectedId])
-
   function retry() {
     setRetrying(true)
     window.setTimeout(() => {
@@ -270,7 +259,6 @@ function InboxPhase0() {
 
   function select(id: string) {
     setPaneMode("summary")
-    update(id, (c) => ({ ...c, unreadCount: 0 }))
     go({ c: id === DEFAULT_CHAT ? null : id })
   }
 

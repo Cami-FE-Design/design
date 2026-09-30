@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  AlertCircleIcon,
   AlertTriangleIcon,
   CheckIcon,
   ClockIcon,
@@ -34,12 +33,12 @@ import { cn } from "@/lib/utils"
 import { Composer } from "./composer"
 import { dayKey, dayLabel, formatBytes, type InboxCopy, type Lang, timeLabel } from "./copy"
 import {
-  ConversationAvatar,
   ConversationTitle,
   MEDIA_ICON,
   mediaLabel,
   type PaneStatus,
-  UnmatchedPill,
+  Phone,
+  UnmatchedMark,
 } from "./shared"
 
 // ─── Pane 2 — the thread (IX-A1, IX-A2, IX-A5) ────────────────────────────────
@@ -60,21 +59,21 @@ function ThreadHeader({
   conversation: InboxConversation
   copy: InboxCopy
 }) {
-  // The number is on the client pane for a matched chat; unmatched, it is the title.
+  // Name and phone live here once. The client pane does not repeat them.
+  // Unmatched, the number is the title, so it is not shown a second time.
+  const matched = !!conversation.customer
   return (
-    <header className="flex items-center gap-3 border-b border-border px-5 py-3">
-      <ConversationAvatar conversation={conversation} />
-      <div className="flex min-w-0 flex-col">
-        <div className="flex min-w-0 items-center gap-2">
+    <header className="flex min-w-0 items-center gap-2 border-b border-border px-5 py-2.5">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex min-w-0 items-center gap-1.5">
           <h2 className="truncate text-sm font-semibold text-foreground">
             <ConversationTitle conversation={conversation} />
           </h2>
-          {!conversation.customer ? <UnmatchedPill copy={copy} /> : null}
+          {!matched ? <UnmatchedMark copy={copy} /> : null}
         </div>
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <MessageCircleIcon className="size-3.5" aria-hidden />
-          {copy.whatsapp}
-        </span>
+        {matched ? (
+          <Phone e164={conversation.phoneE164} className="text-xs text-muted-foreground" />
+        ) : null}
       </div>
     </header>
   )
@@ -148,7 +147,8 @@ function DeliveryIcon({ message, copy }: { message: InboxMessage; copy: InboxCop
     return <ClockIcon className="size-3" aria-label={copy.sending} />
   }
   if (message.deliveryState === "failed") {
-    return <AlertCircleIcon className="size-3 text-tomato-11" aria-label={copy.notSent} />
+    // The red "Not sent" line under the bubble is the signal. No icon on it.
+    return null
   }
   return <CheckIcon className="size-3" aria-label={copy.sent} />
 }
@@ -445,7 +445,6 @@ function MessageBubble({
           // The tail sits on the last bubble of a group.
           lastInGroup && (isOut ? "rounded-ee-md" : "rounded-es-md"),
           hasMedia ? "p-1" : "px-3 py-1.5",
-          failed && "ring-1 ring-tomato-7",
         )}
       >
         {template ? (
@@ -692,12 +691,9 @@ function MessageList({
 function ThreadSkeleton() {
   return (
     <div className="flex min-h-0 flex-1 flex-col" aria-hidden>
-      <div className="flex items-center gap-3 border-b border-border px-5 py-3">
-        <Skeleton className="size-9 rounded-full" />
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-3.5 w-32" />
-          <Skeleton className="h-3 w-24" />
-        </div>
+      <div className="flex flex-col gap-2 border-b border-border px-5 py-3">
+        <Skeleton className="h-3.5 w-32" />
+        <Skeleton className="h-3 w-24" />
       </div>
       <div className="flex flex-1 flex-col justify-end gap-3 bg-sand-2 px-5 py-4">
         {["w-52", "w-64 self-end", "w-40", "w-72 self-end", "w-48"].map((w) => (

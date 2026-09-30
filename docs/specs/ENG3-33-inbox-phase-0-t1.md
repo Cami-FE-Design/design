@@ -20,11 +20,16 @@ situation (§2). Nothing is stored between reloads.
 | --- | --- | --- |
 | T1-D1 | **Supported desktop widths: 1280 and 1366, all three panes open.** List 18 rem, client pane 20 rem, the thread takes the rest; the app sidebar is collapsed (68 px) on the inbox route. Thread width ≈ 590 px at 1280, ≈ 680 px at 1366. Below 1280 is out of scope (desktop only). Height is not constrained — every pane scrolls inside itself | `IX-A1-AC1` expects three panes; the old design hid the right pane below 1280 |
 | T1-D2 | **`ClientSummary` content** is §5 | FND-4 / P13 asks design to choose it here |
-| T1-D3 | **One countdown, three tones.** Quiet while there is time, amber under 2 h, red under 10 min. It is shown before typing, beside when the client last wrote | `IX-A2` row 2 and "never two countdowns" |
-| T1-D4 | **Closed window replaces the text field.** The reason is shown, free typing is disabled, and "Choose a template" is the only action. Anything typed before the window closed is kept on screen (copy or discard) — never sent, never lost | `IX-A4` row 4, `IX-A2` edge case |
-| T1-D5 | **A template blank is filled from the record only.** If the record cannot fill it, the send is blocked and names the blank; reception cannot type a value in | `IX-A4` row 3 read literally — **Michelle to confirm** (§7) |
-| T1-D6 | **Every identity change is a line in the thread** — auto-link by Cami, match, re-match (showing what it replaced), created — with who and when | INV-08 visible where the work happens; P6's Cami actor |
-| T1-D7 | **Match and Add live in the right pane**; Add is a short dialog over the chat, with a link to the existing full client form | `IX-C3`, `IX-C4` row 1 and the full-intake edge case |
+| T1-D3 | **One countdown line.** "Free text open · closes in … · last wrote …" is a single short line above the field. It stays quiet until under 2 h remain, then the line is colored (amber under 2 h, red under 10 min). "Ctrl + Enter to send" is the Send button's tooltip, not a second line | `IX-A2` row 2 and "never two countdowns". Michelle, 2026-09-30 |
+| T1-D4 | **Closed window is one sand row.** A lock icon, the reason, and "Choose a template" share one row. Neutral sand (`bg-sand-3` / `text-sand-11`), not a yellow banner. No disabled text box. Anything typed before the window closed is still kept (copy or discard), never sent and never lost | `IX-A4` row 4, `IX-A2` edge case. Michelle, 2026-09-30 |
+| T1-D5 | **A template blank is filled from the record only.** One rule for every blank: reception fixes the client record (match the chat, add the booking) and never types into a blank. If the record cannot fill it, the send is blocked and names the blank. An extra template with no blanks, "Thanks, reply here" ("Hi, thanks for your message. Reply here and we'll pick up where we left off."), so an unmatched chat can still be answered | `IX-A4` row 3. Michelle, ENG3-33, 2026-09-29 |
+| T1-D6 | **Every identity change is a line in the thread** — auto-link by Cami, match, re-match (showing what it replaced), created — with who and when. These lines stay | INV-08 visible where the work happens; P6's Cami actor. Michelle, 2026-09-30: do not remove them |
+| T1-D7 | **Match and Add live in the right pane**; Add is a short dialog over the chat, with a link to the existing full client form. The unmatched pane itself is unchanged | `IX-C3`, `IX-C4` row 1 and the full-intake edge case |
+| T1-D8 | **Unread is out of Phase 0.** No story asks for it (Mike, 2026-09-28). The list does not show a count, a dot, a badge, or a bold name or preview. Read and unread rows look the same. `unreadCount` is not in the contract | Michelle, 2026-09-30, pointing at Mike's comment |
+| T1-D9 | **Unmatched is an icon.** `UserRoundSearch`, the same icon the unmatched pane already uses. Not the yellow pill, and not plain text. The word "Unmatched" stays for the screen reader | Michelle, 2026-09-30 |
+| T1-D10 | **Thread header is the name, and the phone when the chat is matched.** No "WhatsApp" subline and no avatar. List and pane avatars show initials (the last two digits when there is no name), not an empty circle | Michelle, 2026-09-30 |
+| T1-D11 | **Name and phone appear once, in the thread header.** The matched client pane does not repeat them. It keeps the initials avatar, pets, last service, visits and notes | Michelle, 2026-09-30 |
+| T1-D12 | **A failed message keeps the red "Not sent · reason" line and Retry.** The bubble has no red border and no red icon | Michelle, 2026-09-30 |
 
 ## 2. States covered
 
@@ -32,7 +37,7 @@ Links are paths on the prototype route. `?c=` picks the seeded chat.
 
 | State | Frame | What it shows |
 | --- | --- | --- |
-| **Unmatched** *(feature)* | `?c=unmatched-saturday` | The number is the title, "Unmatched" on the row and header, the chat reads normally, the pane offers Match and Add only |
+| **Unmatched** *(feature)* | `?c=unmatched-saturday` | The number is the title, an unmatched icon on the row and header, the chat reads normally, the pane offers Match and Add only |
 | **Free-text window closed** *(feature)* | `?c=sara` | Reason, no free typing, template picker, blanks filled from the record |
 | **Window closes while typing** *(feature)* | `?c=maryam` | Closes ~2 min after load. Type first: the text is kept, templates are offered |
 | **Send failed** *(feature)* | `?c=noura` | Reason + Retry on the same bubble; "Next send" in the Design repo bar makes a retry fail again, fail late, or come back as WhatsApp's window-closed |
@@ -71,7 +76,7 @@ enforces; the frame shows the result.
 | Row | Frame |
 | --- | --- |
 | 1 Ctrl/⌘+Enter sends | `/` — type, Ctrl+Enter: Sending → Sent |
-| 2 Open, with a countdown, before typing | `/` — above the field, beside "Client last wrote …" |
+| 2 Open, with a countdown, before typing | `/` — one line above the field: open, time left, and when the client last wrote. Colored only under 2 h |
 | 3 Closed → templates only | `?c=sara` (verified under `IX-A4`, P2) |
 | 4 First reply recorded | No screen — `first_reply_at` (§4.6, **new**) |
 | Edge: window closes while typing | `?c=maryam` (verified under `IX-A4`, P2) |
@@ -86,13 +91,13 @@ enforces; the frame shows the result.
 | 2 Name and booking fill in | `?c=sara` — Booking details, filled in violet |
 | 3 A blank blocks the send, naming it | `?c=maryam` after close — Booking details with no booking |
 | 4 Typing freely is stopped, with why | `?c=sara` |
-| Edge: unmatched, name blank | `?c=unmatched-closed` — any template with the name is blocked, "Match first" |
+| Edge: unmatched, name blank | `?c=unmatched-closed` — any template with a blank is blocked, "Match first". "Thanks, reply here" has no blanks and can go |
 | Edge: approval pending at S0 start | **Superseded** — the Phase 0 exit is held (Mike, 2026-09-23) |
 | Edge: rejected by Meta | No screen — resubmission is the Meta-assets owner's; a failed template send shows as `?c=noura` |
 | Also: `IX-A5` template retry (P8) | Send a template with "Next send: fails", Retry resends the template |
 | Also: `IX-C4` name question as a template (P10) | `?c=unmatched-quiet` → Add → Ask for their name → Send as template |
 
-Template names and wording are placeholders until FND-5b records the approved ones.
+Template names and wording are placeholders until FND-5b records the approved ones. "Thanks, reply here" is the no-blank template Michelle asked to include in that submission (ENG3-33, 2026-09-29).
 
 ### `IX-A5` — failed, and send again
 
@@ -153,7 +158,7 @@ Template names and wording are placeholders until FND-5b records the approved on
 
 | Row | Frame |
 | --- | --- |
-| 1 Name, pet, last service, no spinner | `/` — painted with the messages. Usual stylist **deferred — `CC-1`** |
+| 1 Name, pet, last service, no spinner | `/` — name and phone on the thread header, pet and last service on the pane, painted with the messages. Usual stylist **deferred — `CC-1`** |
 | 2 Last three visits: what, who, when, how much | `/` — AED |
 | 3 Usual staff per service type | **Deferred — `CC-1`** |
 | 4 Visit rhythm | **Deferred — `CC-1`** |
@@ -179,15 +184,15 @@ Names are camelCase of the draft columns in
 | `customer` `{ publicId, firstName, lastName }` or `null` | Row title, avatar, Unmatched marker | `customer_id` → customer module |
 | `lastMessageAt` | Row time, sort | `inbox_conversation.last_message_at` |
 | `lastMessage` `{ direction, bodySnippet, mediaKind, deliveryState, sentByStaffName }` | Preview line, "You:", "Not sent" | Latest `inbox_message` (+ media kind), staff name via `sent_by_staff_id` |
-| `unreadCount` | Unread badge | **New** — see §4.6 |
 
 ### 4.2 Thread read — `GET /inbox/conversations/{id}` + messages (keyset, `after` cursor, polled 5 s)
 
 | Field | Shown on | Source |
 | --- | --- | --- |
-| `lastInboundAt` | "Client last wrote …" | `inbox_conversation.last_inbound_at` |
+| `lastInboundAt` | The one countdown line ("last wrote …") | `inbox_conversation.last_inbound_at` |
 | `windowClosesAt` | Countdown; open vs closed composer | Computed: `last_inbound_at + 24 h`, or the provider rejection time if earlier — needs `window_closed_by_provider_at` (**new**) |
-| `customer.firstName`, `lastName`, `pets[] {name, species, breed}`, `lastService {name, at}` | Pane header, pets, last service — painted with the messages | Customer module, carried on the thread read (contract.md, latency) |
+| `customer.firstName`, `lastName`, `phone` (the conversation's `phoneE164`) | Thread header, once. The pane does not repeat the name or the phone | Customer module, carried on the thread read (contract.md, latency) |
+| `customer.pets[] {name, species, breed}`, `lastService {name, at}` | Pane, under the initials avatar | Customer module, carried on the thread read |
 | `customer.nextBooking {service, startAt}` | Template blanks | Booking module — **new on the thread read** (or served by the template preview, §4.4) |
 | `events[] {publicId, kind, actorName, at, customerName, previousCustomerName}` | Identity lines in the thread | **New table** — §4.6 |
 | Message `publicId` | Stable id before confirm; retry target | `inbox_message.public_id` |
@@ -239,8 +244,9 @@ Retry is the same request with the same key; a template retries as the template.
 | `inbox_conversation.window_closed_by_provider_at timestamptz NULL` | A WhatsApp "outside the window" rejection is final and must close the window for everyone, not just the sender's screen |
 | `inbox_message_media.file_name text NULL` | The file card and full-size title (welcome pack PDF) |
 | `inbox_message.origin` (or a derivation) | Imported history carries no staff name and no delivery mark; the UI must be able to tell it apart honestly |
-| Read state: `inbox_conversation.last_read_at` (shared desk) **or** drop unread | The list's unread badge. No story asks for it — keep (one shared read marker for the desk) or drop is a product call |
 | `inbox_conversation.name_requested_at` | §4.5 — the waiting state survives reload and is visible to the team |
+
+Unread is out of Phase 0 (T1-D8). The list does not need `unreadCount`, `hasUnread`, or `last_read_at`.
 
 ### 4.7 Visits read for `ClientSummary` — customer module
 
@@ -274,7 +280,7 @@ Match, Add (they change the record). Read without reply: `?state=read-only`.
 Display only; data through the customer module's hooks; the inbox passes the thread
 read's client fields as initial data.
 
-1. **Identity** — avatar, full name, phone (LTR). Badges: Archived; "Client at {location}" when their home location is another one. *(Painted with the messages.)*
+1. **Identity** — initials avatar on the pane. Full name and phone (LTR) are on the thread header, once, and are not repeated here (T1-D11). Badges: Archived; "Client at {location}" when their home location is another one. *(Painted with the messages.)*
 2. **Pets** — name, species icon, breed. Hidden when the business has no pets. *(Painted with the messages.)*
 3. **Last service** — service name and day. *(Painted with the messages.)*
 4. **Last visits** — three rows: service; staff · day; amount in AED. Skeleton rows while loading; an inline "Couldn't load visits · Retry" on failure, the rest of the summary stays.
@@ -288,8 +294,8 @@ to `ClientSummary`.
 
 ## 6. Interaction, accessibility, RTL
 
-- **Keyboard.** Ctrl/⌘+Enter sends. List rows, template picker, match results and dialogs are reachable by Tab with visible focus; dialogs trap focus and close on Esc (Radix).
-- **Screen readers.** The thread is `role="log"`. Unread counts and delivery icons have text labels. The countdown is not a live region (a per-minute announcement is noise); the change that matters — closing — replaces the composer with the closed notice.
+- **Keyboard.** Ctrl/⌘+Enter sends. The shortcut is the Send button's tooltip. List rows, template picker, match results and dialogs are reachable by Tab with visible focus; dialogs trap focus and close on Esc (Radix).
+- **Screen readers.** The thread is `role="log"`. The unmatched icon has the word "Unmatched". Delivery icons for sending and sent have text labels. A failed send has no icon; the "Not sent" line is the label. The countdown is not a live region (a per-minute announcement is noise); the change that matters, closing, replaces the composer with the closed row. There is no unread announcement.
 - **Colour is never the only signal.** Failed, blank, unmatched and closed all carry words.
 - **RTL.** Logical properties throughout; the send and back arrows mirror; phone numbers and English template bodies stay LTR inside Arabic. Every string exists in `en` and `ar`. In the prototype only the inbox region mirrors; the app shell around it is production's.
 - **Polling.** Thread 5 s, list 15 s, paused while hidden (decided). A new message scrolls into view; loading older pages keeps the reader's place.
@@ -300,9 +306,7 @@ to `ClientSummary`.
 | Question | Who |
 | --- | --- |
 | Matched number when the client has a different one: Keep (default) or Replace — the prototype builds the proposal | Michelle |
-| May reception type a value into a template blank the record cannot fill? (T1-D5 says no) | Michelle |
 | P13 — `ClientSummary` rather than the existing Overview | Michelle |
-| Unread: keep with a shared desk marker, or drop from Phase 0 | Michelle, Mike |
 | Template preview on the backend (§4.4) or fill on the frontend | Backend owner, FND-2 |
 | New columns and the link table (§4.6) | Backend owner, FND-2 |
 | Where phone normalisation lives | Backend, with the customer-module owner |

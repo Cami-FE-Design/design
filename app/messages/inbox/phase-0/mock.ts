@@ -99,7 +99,6 @@ export type InboxConversation = {
    *  rejected a send as outside the window, which is final. Null until the client
    *  first writes. The composer counts down to this and nothing else. */
   windowClosesAt: string | null
-  unreadCount: number
   /** Oldest first. The screen pages through it newest-first (keyset). */
   messages: InboxMessage[]
   /** Link history, oldest first. Shown in the thread as lines, never lost. */
@@ -301,7 +300,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "layla",
       phoneE164: "+971501234501",
-      unreadCount: 2,
       customer: {
         publicId: "cus-layla",
         firstName: "Layla",
@@ -332,7 +330,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "unmatched-saturday",
       phoneE164: "+971554471209",
-      unreadCount: 1,
       customer: null,
       messages: [
         inbound({
@@ -346,7 +343,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "omar",
       phoneE164: "+971507788120",
-      unreadCount: 1,
       customer: {
         publicId: "cus-omar",
         firstName: "Omar",
@@ -360,7 +356,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "unmatched-fatima",
       phoneE164: "+971528830044",
-      unreadCount: 0,
       customer: null,
       messages: [
         inbound({
@@ -389,7 +384,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "sara",
       phoneE164: "+971509913377",
-      unreadCount: 0,
       customer: {
         publicId: "cus-sara",
         firstName: "Sara",
@@ -409,7 +403,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "noura",
       phoneE164: "+971561200987",
-      unreadCount: 0,
       customer: {
         publicId: "cus-noura",
         firstName: "Noura",
@@ -433,7 +426,6 @@ export function buildConversations(): InboxConversation[] {
       // to see IX-A2's "window closes while I am typing".
       id: "maryam",
       phoneE164: "+971502228814",
-      unreadCount: 0,
       customer: {
         publicId: "cus-maryam",
         firstName: "Maryam",
@@ -457,7 +449,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "unmatched-closed",
       phoneE164: "+971585550132",
-      unreadCount: 0,
       customer: null,
       messages: [
         inbound({ ago: 2 * DAY + 3 * HOUR, body: "Hi, what are your prices for a full groom?" }),
@@ -468,14 +459,12 @@ export function buildConversations(): InboxConversation[] {
       // Add can ask for a name with the window shut (IX-C4 row 4, P10).
       id: "unmatched-quiet",
       phoneE164: "+971567890011",
-      unreadCount: 0,
       customer: null,
       messages: [inbound({ ago: 30 * HOUR, body: "Hi, are you open on Fridays?" })],
     }),
     conversation({
       id: "huda",
       phoneE164: "+971503344556",
-      unreadCount: 0,
       customer: {
         publicId: "cus-huda",
         firstName: "Huda",
@@ -515,6 +504,14 @@ export type InboxTemplate = {
 }
 
 export const INBOX_TEMPLATES: readonly InboxTemplate[] = [
+  {
+    // No blanks, so an unmatched chat can still be answered (Michelle, ENG3-33,
+    // 2026-09-29). Reception never types into a blank; this one has none.
+    code: "thanks_reply",
+    name: "Thanks, reply here",
+    language: "en",
+    body: "Hi, thanks for your message. Reply here and we'll pick up where we left off.",
+  },
   {
     code: "reply_followup",
     name: "Follow-up reply",

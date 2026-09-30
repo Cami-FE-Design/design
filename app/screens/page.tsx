@@ -813,7 +813,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0",
         label: "Live inbox · matched chat",
-        note: "Layla's chat: day grouping, each Cami-sent message signed with the staff name, the client pane with name, pet and last service. Type + Ctrl/⌘+Enter sends: Sending → Sent.",
+        note: "Layla's chat: day grouping, each Cami-sent message signed with the staff name. Name and phone sit once, in the thread header. The client pane has the pet and last service. Unread is out of Phase 0, so rows are not bold and carry no count. Type + Ctrl/⌘+Enter sends: Sending → Sent. The shortcut is on the Send button's tooltip.",
       },
       {
         path: "/messages/inbox/phase-0?c=omar",
@@ -823,12 +823,12 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?c=unmatched-saturday",
         label: "Unmatched number",
-        note: "The number stands in for the name, marked Unmatched in the row and header; the chat reads normally and the client pane offers only Match and Add.",
+        note: "The number stands in for the name, marked with the unmatched icon in the row and header. The chat reads normally and the client pane offers only Match and Add.",
       },
       {
         path: "/messages/inbox/phase-0?c=maryam",
         label: "Window closes while typing",
-        note: "The countdown above the composer turns amber under an hour and closes about 2 minutes after load. Type something first: when it closes, the text is kept (copy or discard), free typing is replaced by the template picker. 'Client writes now' under the Design repo chip reopens it for 24 h with the text still there.",
+        note: "The countdown is one line above the composer. It stays quiet until under 2 hours, then turns amber, and red in the last 10 minutes. It closes about 2 minutes after load. Type something first: when it closes, the text is kept (copy or discard) and the composer becomes one sand row: a lock, the reason, and Choose a template. 'Client writes now' under the Design repo chip reopens it for 24 h with the text still there.",
       },
       {
         path: "/messages/inbox/phase-0?c=sara",
@@ -838,7 +838,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?c=unmatched-closed",
         label: "Window closed · unmatched",
-        note: "Any template with the client's name stays blocked — the name is blank until the chat is matched, and Cami never guesses one. 'Ask for a name' has no blanks and can go.",
+        note: "Any template with a blank stays blocked until the record can fill it. Reception never types into a blank. 'Thanks, reply here' has no blanks and can go on an unmatched chat. 'Ask for a name' also has no blanks.",
       },
       {
         path: "/messages/inbox/phase-0?c=noura",
@@ -868,7 +868,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?state=visits-error",
         label: "Client pane · partial and slow",
-        note: "Name, pet and last service paint with the messages; the last three visits (what, who, when, AED) and team-only notes are a second read. This link fails that read — the name stays, the visits say so with a retry. ?state=visits-slow shows the skeleton rows.",
+        note: "Name and phone are on the thread header. Pet and last service paint with the messages. The last three visits (what, who, when, AED) and team-only notes are a second read. This link fails that read: the name stays, the visits say so with a retry. ?state=visits-slow shows the skeleton rows.",
       },
       {
         path: "/messages/inbox/phase-0?state=read-only",

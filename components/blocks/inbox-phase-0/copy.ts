@@ -10,7 +10,6 @@ const en = {
   inbox: "Inbox",
   searchPlaceholder: "Search chats",
   unmatched: "Unmatched",
-  unreadCount: (n: number) => `${n} unread`,
   noResults: "No chats match your search",
   listEmptyTitle: "No chats yet",
   listEmptyBody: "When a client messages your WhatsApp number, the chat shows here.",
@@ -45,7 +44,6 @@ const en = {
   lastService: "Last service",
   noLastService: "No visits yet",
   pets: "Pets",
-  whatsapp: "WhatsApp",
   selectChat: "Select a chat to read it",
   noChatOpenTitle: "Nothing to read yet",
   noChatOpenBody: "New WhatsApp messages open here.",
@@ -53,14 +51,12 @@ const en = {
   chatList: "Chats",
   messageLog: "Messages",
   // Free-text window (IX-A2, IX-A4)
-  windowOpen: (left: string) => `Free text open · closes in ${left}`,
-  clientLastWrote: (when: string) => `Client last wrote ${when}`,
-  windowClosedTitle: "Free text is closed",
-  windowClosedBody: (when: string) =>
-    `The client last wrote ${when}. WhatsApp only allows an approved template until they write again.`,
-  providerClosedBody:
-    "WhatsApp says the 24-hour window has closed. Only an approved template can go until the client writes again.",
-  typingBlocked: "Free typing is off — choose a template",
+  windowLine: (left: string, when: string | null) =>
+    when
+      ? `Free text open · closes in ${left} · last wrote ${when}`
+      : `Free text open · closes in ${left}`,
+  windowClosedReason: (when: string) => `Free text is closed · last wrote ${when}`,
+  providerClosedReason: "WhatsApp closed the window",
   draftKeptTitle: "Your message wasn't sent",
   draftKeptBody: (when: string) =>
     `Free text closed at ${when}. Your text is kept here — reply with a template, or send it once the client writes again.`,
@@ -186,7 +182,6 @@ const ar: Copy = {
   inbox: "صندوق الوارد",
   searchPlaceholder: "ابحث في المحادثات",
   unmatched: "غير مرتبط",
-  unreadCount: (n: number) => `${n} غير مقروءة`,
   noResults: "لا توجد محادثات تطابق البحث",
   listEmptyTitle: "لا توجد محادثات بعد",
   listEmptyBody: "عندما يراسل عميل رقم واتساب الخاص بك، تظهر المحادثة هنا.",
@@ -221,21 +216,18 @@ const ar: Copy = {
   lastService: "آخر خدمة",
   noLastService: "لا توجد زيارات بعد",
   pets: "الحيوانات الأليفة",
-  whatsapp: "واتساب",
   selectChat: "اختر محادثة لقراءتها",
   noChatOpenTitle: "لا يوجد ما يُقرأ بعد",
   noChatOpenBody: "تُفتح رسائل واتساب الجديدة هنا.",
   paneEmpty: "تظهر تفاصيل العميل هنا عند فتح محادثة.",
   chatList: "المحادثات",
   messageLog: "الرسائل",
-  windowOpen: (left: string) => `الكتابة الحرة متاحة · تُغلق خلال ${left}`,
-  clientLastWrote: (when: string) => `آخر رسالة من العميل ${when}`,
-  windowClosedTitle: "الكتابة الحرة مغلقة",
-  windowClosedBody: (when: string) =>
-    `آخر رسالة من العميل ${when}. يسمح واتساب بقالب معتمد فقط حتى يكتب العميل مرة أخرى.`,
-  providerClosedBody:
-    "أفاد واتساب بأن نافذة الـ 24 ساعة قد أُغلقت. يمكن إرسال قالب معتمد فقط حتى يكتب العميل مرة أخرى.",
-  typingBlocked: "الكتابة الحرة متوقفة — اختر قالبًا",
+  windowLine: (left: string, when: string | null) =>
+    when
+      ? `الكتابة الحرة متاحة · تُغلق خلال ${left} · آخر رسالة ${when}`
+      : `الكتابة الحرة متاحة · تُغلق خلال ${left}`,
+  windowClosedReason: (when: string) => `الكتابة الحرة مغلقة · آخر رسالة ${when}`,
+  providerClosedReason: "أغلق واتساب النافذة",
   draftKeptTitle: "لم تُرسل رسالتك",
   draftKeptBody: (when: string) =>
     `أُغلقت الكتابة الحرة عند ${when}. نصّك محفوظ هنا — رُدّ بقالب، أو أرسله عندما يكتب العميل مجددًا.`,

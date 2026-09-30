@@ -25,6 +25,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 import {
@@ -43,9 +44,8 @@ import { MEDIA_ICON } from "./shared"
 // computes (24 h after the client's last message, or the moment WhatsApp
 // rejected a send as outside it). There is never a second countdown.
 
-/** The countdown is quiet while there is time, and raises its voice near the
- *  end: amber under two hours, red in the last ten minutes. IX-A2 row 2 only
- *  needs it visible before typing — not loud for 22 of the 24 hours. */
+/** One line. Quiet while there is time, colored only once under two hours are
+ *  left: amber then, red in the last ten minutes. */
 const CLOSING_SOON_MS = 2 * 60 * 60_000
 const CLOSING_NOW_MS = 10 * 60_000
 
@@ -342,64 +342,42 @@ function WindowOpenBar({
   lang: Lang
 }) {
   const left = closesAt - now
-  const tone = left < CLOSING_NOW_MS ? "now" : left < CLOSING_SOON_MS ? "soon" : "calm"
+  const closingNow = left < CLOSING_NOW_MS
+  const closingSoon = left < CLOSING_SOON_MS
   return (
-    <div
+    <p
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1 rounded-t-2xl px-4 py-2 text-xs",
-        tone === "now"
-          ? "bg-tomato-2 text-tomato-11"
-          : tone === "soon"
-            ? "bg-cami-yellow-2 text-cami-yellow-11"
-            : "border-b border-border/60 text-muted-foreground",
+        "flex items-center gap-1.5 px-4 pt-2.5 text-xs",
+        closingNow
+          ? "font-medium text-tomato-11"
+          : closingSoon
+            ? "font-medium text-cami-yellow-11"
+            : "text-muted-foreground",
       )}
     >
-      <span className={cn("inline-flex items-center gap-1.5", tone !== "calm" && "font-medium")}>
-        <ClockIcon className="size-3.5" aria-hidden />
-        {/* Not a live region: a minute-by-minute announcement is noise. The
-            change a screen reader must hear is the close, and that swaps the
-            whole composer for the closed notice. */}
-        <span>{copy.windowOpen(formatLeft(left, lang))}</span>
+      <ClockIcon className="size-3.5 shrink-0" aria-hidden />
+      {/* Not a live region: a minute-by-minute announcement is noise. The
+          change a screen reader must hear is the close, and that swaps the
+          composer for the closed row. */}
+      <span className="min-w-0 truncate">
+        {copy.windowLine(
+          formatLeft(left, lang),
+          lastInboundAt ? whenLabel(lastInboundAt, now, lang) : null,
+        )}
       </span>
-      {lastInboundAt ? (
-        <span className="ms-auto text-muted-foreground">
-          {copy.clientLastWrote(whenLabel(lastInboundAt, now, lang))}
-        </span>
-      ) : null}
-    </div>
+    </p>
   )
 }
 
-function ClosedNotice({
-  conversation,
-  now,
-  copy,
-  lang,
-}: {
-  conversation: InboxConversation
-  now: number
-  copy: InboxCopy
-  lang: Lang
-}) {
+function closedReason(conversation: InboxConversation, now: number, copy: InboxCopy, lang: Lang) {
   const closesAt = conversation.windowClosesAt ? Date.parse(conversation.windowClosesAt) : null
   // Closed by WhatsApp before Cami's 24 h ran out: the provider's word is final.
   const byProvider =
     closesAt !== null &&
     conversation.lastInboundAt !== null &&
     closesAt < Date.parse(conversation.lastInboundAt) + 24 * 60 * 60_000 - 1000
-  return (
-    <div className="flex gap-3 rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
-      <LockIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" aria-hidden />
-      <div className="flex flex-col gap-0.5">
-        <p className="font-medium">{copy.windowClosedTitle}</p>
-        <p className="text-muted-foreground">
-          {byProvider || !conversation.lastInboundAt
-            ? copy.providerClosedBody
-            : copy.windowClosedBody(whenLabel(conversation.lastInboundAt, now, lang))}
-        </p>
-      </div>
-    </div>
-  )
+  if (byProvider || !conversation.lastInboundAt) return copy.providerClosedReason
+  return copy.windowClosedReason(whenLabel(conversation.lastInboundAt, now, lang))
 }
 
 function KeptDraft({
@@ -588,19 +566,25 @@ export function Composer({
             >
               <PaperclipIcon className="size-4" aria-hidden />
             </Button>
-            <span className="ms-auto text-[11px] text-muted-foreground">
-              {isMac ? copy.shortcutHintMac : copy.shortcutHint}
-            </span>
-            <Button
-              type="button"
-              radius="full"
-              className="gap-1.5"
-              disabled={(!draft.trim() && attachments.length === 0) || rejected}
-              onClick={send}
-            >
-              <SendIcon className="size-4 rtl:-scale-x-100" aria-hidden />
-              {copy.send}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="ms-auto inline-flex">
+                  <Button
+                    type="button"
+                    radius="full"
+                    className="gap-1.5"
+                    disabled={(!draft.trim() && attachments.length === 0) || rejected}
+                    onClick={send}
+                  >
+                    <SendIcon className="size-4 rtl:-scale-x-100" aria-hidden />
+                    {copy.send}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {isMac ? copy.shortcutHintMac : copy.shortcutHint}
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -611,7 +595,6 @@ export function Composer({
   // closed is kept, never sent and never thrown away (IX-A2 edge case).
   return (
     <div className="flex flex-col gap-2 border-t border-border bg-sand-2 px-4 py-3">
-      <ClosedNotice conversation={conversation} now={now} copy={copy} lang={lang} />
       {draft.trim() ? (
         <KeptDraft
           draft={draft}
@@ -637,21 +620,18 @@ export function Composer({
           }}
         />
       ) : (
-        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2 shadow-sm">
-          <Textarea
-            disabled
-            rows={1}
-            aria-label={copy.composerPlaceholder}
-            placeholder={copy.typingBlocked}
-            className="min-h-9 flex-1 resize-none border-0 bg-transparent px-2 py-2 text-sm shadow-none disabled:cursor-not-allowed"
-          />
+        <div className="flex items-center gap-2.5 rounded-xl bg-sand-3 px-3 py-2 text-sand-11">
+          <LockIcon className="size-4 shrink-0" aria-hidden />
+          <p className="min-w-0 flex-1 truncate text-sm">
+            {closedReason(conversation, now, copy, lang)}
+          </p>
           <TemplatePicker
             conversation={conversation}
             now={now}
             copy={copy}
             onPick={setTemplate}
             trigger={
-              <Button type="button" radius="full" className="shrink-0 gap-1.5">
+              <Button type="button" size="sm" radius="full" className="shrink-0 gap-1.5">
                 <FileTextIcon className="size-4" aria-hidden />
                 {copy.chooseTemplate}
               </Button>

@@ -1,8 +1,7 @@
-import { FileTextIcon, ImageIcon, UserRoundIcon, VideoIcon } from "lucide-react"
+import { FileTextIcon, ImageIcon, UserRoundSearchIcon, VideoIcon } from "lucide-react"
 
 import type { InboxConversation, InboxMessage, MediaKind } from "@/app/messages/inbox/phase-0/mock"
 import { Avatar } from "@/components/ui/avatar"
-import { cn } from "@/lib/utils"
 
 import { formatPhone, type InboxCopy } from "./copy"
 
@@ -29,6 +28,13 @@ export function ConversationTitle({ conversation }: { conversation: InboxConvers
   return name ?? <Phone e164={conversation.phoneE164} />
 }
 
+/** Last two digits, as two initials, for a chat that has no client name yet. */
+function phoneInitials(e164: string): string {
+  const digits = e164.replace(/\D/g, "").slice(-2)
+  if (digits.length < 2) return digits || "?"
+  return `${digits[0]} ${digits[1]}`
+}
+
 export function ConversationAvatar({
   conversation,
   size = "md",
@@ -37,29 +43,21 @@ export function ConversationAvatar({
   size?: "md" | "lg"
 }) {
   const name = customerName(conversation)
-  if (name) {
-    return <Avatar size={size} name={name} hashSeed={conversation.customer!.publicId} />
-  }
-  // No client yet, so no initials: an empty, dashed silhouette — not a phone
-  // glyph, which reads as a call button.
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full border border-dashed border-cami-gray-7 bg-cami-gray-2 text-cami-gray-10",
-        size === "lg" ? "size-12" : "size-9",
-      )}
-      aria-hidden
-    >
-      <UserRoundIcon className={cn("stroke-[1.5]", size === "lg" ? "size-5" : "size-4")} />
-    </span>
+    <Avatar
+      size={size}
+      name={name ?? phoneInitials(conversation.phoneE164)}
+      hashSeed={conversation.customer?.publicId ?? conversation.publicId}
+    />
   )
 }
 
-export function UnmatchedPill({ copy }: { copy: InboxCopy }) {
+/** Unmatched is an icon, the same one the unmatched pane uses. Not a pill. */
+export function UnmatchedMark({ copy }: { copy: InboxCopy }) {
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-cami-yellow-3 px-2 py-0.5 text-[11px] font-medium text-cami-yellow-11">
-      <span className="size-1.5 rounded-full bg-cami-yellow-11" aria-hidden />
-      {copy.unmatched}
+    <span className="inline-flex shrink-0 text-muted-foreground" title={copy.unmatched}>
+      <UserRoundSearchIcon className="size-3.5" aria-hidden />
+      <span className="sr-only">{copy.unmatched}</span>
     </span>
   )
 }

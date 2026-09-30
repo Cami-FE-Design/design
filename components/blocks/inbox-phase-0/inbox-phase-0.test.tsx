@@ -137,6 +137,51 @@ describe("Inbox Phase 0 — media (IX-A6)", () => {
   })
 })
 
+describe("Inbox Phase 0 — templates and failed send", () => {
+  it("does not treat unread: no count, badge, or bold name", () => {
+    const { unmount } = openAt("?c=sara")
+    expect(screen.queryByText(/unread/i)).toBeNull()
+    const omar = screen.getByRole("button", { name: /Omar Khalil/ })
+    const name = omar.querySelector("span.truncate")
+    expect(name?.className).toContain("font-medium")
+    expect(name?.className).not.toContain("font-bold")
+    expect(omar.querySelector(".bg-cami-violet-9")).toBeNull()
+    unmount()
+  })
+
+  it("sends the no-blank template on an unmatched chat, and still blocks a blank", async () => {
+    const user = userEvent.setup()
+    const { unmount } = openAt("?c=unmatched-closed")
+    await user.click(screen.getByRole("button", { name: "Choose a template" }))
+    await user.click(screen.getByRole("button", { name: /Follow-up reply/ }))
+    expect(screen.getByRole("button", { name: "Send template" }).hasAttribute("disabled")).toBe(
+      true,
+    )
+    expect(
+      screen.getByText("Match this chat to a client first. Cami never guesses a name."),
+    ).toBeTruthy()
+    await user.click(screen.getByRole("button", { name: "Change" }))
+    await user.click(screen.getByRole("button", { name: /Thanks, reply here/ }))
+    const send = screen.getByRole("button", { name: "Send template" })
+    expect(send.hasAttribute("disabled")).toBe(false)
+    await user.click(send)
+    expect(
+      within(screen.getByRole("log")).getByText(
+        "Hi, thanks for your message. Reply here and we'll pick up where we left off.",
+      ),
+    ).toBeTruthy()
+    unmount()
+  })
+
+  it("keeps the failed reason and drops the red bubble border", () => {
+    const { unmount } = openAt("?c=noura")
+    expect(screen.getByText(/Not sent · WhatsApp didn't accept it/)).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy()
+    expect(document.querySelector(".ring-tomato-7")).toBeNull()
+    unmount()
+  })
+})
+
 describe("Inbox Phase 0 — access (T1 states)", () => {
   it("read only: the chat reads, nothing can be sent or changed", () => {
     const { unmount } = openAt("?state=read-only&c=unmatched-saturday")

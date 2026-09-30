@@ -52,7 +52,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 import { dayLabel, formatPhone, type InboxCopy, type Lang, whenLabel } from "./copy"
-import { ConversationAvatar, customerName, guessName, type PaneStatus, Phone } from "./shared"
+import { ConversationAvatar, guessName, type PaneStatus, Phone } from "./shared"
 
 // ─── Pane 3 — the client (IX-C6, IX-C3, IX-C4; FND-4 `ClientSummary`) ─────────
 // The pane is a tab host so IX-F7 (S1) can add Calendar without a rebuild. Its
@@ -174,25 +174,21 @@ function ClientSummary({
   return (
     <div className="flex flex-col gap-5 p-4">
       {/* Painted with the messages — no spinner where the name should be. */}
+      {/* Name and phone are on the thread header, once. The pane keeps the
+          initials avatar and any location badges. */}
       <div className="flex items-center gap-3">
         <ConversationAvatar conversation={conversation} size="lg" />
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate font-heading text-lg font-semibold text-foreground">
-            {customerName(conversation)}
+        {directoryClient?.archived || directoryClient?.homeLocation ? (
+          <span className="flex flex-wrap gap-1">
+            {directoryClient.archived ? <Badge tone="gray">{copy.archived}</Badge> : null}
+            {directoryClient.homeLocation ? (
+              <Badge tone="violet">
+                <MapPinIcon className="size-3" aria-hidden />
+                {copy.atLocation(directoryClient.homeLocation)}
+              </Badge>
+            ) : null}
           </span>
-          <Phone e164={conversation.phoneE164} className="text-sm text-muted-foreground" />
-          {directoryClient?.archived || directoryClient?.homeLocation ? (
-            <span className="flex flex-wrap gap-1 pt-0.5">
-              {directoryClient.archived ? <Badge tone="gray">{copy.archived}</Badge> : null}
-              {directoryClient.homeLocation ? (
-                <Badge tone="violet">
-                  <MapPinIcon className="size-3" aria-hidden />
-                  {copy.atLocation(directoryClient.homeLocation)}
-                </Badge>
-              ) : null}
-            </span>
-          ) : null}
-        </div>
+        ) : null}
       </div>
 
       {hasPets && customer.pets.length > 0 ? (

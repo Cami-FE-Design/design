@@ -17,7 +17,7 @@ import {
   customerName,
   type PaneStatus,
   previewOf,
-  UnmatchedPill,
+  UnmatchedMark,
 } from "./shared"
 
 // ─── Pane 1 — the chat list (IX-A1) ───────────────────────────────────────────
@@ -71,30 +71,16 @@ function ConversationRow({
         <ConversationAvatar conversation={conversation} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "truncate text-sm text-foreground",
-                conversation.unreadCount > 0 ? "font-semibold" : "font-medium",
-              )}
-            >
+            <span className="truncate text-sm font-medium text-foreground">
               <ConversationTitle conversation={conversation} />
             </span>
+            {!conversation.customer ? <UnmatchedMark copy={copy} /> : null}
             <span className="flex-1" />
-            <span
-              className={cn(
-                "shrink-0 text-xs",
-                conversation.unreadCount > 0
-                  ? "font-medium text-cami-violet-11"
-                  : "text-muted-foreground",
-              )}
-            >
+            <span className="shrink-0 text-xs text-muted-foreground">
               {listTimeLabel(conversation.lastMessageAt, now, lang)}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {/* Unmatched, the number is the chat's only identity, so it never
-                truncates: the marker sits here and the preview gives way. */}
-            {!conversation.customer ? <UnmatchedPill copy={copy} /> : null}
             <span
               className={cn(
                 "flex min-w-0 flex-1 items-center gap-1 text-xs",
@@ -111,12 +97,6 @@ function ConversationRow({
                 {preview.text}
               </span>
             </span>
-            {conversation.unreadCount > 0 ? (
-              <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-cami-violet-9 px-1.5 text-[11px] font-semibold text-white">
-                <span aria-hidden>{conversation.unreadCount}</span>
-                <span className="sr-only">{copy.unreadCount(conversation.unreadCount)}</span>
-              </span>
-            ) : null}
           </div>
         </div>
       </button>
