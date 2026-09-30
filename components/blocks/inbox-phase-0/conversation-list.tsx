@@ -1,6 +1,12 @@
 "use client"
 
-import { AlertTriangleIcon, MessageCircleIcon, SearchIcon, SearchXIcon } from "lucide-react"
+import {
+  AlertCircleIcon,
+  AlertTriangleIcon,
+  MessageCircleIcon,
+  SearchIcon,
+  SearchXIcon,
+} from "lucide-react"
 import { useMemo, useState } from "react"
 
 import { CURRENT_STAFF, type InboxConversation } from "@/app/messages/inbox/phase-0/mock"
@@ -41,6 +47,7 @@ function ConversationRow({
 }) {
   const last = conversation.messages[conversation.messages.length - 1]!
   const preview = previewOf(last, copy)
+  const lastFailed = last.direction === "outbound" && last.deliveryState === "failed"
   const who =
     last.direction === "outbound"
       ? last.sentByStaffName === CURRENT_STAFF
@@ -73,8 +80,16 @@ function ConversationRow({
               <ConversationTitle conversation={conversation} />
             </span>
             <span className="flex-1" />
-            <span className="shrink-0 text-xs text-muted-foreground">
-              {listTimeLabel(conversation.lastMessageAt, now, lang)}
+            <span className="flex shrink-0 items-center gap-1">
+              {lastFailed ? (
+                <span className="inline-flex text-tomato-11" title={copy.notSent}>
+                  <AlertCircleIcon className="size-3.5" aria-hidden />
+                  <span className="sr-only">{copy.notSent}</span>
+                </span>
+              ) : null}
+              <span className="text-xs text-muted-foreground">
+                {listTimeLabel(conversation.lastMessageAt, now, lang)}
+              </span>
             </span>
           </div>
           <div className="flex items-center gap-2">

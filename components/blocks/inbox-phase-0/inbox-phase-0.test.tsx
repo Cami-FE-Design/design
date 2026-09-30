@@ -211,15 +211,18 @@ describe("Inbox Phase 0 — templates and failed send", () => {
     unmount()
   })
 
-  it("does not mark a failed send in the list, and a file preview has no icon", () => {
+  it("marks a failed row with an icon beside the time, not in the preview", () => {
     const { unmount } = openAt("?c=noura")
     const noura = screen.getByRole("button", { name: /Noura Saeed/ })
-    expect(noura.querySelector("svg.lucide-circle-alert")).toBeNull()
-    expect(noura.textContent).not.toMatch(/Not sent/)
-    expect(noura.textContent).toMatch(/Yes! See you at 6pm/)
+    const icon = noura.querySelector("svg.lucide-circle-alert")
+    expect(icon).toBeTruthy()
+    expect(noura.querySelector("[dir=auto]")?.textContent).toMatch(/Yes! See you at 6pm/)
+    expect(noura.querySelector("[dir=auto]")?.textContent).not.toMatch(/Not sent/)
+    const layla = screen.getByRole("button", { name: /Layla Haddad/ })
+    expect(layla.querySelector("svg.lucide-circle-alert")).toBeNull()
     const pack = screen.getByRole("button", { name: /welcome pack/ })
     expect(pack.querySelector("svg.lucide-file-text")).toBeNull()
-    expect(pack.textContent).toMatch(/Here's our welcome pack/)
+    expect(pack.querySelector("svg.lucide-circle-alert")).toBeNull()
     unmount()
   })
 
