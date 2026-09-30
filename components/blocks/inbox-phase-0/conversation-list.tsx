@@ -63,7 +63,7 @@ function ConversationRow({
         onClick={onSelect}
         aria-current={selected ? "true" : undefined}
         className={cn(
-          "relative flex w-full items-start gap-3 border-b border-border/50 px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cami-violet-8",
+          "relative flex w-full items-start gap-3 px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cami-violet-8",
           // Active uses the combo takeover side list's selected fill
           // (SectionNav). Default stays white. Hover stays the ghost wash.
           selected
@@ -116,7 +116,7 @@ function ListSkeleton() {
   return (
     <div className="flex flex-col" aria-hidden>
       {["a", "b", "c", "d", "e", "f", "g"].map((k, i) => (
-        <div key={k} className="flex items-start gap-3 border-b border-border/50 px-4 py-3">
+        <div key={k} className="flex items-start gap-3 px-4 py-3">
           <Skeleton className="size-9 rounded-full" />
           <div className="flex flex-1 flex-col gap-2 pt-0.5">
             <div className="flex justify-between gap-6">
