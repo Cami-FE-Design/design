@@ -134,7 +134,7 @@ function DeliveryIcon({ message, copy }: { message: InboxMessage; copy: InboxCop
   return <CheckIcon className="size-3" aria-label={copy.sent} />
 }
 
-/** Time, who sent it and the delivery state, tucked into the bubble's corner.
+/** Time, who sent it and the delivery state, on their own line under the text.
  *  The staff name shows once per group — every message in it is theirs. */
 function Meta({
   message,
@@ -222,7 +222,7 @@ function MediaTile({
   if (media.status === "phone_only") {
     // P12: a real state, not an error. Never a broken tile.
     return (
-      <div className="flex w-60 items-center gap-3 rounded-xl border border-dashed border-border bg-muted/40 p-3">
+      <div className="flex w-60 items-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 p-3">
         <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-card text-muted-foreground">
           <SmartphoneIcon className="size-4" aria-hidden />
         </span>
@@ -242,7 +242,7 @@ function MediaTile({
       <button
         type="button"
         onClick={onOpen}
-        className="flex w-64 items-center gap-3 rounded-xl bg-card/70 p-2.5 text-start ring-1 ring-border/60 transition-colors hover:bg-card"
+        className="flex w-64 items-center gap-3 rounded-lg bg-card/70 p-2.5 text-start ring-1 ring-border/60 transition-colors hover:bg-card"
       >
         <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-tomato-3 text-tomato-11">
           <FileTextIcon className="size-5" aria-hidden />
@@ -262,7 +262,7 @@ function MediaTile({
       type="button"
       onClick={onOpen}
       aria-label={`${mediaLabel(media.kind, copy)} · ${copy.openFullSize}`}
-      className="relative block aspect-[4/3] w-60 overflow-hidden rounded-xl"
+      className="relative block aspect-[4/3] w-60 overflow-hidden rounded-lg"
     >
       <MediaSurface media={media} />
       {media.kind === "video" ? (
@@ -421,10 +421,8 @@ function MessageBubble({
     >
       <div
         className={cn(
-          "max-w-[75%] rounded-2xl shadow-sm",
+          "max-w-[75%] rounded-lg shadow-sm",
           isOut ? "bg-cami-sage-3 text-cami-sage-12" : "bg-card text-foreground",
-          // The tail sits on the last bubble of a group.
-          lastInGroup && (isOut ? "rounded-ee-md" : "rounded-es-md"),
           hasMedia ? "p-1" : "px-3 py-1.5",
         )}
       >
@@ -448,18 +446,13 @@ function MessageBubble({
           </div>
         ))}
         {message.body ? (
-          // The meta floats into the last line when it fits, and wraps under it
-          // when it does not — the corner every chat app puts it in.
-          <p
-            dir="auto"
-            className={cn(
-              "flow-root whitespace-pre-wrap text-sm leading-relaxed",
-              hasMedia && "px-2 pt-1 pb-0.5",
-            )}
-          >
-            {message.body}
-            <span className="float-end ms-3 mt-1.5">{meta()}</span>
-          </p>
+          // Name and time sit on the next line, clear of the message.
+          <div className={cn(hasMedia && "px-2 pt-1 pb-0.5")}>
+            <p dir="auto" className="whitespace-pre-wrap text-sm leading-relaxed">
+              {message.body}
+            </p>
+            <div className="mt-1 flex justify-end">{meta()}</div>
+          </div>
         ) : hasMedia &&
           message.media?.every((m) => m.status === "phone_only" || m.kind === "file") ? (
           <span className="flex justify-end px-2 pt-1 pb-0.5">{meta()}</span>
@@ -678,7 +671,7 @@ function ThreadSkeleton() {
       </div>
       <div className="flex flex-1 flex-col justify-end gap-3 bg-sand-2 px-5 py-4">
         {["w-52", "w-64 self-end", "w-40", "w-72 self-end", "w-48"].map((w) => (
-          <Skeleton key={w} className={cn("h-10 rounded-2xl", w)} />
+          <Skeleton key={w} className={cn("h-10 rounded-lg", w)} />
         ))}
       </div>
     </div>
