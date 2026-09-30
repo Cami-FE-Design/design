@@ -138,6 +138,20 @@ describe("Inbox Phase 0 — media (IX-A6)", () => {
 })
 
 describe("Inbox Phase 0 — templates and failed send", () => {
+  it("shows initials on list and client-pane avatars, and none in the thread header", () => {
+    const { unmount } = openAt("")
+    const layla = screen.getByRole("button", { name: /Layla Haddad/ })
+    expect(layla.querySelector("[data-slot=avatar]")?.textContent).toBe("LH")
+    const unmatched = screen.getByRole("button", { name: /\+971 55 447 1209/ })
+    expect(unmatched.querySelector("[data-slot=avatar]")?.textContent).toBe("09")
+    const pane = [...document.querySelectorAll("[data-slot=avatar]")].find(
+      (el) => el.textContent === "LH" && !layla.contains(el),
+    )
+    expect(pane).toBeTruthy()
+    expect(document.querySelector("header [data-slot=avatar]")).toBeNull()
+    unmount()
+  })
+
   it("does not treat unread: no count, badge, or bold name", () => {
     const { unmount } = openAt("?c=sara")
     expect(screen.queryByText(/unread/i)).toBeNull()
