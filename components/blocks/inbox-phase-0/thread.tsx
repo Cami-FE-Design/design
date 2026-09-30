@@ -108,8 +108,10 @@ function IdentityLine({
           : copy.eventCreated(event.customerName, event.actorName)
   const Icon = event.kind === "created" ? UserPlusIcon : LinkIcon
   return (
-    <div className="mt-3 flex justify-center">
-      <span className="inline-flex max-w-[85%] items-center gap-1.5 rounded-full bg-cami-violet-2 px-3 py-1 text-[11px] text-cami-violet-11">
+    // Same plain centered line as DateSeparator in messages-inbox.tsx.
+    // The day chip stays a pill. This line has no fill and no radius.
+    <div className="mt-3 flex items-center justify-center">
+      <span className="inline-flex max-w-[85%] items-center gap-1.5 text-center text-[11px] font-medium text-muted-foreground">
         <Icon className="size-3 shrink-0" aria-hidden />
         <span className="truncate">{text}</span>
         <span aria-hidden>·</span>
