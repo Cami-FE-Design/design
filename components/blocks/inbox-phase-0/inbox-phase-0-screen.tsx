@@ -666,7 +666,11 @@ function InboxPhase0() {
 
 export function InboxPhase0Screen() {
   return (
-    <AppShell header={null} contentClassName="px-0 pb-0">
+    <AppShell
+      header={null}
+      contentClassName="px-0 pb-0"
+      frameClassName="bg-transparent shadow-none"
+    >
       {/* The design-repo bar reads the query string, so it needs a boundary. */}
       <Suspense fallback={null}>
         <InboxPhase0 />
