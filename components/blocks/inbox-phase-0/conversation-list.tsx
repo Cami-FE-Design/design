@@ -152,7 +152,7 @@ export function ConversationList({
   return (
     <aside
       aria-label={copy.chatList}
-      className="flex w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+      className="flex w-72 max-w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
     >
       <div className="flex items-center border-b border-border px-4 py-3">
         <h1 className="flex min-h-8 min-w-0 flex-1 items-center truncate text-base font-semibold text-foreground">

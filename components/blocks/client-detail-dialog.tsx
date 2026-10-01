@@ -544,13 +544,13 @@ export function ClientDetailDialog({
           </div>
         </DialogHeader>
 
-        <div className={cn("flex items-center gap-6", embedded ? "overflow-x-auto px-4" : "px-9")}>
+        <div className={cn("flex items-center", embedded ? "gap-3 px-3" : "gap-6 px-9")}>
           <TabsList variant="underline">
             {visiblePrimaryTabs.map((t) => (
               <TabsTrigger
                 key={t.id}
                 value={t.id}
-                className={cn(!t.mobileVisible && "hidden md:inline-flex")}
+                className={cn(!t.mobileVisible && (embedded ? "hidden" : "hidden md:inline-flex"))}
               >
                 {t.label}
               </TabsTrigger>
@@ -563,7 +563,8 @@ export function ClientDetailDialog({
                   type="button"
                   data-active={activeMobileMoreTab ? "true" : undefined}
                   className={cn(
-                    "relative inline-flex h-10 items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground md:hidden",
+                    "relative inline-flex h-10 items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+                    !embedded && "md:hidden",
                     "after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-foreground after:opacity-0 after:transition-opacity data-active:after:opacity-100",
                     activeMobileMoreTab && "text-foreground",
                   )}

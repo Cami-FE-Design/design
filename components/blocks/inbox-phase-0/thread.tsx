@@ -702,10 +702,12 @@ export function Thread({
   copy: InboxCopy
   lang: Lang
 }) {
+  // T1-D1: list 18rem, client pane 20rem. The thread takes the rest and
+  // stays at least as wide as it is in the 1280 frame.
   return (
     <section
       data-inbox-thread
-      className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+      className="flex min-w-[580px] flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
     >
       {status === "loading" ? (
         <ThreadSkeleton />
