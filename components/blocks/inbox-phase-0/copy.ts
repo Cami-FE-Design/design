@@ -87,7 +87,7 @@ const en = {
   retried: (n: number) => `Retried ${n}×`,
   retryTextClosed: "Free text has closed, so this can't go again as typed. Reply with a template.",
   lessThanMinute: "less than a minute",
-  hoursMinutes: (h: number, m: number) => (h > 0 ? `${h} h ${m} min` : `${m} min`),
+  hoursMinutes: (h: number, m: number) => (h > 0 ? `${h}h ${m}m` : `${m}m`),
   // Media (IX-A6)
   attach: "Attach a photo, video or file",
   removeAttachment: "Remove",
@@ -254,7 +254,7 @@ const ar: Copy = {
   retried: (n: number) => `أُعيدت ${n} مرة`,
   retryTextClosed: "أُغلقت الكتابة الحرة، لذا لا يمكن إرسال هذا النص مجددًا. رُدّ بقالب.",
   lessThanMinute: "أقل من دقيقة",
-  hoursMinutes: (h: number, m: number) => (h > 0 ? `${h} س ${m} د` : `${m} د`),
+  hoursMinutes: (h: number, m: number) => (h > 0 ? `${h}س ${m}د` : `${m}د`),
   attach: "إرفاق صورة أو فيديو أو ملف",
   removeAttachment: "إزالة",
   rejectedType: (name: string) => `لا يقبل واتساب هذا النوع من الملفات (${name})`,
@@ -413,7 +413,7 @@ export function whenLabel(iso: string, now: number, lang: Lang): string {
   return `${lang === "en" && (day === "Today" || day === "Yesterday") ? day.toLowerCase() : day}${joiner}${time}`
 }
 
-/** Time left in the window, e.g. "5 h 12 min". */
+/** Time left in the window, e.g. "5h 12m". */
 export function formatLeft(ms: number, lang: Lang): string {
   const c = COPY[lang]
   if (ms < 60_000) return c.lessThanMinute
