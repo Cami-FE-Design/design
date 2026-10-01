@@ -569,7 +569,6 @@ export function Composer({
 
   // Closed: free typing is not offered (IX-A4 row 4). Anything typed before it
   // closed is kept, never sent and never thrown away (IX-A2 edge case).
-  const hint = isMac ? copy.shortcutHintMac : copy.shortcutHint
   return (
     <div className="flex flex-col gap-2 bg-sand-2 px-4 py-3">
       {draft.trim() ? (
@@ -598,20 +597,22 @@ export function Composer({
         />
       ) : (
         <div className="rounded-2xl border border-border bg-card shadow-sm">
-          <div className="flex gap-3 px-4 pt-4 pb-2">
-            <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-            <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
-              <p className="text-sm font-medium text-foreground">{copy.windowClosedTitle}</p>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {copy.windowClosedBody}
-              </p>
+          <div className="p-3 pb-1">
+            <div className="flex items-start gap-3 rounded-xl bg-sand-3 p-3">
+              <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <p className="text-sm font-semibold text-foreground">{copy.windowClosedTitle}</p>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {copy.windowClosedBody}
+                </p>
+              </div>
               <TemplatePicker
                 conversation={conversation}
                 now={now}
                 copy={copy}
                 onPick={setTemplate}
                 trigger={
-                  <Button type="button" variant="outline" size="sm">
+                  <Button type="button" size="sm" className="shrink-0">
                     {copy.chooseTemplate}
                   </Button>
                 }
@@ -629,10 +630,7 @@ export function Composer({
             >
               <PaperclipIcon className="size-4" aria-hidden />
             </Button>
-            <span className="min-w-0 flex-1 truncate text-center text-sm text-muted-foreground">
-              {hint}
-            </span>
-            <Button type="button" radius="full" className="gap-1.5" disabled>
+            <Button type="button" radius="full" className="ms-auto gap-1.5" disabled>
               <SendIcon className="size-4 rtl:-scale-x-100" aria-hidden />
               {copy.send}
             </Button>
