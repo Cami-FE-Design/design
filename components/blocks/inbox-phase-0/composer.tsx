@@ -99,7 +99,7 @@ function TemplateBody({ segments, copy }: { segments: Segment[]; copy: InboxCopy
   )
 }
 
-function TemplatePicker({
+export function TemplatePicker({
   conversation,
   now,
   copy,
@@ -444,6 +444,8 @@ export function Composer({
   now,
   copy,
   lang,
+  template: templateProp,
+  onTemplateChange,
   onSendText,
   onSendTemplate,
   onMatch,
@@ -452,6 +454,9 @@ export function Composer({
   now: number
   copy: InboxCopy
   lang: Lang
+  /** Set from the failed-send line so "Choose a template" fills this composer. */
+  template?: InboxTemplate | null
+  onTemplateChange?: (template: InboxTemplate | null) => void
   onSendText: (body: string, media: InboxMedia[]) => void
   onSendTemplate: (templateCode: string, body: string) => void
   onMatch: () => void
@@ -460,7 +465,9 @@ export function Composer({
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const fileInput = useRef<HTMLInputElement>(null)
   const rejected = attachments.some((a) => !a.check.ok)
-  const [template, setTemplate] = useState<InboxTemplate | null>(null)
+  const [ownTemplate, setOwnTemplate] = useState<InboxTemplate | null>(null)
+  const template = onTemplateChange ? (templateProp ?? null) : ownTemplate
+  const setTemplate = onTemplateChange ?? setOwnTemplate
   const [isMac, setIsMac] = useState(false)
   useEffect(() => setIsMac(/Mac|iPhone|iPad/.test(navigator.platform)), [])
 
@@ -471,7 +478,7 @@ export function Composer({
   // was closed is no longer the only way. The typed text is untouched.
   useEffect(() => {
     if (open) setTemplate(null)
-  }, [open])
+  }, [open, setTemplate])
 
   function send() {
     const body = draft.trim()

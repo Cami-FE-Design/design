@@ -398,6 +398,14 @@ export function buildConversations(): InboxConversation[] {
           ago: 29 * HOUR + 30 * MINUTE,
           body: "Let me check with the team and get back to you.",
         }),
+        // Sent after the 24h window had closed. Free text cannot be retried.
+        outbound({
+          ago: 2 * HOUR,
+          body: "We can take Milo at 4. Does that work?",
+          state: "failed",
+          failureCode: "WINDOW_CLOSED",
+          retryCount: 2,
+        }),
       ],
     }),
     conversation({
