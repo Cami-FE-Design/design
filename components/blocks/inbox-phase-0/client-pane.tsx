@@ -86,7 +86,7 @@ function ResultRow({
         onClick={onPick}
         className="flex w-full items-start gap-3 rounded-xl px-2 py-2.5 text-start transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
       >
-        <Avatar size="md" name={name} hashSeed={client.publicId} />
+        <Avatar size="md" fallback="character" name={name} hashSeed={client.publicId} />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-1.5">
             <span className="truncate text-sm font-medium text-foreground">{name}</span>
@@ -258,7 +258,7 @@ function MatchConfirm({
         >
           <ArrowLeftIcon className="size-4 rtl:-scale-x-100" aria-hidden />
         </Button>
-        <Avatar size="lg" name={name} hashSeed={client.publicId} />
+        <Avatar size="lg" fallback="character" name={name} hashSeed={client.publicId} />
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate font-heading text-base font-semibold text-foreground">
             {name}

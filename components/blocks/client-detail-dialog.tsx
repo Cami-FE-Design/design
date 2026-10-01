@@ -486,7 +486,7 @@ export function ClientDetailDialog({
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5 overflow-hidden">
             {embedded ? (
-              <h2 className="truncate font-heading text-[22px] leading-7 font-semibold text-foreground">
+              <h2 className="font-heading text-[22px] leading-7 font-semibold text-foreground">
                 {client.name}
               </h2>
             ) : (
@@ -497,15 +497,17 @@ export function ClientDetailDialog({
             {embedded ? metaLine : <DialogDescription asChild>{metaLine}</DialogDescription>}
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              radius="full"
-              onClick={onBookNow}
-              className={embedded ? undefined : "hidden sm:inline-flex"}
-            >
-              Book
-            </Button>
+            {embedded ? null : (
+              <Button
+                type="button"
+                size="sm"
+                radius="full"
+                onClick={onBookNow}
+                className="hidden sm:inline-flex"
+              >
+                Book
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -519,6 +521,9 @@ export function ClientDetailDialog({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {embedded ? (
+                  <DropdownMenuItem onSelect={() => onBookNow?.()}>Book</DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem onSelect={() => openEditClientAt("profile")}>
                   Edit client details
                 </DropdownMenuItem>
