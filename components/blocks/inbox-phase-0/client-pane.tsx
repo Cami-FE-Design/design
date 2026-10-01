@@ -28,30 +28,14 @@ import {
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SearchInput } from "@/components/ui/search-input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
-import { dayLabel, formatPhone, type InboxCopy, type Lang, whenLabel } from "./copy"
+import { dayLabel, type InboxCopy, type Lang, whenLabel } from "./copy"
 import { ConversationAvatar, guessName, type PaneStatus, Phone } from "./shared"
 
 // ─── Pane 3 — the client (IX-C6, IX-C3, IX-C4; FND-4 `ClientSummary`) ─────────
@@ -555,247 +539,18 @@ function MatchConfirm({
   )
 }
 
-// ─── Add client (IX-C4) ───────────────────────────────────────────────────────
+// ─── Add client ───────────────────────────────────────────────────────────────
+// The inbox opens the existing client form on Profile. The number is already
+// known, so the phone is filled. A name is not guessed from the message.
 
-function AddClientDialog({
-  open,
-  onOpenChange,
-  conversation,
-  directory,
-  hasPets,
-  windowOpen,
-  waiting,
-  now,
-  copy,
-  lang,
-  onSave,
-  onAskName,
-  onMatchInstead,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  conversation: InboxConversation
-  directory: DirectoryClient[]
-  hasPets: boolean
-  windowOpen: boolean
-  waiting: Waiting | null
-  now: number
-  copy: InboxCopy
-  lang: Lang
-  onSave: (c: NewClient) => void
-  onAskName: () => void
-  onMatchInstead: () => void
-}) {
-  const guess = useMemo(() => guessName(conversation.messages), [conversation.messages])
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [isGuess, setIsGuess] = useState(false)
-  const [petName, setPetName] = useState("")
-  const [species, setSpecies] = useState<AvatarSpecies>("dog")
-  const [fullOpen, setFullOpen] = useState(false)
-  const existing = clientsOnNumber(directory, conversation.phoneE164)
-
-  // A name in the message fills in, marked as a guess (IX-C4 row 3).
-  useEffect(() => {
-    if (!open) return
-    setFirstName(guess ?? "")
-    setIsGuess(!!guess)
-    setLastName("")
-    setPetName("")
-  }, [open, guess])
-
-  function save() {
-    onSave({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      pet: hasPets && petName.trim() ? { name: petName.trim(), species } : null,
-    })
+function threadPhone(e164: string): { phoneCode: string; phone: string } {
+  if (e164.startsWith("+971") && e164.length === 13) {
+    return {
+      phoneCode: "+971",
+      phone: `${e164.slice(4, 6)} ${e164.slice(6, 9)} ${e164.slice(9)}`,
+    }
   }
-
-  return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent dir={lang === "ar" ? "rtl" : "ltr"} className="gap-4 sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{copy.addTitle}</DialogTitle>
-            <DialogDescription>{copy.addBody}</DialogDescription>
-          </DialogHeader>
-
-          {existing.length > 0 ? (
-            // IX-C4 row 5: never a second client on one number from here.
-            <div className="flex flex-col gap-3 rounded-xl bg-cami-yellow-2 p-3 text-sm">
-              <p className="font-medium text-foreground">
-                {copy.alreadyClientTitle(existing.length)}
-              </p>
-              <p className="text-muted-foreground">{copy.alreadyClientBody}</p>
-              <Button
-                type="button"
-                radius="full"
-                className="gap-1.5 self-start"
-                onClick={onMatchInstead}
-              >
-                <LinkIcon className="size-4" aria-hidden />
-                {copy.matchInstead}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="add-phone">{copy.phone}</Label>
-                <Input
-                  id="add-phone"
-                  value={formatPhone(conversation.phoneE164)}
-                  readOnly
-                  dir="ltr"
-                  // Digits stay LTR; the box still aligns to the form's start.
-                  className={cn("h-10 bg-muted/40", lang === "ar" && "text-right")}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="add-first">{copy.firstName}</Label>
-                <Input
-                  id="add-first"
-                  value={firstName}
-                  autoFocus
-                  onChange={(e) => {
-                    setFirstName(e.target.value)
-                    setIsGuess(false)
-                  }}
-                  className={cn("h-10", isGuess && "border-cami-violet-7 bg-cami-violet-2")}
-                />
-                {isGuess ? (
-                  <span className="flex items-center gap-1 text-xs text-cami-violet-11">
-                    <SparklesIcon className="size-3" aria-hidden />
-                    {copy.guessed}
-                  </span>
-                ) : null}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="add-last">
-                  {copy.lastName}{" "}
-                  <span className="font-normal text-muted-foreground">({copy.optional})</span>
-                </Label>
-                <Input
-                  id="add-last"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="h-10"
-                />
-              </div>
-              {hasPets ? (
-                // IX-C4 edge case: with pets, the form offers a first pet; without, it does not.
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="add-pet">
-                    {copy.firstPet}{" "}
-                    <span className="font-normal text-muted-foreground">({copy.optional})</span>
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="add-pet"
-                      value={petName}
-                      placeholder={copy.petName}
-                      onChange={(e) => setPetName(e.target.value)}
-                      className="h-10 flex-1"
-                    />
-                    <Select
-                      dir={lang === "ar" ? "rtl" : "ltr"}
-                      value={species}
-                      onValueChange={(v) => setSpecies(v as AvatarSpecies)}
-                    >
-                      <SelectTrigger className="h-10 w-28">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(["dog", "cat", "rabbit", "bird", "other"] as const).map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {copy.species[s]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ) : null}
-
-              {!firstName.trim() ? (
-                // IX-C4 row 4: no name and I do not know it — ask once, never invent one.
-                // Once asked, the button is gone: one question, not one per click.
-                waiting && !waiting.repliedAt ? (
-                  <div className="flex items-start gap-2 rounded-xl bg-cami-violet-2 p-3 text-sm">
-                    <HourglassIcon
-                      className="mt-0.5 size-4 shrink-0 text-cami-violet-11"
-                      aria-hidden
-                    />
-                    <p className="text-muted-foreground">
-                      {copy.alreadyAsked(whenLabel(waiting.askedAt, now, lang))}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2 rounded-xl bg-muted/40 p-3 text-sm">
-                    <p className="text-muted-foreground">
-                      {windowOpen ? copy.askNameBody : copy.waitingClosedBody}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      radius="full"
-                      className="self-start"
-                      onClick={onAskName}
-                    >
-                      {copy.askName}
-                    </Button>
-                  </div>
-                )
-              ) : null}
-
-              <button
-                type="button"
-                onClick={() => setFullOpen(true)}
-                className="self-start text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                {copy.fullForm}
-              </button>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              radius="full"
-              onClick={() => onOpenChange(false)}
-            >
-              {copy.cancel}
-            </Button>
-            {existing.length === 0 ? (
-              <Button type="button" radius="full" disabled={!firstName.trim()} onClick={save}>
-                {copy.saveClient}
-              </Button>
-            ) : null}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* IX-C4 edge case: full intake from the same entry — the existing client
-          form, not a copy. Same outcome on save. */}
-      <ClientEditSheet
-        open={fullOpen}
-        onOpenChange={setFullOpen}
-        mode="add"
-        hasPets={hasPets}
-        initial={{
-          firstName,
-          lastName,
-          phoneCode: "+971",
-          phone: conversation.phoneE164.replace(/^\+971/, ""),
-        }}
-        onSave={(v) => {
-          setFullOpen(false)
-          onSave({ firstName: v.firstName, lastName: v.lastName, pet: null })
-        }}
-      />
-    </>
-  )
+  return { phoneCode: "+971", phone: e164 }
 }
 
 // ─── Unmatched ────────────────────────────────────────────────────────────────
@@ -944,7 +699,6 @@ export function ClientPane({
   lang,
   onMatch,
   onCreate,
-  onAskName,
   onSendAskTemplate,
   onStopWaiting,
 }: {
@@ -970,6 +724,10 @@ export function ClientPane({
 }) {
   const [picked, setPicked] = useState<DirectoryClient | null>(null)
   const [addOpen, setAddOpen] = useState(false)
+  const addInitial = useMemo(
+    () => ({ firstName: "", ...threadPhone(conversation?.phoneE164 ?? "") }),
+    [conversation?.phoneE164],
+  )
   const chatId = conversation?.publicId
 
   // A different chat, or leaving the search, forgets the half-made pick.
@@ -1087,28 +845,19 @@ export function ClientPane({
         </TabsContent>
       </Tabs>
       {conversation && !conversation.customer ? (
-        <AddClientDialog
+        <ClientEditSheet
           open={addOpen}
           onOpenChange={setAddOpen}
-          conversation={conversation}
-          directory={directory}
+          mode="add"
+          initialSection="profile"
           hasPets={hasPets}
-          windowOpen={windowOpen}
-          waiting={waiting}
-          now={now}
-          copy={copy}
-          lang={lang}
-          onSave={(c) => {
-            onCreate(c)
-            setAddOpen(false)
-          }}
-          onAskName={() => {
-            onAskName()
-            setAddOpen(false)
-          }}
-          onMatchInstead={() => {
-            setAddOpen(false)
-            onModeChange("match")
+          initial={addInitial}
+          onSave={(v) => {
+            onCreate({
+              firstName: v.firstName.trim(),
+              lastName: v.lastName.trim(),
+              pet: null,
+            })
           }}
         />
       ) : null}

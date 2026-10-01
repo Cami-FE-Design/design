@@ -62,56 +62,45 @@ describe("Inbox Phase 0 — identity (IX-C3, IX-C4)", () => {
     unmount()
   })
 
-  it("adds a client with the name from the message, marked as a guess", async () => {
+  it("opens Profile with the known phone and does not guess a name", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-fatima")
     await user.click(screen.getByRole("button", { name: /Add new client/ }))
     const dialog = screen.getByRole("dialog")
-    expect((within(dialog).getByLabelText("First name") as HTMLInputElement).value).toBe("Fatima")
-    expect(within(dialog).getByText("Guessed from their message — check it")).toBeTruthy()
-    await user.click(within(dialog).getByRole("button", { name: "Save client" }))
-    expect(screen.getByText("Fatima added as a new client by Queenie")).toBeTruthy()
-    // IX-C6 row 5: a clean empty panel once the visits read answers.
-    expect(await screen.findByText("New client")).toBeTruthy()
+    expect(within(dialog).getByRole("heading", { name: "Profile" })).toBeTruthy()
+    expect((within(dialog).getByLabelText(/First name/) as HTMLInputElement).value).toBe("")
+    expect((dialog.querySelector('input[type="tel"]') as HTMLInputElement).value).toBe(
+      "52 883 0044",
+    )
+    expect(within(dialog).queryByText(/Guessed from their message/)).toBeNull()
+    expect(
+      within(dialog)
+        .getAllByRole("button", { name: "Add client" })
+        .every((b) => b.hasAttribute("disabled")),
+    ).toBe(true)
     unmount()
   })
 
-  it("never makes up a name: with none known, it asks once and waits", async () => {
+  it("leaves the first name empty when the thread has no name", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-saturday")
     await user.click(screen.getByRole("button", { name: /Add new client/ }))
     const dialog = screen.getByRole("dialog")
-    expect((within(dialog).getByLabelText("First name") as HTMLInputElement).value).toBe("")
-    expect(
-      within(dialog).getByRole("button", { name: "Save client" }).hasAttribute("disabled"),
-    ).toBe(true)
-    await user.click(within(dialog).getByRole("button", { name: "Ask for their name" }))
-    expect(screen.getByText("Waiting for their name")).toBeTruthy()
-    // Asked once: opening the form again offers no second question.
-    await user.click(screen.getByRole("button", { name: /Add new client/ }))
-    expect(
-      within(screen.getByRole("dialog")).queryByRole("button", { name: "Ask for their name" }),
-    ).toBeNull()
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }))
-    expect(within(screen.getByRole("log")).getByText(/Could you tell us your name/)).toBeTruthy()
-    // The client answers with a name: the pane says so and offers it, as a guess.
-    await user.click(screen.getByRole("button", { name: /Design repo/ }))
-    await user.click(screen.getByRole("button", { name: "Client writes now" }))
-    expect(screen.getByText("They replied")).toBeTruthy()
-    await user.click(screen.getByRole("button", { name: "Add Rana" }))
-    expect(
-      (within(screen.getByRole("dialog")).getByLabelText("First name") as HTMLInputElement).value,
-    ).toBe("Rana")
+    expect((within(dialog).getByLabelText(/First name/) as HTMLInputElement).value).toBe("")
+    expect(within(dialog).queryByText(/Guessed from their message/)).toBeNull()
+    expect((dialog.querySelector('input[type="tel"]') as HTMLInputElement).value).toBe(
+      "55 447 1209",
+    )
     unmount()
   })
 
-  it("won't create a second client on a number that is already one — offers Match", async () => {
+  it("opens Profile even when the number is already on a client", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-closed")
     await user.click(screen.getByRole("button", { name: /Add new client/ }))
     const dialog = screen.getByRole("dialog")
-    expect(within(dialog).getByText("This number is on 2 clients")).toBeTruthy()
-    expect(within(dialog).queryByRole("button", { name: "Save client" })).toBeNull()
+    expect(within(dialog).getByRole("heading", { name: "Profile" })).toBeTruthy()
+    expect(within(dialog).queryByText(/This number is on/)).toBeNull()
     unmount()
   })
 })
