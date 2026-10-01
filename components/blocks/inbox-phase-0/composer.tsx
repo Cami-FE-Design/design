@@ -487,7 +487,7 @@ export function Composer({
   if (open) {
     return (
       <div className="bg-sand-2 px-4 py-3">
-        <div className="rounded-2xl border border-border bg-card shadow-sm transition-shadow focus-within:border-cami-violet-7 focus-within:shadow-md">
+        <div className="rounded-2xl border border-border bg-card shadow-sm transition-shadow focus-within:border-ring focus-within:shadow-md">
           <WindowOpenBar closesAt={closesAt} now={now} copy={copy} lang={lang} />
           <Textarea
             value={draft}
