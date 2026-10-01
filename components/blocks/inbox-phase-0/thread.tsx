@@ -12,6 +12,7 @@ import {
   LockIcon,
   MessageCircleIcon,
   PlayIcon,
+  RotateCwIcon,
   SmartphoneIcon,
   UserPlusIcon,
 } from "lucide-react"
@@ -338,8 +339,7 @@ function MediaViewer({
 }
 
 /** IX-A5: the failure sits inside the bubble, on the line under the text.
- *  No retry and no template button. A closed window still offers templates
- *  from the composer. */
+ *  Retry is a quiet control under the bubble. Templates stay in the composer. */
 function FailedLine({
   message,
   copy,
@@ -369,6 +369,8 @@ function MessageBubble({
   lastInGroup,
   copy,
   lang,
+  onRetry,
+  canReply,
   onOpenMedia,
 }: {
   message: InboxMessage
@@ -376,6 +378,8 @@ function MessageBubble({
   lastInGroup: boolean
   copy: InboxCopy
   lang: Lang
+  onRetry: (messageId: string) => void
+  canReply: boolean
   onOpenMedia: (media: InboxMedia) => void
 }) {
   const isOut = message.direction === "outbound"
@@ -451,6 +455,16 @@ function MessageBubble({
           </div>
         ) : null}
       </div>
+      {failed && canReply ? (
+        <button
+          type="button"
+          onClick={() => onRetry(message.publicId)}
+          className="inline-flex items-center gap-1 text-xs text-tomato-11 hover:underline"
+        >
+          <RotateCwIcon className="size-3.5" aria-hidden />
+          {copy.retrySend}
+        </button>
+      ) : null}
     </div>
   )
 }
@@ -474,11 +488,15 @@ function MessageList({
   now,
   copy,
   lang,
+  onRetry,
+  canReply,
 }: {
   conversation: InboxConversation
   now: number
   copy: InboxCopy
   lang: Lang
+  onRetry: (messageId: string) => void
+  canReply: boolean
 }) {
   const { messages } = conversation
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -613,6 +631,8 @@ function MessageList({
                 lastInGroup={!next || !continues(m, next)}
                 copy={copy}
                 lang={lang}
+                onRetry={onRetry}
+                canReply={canReply}
                 onOpenMedia={(media) => setViewing({ media, message: m })}
               />
             </Fragment>
@@ -660,6 +680,7 @@ export function Thread({
   now,
   onSendText,
   onSendTemplate,
+  onRetrySend,
   onMatch,
   onRetry,
   canReply,
@@ -672,6 +693,7 @@ export function Thread({
   now: number
   onSendText: (body: string, media: InboxMedia[]) => void
   onSendTemplate: (templateCode: string, body: string) => void
+  onRetrySend: (messageId: string) => void
   onMatch: () => void
   onRetry: () => void
   /** inbox:reply. Without it the chat reads normally and nothing can be sent. */
@@ -713,6 +735,8 @@ export function Thread({
             now={now}
             copy={copy}
             lang={lang}
+            onRetry={onRetrySend}
+            canReply={canReply}
           />
           {canReply ? (
             <Composer

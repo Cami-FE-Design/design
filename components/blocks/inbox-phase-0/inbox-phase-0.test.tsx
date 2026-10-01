@@ -241,7 +241,8 @@ describe("Inbox Phase 0 — templates and failed send", () => {
   it("keeps the failed reason and drops the red bubble border", () => {
     const { unmount } = openAt("?c=noura")
     expect(screen.getByText(/Not sent · WhatsApp didn't accept it/)).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull()
+    const retry = screen.getByRole("button", { name: "Retry" })
+    expect(retry.className).not.toContain("rounded-full")
     expect(screen.queryByRole("button", { name: "Choose a template" })).toBeNull()
     expect(screen.queryByText(/Retried/)).toBeNull()
     expect(screen.queryByText(/can't go again as typed/)).toBeNull()
@@ -251,6 +252,7 @@ describe("Inbox Phase 0 — templates and failed send", () => {
       ?.closest(".rounded-lg")
     expect(bubble?.className).toContain("bg-tomato-3")
     expect(bubble?.className).not.toContain("bg-cami-sage-3")
+    expect(bubble?.contains(retry)).toBe(false)
     expect(document.querySelector(".ring-tomato-7")).toBeNull()
     unmount()
   })
