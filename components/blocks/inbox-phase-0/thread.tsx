@@ -399,7 +399,12 @@ function MessageBubble({
       <div
         className={cn(
           "max-w-[75%] rounded-lg shadow-sm",
-          isOut ? "bg-cami-sage-3 text-cami-sage-12" : "bg-card text-foreground",
+          // Failed uses tomato-3, the same step as the outgoing sage fill.
+          failed
+            ? "bg-tomato-3 text-tomato-12"
+            : isOut
+              ? "bg-cami-sage-3 text-cami-sage-12"
+              : "bg-card text-foreground",
           hasMedia ? "p-1" : "px-3 py-1.5",
         )}
       >

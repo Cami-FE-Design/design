@@ -245,6 +245,12 @@ describe("Inbox Phase 0 — templates and failed send", () => {
     expect(screen.queryByRole("button", { name: "Choose a template" })).toBeNull()
     expect(screen.queryByText(/Retried/)).toBeNull()
     expect(screen.queryByText(/can't go again as typed/)).toBeNull()
+    const bubble = screen
+      .getAllByText("Yes! See you at 6pm 😊")
+      .find((el) => el.tagName === "P")
+      ?.closest(".rounded-lg")
+    expect(bubble?.className).toContain("bg-tomato-3")
+    expect(bubble?.className).not.toContain("bg-cami-sage-3")
     expect(document.querySelector(".ring-tomato-7")).toBeNull()
     unmount()
   })
