@@ -22,6 +22,7 @@ import { DealDetailView } from "@/components/blocks/deals/deal-detail-view"
 import { DealWizardDialog } from "@/components/blocks/deals/deal-wizard-dialog"
 import { DealsTable } from "@/components/blocks/deals/deals-table"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { CardListSkeleton, LoadError, type SurfaceStatus } from "@/components/blocks/surface-states"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -81,7 +82,14 @@ function sortDeals(deals: Deal[], sort: SortKey): Deal[] {
   }
 }
 
-export function DealsPage() {
+export function DealsPage({
+  status = "ready",
+  onRetry,
+}: {
+  /** Loading and error are reached from /playground; the route is always ready. */
+  status?: SurfaceStatus
+  onRetry?: () => void
+} = {}) {
   const deals = useDeals()
   const { granted, scopedLocations, locationName } = useLocations()
   const inScope = scopedLocations.length > 0 ? scopedLocations : granted
@@ -153,7 +161,11 @@ export function DealsPage() {
           />
         ) : null}
 
-        {filtered.length === 0 ? (
+        {status === "loading" ? (
+          <CardListSkeleton label="Loading deals" />
+        ) : status === "error" ? (
+          <LoadError what="deals" onRetry={onRetry} />
+        ) : filtered.length === 0 ? (
           <section className="flex w-full flex-col rounded-2xl border border-border/60 p-5">
             <EmptyState
               icon={CirclePercentIcon}

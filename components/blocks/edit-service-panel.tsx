@@ -5,6 +5,7 @@ import {
   ArrowLeftIcon,
   ArrowUpIcon,
   ChevronRightIcon,
+  CircleAlertIcon,
   HeartIcon,
   MoreHorizontalIcon,
   PlusIcon,
@@ -12,7 +13,13 @@ import {
 } from "lucide-react"
 import { useId, useState } from "react"
 
-import { formatDuration, MOCK_STAFF, type MockServiceCatalogItem } from "@/app/appointments/mock"
+import {
+  formatDuration,
+  MOCK_STAFF,
+  MOCK_STAFF_SHIFTS,
+  type MockServiceCatalogItem,
+  type MockStaff,
+} from "@/app/appointments/mock"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -35,6 +42,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { slotRefusal } from "@/lib/locations/cross-branch-availability"
+import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
 // Mirrors SelectedService from new-appointment-sheet.tsx but redeclared here
@@ -58,6 +67,24 @@ type EditServicePanelProps = {
   onDelete: () => void
   /** Opens the "Select a service" picker; the parent applies the chosen catalog back. */
   onChangeService: () => void
+  /**
+   * The branch the appointment books at, and its ISO date. With both, a team
+   * member who cannot be there is refused rather than warned (DW2.3, DW2.4).
+   * Unset — a single-branch business, or no branch picked yet — and the panel
+   * reads exactly as it did.
+   */
+  locationId?: string | null
+  date?: string
+}
+
+const WEEK_DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const
+
+/** "14:00" → "2pm", "14:30" → "2:30pm" — how reception would say it. */
+function spokenTime(hhmm: string): string {
+  const [h = 0, m = 0] = hhmm.split(":").map(Number)
+  const display = ((h + 11) % 12) + 1
+  const period = h >= 12 ? "pm" : "am"
+  return m === 0 ? `${display}${period}` : `${display}:${String(m).padStart(2, "0")}${period}`
 }
 
 // Match Input's h-12 / rounded-2xl so Select triggers don't look shorter.
@@ -145,7 +172,10 @@ export function EditServicePanel({
   onApply,
   onDelete,
   onChangeService,
+  locationId,
+  date,
 }: EditServicePanelProps) {
+  const { isMultiLocation, locationName } = useLocations()
   const [staffName, setStaffName] = useState(service.staffName ?? "")
   const [preferred, setPreferred] = useState(false)
   const [changeServiceConfirmOpen, setChangeServiceConfirmOpen] = useState(false)
@@ -190,8 +220,57 @@ export function EditServicePanel({
   function providesService(staffName: string): boolean {
     return PROVIDERS_BY_DEFAULT.includes(staffName)
   }
-  const suitableStaff = MOCK_STAFF.filter((s) => providesService(s.name))
-  const notSuitableStaff = MOCK_STAFF.filter((s) => !providesService(s.name))
+  const totalDuration = duration + extraTimes.reduce((sum, segment) => sum + segment.durationMin, 0)
+
+  // Two refusals, kept apart (SCR-10). Not working at this branch at all is a
+  // gap in the roster; working at another branch over this slot is a clash,
+  // and the one DW2.4 blocks. Both are refusals rather than the amber warnings
+  // below, because overlap is only allowed within one branch. The other
+  // branch and its hours are named here because this is reception's screen —
+  // the client's flow drops the slot and says nothing about where (BG-06).
+  const weekDay =
+    isMultiLocation && locationId && date ? WEEK_DAYS[new Date(`${date}T00:00:00`).getDay()] : null
+  function branchRefusal(member: MockStaff): { short: string; full: string } | null {
+    if (!locationId || !weekDay) return null
+    const here = locationName(locationId)
+    if (!member.locationIds.includes(locationId)) {
+      return {
+        short: `Doesn’t work at ${here}`,
+        full: `${member.name} doesn’t work at ${here}. Pick someone who does.`,
+      }
+    }
+    const refusal = slotRefusal(MOCK_STAFF_SHIFTS, member.id, locationId, weekDay, {
+      start: startTime,
+      durationMin: totalDuration,
+    })
+    if (refusal?.reason !== "other-branch") return null
+    const where = `${locationName(refusal.locationId)} ${spokenTime(refusal.start)}–${spokenTime(refusal.end)}`
+    return {
+      short: `At ${where}`,
+      full: `${member.name} is at ${where}. Pick another time or team member.`,
+    }
+  }
+  // Somebody who does not work at this branch is not offered here at all, so
+  // the list is this branch's people — which also keeps another business's
+  // staff off it (R18). Only the clash is listed with its reason: they are
+  // this branch's, and reception needs to know where they are instead.
+  const offeredStaff =
+    weekDay && locationId
+      ? MOCK_STAFF.filter((s) => s.locationIds.includes(locationId))
+      : MOCK_STAFF
+  const busyElsewhere = offeredStaff.flatMap((s) => {
+    const refusal = branchRefusal(s)
+    return refusal ? [{ member: s, refusal }] : []
+  })
+  const busyIds = new Set(busyElsewhere.map((r) => r.member.id))
+  // Still said for somebody already on the line — a seeded service, or a
+  // branch changed after they were picked.
+  const staffRefusal = staffMember ? branchRefusal(staffMember) : null
+
+  const suitableStaff = offeredStaff.filter((s) => !busyIds.has(s.id) && providesService(s.name))
+  const notSuitableStaff = offeredStaff.filter(
+    (s) => !busyIds.has(s.id) && !providesService(s.name),
+  )
   const staffProvidesService = staffMember ? providesService(staffMember.name) : true
   const staffDoubleBooked = staffMember ? DOUBLE_BOOKED_STAFF.has(staffMember.name) : false
   const shift = staffMember ? STAFF_SHIFTS[staffMember.name] : null
@@ -208,7 +287,6 @@ export function EditServicePanel({
   }
   const teamWarning =
     staffMember && teamIssues.length > 0 ? `${staffMember.name} ${teamIssues.join(" and ")}` : null
-  const hasTeamWarning = teamWarning !== null
   const startWarning = staffMember
     ? !staffScheduled
       ? `${staffMember.name} isn't scheduled to work today`
@@ -217,7 +295,6 @@ export function EditServicePanel({
         : null
     : null
   const hasStartWarning = startWarning !== null
-  const totalDuration = duration + extraTimes.reduce((sum, segment) => sum + segment.durationMin, 0)
 
   function handleApply() {
     const priceMinor = Math.round(Number(price) * 100) || catalog.priceMinor
@@ -287,12 +364,6 @@ export function EditServicePanel({
                     "Any team member"
                   )}
                 </SelectValue>
-                {hasTeamWarning ? (
-                  <span
-                    aria-hidden
-                    className="ml-1 inline-block size-2 rounded-full bg-cami-yellow-9"
-                  />
-                ) : null}
               </SelectTrigger>
               <SelectContent>
                 {suitableStaff.length > 0 ? (
@@ -318,6 +389,27 @@ export function EditServicePanel({
                           <span className="text-xs text-muted-foreground">
                             Doesn&rsquo;t provide this service
                           </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                ) : null}
+                {busyElsewhere.length > 0 ? (
+                  <SelectGroup>
+                    <SelectLabel className="text-muted-foreground">
+                      Busy at another location
+                    </SelectLabel>
+                    {busyElsewhere.map(({ member, refusal }) => (
+                      <SelectItem
+                        key={member.id}
+                        value={member.name}
+                        disabled
+                        className="items-center gap-2.5"
+                      >
+                        <Avatar name={member.name} fallback="initials" size="sm" shape="circle" />
+                        <div className="flex flex-1 flex-col leading-tight">
+                          <span className="text-sm font-medium">{member.name}</span>
+                          <span className="text-xs text-muted-foreground">{refusal.short}</span>
                         </div>
                       </SelectItem>
                     ))}
@@ -351,7 +443,12 @@ export function EditServicePanel({
               </TooltipContent>
             </Tooltip>
           </div>
-          {teamWarning ? (
+          {staffRefusal ? (
+            <p role="alert" className="flex items-start gap-1.5 text-xs text-destructive">
+              <CircleAlertIcon className="mt-px size-3.5 shrink-0" aria-hidden />
+              <span>{staffRefusal.full}</span>
+            </p>
+          ) : teamWarning ? (
             <p className="flex items-start gap-1.5 text-xs text-cami-yellow-11">
               <TriangleAlertIcon className="mt-px size-3.5 shrink-0" aria-hidden />
               <span>{teamWarning}</span>
@@ -399,12 +496,6 @@ export function EditServicePanel({
               <Select value={startTime} onValueChange={setStartTime}>
                 <SelectTrigger className={cn(triggerOverride, "w-full")}>
                   <SelectValue />
-                  {hasStartWarning ? (
-                    <span
-                      aria-hidden
-                      className="ml-1 inline-block size-2 rounded-full bg-cami-yellow-9"
-                    />
-                  ) : null}
                 </SelectTrigger>
                 <SelectContent>
                   {TIME_OPTIONS.map((t) => (
@@ -527,12 +618,6 @@ export function EditServicePanel({
                 <Select value={startTime} onValueChange={setStartTime}>
                   <SelectTrigger className={cn(triggerOverride, "w-full")}>
                     <SelectValue />
-                    {hasStartWarning ? (
-                      <span
-                        aria-hidden
-                        className="ml-1 inline-block size-2 rounded-full bg-cami-yellow-9"
-                      />
-                    ) : null}
                   </SelectTrigger>
                   <SelectContent>
                     {TIME_OPTIONS.map((t) => (
@@ -616,7 +701,13 @@ export function EditServicePanel({
               <DropdownMenuItem onSelect={onDelete}>Delete</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button type="button" radius="full" onClick={handleApply} className="flex-1">
+          <Button
+            type="button"
+            radius="full"
+            onClick={handleApply}
+            disabled={staffRefusal !== null}
+            className="flex-1"
+          >
             Update
           </Button>
         </div>

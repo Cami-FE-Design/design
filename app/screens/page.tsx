@@ -1170,6 +1170,16 @@ const SECTIONS: Section[] = [
         note: "R01 + R19, three seeded weeks side by side. JVC closes Sunday, Jumeirah trades seven days, Al Quoz shuts 1pm–4pm — the split day is why a day holds shifts rather than one open/close. Edit the hours in settings and the branch page follows.",
       },
       {
+        path: "/shell-demo?settings=business-details",
+        label: "Business time zone · SCR-01, R19",
+        note: "R19's first half — the default every branch without a zone of its own follows. Business details → Edit → Time zone. Change it and the inheriting branches' Hours tabs follow; Riyadh keeps its own, and the field counts how many will not move. A branch added on the business's zone is stored as inheriting, not as a copy of today's value.",
+      },
+      {
+        path: "/playground#multi-location-loading-and-error",
+        label: "Loading and error · PRD-169 Done-means (playground)",
+        note: "Locations, Deals, WhatsApp numbers, Stock and Team access in the two states a route never reaches on local data — one toggle drives all five, Try again puts them back. Error never shows a partial list (G7): stock drops its total. Team access will not Confirm and never says 'No location granted' before the grant has loaded (R24).",
+      },
+      {
         path: "/playground#multi-location-per-branch-availability",
         label: "Per-branch availability · SCR-08 (playground)",
         note: "R15 — day chips and slots derive from the branch's own hours, so a closed day reads Closed rather than Fully booked and Al Quoz's 1–4pm gap is absent rather than filtered. Staff filter by the branches they work at. Friday differs at all three.",
@@ -1348,6 +1358,11 @@ const SECTIONS: Section[] = [
         path: "/appointments",
         label: "Booking names a branch · G1 (route)",
         note: "New appointment → Location sits first, because the write resolves to it and the service list is read against it. Nothing renders for a single-branch business (DW1.2).",
+      },
+      {
+        path: "/appointments",
+        label: "Somebody working at another branch · SCR-10 (route)",
+        note: "Topbar on Shampooch JVC → New appointment → hover a service → Edit → Team member. Only JVC's people are offered (DW2.3); set the start between 2pm and 6pm and Lena Petrov moves to “Busy at another location” with where and until when. Picked anyway, the panel refuses and Update stays off (DW2.4 blocks, never warns). The client's flow drops the same slot and names nothing (BG-06).",
       },
       {
         path: "/playground#multi-location-client-visits-at-another-branch",

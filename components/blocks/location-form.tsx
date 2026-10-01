@@ -42,6 +42,7 @@ import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { SignedInAs } from "@/components/blocks/signed-in-as"
+import { CardListSkeleton, LoadError, type SurfaceStatus } from "@/components/blocks/surface-states"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -77,7 +78,6 @@ import {
 import { type NewLocationInput, slugify, useLocations } from "@/lib/locations/store"
 import { formatReceiptNumber } from "@/lib/locations/tax-identity"
 import {
-  BUSINESS_TIMEZONE,
   normaliseOverride,
   resolveTimezone,
   TIMEZONE_OPTIONS,
@@ -181,7 +181,14 @@ function formatInvoicingAddress(inv: Invoicing): string | null {
  * building that inheritance, which is SCR-12's own slice.
  */
 
-export function LocationForm() {
+export function LocationForm({
+  status = "ready",
+  onRetry,
+}: {
+  /** Loading and error are reached from /playground; the route is always ready. */
+  status?: SurfaceStatus
+  onRetry?: () => void
+} = {}) {
   // The estate, not the seed: suspending a branch here has to be the same
   // branch the topbar switcher and the terminals panel are looking at.
   // The granted set, not the estate (R18). An owner's grant is "all", so this
@@ -252,7 +259,11 @@ export function LocationForm() {
         {/* Said out loud (R24). An empty list reads as a business with no
             branches, which is a different fact from a person holding none —
             and the second one has somebody to ask about it. */}
-        {locations.length === 0 ? (
+        {status === "loading" ? (
+          <CardListSkeleton label="Loading locations" />
+        ) : status === "error" ? (
+          <LoadError what="locations" onRetry={onRetry} />
+        ) : locations.length === 0 ? (
           <p className="rounded-xl bg-muted/50 p-3 text-sm leading-5 text-muted-foreground">
             You have not been given any locations. Ask the account owner for access.
           </p>
@@ -298,9 +309,9 @@ export function AddLocationsTakeover({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { addLocations, takenSlugs } = useLocations()
+  const { addLocations, takenSlugs, businessTimezone } = useLocations()
   const [rows, setRows] = useState<NewLocationInput[]>([
-    { name: "", city: "Dubai", timezone: "Asia/Dubai" },
+    { name: "", city: "Dubai", timezone: businessTimezone },
   ])
   const [errors, setErrors] = useState<Record<number, string>>({})
 
@@ -356,7 +367,7 @@ export function AddLocationsTakeover({
     setErrors(found)
     if (Object.keys(found).length > 0) return
     addLocations(rows)
-    setRows([{ name: "", city: "Dubai", timezone: "Asia/Dubai" }])
+    setRows([{ name: "", city: "Dubai", timezone: businessTimezone }])
     setErrors({})
     onOpenChange(false)
   }
@@ -483,7 +494,7 @@ export function AddLocationsTakeover({
             radius="full"
             className="gap-1.5"
             onClick={() =>
-              setRows((prev) => [...prev, { name: "", city: "Dubai", timezone: "Asia/Dubai" }])
+              setRows((prev) => [...prev, { name: "", city: "Dubai", timezone: businessTimezone }])
             }
           >
             <CirclePlusIcon className="size-4" />
@@ -921,6 +932,7 @@ function InvoicingDetailsCard({ location }: { location: Location }) {
  * prints both — a branch that shuts over lunch is a real week, not a bad row.
  */
 function HoursTab({ location }: { location: Location }) {
+  const { businessTimezone } = useLocations()
   const [editing, setEditing] = useState(false)
   return (
     <>
@@ -934,8 +946,8 @@ function HoursTab({ location }: { location: Location }) {
               <span className="text-sm leading-5 text-muted-foreground">Hours</span>
               <p className="text-sm leading-5 text-foreground">
                 When this location accepts bookings. Time zone{" "}
-                {timezoneLabel(resolveTimezone(BUSINESS_TIMEZONE, location.timezone).value)}
-                {resolveTimezone(BUSINESS_TIMEZONE, location.timezone).source === "business"
+                {timezoneLabel(resolveTimezone(businessTimezone, location.timezone).value)}
+                {resolveTimezone(businessTimezone, location.timezone).source === "business"
                   ? ", inherited from the business"
                   : ", set for this location"}
                 .
@@ -2188,7 +2200,7 @@ function HoursEditDialog({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const { setHours: saveHours } = useLocations()
+  const { setHours: saveHours, businessTimezone } = useLocations()
 
   // Opens on what this branch actually keeps. Re-seeded on `open` so a
   // cancelled edit is discarded rather than lingering into the next one, and
@@ -2366,7 +2378,7 @@ function HoursEditDialog({
           <Select
             value={timezone ?? INHERIT}
             onValueChange={(v) =>
-              setTimezone(v === INHERIT ? undefined : normaliseOverride(BUSINESS_TIMEZONE, v))
+              setTimezone(v === INHERIT ? undefined : normaliseOverride(businessTimezone, v))
             }
           >
             <SelectTrigger className={triggerOverride}>
@@ -2374,9 +2386,9 @@ function HoursEditDialog({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={INHERIT}>
-                Same as the business · {timezoneLabel(BUSINESS_TIMEZONE)}
+                Same as the business · {timezoneLabel(businessTimezone)}
               </SelectItem>
-              {TIMEZONE_OPTIONS.filter((tz) => tz.id !== BUSINESS_TIMEZONE).map((tz) => (
+              {TIMEZONE_OPTIONS.filter((tz) => tz.id !== businessTimezone).map((tz) => (
                 <SelectItem key={tz.id} value={tz.id}>
                   {tz.label}
                 </SelectItem>
@@ -2387,7 +2399,7 @@ function HoursEditDialog({
         <p className="text-muted-foreground text-xs leading-5">
           {timezone === undefined
             ? "Inherited. Change the business time zone and this location follows."
-            : `This location keeps its own time zone. The business is ${timezoneLabel(BUSINESS_TIMEZONE)}.`}{" "}
+            : `This location keeps its own time zone. The business is ${timezoneLabel(businessTimezone)}.`}{" "}
           Bookings, rotas and takings are bucketed by the day this location experiences.
         </p>
       </section>

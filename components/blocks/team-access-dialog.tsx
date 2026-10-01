@@ -31,6 +31,7 @@
 import { useEffect, useState } from "react"
 
 import { LocationMultiSelect } from "@/components/blocks/location-multi-select"
+import { LoadError, type SurfaceStatus } from "@/components/blocks/surface-states"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -41,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Skeleton } from "@/components/ui/skeleton"
 import { type LocationGrants, useLocations } from "@/lib/locations/store"
 import type { TeamMember } from "@/lib/team/mock"
 import { holdsAllLocations, MERCHANT_ROLES, roleById, VENUE_CAPABILITIES } from "@/lib/team/roles"
@@ -50,7 +52,18 @@ export function TeamAccessDialog({
   onOpenChange,
   member,
   onSave,
+  status = "ready",
+  onRetry,
 }: {
+  /**
+   * Whether this member's locations have loaded. Loading and error are reached
+   * from /playground. Neither says "No location granted" — that is R24's fact
+   * about a real empty grant, and claiming it before the grant has arrived
+   * is a false statement about somebody's access. Confirm stays off too:
+   * saving a grant that was never read would overwrite it with nothing.
+   */
+  status?: SurfaceStatus
+  onRetry?: () => void
   open: boolean
   onOpenChange: (open: boolean) => void
   member: TeamMember | null
@@ -148,7 +161,13 @@ export function TeamAccessDialog({
 
           <div className="flex flex-col gap-2">
             <Label>Works at</Label>
-            {isOwner ? (
+            {status === "loading" ? (
+              <div role="status" aria-label="Loading locations">
+                <Skeleton className="h-12 w-full rounded-2xl" />
+              </div>
+            ) : status === "error" ? (
+              <LoadError what="this member’s locations" onRetry={onRetry} />
+            ) : isOwner ? (
               <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
                 An owner holds every location, including any added later. Change the role to grant a
                 named set instead.
@@ -164,12 +183,14 @@ export function TeamAccessDialog({
                 it unfillable — while the answer stays two or three branches
                 either way. Same shape as the topbar switcher, so choosing
                 branches is one gesture across the product. */}
-            <LocationMultiSelect
-              locations={locations}
-              selectedIds={shownIds}
-              onChange={setGrantedIds}
-              disabled={isOwner}
-            />
+            {status === "ready" ? (
+              <LocationMultiSelect
+                locations={locations}
+                selectedIds={shownIds}
+                onChange={setGrantedIds}
+                disabled={isOwner}
+              />
+            ) : null}
           </div>
 
           <div className="flex justify-end gap-2">
@@ -181,7 +202,7 @@ export function TeamAccessDialog({
             >
               Close
             </Button>
-            <Button type="button" radius="full" onClick={save}>
+            <Button type="button" radius="full" onClick={save} disabled={status !== "ready"}>
               Confirm
             </Button>
           </div>
