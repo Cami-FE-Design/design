@@ -869,6 +869,8 @@ export function NewAppointmentSheet({
             onApply={handleUpdateService}
             onDelete={handleDeleteEditingService}
             onChangeService={handleOpenSwapServicePicker}
+            locationId={locationId ?? existingLocationId ?? null}
+            date={date}
           />
         ) : (
           <>

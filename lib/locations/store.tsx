@@ -31,6 +31,7 @@ import { actsAsChain, type MultiLocationEnablement } from "@/lib/locations/enabl
 import { idsWithin } from "@/lib/locations/from-business"
 import { CLOSED_DAY, openFor, type WeekSchedule } from "@/lib/locations/hours"
 import { LOCATIONS, locationName, NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
+import { BUSINESS_TIMEZONE, normaliseOverride, type Timezone } from "@/lib/locations/timezone"
 import type { Location, LocationScope, LocationStatus } from "@/lib/locations/types"
 import { acceptsWrites } from "@/lib/locations/types"
 
@@ -57,6 +58,8 @@ const GRANTS_KEY = "cami-location-grants"
  * a reload" would depend on which tab you were in. It is one seam now.
  */
 const EDITS_KEY = "cami-location-edits"
+/** The business's own zone, which every branch without an override follows (R19). */
+const BUSINESS_TIMEZONE_KEY = "cami-business-timezone"
 
 /**
  * `"all"` is a grant of every location the business has, now and later — what
@@ -107,6 +110,14 @@ type LocationsValue = {
 
   /** Slugs already taken, so chain setup can refuse a collision before submitting. */
   takenSlugs: string[]
+
+  /**
+   * The business timezone default (R19's first half). A branch with no zone of
+   * its own reads this, so changing it moves every inheriting branch at once
+   * and leaves the overridden ones where they are.
+   */
+  businessTimezone: Timezone
+  setBusinessTimezone: (zone: Timezone) => void
 
   /** What this user is granted (R04). */
   grants: LocationGrants
@@ -336,6 +347,7 @@ export function LocationsProvider({
   const [locations, setLocations] = useState<Location[]>([...initialLocations])
   const [grants, setGrantsState] = useState<LocationGrants>(initialGrants)
   const [scope, setScopeState] = useState<LocationScope>(initialScope)
+  const [businessTimezone, setBusinessTimezoneState] = useState<Timezone>(BUSINESS_TIMEZONE)
   /**
    * HQ's switch (GNK §2). Seeded ON for the demo chain, because every
    * multi-location surface here is reviewed against it — the OFF state is
@@ -372,6 +384,8 @@ export function LocationsProvider({
       // it has to be asked for, never arrived at by a business switch.
       if (kept === "all" || kept.length > 0) setGrantsState(kept)
     }
+    const savedZone = window.localStorage.getItem(BUSINESS_TIMEZONE_KEY)
+    if (savedZone) setBusinessTimezoneState(savedZone)
     const savedScope = readStoredScope()
     if (savedScope) {
       const kept = scopeWithin(estate, savedScope)
@@ -480,7 +494,10 @@ export function LocationsProvider({
         // owner adjusts the days this branch actually differs on rather than
         // filling in a week from empty (R01).
         hours: businessDefault?.hours ?? DEFAULT_HOURS,
-        timezone: row.timezone,
+        // Picking the business's own zone is having no opinion, so it is stored
+        // as none — otherwise every new branch would freeze at today's default
+        // and stop following the business when it moves (R19).
+        timezone: normaliseOverride(businessTimezone, row.timezone),
         ownerName: businessDefault?.ownerName ?? "",
         ownerEmail: businessDefault?.ownerEmail ?? "",
         photoUrl: `https://picsum.photos/seed/${slugify(row.name)}/80`,
@@ -488,13 +505,21 @@ export function LocationsProvider({
       writeEdits((edits) => ({ ...edits, created: [...edits.created, ...created] }))
       setLocations((prev) => [...prev, ...created])
     },
-    [locations, writeEdits],
+    [locations, writeEdits, businessTimezone],
   )
 
   const setGrants = useCallback(
     (next: LocationGrants) => {
       setGrantsState(next)
       if (persist) window.localStorage.setItem(GRANTS_KEY, JSON.stringify(next))
+    },
+    [persist],
+  )
+
+  const setBusinessTimezone = useCallback(
+    (zone: Timezone) => {
+      setBusinessTimezoneState(zone)
+      if (persist) window.localStorage.setItem(BUSINESS_TIMEZONE_KEY, zone)
     },
     [persist],
   )
@@ -525,6 +550,8 @@ export function LocationsProvider({
       setHours,
       addLocations,
       takenSlugs: locations.map((l) => l.slug),
+      businessTimezone,
+      setBusinessTimezone,
       grants,
       setGrants,
       granted,
@@ -549,6 +576,8 @@ export function LocationsProvider({
     addLocations,
     setGrants,
     setScope,
+    businessTimezone,
+    setBusinessTimezone,
     enablement,
     setEnabled,
   ])
@@ -579,6 +608,8 @@ export function useLocations(): LocationsValue {
     setHours: () => {},
     addLocations: () => {},
     takenSlugs: locations.map((l) => l.slug),
+    businessTimezone: BUSINESS_TIMEZONE,
+    setBusinessTimezone: () => {},
     grants: "all",
     setGrants: () => {},
     granted: locations,

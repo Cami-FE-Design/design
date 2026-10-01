@@ -50,6 +50,7 @@ import { AlertTriangleIcon, PackageIcon } from "lucide-react"
 import { useState } from "react"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
+import { CardListSkeleton, LoadError, type SurfaceStatus } from "@/components/blocks/surface-states"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -73,7 +74,16 @@ export function ProductBranchStock({
   product,
   stock = BRANCH_STOCK,
   onThresholds,
+  status = "ready",
+  onRetry,
 }: {
+  /**
+   * Loading and error are reached from /playground; the product dialog is
+   * always ready. An error shows no total: a business quantity summed over the
+   * branches that did load is a smaller number that looks like a real one (G7).
+   */
+  status?: SurfaceStatus
+  onRetry?: () => void
   product: StockedProduct
   /** Injectable so a showcase can pin the states without touching the seed. */
   stock?: ReadonlyArray<BranchStock>
@@ -112,6 +122,9 @@ export function ProductBranchStock({
       </div>
     )
   }
+
+  if (status === "loading") return <CardListSkeleton label="Loading stock by location" rows={2} />
+  if (status === "error") return <LoadError what="stock by location" onRetry={onRetry} />
 
   const ids = inScope.map((location) => location.id)
   const rows = stockForProduct(stock, product.id, ids)

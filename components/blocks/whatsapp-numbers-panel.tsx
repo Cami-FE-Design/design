@@ -23,6 +23,7 @@ import { toast } from "sonner"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { CardListSkeleton, LoadError, type SurfaceStatus } from "@/components/blocks/surface-states"
 import { Button } from "@/components/ui/button"
 import { useLocations } from "@/lib/locations/store"
 import {
@@ -39,7 +40,14 @@ const TONE_CLASS: Record<"neutral" | "pending" | "good", string> = {
   good: "bg-cami-green-3 text-cami-green-11",
 }
 
-export function WhatsAppNumbersPanel() {
+export function WhatsAppNumbersPanel({
+  status = "ready",
+  onRetry,
+}: {
+  /** Loading and error are reached from /playground; the route is always ready. */
+  status?: SurfaceStatus
+  onRetry?: () => void
+} = {}) {
   // The granted set, not the estate (R18). A manager holding one branch was
   // shown every branch's number and migration state — including branches they
   // cannot otherwise see.
@@ -97,7 +105,13 @@ export function WhatsAppNumbersPanel() {
             interesting row — the migration stuck waiting for an OTP — is below
             the fold, and a branch that is simply connected needs nothing from
             anybody. Under four branches nothing folds. */}
-        {folded > 0 ? (
+        {status === "loading" ? (
+          <CardListSkeleton label="Loading WhatsApp numbers" />
+        ) : status === "error" ? (
+          <LoadError what="WhatsApp numbers" onRetry={onRetry} />
+        ) : null}
+
+        {status === "ready" && folded > 0 ? (
           <button
             type="button"
             onClick={() => setShowAll((v) => !v)}
@@ -107,7 +121,7 @@ export function WhatsAppNumbersPanel() {
           </button>
         ) : null}
 
-        {shown.map((loc) => {
+        {(status === "ready" ? shown : []).map((loc) => {
           const binding = bindingFor(loc.id)
           const copy = WHATSAPP_STATUS_COPY[binding.status]
           return (

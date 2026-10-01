@@ -1,6 +1,7 @@
 import type { AvatarSpecies } from "@/components/ui/avatar"
 import type { PlaceRef } from "@/lib/address"
 import type { PetNoteEntry } from "@/lib/pet-notes"
+import type { Shift } from "@/lib/team/shifts"
 
 export type MockBookingStatus =
   | "booked"
@@ -189,6 +190,33 @@ export const MOCK_STAFF: MockStaff[] = [
   { id: "lina-farouk", name: "Lina Farouk", role: "Colourist", locationIds: [SOTA] },
   { id: "yara-nasr", name: "Yara Nasr", role: "Stylist", locationIds: [SOTA] },
 ]
+
+/**
+ * Lena's split day as shifts, so the booking sheet can refuse the half of it
+ * she is at the other branch (DW2.4). JVC mornings, Jumeirah afternoons, every
+ * day — together the same 10am–6pm the sheet's own day window gives her, so
+ * the two mocks never disagree about whether she is working.
+ */
+export const MOCK_STAFF_SHIFTS: Shift[] = (
+  ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const
+).flatMap((day) => [
+  {
+    id: `lena-jvc-${day}`,
+    memberId: "lena-petrov",
+    locationId: JVC,
+    day,
+    start: "10:00",
+    end: "14:00",
+  },
+  {
+    id: `lena-jumeirah-${day}`,
+    memberId: "lena-petrov",
+    locationId: JUMEIRAH,
+    day,
+    start: "14:00",
+    end: "18:00",
+  },
+])
 
 /**
  * The branch a booking happened at, resolved through whoever is doing it.

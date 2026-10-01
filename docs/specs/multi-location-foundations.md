@@ -1,4 +1,4 @@
-# Multi-location · the design pass (SCR-01–06, SCR-08–16; SCR-07 blocked)
+# Multi-location · the design pass (SCR-01–16)
 
 The design side of multi-location, built bottom-up: one definition of a branch,
 the scope control every other screen is read through, and the branch lifecycle
@@ -13,8 +13,9 @@ the all-branches calendar, **SCR-06** the cross-branch move, **SCR-12** branch
 tax identity, **SCR-13** the package mismatch at checkout, **SCR-14** branch
 WhatsApp numbers, **SCR-15** money by branch, and **SCR-16** the CamiHQ chain view.
 
-Four are not done, and three of those are not startable — see
-[Screen coverage](#screen-coverage-against-the-prds-6-reference) and
+**SCR-07** is drawn wide: reception reads what another branch charged, which
+Michelle settled after this document first listed it as blocked. GB2.2 and PRD
+§16 still read the other way and need updating to match — see
 [Blocked on a decision](#blocked-on-a-decision).
 
 ## Which source answers which question
@@ -1202,8 +1203,9 @@ front of them.
 
 ### Blocked on a decision
 
-One screen is deliberately not designed, because designing it means inventing
-the answer to a question somebody else owns.
+One screen waited on a question somebody else owned. It is now settled —
+**Michelle: reception sees what another branch charged** — and the screen is
+drawn that way. Kept here because GB2.2 and PRD §16 still say otherwise.
 
 | Screen | The question, and whose it is |
 | --- | --- |

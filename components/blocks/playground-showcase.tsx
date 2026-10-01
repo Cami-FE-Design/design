@@ -73,6 +73,7 @@ import { CardJourney } from "@/components/blocks/customer-card/card-journey"
 import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
 import { TwoFaces } from "@/components/blocks/customer-card/two-faces"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
+import { DealsPage } from "@/components/blocks/deals/deals-page"
 import { DealsTable } from "@/components/blocks/deals/deals-table"
 import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
@@ -100,7 +101,7 @@ import { InboxPhase0Showcase } from "@/components/blocks/inbox-phase-0/showcase"
 import { InvoiceDocumentView } from "@/components/blocks/invoice-document"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
-import { AddLocationsTakeover } from "@/components/blocks/location-form"
+import { AddLocationsTakeover, LocationForm } from "@/components/blocks/location-form"
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { LocationSwitcher } from "@/components/blocks/location-switcher"
 import { MerchantCode } from "@/components/blocks/merchant-code"
@@ -157,6 +158,7 @@ import {
   type SignatureResult,
 } from "@/components/blocks/sign/signature-dialog"
 import { FacebookGlyphIcon, InstagramGlyphIcon, XGlyphIcon } from "@/components/blocks/social-icons"
+import type { SurfaceStatus } from "@/components/blocks/surface-states"
 import { TeamAccessDialog } from "@/components/blocks/team-access-dialog"
 import {
   TeamMemberDetailDialog,
@@ -254,7 +256,7 @@ import {
   reaches,
 } from "@/lib/locations/promotion-scope"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
-import { BUSINESS_TIMEZONE, resolveTimezone, timezoneLabel } from "@/lib/locations/timezone"
+import { resolveTimezone, timezoneLabel } from "@/lib/locations/timezone"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { DEMO_BILLING_DETAILS } from "@/lib/money/billing-details"
 import type { TerminalFeeModel } from "@/lib/money/fees"
@@ -724,6 +726,85 @@ function WriteTargetDemo({ action, variant }: { action: string; variant?: "field
   )
 }
 
+/**
+ * The five branch lists in the state they are in before they are lists. The
+ * prototype's data is local, so nothing on a route ever loads or fails — the
+ * toggle stands in for the network, and Try again is what puts it back.
+ */
+function SurfaceStatesDemo() {
+  const [status, setStatus] = useState<SurfaceStatus>("loading")
+  const [accessOpen, setAccessOpen] = useState(false)
+  const retry = () => setStatus("ready")
+  const aziz = TEAM_MEMBERS.find((m) => m.id === "m_aziz") ?? null
+  const frame = "w-full max-w-[640px] rounded-2xl border border-border/60 p-4"
+
+  return (
+    <div className="flex w-full flex-col gap-6">
+      <div className="flex gap-2">
+        {(["ready", "loading", "error"] as const).map((s) => (
+          <Button
+            key={s}
+            type="button"
+            size="sm"
+            radius="full"
+            variant={status === s ? "default" : "outline"}
+            onClick={() => setStatus(s)}
+          >
+            {s === "ready" ? "Ready" : s === "loading" ? "Loading" : "Error"}
+          </Button>
+        ))}
+      </div>
+      <Row label="Locations" align="start">
+        <div className={frame}>
+          <Suspense fallback={null}>
+            <LocationForm status={status} onRetry={retry} />
+          </Suspense>
+        </div>
+      </Row>
+      <Row label="Deals" align="start">
+        <div className={frame}>
+          <Suspense fallback={null}>
+            <DealsPage status={status} onRetry={retry} />
+          </Suspense>
+        </div>
+      </Row>
+      <Row label="WhatsApp numbers" align="start">
+        <div className={frame}>
+          <WhatsAppNumbersPanel status={status} onRetry={retry} />
+        </div>
+      </Row>
+      <Row label="Stock by location" align="start">
+        <div className="w-full max-w-[560px]">
+          <ProductBranchStock
+            product={STOCK_DEMO_PRODUCTS.lowAndOut}
+            status={status}
+            onRetry={retry}
+          />
+        </div>
+      </Row>
+      <Row label="Team access" align="start">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          radius="full"
+          onClick={() => setAccessOpen(true)}
+        >
+          Open Aziz&rsquo;s access
+        </Button>
+        <TeamAccessDialog
+          open={accessOpen}
+          onOpenChange={setAccessOpen}
+          member={aziz}
+          onSave={() => {}}
+          status={status}
+          onRetry={retry}
+        />
+      </Row>
+    </div>
+  )
+}
+
 function TeamAccessDemo() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [members, setMembers] = useState(TEAM_MEMBERS)
@@ -898,7 +979,7 @@ function MoveDemo({
  * deterministic to review.
  */
 function BranchHoursDemo() {
-  const { locations } = useLocations()
+  const { locations, businessTimezone } = useLocations()
   const now = new Date("2026-09-08T14:00:00+04:00")
   return (
     <div className="grid w-full gap-4 sm:grid-cols-3">
@@ -907,7 +988,7 @@ function BranchHoursDemo() {
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-medium leading-5 text-foreground">{loc.name}</span>
             <span className="text-xs text-muted-foreground">
-              {timezoneLabel(resolveTimezone(BUSINESS_TIMEZONE, loc.timezone).value)} ·{" "}
+              {timezoneLabel(resolveTimezone(businessTimezone, loc.timezone).value)} ·{" "}
               {isOpenNow(loc.hours, now) ? (
                 <span className="text-cami-green-11">Open now</span>
               ) : (
@@ -3390,6 +3471,15 @@ export function PlaygroundShowcase() {
               </LocationsProvider>
             </div>
           </Row>
+        </Section>
+        <Section
+          title="Multi-location — loading and error"
+          description="PRD-169's Done-means: every screen drawn empty, loading and error. Empty is each surface's own sentence because the facts differ — no branches granted (R24) is not no deals. Loading keeps the rows' shape so nothing jumps. Error says what failed and that nothing changed, and never shows a partial list: six branches that should be nine reads as a smaller business (G7), so stock drops its total rather than summing what arrived. Team access also refuses Confirm and never claims 'No location granted' before the grant has loaded."
+          lazy
+        >
+          <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+            <SurfaceStatesDemo />
+          </LocationsProvider>
         </Section>
         <Section
           title="Multi-location — money by branch"

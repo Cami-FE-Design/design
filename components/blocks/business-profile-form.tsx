@@ -1,6 +1,14 @@
 "use client"
 
-import { BanknoteIcon, Building2Icon, FlagIcon, GlobeIcon, PercentIcon, XIcon } from "lucide-react"
+import {
+  BanknoteIcon,
+  Building2Icon,
+  ClockIcon,
+  FlagIcon,
+  GlobeIcon,
+  PercentIcon,
+  XIcon,
+} from "lucide-react"
 import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useRef, useState } from "react"
 import { GoogleReviewLinkField } from "@/components/blocks/google-review-link-field"
@@ -25,6 +33,8 @@ import {
 import { displayGoogleReviewLink } from "@/lib/business-links/links"
 import { useBusinessLinks } from "@/lib/business-links/store"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { useLocations } from "@/lib/locations/store"
+import { overriddenCount, TIMEZONE_OPTIONS, timezoneLabel } from "@/lib/locations/timezone"
 import { cn } from "@/lib/utils"
 
 const triggerOverride = "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
@@ -40,6 +50,7 @@ type FocusField =
   | "country"
   | "currency"
   | "tax"
+  | "timezone"
   | "facebook"
   | "twitter"
   | "instagram"
@@ -62,6 +73,9 @@ const BUSINESS_INFO_SUMMARY: SummaryItem[] = [
     value: "Retail prices include tax",
     field: "tax",
   },
+  // Value comes from the locations store: it is the default every branch
+  // without a zone of its own follows (R19), so it has real state.
+  { icon: ClockIcon, label: "Time zone", value: null, field: "timezone" },
 ]
 
 const EXTERNAL_LINKS_SUMMARY: SummaryItem[] = [
@@ -83,6 +97,7 @@ const EXTERNAL_LINKS_SUMMARY: SummaryItem[] = [
 export function BusinessProfileForm() {
   const { name: businessName } = useDemoBusiness()
   const { googleReviewLink } = useBusinessLinks()
+  const { businessTimezone } = useLocations()
   const [editing, setEditing] = useState(false)
   const [focusField, setFocusField] = useState<FocusField | null>(null)
 
@@ -126,7 +141,13 @@ export function BusinessProfileForm() {
                 key={row.label}
                 icon={row.icon}
                 label={row.label}
-                value={row.field === "businessName" ? businessName : row.value}
+                value={
+                  row.field === "businessName"
+                    ? businessName
+                    : row.field === "timezone"
+                      ? timezoneLabel(businessTimezone)
+                      : row.value
+                }
                 onAdd={() => openEdit(row.field)}
               />
             ))}
@@ -177,10 +198,27 @@ function BusinessDetailsEditDialog({
   focusField: FocusField | null
 }) {
   const { name: businessName } = useDemoBusiness()
+  const { businessTimezone, setBusinessTimezone, locations, isMultiLocation } = useLocations()
+  const [zone, setZone] = useState(businessTimezone)
+  // Branches that hold a zone of their own stay where they are when this
+  // changes — the count is what a business-wide move would not reach.
+  const ownZone = overriddenCount(
+    locations.map((l) => l.timezone),
+    zone,
+  )
   const scrollRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const [showHeaderTitle, setShowHeaderTitle] = useState(false)
   const fieldRefs = useRef<Partial<Record<FocusField, HTMLInputElement | null>>>({})
+
+  useEffect(() => {
+    if (open) setZone(businessTimezone)
+  }, [open, businessTimezone])
+
+  function save() {
+    setBusinessTimezone(zone)
+    onOpenChange(false)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -271,7 +309,7 @@ function BusinessDetailsEditDialog({
                 type="button"
                 size="lg"
                 radius="full"
-                onClick={() => onOpenChange(false)}
+                onClick={save}
                 className="hidden lg:inline-flex"
               >
                 Save
@@ -344,6 +382,34 @@ function BusinessDetailsEditDialog({
                     </SelectContent>
                   </Select>
                 </Field>
+                <div className="flex flex-col gap-1.5">
+                  <Field label="Time zone">
+                    <Select value={zone} onValueChange={setZone}>
+                      <SelectTrigger className={triggerOverride}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIMEZONE_OPTIONS.map((tz) => (
+                          <SelectItem key={tz.id} value={tz.id}>
+                            {tz.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  {/* R19's first half. Said only to a chain: a single-site
+                      business has nothing that inherits it. */}
+                  {isMultiLocation ? (
+                    <p className="text-muted-foreground text-xs leading-5">
+                      Every location follows this unless it sets its own.{" "}
+                      {ownZone === 0
+                        ? "None do yet."
+                        : ownZone === 1
+                          ? "1 location keeps its own and won’t change."
+                          : `${ownZone} locations keep their own and won’t change.`}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </section>
 
@@ -379,13 +445,7 @@ function BusinessDetailsEditDialog({
         </div>
 
         <footer className="border-border/40 border-t bg-background px-4 py-3 lg:hidden">
-          <Button
-            type="button"
-            size="lg"
-            radius="full"
-            className="w-full"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button type="button" size="lg" radius="full" className="w-full" onClick={save}>
             Save
           </Button>
         </footer>
