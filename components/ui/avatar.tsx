@@ -268,8 +268,11 @@ function Avatar({
         ) : null}
         <AvatarPrimitive.Fallback
           data-slot="avatar-fallback"
-          // Delay zero so the fallback paints immediately when src is absent or fails.
-          delayMs={0}
+          // A real photo waits one frame so initials do not flash before it
+          // loads. With no photo, omit the delay: Radix hides the fallback
+          // until an effect runs whenever delayMs is set, which leaves a
+          // blank circle in the first paint and in the server HTML.
+          delayMs={src ? 0 : undefined}
           className="flex size-full items-center justify-center"
         >
           {fallback === "initials" ? (

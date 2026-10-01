@@ -55,6 +55,8 @@ type AppShellProps = React.ComponentProps<"div"> & {
   headerClassName?: string
   /** Extra classes for the content wrapper (e.g. "pb-0" to drop the default bottom padding). */
   contentClassName?: string
+  /** Extra classes for the rounded content frame (the panel under the topbar). */
+  frameClassName?: string
 }
 
 export function AppShell({
@@ -67,6 +69,7 @@ export function AppShell({
   header,
   headerClassName,
   contentClassName,
+  frameClassName,
   ...props
 }: AppShellProps) {
   const responsive = breakpoint === undefined
@@ -133,6 +136,7 @@ export function AppShell({
             <div
               className={cn(
                 "relative z-[1] flex w-full flex-1 flex-col overflow-hidden bg-background shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]",
+                frameClassName,
                 // Both corners on mobile, where the frame spans the width; only
                 // the left one on desktop, where the sidebar meets it.
                 responsive

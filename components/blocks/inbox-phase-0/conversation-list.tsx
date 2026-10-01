@@ -1,12 +1,11 @@
 "use client"
 
-import { AlertCircleIcon, AlertTriangleIcon, MessageCircleIcon, SearchXIcon } from "lucide-react"
-import { useMemo, useState } from "react"
+import { AlertCircleIcon, AlertTriangleIcon, MessageCircleIcon } from "lucide-react"
+import { useMemo } from "react"
 
 import { CURRENT_STAFF, type InboxConversation } from "@/app/messages/inbox/phase-0/mock"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { Button } from "@/components/ui/button"
-import { SearchInput } from "@/components/ui/search-input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -17,7 +16,6 @@ import {
   customerName,
   type PaneStatus,
   previewOf,
-  UnmatchedPill,
 } from "./shared"
 
 // ─── Pane 1 — the chat list (IX-A1) ───────────────────────────────────────────
@@ -49,7 +47,7 @@ function ConversationRow({
         ? copy.you
         : last.sentByStaffName
       : null
-  const PreviewIcon = lastFailed ? AlertCircleIcon : preview.icon
+  const PreviewIcon = preview.icon
 
   return (
     <li>
@@ -58,65 +56,49 @@ function ConversationRow({
         onClick={onSelect}
         aria-current={selected ? "true" : undefined}
         className={cn(
-          "relative flex w-full items-start gap-3 border-b border-border/50 px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cami-violet-8",
-          selected ? "bg-cami-violet-3/50" : "hover:bg-muted/40",
+          "relative flex w-full items-start gap-3 px-4 py-3 text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cami-violet-8",
+          // Active is bg-accent (sand-3). Unselected hover is the next
+          // darker neutral, sand-4, as an opaque fill. &:hover is not gated
+          // on @media (hover: hover), so it still paints on this machine.
+          selected
+            ? "bg-accent text-accent-foreground"
+            : "bg-white-a11 [&:hover]:bg-sand-4 hover:text-foreground dark:[&:hover]:bg-white-a2",
         )}
       >
-        {selected ? (
-          <span
-            className="absolute inset-y-1 start-0 w-[3px] rounded-e-full bg-cami-violet-9"
-            aria-hidden
-          />
-        ) : null}
-        <ConversationAvatar conversation={conversation} />
+        <span className="relative inline-flex shrink-0">
+          <ConversationAvatar conversation={conversation} unmatchedLabel={copy.unmatched} />
+          {/* Not sent sits on the avatar. Unmatched is already its own avatar,
+              so a failed unmatched row is not marked a second time. */}
+          {lastFailed && customerName(conversation) ? (
+            <span
+              className="absolute -bottom-0.5 -end-0.5 flex size-4 items-center justify-center rounded-full bg-card text-tomato-11 ring-2 ring-card"
+              title={copy.notSent}
+            >
+              <AlertCircleIcon className="size-3.5" aria-hidden />
+              <span className="sr-only">{copy.notSent}</span>
+            </span>
+          ) : null}
+        </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "truncate text-sm text-foreground",
-                conversation.unreadCount > 0 ? "font-semibold" : "font-medium",
-              )}
-            >
+            <span className="truncate text-sm font-medium text-foreground">
               <ConversationTitle conversation={conversation} />
             </span>
             <span className="flex-1" />
-            <span
-              className={cn(
-                "shrink-0 text-xs",
-                conversation.unreadCount > 0
-                  ? "font-medium text-cami-violet-11"
-                  : "text-muted-foreground",
-              )}
-            >
+            <span className="shrink-0 text-xs text-muted-foreground">
               {listTimeLabel(conversation.lastMessageAt, now, lang)}
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {/* Unmatched, the number is the chat's only identity, so it never
-                truncates: the marker sits here and the preview gives way. */}
-            {!conversation.customer ? <UnmatchedPill copy={copy} /> : null}
-            <span
-              className={cn(
-                "flex min-w-0 flex-1 items-center gap-1 text-xs",
-                lastFailed ? "text-tomato-11" : "text-muted-foreground",
-              )}
-            >
+            <span className="flex min-w-0 flex-1 items-center gap-1 text-xs text-muted-foreground">
               {PreviewIcon ? <PreviewIcon className="size-3.5 shrink-0" aria-hidden /> : null}
-              {lastFailed || who ? (
-                <span className="shrink-0">{lastFailed ? `${copy.notSent} ·` : `${who}:`}</span>
-              ) : null}
+              {who ? <span className="shrink-0">{`${who}:`}</span> : null}
               {/* The message follows its own direction: English stays LTR inside
                   the Arabic UI, so it truncates at its end, not its start. */}
               <span className="min-w-0 truncate" dir="auto">
                 {preview.text}
               </span>
             </span>
-            {conversation.unreadCount > 0 ? (
-              <span className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-cami-violet-9 px-1.5 text-[11px] font-semibold text-white">
-                <span aria-hidden>{conversation.unreadCount}</span>
-                <span className="sr-only">{copy.unreadCount(conversation.unreadCount)}</span>
-              </span>
-            ) : null}
           </div>
         </div>
       </button>
@@ -128,7 +110,7 @@ function ListSkeleton() {
   return (
     <div className="flex flex-col" aria-hidden>
       {["a", "b", "c", "d", "e", "f", "g"].map((k, i) => (
-        <div key={k} className="flex items-start gap-3 border-b border-border/50 px-4 py-3">
+        <div key={k} className="flex items-start gap-3 px-4 py-3">
           <Skeleton className="size-9 rounded-full" />
           <div className="flex flex-1 flex-col gap-2 pt-0.5">
             <div className="flex justify-between gap-6">
@@ -162,41 +144,22 @@ export function ConversationList({
   lang: Lang
   now: number
 }) {
-  const [query, setQuery] = useState("")
   const sorted = useMemo(
     () => [...conversations].sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt)),
     [conversations],
   )
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return sorted
-    const digits = q.replace(/\D/g, "")
-    return sorted.filter((c) => {
-      const last = c.messages[c.messages.length - 1]
-      return (
-        customerName(c)?.toLowerCase().includes(q) ||
-        (digits.length >= 3 && c.phoneE164.includes(digits)) ||
-        last?.body?.toLowerCase().includes(q)
-      )
-    })
-  }, [sorted, query])
 
   return (
     <aside
       aria-label={copy.chatList}
-      className="flex w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+      className="flex w-72 max-w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
     >
-      <div className="border-b border-border p-3">
-        <SearchInput
-          size="default"
-          containerClassName="w-full"
-          className="h-9 w-full"
-          onValueChange={setQuery}
-          placeholder={copy.searchPlaceholder}
-          disabled={status !== "ready"}
-        />
+      <div className="flex items-center border-b border-border px-4 py-3">
+        <h1 className="flex min-h-8 min-w-0 flex-1 items-center truncate text-base font-semibold text-foreground">
+          {copy.inbox}
+        </h1>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-sand-3">
         {status === "loading" ? (
           <ListSkeleton />
         ) : status === "error" ? (
@@ -218,11 +181,9 @@ export function ConversationList({
             title={copy.listEmptyTitle}
             description={copy.listEmptyBody}
           />
-        ) : filtered.length === 0 ? (
-          <EmptyState className="flex-1" icon={SearchXIcon} title={copy.noResults} />
         ) : (
           <ul>
-            {filtered.map((c) => (
+            {sorted.map((c) => (
               <ConversationRow
                 key={c.publicId}
                 conversation={c}

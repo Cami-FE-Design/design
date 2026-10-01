@@ -2,7 +2,6 @@ import { FileTextIcon, ImageIcon, UserRoundIcon, VideoIcon } from "lucide-react"
 
 import type { InboxConversation, InboxMessage, MediaKind } from "@/app/messages/inbox/phase-0/mock"
 import { Avatar } from "@/components/ui/avatar"
-import { cn } from "@/lib/utils"
 
 import { formatPhone, type InboxCopy } from "./copy"
 
@@ -29,38 +28,40 @@ export function ConversationTitle({ conversation }: { conversation: InboxConvers
   return name ?? <Phone e164={conversation.phoneE164} />
 }
 
+/** Named chats use the same pet-parent character avatar as Clients.
+ *  An unmatched chat gets a dashed person, never digit initials and never
+ *  a search icon beside the number. */
 export function ConversationAvatar({
   conversation,
   size = "md",
+  unmatchedLabel,
 }: {
   conversation: InboxConversation
-  size?: "md" | "lg"
+  size?: "md" | "lg" | "empty"
+  unmatchedLabel?: string
 }) {
   const name = customerName(conversation)
-  if (name) {
-    return <Avatar size={size} name={name} hashSeed={conversation.customer!.publicId} />
+  if (!name) {
+    // "empty" is the unmatched pane mark, about 96px. List rows stay "md".
+    const box = size === "empty" ? "size-24" : size === "lg" ? "size-12" : "size-9"
+    const icon = size === "empty" ? "size-10" : size === "lg" ? "size-5" : "size-4"
+    return (
+      <span
+        className={`inline-flex ${box} shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50 text-muted-foreground`}
+        title={unmatchedLabel}
+      >
+        <UserRoundIcon className={`${icon} stroke-[1.5]`} aria-hidden />
+        {unmatchedLabel ? <span className="sr-only">{unmatchedLabel}</span> : null}
+      </span>
+    )
   }
-  // No client yet, so no initials: an empty, dashed silhouette — not a phone
-  // glyph, which reads as a call button.
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full border border-dashed border-cami-gray-7 bg-cami-gray-2 text-cami-gray-10",
-        size === "lg" ? "size-12" : "size-9",
-      )}
-      aria-hidden
-    >
-      <UserRoundIcon className={cn("stroke-[1.5]", size === "lg" ? "size-5" : "size-4")} />
-    </span>
-  )
-}
-
-export function UnmatchedPill({ copy }: { copy: InboxCopy }) {
-  return (
-    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-cami-yellow-3 px-2 py-0.5 text-[11px] font-medium text-cami-yellow-11">
-      <span className="size-1.5 rounded-full bg-cami-yellow-11" aria-hidden />
-      {copy.unmatched}
-    </span>
+    <Avatar
+      size={size === "empty" ? "lg" : size}
+      fallback="character"
+      name={name}
+      hashSeed={conversation.customer?.publicId ?? conversation.publicId}
+    />
   )
 }
 
@@ -74,14 +75,16 @@ export function mediaLabel(kind: MediaKind, copy: InboxCopy) {
   return kind === "image" ? copy.photo : kind === "video" ? copy.video : copy.file
 }
 
-/** One-line summary of a message for the list row. */
+/** One-line summary of a message for the list row. A file attachment keeps
+ *  its text and does not get a document icon. */
 export function previewOf(
   m: InboxMessage,
   copy: InboxCopy,
 ): { icon?: typeof ImageIcon; text: string } {
   const media = m.media?.[0]
-  if (m.body) return { icon: media ? MEDIA_ICON[media.kind] : undefined, text: m.body }
-  if (media) return { icon: MEDIA_ICON[media.kind], text: mediaLabel(media.kind, copy) }
+  const icon = media && media.kind !== "file" ? MEDIA_ICON[media.kind] : undefined
+  if (m.body) return { icon, text: m.body }
+  if (media) return { icon, text: mediaLabel(media.kind, copy) }
   return { text: "" }
 }
 

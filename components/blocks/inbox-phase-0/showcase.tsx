@@ -49,7 +49,7 @@ export function InboxPhase0Showcase() {
   return (
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap gap-6">
-        <Frame label="Chat list — unmatched, unread, failed">
+        <Frame label="Chat list — unmatched and failed">
           <div className="flex h-96">
             <ConversationList
               status="ready"

@@ -2,7 +2,8 @@
 
 import { ChevronDownIcon, FlaskConicalIcon, LockIcon, PowerOffIcon } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 
 import {
   buildConversations,
@@ -180,6 +181,53 @@ const NAME_REPLY = "It's Rana, thanks!"
 
 const newId = () => `msg-new-${Math.random().toString(36).slice(2, 10)}`
 
+/** Center of the visible top bar, and the horizontal center of the thread. */
+function useThreadAnchor(hasThread: boolean, lang: Lang, width: string) {
+  const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null)
+  // The thread box moves when language or frame width changes, even if its size does not.
+  const layoutKey = `${hasThread}:${lang}:${width}`
+  useLayoutEffect(() => {
+    function place() {
+      let y = 36
+      for (const slot of ["app-topbar", "app-mobile-topbar"]) {
+        const bar = document.querySelector<HTMLElement>(`[data-slot=${slot}]`)
+        const box = bar?.getBoundingClientRect()
+        if (box && box.height > 8 && box.width > 8) {
+          y = box.top + box.height / 2
+          break
+        }
+      }
+      const thread = document.querySelector<HTMLElement>("[data-inbox-thread]")
+      const threadBox = thread?.getBoundingClientRect()
+      if (threadBox && threadBox.width > 8) {
+        setAnchor({ x: threadBox.left + threadBox.width / 2, y })
+        return
+      }
+      const column = document.querySelector<HTMLElement>("[data-slot=app-shell] > div")
+      const columnBox = column?.getBoundingClientRect()
+      if (columnBox && columnBox.width > 8)
+        setAnchor({ x: columnBox.left + columnBox.width / 2, y })
+    }
+    if (layoutKey) place()
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place)
+    if (ro) {
+      for (const el of [
+        document.querySelector("[data-slot=app-sidebar]"),
+        document.querySelector("[data-inbox-thread]"),
+        document.querySelector("[data-slot=app-shell]"),
+      ]) {
+        if (el) ro.observe(el)
+      }
+    }
+    window.addEventListener("resize", place)
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener("resize", place)
+    }
+  }, [layoutKey])
+  return anchor
+}
+
 function InboxPhase0() {
   const router = useRouter()
   const pathname = usePathname()
@@ -238,17 +286,6 @@ function InboxPhase0() {
     [visible, selectedId],
   )
 
-  // An open chat is a read chat — whether it was clicked in the list or opened
-  // straight from a link.
-  useEffect(() => {
-    if (!selectedId) return
-    setConversations((prev) =>
-      prev.map((c) =>
-        c.publicId === selectedId && c.unreadCount > 0 ? { ...c, unreadCount: 0 } : c,
-      ),
-    )
-  }, [selectedId])
-
   function retry() {
     setRetrying(true)
     window.setTimeout(() => {
@@ -270,7 +307,6 @@ function InboxPhase0() {
 
   function select(id: string) {
     setPaneMode("summary")
-    update(id, (c) => ({ ...c, unreadCount: 0 }))
     go({ c: id === DEFAULT_CHAT ? null : id })
   }
 
@@ -292,19 +328,20 @@ function InboxPhase0() {
           failureCode: "WINDOW_CLOSED",
         })
         update(convId, (c) => ({ ...c, windowClosesAt: new Date(clock()).toISOString() }))
+      } else if (outcome === "late") {
+        // The failure is not known yet (IX-A5, fails late). Stay on the sending
+        // clock, then fail. A tick that later flips to failed is the sequence
+        // that reads as sent and then not sent.
+        window.setTimeout(
+          () =>
+            patchMessage(convId, msg.publicId, {
+              deliveryState: "failed",
+              failureCode: "PROVIDER_REJECTED",
+            }),
+          LATE_FAILURE_MS,
+        )
       } else {
         patchMessage(convId, msg.publicId, { deliveryState: "sent" })
-        if (outcome === "late") {
-          // The failure arrives minutes later as a status webhook (IX-A5 edge case).
-          window.setTimeout(
-            () =>
-              patchMessage(convId, msg.publicId, {
-                deliveryState: "failed",
-                failureCode: "PROVIDER_REJECTED",
-              }),
-            LATE_FAILURE_MS,
-          )
-        }
       }
     }, SEND_LATENCY_MS)
   }
@@ -497,105 +534,133 @@ function InboxPhase0() {
   // "Next send" opens with the bar already showing.
   const [showControls, setShowControls] = useState(params.get("controls") === "open")
   const frameWidth = width === "fit" ? undefined : Number(width) - SIDEBAR_COLLAPSED
+  const threadAnchor = useThreadAnchor(access === "full" || access === "read-only", lang, width)
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 bg-sand-3 p-3">
-      {/* A slim page header: the panes are the page. The design-repo controls
-          fold into one dashed chip, so the product is what the eye lands on. */}
-      <div
-        dir={lang === "ar" ? "rtl" : "ltr"}
-        lang={lang}
-        className="flex items-center gap-3 px-2 pt-1"
-      >
-        <h1 className="text-xl font-medium text-foreground">{copy.inbox}</h1>
-        <button
-          type="button"
-          aria-expanded={showControls}
-          onClick={() => setShowControls((v) => !v)}
-          className="ms-auto inline-flex max-w-full items-center gap-1.5 rounded-full border border-dashed border-border bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/60"
-        >
-          <FlaskConicalIcon className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate">
-            Design repo · {scenario.label} · {lang === "ar" ? "Arabic" : "English"}
-            {width !== "fit" ? ` · ${width}` : ""}
-            {outcome !== "ok"
-              ? ` · ${SEND_OUTCOMES.find((o) => o.value === outcome)?.label.toLowerCase()}`
-              : ""}
-          </span>
-          <ChevronDownIcon
-            className={cn("size-3.5 shrink-0 transition-transform", showControls && "rotate-180")}
-            aria-hidden
-          />
-        </button>
-      </div>
-      {showControls ? (
-        <DesignRepoBar
-          label="switch the state, what the next send does, language and frame width"
-          note={scenario.note}
-        >
-          <Select value={scenario.id} onValueChange={(v) => go({ state: v === "live" ? null : v })}>
-            <SelectTrigger size="sm" className="w-60">
-              <SelectValue>{scenario.label}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {SCENARIOS.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={outcome} onValueChange={(v) => go({ send: v === "ok" ? null : v })}>
-            <SelectTrigger size="sm" className="w-72">
-              <SelectValue>{SEND_OUTCOMES.find((o) => o.value === outcome)?.label}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {SEND_OUTCOMES.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            radius="full"
-            disabled={!selected || threadStatus !== "ready"}
-            onClick={clientWrites}
-          >
-            Client writes now
-          </Button>
-          <SegmentedToggle
-            size="sm"
-            ariaLabel="Language"
-            value={lang}
-            onValueChange={(v) => go({ lang: v === "ar" ? "ar" : null })}
-            options={[
-              { value: "en", label: "English" },
-              { value: "ar", label: "العربية" },
-            ]}
-          />
-          <SegmentedToggle
-            size="sm"
-            ariaLabel="Pets feature"
-            value={hasPets ? "on" : "off"}
-            onValueChange={(v) => go({ pets: v === "off" ? "off" : null })}
-            options={[
-              { value: "on", label: "With pets" },
-              { value: "off", label: "Without pets" },
-            ]}
-          />
-          <SegmentedToggle
-            size="sm"
-            ariaLabel="Frame width"
-            value={width}
-            onValueChange={(v) => go({ width: v === "fit" ? null : v })}
-            options={WIDTH_OPTIONS}
-          />
-        </DesignRepoBar>
-      ) : null}
+    <div className="relative flex min-h-0 flex-1 flex-col p-3">
+      {/* The chip floats in the top bar, centered on the thread. A portal keeps
+          it above the topbar, which would otherwise eat the clicks. */}
+      {threadAnchor
+        ? createPortal(
+            <div
+              className="pointer-events-none fixed z-50"
+              style={{
+                left: threadAnchor.x,
+                top: threadAnchor.y,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              <div className="relative flex flex-col items-center">
+                <button
+                  type="button"
+                  dir={lang === "ar" ? "rtl" : "ltr"}
+                  aria-expanded={showControls}
+                  onClick={() => setShowControls((v) => !v)}
+                  className="pointer-events-auto inline-flex max-w-[min(100vw-8rem,28rem)] items-center gap-1.5 rounded-full border border-dashed border-border bg-card/95 px-3 py-1.5 text-xs text-muted-foreground shadow-sm transition-colors hover:bg-muted/80"
+                >
+                  <FlaskConicalIcon className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">
+                    Design repo · {scenario.label} · {lang === "ar" ? "Arabic" : "English"}
+                    {width !== "fit" ? ` · ${width}` : ""}
+                    {outcome !== "ok"
+                      ? ` · ${SEND_OUTCOMES.find((o) => o.value === outcome)?.label.toLowerCase()}`
+                      : ""}
+                  </span>
+                  <ChevronDownIcon
+                    className={cn(
+                      "size-3.5 shrink-0 transition-transform",
+                      showControls && "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                {showControls ? (
+                  <div
+                    dir={lang === "ar" ? "rtl" : "ltr"}
+                    lang={lang}
+                    className="pointer-events-auto absolute top-full left-1/2 z-50 mt-2 w-[min(1080px,calc(100vw-1.5rem))] -translate-x-1/2"
+                  >
+                    <DesignRepoBar
+                      label="switch the state, what the next send does, language and frame width"
+                      note={scenario.note}
+                    >
+                      <Select
+                        value={scenario.id}
+                        onValueChange={(v) => go({ state: v === "live" ? null : v })}
+                      >
+                        <SelectTrigger size="sm" className="w-60">
+                          <SelectValue>{scenario.label}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SCENARIOS.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={outcome}
+                        onValueChange={(v) => go({ send: v === "ok" ? null : v })}
+                      >
+                        <SelectTrigger size="sm" className="w-72">
+                          <SelectValue>
+                            {SEND_OUTCOMES.find((o) => o.value === outcome)?.label}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SEND_OUTCOMES.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        radius="full"
+                        disabled={!selected || threadStatus !== "ready"}
+                        onClick={clientWrites}
+                      >
+                        Client writes now
+                      </Button>
+                      <SegmentedToggle
+                        size="sm"
+                        ariaLabel="Language"
+                        value={lang}
+                        onValueChange={(v) => go({ lang: v === "ar" ? "ar" : null })}
+                        options={[
+                          { value: "en", label: "English" },
+                          { value: "ar", label: "العربية" },
+                        ]}
+                      />
+                      <SegmentedToggle
+                        size="sm"
+                        ariaLabel="Pets feature"
+                        value={hasPets ? "on" : "off"}
+                        onValueChange={(v) => go({ pets: v === "off" ? "off" : null })}
+                        options={[
+                          { value: "on", label: "With pets" },
+                          { value: "off", label: "Without pets" },
+                        ]}
+                      />
+                      <SegmentedToggle
+                        size="sm"
+                        ariaLabel="Frame width"
+                        value={width}
+                        onValueChange={(v) => go({ width: v === "fit" ? null : v })}
+                        options={WIDTH_OPTIONS}
+                      />
+                    </DesignRepoBar>
+                  </div>
+                ) : null}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {access === "no-access" || access === "feature-off" ? (
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-2xl border border-border bg-card">
@@ -611,12 +676,7 @@ function InboxPhase0() {
             dir={lang === "ar" ? "rtl" : "ltr"}
             lang={lang}
             style={frameWidth ? { width: frameWidth } : undefined}
-            className={cn(
-              "flex min-h-0 shrink-0 gap-3",
-              frameWidth
-                ? "rounded-2xl outline-1 outline-offset-4 outline-border outline-dashed"
-                : "w-full",
-            )}
+            className={cn("flex min-h-0 shrink-0 gap-3", !frameWidth && "w-full")}
           >
             <ConversationList
               status={listStatus}
@@ -673,7 +733,11 @@ function InboxPhase0() {
 
 export function InboxPhase0Screen() {
   return (
-    <AppShell header={null} contentClassName="px-0 pb-0">
+    <AppShell
+      header={null}
+      contentClassName="px-0 pb-0"
+      frameClassName="bg-transparent shadow-none"
+    >
       {/* The design-repo bar reads the query string, so it needs a boundary. */}
       <Suspense fallback={null}>
         <InboxPhase0 />

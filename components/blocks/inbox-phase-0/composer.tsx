@@ -5,8 +5,8 @@ import {
   ClockIcon,
   CopyIcon,
   FileTextIcon,
+  InfoIcon,
   LinkIcon,
-  LockIcon,
   PaperclipIcon,
   SendIcon,
   XIcon,
@@ -25,6 +25,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 import {
@@ -43,11 +44,14 @@ import { MEDIA_ICON } from "./shared"
 // computes (24 h after the client's last message, or the moment WhatsApp
 // rejected a send as outside it). There is never a second countdown.
 
-/** The countdown is quiet while there is time, and raises its voice near the
- *  end: amber under two hours, red in the last ten minutes. IX-A2 row 2 only
- *  needs it visible before typing — not loud for 22 of the 24 hours. */
+/** One line. Quiet while there is time, colored only once under two hours are
+ *  left: amber then, red in the last ten minutes. */
 const CLOSING_SOON_MS = 2 * 60 * 60_000
 const CLOSING_NOW_MS = 10 * 60_000
+// Closed card height, with Choose template under the copy. The open composer
+// uses the same so switching chats does not jump the box. The extra room in
+// the open state is the text area.
+const COMPOSER_HEIGHT = "min-h-[204px]"
 
 // ─── Template filling (IX-A4 rows 2–3) ────────────────────────────────────────
 
@@ -99,7 +103,7 @@ function TemplateBody({ segments, copy }: { segments: Segment[]; copy: InboxCopy
   )
 }
 
-function TemplatePicker({
+export function TemplatePicker({
   conversation,
   now,
   copy,
@@ -330,75 +334,35 @@ function AttachmentChip({
 
 function WindowOpenBar({
   closesAt,
-  lastInboundAt,
   now,
   copy,
   lang,
 }: {
   closesAt: number
-  lastInboundAt: string | null
   now: number
   copy: InboxCopy
   lang: Lang
 }) {
   const left = closesAt - now
-  const tone = left < CLOSING_NOW_MS ? "now" : left < CLOSING_SOON_MS ? "soon" : "calm"
+  const closingNow = left < CLOSING_NOW_MS
+  const closingSoon = left < CLOSING_SOON_MS
   return (
-    <div
+    <p
       className={cn(
-        "flex flex-wrap items-center gap-x-3 gap-y-1 rounded-t-2xl px-4 py-2 text-xs",
-        tone === "now"
-          ? "bg-tomato-2 text-tomato-11"
-          : tone === "soon"
-            ? "bg-cami-yellow-2 text-cami-yellow-11"
-            : "border-b border-border/60 text-muted-foreground",
+        "flex items-center gap-1.5 px-4 pt-2.5 text-xs",
+        closingNow
+          ? "font-medium text-tomato-11"
+          : closingSoon
+            ? "font-medium text-cami-yellow-11"
+            : "text-muted-foreground",
       )}
     >
-      <span className={cn("inline-flex items-center gap-1.5", tone !== "calm" && "font-medium")}>
-        <ClockIcon className="size-3.5" aria-hidden />
-        {/* Not a live region: a minute-by-minute announcement is noise. The
-            change a screen reader must hear is the close, and that swaps the
-            whole composer for the closed notice. */}
-        <span>{copy.windowOpen(formatLeft(left, lang))}</span>
-      </span>
-      {lastInboundAt ? (
-        <span className="ms-auto text-muted-foreground">
-          {copy.clientLastWrote(whenLabel(lastInboundAt, now, lang))}
-        </span>
-      ) : null}
-    </div>
-  )
-}
-
-function ClosedNotice({
-  conversation,
-  now,
-  copy,
-  lang,
-}: {
-  conversation: InboxConversation
-  now: number
-  copy: InboxCopy
-  lang: Lang
-}) {
-  const closesAt = conversation.windowClosesAt ? Date.parse(conversation.windowClosesAt) : null
-  // Closed by WhatsApp before Cami's 24 h ran out: the provider's word is final.
-  const byProvider =
-    closesAt !== null &&
-    conversation.lastInboundAt !== null &&
-    closesAt < Date.parse(conversation.lastInboundAt) + 24 * 60 * 60_000 - 1000
-  return (
-    <div className="flex gap-3 rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
-      <LockIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" aria-hidden />
-      <div className="flex flex-col gap-0.5">
-        <p className="font-medium">{copy.windowClosedTitle}</p>
-        <p className="text-muted-foreground">
-          {byProvider || !conversation.lastInboundAt
-            ? copy.providerClosedBody
-            : copy.windowClosedBody(whenLabel(conversation.lastInboundAt, now, lang))}
-        </p>
-      </div>
-    </div>
+      <ClockIcon className="size-3.5 shrink-0" aria-hidden />
+      {/* Not a live region: a minute-by-minute announcement is noise. The
+          change a screen reader must hear is the close, and that swaps the
+          composer for the closed row. */}
+      <span className="min-w-0 truncate">{copy.windowLine(formatLeft(left, lang))}</span>
+    </p>
   )
 }
 
@@ -526,15 +490,14 @@ export function Composer({
 
   if (open) {
     return (
-      <div className="border-t border-border bg-sand-2 px-4 py-3">
-        <div className="rounded-2xl border border-border bg-card shadow-sm transition-shadow focus-within:border-cami-violet-7 focus-within:shadow-md">
-          <WindowOpenBar
-            closesAt={closesAt}
-            lastInboundAt={conversation.lastInboundAt}
-            now={now}
-            copy={copy}
-            lang={lang}
-          />
+      <div className="bg-sand-2 px-4 py-3">
+        <div
+          className={cn(
+            COMPOSER_HEIGHT,
+            "flex flex-col rounded-2xl border border-border bg-card shadow-sm transition-shadow focus-within:border-ring focus-within:shadow-md",
+          )}
+        >
+          <WindowOpenBar closesAt={closesAt} now={now} copy={copy} lang={lang} />
           <Textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -548,7 +511,7 @@ export function Composer({
             dir="auto"
             aria-label={copy.composerPlaceholder}
             placeholder={copy.composerPlaceholder}
-            className="min-h-[52px] resize-none border-0 bg-transparent px-4 pt-3 text-sm leading-relaxed shadow-none focus-visible:ring-0"
+            className="min-h-0 flex-1 resize-none field-sizing-fixed border-0 bg-transparent px-4 pt-3 text-sm leading-relaxed shadow-none focus-visible:ring-0"
           />
           {attachments.length > 0 ? (
             <div className="flex flex-col gap-2 px-3 pb-1">
@@ -565,7 +528,7 @@ export function Composer({
               {rejected ? <p className="text-xs text-tomato-11">{copy.removeRejected}</p> : null}
             </div>
           ) : null}
-          <div className="flex items-center gap-2 px-2 pb-2">
+          <div className="mt-auto flex items-center gap-2 px-2 pb-2">
             <input
               ref={fileInput}
               type="file"
@@ -588,19 +551,25 @@ export function Composer({
             >
               <PaperclipIcon className="size-4" aria-hidden />
             </Button>
-            <span className="ms-auto text-[11px] text-muted-foreground">
-              {isMac ? copy.shortcutHintMac : copy.shortcutHint}
-            </span>
-            <Button
-              type="button"
-              radius="full"
-              className="gap-1.5"
-              disabled={(!draft.trim() && attachments.length === 0) || rejected}
-              onClick={send}
-            >
-              <SendIcon className="size-4 rtl:-scale-x-100" aria-hidden />
-              {copy.send}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="ms-auto inline-flex">
+                  <Button
+                    type="button"
+                    radius="full"
+                    className="gap-1.5"
+                    disabled={(!draft.trim() && attachments.length === 0) || rejected}
+                    onClick={send}
+                  >
+                    <SendIcon className="size-4 rtl:-scale-x-100" aria-hidden />
+                    {copy.send}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                {isMac ? copy.shortcutHintMac : copy.shortcutHint}
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -610,8 +579,7 @@ export function Composer({
   // Closed: free typing is not offered (IX-A4 row 4). Anything typed before it
   // closed is kept, never sent and never thrown away (IX-A2 edge case).
   return (
-    <div className="flex flex-col gap-2 border-t border-border bg-sand-2 px-4 py-3">
-      <ClosedNotice conversation={conversation} now={now} copy={copy} lang={lang} />
+    <div className="flex flex-col gap-2 bg-sand-2 px-4 py-3">
       {draft.trim() ? (
         <KeptDraft
           draft={draft}
@@ -637,26 +605,54 @@ export function Composer({
           }}
         />
       ) : (
-        <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2 shadow-sm">
-          <Textarea
-            disabled
-            rows={1}
-            aria-label={copy.composerPlaceholder}
-            placeholder={copy.typingBlocked}
-            className="min-h-9 flex-1 resize-none border-0 bg-transparent px-2 py-2 text-sm shadow-none disabled:cursor-not-allowed"
-          />
-          <TemplatePicker
-            conversation={conversation}
-            now={now}
-            copy={copy}
-            onPick={setTemplate}
-            trigger={
-              <Button type="button" radius="full" className="shrink-0 gap-1.5">
-                <FileTextIcon className="size-4" aria-hidden />
-                {copy.chooseTemplate}
-              </Button>
-            }
-          />
+        <div
+          className={cn(
+            COMPOSER_HEIGHT,
+            "flex flex-col rounded-2xl border border-border bg-card shadow-sm",
+          )}
+        >
+          <div className="p-3 pb-1">
+            <div className="flex flex-col gap-3 rounded-xl bg-sand-3 p-3">
+              <div className="flex items-start gap-3">
+                <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <p className="text-sm font-semibold text-foreground">{copy.windowClosedTitle}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {copy.windowClosedBody}
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <TemplatePicker
+                  conversation={conversation}
+                  now={now}
+                  copy={copy}
+                  onPick={setTemplate}
+                  trigger={
+                    <Button type="button" radius="full">
+                      {copy.chooseTemplate}
+                    </Button>
+                  }
+                />
+              </div>
+            </div>
+          </div>
+          <div className="mt-auto flex items-center gap-2 px-2 pb-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              radius="full"
+              disabled
+              aria-label={copy.attach}
+            >
+              <PaperclipIcon className="size-4" aria-hidden />
+            </Button>
+            <Button type="button" radius="full" className="ms-auto gap-1.5" disabled>
+              <SendIcon className="size-4 rtl:-scale-x-100" aria-hidden />
+              {copy.send}
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -1,71 +1,43 @@
 "use client"
 
 import {
-  AlertTriangleIcon,
   ArrowLeftIcon,
   CirclePlusIcon,
   HourglassIcon,
   LinkIcon,
   MapPinIcon,
   MessageCircleReplyIcon,
-  ScissorsIcon,
-  SparklesIcon,
   UserRoundIcon,
-  UserRoundSearchIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
-import { formatAed } from "@/app/appointments/mock"
 import {
-  CLIENT_HISTORY,
-  type ClientNote,
   clientsOnNumber,
   type DirectoryClient,
   type InboxConversation,
   searchDirectory,
-  type Visit,
 } from "@/app/messages/inbox/phase-0/mock"
+import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SearchInput } from "@/components/ui/search-input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
-import { dayLabel, formatPhone, type InboxCopy, type Lang, whenLabel } from "./copy"
-import { ConversationAvatar, customerName, guessName, type PaneStatus, Phone } from "./shared"
+import { formatPhone, type InboxCopy, type Lang, whenLabel } from "./copy"
+import { ConversationAvatar, guessName, type PaneStatus, Phone } from "./shared"
 
-// ─── Pane 3 — the client (IX-C6, IX-C3, IX-C4; FND-4 `ClientSummary`) ─────────
-// The pane is a tab host so IX-F7 (S1) can add Calendar without a rebuild. Its
-// body is one of: `ClientSummary` for a matched chat (the customer module will
-// own it — the inbox never builds its own client view, P13); for an unmatched
-// chat, Match and Add and nothing else (P9); or the match search.
+// ─── Pane 3 — the client (IX-C6, IX-C3, IX-C4) ────────────────────────────────
+// The pane is a tab host so IX-F7 (S1) can add Calendar without a rebuild. A
+// matched chat renders the existing client profile inside this pane. An
+// unmatched chat keeps Match and Add (P9), or the match search.
 
 /** The pane's tabs. Phase 0 has one; IX-F7 (S1) adds "calendar". */
 const PANE_TABS: readonly string[] = ["client"]
-
-/** p95 budget for the visits read on staging (contract.md, latency). */
-const VISITS_LATENCY_MS = 450
-const VISITS_SLOW_MS = 3000
 
 export type VisitsMode = "normal" | "slow" | "error"
 export type PhoneChoice = "save" | "same" | "keep" | "replace"
@@ -76,10 +48,6 @@ export type NewClient = {
 }
 /** `repliedAt`: the client has written since — the name may now be in the chat. */
 export type Waiting = { askedAt: string; sent: boolean; repliedAt?: string }
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-xs font-medium text-muted-foreground">{children}</h3>
-}
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: "gray" | "violet" }) {
   return (
@@ -93,212 +61,6 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: "gray" | "
     >
       {children}
     </span>
-  )
-}
-
-// ─── ClientSummary ────────────────────────────────────────────────────────────
-
-/** The second read. Name, pet and last service came with the thread read and
- *  are already painted; this only fills visits and notes in. */
-function useClientHistory(customerId: string, mode: VisitsMode) {
-  const [state, setState] = useState<
-    | { status: "loading" }
-    | { status: "error" }
-    | { status: "ready"; visits: Visit[]; notes: ClientNote[] }
-  >({ status: "loading" })
-  const [attempt, setAttempt] = useState(0)
-
-  useEffect(() => {
-    setState({ status: "loading" })
-    const id = window.setTimeout(
-      () => {
-        if (mode === "error" && attempt === 0) return setState({ status: "error" })
-        const h = CLIENT_HISTORY[customerId] ?? { visits: [], notes: [] }
-        setState({ status: "ready", visits: h.visits.slice(0, 3), notes: h.notes })
-      },
-      mode === "slow" ? VISITS_SLOW_MS : VISITS_LATENCY_MS,
-    )
-    return () => window.clearTimeout(id)
-  }, [customerId, mode, attempt])
-
-  return { state, retry: () => setAttempt((a) => a + 1) }
-}
-
-function VisitRows({ visits, now, lang }: { visits: Visit[]; now: number; lang: Lang }) {
-  return (
-    <ul className="flex flex-col divide-y divide-border/60 rounded-xl ring-1 ring-border/60">
-      {visits.map((v) => (
-        <li key={v.publicId} className="flex items-start justify-between gap-3 px-3 py-2.5">
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-medium text-foreground">{v.service}</span>
-            <span className="text-xs text-muted-foreground">
-              {v.staffName} · {dayLabel(v.at, now, lang)}
-            </span>
-          </span>
-          <span className="shrink-0 text-sm tabular-nums text-foreground">
-            {formatAed(v.amountMinor)}
-          </span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function ClientSummary({
-  conversation,
-  directoryClient,
-  hasPets,
-  now,
-  visitsMode,
-  copy,
-  lang,
-  onChangeMatch,
-}: {
-  conversation: InboxConversation
-  directoryClient: DirectoryClient | undefined
-  hasPets: boolean
-  now: number
-  visitsMode: VisitsMode
-  copy: InboxCopy
-  lang: Lang
-  onChangeMatch: (() => void) | null
-}) {
-  const customer = conversation.customer!
-  const { state, retry } = useClientHistory(customer.publicId, visitsMode)
-  const isNew =
-    state.status === "ready" &&
-    state.visits.length === 0 &&
-    state.notes.length === 0 &&
-    !customer.lastService
-
-  return (
-    <div className="flex flex-col gap-5 p-4">
-      {/* Painted with the messages — no spinner where the name should be. */}
-      <div className="flex items-center gap-3">
-        <ConversationAvatar conversation={conversation} size="lg" />
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate font-heading text-lg font-semibold text-foreground">
-            {customerName(conversation)}
-          </span>
-          <Phone e164={conversation.phoneE164} className="text-sm text-muted-foreground" />
-          {directoryClient?.archived || directoryClient?.homeLocation ? (
-            <span className="flex flex-wrap gap-1 pt-0.5">
-              {directoryClient.archived ? <Badge tone="gray">{copy.archived}</Badge> : null}
-              {directoryClient.homeLocation ? (
-                <Badge tone="violet">
-                  <MapPinIcon className="size-3" aria-hidden />
-                  {copy.atLocation(directoryClient.homeLocation)}
-                </Badge>
-              ) : null}
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      {hasPets && customer.pets.length > 0 ? (
-        <section className="flex flex-col gap-2">
-          <SectionTitle>{copy.pets}</SectionTitle>
-          <ul className="flex flex-col gap-2">
-            {customer.pets.map((pet) => (
-              <li key={pet.name} className="flex items-center gap-2.5">
-                <Avatar size="sm" fallback="species" species={pet.species} shape="square" />
-                <span className="flex flex-col leading-tight">
-                  <span className="text-sm font-medium text-foreground">{pet.name}</span>
-                  <span className="text-xs text-muted-foreground">{pet.breed}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {isNew ? (
-        // IX-C6 row 5: a clean empty panel — not a broken one, not a spinner.
-        <div className="flex flex-col items-center gap-2 rounded-xl bg-muted/40 px-4 py-6 text-center">
-          <SparklesIcon className="size-6 stroke-[1.5] text-muted-foreground/70" aria-hidden />
-          <p className="text-sm font-medium text-foreground">{copy.newClientTitle}</p>
-          <p className="text-balance text-xs text-muted-foreground">{copy.newClientBody}</p>
-        </div>
-      ) : (
-        <>
-          <section className="flex flex-col gap-1.5">
-            <SectionTitle>{copy.lastService}</SectionTitle>
-            {customer.lastService ? (
-              <div className="flex items-center gap-2 text-sm text-foreground">
-                <ScissorsIcon className="size-4 text-muted-foreground" aria-hidden />
-                <span className="font-medium">{customer.lastService.name}</span>
-                <span className="text-muted-foreground">
-                  · {dayLabel(customer.lastService.at, now, lang)}
-                </span>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">{copy.noLastService}</p>
-            )}
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <SectionTitle>{copy.lastVisits}</SectionTitle>
-            {state.status === "loading" ? (
-              <div className="flex flex-col gap-2" aria-hidden>
-                {["a", "b", "c"].map((k) => (
-                  <Skeleton key={k} className="h-12 w-full rounded-xl" />
-                ))}
-              </div>
-            ) : state.status === "error" ? (
-              // The partial state: the name and pet stay; only this read failed.
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-tomato-2 p-3 text-sm">
-                <span className="flex items-center gap-2 text-tomato-11">
-                  <AlertTriangleIcon className="size-4" aria-hidden />
-                  {copy.visitsError}
-                </span>
-                <Button type="button" variant="outline" size="sm" radius="full" onClick={retry}>
-                  {copy.retry}
-                </Button>
-              </div>
-            ) : state.visits.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{copy.noLastService}</p>
-            ) : (
-              <VisitRows visits={state.visits} now={now} lang={lang} />
-            )}
-          </section>
-
-          {state.status === "ready" ? (
-            <section className="flex flex-col gap-2">
-              <div className="flex flex-col gap-0.5">
-                <SectionTitle>{copy.notes}</SectionTitle>
-                <p className="text-[11px] text-muted-foreground/80">{copy.teamOnly}</p>
-              </div>
-              {state.notes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{copy.noNotes}</p>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {state.notes.map((n) => (
-                    <li key={n.publicId} className="rounded-xl bg-cami-yellow-2 p-3 text-sm">
-                      <p className="text-foreground" dir="auto">
-                        {n.body}
-                      </p>
-                      <p className="pt-1 text-[11px] text-muted-foreground">
-                        {n.authorName} · {dayLabel(n.at, now, lang)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ) : null}
-        </>
-      )}
-
-      {onChangeMatch ? (
-        <button
-          type="button"
-          onClick={onChangeMatch}
-          className="self-start text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
-          {copy.changeMatch}
-        </button>
-      ) : null}
-    </div>
   )
 }
 
@@ -323,7 +85,7 @@ function ResultRow({
         onClick={onPick}
         className="flex w-full items-start gap-3 rounded-xl px-2 py-2.5 text-start transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none"
       >
-        <Avatar size="md" name={name} hashSeed={client.publicId} />
+        <Avatar size="md" fallback="character" name={name} hashSeed={client.publicId} />
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-1.5">
             <span className="truncate text-sm font-medium text-foreground">{name}</span>
@@ -495,7 +257,7 @@ function MatchConfirm({
         >
           <ArrowLeftIcon className="size-4 rtl:-scale-x-100" aria-hidden />
         </Button>
-        <Avatar size="lg" name={name} hashSeed={client.publicId} />
+        <Avatar size="lg" fallback="character" name={name} hashSeed={client.publicId} />
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="truncate font-heading text-base font-semibold text-foreground">
             {name}
@@ -559,247 +321,18 @@ function MatchConfirm({
   )
 }
 
-// ─── Add client (IX-C4) ───────────────────────────────────────────────────────
+// ─── Add client ───────────────────────────────────────────────────────────────
+// The inbox opens the existing client form on Profile. The number is already
+// known, so the phone is filled. A name is not guessed from the message.
 
-function AddClientDialog({
-  open,
-  onOpenChange,
-  conversation,
-  directory,
-  hasPets,
-  windowOpen,
-  waiting,
-  now,
-  copy,
-  lang,
-  onSave,
-  onAskName,
-  onMatchInstead,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  conversation: InboxConversation
-  directory: DirectoryClient[]
-  hasPets: boolean
-  windowOpen: boolean
-  waiting: Waiting | null
-  now: number
-  copy: InboxCopy
-  lang: Lang
-  onSave: (c: NewClient) => void
-  onAskName: () => void
-  onMatchInstead: () => void
-}) {
-  const guess = useMemo(() => guessName(conversation.messages), [conversation.messages])
-  const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName] = useState("")
-  const [isGuess, setIsGuess] = useState(false)
-  const [petName, setPetName] = useState("")
-  const [species, setSpecies] = useState<AvatarSpecies>("dog")
-  const [fullOpen, setFullOpen] = useState(false)
-  const existing = clientsOnNumber(directory, conversation.phoneE164)
-
-  // A name in the message fills in, marked as a guess (IX-C4 row 3).
-  useEffect(() => {
-    if (!open) return
-    setFirstName(guess ?? "")
-    setIsGuess(!!guess)
-    setLastName("")
-    setPetName("")
-  }, [open, guess])
-
-  function save() {
-    onSave({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      pet: hasPets && petName.trim() ? { name: petName.trim(), species } : null,
-    })
+function threadPhone(e164: string): { phoneCode: string; phone: string } {
+  if (e164.startsWith("+971") && e164.length === 13) {
+    return {
+      phoneCode: "+971",
+      phone: `${e164.slice(4, 6)} ${e164.slice(6, 9)} ${e164.slice(9)}`,
+    }
   }
-
-  return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent dir={lang === "ar" ? "rtl" : "ltr"} className="gap-4 sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{copy.addTitle}</DialogTitle>
-            <DialogDescription>{copy.addBody}</DialogDescription>
-          </DialogHeader>
-
-          {existing.length > 0 ? (
-            // IX-C4 row 5: never a second client on one number from here.
-            <div className="flex flex-col gap-3 rounded-xl bg-cami-yellow-2 p-3 text-sm">
-              <p className="font-medium text-foreground">
-                {copy.alreadyClientTitle(existing.length)}
-              </p>
-              <p className="text-muted-foreground">{copy.alreadyClientBody}</p>
-              <Button
-                type="button"
-                radius="full"
-                className="gap-1.5 self-start"
-                onClick={onMatchInstead}
-              >
-                <LinkIcon className="size-4" aria-hidden />
-                {copy.matchInstead}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="add-phone">{copy.phone}</Label>
-                <Input
-                  id="add-phone"
-                  value={formatPhone(conversation.phoneE164)}
-                  readOnly
-                  dir="ltr"
-                  // Digits stay LTR; the box still aligns to the form's start.
-                  className={cn("h-10 bg-muted/40", lang === "ar" && "text-right")}
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="add-first">{copy.firstName}</Label>
-                <Input
-                  id="add-first"
-                  value={firstName}
-                  autoFocus
-                  onChange={(e) => {
-                    setFirstName(e.target.value)
-                    setIsGuess(false)
-                  }}
-                  className={cn("h-10", isGuess && "border-cami-violet-7 bg-cami-violet-2")}
-                />
-                {isGuess ? (
-                  <span className="flex items-center gap-1 text-xs text-cami-violet-11">
-                    <SparklesIcon className="size-3" aria-hidden />
-                    {copy.guessed}
-                  </span>
-                ) : null}
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="add-last">
-                  {copy.lastName}{" "}
-                  <span className="font-normal text-muted-foreground">({copy.optional})</span>
-                </Label>
-                <Input
-                  id="add-last"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="h-10"
-                />
-              </div>
-              {hasPets ? (
-                // IX-C4 edge case: with pets, the form offers a first pet; without, it does not.
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="add-pet">
-                    {copy.firstPet}{" "}
-                    <span className="font-normal text-muted-foreground">({copy.optional})</span>
-                  </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="add-pet"
-                      value={petName}
-                      placeholder={copy.petName}
-                      onChange={(e) => setPetName(e.target.value)}
-                      className="h-10 flex-1"
-                    />
-                    <Select
-                      dir={lang === "ar" ? "rtl" : "ltr"}
-                      value={species}
-                      onValueChange={(v) => setSpecies(v as AvatarSpecies)}
-                    >
-                      <SelectTrigger className="h-10 w-28">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(["dog", "cat", "rabbit", "bird", "other"] as const).map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {copy.species[s]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              ) : null}
-
-              {!firstName.trim() ? (
-                // IX-C4 row 4: no name and I do not know it — ask once, never invent one.
-                // Once asked, the button is gone: one question, not one per click.
-                waiting && !waiting.repliedAt ? (
-                  <div className="flex items-start gap-2 rounded-xl bg-cami-violet-2 p-3 text-sm">
-                    <HourglassIcon
-                      className="mt-0.5 size-4 shrink-0 text-cami-violet-11"
-                      aria-hidden
-                    />
-                    <p className="text-muted-foreground">
-                      {copy.alreadyAsked(whenLabel(waiting.askedAt, now, lang))}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2 rounded-xl bg-muted/40 p-3 text-sm">
-                    <p className="text-muted-foreground">
-                      {windowOpen ? copy.askNameBody : copy.waitingClosedBody}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      radius="full"
-                      className="self-start"
-                      onClick={onAskName}
-                    >
-                      {copy.askName}
-                    </Button>
-                  </div>
-                )
-              ) : null}
-
-              <button
-                type="button"
-                onClick={() => setFullOpen(true)}
-                className="self-start text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-              >
-                {copy.fullForm}
-              </button>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              radius="full"
-              onClick={() => onOpenChange(false)}
-            >
-              {copy.cancel}
-            </Button>
-            {existing.length === 0 ? (
-              <Button type="button" radius="full" disabled={!firstName.trim()} onClick={save}>
-                {copy.saveClient}
-              </Button>
-            ) : null}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* IX-C4 edge case: full intake from the same entry — the existing client
-          form, not a copy. Same outcome on save. */}
-      <ClientEditSheet
-        open={fullOpen}
-        onOpenChange={setFullOpen}
-        mode="add"
-        hasPets={hasPets}
-        initial={{
-          firstName,
-          lastName,
-          phoneCode: "+971",
-          phone: conversation.phoneE164.replace(/^\+971/, ""),
-        }}
-        onSave={(v) => {
-          setFullOpen(false)
-          onSave({ firstName: v.firstName, lastName: v.lastName, pet: null })
-        }}
-      />
-    </>
-  )
+  return { phoneCode: "+971", phone: e164 }
 }
 
 // ─── Unmatched ────────────────────────────────────────────────────────────────
@@ -830,70 +363,74 @@ function UnmatchedPane({
 }) {
   const repliedName = waiting?.repliedAt ? guessName(conversation.messages) : null
   return (
-    <div className="flex flex-col items-center gap-4 px-5 py-10 text-center">
-      <span className="inline-flex size-12 items-center justify-center rounded-full bg-cami-yellow-3 text-cami-yellow-11">
-        <UserRoundSearchIcon className="size-6 stroke-[1.5]" aria-hidden />
-      </span>
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium text-foreground">{copy.notMatchedTitle}</p>
-        <Phone e164={conversation.phoneE164} className="text-sm text-muted-foreground" />
-        <p className="mt-1 text-balance text-sm text-muted-foreground">{copy.notMatchedBody}</p>
-      </div>
-      {waiting?.repliedAt ? (
-        // The reply is in. Say so, and offer the form with the name it gave —
-        // still a guess the form marks as one.
-        <div className="flex w-full flex-col gap-2 rounded-xl bg-cami-sage-2 p-3 text-start text-sm">
-          <p className="flex items-center gap-1.5 font-medium text-cami-sage-11">
-            <MessageCircleReplyIcon className="size-4" aria-hidden />
-            {copy.repliedTitle}
-          </p>
-          <p className="text-muted-foreground">
-            {repliedName ? copy.repliedWithName(repliedName) : copy.repliedNoName}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" radius="full" className="gap-1.5" onClick={onAdd}>
-              <CirclePlusIcon className="size-3.5" aria-hidden />
-              {repliedName ? copy.addNamed(repliedName) : copy.add}
-            </Button>
-            <Button type="button" variant="ghost" size="sm" radius="full" onClick={onStopWaiting}>
-              {copy.stopWaiting}
-            </Button>
-          </div>
+    <div className="flex h-full min-h-full flex-1 flex-col items-center justify-center bg-sand-3 px-6 py-8 text-center">
+      <div className="flex w-full flex-col items-center gap-4">
+        <ConversationAvatar
+          conversation={conversation}
+          size="empty"
+          unmatchedLabel={copy.unmatched}
+        />
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium text-foreground">{copy.notMatchedTitle}</p>
+          <Phone e164={conversation.phoneE164} className="text-sm text-muted-foreground" />
+          <p className="mt-1 text-balance text-sm text-muted-foreground">{copy.notMatchedBody}</p>
         </div>
-      ) : waiting ? (
-        // IX-C4 row 4 / P10: the form waits. With the window closed nothing
-        // was sent; the question can go as a template (verified under IX-A4).
-        <div className="flex w-full flex-col gap-2 rounded-xl bg-cami-violet-2 p-3 text-start text-sm">
-          <p className="flex items-center gap-1.5 font-medium text-cami-violet-11">
-            <HourglassIcon className="size-4" aria-hidden />
-            {copy.waitingTitle}
-          </p>
-          <p className="text-muted-foreground">
-            {waiting.sent
-              ? copy.waitingBody(whenLabel(waiting.askedAt, now, lang))
-              : copy.waitingClosedBody}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {!waiting.sent && !windowOpen ? (
-              <Button type="button" size="sm" radius="full" onClick={onSendAskTemplate}>
-                {copy.sendAsTemplate}
+        {waiting?.repliedAt ? (
+          // The reply is in. Say so, and offer the form with the name it gave —
+          // still a guess the form marks as one.
+          <div className="flex w-full flex-col gap-2 rounded-xl bg-cami-sage-2 p-3 text-start text-sm">
+            <p className="flex items-center gap-1.5 font-medium text-cami-sage-11">
+              <MessageCircleReplyIcon className="size-4" aria-hidden />
+              {copy.repliedTitle}
+            </p>
+            <p className="text-muted-foreground">
+              {repliedName ? copy.repliedWithName(repliedName) : copy.repliedNoName}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" radius="full" className="gap-1.5" onClick={onAdd}>
+                <CirclePlusIcon className="size-3.5" aria-hidden />
+                {repliedName ? copy.addNamed(repliedName) : copy.add}
               </Button>
-            ) : null}
-            <Button type="button" variant="ghost" size="sm" radius="full" onClick={onStopWaiting}>
-              {copy.stopWaiting}
-            </Button>
+              <Button type="button" variant="ghost" size="sm" radius="full" onClick={onStopWaiting}>
+                {copy.stopWaiting}
+              </Button>
+            </div>
           </div>
+        ) : waiting ? (
+          // IX-C4 row 4 / P10: the form waits. With the window closed nothing
+          // was sent; the question can go as a template (verified under IX-A4).
+          <div className="flex w-full flex-col gap-2 rounded-xl bg-cami-violet-2 p-3 text-start text-sm">
+            <p className="flex items-center gap-1.5 font-medium text-cami-violet-11">
+              <HourglassIcon className="size-4" aria-hidden />
+              {copy.waitingTitle}
+            </p>
+            <p className="text-muted-foreground">
+              {waiting.sent
+                ? copy.waitingBody(whenLabel(waiting.askedAt, now, lang))
+                : copy.waitingClosedBody}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {!waiting.sent && !windowOpen ? (
+                <Button type="button" size="sm" radius="full" onClick={onSendAskTemplate}>
+                  {copy.sendAsTemplate}
+                </Button>
+              ) : null}
+              <Button type="button" variant="ghost" size="sm" radius="full" onClick={onStopWaiting}>
+                {copy.stopWaiting}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+        <div className="flex w-full flex-col gap-2">
+          <Button radius="full" className="w-full gap-1.5" onClick={onMatch}>
+            <LinkIcon className="size-4" aria-hidden />
+            {copy.match}
+          </Button>
+          <Button variant="outline" radius="full" className="w-full gap-1.5" onClick={onAdd}>
+            <CirclePlusIcon className="size-4" aria-hidden />
+            {copy.add}
+          </Button>
         </div>
-      ) : null}
-      <div className="flex w-full flex-col gap-2">
-        <Button radius="full" className="w-full gap-1.5" onClick={onMatch}>
-          <LinkIcon className="size-4" aria-hidden />
-          {copy.match}
-        </Button>
-        <Button variant="outline" radius="full" className="w-full gap-1.5" onClick={onAdd}>
-          <CirclePlusIcon className="size-4" aria-hidden />
-          {copy.add}
-        </Button>
       </div>
     </div>
   )
@@ -941,14 +478,12 @@ export function ClientPane({
   waiting,
   windowOpen,
   hasPets,
-  visitsMode,
   canEdit,
   now,
   copy,
   lang,
   onMatch,
   onCreate,
-  onAskName,
   onSendAskTemplate,
   onStopWaiting,
 }: {
@@ -974,6 +509,10 @@ export function ClientPane({
 }) {
   const [picked, setPicked] = useState<DirectoryClient | null>(null)
   const [addOpen, setAddOpen] = useState(false)
+  const addInitial = useMemo(
+    () => ({ firstName: "", ...threadPhone(conversation?.phoneE164 ?? "") }),
+    [conversation?.phoneE164],
+  )
   const chatId = conversation?.publicId
 
   // A different chat, or leaving the search, forgets the half-made pick.
@@ -1027,18 +566,40 @@ export function ClientPane({
         />
       )
     } else if (conversation.customer) {
+      const customer = conversation.customer
+      const name = [customer.firstName, customer.lastName].filter(Boolean).join(" ")
       body = (
-        <ClientSummary
-          key={conversation.customer.publicId}
-          conversation={conversation}
-          directoryClient={directoryClient}
-          hasPets={hasPets}
-          now={now}
-          visitsMode={visitsMode}
-          copy={copy}
-          lang={lang}
-          onChangeMatch={canEdit ? () => onModeChange("match") : null}
-        />
+        <div
+          key={customer.publicId}
+          className="flex h-full min-h-0 flex-1 flex-col overflow-hidden"
+        >
+          <ClientDetailDialog
+            embedded
+            hasPets={hasPets}
+            client={{
+              id: customer.publicId,
+              name,
+              phone: formatPhone(conversation.phoneE164),
+              email: directoryClient?.email ?? undefined,
+              pets: customer.pets.map((pet) => ({
+                id: pet.name,
+                name: pet.name,
+                species: pet.species,
+              })),
+            }}
+          />
+          {canEdit ? (
+            <div className="shrink-0 border-t border-border px-4 py-2">
+              <button
+                type="button"
+                onClick={() => onModeChange("match")}
+                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                {copy.changeMatch}
+              </button>
+            </div>
+          ) : null}
+        </div>
       )
     } else if (!canEdit) {
       body = (
@@ -1065,8 +626,17 @@ export function ClientPane({
     }
   }
 
+  const unmatchedFill =
+    status === "ready" && !!conversation && !conversation.customer && mode === "summary" && canEdit
+
   return (
-    <aside className="flex w-80 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <aside
+      data-inbox-profile
+      className={cn(
+        "flex w-[26rem] max-w-[26rem] min-w-0 shrink flex-col overflow-hidden rounded-2xl border border-border shadow-sm",
+        unmatchedFill ? "bg-sand-3" : "bg-card",
+      )}
+    >
       <Tabs
         defaultValue="client"
         dir={lang === "ar" ? "rtl" : "ltr"}
@@ -1086,33 +656,30 @@ export function ClientPane({
             </TabsList>
           </div>
         ) : null}
-        <TabsContent value="client" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <TabsContent
+          value="client"
+          className={cn(
+            "flex min-h-0 flex-1 flex-col overflow-y-auto",
+            unmatchedFill && "bg-sand-3",
+          )}
+        >
           {body ?? <PanePlaceholder copy={copy} />}
         </TabsContent>
       </Tabs>
       {conversation && !conversation.customer ? (
-        <AddClientDialog
+        <ClientEditSheet
           open={addOpen}
           onOpenChange={setAddOpen}
-          conversation={conversation}
-          directory={directory}
+          mode="add"
+          initialSection="profile"
           hasPets={hasPets}
-          windowOpen={windowOpen}
-          waiting={waiting}
-          now={now}
-          copy={copy}
-          lang={lang}
-          onSave={(c) => {
-            onCreate(c)
-            setAddOpen(false)
-          }}
-          onAskName={() => {
-            onAskName()
-            setAddOpen(false)
-          }}
-          onMatchInstead={() => {
-            setAddOpen(false)
-            onModeChange("match")
+          initial={addInitial}
+          onSave={(v) => {
+            onCreate({
+              firstName: v.firstName.trim(),
+              lastName: v.lastName.trim(),
+              pet: null,
+            })
           }}
         />
       ) : null}
