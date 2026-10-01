@@ -536,7 +536,7 @@ function InboxPhase0() {
   const threadAnchor = useThreadAnchor(access === "full" || access === "read-only", lang, width)
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col p-3">
       {/* The chip floats in the top bar, centered on the thread. A portal keeps
           it above the topbar, which would otherwise eat the clicks. */}
       {threadAnchor

@@ -702,8 +702,8 @@ export function Thread({
   copy: InboxCopy
   lang: Lang
 }) {
-  // T1-D1: list 18rem, client pane 20rem. The thread takes the rest and
-  // stays at least as wide as it is in the 1280 frame.
+  // The thread takes the remaining width, at least 580px. Messages and the
+  // composer share one centered column, max 1000px. The pane itself stays wider.
   return (
     <section
       data-inbox-thread
@@ -733,35 +733,42 @@ export function Thread({
       ) : (
         <>
           <ThreadHeader conversation={conversation} />
-          <MessageList
-            key={conversation.publicId}
-            conversation={conversation}
-            now={now}
-            copy={copy}
-            lang={lang}
-            onRetry={onRetrySend}
-            canReply={canReply}
-          />
-          {canReply ? (
-            <Composer
-              key={`composer-${conversation.publicId}`}
-              conversation={conversation}
-              now={now}
-              copy={copy}
-              lang={lang}
-              onSendText={onSendText}
-              onSendTemplate={onSendTemplate}
-              onMatch={onMatch}
-            />
-          ) : (
-            <div className="flex items-start gap-3 border-t border-border bg-sand-2 px-5 py-4 text-sm">
-              <LockIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <div className="flex flex-col gap-0.5">
-                <p className="font-medium text-foreground">{copy.readOnlyTitle}</p>
-                <p className="text-muted-foreground">{copy.readOnlyBody}</p>
-              </div>
+          <div className="flex min-h-0 w-full flex-1 flex-col bg-sand-2">
+            <div
+              data-inbox-thread-column
+              className="mx-auto flex min-h-0 w-full max-w-[1000px] flex-1 flex-col"
+            >
+              <MessageList
+                key={conversation.publicId}
+                conversation={conversation}
+                now={now}
+                copy={copy}
+                lang={lang}
+                onRetry={onRetrySend}
+                canReply={canReply}
+              />
+              {canReply ? (
+                <Composer
+                  key={`composer-${conversation.publicId}`}
+                  conversation={conversation}
+                  now={now}
+                  copy={copy}
+                  lang={lang}
+                  onSendText={onSendText}
+                  onSendTemplate={onSendTemplate}
+                  onMatch={onMatch}
+                />
+              ) : (
+                <div className="flex items-start gap-3 border-t border-border bg-sand-2 px-5 py-4 text-sm">
+                  <LockIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <div className="flex flex-col gap-0.5">
+                    <p className="font-medium text-foreground">{copy.readOnlyTitle}</p>
+                    <p className="text-muted-foreground">{copy.readOnlyBody}</p>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </>
       )}
     </section>

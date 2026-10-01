@@ -29,6 +29,7 @@ import {
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { DocumentsFormsAndFiles } from "@/components/blocks/documents-files-card"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { NoteDialog } from "@/components/blocks/note-dialog"
 import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
@@ -429,10 +430,10 @@ export function ClientDetailDialog({
   const totalSalesMinor = profile.salesMinor
 
   const metaLine = (
-    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted-foreground">
-      {client.phone ? <span className="truncate">{client.phone}</span> : null}
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1.5 overflow-hidden text-sm text-muted-foreground">
+      {client.phone ? <span className="min-w-0 max-w-full truncate">{client.phone}</span> : null}
       {client.email ? (
-        <span className="truncate">
+        <span className="min-w-0 max-w-full truncate">
           {client.phone ? "· " : null}
           {client.email}
         </span>
@@ -476,12 +477,14 @@ export function ClientDetailDialog({
       <div className="flex flex-col gap-0 bg-muted/40">
         <DialogHeader
           className={cn(
-            "flex flex-row items-center gap-3 pt-[34px] pb-5",
+            "flex min-w-0 flex-row flex-nowrap items-center gap-3 pt-[34px] pb-5",
             embedded ? "px-4" : "px-9",
           )}
         >
-          <Avatar size="lg" fallback="character" name={client.name} hashSeed={client.id} />
-          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="shrink-0">
+            <Avatar size="lg" fallback="character" name={client.name} hashSeed={client.id} />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 overflow-hidden">
             {embedded ? (
               <h2 className="truncate font-heading text-[22px] leading-7 font-semibold text-foreground">
                 {client.name}
@@ -604,6 +607,7 @@ export function ClientDetailDialog({
             onEditPreferences={() => openEditClientAt("preferences")}
             onAddPet={() => setAddPetOpen(true)}
             onSelectPet={setSelectedPetId}
+            narrow={embedded}
           />
         </TabsContent>
         <TabsContent value="appointments" className="flex flex-col gap-4">
@@ -1707,6 +1711,42 @@ function ClientNotesCard({
   )
 }
 
+function UpcomingAppointmentCard({
+  next,
+  pets,
+  hasPets,
+}: {
+  next: ClientAppointment | null
+  pets: MockPet[]
+  hasPets: boolean
+}) {
+  const petName = next && hasPets ? (pets.find((p) => p.id === next.petId)?.name ?? null) : null
+  const staff = next ? Array.from(new Set(next.services.map((s) => s.staff))) : []
+  const meta = next
+    ? [
+        staff.length > 0 ? `with ${staff.join(", ")}` : null,
+        `${next.weekday} ${next.dayMonth} · ${next.time}`,
+        petName,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : null
+  const title = next ? next.services.map((s) => s.name).join(" + ") : null
+
+  return (
+    <SectionCard title="Upcoming appointment">
+      {title ? (
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="truncate text-sm font-medium text-foreground">{title}</span>
+          {meta ? <span className="truncate text-xs text-muted-foreground">{meta}</span> : null}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">No upcoming appointment yet.</p>
+      )}
+    </SectionCard>
+  )
+}
+
 export function ClientOverview({
   clientId,
   notes,
@@ -1724,6 +1764,7 @@ export function ClientOverview({
   onEditPreferences,
   onAddPet,
   onSelectPet,
+  narrow = false,
 }: {
   clientId?: string
   /** Handed in by the dialog, which owns them so both tabs agree. Falls back
@@ -1743,10 +1784,45 @@ export function ClientOverview({
   onEditPreferences?: () => void
   onAddPet?: () => void
   onSelectPet?: (petId: string) => void
+  /** Pane-width overview: 2×2 KPI cards, then the next appointment, then pets. */
+  narrow?: boolean
 }) {
   // Derived here rather than passed in, so the playground's standalone render
   // of this component answers the same as the dialog's.
   const visitsByBranch = branchSpread(branchedVisits(profile.appointments))
+  if (narrow) {
+    return (
+      <div className="flex flex-col gap-3">
+        <KpiGrid>
+          <KpiCard
+            label="Upcoming"
+            value={String(upcoming)}
+            info="Count of bookings in the future for this client."
+          />
+          <KpiCard
+            label="Total appts"
+            value={String(appts)}
+            info="Lifetime appointment count, including no-shows and cancellations."
+          />
+          <KpiCard
+            label="Total sales"
+            value={formatAed(salesMinor)}
+            info="Lifetime revenue from this client."
+          />
+          <KpiCard
+            label="No-shows"
+            value={String(noShows)}
+            info="Lifetime count of no-shows."
+            onClick={noShows > 0 ? onNoShowsClick : undefined}
+          />
+        </KpiGrid>
+        <UpcomingAppointmentCard next={nextAppointment} pets={profile.pets} hasPets={hasPets} />
+        {hasPets ? (
+          <PetsOverviewCard pets={profile.pets} onAddPet={onAddPet} onSelectPet={onSelectPet} />
+        ) : null}
+      </div>
+    )
+  }
   return (
     <div className="flex flex-col gap-3">
       <OverviewHeaderBlock
