@@ -48,6 +48,9 @@ import { MEDIA_ICON } from "./shared"
  *  left: amber then, red in the last ten minutes. */
 const CLOSING_SOON_MS = 2 * 60 * 60_000
 const CLOSING_NOW_MS = 10 * 60_000
+// Closed card height. The open composer uses the same so switching chats does
+// not jump the box. The extra room in the open state is the text area.
+const COMPOSER_HEIGHT = "min-h-[178px]"
 
 // ─── Template filling (IX-A4 rows 2–3) ────────────────────────────────────────
 
@@ -487,7 +490,12 @@ export function Composer({
   if (open) {
     return (
       <div className="bg-sand-2 px-4 py-3">
-        <div className="rounded-2xl border border-border bg-card shadow-sm transition-shadow focus-within:border-ring focus-within:shadow-md">
+        <div
+          className={cn(
+            COMPOSER_HEIGHT,
+            "flex flex-col rounded-2xl border border-border bg-card shadow-sm transition-shadow focus-within:border-ring focus-within:shadow-md",
+          )}
+        >
           <WindowOpenBar closesAt={closesAt} now={now} copy={copy} lang={lang} />
           <Textarea
             value={draft}
@@ -502,7 +510,7 @@ export function Composer({
             dir="auto"
             aria-label={copy.composerPlaceholder}
             placeholder={copy.composerPlaceholder}
-            className="min-h-[52px] resize-none border-0 bg-transparent px-4 pt-3 text-sm leading-relaxed shadow-none focus-visible:ring-0"
+            className="min-h-0 flex-1 resize-none field-sizing-fixed border-0 bg-transparent px-4 pt-3 text-sm leading-relaxed shadow-none focus-visible:ring-0"
           />
           {attachments.length > 0 ? (
             <div className="flex flex-col gap-2 px-3 pb-1">
@@ -519,7 +527,7 @@ export function Composer({
               {rejected ? <p className="text-xs text-tomato-11">{copy.removeRejected}</p> : null}
             </div>
           ) : null}
-          <div className="flex items-center gap-2 px-2 pb-2">
+          <div className="mt-auto flex items-center gap-2 px-2 pb-2">
             <input
               ref={fileInput}
               type="file"
@@ -596,7 +604,12 @@ export function Composer({
           }}
         />
       ) : (
-        <div className="rounded-2xl border border-border bg-card shadow-sm">
+        <div
+          className={cn(
+            COMPOSER_HEIGHT,
+            "flex flex-col rounded-2xl border border-border bg-card shadow-sm",
+          )}
+        >
           <div className="p-3 pb-1">
             <div className="flex items-start gap-3 rounded-xl bg-sand-3 p-3">
               <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -619,7 +632,7 @@ export function Composer({
               />
             </div>
           </div>
-          <div className="flex items-center gap-2 px-2 pb-2">
+          <div className="mt-auto flex items-center gap-2 px-2 pb-2">
             <Button
               type="button"
               variant="ghost"
