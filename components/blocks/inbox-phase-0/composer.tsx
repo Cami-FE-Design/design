@@ -48,9 +48,10 @@ import { MEDIA_ICON } from "./shared"
  *  left: amber then, red in the last ten minutes. */
 const CLOSING_SOON_MS = 2 * 60 * 60_000
 const CLOSING_NOW_MS = 10 * 60_000
-// Closed card height. The open composer uses the same so switching chats does
-// not jump the box. The extra room in the open state is the text area.
-const COMPOSER_HEIGHT = "min-h-[178px]"
+// Closed card height, with Choose template under the copy. The open composer
+// uses the same so switching chats does not jump the box. The extra room in
+// the open state is the text area.
+const COMPOSER_HEIGHT = "min-h-[204px]"
 
 // ─── Template filling (IX-A4 rows 2–3) ────────────────────────────────────────
 
@@ -611,25 +612,29 @@ export function Composer({
           )}
         >
           <div className="p-3 pb-1">
-            <div className="flex items-start gap-3 rounded-xl bg-sand-3 p-3">
-              <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <p className="text-sm font-semibold text-foreground">{copy.windowClosedTitle}</p>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  {copy.windowClosedBody}
-                </p>
+            <div className="flex flex-col gap-3 rounded-xl bg-sand-3 p-3">
+              <div className="flex items-start gap-3">
+                <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                  <p className="text-sm font-semibold text-foreground">{copy.windowClosedTitle}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {copy.windowClosedBody}
+                  </p>
+                </div>
               </div>
-              <TemplatePicker
-                conversation={conversation}
-                now={now}
-                copy={copy}
-                onPick={setTemplate}
-                trigger={
-                  <Button type="button" size="sm" className="shrink-0">
-                    {copy.chooseTemplate}
-                  </Button>
-                }
-              />
+              <div className="flex justify-end">
+                <TemplatePicker
+                  conversation={conversation}
+                  now={now}
+                  copy={copy}
+                  onPick={setTemplate}
+                  trigger={
+                    <Button type="button" radius="full">
+                      {copy.chooseTemplate}
+                    </Button>
+                  }
+                />
+              </div>
             </div>
           </div>
           <div className="mt-auto flex items-center gap-2 px-2 pb-2">

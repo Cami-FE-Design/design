@@ -47,9 +47,8 @@ const GROUP_GAP_MS = 5 * 60_000
 const FLOATING_DAY_MS = 1200
 
 function ThreadHeader({ conversation }: { conversation: InboxConversation }) {
-  // Same shell as the Inbox list header (px-4 py-3). The title row is 32px,
-  // the search button's height, so the bottom borders line up. One line: the
-  // name, or the number when unmatched. No phone line and no search icon.
+  // Same shell as the Inbox list header (px-4 py-3, title row min-h-8) so the
+  // bottom borders line up. One line: the name, or the number when unmatched.
   return (
     <header className="flex min-w-0 items-center border-b border-border px-4 py-3">
       <h2 className="flex min-h-8 min-w-0 flex-1 items-center">
@@ -704,7 +703,10 @@ export function Thread({
   lang: Lang
 }) {
   return (
-    <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <section
+      data-inbox-thread
+      className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+    >
       {status === "loading" ? (
         <ThreadSkeleton />
       ) : status === "error" ? (

@@ -1,18 +1,11 @@
 "use client"
 
-import {
-  AlertCircleIcon,
-  AlertTriangleIcon,
-  MessageCircleIcon,
-  SearchIcon,
-  SearchXIcon,
-} from "lucide-react"
-import { useMemo, useState } from "react"
+import { AlertCircleIcon, AlertTriangleIcon, MessageCircleIcon } from "lucide-react"
+import { useMemo } from "react"
 
 import { CURRENT_STAFF, type InboxConversation } from "@/app/messages/inbox/phase-0/mock"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { Button } from "@/components/ui/button"
-import { SearchInput } from "@/components/ui/search-input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -151,66 +144,20 @@ export function ConversationList({
   lang: Lang
   now: number
 }) {
-  const [query, setQuery] = useState("")
-  const [searchOpen, setSearchOpen] = useState(false)
-
-  function closeSearch() {
-    setQuery("")
-    setSearchOpen(false)
-  }
   const sorted = useMemo(
     () => [...conversations].sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt)),
     [conversations],
   )
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return sorted
-    const digits = q.replace(/\D/g, "")
-    return sorted.filter((c) => {
-      const last = c.messages[c.messages.length - 1]
-      return (
-        customerName(c)?.toLowerCase().includes(q) ||
-        (digits.length >= 3 && c.phoneE164.includes(digits)) ||
-        last?.body?.toLowerCase().includes(q)
-      )
-    })
-  }, [sorted, query])
 
   return (
     <aside
       aria-label={copy.chatList}
       className="flex w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
     >
-      <div className="flex flex-col gap-2 border-b border-border px-4 py-3">
-        <div className="flex items-center gap-2">
-          <h1 className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">
-            {copy.inbox}
-          </h1>
-          <button
-            type="button"
-            aria-label={copy.search}
-            aria-expanded={searchOpen}
-            disabled={status !== "ready"}
-            onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
-            className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-sand-3 text-foreground transition-colors hover:bg-sand-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cami-violet-8 disabled:opacity-50"
-          >
-            <SearchIcon className="size-4" aria-hidden />
-          </button>
-        </div>
-        {searchOpen ? (
-          <SearchInput
-            size="default"
-            containerClassName="w-full"
-            className="h-9 w-full"
-            autoFocus
-            onValueChange={setQuery}
-            onClear={closeSearch}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") closeSearch()
-            }}
-            placeholder={copy.searchPlaceholder}
-          />
-        ) : null}
+      <div className="flex items-center border-b border-border px-4 py-3">
+        <h1 className="flex min-h-8 min-w-0 flex-1 items-center truncate text-base font-semibold text-foreground">
+          {copy.inbox}
+        </h1>
       </div>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-sand-3">
         {status === "loading" ? (
@@ -234,11 +181,9 @@ export function ConversationList({
             title={copy.listEmptyTitle}
             description={copy.listEmptyBody}
           />
-        ) : filtered.length === 0 ? (
-          <EmptyState className="flex-1" icon={SearchXIcon} title={copy.noResults} />
         ) : (
           <ul>
-            {filtered.map((c) => (
+            {sorted.map((c) => (
               <ConversationRow
                 key={c.publicId}
                 conversation={c}

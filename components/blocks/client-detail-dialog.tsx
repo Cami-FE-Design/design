@@ -89,6 +89,8 @@ export type ClientDetailClient = {
   name: string
   phone?: string
   email?: string
+  /** Pets when the caller already has them and this id is not a clients-table record. */
+  pets?: Array<{ id: string; name: string; species: AvatarSpecies }>
   /** Optional recency label rendered inline with the meta line, e.g. "First visit" or "4 weeks". */
   recencyLabel?: string
   /** Stable identifier used as the avatar hash seed. Falls back to name. */
@@ -108,8 +110,13 @@ export type ClientDetailClient = {
 }
 
 type ClientDetailDialogProps = {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /**
+   * Render the same profile (header, Book, tabs, Overview) in the parent,
+   * instead of the centered dialog. The parent scrolls it.
+   */
+  embedded?: boolean
   client: ClientDetailClient
   /**
    * True for partners that manage pets (vet, groomer, pet store). False for
@@ -289,7 +296,10 @@ export function resolveProfile(client: ClientDetailClient): OverviewProfile {
     tags: resolveTags(client, record),
     // Name and species come off the client record; PET_DETAILS adds only the
     // breed and weight a record has no room for. One list of pets, not two.
-    pets: (record?.pets ?? []).map((pet) => ({ ...pet, ...PET_DETAILS[pet.id] })),
+    pets: (record?.pets?.length ? record.pets : (client.pets ?? [])).map((pet) => ({
+      ...pet,
+      ...PET_DETAILS[pet.id],
+    })),
     appointments: activity.appointments,
     sales: activity.sales,
     salesMinor: (record?.salesAed ?? 0) * 100,
@@ -316,8 +326,9 @@ export function resolveProfile(client: ClientDetailClient): OverviewProfile {
  * Skeleton: each tab renders a placeholder. Real content arrives per-section.
  */
 export function ClientDetailDialog({
-  open,
+  open = false,
   onOpenChange,
+  embedded = false,
   client,
   hasPets = true,
   isOwner = false,
@@ -417,532 +428,523 @@ export function ClientDetailDialog({
   // Lifetime sales: everything invoiced except drafts and refunds.
   const totalSalesMinor = profile.salesMinor
 
-  return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent
-          className="!max-w-[630px] flex h-[800px] max-h-[calc(100vh-100px)] flex-col gap-0 p-0 sm:!max-w-[630px]"
-          onOpenAutoFocus={(e) => e.preventDefault()}
+  const metaLine = (
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted-foreground">
+      {client.phone ? <span className="truncate">{client.phone}</span> : null}
+      {client.email ? (
+        <span className="truncate">
+          {client.phone ? "· " : null}
+          {client.email}
+        </span>
+      ) : null}
+      {client.recencyLabel ? <RecencyBadge>{client.recencyLabel}</RecencyBadge> : null}
+      {noShowCount > 0 ? (
+        <button
+          type="button"
+          onClick={() => setNoShowDialogOpen(true)}
+          className="inline-flex size-5 cursor-pointer items-center justify-center rounded-full bg-tomato-8 text-xs font-medium text-tomato-12 transition-colors hover:bg-tomato-9"
+          aria-label={`Show ${noShowCount} no-show appointment${noShowCount === 1 ? "" : "s"}`}
         >
-          <Tabs
-            value={tab}
-            onValueChange={(v) => setTab(v as TabId)}
-            className="flex min-h-0 flex-1 flex-col"
-          >
-            <div className="flex flex-col gap-0 bg-muted/40">
-              <DialogHeader className="flex flex-row items-center gap-3 px-9 pt-[34px] pb-5">
-                <Avatar size="lg" fallback="character" name={client.name} hashSeed={client.id} />
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
-                    {client.name}
-                  </DialogTitle>
-                  <DialogDescription asChild>
-                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-sm text-muted-foreground">
-                      {client.phone ? <span className="truncate">{client.phone}</span> : null}
-                      {client.email ? (
-                        <span className="truncate">
-                          {client.phone ? "· " : null}
-                          {client.email}
-                        </span>
-                      ) : null}
-                      {client.recencyLabel ? (
-                        <RecencyBadge>{client.recencyLabel}</RecencyBadge>
-                      ) : null}
-                      {noShowCount > 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => setNoShowDialogOpen(true)}
-                          className="inline-flex size-5 cursor-pointer items-center justify-center rounded-full bg-tomato-8 text-xs font-medium text-tomato-12 transition-colors hover:bg-tomato-9"
-                          aria-label={`Show ${noShowCount} no-show appointment${noShowCount === 1 ? "" : "s"}`}
-                        >
-                          {noShowCount}
-                        </button>
-                      ) : null}
-                      {unpaidMinor > 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setTab("sales")
-                            setSaleStatus("unpaid")
-                          }}
-                          className="inline-flex cursor-pointer items-center rounded-full bg-cami-yellow-3 px-2.5 py-0.5 text-xs font-medium text-cami-yellow-11 transition-colors hover:bg-cami-yellow-4"
-                          aria-label={`Show unpaid sales — ${formatAed(unpaidMinor)}`}
-                        >
-                          {formatAed(unpaidMinor)}
-                        </button>
-                      ) : null}
-                      {!client.phone &&
-                      !client.email &&
-                      !client.recencyLabel &&
-                      !noShowCount &&
-                      !unpaidMinor ? (
-                        <span>—</span>
-                      ) : null}
-                    </div>
-                  </DialogDescription>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    radius="full"
-                    onClick={onBookNow}
-                    className="hidden sm:inline-flex"
-                  >
-                    Book
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon-sm"
-                        radius="full"
-                        aria-label="Actions"
-                      >
-                        <MoreHorizontalIcon className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onSelect={() => openEditClientAt("profile")}>
-                        Edit client details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem disabled={!isOwner} onSelect={onMerge}>
-                        Merge profiles
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        disabled={!isOwner}
-                        onSelect={onDelete}
-                        variant="destructive"
-                      >
-                        Delete client
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <DialogClose asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      radius="full"
-                      aria-label="Close"
-                    >
-                      <XIcon className="size-4" />
-                    </Button>
-                  </DialogClose>
-                </div>
-              </DialogHeader>
+          {noShowCount}
+        </button>
+      ) : null}
+      {unpaidMinor > 0 ? (
+        <button
+          type="button"
+          onClick={() => {
+            setTab("sales")
+            setSaleStatus("unpaid")
+          }}
+          className="inline-flex cursor-pointer items-center rounded-full bg-cami-yellow-3 px-2.5 py-0.5 text-xs font-medium text-cami-yellow-11 transition-colors hover:bg-cami-yellow-4"
+          aria-label={`Show unpaid sales — ${formatAed(unpaidMinor)}`}
+        >
+          {formatAed(unpaidMinor)}
+        </button>
+      ) : null}
+      {!client.phone && !client.email && !client.recencyLabel && !noShowCount && !unpaidMinor ? (
+        <span>—</span>
+      ) : null}
+    </div>
+  )
 
-              <div className="flex items-center gap-6 px-9">
-                <TabsList variant="underline">
-                  {visiblePrimaryTabs.map((t) => (
-                    <TabsTrigger
-                      key={t.id}
-                      value={t.id}
-                      className={cn(!t.mobileVisible && "hidden md:inline-flex")}
+  const profileView = (
+    <Tabs
+      value={tab}
+      onValueChange={(v) => setTab(v as TabId)}
+      className="flex min-h-0 flex-1 flex-col"
+    >
+      <div className="flex flex-col gap-0 bg-muted/40">
+        <DialogHeader
+          className={cn(
+            "flex flex-row items-center gap-3 pt-[34px] pb-5",
+            embedded ? "px-4" : "px-9",
+          )}
+        >
+          <Avatar size="lg" fallback="character" name={client.name} hashSeed={client.id} />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            {embedded ? (
+              <h2 className="truncate font-heading text-[22px] leading-7 font-semibold text-foreground">
+                {client.name}
+              </h2>
+            ) : (
+              <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
+                {client.name}
+              </DialogTitle>
+            )}
+            {embedded ? metaLine : <DialogDescription asChild>{metaLine}</DialogDescription>}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              radius="full"
+              onClick={onBookNow}
+              className={embedded ? undefined : "hidden sm:inline-flex"}
+            >
+              Book
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon-sm"
+                  radius="full"
+                  aria-label="Actions"
+                >
+                  <MoreHorizontalIcon className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onSelect={() => openEditClientAt("profile")}>
+                  Edit client details
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled={!isOwner} onSelect={onMerge}>
+                  Merge profiles
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled={!isOwner} onSelect={onDelete} variant="destructive">
+                  Delete client
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {embedded ? null : (
+              <DialogClose asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  radius="full"
+                  aria-label="Close"
+                >
+                  <XIcon className="size-4" />
+                </Button>
+              </DialogClose>
+            )}
+          </div>
+        </DialogHeader>
+
+        <div className={cn("flex items-center gap-6", embedded ? "overflow-x-auto px-4" : "px-9")}>
+          <TabsList variant="underline">
+            {visiblePrimaryTabs.map((t) => (
+              <TabsTrigger
+                key={t.id}
+                value={t.id}
+                className={cn(!t.mobileVisible && "hidden md:inline-flex")}
+              >
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {mobileMoreTabs.length > 0 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  data-active={activeMobileMoreTab ? "true" : undefined}
+                  className={cn(
+                    "relative inline-flex h-10 items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground md:hidden",
+                    "after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-foreground after:opacity-0 after:transition-opacity data-active:after:opacity-100",
+                    activeMobileMoreTab && "text-foreground",
+                  )}
+                >
+                  {activeMobileMoreTab?.label ?? "More"}
+                  <ChevronDownIcon className="size-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {mobileMoreTabs.map((t) => (
+                  <DropdownMenuItem key={t.id} onSelect={() => setTab(t.id)}>
+                    {t.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null}
+        </div>
+      </div>
+
+      <div className={cn("min-h-0 flex-1 overflow-y-auto pt-5 pb-5", embedded ? "px-4" : "px-9")}>
+        <TabsContent value="overview" className="flex flex-col gap-3">
+          <ClientOverview
+            clientId={client.id}
+            notes={notes}
+            onAddNote={() => setAddNoteOpen(true)}
+            profile={profile}
+            hasPets={hasPets}
+            appts={appointments.length}
+            salesMinor={totalSalesMinor}
+            noShows={noShowAppointments.length}
+            upcoming={upcomingAppointments.length}
+            lastVisit={lastVisit}
+            nextAppointment={nextAppointment}
+            onNoShowsClick={() => setNoShowDialogOpen(true)}
+            onRebook={onBookNow}
+            onEditPreferences={() => openEditClientAt("preferences")}
+            onAddPet={() => setAddPetOpen(true)}
+            onSelectPet={setSelectedPetId}
+          />
+        </TabsContent>
+        <TabsContent value="appointments" className="flex flex-col gap-4">
+          <Tabs
+            value={apptStatus}
+            onValueChange={(v) => setApptStatus(v as ApptStatus)}
+            className="w-full"
+          >
+            <div className="flex items-center gap-1">
+              <TabsList variant="ghost">
+                {APPT_STATUS_PRIMARY.map((opt) => (
+                  <TabsTrigger key={opt.value} value={opt.value}>
+                    {opt.label}
+                    <span
+                      className={cn(
+                        "text-sm font-normal text-muted-foreground",
+                        apptStatus === opt.value && "text-foreground/70",
+                      )}
                     >
-                      {t.label}
+                      {apptCounts[opt.value]}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  data-active={isApptStatusInMore ? "true" : undefined}
+                  className={cn(
+                    "inline-flex h-8 items-center gap-2 rounded-full px-3 text-sm font-semibold whitespace-nowrap text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground",
+                    "data-active:bg-muted data-active:text-foreground",
+                  )}
+                >
+                  {isApptStatusInMore ? (
+                    <>
+                      {APPT_STATUS_MORE.find((s) => s.value === apptStatus)?.label}
+                      <span className="text-sm font-normal text-foreground/70">
+                        {apptCounts[apptStatus]}
+                      </span>
+                    </>
+                  ) : (
+                    "More"
+                  )}
+                  <ChevronDownIcon className="size-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {APPT_STATUS_MORE.map((opt) => (
+                    <DropdownMenuItem key={opt.value} onSelect={() => setApptStatus(opt.value)}>
+                      {opt.label}
+                      <span className="ml-auto text-muted-foreground">{apptCounts[opt.value]}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </Tabs>
+          {filteredAppointments.length === 0 ? (
+            <EmptyState
+              icon={CalendarIcon}
+              title={
+                apptStatus === "all" ? "No appointments yet." : "No appointments match this filter."
+              }
+            />
+          ) : (
+            <ul className="flex flex-col">
+              {filteredAppointments.map((appt, i) => (
+                <TimelineRow
+                  key={appt.id}
+                  isLast={i === filteredAppointments.length - 1}
+                  leading={<TimelineDate dayMonth={appt.dayMonth} weekday={appt.weekday} />}
+                >
+                  <AppointmentCard
+                    appt={appt}
+                    pets={profile.pets}
+                    hasPets={hasPets}
+                    showBranch={showBranch}
+                  />
+                </TimelineRow>
+              ))}
+            </ul>
+          )}
+        </TabsContent>
+        <TabsContent value="sales" className="flex flex-col gap-4">
+          <Tabs
+            value={saleStatus}
+            onValueChange={(v) => setSaleStatus(v as SaleStatus)}
+            className="w-full"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1">
+                <TabsList variant="ghost">
+                  {SALES_STATUS_PRIMARY.map((opt) => (
+                    <TabsTrigger key={opt.value} value={opt.value}>
+                      {opt.label}
+                      <span
+                        className={cn(
+                          "text-sm font-normal text-muted-foreground",
+                          saleStatus === opt.value && "text-foreground/70",
+                        )}
+                      >
+                        {saleCounts[opt.value]}
+                      </span>
                     </TabsTrigger>
                   ))}
                 </TabsList>
-                {mobileMoreTabs.length > 0 ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        data-active={activeMobileMoreTab ? "true" : undefined}
-                        className={cn(
-                          "relative inline-flex h-10 items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground md:hidden",
-                          "after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-foreground after:opacity-0 after:transition-opacity data-active:after:opacity-100",
-                          activeMobileMoreTab && "text-foreground",
-                        )}
-                      >
-                        {activeMobileMoreTab?.label ?? "More"}
-                        <ChevronDownIcon className="size-3.5" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {mobileMoreTabs.map((t) => (
-                        <DropdownMenuItem key={t.id} onSelect={() => setTab(t.id)}>
-                          {t.label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto px-9 pt-5 pb-5">
-              <TabsContent value="overview" className="flex flex-col gap-3">
-                <ClientOverview
-                  clientId={client.id}
-                  notes={notes}
-                  onAddNote={() => setAddNoteOpen(true)}
-                  profile={profile}
-                  hasPets={hasPets}
-                  appts={appointments.length}
-                  salesMinor={totalSalesMinor}
-                  noShows={noShowAppointments.length}
-                  upcoming={upcomingAppointments.length}
-                  lastVisit={lastVisit}
-                  nextAppointment={nextAppointment}
-                  onNoShowsClick={() => setNoShowDialogOpen(true)}
-                  onRebook={onBookNow}
-                  onEditPreferences={() => openEditClientAt("preferences")}
-                  onAddPet={() => setAddPetOpen(true)}
-                  onSelectPet={setSelectedPetId}
-                />
-              </TabsContent>
-              <TabsContent value="appointments" className="flex flex-col gap-4">
-                <Tabs
-                  value={apptStatus}
-                  onValueChange={(v) => setApptStatus(v as ApptStatus)}
-                  className="w-full"
-                >
-                  <div className="flex items-center gap-1">
-                    <TabsList variant="ghost">
-                      {APPT_STATUS_PRIMARY.map((opt) => (
-                        <TabsTrigger key={opt.value} value={opt.value}>
-                          {opt.label}
-                          <span
-                            className={cn(
-                              "text-sm font-normal text-muted-foreground",
-                              apptStatus === opt.value && "text-foreground/70",
-                            )}
-                          >
-                            {apptCounts[opt.value]}
-                          </span>
-                        </TabsTrigger>
-                      ))}
-                    </TabsList>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        data-active={isApptStatusInMore ? "true" : undefined}
-                        className={cn(
-                          "inline-flex h-8 items-center gap-2 rounded-full px-3 text-sm font-semibold whitespace-nowrap text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground",
-                          "data-active:bg-muted data-active:text-foreground",
-                        )}
-                      >
-                        {isApptStatusInMore ? (
-                          <>
-                            {APPT_STATUS_MORE.find((s) => s.value === apptStatus)?.label}
-                            <span className="text-sm font-normal text-foreground/70">
-                              {apptCounts[apptStatus]}
-                            </span>
-                          </>
-                        ) : (
-                          "More"
-                        )}
-                        <ChevronDownIcon className="size-3.5" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        {APPT_STATUS_MORE.map((opt) => (
-                          <DropdownMenuItem
-                            key={opt.value}
-                            onSelect={() => setApptStatus(opt.value)}
-                          >
-                            {opt.label}
-                            <span className="ml-auto text-muted-foreground">
-                              {apptCounts[opt.value]}
-                            </span>
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </Tabs>
-                {filteredAppointments.length === 0 ? (
-                  <EmptyState
-                    icon={CalendarIcon}
-                    title={
-                      apptStatus === "all"
-                        ? "No appointments yet."
-                        : "No appointments match this filter."
-                    }
-                  />
-                ) : (
-                  <ul className="flex flex-col">
-                    {filteredAppointments.map((appt, i) => (
-                      <TimelineRow
-                        key={appt.id}
-                        isLast={i === filteredAppointments.length - 1}
-                        leading={<TimelineDate dayMonth={appt.dayMonth} weekday={appt.weekday} />}
-                      >
-                        <AppointmentCard
-                          appt={appt}
-                          pets={profile.pets}
-                          hasPets={hasPets}
-                          showBranch={showBranch}
-                        />
-                      </TimelineRow>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    data-active={isSaleStatusInMore ? "true" : undefined}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-2 rounded-full px-3 text-sm font-semibold whitespace-nowrap text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground",
+                      "data-active:bg-muted data-active:text-foreground",
+                    )}
+                  >
+                    {isSaleStatusInMore ? (
+                      <>
+                        {SALES_STATUS_MORE.find((s) => s.value === saleStatus)?.label}
+                        <span className="text-sm font-normal text-foreground/70">
+                          {saleCounts[saleStatus]}
+                        </span>
+                      </>
+                    ) : (
+                      "More"
+                    )}
+                    <ChevronDownIcon className="size-3.5" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {SALES_STATUS_MORE.map((opt) => (
+                      <DropdownMenuItem key={opt.value} onSelect={() => setSaleStatus(opt.value)}>
+                        {opt.label}
+                        <span className="ml-auto text-muted-foreground">
+                          {saleCounts[opt.value]}
+                        </span>
+                      </DropdownMenuItem>
                     ))}
-                  </ul>
-                )}
-              </TabsContent>
-              <TabsContent value="sales" className="flex flex-col gap-4">
-                <Tabs
-                  value={saleStatus}
-                  onValueChange={(v) => setSaleStatus(v as SaleStatus)}
-                  className="w-full"
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <Button type="button" variant="outline" size="sm" radius="full">
+                <PlusIcon />
+                Sell
+              </Button>
+            </div>
+          </Tabs>
+          {filteredSales.length === 0 ? (
+            <EmptyState
+              icon={ReceiptIcon}
+              title={saleStatus === "all" ? "No sales yet." : "No sales match this filter."}
+            />
+          ) : (
+            <ul className="flex flex-col">
+              {filteredSales.map((sale, i) => (
+                <TimelineRow
+                  key={sale.id}
+                  isLast={i === filteredSales.length - 1}
+                  leading={<TimelineDate dayMonth={sale.dayMonth} weekday={sale.weekday} />}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1">
-                      <TabsList variant="ghost">
-                        {SALES_STATUS_PRIMARY.map((opt) => (
-                          <TabsTrigger key={opt.value} value={opt.value}>
-                            {opt.label}
-                            <span
-                              className={cn(
-                                "text-sm font-normal text-muted-foreground",
-                                saleStatus === opt.value && "text-foreground/70",
-                              )}
-                            >
-                              {saleCounts[opt.value]}
-                            </span>
-                          </TabsTrigger>
-                        ))}
-                      </TabsList>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          data-active={isSaleStatusInMore ? "true" : undefined}
+                  <SaleCard sale={sale} showBranch={showBranch} />
+                </TimelineRow>
+              ))}
+            </ul>
+          )}
+        </TabsContent>
+        <TabsContent value="details">
+          <div className="rounded-2xl border border-border/60 bg-card">
+            <div className="flex justify-end px-4 pt-4">
+              <Button
+                variant="secondary"
+                size="sm"
+                radius="full"
+                onClick={() => openEditClientAt("profile")}
+              >
+                Edit
+              </Button>
+            </div>
+            <div className="flex flex-col divide-y divide-border/60 px-4 pb-4">
+              <Subsection title="Profile">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <DetailField label="Full name" value={client.name} />
+                  <DetailField label="Phone" value={client.phone} />
+                  <DetailField label="Email" value={client.email} />
+                  <DetailField label="Birthday" value={profile.birthday} />
+                  <DetailField label="Gender" value={profile.gender} />
+                </div>
+              </Subsection>
+
+              <Subsection title="Additional info">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <DetailField label="Source" value={profile.source} />
+                  <DetailField label="Country" value={profile.country} />
+                  <div className="col-span-2 flex flex-col">
+                    <span className="text-xs text-muted-foreground">Tags</span>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      {profile.tags.map((tag) => (
+                        <span
+                          key={tag.id}
                           className={cn(
-                            "inline-flex h-8 items-center gap-2 rounded-full px-3 text-sm font-semibold whitespace-nowrap text-foreground/60 transition-colors hover:bg-foreground/5 hover:text-foreground",
-                            "data-active:bg-muted data-active:text-foreground",
+                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium",
+                            tag.className,
                           )}
                         >
-                          {isSaleStatusInMore ? (
-                            <>
-                              {SALES_STATUS_MORE.find((s) => s.value === saleStatus)?.label}
-                              <span className="text-sm font-normal text-foreground/70">
-                                {saleCounts[saleStatus]}
-                              </span>
-                            </>
-                          ) : (
-                            "More"
-                          )}
-                          <ChevronDownIcon className="size-3.5" />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start">
-                          {SALES_STATUS_MORE.map((opt) => (
-                            <DropdownMenuItem
-                              key={opt.value}
-                              onSelect={() => setSaleStatus(opt.value)}
-                            >
-                              {opt.label}
-                              <span className="ml-auto text-muted-foreground">
-                                {saleCounts[opt.value]}
-                              </span>
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                          <UserIcon className="size-3.5" strokeWidth={1.75} />
+                          {tag.label}
+                        </span>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="xs"
+                        radius="full"
+                        className="gap-1"
+                      >
+                        <PlusIcon className="size-3.5" />
+                        Add tag
+                      </Button>
                     </div>
-                    <Button type="button" variant="outline" size="sm" radius="full">
-                      <PlusIcon />
-                      Sell
-                    </Button>
                   </div>
-                </Tabs>
-                {filteredSales.length === 0 ? (
-                  <EmptyState
-                    icon={ReceiptIcon}
-                    title={saleStatus === "all" ? "No sales yet." : "No sales match this filter."}
-                  />
+                </div>
+              </Subsection>
+
+              <Subsection title="Addresses">
+                {profile.addresses.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No addresses on file.</p>
                 ) : (
                   <ul className="flex flex-col">
-                    {filteredSales.map((sale, i) => (
-                      <TimelineRow
-                        key={sale.id}
-                        isLast={i === filteredSales.length - 1}
-                        leading={<TimelineDate dayMonth={sale.dayMonth} weekday={sale.weekday} />}
-                      >
-                        <SaleCard sale={sale} showBranch={showBranch} />
-                      </TimelineRow>
+                    {profile.addresses.map((address) => (
+                      <AddressRow key={address.id} label={address.label} line={address.line} />
                     ))}
                   </ul>
                 )}
-              </TabsContent>
-              <TabsContent value="details">
-                <div className="rounded-2xl border border-border/60 bg-card">
-                  <div className="flex justify-end px-4 pt-4">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      radius="full"
-                      onClick={() => openEditClientAt("profile")}
-                    >
-                      Edit
-                    </Button>
-                  </div>
-                  <div className="flex flex-col divide-y divide-border/60 px-4 pb-4">
-                    <Subsection title="Profile">
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                        <DetailField label="Full name" value={client.name} />
-                        <DetailField label="Phone" value={client.phone} />
-                        <DetailField label="Email" value={client.email} />
-                        <DetailField label="Birthday" value={profile.birthday} />
-                        <DetailField label="Gender" value={profile.gender} />
-                      </div>
-                    </Subsection>
+              </Subsection>
 
-                    <Subsection title="Additional info">
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                        <DetailField label="Source" value={profile.source} />
-                        <DetailField label="Country" value={profile.country} />
-                        <div className="col-span-2 flex flex-col">
-                          <span className="text-xs text-muted-foreground">Tags</span>
-                          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                            {profile.tags.map((tag) => (
-                              <span
-                                key={tag.id}
-                                className={cn(
-                                  "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-sm font-medium",
-                                  tag.className,
-                                )}
-                              >
-                                <UserIcon className="size-3.5" strokeWidth={1.75} />
-                                {tag.label}
-                              </span>
-                            ))}
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="xs"
-                              radius="full"
-                              className="gap-1"
-                            >
-                              <PlusIcon className="size-3.5" />
-                              Add tag
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </Subsection>
-
-                    <Subsection title="Addresses">
-                      {profile.addresses.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No addresses on file.</p>
-                      ) : (
-                        <ul className="flex flex-col">
-                          {profile.addresses.map((address) => (
-                            <AddressRow
-                              key={address.id}
-                              label={address.label}
-                              line={address.line}
-                            />
-                          ))}
-                        </ul>
-                      )}
-                    </Subsection>
-
-                    <Subsection title="Additional contacts">
-                      {profile.contacts.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No additional contacts.</p>
-                      ) : (
-                        <ul className="flex flex-col">
-                          {profile.contacts.map((contact) => (
-                            <ContactRow
-                              key={contact.id}
-                              relationship={contact.relationship}
-                              name={contact.name}
-                              phone={contact.phone}
-                              email={contact.email}
-                            />
-                          ))}
-                        </ul>
-                      )}
-                    </Subsection>
-
-                    <Subsection title="Notifications">
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                        <NotificationDisplay
-                          label="Service-related"
-                          channels={["WhatsApp", "Email"]}
-                        />
-                        <NotificationDisplay label="Marketing" channels={["Email"]} />
-                      </div>
-                    </Subsection>
-
-                    <Subsection title="Payment policy">
-                      <p className="text-sm">Card on file required at booking.</p>
-                    </Subsection>
-                  </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="pets" className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    {profile.pets.length} {profile.pets.length === 1 ? "pet" : "pets"}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    radius="full"
-                    onClick={() => setAddPetOpen(true)}
-                  >
-                    <PlusIcon />
-                    Add pet
-                  </Button>
-                </div>
-                {profile.pets.length === 0 ? (
-                  <EmptyState
-                    icon={PawPrintIcon}
-                    title="No pets yet."
-                    description="Add a pet to start booking grooming, vet visits, or boarding."
-                  />
+              <Subsection title="Additional contacts">
+                {profile.contacts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No additional contacts.</p>
                 ) : (
-                  <ul className="flex flex-col gap-3">
-                    {profile.pets.map((pet) => (
-                      <li key={pet.id}>
-                        <PetCard pet={pet} onClick={() => setSelectedPetId(pet.id)} />
-                      </li>
+                  <ul className="flex flex-col">
+                    {profile.contacts.map((contact) => (
+                      <ContactRow
+                        key={contact.id}
+                        relationship={contact.relationship}
+                        name={contact.name}
+                        phone={contact.phone}
+                        email={contact.email}
+                      />
                     ))}
                   </ul>
                 )}
-              </TabsContent>
-              <TabsContent value="documents" className="flex flex-col gap-3">
-                <ClientNotesCard notes={notes} onAdd={() => setAddNoteOpen(true)} />
-                {/* Forms and files above the two clinical records, because they
+              </Subsection>
+
+              <Subsection title="Notifications">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  <NotificationDisplay label="Service-related" channels={["WhatsApp", "Email"]} />
+                  <NotificationDisplay label="Marketing" channels={["Email"]} />
+                </div>
+              </Subsection>
+
+              <Subsection title="Payment policy">
+                <p className="text-sm">Card on file required at booking.</p>
+              </Subsection>
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="pets" className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              {profile.pets.length} {profile.pets.length === 1 ? "pet" : "pets"}
+            </span>
+            <Button variant="secondary" size="sm" radius="full" onClick={() => setAddPetOpen(true)}>
+              <PlusIcon />
+              Add pet
+            </Button>
+          </div>
+          {profile.pets.length === 0 ? (
+            <EmptyState
+              icon={PawPrintIcon}
+              title="No pets yet."
+              description="Add a pet to start booking grooming, vet visits, or boarding."
+            />
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {profile.pets.map((pet) => (
+                <li key={pet.id}>
+                  <PetCard pet={pet} onClick={() => setSelectedPetId(pet.id)} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </TabsContent>
+        <TabsContent value="documents" className="flex flex-col gap-3">
+          <ClientNotesCard notes={notes} onAdd={() => setAddNoteOpen(true)} />
+          {/* Forms and files above the two clinical records, because they
                     are what reception opens before an appointment; allergies
                     and a patch test are read when something is being booked
                     that depends on them, which is rarer. */}
-                <DocumentsFormsAndFiles
-                  formsTitle="Forms"
-                  recipientName={client.name}
-                  recipientEmail={client.email}
-                  recipientPhone={client.phone}
-                  initialViewFormId={initialViewFormId}
-                  initialPreviewFileId={initialPreviewFileId}
-                />
-                <SectionCard
-                  title="Allergies"
-                  action={
-                    <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
-                      Add allergy
-                    </Button>
-                  }
-                >
-                  <AllergiesBody allergies={profile.allergies} />
-                </SectionCard>
-                <SectionCard
-                  title="Patch tests"
-                  action={
-                    <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
-                      Add patch test
-                    </Button>
-                  }
-                >
-                  <PatchTestBody test={profile.patchTest} />
-                </SectionCard>
-              </TabsContent>
-            </div>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
+          <DocumentsFormsAndFiles
+            formsTitle="Forms"
+            recipientName={client.name}
+            recipientEmail={client.email}
+            recipientPhone={client.phone}
+            initialViewFormId={initialViewFormId}
+            initialPreviewFileId={initialPreviewFileId}
+          />
+          <SectionCard
+            title="Allergies"
+            action={
+              <Button variant="secondary" size="sm" radius="full">
+                <PlusIcon />
+                Add allergy
+              </Button>
+            }
+          >
+            <AllergiesBody allergies={profile.allergies} />
+          </SectionCard>
+          <SectionCard
+            title="Patch tests"
+            action={
+              <Button variant="secondary" size="sm" radius="full">
+                <PlusIcon />
+                Add patch test
+              </Button>
+            }
+          >
+            <PatchTestBody test={profile.patchTest} />
+          </SectionCard>
+        </TabsContent>
+      </div>
+    </Tabs>
+  )
+
+  return (
+    <>
+      {embedded ? (
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{profileView}</div>
+      ) : (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+          <DialogContent
+            className="!max-w-[630px] flex h-[800px] max-h-[calc(100vh-100px)] flex-col gap-0 p-0 sm:!max-w-[630px]"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+          >
+            {profileView}
+          </DialogContent>
+        </Dialog>
+      )}
       {selectedPet ? (
         <PetDetailDialog
           open

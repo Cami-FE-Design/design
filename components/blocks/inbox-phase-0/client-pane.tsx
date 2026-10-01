@@ -1,30 +1,24 @@
 "use client"
 
 import {
-  AlertTriangleIcon,
   ArrowLeftIcon,
   CirclePlusIcon,
   HourglassIcon,
   LinkIcon,
   MapPinIcon,
   MessageCircleReplyIcon,
-  ScissorsIcon,
-  SparklesIcon,
   UserRoundIcon,
   UserRoundSearchIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
-import { formatAed } from "@/app/appointments/mock"
 import {
-  CLIENT_HISTORY,
-  type ClientNote,
   clientsOnNumber,
   type DirectoryClient,
   type InboxConversation,
   searchDirectory,
-  type Visit,
 } from "@/app/messages/inbox/phase-0/mock"
+import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
 import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -35,21 +29,16 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
-import { dayLabel, type InboxCopy, type Lang, whenLabel } from "./copy"
-import { ConversationAvatar, guessName, type PaneStatus, Phone } from "./shared"
+import { formatPhone, type InboxCopy, type Lang, whenLabel } from "./copy"
+import { guessName, type PaneStatus, Phone } from "./shared"
 
-// ─── Pane 3 — the client (IX-C6, IX-C3, IX-C4; FND-4 `ClientSummary`) ─────────
-// The pane is a tab host so IX-F7 (S1) can add Calendar without a rebuild. Its
-// body is one of: `ClientSummary` for a matched chat (the customer module will
-// own it — the inbox never builds its own client view, P13); for an unmatched
-// chat, Match and Add and nothing else (P9); or the match search.
+// ─── Pane 3 — the client (IX-C6, IX-C3, IX-C4) ────────────────────────────────
+// The pane is a tab host so IX-F7 (S1) can add Calendar without a rebuild. A
+// matched chat renders the existing client profile inside this pane. An
+// unmatched chat keeps Match and Add (P9), or the match search.
 
 /** The pane's tabs. Phase 0 has one; IX-F7 (S1) adds "calendar". */
 const PANE_TABS: readonly string[] = ["client"]
-
-/** p95 budget for the visits read on staging (contract.md, latency). */
-const VISITS_LATENCY_MS = 450
-const VISITS_SLOW_MS = 3000
 
 export type VisitsMode = "normal" | "slow" | "error"
 export type PhoneChoice = "save" | "same" | "keep" | "replace"
@@ -60,10 +49,6 @@ export type NewClient = {
 }
 /** `repliedAt`: the client has written since — the name may now be in the chat. */
 export type Waiting = { askedAt: string; sent: boolean; repliedAt?: string }
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-xs font-medium text-muted-foreground">{children}</h3>
-}
 
 function Badge({ children, tone }: { children: React.ReactNode; tone: "gray" | "violet" }) {
   return (
@@ -77,208 +62,6 @@ function Badge({ children, tone }: { children: React.ReactNode; tone: "gray" | "
     >
       {children}
     </span>
-  )
-}
-
-// ─── ClientSummary ────────────────────────────────────────────────────────────
-
-/** The second read. Name, pet and last service came with the thread read and
- *  are already painted; this only fills visits and notes in. */
-function useClientHistory(customerId: string, mode: VisitsMode) {
-  const [state, setState] = useState<
-    | { status: "loading" }
-    | { status: "error" }
-    | { status: "ready"; visits: Visit[]; notes: ClientNote[] }
-  >({ status: "loading" })
-  const [attempt, setAttempt] = useState(0)
-
-  useEffect(() => {
-    setState({ status: "loading" })
-    const id = window.setTimeout(
-      () => {
-        if (mode === "error" && attempt === 0) return setState({ status: "error" })
-        const h = CLIENT_HISTORY[customerId] ?? { visits: [], notes: [] }
-        setState({ status: "ready", visits: h.visits.slice(0, 3), notes: h.notes })
-      },
-      mode === "slow" ? VISITS_SLOW_MS : VISITS_LATENCY_MS,
-    )
-    return () => window.clearTimeout(id)
-  }, [customerId, mode, attempt])
-
-  return { state, retry: () => setAttempt((a) => a + 1) }
-}
-
-function VisitRows({ visits, now, lang }: { visits: Visit[]; now: number; lang: Lang }) {
-  return (
-    <ul className="flex flex-col divide-y divide-border/60 rounded-xl ring-1 ring-border/60">
-      {visits.map((v) => (
-        <li key={v.publicId} className="flex items-start justify-between gap-3 px-3 py-2.5">
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-medium text-foreground">{v.service}</span>
-            <span className="text-xs text-muted-foreground">
-              {v.staffName} · {dayLabel(v.at, now, lang)}
-            </span>
-          </span>
-          <span className="shrink-0 text-sm tabular-nums text-foreground">
-            {formatAed(v.amountMinor)}
-          </span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-function ClientSummary({
-  conversation,
-  directoryClient,
-  hasPets,
-  now,
-  visitsMode,
-  copy,
-  lang,
-  onChangeMatch,
-}: {
-  conversation: InboxConversation
-  directoryClient: DirectoryClient | undefined
-  hasPets: boolean
-  now: number
-  visitsMode: VisitsMode
-  copy: InboxCopy
-  lang: Lang
-  onChangeMatch: (() => void) | null
-}) {
-  const customer = conversation.customer!
-  const { state, retry } = useClientHistory(customer.publicId, visitsMode)
-  const isNew =
-    state.status === "ready" &&
-    state.visits.length === 0 &&
-    state.notes.length === 0 &&
-    !customer.lastService
-
-  return (
-    <div className="flex flex-col gap-5 p-4">
-      {/* Painted with the messages — no spinner where the name should be. */}
-      {/* The thread header states the name. This pane does not repeat it
-          or the phone. It keeps the pet-parent avatar and any location badges. */}
-      <div className="flex items-center gap-3">
-        <ConversationAvatar conversation={conversation} size="lg" />
-        {directoryClient?.archived || directoryClient?.homeLocation ? (
-          <span className="flex flex-wrap gap-1">
-            {directoryClient.archived ? <Badge tone="gray">{copy.archived}</Badge> : null}
-            {directoryClient.homeLocation ? (
-              <Badge tone="violet">
-                <MapPinIcon className="size-3" aria-hidden />
-                {copy.atLocation(directoryClient.homeLocation)}
-              </Badge>
-            ) : null}
-          </span>
-        ) : null}
-      </div>
-
-      {hasPets && customer.pets.length > 0 ? (
-        <section className="flex flex-col gap-2">
-          <SectionTitle>{copy.pets}</SectionTitle>
-          <ul className="flex flex-col gap-2">
-            {customer.pets.map((pet) => (
-              <li key={pet.name} className="flex items-center gap-2.5">
-                <Avatar size="sm" fallback="species" species={pet.species} shape="square" />
-                <span className="flex flex-col leading-tight">
-                  <span className="text-sm font-medium text-foreground">{pet.name}</span>
-                  <span className="text-xs text-muted-foreground">{pet.breed}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {isNew ? (
-        // IX-C6 row 5: a clean empty panel — not a broken one, not a spinner.
-        <div className="flex flex-col items-center gap-2 rounded-xl bg-muted/40 px-4 py-6 text-center">
-          <SparklesIcon className="size-6 stroke-[1.5] text-muted-foreground/70" aria-hidden />
-          <p className="text-sm font-medium text-foreground">{copy.newClientTitle}</p>
-          <p className="text-balance text-xs text-muted-foreground">{copy.newClientBody}</p>
-        </div>
-      ) : (
-        <>
-          <section className="flex flex-col gap-1.5">
-            <SectionTitle>{copy.lastService}</SectionTitle>
-            {customer.lastService ? (
-              <div className="flex items-center gap-2 text-sm text-foreground">
-                <ScissorsIcon className="size-4 text-muted-foreground" aria-hidden />
-                <span className="font-medium">{customer.lastService.name}</span>
-                <span className="text-muted-foreground">
-                  · {dayLabel(customer.lastService.at, now, lang)}
-                </span>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">{copy.noLastService}</p>
-            )}
-          </section>
-
-          <section className="flex flex-col gap-2">
-            <SectionTitle>{copy.lastVisits}</SectionTitle>
-            {state.status === "loading" ? (
-              <div className="flex flex-col gap-2" aria-hidden>
-                {["a", "b", "c"].map((k) => (
-                  <Skeleton key={k} className="h-12 w-full rounded-xl" />
-                ))}
-              </div>
-            ) : state.status === "error" ? (
-              // The partial state: the name and pet stay; only this read failed.
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-tomato-2 p-3 text-sm">
-                <span className="flex items-center gap-2 text-tomato-11">
-                  <AlertTriangleIcon className="size-4" aria-hidden />
-                  {copy.visitsError}
-                </span>
-                <Button type="button" variant="outline" size="sm" radius="full" onClick={retry}>
-                  {copy.retry}
-                </Button>
-              </div>
-            ) : state.visits.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{copy.noLastService}</p>
-            ) : (
-              <VisitRows visits={state.visits} now={now} lang={lang} />
-            )}
-          </section>
-
-          {state.status === "ready" ? (
-            <section className="flex flex-col gap-2">
-              <div className="flex flex-col gap-0.5">
-                <SectionTitle>{copy.notes}</SectionTitle>
-                <p className="text-[11px] text-muted-foreground/80">{copy.teamOnly}</p>
-              </div>
-              {state.notes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{copy.noNotes}</p>
-              ) : (
-                <ul className="flex flex-col gap-2">
-                  {state.notes.map((n) => (
-                    <li key={n.publicId} className="rounded-xl bg-cami-yellow-2 p-3 text-sm">
-                      <p className="text-foreground" dir="auto">
-                        {n.body}
-                      </p>
-                      <p className="pt-1 text-[11px] text-muted-foreground">
-                        {n.authorName} · {dayLabel(n.at, now, lang)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ) : null}
-        </>
-      )}
-
-      {onChangeMatch ? (
-        <button
-          type="button"
-          onClick={onChangeMatch}
-          className="self-start text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
-          {copy.changeMatch}
-        </button>
-      ) : null}
-    </div>
   )
 }
 
@@ -692,7 +475,6 @@ export function ClientPane({
   waiting,
   windowOpen,
   hasPets,
-  visitsMode,
   canEdit,
   now,
   copy,
@@ -781,18 +563,37 @@ export function ClientPane({
         />
       )
     } else if (conversation.customer) {
+      const customer = conversation.customer
+      const name = [customer.firstName, customer.lastName].filter(Boolean).join(" ")
       body = (
-        <ClientSummary
-          key={conversation.customer.publicId}
-          conversation={conversation}
-          directoryClient={directoryClient}
-          hasPets={hasPets}
-          now={now}
-          visitsMode={visitsMode}
-          copy={copy}
-          lang={lang}
-          onChangeMatch={canEdit ? () => onModeChange("match") : null}
-        />
+        <div key={customer.publicId} className="flex min-h-0 flex-1 flex-col">
+          <ClientDetailDialog
+            embedded
+            hasPets={hasPets}
+            client={{
+              id: customer.publicId,
+              name,
+              phone: formatPhone(conversation.phoneE164),
+              email: directoryClient?.email ?? undefined,
+              pets: customer.pets.map((pet) => ({
+                id: pet.name,
+                name: pet.name,
+                species: pet.species,
+              })),
+            }}
+          />
+          {canEdit ? (
+            <div className="shrink-0 border-t border-border px-4 py-2">
+              <button
+                type="button"
+                onClick={() => onModeChange("match")}
+                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                {copy.changeMatch}
+              </button>
+            </div>
+          ) : null}
+        </div>
       )
     } else if (!canEdit) {
       body = (

@@ -2,7 +2,8 @@
 
 import { ChevronDownIcon, FlaskConicalIcon, LockIcon, PowerOffIcon } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 
 import {
   buildConversations,
@@ -179,6 +180,53 @@ const CLIENT_LINE_AR = "سؤال أخير — هل يوجد موقف سيارا�
 const NAME_REPLY = "It's Rana, thanks!"
 
 const newId = () => `msg-new-${Math.random().toString(36).slice(2, 10)}`
+
+/** Center of the visible top bar, and the horizontal center of the thread. */
+function useThreadAnchor(hasThread: boolean, lang: Lang, width: string) {
+  const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null)
+  // The thread box moves when language or frame width changes, even if its size does not.
+  const layoutKey = `${hasThread}:${lang}:${width}`
+  useLayoutEffect(() => {
+    function place() {
+      let y = 36
+      for (const slot of ["app-topbar", "app-mobile-topbar"]) {
+        const bar = document.querySelector<HTMLElement>(`[data-slot=${slot}]`)
+        const box = bar?.getBoundingClientRect()
+        if (box && box.height > 8 && box.width > 8) {
+          y = box.top + box.height / 2
+          break
+        }
+      }
+      const thread = document.querySelector<HTMLElement>("[data-inbox-thread]")
+      const threadBox = thread?.getBoundingClientRect()
+      if (threadBox && threadBox.width > 8) {
+        setAnchor({ x: threadBox.left + threadBox.width / 2, y })
+        return
+      }
+      const column = document.querySelector<HTMLElement>("[data-slot=app-shell] > div")
+      const columnBox = column?.getBoundingClientRect()
+      if (columnBox && columnBox.width > 8)
+        setAnchor({ x: columnBox.left + columnBox.width / 2, y })
+    }
+    if (layoutKey) place()
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(place)
+    if (ro) {
+      for (const el of [
+        document.querySelector("[data-slot=app-sidebar]"),
+        document.querySelector("[data-inbox-thread]"),
+        document.querySelector("[data-slot=app-shell]"),
+      ]) {
+        if (el) ro.observe(el)
+      }
+    }
+    window.addEventListener("resize", place)
+    return () => {
+      ro?.disconnect()
+      window.removeEventListener("resize", place)
+    }
+  }, [layoutKey])
+  return anchor
+}
 
 function InboxPhase0() {
   const router = useRouter()
@@ -485,110 +533,133 @@ function InboxPhase0() {
   // "Next send" opens with the bar already showing.
   const [showControls, setShowControls] = useState(params.get("controls") === "open")
   const frameWidth = width === "fit" ? undefined : Number(width) - SIDEBAR_COLLAPSED
+  const threadAnchor = useThreadAnchor(access === "full" || access === "read-only", lang, width)
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
-      {/* The chip floats over the panes. It is not a row, so the list starts
-          at the top. The list pane is the only "Inbox" title. */}
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex flex-col items-end gap-2">
-        <button
-          type="button"
-          dir={lang === "ar" ? "rtl" : "ltr"}
-          aria-expanded={showControls}
-          onClick={() => setShowControls((v) => !v)}
-          className="pointer-events-auto inline-flex max-w-full items-center gap-1.5 rounded-full border border-dashed border-border bg-card/95 px-3 py-1.5 text-xs text-muted-foreground shadow-sm transition-colors hover:bg-muted/80"
-        >
-          <FlaskConicalIcon className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate">
-            Design repo · {scenario.label} · {lang === "ar" ? "Arabic" : "English"}
-            {width !== "fit" ? ` · ${width}` : ""}
-            {outcome !== "ok"
-              ? ` · ${SEND_OUTCOMES.find((o) => o.value === outcome)?.label.toLowerCase()}`
-              : ""}
-          </span>
-          <ChevronDownIcon
-            className={cn("size-3.5 shrink-0 transition-transform", showControls && "rotate-180")}
-            aria-hidden
-          />
-        </button>
-        {showControls ? (
-          <div
-            dir={lang === "ar" ? "rtl" : "ltr"}
-            lang={lang}
-            className="pointer-events-auto w-full"
-          >
-            <DesignRepoBar
-              label="switch the state, what the next send does, language and frame width"
-              note={scenario.note}
+      {/* The chip floats in the top bar, centered on the thread. A portal keeps
+          it above the topbar, which would otherwise eat the clicks. */}
+      {threadAnchor
+        ? createPortal(
+            <div
+              className="pointer-events-none fixed z-50"
+              style={{
+                left: threadAnchor.x,
+                top: threadAnchor.y,
+                transform: "translate(-50%, -50%)",
+              }}
             >
-              <Select
-                value={scenario.id}
-                onValueChange={(v) => go({ state: v === "live" ? null : v })}
-              >
-                <SelectTrigger size="sm" className="w-60">
-                  <SelectValue>{scenario.label}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {SCENARIOS.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={outcome} onValueChange={(v) => go({ send: v === "ok" ? null : v })}>
-                <SelectTrigger size="sm" className="w-72">
-                  <SelectValue>{SEND_OUTCOMES.find((o) => o.value === outcome)?.label}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {SEND_OUTCOMES.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                radius="full"
-                disabled={!selected || threadStatus !== "ready"}
-                onClick={clientWrites}
-              >
-                Client writes now
-              </Button>
-              <SegmentedToggle
-                size="sm"
-                ariaLabel="Language"
-                value={lang}
-                onValueChange={(v) => go({ lang: v === "ar" ? "ar" : null })}
-                options={[
-                  { value: "en", label: "English" },
-                  { value: "ar", label: "العربية" },
-                ]}
-              />
-              <SegmentedToggle
-                size="sm"
-                ariaLabel="Pets feature"
-                value={hasPets ? "on" : "off"}
-                onValueChange={(v) => go({ pets: v === "off" ? "off" : null })}
-                options={[
-                  { value: "on", label: "With pets" },
-                  { value: "off", label: "Without pets" },
-                ]}
-              />
-              <SegmentedToggle
-                size="sm"
-                ariaLabel="Frame width"
-                value={width}
-                onValueChange={(v) => go({ width: v === "fit" ? null : v })}
-                options={WIDTH_OPTIONS}
-              />
-            </DesignRepoBar>
-          </div>
-        ) : null}
-      </div>
+              <div className="relative flex flex-col items-center">
+                <button
+                  type="button"
+                  dir={lang === "ar" ? "rtl" : "ltr"}
+                  aria-expanded={showControls}
+                  onClick={() => setShowControls((v) => !v)}
+                  className="pointer-events-auto inline-flex max-w-[min(100vw-8rem,28rem)] items-center gap-1.5 rounded-full border border-dashed border-border bg-card/95 px-3 py-1.5 text-xs text-muted-foreground shadow-sm transition-colors hover:bg-muted/80"
+                >
+                  <FlaskConicalIcon className="size-3.5 shrink-0" aria-hidden />
+                  <span className="truncate">
+                    Design repo · {scenario.label} · {lang === "ar" ? "Arabic" : "English"}
+                    {width !== "fit" ? ` · ${width}` : ""}
+                    {outcome !== "ok"
+                      ? ` · ${SEND_OUTCOMES.find((o) => o.value === outcome)?.label.toLowerCase()}`
+                      : ""}
+                  </span>
+                  <ChevronDownIcon
+                    className={cn(
+                      "size-3.5 shrink-0 transition-transform",
+                      showControls && "rotate-180",
+                    )}
+                    aria-hidden
+                  />
+                </button>
+                {showControls ? (
+                  <div
+                    dir={lang === "ar" ? "rtl" : "ltr"}
+                    lang={lang}
+                    className="pointer-events-auto absolute top-full left-1/2 z-50 mt-2 w-[min(1080px,calc(100vw-1.5rem))] -translate-x-1/2"
+                  >
+                    <DesignRepoBar
+                      label="switch the state, what the next send does, language and frame width"
+                      note={scenario.note}
+                    >
+                      <Select
+                        value={scenario.id}
+                        onValueChange={(v) => go({ state: v === "live" ? null : v })}
+                      >
+                        <SelectTrigger size="sm" className="w-60">
+                          <SelectValue>{scenario.label}</SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SCENARIOS.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={outcome}
+                        onValueChange={(v) => go({ send: v === "ok" ? null : v })}
+                      >
+                        <SelectTrigger size="sm" className="w-72">
+                          <SelectValue>
+                            {SEND_OUTCOMES.find((o) => o.value === outcome)?.label}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SEND_OUTCOMES.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        radius="full"
+                        disabled={!selected || threadStatus !== "ready"}
+                        onClick={clientWrites}
+                      >
+                        Client writes now
+                      </Button>
+                      <SegmentedToggle
+                        size="sm"
+                        ariaLabel="Language"
+                        value={lang}
+                        onValueChange={(v) => go({ lang: v === "ar" ? "ar" : null })}
+                        options={[
+                          { value: "en", label: "English" },
+                          { value: "ar", label: "العربية" },
+                        ]}
+                      />
+                      <SegmentedToggle
+                        size="sm"
+                        ariaLabel="Pets feature"
+                        value={hasPets ? "on" : "off"}
+                        onValueChange={(v) => go({ pets: v === "off" ? "off" : null })}
+                        options={[
+                          { value: "on", label: "With pets" },
+                          { value: "off", label: "Without pets" },
+                        ]}
+                      />
+                      <SegmentedToggle
+                        size="sm"
+                        ariaLabel="Frame width"
+                        value={width}
+                        onValueChange={(v) => go({ width: v === "fit" ? null : v })}
+                        options={WIDTH_OPTIONS}
+                      />
+                    </DesignRepoBar>
+                  </div>
+                ) : null}
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
 
       {access === "no-access" || access === "feature-off" ? (
         <div className="flex min-h-0 flex-1 items-center justify-center rounded-2xl border border-border bg-card">
