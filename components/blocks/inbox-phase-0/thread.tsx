@@ -337,9 +337,10 @@ function MediaViewer({
   )
 }
 
-/** IX-A5: one muted warning under the bubble. No retry and no template button
- *  here. A closed window still offers templates from the composer. */
-function FailedFooter({
+/** IX-A5: the failure sits inside the bubble, on the line under the text.
+ *  No retry and no template button. A closed window still offers templates
+ *  from the composer. */
+function FailedLine({
   message,
   copy,
   lang,
@@ -350,7 +351,7 @@ function FailedFooter({
 }) {
   const reason = copy.failure[message.failureCode ?? "UNKNOWN"] ?? copy.failure.UNKNOWN
   return (
-    <p className="flex max-w-[75%] items-center justify-end gap-1.5 text-xs text-tomato-11">
+    <p className="mt-1 flex items-center justify-end gap-1.5 text-xs text-tomato-11">
       <AlertCircleIcon className="size-3.5 shrink-0" aria-hidden />
       <span>
         {copy.notSent} · {reason}
@@ -416,25 +417,35 @@ function MessageBubble({
         {message.media?.map((m) => (
           <div key={m.publicId} className="relative">
             <MediaTile media={m} copy={copy} onOpen={() => onOpenMedia(m)} />
-            {!message.body && m.status !== "phone_only" && m.kind !== "file" ? (
+            {!failed && !message.body && m.status !== "phone_only" && m.kind !== "file" ? (
               <span className="absolute inset-e-1.5 bottom-1.5">{meta(true)}</span>
             ) : null}
           </div>
         ))}
         {message.body ? (
           // Name and time sit on the next line, clear of the message.
+          // A failed send uses that line for the warning instead.
           <div className={cn(hasMedia && "px-2 pt-1 pb-0.5")}>
             <p dir="auto" className="whitespace-pre-wrap text-sm leading-relaxed">
               {message.body}
             </p>
-            <div className="mt-1 flex justify-end">{meta()}</div>
+            {failed ? (
+              <FailedLine message={message} copy={copy} lang={lang} />
+            ) : (
+              <div className="mt-1 flex justify-end">{meta()}</div>
+            )}
           </div>
         ) : hasMedia &&
           message.media?.every((m) => m.status === "phone_only" || m.kind === "file") ? (
-          <span className="flex justify-end px-2 pt-1 pb-0.5">{meta()}</span>
+          <span className="flex justify-end px-2 pt-1 pb-0.5">
+            {failed ? <FailedLine message={message} copy={copy} lang={lang} /> : meta()}
+          </span>
+        ) : failed ? (
+          <div className={cn(hasMedia && "px-2 pt-1 pb-0.5")}>
+            <FailedLine message={message} copy={copy} lang={lang} />
+          </div>
         ) : null}
       </div>
-      {failed ? <FailedFooter message={message} copy={copy} lang={lang} /> : null}
     </div>
   )
 }

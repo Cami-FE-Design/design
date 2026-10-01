@@ -504,7 +504,7 @@ export function Composer({
 
   if (open) {
     return (
-      <div className="border-t border-border bg-sand-2 px-4 py-3">
+      <div className="bg-sand-2 px-4 py-3">
         <div className="rounded-2xl border border-border bg-card shadow-sm transition-shadow focus-within:border-cami-violet-7 focus-within:shadow-md">
           <WindowOpenBar
             closesAt={closesAt}
@@ -594,7 +594,7 @@ export function Composer({
   // Closed: free typing is not offered (IX-A4 row 4). Anything typed before it
   // closed is kept, never sent and never thrown away (IX-A2 edge case).
   return (
-    <div className="flex flex-col gap-2 border-t border-border bg-sand-2 px-4 py-3">
+    <div className="flex flex-col gap-2 bg-sand-2 px-4 py-3">
       {draft.trim() ? (
         <KeptDraft
           draft={draft}
