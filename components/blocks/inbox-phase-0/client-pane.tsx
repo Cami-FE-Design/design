@@ -364,70 +364,72 @@ function UnmatchedPane({
 }) {
   const repliedName = waiting?.repliedAt ? guessName(conversation.messages) : null
   return (
-    <div className="flex flex-col items-center gap-4 px-5 py-10 text-center">
-      <span className="inline-flex size-12 items-center justify-center rounded-full bg-cami-yellow-3 text-cami-yellow-11">
-        <UserRoundSearchIcon className="size-6 stroke-[1.5]" aria-hidden />
-      </span>
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium text-foreground">{copy.notMatchedTitle}</p>
-        <Phone e164={conversation.phoneE164} className="text-sm text-muted-foreground" />
-        <p className="mt-1 text-balance text-sm text-muted-foreground">{copy.notMatchedBody}</p>
-      </div>
-      {waiting?.repliedAt ? (
-        // The reply is in. Say so, and offer the form with the name it gave —
-        // still a guess the form marks as one.
-        <div className="flex w-full flex-col gap-2 rounded-xl bg-cami-sage-2 p-3 text-start text-sm">
-          <p className="flex items-center gap-1.5 font-medium text-cami-sage-11">
-            <MessageCircleReplyIcon className="size-4" aria-hidden />
-            {copy.repliedTitle}
-          </p>
-          <p className="text-muted-foreground">
-            {repliedName ? copy.repliedWithName(repliedName) : copy.repliedNoName}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" size="sm" radius="full" className="gap-1.5" onClick={onAdd}>
-              <CirclePlusIcon className="size-3.5" aria-hidden />
-              {repliedName ? copy.addNamed(repliedName) : copy.add}
-            </Button>
-            <Button type="button" variant="ghost" size="sm" radius="full" onClick={onStopWaiting}>
-              {copy.stopWaiting}
-            </Button>
-          </div>
+    <div className="flex h-full min-h-full flex-1 flex-col items-center justify-center bg-sand-3 px-6 py-8 text-center">
+      <div className="flex w-full flex-col items-center gap-4">
+        <span className="inline-flex size-12 items-center justify-center rounded-full bg-cami-yellow-3 text-cami-yellow-11">
+          <UserRoundSearchIcon className="size-6 stroke-[1.5]" aria-hidden />
+        </span>
+        <div className="flex flex-col gap-1">
+          <p className="text-sm font-medium text-foreground">{copy.notMatchedTitle}</p>
+          <Phone e164={conversation.phoneE164} className="text-sm text-muted-foreground" />
+          <p className="mt-1 text-balance text-sm text-muted-foreground">{copy.notMatchedBody}</p>
         </div>
-      ) : waiting ? (
-        // IX-C4 row 4 / P10: the form waits. With the window closed nothing
-        // was sent; the question can go as a template (verified under IX-A4).
-        <div className="flex w-full flex-col gap-2 rounded-xl bg-cami-violet-2 p-3 text-start text-sm">
-          <p className="flex items-center gap-1.5 font-medium text-cami-violet-11">
-            <HourglassIcon className="size-4" aria-hidden />
-            {copy.waitingTitle}
-          </p>
-          <p className="text-muted-foreground">
-            {waiting.sent
-              ? copy.waitingBody(whenLabel(waiting.askedAt, now, lang))
-              : copy.waitingClosedBody}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {!waiting.sent && !windowOpen ? (
-              <Button type="button" size="sm" radius="full" onClick={onSendAskTemplate}>
-                {copy.sendAsTemplate}
+        {waiting?.repliedAt ? (
+          // The reply is in. Say so, and offer the form with the name it gave —
+          // still a guess the form marks as one.
+          <div className="flex w-full flex-col gap-2 rounded-xl bg-cami-sage-2 p-3 text-start text-sm">
+            <p className="flex items-center gap-1.5 font-medium text-cami-sage-11">
+              <MessageCircleReplyIcon className="size-4" aria-hidden />
+              {copy.repliedTitle}
+            </p>
+            <p className="text-muted-foreground">
+              {repliedName ? copy.repliedWithName(repliedName) : copy.repliedNoName}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" radius="full" className="gap-1.5" onClick={onAdd}>
+                <CirclePlusIcon className="size-3.5" aria-hidden />
+                {repliedName ? copy.addNamed(repliedName) : copy.add}
               </Button>
-            ) : null}
-            <Button type="button" variant="ghost" size="sm" radius="full" onClick={onStopWaiting}>
-              {copy.stopWaiting}
-            </Button>
+              <Button type="button" variant="ghost" size="sm" radius="full" onClick={onStopWaiting}>
+                {copy.stopWaiting}
+              </Button>
+            </div>
           </div>
+        ) : waiting ? (
+          // IX-C4 row 4 / P10: the form waits. With the window closed nothing
+          // was sent; the question can go as a template (verified under IX-A4).
+          <div className="flex w-full flex-col gap-2 rounded-xl bg-cami-violet-2 p-3 text-start text-sm">
+            <p className="flex items-center gap-1.5 font-medium text-cami-violet-11">
+              <HourglassIcon className="size-4" aria-hidden />
+              {copy.waitingTitle}
+            </p>
+            <p className="text-muted-foreground">
+              {waiting.sent
+                ? copy.waitingBody(whenLabel(waiting.askedAt, now, lang))
+                : copy.waitingClosedBody}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {!waiting.sent && !windowOpen ? (
+                <Button type="button" size="sm" radius="full" onClick={onSendAskTemplate}>
+                  {copy.sendAsTemplate}
+                </Button>
+              ) : null}
+              <Button type="button" variant="ghost" size="sm" radius="full" onClick={onStopWaiting}>
+                {copy.stopWaiting}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+        <div className="flex w-full flex-col gap-2">
+          <Button radius="full" className="w-full gap-1.5" onClick={onMatch}>
+            <LinkIcon className="size-4" aria-hidden />
+            {copy.match}
+          </Button>
+          <Button variant="outline" radius="full" className="w-full gap-1.5" onClick={onAdd}>
+            <CirclePlusIcon className="size-4" aria-hidden />
+            {copy.add}
+          </Button>
         </div>
-      ) : null}
-      <div className="flex w-full flex-col gap-2">
-        <Button radius="full" className="w-full gap-1.5" onClick={onMatch}>
-          <LinkIcon className="size-4" aria-hidden />
-          {copy.match}
-        </Button>
-        <Button variant="outline" radius="full" className="w-full gap-1.5" onClick={onAdd}>
-          <CirclePlusIcon className="size-4" aria-hidden />
-          {copy.add}
-        </Button>
       </div>
     </div>
   )
@@ -623,10 +625,16 @@ export function ClientPane({
     }
   }
 
+  const unmatchedFill =
+    status === "ready" && !!conversation && !conversation.customer && mode === "summary" && canEdit
+
   return (
     <aside
       data-inbox-profile
-      className="flex w-[26rem] max-w-[26rem] min-w-0 shrink flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+      className={cn(
+        "flex w-[26rem] max-w-[26rem] min-w-0 shrink flex-col overflow-hidden rounded-2xl border border-border shadow-sm",
+        unmatchedFill ? "bg-sand-3" : "bg-card",
+      )}
     >
       <Tabs
         defaultValue="client"
@@ -647,7 +655,13 @@ export function ClientPane({
             </TabsList>
           </div>
         ) : null}
-        <TabsContent value="client" className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <TabsContent
+          value="client"
+          className={cn(
+            "flex min-h-0 flex-1 flex-col overflow-y-auto",
+            unmatchedFill && "bg-sand-3",
+          )}
+        >
           {body ?? <PanePlaceholder copy={copy} />}
         </TabsContent>
       </Tabs>
