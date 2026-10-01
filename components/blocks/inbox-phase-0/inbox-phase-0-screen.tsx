@@ -333,18 +333,6 @@ function InboxPhase0() {
     }
   }
 
-  function retrySend(messageId: string) {
-    if (!selected) return
-    const msg = selected.messages.find((m) => m.publicId === messageId)
-    if (!msg) return
-    patchMessage(selected.publicId, messageId, {
-      deliveryState: "pending",
-      failureCode: null,
-      retryCount: msg.retryCount + 1,
-    })
-    attempt(selected.publicId, msg)
-  }
-
   /** The client writes: the window resets to 24 h from now (IX-A2 edge case). */
   function clientWrites() {
     if (!selected) return
@@ -627,7 +615,6 @@ function InboxPhase0() {
               now={now}
               onSendText={sendText}
               onSendTemplate={(code, body) => sendMessage(body, code)}
-              onRetrySend={retrySend}
               onMatch={() => setPaneMode("match")}
               onRetry={retry}
               canReply={access === "full"}

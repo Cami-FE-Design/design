@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  AlertCircleIcon,
   AlertTriangleIcon,
   CheckIcon,
   ClockIcon,
@@ -11,7 +12,6 @@ import {
   LockIcon,
   MessageCircleIcon,
   PlayIcon,
-  RotateCwIcon,
   SmartphoneIcon,
   UserPlusIcon,
 } from "lucide-react"
@@ -23,7 +23,6 @@ import {
   type InboxConversation,
   type InboxMedia,
   type InboxMessage,
-  type InboxTemplate,
 } from "@/app/messages/inbox/phase-0/mock"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { Button } from "@/components/ui/button"
@@ -31,7 +30,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
-import { Composer, TemplatePicker } from "./composer"
+import { Composer } from "./composer"
 import { dayKey, dayLabel, formatBytes, type InboxCopy, type Lang, timeLabel } from "./copy"
 import { ConversationTitle, MEDIA_ICON, mediaLabel, type PaneStatus } from "./shared"
 
@@ -338,90 +337,44 @@ function MediaViewer({
   )
 }
 
-/** IX-A5: one line under the bubble — why it failed, and the retry count when
- *  there is one. Free text can be retried only while the window is open. Once
- *  it has closed, the same text cannot go again; the action is a template. */
+/** IX-A5: one muted warning under the bubble. No retry and no template button
+ *  here. A closed window still offers templates from the composer. */
 function FailedFooter({
   message,
-  conversation,
-  now,
-  windowOpen,
   copy,
-  onRetry,
-  onPickTemplate,
+  lang,
 }: {
   message: InboxMessage
-  conversation: InboxConversation
-  now: number
-  windowOpen: boolean
   copy: InboxCopy
-  onRetry: () => void
-  onPickTemplate: (template: InboxTemplate) => void
+  lang: Lang
 }) {
-  const blocked = !message.templateCode && !windowOpen
+  const reason = copy.failure[message.failureCode ?? "UNKNOWN"] ?? copy.failure.UNKNOWN
   return (
-    <div className="flex max-w-[75%] flex-wrap items-center justify-end gap-x-2 gap-y-1 text-xs">
-      <span className="font-medium text-tomato-11">
-        {copy.notSent} · {copy.failure[message.failureCode ?? "UNKNOWN"] ?? copy.failure.UNKNOWN}
+    <p className="flex max-w-[75%] items-center justify-end gap-1.5 text-xs text-tomato-11">
+      <AlertCircleIcon className="size-3.5 shrink-0" aria-hidden />
+      <span>
+        {copy.notSent} · {reason}
       </span>
-      {message.retryCount > 0 ? (
-        <span className="text-muted-foreground">{copy.retried(message.retryCount)}</span>
-      ) : null}
-      {blocked ? (
-        <TemplatePicker
-          conversation={conversation}
-          now={now}
-          copy={copy}
-          onPick={onPickTemplate}
-          trigger={
-            <Button type="button" variant="outline" size="xs" radius="full" className="gap-1.5">
-              <FileTextIcon className="size-3.5" aria-hidden />
-              {copy.chooseTemplate}
-            </Button>
-          }
-        />
-      ) : (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          radius="full"
-          className="h-7 gap-1.5 border-tomato-6 px-2.5 text-tomato-11 hover:bg-tomato-3"
-          onClick={onRetry}
-        >
-          <RotateCwIcon className="size-3.5" aria-hidden />
-          {copy.retrySend}
-        </Button>
-      )}
-    </div>
+      <time dateTime={message.providerSentAt} className="shrink-0">
+        {timeLabel(message.providerSentAt, lang)}
+      </time>
+    </p>
   )
 }
 
 function MessageBubble({
   message,
-  conversation,
-  now,
   firstInGroup,
   lastInGroup,
-  windowOpen,
   copy,
   lang,
-  onRetry,
-  onPickTemplate,
-  canReply,
   onOpenMedia,
 }: {
   message: InboxMessage
-  conversation: InboxConversation
-  now: number
   firstInGroup: boolean
   lastInGroup: boolean
-  windowOpen: boolean
   copy: InboxCopy
   lang: Lang
-  onRetry: (messageId: string) => void
-  onPickTemplate: (template: InboxTemplate) => void
-  canReply: boolean
   onOpenMedia: (media: InboxMedia) => void
 }) {
   const isOut = message.direction === "outbound"
@@ -481,17 +434,7 @@ function MessageBubble({
           <span className="flex justify-end px-2 pt-1 pb-0.5">{meta()}</span>
         ) : null}
       </div>
-      {failed && canReply ? (
-        <FailedFooter
-          message={message}
-          conversation={conversation}
-          now={now}
-          windowOpen={windowOpen}
-          copy={copy}
-          onRetry={() => onRetry(message.publicId)}
-          onPickTemplate={onPickTemplate}
-        />
-      ) : null}
+      {failed ? <FailedFooter message={message} copy={copy} lang={lang} /> : null}
     </div>
   )
 }
@@ -513,21 +456,13 @@ function continues(prev: InboxMessage | undefined, m: InboxMessage) {
 function MessageList({
   conversation,
   now,
-  windowOpen,
   copy,
   lang,
-  onRetry,
-  onPickTemplate,
-  canReply,
 }: {
   conversation: InboxConversation
   now: number
-  windowOpen: boolean
   copy: InboxCopy
   lang: Lang
-  onRetry: (messageId: string) => void
-  onPickTemplate: (template: InboxTemplate) => void
-  canReply: boolean
 }) {
   const { messages } = conversation
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -658,16 +593,10 @@ function MessageList({
               ))}
               <MessageBubble
                 message={m}
-                conversation={conversation}
-                now={now}
                 firstInGroup={newDay || lines.length > 0 || !continues(prev, m)}
                 lastInGroup={!next || !continues(m, next)}
-                windowOpen={windowOpen}
                 copy={copy}
                 lang={lang}
-                onRetry={onRetry}
-                onPickTemplate={onPickTemplate}
-                canReply={canReply}
                 onOpenMedia={(media) => setViewing({ media, message: m })}
               />
             </Fragment>
@@ -715,7 +644,6 @@ export function Thread({
   now,
   onSendText,
   onSendTemplate,
-  onRetrySend,
   onMatch,
   onRetry,
   canReply,
@@ -728,7 +656,6 @@ export function Thread({
   now: number
   onSendText: (body: string, media: InboxMedia[]) => void
   onSendTemplate: (templateCode: string, body: string) => void
-  onRetrySend: (messageId: string) => void
   onMatch: () => void
   onRetry: () => void
   /** inbox:reply. Without it the chat reads normally and nothing can be sent. */
@@ -738,14 +665,6 @@ export function Thread({
   copy: InboxCopy
   lang: Lang
 }) {
-  const windowOpen = !!conversation?.windowClosesAt && now < Date.parse(conversation.windowClosesAt)
-  const chatId = conversation?.publicId ?? null
-  const [templateChat, setTemplateChat] = useState(chatId)
-  const [template, setTemplate] = useState<InboxTemplate | null>(null)
-  if (templateChat !== chatId) {
-    setTemplateChat(chatId)
-    setTemplate(null)
-  }
   return (
     <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       {status === "loading" ? (
@@ -776,12 +695,8 @@ export function Thread({
             key={conversation.publicId}
             conversation={conversation}
             now={now}
-            windowOpen={windowOpen}
             copy={copy}
             lang={lang}
-            onRetry={onRetrySend}
-            onPickTemplate={setTemplate}
-            canReply={canReply}
           />
           {canReply ? (
             <Composer
@@ -790,8 +705,6 @@ export function Thread({
               now={now}
               copy={copy}
               lang={lang}
-              template={template}
-              onTemplateChange={setTemplate}
               onSendText={onSendText}
               onSendTemplate={onSendTemplate}
               onMatch={onMatch}

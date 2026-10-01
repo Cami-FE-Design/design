@@ -241,8 +241,9 @@ describe("Inbox Phase 0 — templates and failed send", () => {
   it("keeps the failed reason and drops the red bubble border", () => {
     const { unmount } = openAt("?c=noura")
     expect(screen.getByText(/Not sent · WhatsApp didn't accept it/)).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull()
     expect(screen.queryByRole("button", { name: "Choose a template" })).toBeNull()
+    expect(screen.queryByText(/Retried/)).toBeNull()
     expect(screen.queryByText(/can't go again as typed/)).toBeNull()
     expect(document.querySelector(".ring-tomato-7")).toBeNull()
     unmount()
