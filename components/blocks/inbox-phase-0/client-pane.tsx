@@ -365,7 +365,11 @@ function UnmatchedPane({
   return (
     <div className="flex h-full min-h-full flex-1 flex-col items-center justify-center bg-sand-3 px-6 py-8 text-center">
       <div className="flex w-full flex-col items-center gap-4">
-        <ConversationAvatar conversation={conversation} unmatchedLabel={copy.unmatched} />
+        <ConversationAvatar
+          conversation={conversation}
+          size="empty"
+          unmatchedLabel={copy.unmatched}
+        />
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-foreground">{copy.notMatchedTitle}</p>
           <Phone e164={conversation.phoneE164} className="text-sm text-muted-foreground" />

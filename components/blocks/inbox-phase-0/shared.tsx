@@ -37,13 +37,14 @@ export function ConversationAvatar({
   unmatchedLabel,
 }: {
   conversation: InboxConversation
-  size?: "md" | "lg"
+  size?: "md" | "lg" | "empty"
   unmatchedLabel?: string
 }) {
   const name = customerName(conversation)
   if (!name) {
-    const box = size === "lg" ? "size-12" : "size-9"
-    const icon = size === "lg" ? "size-5" : "size-4"
+    // "empty" is the unmatched pane mark, about 96px. List rows stay "md".
+    const box = size === "empty" ? "size-24" : size === "lg" ? "size-12" : "size-9"
+    const icon = size === "empty" ? "size-10" : size === "lg" ? "size-5" : "size-4"
     return (
       <span
         className={`inline-flex ${box} shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50 text-muted-foreground`}
@@ -56,7 +57,7 @@ export function ConversationAvatar({
   }
   return (
     <Avatar
-      size={size}
+      size={size === "empty" ? "lg" : size}
       fallback="character"
       name={name}
       hashSeed={conversation.customer?.publicId ?? conversation.publicId}
