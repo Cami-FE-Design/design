@@ -34,7 +34,11 @@ describe("Inbox Phase 0 — identity (IX-C3, IX-C4)", () => {
     const { unmount } = openAt("?c=unmatched-closed")
     await user.click(screen.getByRole("button", { name: /Match to client/ }))
     expect(screen.getByText("This number is on 2 client records. Pick the right one.")).toBeTruthy()
-    await user.click(screen.getByRole("button", { name: /Khalid Omar/ }))
+    const khalid = screen.getByRole("button", { name: /Khalid Omar/ })
+    const khalidAvatar = khalid.querySelector("[data-slot=avatar]")
+    expect(khalidAvatar?.getAttribute("data-fallback")).toBe("character")
+    expect(khalidAvatar?.textContent).not.toMatch(/KO/)
+    await user.click(khalid)
     expect(screen.getByText("This number is already on their record.")).toBeTruthy()
     await user.click(screen.getByRole("button", { name: "Match" }))
     expect(screen.getByText("Matched to Khalid Omar by Queenie")).toBeTruthy()
@@ -62,56 +66,45 @@ describe("Inbox Phase 0 — identity (IX-C3, IX-C4)", () => {
     unmount()
   })
 
-  it("adds a client with the name from the message, marked as a guess", async () => {
+  it("opens Profile with the known phone and does not guess a name", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-fatima")
     await user.click(screen.getByRole("button", { name: /Add new client/ }))
     const dialog = screen.getByRole("dialog")
-    expect((within(dialog).getByLabelText("First name") as HTMLInputElement).value).toBe("Fatima")
-    expect(within(dialog).getByText("Guessed from their message — check it")).toBeTruthy()
-    await user.click(within(dialog).getByRole("button", { name: "Save client" }))
-    expect(screen.getByText("Fatima added as a new client by Queenie")).toBeTruthy()
-    // IX-C6 row 5: a clean empty panel once the visits read answers.
-    expect(await screen.findByText("New client")).toBeTruthy()
+    expect(within(dialog).getByRole("heading", { name: "Profile" })).toBeTruthy()
+    expect((within(dialog).getByLabelText(/First name/) as HTMLInputElement).value).toBe("")
+    expect((dialog.querySelector('input[type="tel"]') as HTMLInputElement).value).toBe(
+      "52 883 0044",
+    )
+    expect(within(dialog).queryByText(/Guessed from their message/)).toBeNull()
+    expect(
+      within(dialog)
+        .getAllByRole("button", { name: "Add client" })
+        .every((b) => b.hasAttribute("disabled")),
+    ).toBe(true)
     unmount()
   })
 
-  it("never makes up a name: with none known, it asks once and waits", async () => {
+  it("leaves the first name empty when the thread has no name", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-saturday")
     await user.click(screen.getByRole("button", { name: /Add new client/ }))
     const dialog = screen.getByRole("dialog")
-    expect((within(dialog).getByLabelText("First name") as HTMLInputElement).value).toBe("")
-    expect(
-      within(dialog).getByRole("button", { name: "Save client" }).hasAttribute("disabled"),
-    ).toBe(true)
-    await user.click(within(dialog).getByRole("button", { name: "Ask for their name" }))
-    expect(screen.getByText("Waiting for their name")).toBeTruthy()
-    // Asked once: opening the form again offers no second question.
-    await user.click(screen.getByRole("button", { name: /Add new client/ }))
-    expect(
-      within(screen.getByRole("dialog")).queryByRole("button", { name: "Ask for their name" }),
-    ).toBeNull()
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }))
-    expect(within(screen.getByRole("log")).getByText(/Could you tell us your name/)).toBeTruthy()
-    // The client answers with a name: the pane says so and offers it, as a guess.
-    await user.click(screen.getByRole("button", { name: /Design repo/ }))
-    await user.click(screen.getByRole("button", { name: "Client writes now" }))
-    expect(screen.getByText("They replied")).toBeTruthy()
-    await user.click(screen.getByRole("button", { name: "Add Rana" }))
-    expect(
-      (within(screen.getByRole("dialog")).getByLabelText("First name") as HTMLInputElement).value,
-    ).toBe("Rana")
+    expect((within(dialog).getByLabelText(/First name/) as HTMLInputElement).value).toBe("")
+    expect(within(dialog).queryByText(/Guessed from their message/)).toBeNull()
+    expect((dialog.querySelector('input[type="tel"]') as HTMLInputElement).value).toBe(
+      "55 447 1209",
+    )
     unmount()
   })
 
-  it("won't create a second client on a number that is already one — offers Match", async () => {
+  it("opens Profile even when the number is already on a client", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-closed")
     await user.click(screen.getByRole("button", { name: /Add new client/ }))
     const dialog = screen.getByRole("dialog")
-    expect(within(dialog).getByText("This number is on 2 clients")).toBeTruthy()
-    expect(within(dialog).queryByRole("button", { name: "Save client" })).toBeNull()
+    expect(within(dialog).getByRole("heading", { name: "Profile" })).toBeTruthy()
+    expect(within(dialog).queryByText(/This number is on/)).toBeNull()
     unmount()
   })
 })
@@ -133,6 +126,121 @@ describe("Inbox Phase 0 — media (IX-A6)", () => {
       screen.getAllByRole("button", { name: /Photo · Open full size|Video · Open full size/ })
         .length,
     ).toBeGreaterThan(0)
+    unmount()
+  })
+})
+
+describe("Inbox Phase 0 — templates and failed send", () => {
+  it("uses the Clients character avatar on list and pane, and none in the thread header", () => {
+    const { unmount } = openAt("")
+    const layla = screen.getByRole("button", { name: /Layla Haddad/ })
+    const listAvatar = layla.querySelector("[data-slot=avatar]")
+    expect(listAvatar?.getAttribute("data-fallback")).toBe("character")
+    expect(listAvatar?.querySelector("svg")).toBeTruthy()
+    expect(listAvatar?.textContent).not.toMatch(/LH/)
+    const unmatched = screen.getByRole("button", { name: /\+971 55 447 1209/ })
+    const dashed = unmatched.querySelector("span.border-dashed")
+    expect(dashed?.querySelector("svg")).toBeTruthy()
+    expect(dashed?.textContent).toBe("Unmatched")
+    expect(unmatched.querySelector(".lucide-user-round-search")).toBeNull()
+    expect(unmatched.querySelector("[data-fallback=character]")).toBeNull()
+    const pane = [...document.querySelectorAll("[data-slot=avatar]")].find(
+      (el) => el.getAttribute("data-fallback") === "character" && !layla.contains(el),
+    )
+    expect(pane).toBeTruthy()
+    expect(document.querySelector("header [data-slot=avatar]")).toBeNull()
+    unmount()
+  })
+
+  it("has no chat search in the conversation list", async () => {
+    const user = userEvent.setup()
+    const { unmount } = openAt("")
+    const list = screen.getByRole("complementary", { name: "Chats" })
+    expect(within(list).queryByRole("button", { name: "Search" })).toBeNull()
+    expect(within(list).queryByPlaceholderText("Search chats")).toBeNull()
+    expect(within(list).queryByRole("textbox")).toBeNull()
+    expect(screen.getAllByRole("heading", { name: "Inbox" })).toHaveLength(1)
+    expect(screen.getByRole("button", { name: /Omar Khalil/ })).toBeTruthy()
+    await user.click(screen.getByRole("button", { name: /Change the match/ }))
+    expect(screen.getByPlaceholderText("Name, phone, email or pet")).toBeTruthy()
+    expect(within(list).queryByPlaceholderText("Search chats")).toBeNull()
+    unmount()
+  })
+
+  it("does not treat unread: no count, badge, or bold name", () => {
+    const { unmount } = openAt("?c=sara")
+    expect(screen.queryByText(/unread/i)).toBeNull()
+    const omar = screen.getByRole("button", { name: /Omar Khalil/ })
+    const name = omar.querySelector("span.truncate")
+    expect(name?.className).toContain("font-medium")
+    expect(name?.className).not.toContain("font-bold")
+    expect(omar.querySelector(".bg-cami-violet-9")).toBeNull()
+    unmount()
+  })
+
+  it("sends the no-blank template on an unmatched chat, and still blocks a blank", async () => {
+    const user = userEvent.setup()
+    const { unmount } = openAt("?c=unmatched-closed")
+    await user.click(screen.getByRole("button", { name: "Choose template" }))
+    await user.click(screen.getByRole("button", { name: /Follow-up reply/ }))
+    expect(screen.getByRole("button", { name: "Send template" }).hasAttribute("disabled")).toBe(
+      true,
+    )
+    expect(
+      screen.getByText("Match this chat to a client first. Cami never guesses a name."),
+    ).toBeTruthy()
+    await user.click(screen.getByRole("button", { name: "Change" }))
+    await user.click(screen.getByRole("button", { name: /Thanks, reply here/ }))
+    const send = screen.getByRole("button", { name: "Send template" })
+    expect(send.hasAttribute("disabled")).toBe(false)
+    await user.click(send)
+    expect(
+      within(screen.getByRole("log")).getByText(
+        "Hi, thanks for your message. Reply here and we'll pick up where we left off.",
+      ),
+    ).toBeTruthy()
+    unmount()
+  })
+
+  it("marks not sent on the avatar, and leaves unmatched as the dashed person", () => {
+    const { unmount } = openAt("?c=noura")
+    const noura = screen.getByRole("button", { name: /Noura Saeed/ })
+    const icon = noura.querySelector("svg.lucide-circle-alert")
+    expect(icon).toBeTruthy()
+    const time = [...noura.querySelectorAll("span")].find((el) =>
+      /^\d{1,2}:\d{2}$/.test(el.textContent?.trim() ?? ""),
+    )
+    expect(time?.querySelector("svg")).toBeNull()
+    expect(time?.parentElement?.querySelector("svg")).toBeNull()
+    expect(noura.querySelector("[dir=auto]")?.textContent).toMatch(/Yes! See you at 6pm/)
+    expect(noura.querySelector("[dir=auto]")?.textContent).not.toMatch(/Not sent/)
+    const layla = screen.getByRole("button", { name: /Layla Haddad/ })
+    expect(layla.querySelector("svg.lucide-circle-alert")).toBeNull()
+    const saturday = screen.getByRole("button", { name: /\+971 55 447 1209/ })
+    expect(saturday.querySelector("span.border-dashed svg")).toBeTruthy()
+    expect(saturday.querySelector("svg.lucide-circle-alert")).toBeNull()
+    const pack = screen.getByRole("button", { name: /welcome pack/ })
+    expect(pack.querySelector("svg.lucide-file-text")).toBeNull()
+    expect(pack.querySelector("svg.lucide-circle-alert")).toBeNull()
+    unmount()
+  })
+
+  it("keeps the failed reason and drops the red bubble border", () => {
+    const { unmount } = openAt("?c=noura")
+    expect(screen.getByText(/Not sent · WhatsApp didn't accept it/)).toBeTruthy()
+    const retry = screen.getByRole("button", { name: "Retry" })
+    expect(retry.className).not.toContain("rounded-full")
+    expect(screen.queryByRole("button", { name: "Choose a template" })).toBeNull()
+    expect(screen.queryByText(/Retried/)).toBeNull()
+    expect(screen.queryByText(/can't go again as typed/)).toBeNull()
+    const bubble = screen
+      .getAllByText("Yes! See you at 6pm 😊")
+      .find((el) => el.tagName === "P")
+      ?.closest(".rounded-lg")
+    expect(bubble?.className).toContain("bg-tomato-3")
+    expect(bubble?.className).not.toContain("bg-cami-sage-3")
+    expect(bubble?.contains(retry)).toBe(false)
+    expect(document.querySelector(".ring-tomato-7")).toBeNull()
     unmount()
   })
 })

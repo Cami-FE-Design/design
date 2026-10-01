@@ -92,7 +92,7 @@ the coverage table and the contract proposal.
 
 **D1 · Failed, then retry** [IX-A5 rows 1, 2]
 <http://localhost:3000/messages/inbox/phase-0?c=noura>
-- Noura's last message: red, "Not sent · WhatsApp didn't accept it", with **Retry**. The list row says "Not sent" too.
+- Noura's last message: red, "Not sent · WhatsApp didn't accept it", with **Retry**. The list shows that on her avatar, a small red circle, not in the preview.
 1. Click **Retry**.
 - The same bubble goes to sending, then sent. One message, not two.
 

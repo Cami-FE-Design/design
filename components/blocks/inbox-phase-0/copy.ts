@@ -8,10 +8,7 @@ export type Lang = "en" | "ar"
 
 const en = {
   inbox: "Inbox",
-  searchPlaceholder: "Search chats",
   unmatched: "Unmatched",
-  unreadCount: (n: number) => `${n} unread`,
-  noResults: "No chats match your search",
   listEmptyTitle: "No chats yet",
   listEmptyBody: "When a client messages your WhatsApp number, the chat shows here.",
   listErrorTitle: "Couldn't load your chats",
@@ -20,7 +17,7 @@ const en = {
   retry: "Try again",
   today: "Today",
   yesterday: "Yesterday",
-  answeredOnPhone: "Answered on phone",
+  answeredOnPhone: "phone",
   loadingEarlier: "Loading earlier messages…",
   historyStart: "Chat history synced from WhatsApp starts here",
   conversationStart: "Start of this chat",
@@ -45,7 +42,6 @@ const en = {
   lastService: "Last service",
   noLastService: "No visits yet",
   pets: "Pets",
-  whatsapp: "WhatsApp",
   selectChat: "Select a chat to read it",
   noChatOpenTitle: "Nothing to read yet",
   noChatOpenBody: "New WhatsApp messages open here.",
@@ -53,21 +49,17 @@ const en = {
   chatList: "Chats",
   messageLog: "Messages",
   // Free-text window (IX-A2, IX-A4)
-  windowOpen: (left: string) => `Free text open · closes in ${left}`,
-  clientLastWrote: (when: string) => `Client last wrote ${when}`,
-  windowClosedTitle: "Free text is closed",
-  windowClosedBody: (when: string) =>
-    `The client last wrote ${when}. WhatsApp only allows an approved template until they write again.`,
-  providerClosedBody:
-    "WhatsApp says the 24-hour window has closed. Only an approved template can go until the client writes again.",
-  typingBlocked: "Free typing is off — choose a template",
+  windowLine: (left: string) => `${left} left to reply`,
+  windowClosedTitle: "You've reached WhatsApp's 24 hour reply limit",
+  windowClosedBody:
+    "To continue, you'll need to send a pre-approved message template below. After the customer replies, you'll be able to continue the conversation.",
   draftKeptTitle: "Your message wasn't sent",
   draftKeptBody: (when: string) =>
     `Free text closed at ${when}. Your text is kept here — reply with a template, or send it once the client writes again.`,
   copyText: "Copy text",
   copied: "Copied",
   discard: "Discard",
-  chooseTemplate: "Choose a template",
+  chooseTemplate: "Choose template",
   templatesHeading: "Approved templates",
   changeTemplate: "Change",
   removeTemplate: "Remove template",
@@ -94,7 +86,7 @@ const en = {
   retried: (n: number) => `Retried ${n}×`,
   retryTextClosed: "Free text has closed, so this can't go again as typed. Reply with a template.",
   lessThanMinute: "less than a minute",
-  hoursMinutes: (h: number, m: number) => (h > 0 ? `${h} h ${m} min` : `${m} min`),
+  hoursMinutes: (h: number, m: number) => (h > 0 ? `${h}h ${m}m` : `${m}m`),
   // Media (IX-A6)
   attach: "Attach a photo, video or file",
   removeAttachment: "Remove",
@@ -184,10 +176,7 @@ type Copy = { [K in keyof typeof en]: (typeof en)[K] }
 
 const ar: Copy = {
   inbox: "صندوق الوارد",
-  searchPlaceholder: "ابحث في المحادثات",
   unmatched: "غير مرتبط",
-  unreadCount: (n: number) => `${n} غير مقروءة`,
-  noResults: "لا توجد محادثات تطابق البحث",
   listEmptyTitle: "لا توجد محادثات بعد",
   listEmptyBody: "عندما يراسل عميل رقم واتساب الخاص بك، تظهر المحادثة هنا.",
   listErrorTitle: "تعذّر تحميل المحادثات",
@@ -196,7 +185,7 @@ const ar: Copy = {
   retry: "حاول مرة أخرى",
   today: "اليوم",
   yesterday: "أمس",
-  answeredOnPhone: "تم الرد من الهاتف",
+  answeredOnPhone: "هاتف",
   loadingEarlier: "جارٍ تحميل الرسائل السابقة…",
   historyStart: "يبدأ هنا سجل المحادثة المُزامَن من واتساب",
   conversationStart: "بداية هذه المحادثة",
@@ -221,28 +210,23 @@ const ar: Copy = {
   lastService: "آخر خدمة",
   noLastService: "لا توجد زيارات بعد",
   pets: "الحيوانات الأليفة",
-  whatsapp: "واتساب",
   selectChat: "اختر محادثة لقراءتها",
   noChatOpenTitle: "لا يوجد ما يُقرأ بعد",
   noChatOpenBody: "تُفتح رسائل واتساب الجديدة هنا.",
   paneEmpty: "تظهر تفاصيل العميل هنا عند فتح محادثة.",
   chatList: "المحادثات",
   messageLog: "الرسائل",
-  windowOpen: (left: string) => `الكتابة الحرة متاحة · تُغلق خلال ${left}`,
-  clientLastWrote: (when: string) => `آخر رسالة من العميل ${when}`,
-  windowClosedTitle: "الكتابة الحرة مغلقة",
-  windowClosedBody: (when: string) =>
-    `آخر رسالة من العميل ${when}. يسمح واتساب بقالب معتمد فقط حتى يكتب العميل مرة أخرى.`,
-  providerClosedBody:
-    "أفاد واتساب بأن نافذة الـ 24 ساعة قد أُغلقت. يمكن إرسال قالب معتمد فقط حتى يكتب العميل مرة أخرى.",
-  typingBlocked: "الكتابة الحرة متوقفة — اختر قالبًا",
+  windowLine: (left: string) => `${left} متبقية للرد`,
+  windowClosedTitle: "بلغت حد واتساب للرد خلال 24 ساعة",
+  windowClosedBody:
+    "للمتابعة، أرسل قالب رسالة معتمدًا من الأسفل. بعد أن يرد العميل، يمكنك متابعة المحادثة.",
   draftKeptTitle: "لم تُرسل رسالتك",
   draftKeptBody: (when: string) =>
     `أُغلقت الكتابة الحرة عند ${when}. نصّك محفوظ هنا — رُدّ بقالب، أو أرسله عندما يكتب العميل مجددًا.`,
   copyText: "نسخ النص",
   copied: "تم النسخ",
   discard: "تجاهل",
-  chooseTemplate: "اختر قالبًا",
+  chooseTemplate: "اختيار قالب",
   templatesHeading: "القوالب المعتمدة",
   changeTemplate: "تغيير",
   removeTemplate: "إزالة القالب",
@@ -268,7 +252,7 @@ const ar: Copy = {
   retried: (n: number) => `أُعيدت ${n} مرة`,
   retryTextClosed: "أُغلقت الكتابة الحرة، لذا لا يمكن إرسال هذا النص مجددًا. رُدّ بقالب.",
   lessThanMinute: "أقل من دقيقة",
-  hoursMinutes: (h: number, m: number) => (h > 0 ? `${h} س ${m} د` : `${m} د`),
+  hoursMinutes: (h: number, m: number) => (h > 0 ? `${h}س ${m}د` : `${m}د`),
   attach: "إرفاق صورة أو فيديو أو ملف",
   removeAttachment: "إزالة",
   rejectedType: (name: string) => `لا يقبل واتساب هذا النوع من الملفات (${name})`,
@@ -427,7 +411,7 @@ export function whenLabel(iso: string, now: number, lang: Lang): string {
   return `${lang === "en" && (day === "Today" || day === "Yesterday") ? day.toLowerCase() : day}${joiner}${time}`
 }
 
-/** Time left in the window, e.g. "5 h 12 min". */
+/** Time left in the window, e.g. "5h 12m". */
 export function formatLeft(ms: number, lang: Lang): string {
   const c = COPY[lang]
   if (ms < 60_000) return c.lessThanMinute

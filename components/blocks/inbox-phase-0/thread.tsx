@@ -33,14 +33,7 @@ import { cn } from "@/lib/utils"
 
 import { Composer } from "./composer"
 import { dayKey, dayLabel, formatBytes, type InboxCopy, type Lang, timeLabel } from "./copy"
-import {
-  ConversationAvatar,
-  ConversationTitle,
-  MEDIA_ICON,
-  mediaLabel,
-  type PaneStatus,
-  UnmatchedPill,
-} from "./shared"
+import { ConversationTitle, MEDIA_ICON, mediaLabel, type PaneStatus } from "./shared"
 
 // ─── Pane 2 — the thread (IX-A1, IX-A2, IX-A5) ────────────────────────────────
 
@@ -53,41 +46,26 @@ const GROUP_GAP_MS = 5 * 60_000
 /** How long the floating day chip stays after scrolling stops. */
 const FLOATING_DAY_MS = 1200
 
-function ThreadHeader({
-  conversation,
-  copy,
-}: {
-  conversation: InboxConversation
-  copy: InboxCopy
-}) {
-  // The number is on the client pane for a matched chat; unmatched, it is the title.
+function ThreadHeader({ conversation }: { conversation: InboxConversation }) {
+  // Same shell as the Inbox list header (px-4 py-3, title row min-h-8) so the
+  // bottom borders line up. One line: the name, or the number when unmatched.
   return (
-    <header className="flex items-center gap-3 border-b border-border px-5 py-3">
-      <ConversationAvatar conversation={conversation} />
-      <div className="flex min-w-0 flex-col">
-        <div className="flex min-w-0 items-center gap-2">
-          <h2 className="truncate text-sm font-semibold text-foreground">
-            <ConversationTitle conversation={conversation} />
-          </h2>
-          {!conversation.customer ? <UnmatchedPill copy={copy} /> : null}
-        </div>
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <MessageCircleIcon className="size-3.5" aria-hidden />
-          {copy.whatsapp}
+    <header className="flex min-w-0 items-center border-b border-border px-4 py-3">
+      <h2 className="flex min-h-8 min-w-0 flex-1 items-center">
+        <span className="min-w-0 truncate text-base font-semibold text-foreground">
+          <ConversationTitle conversation={conversation} />
         </span>
-      </div>
+      </h2>
     </header>
   )
 }
 
-function DayChip({ label, floating = false }: { label: string; floating?: boolean }) {
+/** Same treatment as DateSeparator in messages-inbox.tsx: uppercase, small,
+ *  muted, centered. No fill and no radius. The words stay (Today, Yesterday,
+ *  a weekday); uppercase is the style, not a different label. */
+function DayChip({ label }: { label: string }) {
   return (
-    <span
-      className={cn(
-        "rounded-full bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground ring-1 ring-border/60",
-        floating ? "shadow-md" : "shadow-sm",
-      )}
-    >
+    <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
       {label}
     </span>
   )
@@ -128,8 +106,10 @@ function IdentityLine({
           : copy.eventCreated(event.customerName, event.actorName)
   const Icon = event.kind === "created" ? UserPlusIcon : LinkIcon
   return (
-    <div className="mt-3 flex justify-center">
-      <span className="inline-flex max-w-[85%] items-center gap-1.5 rounded-full bg-cami-violet-2 px-3 py-1 text-[11px] text-cami-violet-11">
+    // Centered, no fill and no radius. Day labels use DateSeparator's
+    // uppercase treatment; this sentence stays sentence case.
+    <div className="mt-3 flex items-center justify-center">
+      <span className="inline-flex max-w-[85%] items-center gap-1.5 text-center text-[11px] font-medium text-muted-foreground">
         <Icon className="size-3 shrink-0" aria-hidden />
         <span className="truncate">{text}</span>
         <span aria-hidden>·</span>
@@ -148,12 +128,13 @@ function DeliveryIcon({ message, copy }: { message: InboxMessage; copy: InboxCop
     return <ClockIcon className="size-3" aria-label={copy.sending} />
   }
   if (message.deliveryState === "failed") {
-    return <AlertCircleIcon className="size-3 text-tomato-11" aria-label={copy.notSent} />
+    // The red "Not sent" line under the bubble is the signal. No icon on it.
+    return null
   }
   return <CheckIcon className="size-3" aria-label={copy.sent} />
 }
 
-/** Time, who sent it and the delivery state, tucked into the bubble's corner.
+/** Time, who sent it and the delivery state, on their own line under the text.
  *  The staff name shows once per group — every message in it is theirs. */
 function Meta({
   message,
@@ -241,7 +222,7 @@ function MediaTile({
   if (media.status === "phone_only") {
     // P12: a real state, not an error. Never a broken tile.
     return (
-      <div className="flex w-60 items-center gap-3 rounded-xl border border-dashed border-border bg-muted/40 p-3">
+      <div className="flex w-60 items-center gap-3 rounded-lg border border-dashed border-border bg-muted/40 p-3">
         <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-card text-muted-foreground">
           <SmartphoneIcon className="size-4" aria-hidden />
         </span>
@@ -261,9 +242,9 @@ function MediaTile({
       <button
         type="button"
         onClick={onOpen}
-        className="flex w-64 items-center gap-3 rounded-xl bg-card/70 p-2.5 text-start ring-1 ring-border/60 transition-colors hover:bg-card"
+        className="flex w-64 items-center gap-3 rounded-lg bg-card/70 p-2.5 text-start ring-1 ring-border/60 transition-colors hover:bg-card"
       >
-        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-tomato-3 text-tomato-11">
+        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-cami-sage-3 text-cami-sage-11">
           <FileTextIcon className="size-5" aria-hidden />
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
@@ -281,7 +262,7 @@ function MediaTile({
       type="button"
       onClick={onOpen}
       aria-label={`${mediaLabel(media.kind, copy)} · ${copy.openFullSize}`}
-      className="relative block aspect-[4/3] w-60 overflow-hidden rounded-xl"
+      className="relative block aspect-[4/3] w-60 overflow-hidden rounded-lg"
     >
       <MediaSurface media={media} />
       {media.kind === "video" ? (
@@ -356,46 +337,28 @@ function MediaViewer({
   )
 }
 
-/** IX-A5: a failed message says why and offers a retry that resends it as it
- *  was — the same message, never a second one. Free text cannot go again once
- *  the window has closed; a template always can (P8). */
-function FailedFooter({
+/** IX-A5: the failure sits inside the bubble, on the line under the text.
+ *  Retry is a quiet control under the bubble. Templates stay in the composer. */
+function FailedLine({
   message,
-  windowOpen,
   copy,
-  onRetry,
+  lang,
 }: {
   message: InboxMessage
-  windowOpen: boolean
   copy: InboxCopy
-  onRetry: () => void
+  lang: Lang
 }) {
-  const blocked = !message.templateCode && !windowOpen
+  const reason = copy.failure[message.failureCode ?? "UNKNOWN"] ?? copy.failure.UNKNOWN
   return (
-    <div className="flex max-w-[75%] flex-col items-end gap-1 text-end">
-      <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-xs">
-        <span className="font-medium text-tomato-11">
-          {copy.notSent} · {copy.failure[message.failureCode ?? "UNKNOWN"] ?? copy.failure.UNKNOWN}
-        </span>
-        {message.retryCount > 0 ? (
-          <span className="text-muted-foreground">{copy.retried(message.retryCount)}</span>
-        ) : null}
-        {!blocked ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            radius="full"
-            className="h-7 gap-1.5 border-tomato-6 px-2.5 text-tomato-11 hover:bg-tomato-3"
-            onClick={onRetry}
-          >
-            <RotateCwIcon className="size-3.5" aria-hidden />
-            {copy.retrySend}
-          </Button>
-        ) : null}
-      </div>
-      {blocked ? <p className="text-xs text-muted-foreground">{copy.retryTextClosed}</p> : null}
-    </div>
+    <p className="mt-1 flex items-center justify-end gap-1.5 text-xs text-tomato-11">
+      <AlertCircleIcon className="size-3.5 shrink-0" aria-hidden />
+      <span>
+        {copy.notSent} · {reason}
+      </span>
+      <time dateTime={message.providerSentAt} className="shrink-0">
+        {timeLabel(message.providerSentAt, lang)}
+      </time>
+    </p>
   )
 }
 
@@ -403,7 +366,6 @@ function MessageBubble({
   message,
   firstInGroup,
   lastInGroup,
-  windowOpen,
   copy,
   lang,
   onRetry,
@@ -413,7 +375,6 @@ function MessageBubble({
   message: InboxMessage
   firstInGroup: boolean
   lastInGroup: boolean
-  windowOpen: boolean
   copy: InboxCopy
   lang: Lang
   onRetry: (messageId: string) => void
@@ -440,12 +401,14 @@ function MessageBubble({
     >
       <div
         className={cn(
-          "max-w-[75%] rounded-2xl shadow-sm",
-          isOut ? "bg-cami-sage-3 text-cami-sage-12" : "bg-card text-foreground",
-          // The tail sits on the last bubble of a group.
-          lastInGroup && (isOut ? "rounded-ee-md" : "rounded-es-md"),
+          "max-w-[75%] rounded-lg shadow-sm",
+          // Failed uses tomato-3, the same step as the outgoing sage fill.
+          failed
+            ? "bg-tomato-3 text-tomato-12"
+            : isOut
+              ? "bg-cami-sage-3 text-cami-sage-12"
+              : "bg-card text-foreground",
           hasMedia ? "p-1" : "px-3 py-1.5",
-          failed && "ring-1 ring-tomato-7",
         )}
       >
         {template ? (
@@ -462,36 +425,44 @@ function MessageBubble({
         {message.media?.map((m) => (
           <div key={m.publicId} className="relative">
             <MediaTile media={m} copy={copy} onOpen={() => onOpenMedia(m)} />
-            {!message.body && m.status !== "phone_only" && m.kind !== "file" ? (
+            {!failed && !message.body && m.status !== "phone_only" && m.kind !== "file" ? (
               <span className="absolute inset-e-1.5 bottom-1.5">{meta(true)}</span>
             ) : null}
           </div>
         ))}
         {message.body ? (
-          // The meta floats into the last line when it fits, and wraps under it
-          // when it does not — the corner every chat app puts it in.
-          <p
-            dir="auto"
-            className={cn(
-              "flow-root whitespace-pre-wrap text-sm leading-relaxed",
-              hasMedia && "px-2 pt-1 pb-0.5",
+          // Name and time sit on the next line, clear of the message.
+          // A failed send uses that line for the warning instead.
+          <div className={cn(hasMedia && "px-2 pt-1 pb-0.5")}>
+            <p dir="auto" className="whitespace-pre-wrap text-sm leading-relaxed">
+              {message.body}
+            </p>
+            {failed ? (
+              <FailedLine message={message} copy={copy} lang={lang} />
+            ) : (
+              <div className="mt-1 flex justify-end">{meta()}</div>
             )}
-          >
-            {message.body}
-            <span className="float-end ms-3 mt-1.5">{meta()}</span>
-          </p>
+          </div>
         ) : hasMedia &&
           message.media?.every((m) => m.status === "phone_only" || m.kind === "file") ? (
-          <span className="flex justify-end px-2 pt-1 pb-0.5">{meta()}</span>
+          <span className="flex justify-end px-2 pt-1 pb-0.5">
+            {failed ? <FailedLine message={message} copy={copy} lang={lang} /> : meta()}
+          </span>
+        ) : failed ? (
+          <div className={cn(hasMedia && "px-2 pt-1 pb-0.5")}>
+            <FailedLine message={message} copy={copy} lang={lang} />
+          </div>
         ) : null}
       </div>
       {failed && canReply ? (
-        <FailedFooter
-          message={message}
-          windowOpen={windowOpen}
-          copy={copy}
-          onRetry={() => onRetry(message.publicId)}
-        />
+        <button
+          type="button"
+          onClick={() => onRetry(message.publicId)}
+          className="inline-flex items-center gap-1 text-xs text-tomato-11 hover:underline"
+        >
+          <RotateCwIcon className="size-3.5" aria-hidden />
+          {copy.retrySend}
+        </button>
       ) : null}
     </div>
   )
@@ -514,7 +485,6 @@ function continues(prev: InboxMessage | undefined, m: InboxMessage) {
 function MessageList({
   conversation,
   now,
-  windowOpen,
   copy,
   lang,
   onRetry,
@@ -522,7 +492,6 @@ function MessageList({
 }: {
   conversation: InboxConversation
   now: number
-  windowOpen: boolean
   copy: InboxCopy
   lang: Lang
   onRetry: (messageId: string) => void
@@ -613,7 +582,7 @@ function MessageList({
           floatingDay ? "opacity-100" : "opacity-0",
         )}
       >
-        {floatingDay ? <DayChip label={floatingDay} floating /> : null}
+        {floatingDay ? <DayChip label={floatingDay} /> : null}
       </div>
       <div
         ref={scrollRef}
@@ -648,7 +617,7 @@ function MessageList({
           return (
             <Fragment key={m.publicId}>
               {newDay ? (
-                <div data-day={label} className="mt-4 flex justify-center">
+                <div data-day={label} className="mt-4 flex items-center justify-center py-1">
                   <DayChip label={label} />
                 </div>
               ) : null}
@@ -659,7 +628,6 @@ function MessageList({
                 message={m}
                 firstInGroup={newDay || lines.length > 0 || !continues(prev, m)}
                 lastInGroup={!next || !continues(m, next)}
-                windowOpen={windowOpen}
                 copy={copy}
                 lang={lang}
                 onRetry={onRetry}
@@ -692,16 +660,13 @@ function MessageList({
 function ThreadSkeleton() {
   return (
     <div className="flex min-h-0 flex-1 flex-col" aria-hidden>
-      <div className="flex items-center gap-3 border-b border-border px-5 py-3">
-        <Skeleton className="size-9 rounded-full" />
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-3.5 w-32" />
-          <Skeleton className="h-3 w-24" />
-        </div>
+      <div className="flex flex-col gap-2 border-b border-border px-5 py-3">
+        <Skeleton className="h-3.5 w-32" />
+        <Skeleton className="h-3 w-24" />
       </div>
       <div className="flex flex-1 flex-col justify-end gap-3 bg-sand-2 px-5 py-4">
         {["w-52", "w-64 self-end", "w-40", "w-72 self-end", "w-48"].map((w) => (
-          <Skeleton key={w} className={cn("h-10 rounded-2xl", w)} />
+          <Skeleton key={w} className={cn("h-10 rounded-lg", w)} />
         ))}
       </div>
     </div>
@@ -737,9 +702,13 @@ export function Thread({
   copy: InboxCopy
   lang: Lang
 }) {
-  const windowOpen = !!conversation?.windowClosesAt && now < Date.parse(conversation.windowClosesAt)
+  // The thread takes the remaining width, at least 580px. Messages and the
+  // composer share one centered column, max 1000px. The pane itself stays wider.
   return (
-    <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <section
+      data-inbox-thread
+      className="flex min-w-[580px] flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+    >
       {status === "loading" ? (
         <ThreadSkeleton />
       ) : status === "error" ? (
@@ -763,37 +732,43 @@ export function Thread({
         />
       ) : (
         <>
-          <ThreadHeader conversation={conversation} copy={copy} />
-          <MessageList
-            key={conversation.publicId}
-            conversation={conversation}
-            now={now}
-            windowOpen={windowOpen}
-            copy={copy}
-            lang={lang}
-            onRetry={onRetrySend}
-            canReply={canReply}
-          />
-          {canReply ? (
-            <Composer
-              key={`composer-${conversation.publicId}`}
-              conversation={conversation}
-              now={now}
-              copy={copy}
-              lang={lang}
-              onSendText={onSendText}
-              onSendTemplate={onSendTemplate}
-              onMatch={onMatch}
-            />
-          ) : (
-            <div className="flex items-start gap-3 border-t border-border bg-sand-2 px-5 py-4 text-sm">
-              <LockIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <div className="flex flex-col gap-0.5">
-                <p className="font-medium text-foreground">{copy.readOnlyTitle}</p>
-                <p className="text-muted-foreground">{copy.readOnlyBody}</p>
-              </div>
+          <ThreadHeader conversation={conversation} />
+          <div className="flex min-h-0 w-full flex-1 flex-col bg-sand-2">
+            <div
+              data-inbox-thread-column
+              className="mx-auto flex min-h-0 w-full max-w-[1000px] flex-1 flex-col"
+            >
+              <MessageList
+                key={conversation.publicId}
+                conversation={conversation}
+                now={now}
+                copy={copy}
+                lang={lang}
+                onRetry={onRetrySend}
+                canReply={canReply}
+              />
+              {canReply ? (
+                <Composer
+                  key={`composer-${conversation.publicId}`}
+                  conversation={conversation}
+                  now={now}
+                  copy={copy}
+                  lang={lang}
+                  onSendText={onSendText}
+                  onSendTemplate={onSendTemplate}
+                  onMatch={onMatch}
+                />
+              ) : (
+                <div className="flex items-start gap-3 border-t border-border bg-sand-2 px-5 py-4 text-sm">
+                  <LockIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <div className="flex flex-col gap-0.5">
+                    <p className="font-medium text-foreground">{copy.readOnlyTitle}</p>
+                    <p className="text-muted-foreground">{copy.readOnlyBody}</p>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </>
       )}
     </section>
