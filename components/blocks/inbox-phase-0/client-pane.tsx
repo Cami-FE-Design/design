@@ -8,7 +8,6 @@ import {
   MapPinIcon,
   MessageCircleReplyIcon,
   UserRoundIcon,
-  UserRoundSearchIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
@@ -30,7 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 import { formatPhone, type InboxCopy, type Lang, whenLabel } from "./copy"
-import { guessName, type PaneStatus, Phone } from "./shared"
+import { ConversationAvatar, guessName, type PaneStatus, Phone } from "./shared"
 
 // ─── Pane 3 — the client (IX-C6, IX-C3, IX-C4) ────────────────────────────────
 // The pane is a tab host so IX-F7 (S1) can add Calendar without a rebuild. A
@@ -366,9 +365,7 @@ function UnmatchedPane({
   return (
     <div className="flex h-full min-h-full flex-1 flex-col items-center justify-center bg-sand-3 px-6 py-8 text-center">
       <div className="flex w-full flex-col items-center gap-4">
-        <span className="inline-flex size-12 items-center justify-center rounded-full bg-cami-yellow-3 text-cami-yellow-11">
-          <UserRoundSearchIcon className="size-6 stroke-[1.5]" aria-hidden />
-        </span>
+        <ConversationAvatar conversation={conversation} unmatchedLabel={copy.unmatched} />
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium text-foreground">{copy.notMatchedTitle}</p>
           <Phone e164={conversation.phoneE164} className="text-sm text-muted-foreground" />
