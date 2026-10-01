@@ -624,7 +624,10 @@ export function ClientPane({
   }
 
   return (
-    <aside className="flex w-80 max-w-80 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <aside
+      data-inbox-profile
+      className="flex w-[26rem] max-w-[26rem] min-w-0 shrink flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+    >
       <Tabs
         defaultValue="client"
         dir={lang === "ar" ? "rtl" : "ltr"}
