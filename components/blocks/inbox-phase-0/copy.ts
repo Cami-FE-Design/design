@@ -52,12 +52,8 @@ const en = {
   chatList: "Chats",
   messageLog: "Messages",
   // Free-text window (IX-A2, IX-A4)
-  windowLine: (left: string, when: string | null) =>
-    when
-      ? `Free text open · closes in ${left} · last wrote ${when}`
-      : `Free text open · closes in ${left}`,
-  windowClosedReason: (when: string) => `Free text is closed · last wrote ${when}`,
-  providerClosedReason: "WhatsApp closed the window",
+  windowLine: (left: string) => `${left} left to reply`,
+  windowClosed: "Reply window closed",
   draftKeptTitle: "Your message wasn't sent",
   draftKeptBody: (when: string) =>
     `Free text closed at ${when}. Your text is kept here — reply with a template, or send it once the client writes again.`,
@@ -224,12 +220,8 @@ const ar: Copy = {
   paneEmpty: "تظهر تفاصيل العميل هنا عند فتح محادثة.",
   chatList: "المحادثات",
   messageLog: "الرسائل",
-  windowLine: (left: string, when: string | null) =>
-    when
-      ? `الكتابة الحرة متاحة · تُغلق خلال ${left} · آخر رسالة ${when}`
-      : `الكتابة الحرة متاحة · تُغلق خلال ${left}`,
-  windowClosedReason: (when: string) => `الكتابة الحرة مغلقة · آخر رسالة ${when}`,
-  providerClosedReason: "أغلق واتساب النافذة",
+  windowLine: (left: string) => `${left} متبقية للرد`,
+  windowClosed: "نافذة الرد مغلقة",
   draftKeptTitle: "لم تُرسل رسالتك",
   draftKeptBody: (when: string) =>
     `أُغلقت الكتابة الحرة عند ${when}. نصّك محفوظ هنا — رُدّ بقالب، أو أرسله عندما يكتب العميل مجددًا.`,

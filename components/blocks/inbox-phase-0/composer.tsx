@@ -330,13 +330,11 @@ function AttachmentChip({
 
 function WindowOpenBar({
   closesAt,
-  lastInboundAt,
   now,
   copy,
   lang,
 }: {
   closesAt: number
-  lastInboundAt: string | null
   now: number
   copy: InboxCopy
   lang: Lang
@@ -359,25 +357,9 @@ function WindowOpenBar({
       {/* Not a live region: a minute-by-minute announcement is noise. The
           change a screen reader must hear is the close, and that swaps the
           composer for the closed row. */}
-      <span className="min-w-0 truncate">
-        {copy.windowLine(
-          formatLeft(left, lang),
-          lastInboundAt ? whenLabel(lastInboundAt, now, lang) : null,
-        )}
-      </span>
+      <span className="min-w-0 truncate">{copy.windowLine(formatLeft(left, lang))}</span>
     </p>
   )
-}
-
-function closedReason(conversation: InboxConversation, now: number, copy: InboxCopy, lang: Lang) {
-  const closesAt = conversation.windowClosesAt ? Date.parse(conversation.windowClosesAt) : null
-  // Closed by WhatsApp before Cami's 24 h ran out: the provider's word is final.
-  const byProvider =
-    closesAt !== null &&
-    conversation.lastInboundAt !== null &&
-    closesAt < Date.parse(conversation.lastInboundAt) + 24 * 60 * 60_000 - 1000
-  if (byProvider || !conversation.lastInboundAt) return copy.providerClosedReason
-  return copy.windowClosedReason(whenLabel(conversation.lastInboundAt, now, lang))
 }
 
 function KeptDraft({
@@ -506,13 +488,7 @@ export function Composer({
     return (
       <div className="bg-sand-2 px-4 py-3">
         <div className="rounded-2xl border border-border bg-card shadow-sm transition-shadow focus-within:border-cami-violet-7 focus-within:shadow-md">
-          <WindowOpenBar
-            closesAt={closesAt}
-            lastInboundAt={conversation.lastInboundAt}
-            now={now}
-            copy={copy}
-            lang={lang}
-          />
+          <WindowOpenBar closesAt={closesAt} now={now} copy={copy} lang={lang} />
           <Textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -622,9 +598,7 @@ export function Composer({
       ) : (
         <div className="flex items-center gap-2.5 rounded-xl bg-sand-3 px-3 py-2 text-sand-11">
           <LockIcon className="size-4 shrink-0" aria-hidden />
-          <p className="min-w-0 flex-1 truncate text-sm">
-            {closedReason(conversation, now, copy, lang)}
-          </p>
+          <p className="min-w-0 flex-1 truncate text-sm">{copy.windowClosed}</p>
           <TemplatePicker
             conversation={conversation}
             now={now}
