@@ -244,7 +244,7 @@ function MediaTile({
         onClick={onOpen}
         className="flex w-64 items-center gap-3 rounded-lg bg-card/70 p-2.5 text-start ring-1 ring-border/60 transition-colors hover:bg-card"
       >
-        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-tomato-3 text-tomato-11">
+        <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-cami-sage-3 text-cami-sage-11">
           <FileTextIcon className="size-5" aria-hidden />
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
