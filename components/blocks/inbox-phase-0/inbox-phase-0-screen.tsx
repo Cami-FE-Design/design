@@ -328,19 +328,20 @@ function InboxPhase0() {
           failureCode: "WINDOW_CLOSED",
         })
         update(convId, (c) => ({ ...c, windowClosesAt: new Date(clock()).toISOString() }))
+      } else if (outcome === "late") {
+        // The failure is not known yet (IX-A5, fails late). Stay on the sending
+        // clock, then fail. A tick that later flips to failed is the sequence
+        // that reads as sent and then not sent.
+        window.setTimeout(
+          () =>
+            patchMessage(convId, msg.publicId, {
+              deliveryState: "failed",
+              failureCode: "PROVIDER_REJECTED",
+            }),
+          LATE_FAILURE_MS,
+        )
       } else {
         patchMessage(convId, msg.publicId, { deliveryState: "sent" })
-        if (outcome === "late") {
-          // The failure arrives minutes later as a status webhook (IX-A5 edge case).
-          window.setTimeout(
-            () =>
-              patchMessage(convId, msg.publicId, {
-                deliveryState: "failed",
-                failureCode: "PROVIDER_REJECTED",
-              }),
-            LATE_FAILURE_MS,
-          )
-        }
       }
     }, SEND_LATENCY_MS)
   }
