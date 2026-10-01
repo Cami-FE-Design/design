@@ -5,8 +5,8 @@ import {
   ClockIcon,
   CopyIcon,
   FileTextIcon,
+  InfoIcon,
   LinkIcon,
-  LockIcon,
   PaperclipIcon,
   SendIcon,
   XIcon,
@@ -569,6 +569,7 @@ export function Composer({
 
   // Closed: free typing is not offered (IX-A4 row 4). Anything typed before it
   // closed is kept, never sent and never thrown away (IX-A2 edge case).
+  const hint = isMac ? copy.shortcutHintMac : copy.shortcutHint
   return (
     <div className="flex flex-col gap-2 bg-sand-2 px-4 py-3">
       {draft.trim() ? (
@@ -596,23 +597,53 @@ export function Composer({
           }}
         />
       ) : (
-        <div className="flex items-center gap-2.5 rounded-xl bg-sand-3 px-3 py-2 text-sand-11">
-          <LockIcon className="size-4 shrink-0" aria-hidden />
-          <p className="min-w-0 flex-1 truncate text-sm">{copy.windowClosed}</p>
-          <TemplatePicker
-            conversation={conversation}
-            now={now}
-            copy={copy}
-            onPick={setTemplate}
-            trigger={
-              <Button type="button" size="sm" radius="full" className="shrink-0 gap-1.5">
-                <FileTextIcon className="size-4" aria-hidden />
-                {copy.chooseTemplate}
-              </Button>
-            }
-          />
+        <div className="flex gap-3 rounded-2xl border border-border bg-card p-4">
+          <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+          <div className="flex min-w-0 flex-1 flex-col items-start gap-2">
+            <p className="text-sm font-medium text-foreground">{copy.windowClosedTitle}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{copy.windowClosedBody}</p>
+            <TemplatePicker
+              conversation={conversation}
+              now={now}
+              copy={copy}
+              onPick={setTemplate}
+              trigger={
+                <Button type="button" variant="outline" size="sm">
+                  {copy.chooseTemplate}
+                </Button>
+              }
+            />
+          </div>
         </div>
       )}
+      <div className="rounded-2xl border border-border bg-sand-3">
+        <Textarea
+          value=""
+          disabled
+          rows={2}
+          aria-label={copy.composerPlaceholder}
+          className="min-h-[52px] resize-none border-0 bg-transparent px-4 pt-3 text-sm leading-relaxed shadow-none focus-visible:ring-0 disabled:opacity-60"
+        />
+        <div className="flex items-center gap-2 px-2 pb-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            radius="full"
+            disabled
+            aria-label={copy.attach}
+          >
+            <PaperclipIcon className="size-4" aria-hidden />
+          </Button>
+          <span className="min-w-0 flex-1 truncate text-center text-sm text-muted-foreground">
+            {hint}
+          </span>
+          <Button type="button" radius="full" className="gap-1.5" disabled>
+            <SendIcon className="size-4 rtl:-scale-x-100" aria-hidden />
+            {copy.send}
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }

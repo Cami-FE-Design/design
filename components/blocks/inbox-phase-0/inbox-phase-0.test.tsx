@@ -194,7 +194,7 @@ describe("Inbox Phase 0 — templates and failed send", () => {
   it("sends the no-blank template on an unmatched chat, and still blocks a blank", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-closed")
-    await user.click(screen.getByRole("button", { name: "Choose a template" }))
+    await user.click(screen.getByRole("button", { name: "Choose template" }))
     await user.click(screen.getByRole("button", { name: /Follow-up reply/ }))
     expect(screen.getByRole("button", { name: "Send template" }).hasAttribute("disabled")).toBe(
       true,

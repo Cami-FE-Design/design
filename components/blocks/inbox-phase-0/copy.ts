@@ -53,14 +53,16 @@ const en = {
   messageLog: "Messages",
   // Free-text window (IX-A2, IX-A4)
   windowLine: (left: string) => `${left} left to reply`,
-  windowClosed: "Reply window closed",
+  windowClosedTitle: "You've reached WhatsApp's 24 hour reply limit",
+  windowClosedBody:
+    "To continue, you'll need to send a pre-approved message template below. After the customer replies, you'll be able to continue the conversation.",
   draftKeptTitle: "Your message wasn't sent",
   draftKeptBody: (when: string) =>
     `Free text closed at ${when}. Your text is kept here — reply with a template, or send it once the client writes again.`,
   copyText: "Copy text",
   copied: "Copied",
   discard: "Discard",
-  chooseTemplate: "Choose a template",
+  chooseTemplate: "Choose template",
   templatesHeading: "Approved templates",
   changeTemplate: "Change",
   removeTemplate: "Remove template",
@@ -221,14 +223,16 @@ const ar: Copy = {
   chatList: "المحادثات",
   messageLog: "الرسائل",
   windowLine: (left: string) => `${left} متبقية للرد`,
-  windowClosed: "نافذة الرد مغلقة",
+  windowClosedTitle: "بلغت حد واتساب للرد خلال 24 ساعة",
+  windowClosedBody:
+    "للمتابعة، أرسل قالب رسالة معتمدًا من الأسفل. بعد أن يرد العميل، يمكنك متابعة المحادثة.",
   draftKeptTitle: "لم تُرسل رسالتك",
   draftKeptBody: (when: string) =>
     `أُغلقت الكتابة الحرة عند ${when}. نصّك محفوظ هنا — رُدّ بقالب، أو أرسله عندما يكتب العميل مجددًا.`,
   copyText: "نسخ النص",
   copied: "تم النسخ",
   discard: "تجاهل",
-  chooseTemplate: "اختر قالبًا",
+  chooseTemplate: "اختيار قالب",
   templatesHeading: "القوالب المعتمدة",
   changeTemplate: "تغيير",
   removeTemplate: "إزالة القالب",
