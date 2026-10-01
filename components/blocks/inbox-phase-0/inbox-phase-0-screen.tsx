@@ -676,12 +676,7 @@ function InboxPhase0() {
             dir={lang === "ar" ? "rtl" : "ltr"}
             lang={lang}
             style={frameWidth ? { width: frameWidth } : undefined}
-            className={cn(
-              "flex min-h-0 shrink-0 gap-3",
-              frameWidth
-                ? "rounded-2xl outline-1 outline-offset-4 outline-border outline-dashed"
-                : "w-full",
-            )}
+            className={cn("flex min-h-0 shrink-0 gap-3", !frameWidth && "w-full")}
           >
             <ConversationList
               status={listStatus}
