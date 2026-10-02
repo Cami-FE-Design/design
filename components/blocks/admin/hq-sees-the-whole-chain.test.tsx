@@ -59,16 +59,17 @@ describe("the chain view holds the partner's whole estate", () => {
   it("says the same thing in the heading and in the count beneath it", () => {
     render(<BusinessLocationsSection business={shampooch} />)
     const claimed = shampooch.locationIds?.length ?? 0
-    // "N trading, M not" has to add up to the heading, or the panel disagrees
-    // with itself in front of an Account Manager.
-    const summary = screen.getByText(/trading/)
-    const [, trading, notTrading] = summary.textContent!.match(/(\d+) trading, (\d+) not/)!
-    expect(Number(trading) + Number(notTrading)).toBe(claimed)
+    // "N of M live" has to name the heading's M, or the panel disagrees with
+    // itself in front of an Account Manager.
+    const summary = screen.getByText(/ live$/)
+    const [, live, total] = summary.textContent!.match(/(\d+) of (\d+) live/)!
+    expect(Number(total)).toBe(claimed)
+    expect(Number(live)).toBeLessThanOrEqual(claimed)
   })
 
   it("shows no chain view for a partner trading from one address (G3)", () => {
     const single = findBusinessBySlug("velvet-paw")!
     render(<BusinessLocationsSection business={single} />)
-    expect(screen.getByText(/trades from one location/)).toBeInTheDocument()
+    expect(screen.getByText("One location.")).toBeInTheDocument()
   })
 })

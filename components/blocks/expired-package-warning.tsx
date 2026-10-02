@@ -41,15 +41,16 @@ export function ExpiredPackageWarning({
 
   const sessionText =
     left != null && left > 0
-      ? `${left} session${left !== 1 ? "s" : ""} remain from the last active cycle. Charge at normal rate or apply manually.`
-      : "No sessions remain from the last active cycle."
+      ? ` with ${left} session${left !== 1 ? "s" : ""} left. Charge the normal price or apply it manually.`
+      : ". No sessions left."
 
   return (
     <div className="flex items-start gap-3 rounded-xl bg-cami-yellow-2 px-4 py-3">
       <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" aria-hidden />
       <p className="flex-1 text-sm leading-5 text-foreground">
         This client&apos;s package <span className="font-medium">({pkg.code})</span>
-        {expiredDate ? ` expired on ${expiredDate}.` : " has expired."} {sessionText}
+        {expiredDate ? ` expired on ${expiredDate}` : " has expired"}
+        {sessionText}
       </p>
       <button
         type="button"

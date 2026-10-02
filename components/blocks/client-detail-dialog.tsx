@@ -1849,7 +1849,7 @@ export function ClientOverview({
       {/* The one thing the rows themselves stop telling you once nine branches
           and a scroll are between them. */}
       {visitsByBranch.length > 1 ? (
-        <SectionCard title="Visits by branch">
+        <SectionCard title="Visits by location">
           <ul className="flex flex-col gap-2.5">
             {visitsByBranch.map((row) => (
               <BranchSpreadRow key={row.locationId} {...row} />

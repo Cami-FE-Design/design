@@ -122,10 +122,7 @@ export function BranchDayStrip({
       {!write.canWrite ? (
         <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
           <InfoIcon className="mt-0.5 size-4 shrink-0" />
-          <span>
-            You're looking at {scopedLocations.length} locations. Pick one before creating a booking
-            — an appointment belongs to exactly one location, and this view can't choose for you.
-          </span>
+          <span>Pick one location to add a booking.</span>
         </p>
       ) : null}
     </div>

@@ -5,6 +5,7 @@ import { CartFlow } from "@/app/sales/new-sale/cart-flow"
 import type { CartLine, ClientAttachment } from "@/app/sales/new-sale/types"
 import { AppShell } from "@/components/blocks/app-shell"
 import { AppointmentsToolbar, type ViewMode } from "@/components/blocks/appointments-toolbar"
+import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
 import { NewAppointmentSheet } from "@/components/blocks/new-appointment-sheet"
 import { Button } from "@/components/ui/button"
 
@@ -40,13 +41,12 @@ export default function AppointmentsPage() {
           />
         }
       >
-        <div className="flex items-center gap-3 p-6">
-          <Button radius="full" onClick={() => setEditOpen(true)}>
-            Edit existing appointment (demo)
-          </Button>
-          <span className="text-xs text-muted-foreground">
-            Opens the same sheet in edit flow — status pill visible, CTA = Checkout.
-          </span>
+        <div className="p-6">
+          <DesignRepoBar label="open the appointment sheet on a booking that already exists">
+            <Button size="sm" variant="outline" radius="full" onClick={() => setEditOpen(true)}>
+              Edit existing appointment
+            </Button>
+          </DesignRepoBar>
         </div>
       </AppShell>
       <NewAppointmentSheet

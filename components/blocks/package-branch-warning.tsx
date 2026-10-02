@@ -76,10 +76,7 @@ export function PackageBranchWarning({
           <span className="text-foreground">{reason}</span>
           {/* Said out loud, because the instinct on seeing a warning at
               checkout is to stop. */}
-          <span className="text-muted-foreground">
-            You can still complete this sale. Choose how to handle it and it'll be recorded on the
-            sale.
-          </span>
+          <span className="text-muted-foreground">You can still complete this sale.</span>
         </div>
       </div>
 

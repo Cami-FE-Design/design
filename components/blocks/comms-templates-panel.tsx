@@ -686,14 +686,12 @@ function SendsFromBranchNote() {
   return (
     <div className="flex flex-col gap-1 rounded-xl bg-cami-yellow-2 p-3">
       <p className="text-foreground text-sm leading-5">
-        Sent from the number of the location the appointment is at, so a reply lands with that
-        branch.
+        Sent from the WhatsApp number of the appointment's location.
       </p>
       {silent.length > 0 ? (
         <p className="text-muted-foreground text-sm leading-5">
-          No WhatsApp reminders go out for{" "}
-          {silent.map((b) => locationName(b.locationId)).join(", ")} until a number is connected —
-          they are never sent from another branch's.
+          No WhatsApp reminders for {silent.map((b) => locationName(b.locationId)).join(", ")} until
+          a number is connected.
         </p>
       ) : null}
     </div>

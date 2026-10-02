@@ -26,7 +26,7 @@
  * changed twice costs nothing.
  */
 
-import { CirclePlusIcon, InfoIcon, TrashIcon, TriangleAlertIcon } from "lucide-react"
+import { CirclePlusIcon, TrashIcon, TriangleAlertIcon } from "lucide-react"
 import { useState } from "react"
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
 import { Avatar } from "@/components/ui/avatar"
@@ -141,7 +141,7 @@ export function SetRepeatingShiftsDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={`Set ${memberName}'s repeating shifts`}
-      subtitle={`Set weekly, biweekly or custom shifts at ${locationName}. Saved changes apply to upcoming shifts there — the other locations this person works keep their own pattern.`}
+      subtitle={`Set weekly, biweekly or custom shifts at ${locationName}. Saved changes apply to upcoming shifts there. Other locations aren't affected.`}
       saveDisabled={firstProblem !== undefined}
       onSave={() => {
         onSave(
@@ -202,14 +202,6 @@ export function SetRepeatingShiftsDialog({
               </SelectContent>
             </Select>
           </div>
-
-          <p className="flex items-start gap-2 rounded-xl bg-muted/40 p-3 text-muted-foreground text-sm leading-5">
-            <InfoIcon className="mt-0.5 size-4 shrink-0" />
-            <span>
-              Team members are not scheduled on this location&apos;s closed periods. Other locations
-              close on their own days.
-            </span>
-          </p>
         </div>
 
         <div className="flex flex-col gap-3">

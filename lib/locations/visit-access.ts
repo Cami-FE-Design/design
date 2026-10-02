@@ -89,7 +89,7 @@ export function visitWriteBlockMessage(block: VisitWriteBlock, branchName: strin
       // Names what is missing and who fixes it, because the reader cannot.
       return `Read-only — you don't have access to ${branchName}. An owner can grant it.`
     case "suspended":
-      return `Read-only — ${branchName} is paused and takes no changes.`
+      return `Read-only — ${branchName} is suspended.`
     case "archived":
       return `Read-only — ${branchName} is archived.`
     case "unknown-branch":

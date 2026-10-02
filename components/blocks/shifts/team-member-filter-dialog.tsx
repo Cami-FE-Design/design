@@ -72,8 +72,7 @@ export function TeamMemberFilterDialog({
         <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>Team members at {locationName}</DialogTitle>
           <DialogDescription>
-            Choose who appears on this location&apos;s week. Everybody assigned here stays bookable
-            — this is what the grid shows, not who works where.
+            Choose who appears on this location&apos;s week. Hidden members stay bookable.
           </DialogDescription>
         </DialogHeader>
 

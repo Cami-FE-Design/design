@@ -913,16 +913,8 @@ function LocationsSection({ form }: { form: FormReturn }) {
 
   return (
     <SectionShell title="Works at" description="Choose the locations where this team member works.">
-      {isOwner ? (
-        <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
-          An owner holds every location, including any added later. Change the role to grant a named
-          set instead.
-        </p>
-      ) : selected.length === 0 ? (
-        <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
-          No location granted yet. Until one is, this team member can see and do nothing — an empty
-          grant never means every location.
-        </p>
+      {!isOwner && selected.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No location selected.</p>
       ) : null}
       {/* A dropdown, not a stack of cards. The answer is two or three
           branches whether the estate is three or twenty, so the control should

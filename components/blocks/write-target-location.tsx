@@ -58,9 +58,8 @@ export function WriteTargetLocation({
   onChange,
   label = "Location",
   /**
-   * What the write is, named in the sentences that say it cannot land — "no
-   * location access, so this sale cannot be recorded anywhere" reads as an
-   * answer where "so this cannot be recorded" reads as a riddle.
+   * What the write is, named in the notice shown when no live location is in
+   * view — "Switch to a live location to add this sale."
    */
   action = "This change",
   /**
@@ -158,7 +157,7 @@ export function WriteTargetLocation({
   if (hasNoAccess) {
     return (
       <p className="rounded-xl bg-destructive/10 p-3 text-sm text-foreground">
-        You have no location access, so {action.toLowerCase()} cannot be recorded anywhere.
+        You don't have access to any location.
       </p>
     )
   }
@@ -166,8 +165,7 @@ export function WriteTargetLocation({
   if (writable.length === 0) {
     return (
       <p className="rounded-xl bg-destructive/10 p-3 text-sm text-foreground">
-        No location in view is trading, so there is nowhere to record {action.toLowerCase()}. A
-        paused or archived location keeps its history and takes no new entries.
+        No live location in view. Switch to a live location to add {action.toLowerCase()}.
       </p>
     )
   }
@@ -186,15 +184,9 @@ export function WriteTargetLocation({
             branch the write lands on, which is what the topbar switcher says
             with a building two inches above it. */}
         <BuildingIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        {/* A full sentence, and the same verb this component's other three
-            messages already use ("cannot be recorded anywhere", "nowhere to
-            record"). "Recording at Shampooch JVC" read like a video was being
-            taken, and said nothing about WHAT was landing there — which is the
-            only fact this line exists to give, since there is no choice to
-            make when the scope holds one branch. */}
-        <span className="text-foreground text-sm">
-          {action} will be recorded at <span className="font-medium">{only.name}</span>
-        </span>
+        {/* Just the name: there is no choice to make when the scope holds one
+            location, so the row only says where the write lands. */}
+        <span className="font-medium text-foreground text-sm">{only.name}</span>
       </div>
     ) : null
   }
@@ -227,7 +219,7 @@ export function WriteTargetLocation({
         </SelectTrigger>
         <SelectContent>
           {/* Every branch in view, trading or not. The badge is the same one
-              settings and the switcher use, so "Paused" means the same thing
+              settings and the switcher use, so "Suspended" means the same thing
               here as everywhere else it appears — and the operator sees the
               state before they spend a click on it. */}
           {inView.map((location) => (
@@ -249,8 +241,7 @@ export function WriteTargetLocation({
           <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
             <span className="font-medium">{blocked.name}</span> is{" "}
-            {blocked.status === "archived" ? "archived" : "paused"} — it keeps its history and takes
-            no new entries. Pick a trading location to record {action.toLowerCase()}.
+            {blocked.status === "archived" ? "archived" : "suspended"}. Pick a live location.
           </span>
         </p>
       ) : requiredNote && value === null && requiredDue ? (

@@ -33,6 +33,7 @@ import { toast } from "sonner"
 
 import {
   MOCK_BOOKINGS,
+  MOCK_SERVICE_CATALOG,
   MOCK_STAFF,
   type MockBooking,
   type MockBookingStatus,
@@ -75,6 +76,7 @@ import { TwoFaces } from "@/components/blocks/customer-card/two-faces"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
 import { DealsPage } from "@/components/blocks/deals/deals-page"
 import { DealsTable } from "@/components/blocks/deals/deals-table"
+import { EditServicePanel } from "@/components/blocks/edit-service-panel"
 import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
@@ -731,6 +733,39 @@ function WriteTargetDemo({ action, variant }: { action: string; variant?: "field
  * prototype's data is local, so nothing on a route ever loads or fails — the
  * toggle stands in for the network, and Try again is what puts it back.
  */
+/**
+ * Reception's half of SCR-10, three frames of the Edit service panel at JVC on
+ * a Tuesday. Lena works JVC mornings and Jumeirah afternoons; Marco works at
+ * Jumeirah only and is preselected, the way a seeded line or a changed
+ * location would leave him.
+ */
+function TeamMemberAtThisLocationDemo({
+  startTime,
+  staffName,
+}: {
+  startTime: string
+  staffName: string
+}) {
+  return (
+    <div className="h-[560px] w-[400px] overflow-hidden rounded-2xl border border-border/60 bg-sand-2">
+      <EditServicePanel
+        service={{
+          uid: `demo-${staffName}-${startTime}`,
+          catalog: MOCK_SERVICE_CATALOG[0]!,
+          startTime,
+          staffName,
+        }}
+        onBack={() => {}}
+        onApply={() => {}}
+        onDelete={() => {}}
+        onChangeService={() => {}}
+        locationId="shampooch-jvc"
+        date="2026-10-06"
+      />
+    </div>
+  )
+}
+
 function SurfaceStatesDemo() {
   const [status, setStatus] = useState<SurfaceStatus>("loading")
   const [accessOpen, setAccessOpen] = useState(false)
@@ -3099,7 +3134,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — who may change what about a branch"
-          description="GNK §2 and §3 as one table, because six surfaces ask the same four questions and six inline answers drift — the one that drifts quietly is the one that lets somebody through. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number. A manager changes service settings, and only at the branches they hold; reception and a groomer cannot at all. The two refusals are kept visibly apart: 'Owner only' and 'Not their location' read the same in a greyed button and are two different conversations — one sends you to the owner for a decision, the other for a branch you should already have. Wired to the signed-in member: the same rules refuse on the real Locations panel, and the 'Demo: signed in as' strip at the bottom of it switches who is reading."
+          description="GNK §2 and §3 as one table, because six surfaces ask the same four questions and six inline answers drift — the one that drifts quietly is the one that lets somebody through. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number. A manager changes service settings, and only at the branches they hold; reception and a groomer cannot at all. This table is the rule reference. On the real screens a refused action is absent rather than greyed with a reason, the way the built product gates by permission — the dashed 'sign in as somebody else' strip at the bottom of the Locations panel switches who is reading."
         >
           <Row label="The table" align="start">
             <div className="w-full max-w-3xl">
@@ -3470,6 +3505,21 @@ export function PlaygroundShowcase() {
                 <WhatsAppNumbersPanel />
               </LocationsProvider>
             </div>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — somebody working at another location"
+          description="SCR-10, reception's side (DW2.3, DW2.4). The Team member list is this location's people only. Somebody rostered here but working at another location over the slot moves to 'Busy at another location' with where and until when, and is refused — blocked, never warned. Somebody not at this location is not offered at all; already on the line, they get a different sentence. The client's flow drops the same slot and names nothing (BG-06). Open the Team member list in the first frame."
+          lazy
+        >
+          <Row label="Busy at another location" align="start">
+            <TeamMemberAtThisLocationDemo startTime="15:00" staffName="Lena Petrov" />
+          </Row>
+          <Row label="Not at this location" align="start">
+            <TeamMemberAtThisLocationDemo startTime="11:00" staffName="Marco Rossi" />
+          </Row>
+          <Row label="Rostered here" align="start">
+            <TeamMemberAtThisLocationDemo startTime="11:00" staffName="Lena Petrov" />
           </Row>
         </Section>
         <Section

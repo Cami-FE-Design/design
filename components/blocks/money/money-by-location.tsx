@@ -11,7 +11,7 @@
  * exactly what BG-05 measures.
  *
  * The total is therefore rendered as what it is: the sum of the rows above it,
- * placed after them and labelled as derived. Not a headline with a breakdown
+ * placed after them. Not a headline with a breakdown
  * hidden underneath.
  *
  * Three things this component does not do, each on purpose:
@@ -24,8 +24,7 @@
  *   labelled as theirs (KH1.3), rather than an error or a hidden section.
  * - **It does not break out payouts per branch.** UAE v0 settles per business
  *   into one account (GP1.4), so a payout is not a branch row. Attributing it
- *   would double-count against takings already attributed on the sale. The
- *   footnote says so rather than leaving a suspicious gap.
+ *   would double-count against takings already attributed on the sale.
  */
 
 import { useState } from "react"
@@ -63,7 +62,7 @@ export function MoneyByLocationView({
 }) {
   // The granted set, not the estate: this is where R18's bound comes from, and
   // it is read rather than passed so no caller can widen it by accident.
-  const { granted, scopedLocations, isMultiLocation } = useLocations()
+  const { granted, scopedLocations } = useLocations()
   // Ids, because that is what a transaction points at. The name is resolved
   // where it is printed, so a branch renamed in Settings is renamed here.
   const allowed = (scopedLocations.length > 0 ? scopedLocations : granted).map((l) => l.id)
@@ -71,21 +70,9 @@ export function MoneyByLocationView({
 
   return (
     <section className={cn("flex flex-col gap-3", className)}>
-      <div className="flex flex-col gap-1">
-        <h2 className="text-base font-semibold text-foreground">Money by location</h2>
-        <p className="text-sm text-muted-foreground">
-          {isMultiLocation
-            ? "Each location's own takings, biggest first, and the business total summed from them."
-            : "Your location's takings for this period."}
-        </p>
-      </div>
+      <h2 className="text-base font-semibold text-foreground">Money by location</h2>
 
       {loading ? <RowsSkeleton count={allowed.length} /> : <Rows data={data} />}
-
-      <p className="text-xs text-muted-foreground">
-        Fees and refunds sit with the location that took the payment. Payouts are business-level in
-        this market — one account for the whole business — so they are not broken out per location.
-      </p>
     </section>
   )
 }
@@ -148,7 +135,7 @@ function Rows({ data }: { data: MoneyByLocation }) {
   if (data.rows.length === 0) {
     return (
       <p className="rounded-2xl bg-muted/30 p-4 text-sm text-muted-foreground">
-        No takings at any of your locations in this period.
+        No takings in this period.
       </p>
     )
   }
@@ -214,16 +201,13 @@ function Rows({ data }: { data: MoneyByLocation }) {
         </button>
       ) : null}
 
-      {/* After the rows, and named as a sum. The order is the argument.
-          Absent when there is one row: "Business total — the sum of 1 location"
-          restates the row directly above it, and worse, it tells a manager
-          granted one branch that their branch is the business. Their number is
-          right; the label was not. */}
+      {/* After the rows. The order is the argument.
+          Absent when there is one row: a total restates the row directly above
+          it, and tells a manager granted one branch that their branch is the
+          business. */}
       {data.rows.length > 1 ? (
         <div className="flex items-baseline justify-between gap-3 rounded-2xl bg-muted/30 px-4 py-3">
-          <span className="text-sm text-muted-foreground">
-            Business total — the sum of {data.rows.length} locations
-          </span>
+          <span className="text-sm text-muted-foreground">Business total</span>
           <span className="shrink-0 font-heading text-lg font-semibold text-foreground">
             {aed(data.rollUp.moneyIn.totalMinor)}
           </span>

@@ -81,8 +81,7 @@ export function WhatsAppNumbersPanel({
             WhatsApp numbers
           </h2>
           <p className="text-sm leading-5 text-muted-foreground">
-            Each location has its own number. A message reaches the branch it was sent to, and never
-            another one.
+            Each location has its own WhatsApp number.
           </p>
         </header>
       }
@@ -94,9 +93,8 @@ export function WhatsAppNumbersPanel({
         <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
           <InfoIcon className="mt-0.5 size-4 shrink-0" />
           <span>
-            You supply the numbers — a branch's existing number can be migrated so clients keep
-            messaging the one they know. Each migration needs an OTP received at that branch, a
-            display-name approval, and a two-factor PIN.
+            Use each location's existing number. Connecting it needs someone at that location to
+            receive a one-time code.
           </span>
         </p>
 
@@ -175,7 +173,7 @@ export function WhatsAppNumbersPanel({
                   onClick={() =>
                     toast.success(`Migration requested for ${loc.name}.`, {
                       description:
-                        "Customer Success will confirm the steps and when someone needs to be at the branch for the OTP.",
+                        "Customer Success will confirm the steps and when someone needs to be at the location for the OTP.",
                     })
                   }
                 >
@@ -219,9 +217,8 @@ export function WhatsAppNumbersPanel({
                 // there is no control here, and copy that instructs without one
                 // is a dead end.
                 <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
-                  Coexistence is off for this number, so migrating it will lose this location's chat
-                  history. Customer Success turns it on during the migration — ask before the
-                  cut-over if you need the history kept.
+                  Moving this number will erase its chat history. Ask Customer Success first if you
+                  need to keep it.
                 </p>
               ) : null}
             </div>
@@ -232,9 +229,7 @@ export function WhatsAppNumbersPanel({
             at all is comms pricing, which is open at one location too and is
             deliberately not answered here. */}
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted/30 px-4 py-3 text-sm">
-          <span className="text-muted-foreground">
-            Business total, this period — the sum of every location
-          </span>
+          <span className="text-muted-foreground">All locations, this period</span>
           <span className="font-medium text-foreground">
             {totals.conversations} conversations · AED {totals.cost.toFixed(2)}
           </span>

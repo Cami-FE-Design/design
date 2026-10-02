@@ -103,7 +103,7 @@ export function ProductBranchStock({
   // The granted set, not the estate. A branch manager sees their own shelf and
   // no one else's, and the bound is read here rather than passed so no caller
   // can widen it (R18).
-  const { granted, scopedLocations, isMultiLocation, byId } = useLocations()
+  const { granted, scopedLocations, byId } = useLocations()
   const inScope = scopedLocations.length > 0 ? scopedLocations : granted
 
   if (!product.trackStock) {
@@ -115,8 +115,7 @@ export function ProductBranchStock({
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-sm font-medium leading-5 text-foreground">Unlimited</span>
           <p className="text-sm leading-5 text-muted-foreground">
-            This product is not counted, so there is nothing to track per location. Turn stock
-            tracking on to give each location its own count.
+            Stock isn't tracked for this product.
           </p>
         </div>
       </div>
@@ -271,20 +270,12 @@ export function ProductBranchStock({
           manager granted one branch that their shelf is the business. */}
       {rows.length > 1 ? (
         <div className="flex items-baseline justify-between gap-3 rounded-2xl bg-muted/30 px-4 py-3">
-          <span className="text-sm text-muted-foreground">
-            Business quantity — the sum of {rows.length} locations
-          </span>
+          <span className="text-sm text-muted-foreground">Total ({rows.length} locations)</span>
           <span className="shrink-0 font-heading text-lg font-semibold tabular-nums text-foreground">
             {total}
           </span>
         </div>
       ) : null}
-
-      <p className="text-xs text-muted-foreground">
-        {isMultiLocation
-          ? "A sale, adjustment or delivery changes only the location it happened at. Stock is not moved between locations."
-          : "A sale, adjustment or delivery changes this location's count."}
-      </p>
 
       {/* Only when ordering is actually one of the fixes. A branch below zero
           is not short of stock — its count is wrong — and the notice above says
@@ -350,7 +341,7 @@ function ThresholdField({
 function StockLevelNote({ level }: { level: BranchStockLevel }) {
   if (level === "ok") return null
   const label =
-    level === "negative" ? "Count is wrong" : level === "out" ? "Out of stock" : "Running low"
+    level === "negative" ? "Below zero" : level === "out" ? "Out of stock" : "Running low"
   return (
     <span
       className={cn(

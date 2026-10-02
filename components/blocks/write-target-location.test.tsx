@@ -49,7 +49,7 @@ describe("the branch a write lands on", () => {
 
     // The state is on the row, in the badge the rest of the product uses, so it
     // is readable before a click is spent on it.
-    expect(within(list).getAllByText("Paused").length).toBeGreaterThan(0)
+    expect(within(list).getAllByText("Suspended").length).toBeGreaterThan(0)
   })
 
   it("no longer explains absent branches in a footnote", () => {
@@ -62,10 +62,10 @@ describe("the branch a write lands on", () => {
     const onChange = renderControl()
     const list = await openTheList()
 
-    const pausedRow = within(list).getAllByText("Paused")[0].closest('[role="option"]')
+    const pausedRow = within(list).getAllByText("Suspended")[0].closest('[role="option"]')
     expect(pausedRow).not.toBeNull()
-    // The row reads "<name>Paused" — the badge sits inside it.
-    const pausedName = (pausedRow as HTMLElement).textContent?.replace(/Paused$/, "").trim()
+    // The row reads "<name>Suspended" — the badge sits inside it.
+    const pausedName = (pausedRow as HTMLElement).textContent?.replace(/Suspended$/, "").trim()
     await userEvent.click(pausedRow as HTMLElement)
 
     // R12, and the whole reason the pick is held locally rather than reported:
@@ -73,11 +73,9 @@ describe("the branch a write lands on", () => {
     // arrive as one.
     expect(targetsReported(onChange)).toEqual([])
 
-    // And the operator is told — about the branch they actually chose, naming
-    // the write they were in the middle of.
-    const notice = screen.getByText(/takes no new entries/)
+    // And the operator is told — about the branch they actually chose.
+    const notice = screen.getByText(/Pick a live location/)
     expect(notice.textContent).toContain(pausedName)
-    expect(notice.textContent).toContain("this appointment")
   })
 
   it("says what Save is waiting for, once the answer is actually due", async () => {
@@ -126,11 +124,11 @@ describe("the branch a write lands on", () => {
       </LocationsProvider>,
     )
     const list = await openTheList()
-    await userEvent.click(within(list).getAllByText("Paused")[0].closest('[role="option"]')!)
+    await userEvent.click(within(list).getAllByText("Suspended")[0].closest('[role="option"]')!)
 
     // The paused branch explains itself; "choose a location" underneath would be
     // the same instruction in weaker words.
-    expect(screen.getByText(/takes no new entries/)).toBeDefined()
+    expect(screen.getByText(/Pick a live location/)).toBeDefined()
     expect(screen.queryByText("Choose a location to continue")).toBeNull()
   })
 
@@ -140,11 +138,11 @@ describe("the branch a write lands on", () => {
 
     const trading = within(list)
       .getAllByRole("option")
-      .find((option) => within(option).queryByText(/^(Paused|Archived)$/) === null)
+      .find((option) => within(option).queryByText(/^(Suspended|Archived)$/) === null)
     expect(trading).toBeDefined()
     await userEvent.click(trading as HTMLElement)
 
     expect(targetsReported(onChange)).toHaveLength(1)
-    expect(screen.queryByText(/takes no new entries/)).toBeNull()
+    expect(screen.queryByText(/Pick a live location/)).toBeNull()
   })
 })

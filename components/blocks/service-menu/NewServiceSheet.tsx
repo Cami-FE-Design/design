@@ -442,8 +442,7 @@ export function NewServiceSheet({
                 />
               ) : (
                 <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
-                  Save this service first, then reopen it to set its price, duration and
-                  availability per location.
+                  Save the service first to set prices per location.
                 </p>
               ))}
             {activeSection === "online-booking" && <OnlineBookingSection />}

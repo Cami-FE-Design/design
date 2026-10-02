@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils"
  */
 const STYLES: Record<Exclude<LocationStatus, "live">, { label: string; className: string }> = {
   suspended: {
-    label: "Paused",
+    label: "Suspended",
     className: "bg-cami-yellow-3 text-cami-yellow-11",
   },
   archived: {

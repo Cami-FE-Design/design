@@ -76,8 +76,8 @@ export function refusalMessage(
   // at X" to say, and the way out is to answer the question rather than to
   // find another machine.
   if (refusal.saleLocationId === null) {
-    return `This sale has no location yet, and a card payment books at the machine's — it would land at ${machine}. Choose the sale's location first.`
+    return "Choose a location for this sale first."
   }
   const sale = locationName(refusal.saleLocationId)
-  return `That machine is at ${machine} and this sale is at ${sale}. A card payment books at the machine's location, so use a machine at ${sale} or take the payment another way.`
+  return `That machine is at ${machine}. Use a machine at ${sale} or take the payment another way.`
 }

@@ -225,8 +225,8 @@ export function ScheduledShifts({
   if (rostered.length === 0) {
     return (
       <p className="rounded-2xl bg-muted/40 p-4 text-muted-foreground text-sm leading-5">
-        Nobody is assigned to {locationName(locationId)} yet. Assign a team member to this location
-        and their shifts here appear on this schedule — a person can be assigned to more than one.
+        Nobody is assigned to {locationName(locationId)} yet. Assign a team member to see their
+        shifts.
       </p>
     )
   }
@@ -258,8 +258,8 @@ export function ScheduledShifts({
                 <span key={`${clash.a.id}-${clash.b.id}`}>
                   {i > 0 ? " " : null}
                   <span className="font-medium">{member?.name ?? clash.a.memberId}</span> is also at{" "}
-                  {locationName(other)} {formatTime12h(there.start)}–{formatTime12h(there.end)}, so
-                  booking refuses those hours at both.
+                  {locationName(other)} {formatTime12h(there.start)}–{formatTime12h(there.end)}. Not
+                  bookable at either.
                 </span>
               )
             })}
@@ -505,8 +505,8 @@ export function ScheduledShifts({
         <p className="flex shrink-0 items-start gap-2 rounded-xl bg-cami-yellow-2 px-3 py-2 text-sm leading-5">
           <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" />
           <span>
-            {locationName(locationId)} is not trading, so this week cannot be edited and none of it
-            is bookable. The hours stand — they are still worked and still owed.
+            {locationName(locationId)} is {branch.status === "archived" ? "archived" : "suspended"}.
+            This week can't be edited or booked.
           </span>
         </p>
       ) : null}
@@ -517,9 +517,7 @@ export function ScheduledShifts({
             rows.reduce((t, r) => t + r.cells.reduce((n, c) => n + workingMinutes(c), 0), 0),
           )}{" "}
           this week at {locationName(locationId)}
-        </span>{" "}
-        — booking offers a team member here only during these hours, never the location&apos;s
-        opening hours. Time off is left out, block times are kept.
+        </span>
       </p>
 
       {canEdit && shiftDialog ? (

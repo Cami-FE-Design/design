@@ -279,7 +279,7 @@ export function PackageDetailDialog({
                   title={withheld > 0 ? "No sales at your locations" : "No sales yet"}
                   description={
                     withheld > 0
-                      ? "It has sold elsewhere in the business."
+                      ? "Sold at other locations only."
                       : "Packages sold to clients will appear here."
                   }
                   className="py-16"
@@ -292,8 +292,7 @@ export function PackageDetailDialog({
                       rather than the whole book. */}
                   {withheld > 0 ? (
                     <p className="rounded-xl bg-cami-blue-2 p-3 text-sm leading-5 text-foreground">
-                      Showing sales at {scopeLabel}. {withheld} more{" "}
-                      {withheld === 1 ? "was" : "were"} sold at locations you do not hold.
+                      Showing sales at {scopeLabel}. {withheld} more at other locations.
                     </p>
                   ) : null}
                   <Table>

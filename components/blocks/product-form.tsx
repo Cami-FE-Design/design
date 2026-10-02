@@ -614,9 +614,7 @@ export function ProductForm({
                 says where to go instead. */}
             {trackStock && isEdit && isMultiLocation ? (
               <p className="rounded-xl bg-muted/40 p-3 text-sm text-muted-foreground">
-                Each location keeps its own count, and this product&apos;s are on its Stock by
-                location card. Change one with Add or Remove stock, which records the location it
-                happened at — the business quantity is the sum of them and is never set directly.
+                Stock is counted per location. Use Add or Remove stock to change it.
               </p>
             ) : null}
 
@@ -645,10 +643,7 @@ export function ProductForm({
                     onChange={(e) => setCurrentStock(e.target.value)}
                   />
                   {isMultiLocation ? (
-                    <p className="text-xs text-muted-foreground">
-                      This location&apos;s count. Every other location starts at zero and takes its
-                      own deliveries — the business quantity is the sum of them, never set directly.
-                    </p>
+                    <p className="text-xs text-muted-foreground">Other locations start at 0.</p>
                   ) : null}
                 </FieldRow>
               </>
@@ -668,8 +663,8 @@ export function ProductForm({
                     future stock orders.
                     {isMultiLocation
                       ? isEdit
-                        ? " Each location sets its own, on its Stock by location card — a busy location and a quiet one rarely reorder at the same number."
-                        : " These apply to the location above; every other location sets its own."
+                        ? " Set per location on the Stock by location card."
+                        : " These apply to the location above."
                       : ""}
                   </p>
                 </div>

@@ -38,6 +38,7 @@ export function CategoryAtBranchPreview({
   mode: "hidden" | "empty"
 }) {
   const visible = mode === "hidden" ? categories.filter((c) => c.offered.length > 0) : categories
+  const hiddenCount = mode === "hidden" ? categories.length - visible.length : 0
 
   return (
     <div className="flex w-full flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
@@ -66,17 +67,16 @@ export function CategoryAtBranchPreview({
                  reads as a catalog nobody filled in; "not offered here" is the
                  fact, and it is the branch's own decision. */
               <p className="rounded-xl bg-muted/50 p-2.5 text-sm leading-5 text-muted-foreground">
-                Not offered at {branchName}. The business has {category.services.length}, all turned
-                off here.
+                Not offered at {branchName}.
               </p>
             )}
           </li>
         ))}
       </ul>
 
-      {mode === "hidden" && categories.some((c) => c.offered.length === 0) ? (
+      {hiddenCount > 0 ? (
         <p className="text-xs leading-4 text-muted-foreground">
-          {categories.filter((c) => c.offered.length === 0).length} category not shown.
+          {hiddenCount} {hiddenCount === 1 ? "category" : "categories"} not shown.
         </p>
       ) : null}
     </div>

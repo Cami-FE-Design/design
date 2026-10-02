@@ -45,7 +45,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { type LocationGrants, useLocations } from "@/lib/locations/store"
 import type { TeamMember } from "@/lib/team/mock"
-import { holdsAllLocations, MERCHANT_ROLES, roleById, VENUE_CAPABILITIES } from "@/lib/team/roles"
+import { holdsAllLocations, MERCHANT_ROLES, roleById } from "@/lib/team/roles"
 
 export function TeamAccessDialog({
   open,
@@ -57,7 +57,7 @@ export function TeamAccessDialog({
 }: {
   /**
    * Whether this member's locations have loaded. Loading and error are reached
-   * from /playground. Neither says "No location granted" — that is R24's fact
+   * from /playground. Neither says "No location selected" — that is R24's fact
    * about a real empty grant, and claiming it before the grant has arrived
    * is a false statement about somebody's access. Confirm stays off too:
    * saving a grant that was never read would overwrite it with nothing.
@@ -90,10 +90,6 @@ export function TeamAccessDialog({
   // narrowing above does not reach inside it.
   const memberId = member.id
   const role = roleById(roleId)
-  // What this role actually holds today, out of what the product actually has.
-  const shippedCapabilities = VENUE_CAPABILITIES.filter(
-    (cap) => cap.shipped && role?.venueCapabilities.includes(cap.code),
-  )
   const isOwner = holdsAllLocations(roleId)
   const shownIds = isOwner ? locations.map((l) => l.id) : grantedIds
 
@@ -147,18 +143,6 @@ export function TeamAccessDialog({
             </Select>
           </div>
 
-          {/* One line, not a block.
-              Five lines of prose plus a bullet, to say a Manager may open a
-              location's settings, made the dialog twice as tall as the two
-              questions it actually asks. */}
-          {role ? (
-            <p className="text-muted-foreground text-sm leading-5">
-              {shippedCapabilities.length > 0
-                ? `The ${role.name} role can ${shippedCapabilities.map((c) => c.label.replace(/^Can /, "").toLowerCase()).join(" and ")}. Where they can do it is the question below.`
-                : `The ${role.name} role configures no location. Where they work is the question below.`}
-            </p>
-          ) : null}
-
           <div className="flex flex-col gap-2">
             <Label>Works at</Label>
             {status === "loading" ? (
@@ -167,16 +151,10 @@ export function TeamAccessDialog({
               </div>
             ) : status === "error" ? (
               <LoadError what="this member’s locations" onRetry={onRetry} />
-            ) : isOwner ? (
-              <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
-                An owner holds every location, including any added later. Change the role to grant a
-                named set instead.
-              </p>
-            ) : shownIds.length === 0 ? (
-              <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
-                No location granted. This member reads and writes nothing — an empty grant never
-                means every location.
-              </p>
+            ) : !isOwner && shownIds.length === 0 ? (
+              // The one state worth a line: Confirm with nothing picked leaves
+              // this person with no access at all (R24).
+              <p className="text-sm text-muted-foreground">No location selected.</p>
             ) : null}
             {/* A dropdown, not a stack of cards. Nine branches already
                 scrolled this dialog past its own buttons and twenty would make
