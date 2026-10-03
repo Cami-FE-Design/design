@@ -14,6 +14,12 @@ type Screen = {
   path: string
   label: string
   note?: string
+  /**
+   * A sub-heading inside the group. Multi-location uses it for the delivery
+   * epic, so a phase reads epic by epic. Groups that leave it out render as
+   * they always have.
+   */
+  epic?: string
 }
 
 /**
@@ -56,6 +62,8 @@ type Section = {
   lane: Lane
   title: string
   description?: string
+  /** An older anchor this group still answers to, so links already shared keep landing. */
+  alias?: string
   screens: Screen[]
 }
 
@@ -64,6 +72,17 @@ type Section = {
  * first appear. A route that carries several things to look at gets one path
  * cell and a list of them, rather than the same path printed five times.
  */
+/** Consecutive runs of the same epic, in written order. No epic is one run. */
+function groupByEpic(screens: Screen[]): Array<{ epic?: string; screens: Screen[] }> {
+  const runs: Array<{ epic?: string; screens: Screen[] }> = []
+  for (const screen of screens) {
+    const last = runs[runs.length - 1]
+    if (last && last.epic === screen.epic) last.screens.push(screen)
+    else runs.push({ epic: screen.epic, screens: [screen] })
+  }
+  return runs
+}
+
 function groupByPath(screens: Screen[]): Array<{ path: string; screens: Screen[] }> {
   const groups: Array<{ path: string; screens: Screen[] }> = []
   for (const screen of screens) {
@@ -1150,190 +1169,302 @@ const SECTIONS: Section[] = [
   },
   {
     lane: "business",
-    title: "Multi-location (PRD-43 / PRO-71)",
+    title: "Multi-location · Phase 1 — Daily branch operations",
     description:
-      "One business, many branches. The initiative is 25 requirements, 15 epics and 16 screens (SCR-01 to SCR-16 in the PRD's §6 reference); this group grows a row per slice. Requirements live in Slite, not the repo — see docs/specs/multi-location-foundations.md for the doc ids and how to read them.",
+      "Delivered in five phases and thirteen epics (the ML-PH projects in Linear). Each phase is its own group and link; the FE ticket behind each epic is in docs/specs/multi-location-phases.md. Rows marked 'confirming with GNK' may move phase. Phase 1 runs branches while every existing merchant workflow keeps working.",
+    alias: "multi-location-prd-43-pro-71",
     screens: [
       {
+        epic: "Epic 2 · Create branches and control access",
         path: "/playground#multi-location-branch-switcher",
         label: "Branch switcher · SCR-04 (playground)",
         note: "Five scopes side by side: all branches, one, a subset, a single-branch business (renders nothing — DW1.2) and a staff member granted none (locked, because empty is never 'all' — R24). Also live in the topbar on every route.",
       },
       {
+        epic: "Epic 2 · Create branches and control access",
         path: "/shell-demo?settings=locations",
         label: "Locations, the estate (settings)",
         note: "SCR-01 and SCR-12 — where a branch is created and configured. Three seeded: JVC and Jumeirah live, Al Quoz suspended. Open a branch for basic info, address, invoicing and its own Hours; Manage holds suspend / reactivate / archive. Every tab saves and survives a reload.",
       },
       {
-        path: "/playground#multi-location-per-branch-hours",
-        label: "Per-branch hours · SCR-01 (playground)",
-        note: "R01 + R19, three seeded weeks side by side. JVC closes Sunday, Jumeirah trades seven days, Al Quoz shuts 1pm–4pm — the split day is why a day holds shifts rather than one open/close. Edit the hours in settings and the branch page follows.",
-      },
-      {
-        path: "/shell-demo?settings=business-details",
-        label: "Business time zone · SCR-01, R19",
-        note: "R19's first half — the default every branch without a zone of its own follows. Business details → Edit → Time zone. Change it and the inheriting branches' Hours tabs follow; Riyadh keeps its own, and the field counts how many will not move. A branch added on the business's zone is stored as inheriting, not as a copy of today's value.",
-      },
-      {
-        path: "/playground#multi-location-somebody-working-at-another-location",
-        label: "Somebody working at another location · SCR-10 (playground)",
-        note: "The Edit service panel at JVC in three frames: Lena busy at Jumeirah 2–6pm (refused, with where and until when), Marco who does not work at JVC (a different sentence), and Lena inside her JVC shift (nothing to say).",
-      },
-      {
-        path: "/playground#multi-location-loading-and-error",
-        label: "Loading and error · PRD-169 Done-means (playground)",
-        note: "Locations, Deals, WhatsApp numbers, Stock and Team access in the two states a route never reaches on local data — one toggle drives all five, Try again puts them back. Error never shows a partial list (G7): stock drops its total. Team access will not Confirm and never says 'No location granted' before the grant has loaded (R24).",
-      },
-      {
-        path: "/playground#multi-location-per-branch-availability",
-        label: "Per-branch availability · SCR-08 (playground)",
-        note: "R15 — day chips and slots derive from the branch's own hours, so a closed day reads Closed rather than Fully booked and Al Quoz's 1–4pm gap is absent rather than filtered. Staff filter by the branches they work at. Friday differs at all three.",
-      },
-      {
-        path: "/admin/businesses?business=shampooch",
-        label: "CamiHQ chain view · SCR-16",
-        note: "Shampooch → Locations. E15 — reuses the owner's components (estate from lib/locations, money from MoneyByLocationView) rather than a second chain dashboard. Read-only: standing a chain up happens as the owner, where the change has an actor (INV-08). Absent for single-site partners — open Velvet Paw.",
-      },
-      {
-        path: "/playground#multi-location-who-may-change-what-about-a-branch",
-        label: "Who may change what · GNK §2, §3 (playground)",
-        note: "Roles across, actions down. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number; a manager changes service settings and only where they hold a branch; reception and a groomer cannot at all. This table is the rule reference. On the real screens a refused action is absent, the way the built product gates by permission — see 'Signed in as' below.",
-      },
-      {
-        path: "/sales/new-sale?terminals=moved",
-        label: "A charge that would land at the wrong branch · GNK §15",
-        note: "The picker only ever offers this branch's machines, so the refusal behind it could not be reached by clicking — correct, tested, and invisible. `?terminals=moved` pins the case §15 names: a machine linked to Jumeirah after this sale was drafted. Add a service, leave Location alone and tap Front Desk Register: refused, because a card payment books at the MACHINE's branch and the sale belongs nowhere. Set Location to JVC and it is refused differently — both branches named, and a way out. Set it to Jumeirah and it goes through. On the screen rather than in a toast: nothing moves until the operator answers it.",
-      },
-      {
+        epic: "Epic 2 · Create branches and control access",
         path: "/shell-demo?settings=locations",
         label: "Signed in as, and what it hides · GNK §2",
         note: "Bottom of the Locations panel, in the dashed design-repo strip: sign in as somebody else, which no product screen offers. Pick Aziz, who holds Jumeirah only: the estate narrows from nine locations to his one, the location switcher goes (one location has nothing to switch), and Add locations, the Manage tab and the Invoicing cards' Edit are absent — a role decides what is on the screen, as in the built product. Pick ahmed@getcami.io, invited and granted nothing: no locations, said out loud rather than shown as an empty list (R24). Pick Maz Khan and it all comes back. Switching the person switches what they hold as well as what they may press, which is SU2.3 shown rather than argued.",
       },
       {
-        path: "/playground#multi-location-a-category-a-branch-has-emptied",
-        label: "A category a branch has emptied · GNK §4 (playground)",
-        note: "Answered by Maaz on 20 Sep, and it is what is built: “internally the staff can still view the category with no services (shown empty). For online bookings, the Category is hidden.” A category can hold nothing at a branch — three spa services, no spa room here — and the proposal is that the answer depends on who is reading: hidden for the client, who can do nothing with it and reads a heading over nothing as a dead end; shown for reception, who is the person able to say 'not here, but Jumeirah does it'. Same split `locationsOffering` already makes for one service, and the same reading as KC1.5. Add-ons is the control in both frames. Live at /catalogs/service-menu with the branch set to Mirdif, and on /shampooch-mirdif.",
+        epic: "Epic 2 · Create branches and control access",
+        path: "/playground#multi-location-per-branch-hours",
+        label: "Per-branch hours · SCR-01 (playground)",
+        note: "R01 + R19, three seeded weeks side by side. JVC closes Sunday, Jumeirah trades seven days, Al Quoz shuts 1pm–4pm — the split day is why a day holds shifts rather than one open/close. Edit the hours in settings and the branch page follows.",
       },
       {
-        path: "/playground#multi-location-packages-at-the-till",
-        label: "Packages at the till · SCR-13 (playground)",
-        note: "Rebuilt 22 Sep against the as-built: the product applies a client's packages itself, so there is no Apply button. Sessions are spent across the cart one per line, a covered line reads 0 with its real price struck beneath, and the chip counts down. Six rows — same branch, priced differently, not offered here, one session two lines want, two packages with one unlimited, and an expired one that is out of time rather than out of sessions.",
+        epic: "Epic 2 · Create branches and control access",
+        path: "/shell-demo?settings=business-details",
+        label: "Business time zone · SCR-01, R19",
+        note: "R19's first half — the default every branch without a zone of its own follows. Business details → Edit → Time zone. Change it and the inheriting branches' Hours tabs follow; Riyadh keeps its own, and the field counts how many will not move. A branch added on the business's zone is stored as inheriting, not as a copy of today's value.",
       },
       {
-        path: "/sales/new-sale",
-        label: "Packages at the till · SCR-13 (route)",
-        note: "Pick Aaishah Vaza and add Blow dry: the session applies on its own, the line reads 0 with its real price struck, and the chip counts what is left. The count is the client's WHOLE balance, not the one package that paid — Abbie Connelly holds two, one unlimited, so hers reads Unlimited. Abbey McDermaid has one session: add two blow dries and the second pays in full. The service picker carries the same chip before you add anything, built from what is still free to spend rather than what the cart started with. Abrar Mohammed is the quiet case made loud — two sessions left on a package that expired in January. Pick him and add Blow dry: the line charges in full, and a notice says why, because 'you have none left' is the wrong sentence for somebody holding two. It fires against the CART, not the client — add a product instead and nothing appears, since a notice nobody needed is one an operator learns to dismiss unread. The branch warning is ours (KC1.5): on the line, both figures, never blocks — and all three of its cases are reachable here, by moving the Location card after picking the client. Abbey McDermaid + Blow Dry & Style at Shampooch Jumeirah is the price case (sold 120 at JVC, 145 here). The same pair at Shampooch Dubai Marina is the duration case — same money, 60 min against the 45 it was sold as. Abbie Connelly + Deep Tissue Massage at Shampooch Mirdif is 'not offered here', which there is no massage room for.",
-      },
-      {
-        path: "/team/scheduled-shifts",
-        label: "Scheduled shifts · SCR-10 (route)",
-        note: "What Team › Scheduled Shifts now points at. One grid per branch picked from a local strip, not one merged week that would silently drop a branch. Writable, and the writes carry the rules: a shift belongs to its branch, time off follows the person across all of them, a suspended branch keeps its week and refuses every write (R12). Bounded by grants, hidden for a single-branch business. Nine branches on /playground.",
-      },
-      {
-        path: "/playground#multi-location-scheduled-shifts",
-        label: "Scheduled shifts · SCR-10 (playground)",
-        note: "The grid at seeded scale (R05, DW2.3, DW2.4). Lena is JVC mornings and Jumeirah evenings — two branches in one day, no conflict. Sara is rostered at both over the same hours, the one clash DW2.4 names, flagged as a pair. Leave shows at both branches, block time only at its own.",
-      },
-      {
-        path: "/playground#multi-location-per-branch-stock",
-        label: "Per-branch stock · SCR-11 (playground)",
-        note: "R16 — quantity and reorder points per branch, the business total derived and never stored (DW4.2). Rows first, sum after: 18 and -2 add up to a healthy-looking 16. Empty and negative stay apart. Also in the Products Quantity column, healthy branches folded and the rest capped at five worst-first.",
-      },
-      {
-        path: "/playground#multi-location-nine-branches-d5",
-        label: "Nine branches · D5 (playground)",
-        note: "The designs at the scale the PRD assumes, where most rows say nothing and the one that matters is below the fold. Collapsed is the default (D5); Show all is the nine cards it replaces. Under four quiet branches nothing collapses.",
-      },
-      {
-        path: "/playground#multi-location-chain-setup",
-        label: "Chain setup · SCR-02 (playground)",
-        note: "N branches in one pass (R02, SU1.2). All or none — one bad row creates nothing. Duplicate names collide on the link. A created branch is live — the built product creates a venue trading, and an owner who is not ready suspends it rather than there being a fourth state. Isolated from the app's own estate.",
-      },
-      {
-        path: "/playground#multi-location-all-branches-calendar",
-        label: "All-branches calendar · SCR-05 (playground)",
-        note: "R07's view half as a filter, not columns — a day grid is already staff × time, so a third axis turns 11 columns into 99. Click a branch to narrow, again for all; the counts are why it is a strip. With more than one branch in view a booking asks for one first (R11).",
-      },
-      {
-        path: "/playground#multi-location-cross-branch-move",
-        label: "Cross-branch move · SCR-06 (playground)",
-        note: "R07 + R17. Destinations bounded by grants. The allowed case keeps the deposit credited where it was taken while the work moves — both branches on the sale. Third frame: an unresolvable payment is rejected whole rather than losing the money's trail (GB1.3). lib/locations/cross-branch-move.test.ts.",
-      },
-      {
-        path: "/playground#multi-location-package-mismatch-at-checkout",
-        label: "Package mismatch · SCR-13 (playground)",
-        note: "KC1.5, corrected 2026-09-03: warn, never block. Four cases — same terms (nothing renders), priced differently, different duration, not offered here. Both figures shown so reception can decide in front of the client, and the choice recorded on the sale. The warning itself; the cart it sits in is under 'Packages at the till'.",
-      },
-      {
-        path: "/sales/daily-summary",
-        label: "End of day, per branch · RP-A1 (route)",
-        note: "The PRD's first user story: an EOD view per branch and a business total in one place. Every figure derives from the sales log, bounded by the grant before it sums (G7, R18), and a granted branch that took nothing is named rather than dropped. Lands on this scope's last trading day. Absent for a single-branch business.",
-      },
-      {
-        path: "/playground#multi-location-the-duplicate-caught-before-booking",
-        label: "Duplicate caught before booking · CL-A1 / RC-B1 (playground)",
-        note: "The story's Done-when. SCR-07 answers it only if reception opens the client record, so the estate-wide visit now arrives unprompted under the client picker. Unbounded by the grant on purpose — the duplicate worth catching is at a branch you cannot see (R13). States, never blocks. Also at /appointments → New appointment → Millie Cassidy.",
-      },
-      {
-        path: "/playground#multi-location-money-by-branch",
-        label: "Money by branch · SCR-15 (playground)",
-        note: "KH1.1's side-by-side, never merged — the question is which branch had a bad day. The total sits after the rows, labelled as their sum. Second frame is a manager granted only Jumeirah (KH1.3). Payouts are business-level in this market, with a footnote saying so. lib/money/by-location.test.ts.",
-      },
-      {
-        path: "/playground#multi-location-branch-whatsapp-numbers",
-        label: "Branch WhatsApp numbers · SCR-14 (playground)",
-        note: "R21, R22, KC2.2, KC2.4 — connected, stuck on the OTP, and no number at all, which says so in words because nothing reroutes to a sister branch. Contrast SMS, where an unapproved sender ID falls back to CAMI. Also at /shell-demo?settings=whatsapp-numbers.",
-      },
-      {
-        path: "/shell-demo?settings=locations&loc=shampooch-jvc&lt=invoicing",
-        label: "Branch tax identity · SCR-12",
-        note: "Opens JVC's Invoicing tab directly — `?loc=<id>&lt=<tab>` on the Locations panel. Every inheritable row says whose value it is (R23). JVC overrides only its receipt prefix; Jumeirah is a separate registered company with its own TRN. Receipt numbers print with the prefix, which is what stops two branches colliding at 21857 (R25), and the forward-only warning is load-bearing (INV-12). Tipping is whole-block — Al Quoz is the seeded custom case.",
-      },
-      {
-        path: "/shampooch",
-        label: "Public branch picker · SCR-08",
-        note: "A chain's public page asks where before showing anything branch-shaped (R15, GB3.1). Compare /shampooch-jvc and /shampooch-jumeirah, whose menu is its own — bath at AED 75, no daycare. /shampooch-al-quoz 404s because it is suspended. /purr-palace is the single-site case and renders no picker.",
-      },
-      {
-        path: "/playground#multi-location-public-branch-picker",
-        label: "Public branch picker · SCR-08 (playground)",
-        note: "The picker in isolation, 'Open now' pinned to a Tuesday 11am. Entry order was left to design (PRD §16): location first, because price and availability are per branch and a service-first list would show a price that is wrong until a branch is chosen.",
-      },
-      {
-        path: "/catalogs/service-menu?service=bath-small&ss=locations",
-        label: "Per-branch service pricing · SCR-09",
-        note: "`?service=<id>&ss=locations` opens a service's editor on its Locations section — this one is the small bath, which Jumeirah prices at 145 against the business's 120. One definition configured per branch (R06): a switch to offer it here at all (DW3.3), plus price and duration showing the inherited value and whose it is. Typing creates the override, Reset returns that field to inheriting (DW3.2). Saves with the service.",
-      },
-      {
-        path: "/playground#multi-location-per-branch-service-pricing",
-        label: "Per-branch service pricing · SCR-09 (playground)",
-        note: "The same section with the business default under your thumb — raise it and the inheriting branches follow while the overridden price does not (DW3.1). Seeded as the story's example: Jumeirah at AED 75, Al Quoz not offering it. lib/service-catalog/offerings.test.ts.",
-      },
-      {
-        path: "/catalogs/service-menu",
-        label: "A category a branch has emptied · GNK §4",
-        note: "One category list for the business; a branch sees only what it has switched on inside it. Switch the header's location to Shampooch Mirdif: 'Bath & coat' loses Medicated bath, and 'Spa add-ons' empties entirely — the heading stays with 'Not offered at Shampooch Mirdif', because reception is the person who can say 'not here, but Jumeirah does it'. Sidebar counts follow the branch. The client's own page hides the category instead (/shampooch-mirdif), there being nothing a client can do with it. lib/service-catalog/categories-at-branch.test.ts.",
-      },
-      {
+        epic: "Epic 2 · Create branches and control access",
         path: "/settings/team?access=m_aziz",
         label: "Branch access grants · SCR-03",
         note: "Role × location, the two axes access resolves on (R04). `?access=<id>` opens the grants dialog on that member — this one lands on Aziz. The roster shows both columns too, so a wrong scope is visible without opening anyone. Role is read-only, role read-only, location grant editable. Maz is Owner (stored as 'all'), Aziz holds only Jumeirah, Ahmed is invited with none — no access, said out loud (R24).",
       },
       {
+        epic: "Epic 2 · Create branches and control access",
+        path: "/playground#multi-location-branch-access-grants",
+        label: "Branch access grants · SCR-03 (playground)",
+        note: "The same dialog against three roster rows, isolated. Four of the five location permission codes are marked Proposed — the product ships one venues:read that bundles viewing a branch with changing it (blueprint §03).",
+      },
+      {
+        epic: "Epic 2 · Create branches and control access",
+        path: "/playground#multi-location-who-may-change-what-about-a-branch",
+        label: "Who may change what · GNK §2, §3 (playground)",
+        note: "Roles across, actions down. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number; a manager changes service settings and only where they hold a branch; reception and a groomer cannot at all. This table is the rule reference. On the real screens a refused action is absent, the way the built product gates by permission — see 'Signed in as' below.",
+      },
+      {
+        epic: "Epic 2 · Create branches and control access",
+        path: "/playground#multi-location-loading-and-error",
+        label: "Loading and error · PRD-169 Done-means (playground)",
+        note: "Locations, Deals, WhatsApp numbers, Stock and Team access in the two states a route never reaches on local data — one toggle drives all five, Try again puts them back. Error never shows a partial list (G7): stock drops its total. Team access will not Confirm and never says 'No location granted' before the grant has loaded (R24).",
+      },
+      {
+        epic: "Epic 3 · Schedule staff and book the right branch",
+        path: "/appointments",
+        label: "Booking names a branch · G1 (route)",
+        note: "New appointment → Location sits first, because the write resolves to it and the service list is read against it. Nothing renders for a single-branch business (DW1.2).",
+      },
+      {
+        epic: "Epic 3 · Schedule staff and book the right branch",
+        path: "/playground#multi-location-a-write-names-one-branch",
+        label: "A write names one branch · G1, R11 (playground)",
+        note: "Every operational write lands on exactly one branch, with no default. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A paused branch is absent rather than offered and refused (R12). Live on the appointment sheet, where the service picker reads against the branch (DW3.3).",
+      },
+      {
+        epic: "Epic 3 · Schedule staff and book the right branch",
+        path: "/appointments",
+        label: "Somebody working at another branch · SCR-10 (route)",
+        note: "Topbar on Shampooch JVC → New appointment → hover a service → Edit → Team member. Only JVC's people are offered (DW2.3); set the start between 2pm and 6pm and Lena Petrov moves to “Busy at another location” with where and until when. Picked anyway, the panel refuses and Update stays off (DW2.4 blocks, never warns). The client's flow drops the same slot and names nothing (BG-06).",
+      },
+      {
+        epic: "Epic 3 · Schedule staff and book the right branch",
+        path: "/playground#multi-location-somebody-working-at-another-location",
+        label: "Somebody working at another location · SCR-10 (playground)",
+        note: "The Edit service panel at JVC in three frames: Lena busy at Jumeirah 2–6pm (refused, with where and until when), Marco who does not work at JVC (a different sentence), and Lena inside her JVC shift (nothing to say).",
+      },
+      {
+        epic: "Epic 3 · Schedule staff and book the right branch",
+        path: "/team/scheduled-shifts",
+        label: "Scheduled shifts · SCR-10 (route)",
+        note: "What Team › Scheduled Shifts now points at. One grid per branch picked from a local strip, not one merged week that would silently drop a branch. Writable, and the writes carry the rules: a shift belongs to its branch, time off follows the person across all of them, a suspended branch keeps its week and refuses every write (R12). Bounded by grants, hidden for a single-branch business. Nine branches on /playground.",
+      },
+      {
+        epic: "Epic 3 · Schedule staff and book the right branch",
+        path: "/playground#multi-location-scheduled-shifts",
+        label: "Scheduled shifts · SCR-10 (playground)",
+        note: "The grid at seeded scale (R05, DW2.3, DW2.4). Lena is JVC mornings and Jumeirah evenings — two branches in one day, no conflict. Sara is rostered at both over the same hours, the one clash DW2.4 names, flagged as a pair. Leave shows at both branches, block time only at its own.",
+      },
+      {
+        epic: "Epic 3 · Schedule staff and book the right branch",
+        path: "/playground#multi-location-per-branch-availability",
+        label: "Per-branch availability · SCR-08 (playground)",
+        note: "R15 — day chips and slots derive from the branch's own hours, so a closed day reads Closed rather than Fully booked and Al Quoz's 1–4pm gap is absent rather than filtered. Staff filter by the branches they work at. Friday differs at all three.",
+      },
+      {
+        epic: "Epic 3 · Schedule staff and book the right branch",
+        path: "/shampooch",
+        label: "Public branch picker · SCR-08",
+        note: "A chain's public page asks where before showing anything branch-shaped (R15, GB3.1). Compare /shampooch-jvc and /shampooch-jumeirah, whose menu is its own — bath at AED 75, no daycare. /shampooch-al-quoz 404s because it is suspended. /purr-palace is the single-site case and renders no picker.",
+      },
+      {
+        epic: "Epic 3 · Schedule staff and book the right branch",
+        path: "/playground#multi-location-public-branch-picker",
+        label: "Public branch picker · SCR-08 (playground)",
+        note: "The picker in isolation, 'Open now' pinned to a Tuesday 11am. Entry order was left to design (PRD §16): location first, because price and availability are per branch and a service-first list would show a price that is wrong until a branch is chosen.",
+      },
+      {
+        epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/settings/team?services=m_beth",
-        label: "Services per branch · DW2.1 (route)",
+        label: "Services per branch · DW2.1 (route) · Phase 1 or 2, confirming with GNK",
         note: "`?services=<id>` opens that member's editor on Services — Beth, who works two sites. One list stays the default, because ticking nine identical lists is the setup cost R02 rules out; turn off 'Same services at every location' and the branches they hold appear with their own counts, seeded from the shared list. Absent for somebody holding one branch.",
       },
       {
+        epic: "Epic 4 · Complete branch checkout",
+        path: "/sales/new-sale",
+        label: "Packages at the till · SCR-13 (route)",
+        note: "Pick Aaishah Vaza and add Blow dry: the session applies on its own, the line reads 0 with its real price struck, and the chip counts what is left. The count is the client's WHOLE balance, not the one package that paid — Abbie Connelly holds two, one unlimited, so hers reads Unlimited. Abbey McDermaid has one session: add two blow dries and the second pays in full. The service picker carries the same chip before you add anything, built from what is still free to spend rather than what the cart started with. Abrar Mohammed is the quiet case made loud — two sessions left on a package that expired in January. Pick him and add Blow dry: the line charges in full, and a notice says why, because 'you have none left' is the wrong sentence for somebody holding two. It fires against the CART, not the client — add a product instead and nothing appears, since a notice nobody needed is one an operator learns to dismiss unread. The branch warning is ours (KC1.5): on the line, both figures, never blocks — and all three of its cases are reachable here, by moving the Location card after picking the client. Abbey McDermaid + Blow Dry & Style at Shampooch Jumeirah is the price case (sold 120 at JVC, 145 here). The same pair at Shampooch Dubai Marina is the duration case — same money, 60 min against the 45 it was sold as. Abbie Connelly + Deep Tissue Massage at Shampooch Mirdif is 'not offered here', which there is no massage room for.",
+      },
+      {
+        epic: "Epic 4 · Complete branch checkout",
+        path: "/playground#multi-location-packages-at-the-till",
+        label: "Packages at the till · SCR-13 (playground)",
+        note: "Rebuilt 22 Sep against the as-built: the product applies a client's packages itself, so there is no Apply button. Sessions are spent across the cart one per line, a covered line reads 0 with its real price struck beneath, and the chip counts down. Six rows — same branch, priced differently, not offered here, one session two lines want, two packages with one unlimited, and an expired one that is out of time rather than out of sessions.",
+      },
+      {
+        epic: "Epic 4 · Complete branch checkout",
+        path: "/sales/new-sale?terminals=moved",
+        label: "A charge that would land at the wrong branch · GNK §15",
+        note: "The picker only ever offers this branch's machines, so the refusal behind it could not be reached by clicking — correct, tested, and invisible. `?terminals=moved` pins the case §15 names: a machine linked to Jumeirah after this sale was drafted. Add a service, leave Location alone and tap Front Desk Register: refused, because a card payment books at the MACHINE's branch and the sale belongs nowhere. Set Location to JVC and it is refused differently — both branches named, and a way out. Set it to Jumeirah and it goes through. On the screen rather than in a toast: nothing moves until the operator answers it.",
+      },
+      {
+        epic: "Epic 4 · Complete branch checkout",
+        path: "/playground#multi-location-per-branch-stock",
+        label: "Per-branch stock · SCR-11 (playground)",
+        note: "R16 — quantity and reorder points per branch, the business total derived and never stored (DW4.2). Rows first, sum after: 18 and -2 add up to a healthy-looking 16. Empty and negative stay apart. Also in the Products Quantity column, healthy branches folded and the rest capped at five worst-first.",
+      },
+      {
+        epic: "Epic 5 · Preserve existing workflows for the pilot",
+        path: "/playground#multi-location-branch-whatsapp-numbers",
+        label: "Branch WhatsApp numbers · SCR-14 (playground)",
+        note: "R21, R22, KC2.2, KC2.4 — connected, stuck on the OTP, and no number at all, which says so in words because nothing reroutes to a sister branch. Contrast SMS, where an unapproved sender ID falls back to CAMI. Also at /shell-demo?settings=whatsapp-numbers.",
+      },
+      {
+        epic: "Epic 5 · Preserve existing workflows for the pilot",
+        path: "/shell-demo?settings=comms-templates&ct=whatsapp",
+        label: "Which number a reminder leaves from · KC3.1",
+        note: "The template is the business's, one wording edited once; the number is the branch's, and a reply goes wherever the send came from. The screen now says so, and names the branches whose clients get no WhatsApp reminder until a number is connected — never rerouted through a sister branch (KC2.2).",
+      },
+      {
+        epic: "Epic 6 · Migrate and activate the pilot",
+        path: "/admin/businesses?business=shampooch",
+        label: "CamiHQ chain view · SCR-16",
+        note: "Shampooch → Locations. E15 — reuses the owner's components (estate from lib/locations, money from MoneyByLocationView) rather than a second chain dashboard. Read-only: standing a chain up happens as the owner, where the change has an actor (INV-08). Absent for single-site partners — open Velvet Paw.",
+      },
+    ],
+  },
+  {
+    lane: "business",
+    title: "Multi-location · Phase 2 — Branch customization",
+    description:
+      "Adapt local services, prices, fiscal settings and lifecycle. No Phase 2 tickets yet, so this follows the phase plan.",
+    screens: [
+      {
+        epic: "Epic 7 · Customize branch services and fiscal settings",
+        path: "/shell-demo?settings=locations&loc=shampooch-jvc&lt=invoicing",
+        label: "Branch tax identity · SCR-12 · Phase 1 or 2, confirming with GNK",
+        note: "Opens JVC's Invoicing tab directly — `?loc=<id>&lt=<tab>` on the Locations panel. Every inheritable row says whose value it is (R23). JVC overrides only its receipt prefix; Jumeirah is a separate registered company with its own TRN. Receipt numbers print with the prefix, which is what stops two branches colliding at 21857 (R25), and the forward-only warning is load-bearing (INV-12). Tipping is whole-block — Al Quoz is the seeded custom case.",
+      },
+      {
+        epic: "Epic 7 · Customize branch services and fiscal settings",
+        path: "/catalogs/service-menu?service=bath-small&ss=locations",
+        label: "Per-branch service pricing · SCR-09",
+        note: "`?service=<id>&ss=locations` opens a service's editor on its Locations section — this one is the small bath, which Jumeirah prices at 145 against the business's 120. One definition configured per branch (R06): a switch to offer it here at all (DW3.3), plus price and duration showing the inherited value and whose it is. Typing creates the override, Reset returns that field to inheriting (DW3.2). Saves with the service.",
+      },
+      {
+        epic: "Epic 7 · Customize branch services and fiscal settings",
+        path: "/playground#multi-location-per-branch-service-pricing",
+        label: "Per-branch service pricing · SCR-09 (playground)",
+        note: "The same section with the business default under your thumb — raise it and the inheriting branches follow while the overridden price does not (DW3.1). Seeded as the story's example: Jumeirah at AED 75, Al Quoz not offering it. lib/service-catalog/offerings.test.ts.",
+      },
+      {
+        epic: "Epic 7 · Customize branch services and fiscal settings",
+        path: "/catalogs/service-menu",
+        label: "A category a branch has emptied · GNK §4",
+        note: "One category list for the business; a branch sees only what it has switched on inside it. Switch the header's location to Shampooch Mirdif: 'Bath & coat' loses Medicated bath, and 'Spa add-ons' empties entirely — the heading stays with 'Not offered at Shampooch Mirdif', because reception is the person who can say 'not here, but Jumeirah does it'. Sidebar counts follow the branch. The client's own page hides the category instead (/shampooch-mirdif), there being nothing a client can do with it. lib/service-catalog/categories-at-branch.test.ts.",
+      },
+      {
+        epic: "Epic 7 · Customize branch services and fiscal settings",
+        path: "/playground#multi-location-a-category-a-branch-has-emptied",
+        label: "A category a branch has emptied · GNK §4 (playground)",
+        note: "Answered by Maaz on 20 Sep, and it is what is built: “internally the staff can still view the category with no services (shown empty). For online bookings, the Category is hidden.” A category can hold nothing at a branch — three spa services, no spa room here — and the proposal is that the answer depends on who is reading: hidden for the client, who can do nothing with it and reads a heading over nothing as a dead end; shown for reception, who is the person able to say 'not here, but Jumeirah does it'. Same split `locationsOffering` already makes for one service, and the same reading as KC1.5. Add-ons is the control in both frames. Live at /catalogs/service-menu with the branch set to Mirdif, and on /shampooch-mirdif.",
+      },
+      {
+        epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/shell-demo?settings=payments&pp=policy",
         label: "Deposit per branch · DW3.5",
         note: "The deposit policy was the business's only — a branch with a no-show problem, or one doing week-long boarding stays, can now take its own. Same inherit/override rule as the catalogue: raise the default and every inheriting branch moves. Al Quoz is the seeded exception, and the card names which branches differ.",
       },
       {
-        path: "/shell-demo?settings=comms-templates&ct=whatsapp",
-        label: "Which number a reminder leaves from · KC3.1",
-        note: "The template is the business's, one wording edited once; the number is the branch's, and a reply goes wherever the send came from. The screen now says so, and names the branches whose clients get no WhatsApp reminder until a number is connected — never rerouted through a sister branch (KC2.2).",
+        epic: "Epic 7 · Customize branch services and fiscal settings",
+        path: "/playground#multi-location-package-mismatch-at-checkout",
+        label: "Package mismatch · SCR-13 (playground)",
+        note: "KC1.5, corrected 2026-09-03: warn, never block. Four cases — same terms (nothing renders), priced differently, different duration, not offered here. Both figures shown so reception can decide in front of the client, and the choice recorded on the sale. The warning itself; the cart it sits in is under 'Packages at the till'.",
       },
+      {
+        epic: "Epic 8 · Branch lifecycle and booking refinements",
+        path: "/playground#multi-location-branch-lifecycle",
+        label:
+          "Branch state badge · SCR-01 (playground) · suspend in Phase 1 or 2, confirming with GNK",
+        note: "The four lifecycle states in one row (R01, R12). Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find.",
+      },
+      {
+        epic: "Epic 8 · Branch lifecycle and booking refinements",
+        path: "/playground#multi-location-the-duplicate-caught-before-booking",
+        label: "Duplicate caught before booking · CL-A1 / RC-B1 (playground)",
+        note: "The story's Done-when. SCR-07 answers it only if reception opens the client record, so the estate-wide visit now arrives unprompted under the client picker. Unbounded by the grant on purpose — the duplicate worth catching is at a branch you cannot see (R13). States, never blocks. Also at /appointments → New appointment → Millie Cassidy.",
+      },
+      {
+        epic: "Epic 8 · Branch lifecycle and booking refinements",
+        path: "/playground#multi-location-client-visits-at-another-branch",
+        label: "Client visits at another branch · SCR-07 (playground)",
+        note: "What a branch reads of a client's visits elsewhere (R13, R18), drawn wide — the grant gates what you can do, not what you can read. Open as the owner, then as JVC reception: the rows stay legible and only the buttons go. Al Quoz is paused, so it takes writes from nobody. Overview gains 'Visits by branch'.",
+      },
+    ],
+  },
+  {
+    lane: "business",
+    title: "Multi-location · Phase 3 — Cross-branch coordination",
+    description:
+      "Move bookings and stock between branches. Stock transfer (Epic 10) has no design yet.",
+    screens: [
+      {
+        epic: "Epic 9 · Coordinate calendars and move appointments",
+        path: "/playground#multi-location-all-branches-calendar",
+        label: "All-branches calendar · SCR-05 (playground)",
+        note: "R07's view half as a filter, not columns — a day grid is already staff × time, so a third axis turns 11 columns into 99. Click a branch to narrow, again for all; the counts are why it is a strip. With more than one branch in view a booking asks for one first (R11).",
+      },
+      {
+        epic: "Epic 9 · Coordinate calendars and move appointments",
+        path: "/playground#multi-location-cross-branch-move",
+        label: "Cross-branch move · SCR-06 (playground)",
+        note: "R07 + R17. Destinations bounded by grants. The allowed case keeps the deposit credited where it was taken while the work moves — both branches on the sale. Third frame: an unresolvable payment is rejected whole rather than losing the money's trail (GB1.3). lib/locations/cross-branch-move.test.ts.",
+      },
+    ],
+  },
+  {
+    lane: "business",
+    title: "Multi-location · Phase 4 — Business-wide insights",
+    description: "Compare branches and reconcile the money.",
+    screens: [
+      {
+        epic: "Epic 11 · Understand and reconcile chain performance",
+        path: "/sales/daily-summary",
+        label: "End of day, per branch · RP-A1 (route)",
+        note: "The PRD's first user story: an EOD view per branch and a business total in one place. Every figure derives from the sales log, bounded by the grant before it sums (G7, R18), and a granted branch that took nothing is named rather than dropped. Lands on this scope's last trading day. Absent for a single-branch business.",
+      },
+      {
+        epic: "Epic 11 · Understand and reconcile chain performance",
+        path: "/playground#multi-location-money-by-branch",
+        label: "Money by branch · SCR-15 (playground)",
+        note: "KH1.1's side-by-side, never merged — the question is which branch had a bad day. The total sits after the rows, labelled as their sum. Second frame is a manager granted only Jumeirah (KH1.3). Payouts are business-level in this market, with a footnote saying so. lib/money/by-location.test.ts.",
+      },
+    ],
+  },
+  {
+    lane: "business",
+    title: "Multi-location · Phase 5 — Larger-chain rollout",
+    description: "Onboard branches in bulk.",
+    screens: [
+      {
+        epic: "Epic 12 · Onboard larger chains",
+        path: "/playground#multi-location-chain-setup",
+        label:
+          "Chain setup · SCR-02 (playground) · Phase 1 adds one location; several at once is Phase 5, confirming with GNK",
+        note: "N branches in one pass (R02, SU1.2). All or none — one bad row creates nothing. Duplicate names collide on the link. A created branch is live — the built product creates a venue trading, and an owner who is not ready suspends it rather than there being a fourth state. Isolated from the app's own estate.",
+      },
+      {
+        epic: "Epic 12 · Onboard larger chains",
+        path: "/playground#multi-location-nine-branches-d5",
+        label: "Nine branches · D5 (playground)",
+        note: "The designs at the scale the PRD assumes, where most rows say nothing and the one that matters is below the fold. Collapsed is the default (D5); Show all is the nine cards it replaces. Under four quiet branches nothing collapses.",
+      },
+    ],
+  },
+  {
+    lane: "business",
+    title: "Multi-location · Not in a phase yet",
+    description: "Designed and reviewed, but no phase in the delivery plan carries it yet.",
+    screens: [
       {
         path: "/shell-demo?settings=deals",
         label: "Deals, and where each one runs · DW3.4",
@@ -1348,36 +1479,6 @@ const SECTIONS: Section[] = [
         path: "/shell-demo?settings=deals",
         label: "Creating a deal · DW3.4",
         note: "Add deal → the built full-viewport wizard, details → limits, with a Locations step after them. Select all by an owner stores the named set, not today's nine; a manager's Select all is their own branches. An empty list disables Create.",
-      },
-      {
-        path: "/playground#multi-location-branch-access-grants",
-        label: "Branch access grants · SCR-03 (playground)",
-        note: "The same dialog against three roster rows, isolated. Four of the five location permission codes are marked Proposed — the product ships one venues:read that bundles viewing a branch with changing it (blueprint §03).",
-      },
-      {
-        path: "/playground#multi-location-a-write-names-one-branch",
-        label: "A write names one branch · G1, R11 (playground)",
-        note: "Every operational write lands on exactly one branch, with no default. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A paused branch is absent rather than offered and refused (R12). Live on the appointment sheet, where the service picker reads against the branch (DW3.3).",
-      },
-      {
-        path: "/appointments",
-        label: "Booking names a branch · G1 (route)",
-        note: "New appointment → Location sits first, because the write resolves to it and the service list is read against it. Nothing renders for a single-branch business (DW1.2).",
-      },
-      {
-        path: "/appointments",
-        label: "Somebody working at another branch · SCR-10 (route)",
-        note: "Topbar on Shampooch JVC → New appointment → hover a service → Edit → Team member. Only JVC's people are offered (DW2.3); set the start between 2pm and 6pm and Lena Petrov moves to “Busy at another location” with where and until when. Picked anyway, the panel refuses and Update stays off (DW2.4 blocks, never warns). The client's flow drops the same slot and names nothing (BG-06).",
-      },
-      {
-        path: "/playground#multi-location-client-visits-at-another-branch",
-        label: "Client visits at another branch · SCR-07 (playground)",
-        note: "What a branch reads of a client's visits elsewhere (R13, R18), drawn wide — the grant gates what you can do, not what you can read. Open as the owner, then as JVC reception: the rows stay legible and only the buttons go. Al Quoz is paused, so it takes writes from nobody. Overview gains 'Visits by branch'.",
-      },
-      {
-        path: "/playground#multi-location-branch-lifecycle",
-        label: "Branch state badge · SCR-01 (playground)",
-        note: "The four lifecycle states in one row (R01, R12). Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find.",
       },
     ],
   },
@@ -1990,6 +2091,9 @@ export default function ScreensPage() {
                   id={sectionSlug(section.title)}
                   className="scroll-mt-6"
                 >
+                  {section.alias ? (
+                    <span id={section.alias} className="block scroll-mt-6" aria-hidden />
+                  ) : null}
                   <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-foreground/10 pb-3">
                     <div>
                       <h3 className="font-heading text-base font-medium text-foreground">
@@ -2012,34 +2116,49 @@ export default function ScreensPage() {
                       worse when the rows for one route were split apart by
                       another. Each route appears once, with its variants under
                       it. */}
-                  <ul className="flex flex-col gap-1">
-                    {groupByPath(section.screens).map((group) => (
-                      <li key={group.path} className="grid grid-cols-[minmax(0,16rem)_1fr] gap-6">
-                        <RoutePath path={group.path} />
-                        <ul className="flex min-w-0 flex-col">
-                          {group.screens.map((screen) => (
-                            <li key={screen.label}>
-                              <Link
-                                href={screen.path}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="group -mx-2 block rounded-md px-2 py-2 transition-colors hover:bg-foreground/[0.04]"
-                              >
-                                <span className="text-sm text-foreground underline-offset-4 group-hover:underline">
-                                  {screen.label}
-                                </span>
-                                {screen.note ? (
-                                  <span className="ml-2 text-xs text-muted-foreground">
-                                    {screen.note}
-                                  </span>
-                                ) : null}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </li>
-                    ))}
-                  </ul>
+                  {groupByEpic(section.screens).map((run, runIndex) => (
+                    <div
+                      key={run.epic ?? `run-${runIndex}`}
+                      className={runIndex > 0 ? "mt-6" : undefined}
+                    >
+                      {run.epic ? (
+                        <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {run.epic}
+                        </h4>
+                      ) : null}
+                      <ul className="flex flex-col gap-1">
+                        {groupByPath(run.screens).map((group) => (
+                          <li
+                            key={group.path}
+                            className="grid grid-cols-[minmax(0,16rem)_1fr] gap-6"
+                          >
+                            <RoutePath path={group.path} />
+                            <ul className="flex min-w-0 flex-col">
+                              {group.screens.map((screen) => (
+                                <li key={screen.label}>
+                                  <Link
+                                    href={screen.path}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="group -mx-2 block rounded-md px-2 py-2 transition-colors hover:bg-foreground/[0.04]"
+                                  >
+                                    <span className="text-sm text-foreground underline-offset-4 group-hover:underline">
+                                      {screen.label}
+                                    </span>
+                                    {screen.note ? (
+                                      <span className="ml-2 text-xs text-muted-foreground">
+                                        {screen.note}
+                                      </span>
+                                    ) : null}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
                 </section>
               ))}
             </div>
