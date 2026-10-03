@@ -210,8 +210,7 @@ function ScheduledShiftsScreen() {
           // R24: no grant is a decision with a consequence, said rather than
           // shown as an empty page that reads like a loading failure.
           <p className="rounded-2xl bg-muted/40 p-4 text-muted-foreground text-sm leading-5">
-            You do not have access to any locations, so there are no shifts to show. Ask an owner to
-            grant you a location.
+            You don't have access to any locations. Ask an owner for access.
           </p>
         ) : (
           <>

@@ -188,28 +188,21 @@ export function AddTimeOffDialog({
           {/* Helper text, not a box. In a form, a filled rounded rectangle
               means "field", and a notice wearing that shape reads as one more
               input you failed to fill in. */}
-          <p className="-mt-2 flex items-start gap-1.5 text-muted-foreground text-xs leading-5">
-            <CalendarOffIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-            <span>
-              {elsewhere.length > 0 ? (
-                <>
-                  {/* Named rather than implied. Somebody entering leave at one
-                      branch is entitled to know it reaches the others before
-                      they save, not after a manager elsewhere finds a hole. */}
-                  Applies everywhere {firstName} works —{" "}
-                  <span className="text-foreground">
-                    {activeName} and {elsewhere.join(", ")}
-                  </span>
-                  .
-                </>
-              ) : (
-                <>
-                  Applies wherever {firstName} works. Recorded at{" "}
-                  <span className="text-foreground">{activeName}</span>.
-                </>
-              )}
-            </span>
-          </p>
+          {/* Named rather than implied. Somebody entering leave at one
+              location is entitled to know it reaches the others before they
+              save, not after a manager elsewhere finds a hole. */}
+          {elsewhere.length > 0 ? (
+            <p className="-mt-2 flex items-start gap-1.5 text-muted-foreground text-xs leading-5">
+              <CalendarOffIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              <span>
+                Applies everywhere {firstName} works —{" "}
+                <span className="text-foreground">
+                  {activeName} and {elsewhere.join(", ")}
+                </span>
+                .
+              </span>
+            </p>
+          ) : null}
 
           <div
             className={cn("grid gap-2", fullDay ? "sm:grid-cols-1" : "sm:grid-cols-[2fr_1fr_1fr]")}

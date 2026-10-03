@@ -8,7 +8,7 @@ import { TEAM_MEMBERS } from "@/lib/team/mock"
 
 // PRD-169's Done-means includes loading and error. The two that carry a rule:
 // stock must not show a total it could not add up (G7), and team access must
-// neither claim an empty grant it has not read (R24) nor save over one.
+// neither say no location is selected before the grant has loaded (R24) nor save over it.
 
 const PRODUCT = { id: "p2", name: "Furminator Deshedding Tool", trackStock: true }
 
@@ -44,7 +44,7 @@ describe("team access before the grant has loaded", () => {
   const ahmed = TEAM_MEMBERS.find((m) => m.id === "m_ahmed")!
 
   for (const status of ["loading", "error"] as const) {
-    it(`never says "No location granted" and will not save while ${status}`, () => {
+    it(`never says "No location selected" and will not save while ${status}`, () => {
       withLocations(
         <TeamAccessDialog
           open
@@ -54,7 +54,7 @@ describe("team access before the grant has loaded", () => {
           status={status}
         />,
       )
-      expect(screen.queryByText(/No location granted/)).toBeNull()
+      expect(screen.queryByText(/No location selected/)).toBeNull()
       expect((screen.getByRole("button", { name: "Confirm" }) as HTMLButtonElement).disabled).toBe(
         true,
       )
@@ -63,6 +63,6 @@ describe("team access before the grant has loaded", () => {
 
   it("says the empty grant out loud once it has loaded", () => {
     withLocations(<TeamAccessDialog open onOpenChange={vi.fn()} member={ahmed} onSave={vi.fn()} />)
-    expect(screen.getByText(/No location granted/)).toBeDefined()
+    expect(screen.getByText(/No location selected/)).toBeDefined()
   })
 })

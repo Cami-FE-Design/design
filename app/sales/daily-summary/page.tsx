@@ -234,9 +234,7 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
   if (summary.byLocation.length === 0) {
     return (
       <SummaryCard title="By location" className="shrink-0">
-        <p className="px-5 pb-4 text-muted-foreground text-sm">
-          No takings anywhere in your locations on this day.
-        </p>
+        <p className="px-5 pb-4 text-muted-foreground text-sm">No takings on this day.</p>
       </SummaryCard>
     )
   }
@@ -302,10 +300,7 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
           the check on it, so the check cannot be the thing you have to go
           looking for. */}
       <div className="flex items-center justify-between gap-3 border-border/60 border-t bg-muted/30 px-5 py-3">
-        <span className="font-semibold text-foreground text-sm">
-          Business total — the sum of {summary.byLocation.length}{" "}
-          {summary.byLocation.length === 1 ? "location" : "locations"}
-        </span>
+        <span className="font-semibold text-foreground text-sm">Business total</span>
         <span className="font-semibold text-foreground text-sm tabular-nums">
           {money(summary.rollUpMinor)}
         </span>

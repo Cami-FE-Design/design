@@ -146,11 +146,6 @@ export function MoveToBranchDialog({
                 ))}
               </SelectContent>
             </Select>
-            {options.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                You're only granted this location, so there's nowhere to move it to.
-              </p>
-            ) : null}
           </div>
 
           {decision && !decision.allowed ? (
@@ -164,25 +159,16 @@ export function MoveToBranchDialog({
             <div className="flex flex-col gap-1.5 rounded-xl bg-cami-green-3 p-3 text-sm text-cami-green-11">
               <span className="flex items-center gap-2 font-semibold">
                 <CheckCircle2Icon className="size-4 shrink-0" />
-                The deposit travels with the appointment
+                Deposit stays at {locationName(decision.attribution.collectionLocationId)}
               </span>
-              {/* Both branches, named. The operator has to know the money did
+              {/* Both locations, named. The operator has to know the money did
                   not move with the work, or the month reconciles wrong. */}
               <span>
-                {formatAed(Math.round(appointment.depositMinor / 100))} stays credited to{" "}
-                {locationName(decision.attribution.collectionLocationId)}, where it was taken. The
-                work — and the remaining balance — moves to{" "}
-                {locationName(decision.attribution.fulfillmentLocationId)}. Neither record changes
-                afterwards.
+                {formatAed(Math.round(appointment.depositMinor / 100))} stays at{" "}
+                {locationName(decision.attribution.collectionLocationId)}. The remaining balance
+                moves to {locationName(decision.attribution.fulfillmentLocationId)}.
               </span>
             </div>
-          ) : null}
-
-          {decision?.allowed && appointment.depositMinor === 0 ? (
-            <p className="rounded-xl bg-cami-green-3 p-3 text-sm text-cami-green-11">
-              Nothing has been collected yet, so there's no payment to attribute — the appointment
-              simply moves.
-            </p>
           ) : null}
 
           <div className="flex justify-end gap-2">
@@ -210,9 +196,8 @@ export function MoveToBranchDialog({
 
           {decision?.allowed && isSplitAttribution(decision.attribution) ? (
             <p className="text-xs text-muted-foreground">
-              Both locations will appear on the sale. Staff at{" "}
-              {locationName(decision.attribution.fulfillmentLocationId)} still need telling — that
-              notify is manual today, at one location too.
+              Both locations will appear on the sale. Let the team at{" "}
+              {locationName(decision.attribution.fulfillmentLocationId)} know.
             </p>
           ) : null}
         </div>

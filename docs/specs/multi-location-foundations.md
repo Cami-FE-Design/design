@@ -1804,6 +1804,47 @@ one. The heading still states the true total, so a short list reads as a choice
 rather than as the whole account. Roll-ups stay outside the collapsed part: a
 total you have to expand to reach is not a total.
 
+## What the screens no longer explain (2 Oct)
+
+Michelle's review: the screens explained themselves. Permission refusals said who
+may do what, notices carried the rule behind them, and demo controls sat in the
+page like product. Three changes, and the rules that came off the screens are
+kept here, because they still hold — they are just not the operator's to read.
+
+**A role decides what is on the screen; the screen does not explain the role.**
+This reverses the earlier "refused with its reason rather than hidden" line. The
+built product gates an action as `can(…) ? <Button/> : null` and a route with
+`PermissionGate` (404 or redirect), and never prints a sentence about it. So Add
+locations, the Manage tab, the Invoicing cards' Edit, Move to another location
+(when there is nowhere to go), a chain-wide deal's Availability Edit, and the
+role narration in Team access are absent rather than refused. What stays is a
+state the user has to act on: no location access at all, and "No location
+selected" when a grant would be empty.
+
+**Demo controls live in the dashed design-repo strip.** Signed in as, Edit
+existing appointment and Mark as paid moved into `DesignRepoBar`, the pattern
+the clients page and the inbox already use.
+
+**Copy states the fact and the next step.** Every reason clause came out — the
+full list, file by file, is in
+[multi-location-copy-audit.md](multi-location-copy-audit.md). The rules those
+clauses carried:
+
+- Paused and archived locations keep their history and take no new entries (R12).
+- An empty grant never means every location (R24).
+- A service, deposit, tipping set or time zone follows the business until a location sets its own, and following is live — reset deletes the override (R06, R19, INV-13).
+- Each location has its own receipt sequence (R25), and an issued receipt keeps the identity it was sold under (INV-12).
+- A WhatsApp message is sent from, and replied to, the appointment's location, and never reroutes to another (R21, KC2.2).
+- A card payment books to the machine's location, so a sale can only take a machine at its own.
+- A moved appointment's deposit stays where it was taken; the remaining balance moves (R17).
+- Stock is counted per location, the business quantity is derived and never stored, and nothing transfers between locations (R16, DW4.2).
+- Payouts are business-wide in this market; fees and refunds sit with the location that took the payment.
+- One person cannot be rostered at two locations over the same hours, and time off covers every location they work (DW2.2, DW2.4). Booking offers a person only inside their shifts, not the location's opening hours.
+
+The four copy calls are settled in the audit's Decisions: Suspended (as built),
+the Manage tab as built, Business defaults, and the archived "90 days" line kept
+as built while its conflict with R12 goes to Michelle and Maaz.
+
 ## Cross-check against the 49 user stories
 
 Michelle asked for the design to be checked against `User Stories:

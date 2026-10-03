@@ -174,25 +174,26 @@ export function attentionNotice(rows: ReadonlyArray<BranchStock>): string | null
   // One state: say it in full, with its action.
   if (present.length === 1) {
     const only = present[0]
-    const many = attention.length > 1
+    const n = attention.length
+    const many = n > 1
     if (only === "negative") {
-      return `${heading}. A location below zero has sold more than it received, which a stock take fixes rather than a reorder.`
+      return many
+        ? `${n} locations are below zero. Do a stock take.`
+        : "1 location is below zero. Do a stock take."
     }
     if (only === "out") {
-      return many
-        ? `${heading}. They have run out, so nothing can be sold there until they are restocked.`
-        : `${heading}. It has run out, so nothing can be sold there until it is restocked.`
+      return many ? `${n} locations are out of stock.` : "1 location is out of stock."
     }
     return many
-      ? `${heading}. They are at or below their reorder point, so it is worth ordering before they run out.`
-      : `${heading}. It is at or below its reorder point, so it is worth ordering before it runs out.`
+      ? `${n} locations are at or below their reorder point.`
+      : "1 location is at or below its reorder point."
   }
 
   // More than one: a counted breakdown, so no state borrows another's action.
   const clauses = present.map((level) => {
     const n = tally[level]
     if (level === "negative") {
-      return `${n} below zero, which a stock take fixes rather than a reorder`
+      return `${n} below zero (needs a stock take)`
     }
     if (level === "out") return `${n} out of stock`
     return n === 1 ? `${n} at or below its reorder point` : `${n} at or below their reorder point`

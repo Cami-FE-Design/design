@@ -9,14 +9,17 @@
  * by nothing — and SU2.3, "revoking a branch narrows every surface at once",
  * could be reasoned about and never shown.
  *
- * This is the control that makes them reviewable. Deliberately faint and
- * bottom-anchored, like the other demo controls in this repo: it stands in for
- * signing in as a different person, which no product screen will ever offer.
+ * This is the control that makes them reviewable. It sits in the dashed
+ * design-repo strip, like every other control here that production decides for
+ * you: it stands in for signing in as a different person, which no product
+ * screen will ever offer, so it must not read as part of the screen.
  */
 
+import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
 import { useCurrentUser } from "@/lib/current-user"
 import { useLocations } from "@/lib/locations/store"
 import { TEAM_MEMBERS } from "@/lib/team/mock"
+import { roleById } from "@/lib/team/roles"
 import { cn } from "@/lib/utils"
 
 /** Named by what they can do here, not by their job title. */
@@ -25,10 +28,11 @@ function describe(
   grants: "all" | ReadonlyArray<string>,
   locationName: (id: string) => string,
 ): string {
-  if (grants === "all") return `${roleId} · every location`
-  if (grants.length === 0) return `${roleId} · no locations`
-  if (grants.length === 1) return `${roleId} · ${locationName(grants[0] as string)}`
-  return `${roleId} · ${grants.length} locations`
+  const role = roleById(roleId)?.name ?? roleId
+  if (grants === "all") return `${role} · every location`
+  if (grants.length === 0) return `${role} · no locations`
+  if (grants.length === 1) return `${role} · ${locationName(grants[0] as string)}`
+  return `${role} · ${grants.length} locations`
 }
 
 export function SignedInAs({ className }: { className?: string }) {
@@ -55,9 +59,11 @@ export function SignedInAs({ className }: { className?: string }) {
   }
 
   return (
-    <div className={cn("flex flex-col gap-1", className)}>
-      <span className="text-xs text-muted-foreground/40">Demo: signed in as</span>
-      <div className="flex flex-wrap gap-1.5">
+    <div className={className}>
+      <DesignRepoBar
+        label="sign in as somebody else"
+        note={describe(actor.roleId, actor.grants, locationName)}
+      >
         {TEAM_MEMBERS.map((member) => {
           const active = member.id === user.memberId
           return (
@@ -68,8 +74,8 @@ export function SignedInAs({ className }: { className?: string }) {
               className={cn(
                 "rounded-full border px-2.5 py-1 text-xs transition-colors",
                 active
-                  ? "border-foreground/30 bg-muted text-foreground"
-                  : "border-border/60 text-muted-foreground/60 hover:text-foreground",
+                  ? "border-foreground/30 bg-background text-foreground"
+                  : "border-border/60 text-muted-foreground hover:text-foreground",
               )}
             >
               {/* An invited member has no name yet, and their email is what the
@@ -78,10 +84,7 @@ export function SignedInAs({ className }: { className?: string }) {
             </button>
           )
         })}
-      </div>
-      <span className="text-xs text-muted-foreground/40">
-        {describe(actor.roleId, actor.grants, locationName)}
-      </span>
+      </DesignRepoBar>
     </div>
   )
 }

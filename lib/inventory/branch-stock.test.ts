@@ -141,7 +141,7 @@ describe("attentionNotice", () => {
 
   it("does not send a manager to a stock take over a branch that is merely low", () => {
     const notice = attentionNotice([row("a", 3, 5)])
-    expect(notice).toContain("1 location needs attention.")
+    expect(notice).toContain("1 location is at or below its reorder point.")
     expect(notice).toContain("reorder point")
     expect(notice).not.toContain("below zero")
   })
@@ -173,21 +173,19 @@ describe("attentionNotice", () => {
     // `stockLevel` cannot return "low" without a threshold, so "at or below
     // their reorder point" is only ever allowed to cover the low ones.
     const notice = attentionNotice([row("a", 0), row("b", 0)])
-    expect(notice).toContain("They have run out")
+    expect(notice).toContain("2 locations are out of stock.")
     expect(notice).not.toContain("reorder point")
   })
 
   it("counts each state separately when all three are on screen", () => {
     const notice = attentionNotice([row("a", -2), row("b", 0), row("c", 3, 5)])
     expect(notice).toBe(
-      "3 locations need attention: 1 below zero, which a stock take fixes rather than a reorder, 1 out of stock, and 1 at or below its reorder point.",
+      "3 locations need attention: 1 below zero (needs a stock take), 1 out of stock, and 1 at or below its reorder point.",
     )
   })
 
   it("reads as one sentence for a single empty branch", () => {
-    expect(attentionNotice([row("a", 0)])).toBe(
-      "1 location needs attention. It has run out, so nothing can be sold there until it is restocked.",
-    )
+    expect(attentionNotice([row("a", 0)])).toBe("1 location is out of stock.")
   })
 })
 

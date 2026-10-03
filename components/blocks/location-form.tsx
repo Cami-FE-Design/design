@@ -92,7 +92,7 @@ import {
 } from "@/lib/locations/tipping"
 import type { Invoicing, Location, LocationAddress } from "@/lib/locations/types"
 import { isPubliclyBookable } from "@/lib/locations/types"
-import { mayChangeBranch, refusalFor } from "@/lib/locations/who-may"
+import { mayChangeBranch } from "@/lib/locations/who-may"
 import { cn } from "@/lib/utils"
 
 /** Radix refuses "" as a value, so inheritance needs a name of its own. */
@@ -233,25 +233,22 @@ export function LocationForm({
           <p className="text-sm leading-5 text-muted-foreground">
             Where you operate. Click a location to manage its details.
           </p>
-          {/* Owner only (GNK §2). Refused with its reason rather than hidden:
-              a manager who cannot find the button goes looking for it, and a
-              disabled one with a sentence beside it ends the search. */}
-          <Button
-            type="button"
-            variant="outline"
-            radius="full"
-            className="self-start"
-            disabled={!canCreate}
-            onClick={() => setAddOpen(true)}
-          >
-            <CirclePlusIcon className="size-4" />
-            Add locations
-          </Button>
-          {canCreate ? null : (
-            <span className="text-sm leading-5 text-muted-foreground">
-              Only the account owner can add a location.
-            </span>
-          )}
+          {/* Owner only (GNK §2). Absent for anybody else, the way the built
+              product gates an action on a permission (`can(...) ? … : null`)
+              — a role decides what is on the screen, the screen does not
+              explain the role. */}
+          {canCreate ? (
+            <Button
+              type="button"
+              variant="outline"
+              radius="full"
+              className="self-start"
+              onClick={() => setAddOpen(true)}
+            >
+              <CirclePlusIcon className="size-4" />
+              Add locations
+            </Button>
+          ) : null}
         </header>
       }
     >
@@ -342,7 +339,7 @@ export function AddLocationsTakeover({
       }
       const slug = slugify(name)
       if (!slug) {
-        found[i] = "That name has no letters or numbers to make a link from"
+        found[i] = "Use at least one letter or number."
         return
       }
       if (takenSlugs.includes(slug)) {
@@ -379,7 +376,7 @@ export function AddLocationsTakeover({
       open={open}
       onOpenChange={onOpenChange}
       title="Add locations"
-      subtitle="Add one location, or several in one pass. Everything else — tax details, invoicing, country — is inherited from the business, and each location can override it later."
+      subtitle="Add one or more locations. Each starts with the business's tax and invoicing details."
       onSave={save}
       saveLabel={rows.length > 1 ? `Create ${rows.length} locations` : "Create location"}
     >
@@ -469,7 +466,7 @@ export function AddLocationsTakeover({
                   </Select>
                 </Field>
                 <p className="text-sm leading-5 text-muted-foreground">
-                  Appointments and reports at this location bucket by its own day.
+                  Bookings and reports use this time zone.
                 </p>
               </div>
 
@@ -587,6 +584,12 @@ function LocationDetailView({
   initialTab?: string | null
   onBack: () => void
 }) {
+  // Suspend, reactivate and delete are the owner's (GNK §2). Without them the
+  // tab has nothing on it, so it is not offered — the same as the built
+  // product's permission gate.
+  const { actor } = useCurrentUser()
+  const canManage = mayChangeBranch(actor, "changeBranchState", location.id).allowed
+  const tabs = canManage ? LOCATION_TABS : LOCATION_TABS.filter((t) => t !== "manage")
   return (
     <SettingsPanel
       className="animate-in duration-300 ease-[cubic-bezier(0.33,1,0.68,1)] slide-in-from-right-12"
@@ -637,7 +640,7 @@ function LocationDetailView({
     >
       <Tabs
         defaultValue={
-          LOCATION_TABS.includes(initialTab as (typeof LOCATION_TABS)[number])
+          (tabs as ReadonlyArray<string>).includes(initialTab ?? "")
             ? (initialTab as string)
             : "general"
         }
@@ -648,7 +651,7 @@ function LocationDetailView({
           <TabsTrigger value="hours">Hours</TabsTrigger>
           <TabsTrigger value="address">Location</TabsTrigger>
           <TabsTrigger value="invoicing">Invoicing</TabsTrigger>
-          <TabsTrigger value="manage">Manage</TabsTrigger>
+          {canManage ? <TabsTrigger value="manage">Manage</TabsTrigger> : null}
         </TabsList>
 
         <TabsContent value="general">
@@ -663,9 +666,11 @@ function LocationDetailView({
         <TabsContent value="invoicing">
           <InvoicingTab location={location} />
         </TabsContent>
-        <TabsContent value="manage">
-          <ManageTab location={location} />
-        </TabsContent>
+        {canManage ? (
+          <TabsContent value="manage">
+            <ManageTab location={location} />
+          </TabsContent>
+        ) : null}
       </Tabs>
     </SettingsPanel>
   )
@@ -945,12 +950,11 @@ function HoursTab({ location }: { location: Location }) {
             <div className="flex flex-col gap-0.5">
               <span className="text-sm leading-5 text-muted-foreground">Hours</span>
               <p className="text-sm leading-5 text-foreground">
-                When this location accepts bookings. Time zone{" "}
+                Time zone:{" "}
                 {timezoneLabel(resolveTimezone(businessTimezone, location.timezone).value)}
                 {resolveTimezone(businessTimezone, location.timezone).source === "business"
-                  ? ", inherited from the business"
-                  : ", set for this location"}
-                .
+                  ? " (business default)"
+                  : ""}
               </p>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -997,7 +1001,6 @@ function InvoicingTab({ location }: { location: Location }) {
    */
   const { actor } = useCurrentUser()
   const taxVerdict = mayChangeBranch(actor, "editTaxDetails", location.id)
-  const taxRefusal = refusalFor(taxVerdict, location.name)
   const [taxEditing, setTaxEditing] = useState(false)
   const [receiptEditing, setReceiptEditing] = useState(false)
   const [tippingEditing, setTippingEditing] = useState(false)
@@ -1023,11 +1026,14 @@ function InvoicingTab({ location }: { location: Location }) {
           business" under every field above it. Each field already says which it
           is. */}
       <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground sm:w-[36.5rem]">
-        Changes here apply to future receipts only — an issued receipt keeps the details it was
-        printed with.
+        Changes apply to future receipts only.
       </p>
 
-      <SummaryCard heading="Tax identity" onEdit={() => setTaxEditing(true)} refusal={taxRefusal}>
+      <SummaryCard
+        heading="Tax identity"
+        onEdit={() => setTaxEditing(true)}
+        canEdit={taxVerdict.allowed}
+      >
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           <SummaryRow
             label="Legal / invoice name"
@@ -1043,7 +1049,11 @@ function InvoicingTab({ location }: { location: Location }) {
         </div>
       </SummaryCard>
 
-      <SummaryCard heading="Tax defaults" onEdit={() => setTaxEditing(true)} refusal={taxRefusal}>
+      <SummaryCard
+        heading="Tax defaults"
+        onEdit={() => setTaxEditing(true)}
+        canEdit={taxVerdict.allowed}
+      >
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           <SummaryRow
             label="Services"
@@ -1060,7 +1070,7 @@ function InvoicingTab({ location }: { location: Location }) {
       <SummaryCard
         heading="Receipt sequencing"
         onEdit={() => setReceiptEditing(true)}
-        refusal={taxRefusal}
+        canEdit={taxVerdict.allowed}
       >
         <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
           <SummaryRow
@@ -1176,7 +1186,6 @@ function ManageTab({ location }: { location: Location }) {
    */
   const { actor } = useCurrentUser()
   const verdict = mayChangeBranch(actor, "changeBranchState", location.id)
-  const refusal = refusalFor(verdict, location.name)
   const [suspendOpen, setSuspendOpen] = useState(false)
   const [unsuspendOpen, setUnsuspendOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -1186,13 +1195,6 @@ function ManageTab({ location }: { location: Location }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Said once, above both actions. Repeating it per button would make a
-          refusal look like two. */}
-      {refusal ? (
-        <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground">
-          {refusal}
-        </p>
-      ) : null}
       {location.status === "live" && (
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-cami-green-3 px-4 py-3">
           <div className="flex items-center gap-2.5">
@@ -1753,10 +1755,7 @@ function BusinessTypeEditDialog({
           <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
             Business type
           </h3>
-          <p className="text-sm leading-5 text-muted-foreground">
-            Pick all that apply. We'll use this to suggest service templates and shape the public
-            booking page.
-          </p>
+          <p className="text-sm leading-5 text-muted-foreground">Pick all that apply.</p>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {BUSINESS_TYPE_OPTIONS.map(({ id, label, Icon }) => {
@@ -2005,8 +2004,7 @@ function InvoicingDetailsEditDialog({
             path by the time you reach City. */}
         {sameAsLocation ? (
           <p className="-mt-2 text-xs leading-5 text-muted-foreground">
-            These follow the location&apos;s own address. Untick to give this branch its own
-            invoicing entity — the VAT number and invoice note stay editable either way.
+            Untick to use different invoicing details for this location.
           </p>
         ) : null}
 
@@ -2396,12 +2394,11 @@ function HoursEditDialog({
             </SelectContent>
           </Select>
         </Field>
-        <p className="text-muted-foreground text-xs leading-5">
-          {timezone === undefined
-            ? "Inherited. Change the business time zone and this location follows."
-            : `This location keeps its own time zone. The business is ${timezoneLabel(businessTimezone)}.`}{" "}
-          Bookings, rotas and takings are bucketed by the day this location experiences.
-        </p>
+        {timezone === undefined ? null : (
+          <p className="text-muted-foreground text-xs leading-5">
+            Business time zone: {timezoneLabel(businessTimezone)}.
+          </p>
+        )}
       </section>
 
       <button
@@ -2561,7 +2558,7 @@ function InheritedSelect({
         </SelectContent>
       </Select>
       <p className="text-xs leading-5 text-muted-foreground">
-        {overridden ? "Set for this location" : `Inherited from the business. ${hint}`}
+        {overridden ? "Set for this location" : `Business default. ${hint}`}
       </p>
     </div>
   )
@@ -2657,9 +2654,7 @@ function ReceiptSequencingEditDialog({
             aria-label="Receipt number prefix"
           />
           <p className="text-xs leading-5 text-muted-foreground">
-            {prefix !== undefined
-              ? "Set for this location"
-              : "Inherited from the business. Type to give this location its own."}
+            {prefix !== undefined ? "Set for this location" : "Business default"}
           </p>
         </div>
 
@@ -2675,7 +2670,6 @@ function ReceiptSequencingEditDialog({
           <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
             The next sale here prints{" "}
             <span className="font-medium">{formatReceiptNumber(effectivePrefix, parsedNext)}</span>.
-            This sequence is this location's own, so no two branches can issue the same number.
           </p>
         ) : (
           <p className="rounded-xl bg-destructive/10 p-3 text-sm text-foreground">
@@ -2692,12 +2686,12 @@ function ReceiptSequencingEditDialog({
  * (R06's inheritance, G5).
  *
  * Whole-block on purpose, and the dialog said so before anything was wired: its
- * first control is "Workspace defaults" or "Custom for this location". An
+ * first control is "Business defaults" or "Custom for this location". An
  * operator does not want this branch's percentages with the business's cart
  * rules — they want "this branch tips differently", and then they configure it.
  * Field-level markers here would name six states nobody asked for.
  *
- * On Workspace defaults the controls below are disabled and show what the
+ * On Business defaults the controls below are disabled and show what the
  * business does, rather than being hidden. Hidden, an operator has to switch to
  * Custom to find out what they would be changing from.
  */
@@ -2773,8 +2767,8 @@ function DepositEditDialog({
         </Field>
         <p className="text-xs leading-5 text-muted-foreground">
           {custom
-            ? "This location has its own deposit. It will not follow a later change to the business default."
-            : "This location follows the business default, shown below. Change the business and this location follows."}
+            ? "Set for this location. Business changes won't apply."
+            : "Follows the business default, shown below."}
         </p>
       </section>
 
@@ -2894,15 +2888,15 @@ function TippingEditDialog({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="workspace">Workspace defaults</SelectItem>
+              <SelectItem value="workspace">Business defaults</SelectItem>
               <SelectItem value="custom">Custom for this location</SelectItem>
             </SelectContent>
           </Select>
         </Field>
         <p className="text-xs leading-5 text-muted-foreground">
           {custom
-            ? "This location has its own tipping settings. It will not follow a later change to the business defaults."
-            : "This location follows the business defaults, shown below. Change the business and this location follows."}
+            ? "Set for this location. Business changes won't apply."
+            : "Follows the business defaults, shown below."}
         </p>
       </section>
 
@@ -3113,35 +3107,25 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function SummaryCard({
   heading,
   onEdit,
-  refusal,
+  canEdit = true,
   children,
 }: {
   heading: string
   onEdit: () => void
-  /** Why Edit is shut. Disabled with the reason beside it, never hidden. */
-  refusal?: string | null
+  /** False drops Edit. The card still reads; the role decides what you can do. */
+  canEdit?: boolean
   children: React.ReactNode
 }) {
   return (
     <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-[36.5rem]">
       <header className="flex items-start justify-between gap-2">
         <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">{heading}</h3>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          radius="full"
-          disabled={Boolean(refusal)}
-          onClick={onEdit}
-        >
-          Edit
-        </Button>
+        {canEdit ? (
+          <Button type="button" variant="secondary" size="sm" radius="full" onClick={onEdit}>
+            Edit
+          </Button>
+        ) : null}
       </header>
-      {refusal ? (
-        <p className="rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground">
-          {refusal}
-        </p>
-      ) : null}
       {children}
     </section>
   )
@@ -3186,7 +3170,7 @@ function SummaryRow({
             source === "location" ? "font-medium text-cami-violet-11" : "text-muted-foreground",
           )}
         >
-          {source === "location" ? "Set for this location" : "Inherited from the business"}
+          {source === "location" ? "Set for this location" : "Business default"}
         </span>
       ) : null}
     </div>

@@ -2,7 +2,7 @@
 
 import { CreditCardIcon } from "lucide-react"
 import { useState } from "react"
-
+import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { formatAedDecimal } from "./mock"
@@ -71,8 +71,7 @@ export function TerminalLockScreen({
               with three registers, "the card terminal" is not an address. */}
           <p className="text-pretty text-muted-foreground leading-relaxed">
             {firstName} pays {formatAedDecimal(charge.amountMinor)} on this machine at{" "}
-            {charge.terminalLocation}. The sale updates itself the moment the card clears — you
-            don't need to refresh.
+            {charge.terminalLocation}. This screen updates when the card clears.
           </p>
         </div>
 
@@ -85,16 +84,11 @@ export function TerminalLockScreen({
           moves this to the confirmation screen; this stands in so the paid
           outcome is reachable from the prototype. Same weight as the payment
           link's — a muted text link, not a button. */}
-      <p className="mx-auto text-center text-muted-foreground/70 text-xs">
-        <button
-          type="button"
-          onClick={onMarkPaid}
-          className="underline underline-offset-4 hover:text-muted-foreground"
-        >
+      <DesignRepoBar label="stand in for the card clearing on the machine">
+        <Button type="button" size="sm" variant="outline" radius="full" onClick={onMarkPaid}>
           Mark as paid
-        </button>{" "}
-        (for demonstration only)
-      </p>
+        </Button>
+      </DesignRepoBar>
 
       {/* The one place the operator can lose money: cancelling a charge the
           machine has already taken. The confirm says so plainly rather than
@@ -105,9 +99,8 @@ export function TerminalLockScreen({
             Take the sale off the terminal?
           </DialogTitle>
           <p className="text-base text-muted-foreground leading-6">
-            The machine stops waiting for this sale and you come back to the payment methods, so you
-            can take cash or another card. If the card has already gone through, stay here instead —
-            the payment lands on its own.
+            The machine stops waiting for this sale. If the card has already gone through, keep
+            waiting.
           </p>
           <div className="flex items-center gap-3 pt-2">
             <Button

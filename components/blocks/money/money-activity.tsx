@@ -265,7 +265,7 @@ export function MoneyActivityView({ txs, payouts, rails, loading = false }: Prop
             variant="card"
             icon={FilterIcon}
             title="Nothing matches these filters"
-            description="There is money in this period, but none of it matches what you have filtered to."
+            description="Try changing or clearing your filters."
             action={
               <Button
                 radius="full"

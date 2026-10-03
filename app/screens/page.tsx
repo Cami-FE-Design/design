@@ -1175,6 +1175,11 @@ const SECTIONS: Section[] = [
         note: "R19's first half — the default every branch without a zone of its own follows. Business details → Edit → Time zone. Change it and the inheriting branches' Hours tabs follow; Riyadh keeps its own, and the field counts how many will not move. A branch added on the business's zone is stored as inheriting, not as a copy of today's value.",
       },
       {
+        path: "/playground#multi-location-somebody-working-at-another-location",
+        label: "Somebody working at another location · SCR-10 (playground)",
+        note: "The Edit service panel at JVC in three frames: Lena busy at Jumeirah 2–6pm (refused, with where and until when), Marco who does not work at JVC (a different sentence), and Lena inside her JVC shift (nothing to say).",
+      },
+      {
         path: "/playground#multi-location-loading-and-error",
         label: "Loading and error · PRD-169 Done-means (playground)",
         note: "Locations, Deals, WhatsApp numbers, Stock and Team access in the two states a route never reaches on local data — one toggle drives all five, Try again puts them back. Error never shows a partial list (G7): stock drops its total. Team access will not Confirm and never says 'No location granted' before the grant has loaded (R24).",
@@ -1192,7 +1197,7 @@ const SECTIONS: Section[] = [
       {
         path: "/playground#multi-location-who-may-change-what-about-a-branch",
         label: "Who may change what · GNK §2, §3 (playground)",
-        note: "Roles across, actions down. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number; a manager changes service settings and only where they hold a branch; reception and a groomer cannot at all. The two refusals stay apart on purpose — 'Owner only' and 'Not their location' look identical in a greyed button and send a person to two different places. Wired to the signed-in member now, so the same rules refuse on the real panel — see 'Signed in as' below.",
+        note: "Roles across, actions down. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number; a manager changes service settings and only where they hold a branch; reception and a groomer cannot at all. This table is the rule reference. On the real screens a refused action is absent, the way the built product gates by permission — see 'Signed in as' below.",
       },
       {
         path: "/sales/new-sale?terminals=moved",
@@ -1201,8 +1206,8 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/shell-demo?settings=locations",
-        label: "Signed in as, and what it refuses · GNK §2",
-        note: "Bottom of the Locations panel: a faint 'Demo: signed in as' strip standing in for signing in as somebody else, which no product screen offers. Pick Aziz, who holds Jumeirah only: the estate narrows from nine branches to his one, and Add locations, Manage and the three Invoicing cards refuse with their reason rather than vanishing — a manager who cannot find the button goes looking for it. Pick ahmed@getcami.io, invited and granted nothing: no branches, said out loud rather than shown as an empty list (R24). Pick Maz Khan and it all comes back. Switching the person switches what they hold as well as what they may press, which is SU2.3 shown rather than argued.",
+        label: "Signed in as, and what it hides · GNK §2",
+        note: "Bottom of the Locations panel, in the dashed design-repo strip: sign in as somebody else, which no product screen offers. Pick Aziz, who holds Jumeirah only: the estate narrows from nine locations to his one, the location switcher goes (one location has nothing to switch), and Add locations, the Manage tab and the Invoicing cards' Edit are absent — a role decides what is on the screen, as in the built product. Pick ahmed@getcami.io, invited and granted nothing: no locations, said out loud rather than shown as an empty list (R24). Pick Maz Khan and it all comes back. Switching the person switches what they hold as well as what they may press, which is SU2.3 shown rather than argued.",
       },
       {
         path: "/playground#multi-location-a-category-a-branch-has-emptied",

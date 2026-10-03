@@ -112,9 +112,8 @@ export function ServiceLocationsSection({
    * A business with no location record yet — the state between signing up and
    * finishing setup, where a service can exist before anywhere to sell it does.
    *
-   * The ordinary copy promises that "each location inherits it and can differ
-   * on any field" above an empty space, which reads as a section that failed to
-   * load. The one true sentence and the one useful next step instead.
+   * The ordinary view above an empty space reads as a section that failed to
+   * load. The one useful next step instead.
    */
   if (locations.length === 0) {
     return (
@@ -123,8 +122,7 @@ export function ServiceLocationsSection({
           No locations to sell this at yet
         </span>
         <p className="text-sm leading-5 text-muted-foreground">
-          This service is defined for the business and will apply everywhere. Add a location in
-          Settings and it will appear here, ready to price differently if it needs to.
+          Add a location in Settings to set prices per location.
         </p>
       </div>
     )
@@ -133,8 +131,7 @@ export function ServiceLocationsSection({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        This service is defined once for the business. Each location inherits it, and can differ on
-        any field. Business default:{" "}
+        Business default:{" "}
         <span className="font-medium text-foreground">
           AED {defaults.price} · {formatDurationMin(defaults.duration)}
         </span>
@@ -167,7 +164,7 @@ export function ServiceLocationsSection({
                   {!resolved.enabled
                     ? "Not offered here"
                     : count === 0
-                      ? "Inherits the business default"
+                      ? "Uses the business default"
                       : count === 1
                         ? "1 field set for this location"
                         : `${count} fields set for this location`}
@@ -179,8 +176,8 @@ export function ServiceLocationsSection({
                 {loc.status !== "live" ? (
                   <span className="text-sm text-muted-foreground">
                     {loc.status === "archived"
-                      ? "This location is archived and takes no bookings. Its menu is kept for its history."
-                      : "This location is paused, so nothing is bookable here yet. This applies when it reopens."}
+                      ? "Takes no bookings."
+                      : "Changes apply when it reopens."}
                   </span>
                 ) : null}
               </div>
@@ -259,12 +256,12 @@ export function ServiceLocationsSection({
       })}
 
       {/* What the collapse hides, said in words rather than left to a count of
-          missing cards. It names the branches, because "6 branches inherit"
-          without saying which is a fact the operator cannot check. */}
+          missing cards. It names the locations, because "6 locations use the
+          business default" without saying which is a fact the operator cannot check. */}
       {collapsible ? (
         <div className="flex flex-col gap-2 rounded-2xl bg-muted/40 p-4">
           <span className="text-sm text-foreground">
-            {quiet.length} branches inherit the business default
+            {quiet.length} locations use the business default
           </span>
           <span className="text-sm text-muted-foreground">
             {quiet.map((loc) => loc.name).join(", ")}
@@ -349,10 +346,11 @@ function FieldWithReset({
         ) : null}
       </div>
       {children}
-      <span className="text-xs text-muted-foreground">
-        {overridden ? "Set for this location" : "Inherited from the business"}
-        {unit ? `. ${unit}` : ""}
-      </span>
+      {!overridden || unit ? (
+        <span className="text-xs text-muted-foreground">
+          {[overridden ? null : "Business default", unit].filter(Boolean).join(". ")}
+        </span>
+      ) : null}
     </div>
   )
 }

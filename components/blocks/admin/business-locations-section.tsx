@@ -68,10 +68,7 @@ export function BusinessLocationsSection({ business }: { business: AdminBusiness
           <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
             Locations
           </h3>
-          <p className="text-sm leading-5 text-muted-foreground">
-            {business.name} trades from one location, so there is no chain to view. The owner can
-            add branches themselves at any time.
-          </p>
+          <p className="text-sm leading-5 text-muted-foreground">One location.</p>
         </div>
         <div className="flex items-start gap-3 rounded-2xl bg-muted/40 p-4">
           <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
@@ -160,7 +157,7 @@ function EnablementCard({ business }: { business: AdminBusiness }) {
           <span className="text-sm leading-5 text-muted-foreground">
             {enablement.enabled
               ? `On since ${enablement.enabledAt}, switched on by ${enablement.enabledBy}.`
-              : `Off. ${business.name} sees no branch switcher and nothing per-branch until this is on.`}
+              : `Off. Locations are hidden from ${business.name}.`}
           </span>
         </div>
         <Switch
@@ -182,7 +179,7 @@ function EnablementCard({ business }: { business: AdminBusiness }) {
             : "text-sm leading-5 text-muted-foreground"
         }
       >
-        {reason ?? "Data check passed — every record resolves to a location (R20)."}
+        {reason ?? "Data check passed."}
       </p>
     </section>
   )
@@ -205,9 +202,8 @@ function ChainView({ business }: { business: AdminBusiness }) {
           </h3>
           <p className="text-sm leading-5 text-muted-foreground">
             {live.length === granted.length
-              ? "All trading."
-              : `${live.length} trading, ${granted.length - live.length} not.`}{" "}
-            Everything here is the owner&apos;s own record, read live.
+              ? "All live."
+              : `${live.length} of ${granted.length} live`}
           </p>
         </div>
 
@@ -279,8 +275,7 @@ function ChainView({ business }: { business: AdminBusiness }) {
           Standing this chain up
         </span>
         <p className="text-sm leading-5 text-muted-foreground">
-          Branches are added and configured inside the account, as the owner — the same setup they
-          would use themselves. Start a session and every change is recorded against you.
+          Add locations from inside the account. Changes are recorded against you.
         </p>
         <Button asChild variant="outline" radius="full" className="w-fit gap-1.5">
           <Link href={`/admin/impersonation?business=${business.slug}`}>

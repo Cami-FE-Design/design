@@ -133,8 +133,7 @@ function BranchDepositNote() {
   return (
     <div className="flex flex-col gap-1 rounded-xl bg-cami-yellow-2 p-3">
       <p className="text-foreground text-sm leading-5">
-        This is the business default. A location can set its own deposit, and one that has not
-        follows this policy — including any change made here.
+        Business default. Locations without their own deposit follow it.
       </p>
       {differing.length > 0 ? (
         <p className="text-muted-foreground text-sm leading-5">

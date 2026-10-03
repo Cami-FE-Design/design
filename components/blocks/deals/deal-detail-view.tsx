@@ -262,16 +262,17 @@ export function DealDetailView({
                 <h3 className="font-heading font-semibold text-foreground text-lg leading-7">
                   Availability
                 </h3>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  radius="full"
-                  disabled={!mayEditLocations}
-                  onClick={() => setLocationsOpen(true)}
-                >
-                  Edit
-                </Button>
+                {mayEditLocations ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    radius="full"
+                    onClick={() => setLocationsOpen(true)}
+                  >
+                    Edit
+                  </Button>
+                ) : null}
               </header>
               <div className="grid min-w-0 grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
                 <InfoRow icon={MapPinIcon} label="Locations">

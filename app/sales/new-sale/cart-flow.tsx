@@ -342,8 +342,15 @@ function CartFlowInner({
   // store starts empty — a merchant's real first-run state — which would leave
   // checkout with no terminal to demo, so an unconfigured store falls back to
   // the two-terminal demo set rather than hiding the flow from review.
-  const { isMultiLocation } = useLocations()
+  const { isMultiLocation, granted } = useLocations()
   const terminalStore = useTerminals()
+  // Counted the way Payment settings lists them: only machines at a location
+  // this person holds. A saved row with no location, or one from another
+  // business, is invisible in settings — counting it here made the store look
+  // configured, skipped the demo set, and left every location with no machine.
+  const ownTerminals = terminalStore.terminals.filter((t) =>
+    granted.some((l) => l.id === t.locationId),
+  )
   const scenario = terminalScenario(deepTerminals)
   // The unconfigured fallback spans the estate for a chain and stays the
   // two-machine set for a single site. TYPICAL_TERMINALS is deliberately two
@@ -353,11 +360,9 @@ function CartFlowInner({
   const fallbackTerminals = isMultiLocation ? DEMO_TERMINALS : TYPICAL_TERMINALS
   const fallbackSessions = isMultiLocation ? DEMO_SESSIONS : TYPICAL_SESSIONS
   const registeredTerminals =
-    scenario?.terminals ??
-    (terminalStore.terminals.length ? terminalStore.terminals : fallbackTerminals)
+    scenario?.terminals ?? (ownTerminals.length ? ownTerminals : fallbackTerminals)
   const terminalSessions =
-    scenario?.sessions ??
-    (terminalStore.terminals.length ? terminalStore.sessions : fallbackSessions)
+    scenario?.sessions ?? (ownTerminals.length ? terminalStore.sessions : fallbackSessions)
 
   /**
    * Only this branch's machines (GNK §15, GP1.4).

@@ -93,8 +93,7 @@ export function PublicBranchPicker({
             Not taking bookings right now
           </h2>
           <p className="text-sm text-muted-foreground">
-            {business.displayName} has no locations open for online booking at the moment. Calling
-            is the way to reach them until one is back.
+            Online booking isn&apos;t available right now. Call to book.
           </p>
         </div>
         {business.phone ? (
@@ -121,8 +120,7 @@ export function PublicBranchPicker({
               branch still reads as a chain to the code, and "has 1 locations"
               is the kind of thing a client screenshots. */}
           {business.displayName} has {branches.length}{" "}
-          {branches.length === 1 ? "location" : "locations"}. Each one has its own team, hours and
-          prices.{intent === "book" ? " Pick the one you want to book at." : ""}
+          {branches.length === 1 ? "location" : "locations"}.
         </p>
       </div>
 

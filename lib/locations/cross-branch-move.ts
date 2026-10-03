@@ -134,13 +134,11 @@ export function evaluateMove(request: MoveRequest, context: MoveContext): MoveDe
  */
 export const MOVE_DENIAL_COPY: Record<MoveDenialReason, string> = {
   sameLocation: "This appointment is already at that location.",
-  destinationNotGranted:
-    "You don't have access to one of these locations, so this move is blocked.",
+  destinationNotGranted: "You don't have access to that location.",
   destinationNotLive: "That location isn't taking bookings right now.",
   serviceNotOfferedThere: "That location doesn't offer this service.",
   noSlotAtDestination: "That location has no free slot for this service at this time.",
-  paymentCannotResolve:
-    "The payment already taken can't be attributed across this move, so nothing has been changed — the appointment and the payment stay where they are.",
+  paymentCannotResolve: "The payment can't move to that location. Nothing has changed.",
 }
 
 /** True when the sale will carry two different branches (R17). */

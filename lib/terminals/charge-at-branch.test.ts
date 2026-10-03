@@ -62,8 +62,6 @@ describe("what it says", () => {
       { machineLocationId: "shampooch-jumeirah", saleLocationId: null },
       name,
     )
-    expect(msg).toContain("no location yet")
-    expect(msg).toContain("Shampooch Jumeirah")
-    expect(msg).toMatch(/Choose the sale's location first/)
+    expect(msg).toBe("Choose a location for this sale first.")
   })
 })

@@ -131,8 +131,7 @@ export function CategorySection({
            who can say "not here, but Jumeirah does it" — and no Add button,
            since the services exist and the branch switched them off. */
         <p className="rounded-xl bg-muted/50 p-3 text-sm leading-5 text-muted-foreground">
-          Not offered at {branchName ?? "this location"}. The business has{" "}
-          {category.servicesCount ?? 0} in this category, all turned off here.
+          Not offered at {branchName ?? "this location"}.
         </p>
       ) : null}
 

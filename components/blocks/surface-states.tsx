@@ -76,10 +76,7 @@ export function LoadError({
     >
       <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
       <div className="flex flex-1 flex-col gap-2">
-        <span>
-          Couldn&rsquo;t load {what}. Nothing has been changed &mdash; try again, and if it keeps
-          happening, check your connection.
-        </span>
+        <span>Couldn&rsquo;t load {what}. Nothing was changed.</span>
         {onRetry ? (
           <Button
             type="button"

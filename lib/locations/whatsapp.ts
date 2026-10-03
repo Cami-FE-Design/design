@@ -71,12 +71,12 @@ export const WHATSAPP_STATUS_COPY: Record<
 > = {
   unassigned: {
     label: "No number",
-    detail: "This location takes no WhatsApp bookings. Messages never reroute to another branch.",
+    detail: "This location takes no WhatsApp bookings.",
     tone: "neutral",
   },
   otpPending: {
     label: "Waiting for OTP",
-    detail: "The six-digit code goes to the number itself, so someone has to be at that branch.",
+    detail: "Someone at this location needs to receive the six-digit code.",
     tone: "pending",
   },
   nameReview: {
@@ -86,7 +86,7 @@ export const WHATSAPP_STATUS_COPY: Record<
   },
   pinPending: {
     label: "Waiting for two-factor PIN",
-    detail: "Verified with META. The PIN finishes the bind.",
+    detail: "Verified by Meta. Waiting for the two-factor PIN.",
     tone: "pending",
   },
   connected: {

@@ -121,7 +121,7 @@ export function TimeList({
         <span className="font-medium text-muted-foreground text-xs">Available times</span>
         <p className="rounded-xl bg-muted/40 p-3 text-sm text-muted-foreground">
           {unavailableStaff
-            ? `${unavailableStaff} isn’t at this branch on this day. Pick another day, or another team member.`
+            ? `${unavailableStaff} isn’t available on this day. Pick another day or team member.`
             : "Nothing free on this day. Pick another one."}
         </p>
       </div>

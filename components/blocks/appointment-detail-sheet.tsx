@@ -1053,7 +1053,10 @@ export function AppointmentDetailSheet({
   onCheckout,
   initialMode,
 }: AppointmentDetailSheetProps) {
-  const { isMultiLocation, locationName } = useLocations()
+  const { isMultiLocation, locationName, granted } = useLocations()
+  // Offered only when there is somewhere to move it: a manager holding one
+  // location gets no Move, rather than a dialog explaining there is nowhere to go.
+  const canMove = isMultiLocation && granted.some((l) => l.id !== booking?.locationId)
   const [moveOpen, setMoveOpen] = useState(false)
   const [status, setStatus] = useState<MockBookingStatus>(booking?.status ?? "booked")
   const [agreementBannerOpen, setAgreementBannerOpen] = useState(true)
@@ -1304,7 +1307,7 @@ export function AppointmentDetailSheet({
                 <QuickActionsMenu
                   onViewActivity={() => setMode("activity")}
                   onViewSale={onViewSale}
-                  onMove={isMultiLocation ? () => setMoveOpen(true) : undefined}
+                  onMove={canMove ? () => setMoveOpen(true) : undefined}
                 />
                 {/* One primary action, named for where it goes. "Pay now" +
                     "Complete now" side by side asked the front desk to decide

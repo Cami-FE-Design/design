@@ -215,8 +215,8 @@ export function AddShiftDialog({
             >
               <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" />
               <span>
-                Time off {formatTime12h(leave.start)} – {formatTime12h(leave.end)}. A shift cannot
-                run across it, at this location or any other.
+                Time off {formatTime12h(leave.start)} – {formatTime12h(leave.end)}. Shifts can't
+                overlap it.
               </span>
             </p>
           ))}
@@ -229,8 +229,7 @@ export function AddShiftDialog({
               <TriangleAlertIcon className="mt-0.5 size-4 shrink-0" />
               <span>
                 Already at {clash.locationName} {formatTime12h(clash.start)} –{" "}
-                {formatTime12h(clash.end)}. One person cannot be in two places, so these hours
-                cannot be saved until one of them moves.
+                {formatTime12h(clash.end)}. Change these hours to save.
               </span>
             </p>
           ))}
