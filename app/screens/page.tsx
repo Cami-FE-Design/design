@@ -1189,7 +1189,7 @@ const SECTIONS: Section[] = [
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/shell-demo?settings=locations",
-        label: "Signed in as, and what it hides · GNK §2",
+        label: "Signed in as, and what it hides",
         note: "Bottom of the Locations panel, in the dashed design-repo strip: sign in as somebody else, which no product screen offers. Pick Aziz, who holds Jumeirah only: the estate narrows from nine locations to his one, the location switcher goes (one location has nothing to switch), and Add locations, the Manage tab and the Invoicing cards' Edit are absent — a role decides what is on the screen, as in the built product. Pick ahmed@getcami.io, invited and granted nothing: no locations, said out loud rather than shown as an empty list (R24). Pick Maz Khan and it all comes back. Switching the person switches what they hold as well as what they may press, which is SU2.3 shown rather than argued.",
       },
       {
@@ -1219,7 +1219,7 @@ const SECTIONS: Section[] = [
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/playground#multi-location-who-may-change-what-about-a-branch",
-        label: "Who may change what · GNK §2, §3 (playground)",
+        label: "Who may change what (playground)",
         note: "Roles across, actions down. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number; a manager changes service settings and only where they hold a branch; reception and a groomer cannot at all. This table is the rule reference. On the real screens a refused action is absent, the way the built product gates by permission — see 'Signed in as' below.",
       },
       {
@@ -1303,7 +1303,7 @@ const SECTIONS: Section[] = [
       {
         epic: "Epic 4 · Complete branch checkout",
         path: "/sales/new-sale?terminals=moved",
-        label: "A charge that would land at the wrong branch · GNK §15",
+        label: "A charge that would land at the wrong branch",
         note: "The picker only ever offers this branch's machines, so the refusal behind it could not be reached by clicking — correct, tested, and invisible. `?terminals=moved` pins the case §15 names: a machine linked to Jumeirah after this sale was drafted. Add a service, leave Location alone and tap Front Desk Register: refused, because a card payment books at the MACHINE's branch and the sale belongs nowhere. Set Location to JVC and it is refused differently — both branches named, and a way out. Set it to Jumeirah and it goes through. On the screen rather than in a toast: nothing moves until the operator answers it.",
       },
       {
@@ -1359,13 +1359,13 @@ const SECTIONS: Section[] = [
       {
         epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/catalogs/service-menu",
-        label: "A category a branch has emptied · GNK §4",
+        label: "A category a branch has emptied",
         note: "One category list for the business; a branch sees only what it has switched on inside it. Switch the header's location to Shampooch Mirdif: 'Bath & coat' loses Medicated bath, and 'Spa add-ons' empties entirely — the heading stays with 'Not offered at Shampooch Mirdif', because reception is the person who can say 'not here, but Jumeirah does it'. Sidebar counts follow the branch. The client's own page hides the category instead (/shampooch-mirdif), there being nothing a client can do with it. lib/service-catalog/categories-at-branch.test.ts.",
       },
       {
         epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/playground#multi-location-a-category-a-branch-has-emptied",
-        label: "A category a branch has emptied · GNK §4 (playground)",
+        label: "A category a branch has emptied (playground)",
         note: "Answered by Maaz on 20 Sep, and it is what is built: “internally the staff can still view the category with no services (shown empty). For online bookings, the Category is hidden.” A category can hold nothing at a branch — three spa services, no spa room here — and the proposal is that the answer depends on who is reading: hidden for the client, who can do nothing with it and reads a heading over nothing as a dead end; shown for reception, who is the person able to say 'not here, but Jumeirah does it'. Same split `locationsOffering` already makes for one service, and the same reading as KC1.5. Add-ons is the control in both frames. Live at /catalogs/service-menu with the branch set to Mirdif, and on /shampooch-mirdif.",
       },
       {
@@ -1921,7 +1921,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/businesses?new=1",
         label: "New Partner → Sender ID at onboarding",
-        note: "Opens the create sheet (?new=1). SMS Sender ID is required with a CAMI default, so leaving it is an explicit choice and entering one starts the registration clock at account creation rather than whenever someone opens settings. Not prefilled from the business name, per GNK — request it from the merchant rather than infer it. Same validator as the merchant-side field.",
+        note: "Opens the create sheet (?new=1). SMS Sender ID is required with a CAMI default, so leaving it is an explicit choice and entering one starts the registration clock at account creation rather than whenever someone opens settings. Not prefilled from the business name — request it from the merchant rather than infer it. Same validator as the merchant-side field.",
       },
     ],
   },
