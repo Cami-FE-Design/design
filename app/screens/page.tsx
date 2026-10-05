@@ -1171,7 +1171,7 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Multi-location · Phase 1 — Daily branch operations",
     description:
-      "Delivered in five phases and thirteen epics (the ML-PH projects in Linear). Each phase is its own group and link; the FE ticket behind each epic is in docs/specs/multi-location-phases.md. Rows marked 'confirming with GNK' may move phase. Phase 1 runs branches while every existing merchant workflow keeps working.",
+      "Delivered in five phases and thirteen epics (the ML-PH projects in Linear). Each phase is its own group and link; the FE ticket behind each epic is in docs/specs/multi-location-phases.md. Phase 1 runs branches while every existing merchant workflow keeps working.",
     alias: "multi-location-prd-43-pro-71",
     screens: [
       {
@@ -1285,7 +1285,7 @@ const SECTIONS: Section[] = [
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/settings/team?services=m_beth",
-        label: "Services per branch · DW2.1 (route) · Phase 1 or 2, confirming with GNK",
+        label: "Services per branch · DW2.1 (route)",
         note: "`?services=<id>` opens that member's editor on Services — Beth, who works two sites. One list stays the default, because ticking nine identical lists is the setup cost R02 rules out; turn off 'Same services at every location' and the branches they hold appear with their own counts, seeded from the shared list. Absent for somebody holding one branch.",
       },
       {
@@ -1341,7 +1341,7 @@ const SECTIONS: Section[] = [
       {
         epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/shell-demo?settings=locations&loc=shampooch-jvc&lt=invoicing",
-        label: "Branch tax identity · SCR-12 · Phase 1 or 2, confirming with GNK",
+        label: "Branch tax identity · SCR-12",
         note: "Opens JVC's Invoicing tab directly — `?loc=<id>&lt=<tab>` on the Locations panel. Every inheritable row says whose value it is (R23). JVC overrides only its receipt prefix; Jumeirah is a separate registered company with its own TRN. Receipt numbers print with the prefix, which is what stops two branches colliding at 21857 (R25), and the forward-only warning is load-bearing (INV-12). Tipping is whole-block — Al Quoz is the seeded custom case.",
       },
       {
@@ -1383,8 +1383,7 @@ const SECTIONS: Section[] = [
       {
         epic: "Epic 8 · Branch lifecycle and booking refinements",
         path: "/playground#multi-location-branch-lifecycle",
-        label:
-          "Branch state badge · SCR-01 (playground) · suspend in Phase 1 or 2, confirming with GNK",
+        label: "Branch state badge · SCR-01 (playground)",
         note: "The four lifecycle states in one row (R01, R12). Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find.",
       },
       {
@@ -1448,8 +1447,7 @@ const SECTIONS: Section[] = [
       {
         epic: "Epic 12 · Onboard larger chains",
         path: "/playground#multi-location-chain-setup",
-        label:
-          "Chain setup · SCR-02 (playground) · Phase 1 adds one location; several at once is Phase 5, confirming with GNK",
+        label: "Chain setup · SCR-02 (playground)",
         note: "N branches in one pass (R02, SU1.2). All or none — one bad row creates nothing. Duplicate names collide on the link. A created branch is live — the built product creates a venue trading, and an owner who is not ready suspends it rather than there being a fourth state. Isolated from the app's own estate.",
       },
       {
