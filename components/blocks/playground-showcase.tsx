@@ -3036,7 +3036,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — branch lifecycle"
-          description="SCR-01's state half (R01, R12). Four states, each named for its consequence: paused hides the booking page and stops the calendar, archived takes no writes ever again. Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find. The full panel, with Suspend / Reactivate / Archive, is at /shell-demo?settings=locations."
+          description="SCR-01's state half (R01, R12). Four states, each named for its consequence: suspended hides the booking page and stops the calendar, archived takes no writes ever again. Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find. The full panel, with Suspend / Reactivate / Archive, is at /shell-demo?settings=locations."
         >
           <Row label="Status badge">
             {(["live", "suspended", "archived"] as const).map((status) => (
@@ -3456,7 +3456,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — client visits at another branch"
-          description="SCR-07 (R13, R18, G1). Millie: four visits and three sales across three branches. The read is never narrowed — one business, one owner, one P&L. The grant narrows what you may DO: as the owner every visit carries its actions, as JVC reception the Jumeirah visit still reads in full, price included, with its buttons replaced by the reason. Al Quoz is paused, so it takes writes from nobody. Overview gains 'Visits by branch'."
+          description="SCR-07 (R13, R18, G1). Millie: four visits and three sales across three branches. The read is never narrowed — one business, one owner, one P&L. The grant narrows what you may DO: as the owner every visit carries its actions, as JVC reception the Jumeirah visit still reads in full, price included, with its buttons replaced by the reason. Al Quoz is suspended, so it takes writes from nobody. Overview gains 'Visits by branch'."
         >
           <Row label="Owner · holds every branch" align="start">
             <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
