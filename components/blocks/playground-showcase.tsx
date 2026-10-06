@@ -3400,13 +3400,15 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — a write names one branch"
-          description="G1 and R11. Every operational write lands on exactly one branch, with no default — the PRD's release criterion takes that fallback out of the repo. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A paused branch is listed and badged rather than hidden (R12). Live on the appointment sheet, where Save waits for the branch and the service picker reads against it (DW3.3)."
+          description="G1 and R11. Every operational write lands on exactly one branch, with no default — the PRD's release criterion takes that fallback out of the repo. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A suspended branch is listed and badged rather than hidden (R12). Live on the appointment sheet, where Save waits for the branch and the service picker reads against it (DW3.3)."
         >
+          {/* Nine held, one picked in the topbar switcher. Holding a single
+              location would render nothing at all — that is DW1.2, not this. */}
           <Row label="One branch in scope · resolved, not asked" align="start">
             <LocationsProvider
               persist={false}
               initialLocations={NINE_BRANCH_ESTATE}
-              initialGrants={["shampooch-jvc"]}
+              initialScope={{ kind: "one", locationId: "shampooch-jvc" }}
             >
               <WriteTargetDemo action="This appointment" />
             </LocationsProvider>
@@ -3416,15 +3418,15 @@ export function PlaygroundShowcase() {
               <WriteTargetDemo action="This appointment" />
             </LocationsProvider>
           </Row>
-          {/* Open the list here: two of the nine are paused and both are in it,
-              badged. Pick one and it says why it cannot hold the write, and
-              Save stays shut because nothing was reported upward. */}
-          <Row label="Nine in scope · pick a paused one and it says why (R12)" align="start">
+          {/* Open the list here: two of the nine are suspended and both are in
+              it, badged. Pick one and it says so, and Save stays shut because
+              nothing was reported upward. */}
+          <Row label="Nine in scope · open it and pick a suspended one (R12)" align="start">
             <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
               <WriteTargetDemo action="This appointment" />
             </LocationsProvider>
           </Row>
-          <Row label="Only a paused branch · nowhere to record it (R12)" align="start">
+          <Row label="Only a suspended branch · nowhere to record it (R12)" align="start">
             <LocationsProvider
               persist={false}
               initialLocations={NINE_BRANCH_ESTATE}
