@@ -1326,9 +1326,9 @@ const SECTIONS: Section[] = [
       },
       {
         epic: "Epic 6 · Migrate and activate the pilot",
-        path: "/admin/businesses?business=shampooch",
-        label: "CamiHQ chain view · SCR-16",
-        note: "Shampooch → Locations. E15 — reuses the owner's components (estate from lib/locations, money from MoneyByLocationView) rather than a second chain dashboard. Read-only: standing a chain up happens as the owner, where the change has an actor (INV-08). Absent for single-site partners — open Velvet Paw.",
+        path: "/admin/businesses?business=shampooch&section=locations",
+        label: "CamiHQ chain view and multi-location switch · SCR-16",
+        note: "Shampooch → Locations. The multi-location switch sits at the top: off by default, and it can only be turned on once the data check passes, with the reason shown when it has not. Below it, the owner's own estate and money components rather than a second chain dashboard. Locations themselves are added as the owner, where the change has an actor (INV-08). Absent for single-site partners — open Velvet Paw.",
       },
     ],
   },
