@@ -160,7 +160,7 @@ const SECTIONS: Section[] = [
     lane: "public",
     title: "Public",
     description: "Anything an unauthenticated visitor can land on.",
-    screens: [{ path: "/", label: "Root", note: "Next.js boilerplate, not yet replaced" }],
+    screens: [{ path: "/", label: "Root", note: "Redirects to this screens index" }],
   },
   {
     lane: "public",

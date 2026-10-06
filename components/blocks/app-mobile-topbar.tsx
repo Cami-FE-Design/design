@@ -1,8 +1,10 @@
 "use client"
 
 import { BellIcon, ChevronDownIcon, CirclePlusIcon, MenuIcon, SearchIcon } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
 import type * as React from "react"
 import { useState } from "react"
+import { appSettingsHref } from "@/components/blocks/app-settings-controller"
 import { DemoBusinessRename } from "@/components/blocks/demo-business-rename"
 import { GlobalSearchDialog } from "@/components/blocks/global-search-dialog"
 import { NotificationSheet } from "@/components/blocks/notification-sheet"
@@ -15,6 +17,7 @@ import {
 } from "@/components/blocks/workspace-switcher"
 import { Button } from "@/components/ui/button"
 import { SheetTrigger } from "@/components/ui/sheet"
+import { useCurrentUser } from "@/lib/current-user"
 import { useDemoWorkspaces } from "@/lib/demo-business"
 import { cn } from "@/lib/utils"
 
@@ -37,15 +40,23 @@ const iconButtonClass = "size-11 rounded-full text-sidebar-foreground"
 
 export function AppMobileTopbar({
   className,
-  firstName = "Michelle",
-  lastName = "You",
-  email = "michelle.h.you@gmail.com",
-  avatarSrc,
+  firstName: firstNameProp,
+  lastName: lastNameProp,
+  email: emailProp,
+  avatarSrc: avatarSrcProp,
   notificationCount = 0,
   workspaces,
   workspaceJoinedDate = "Apr 14, 2025",
   ...props
 }: AppMobileTopbarProps) {
+  const router = useRouter()
+  const pathname = usePathname() ?? "/"
+  // Same account as the desktop topbar, so the two bars never disagree.
+  const { user: currentUser } = useCurrentUser()
+  const avatarSrc = avatarSrcProp ?? currentUser.avatarSrc
+  const firstName = firstNameProp ?? currentUser.firstName
+  const lastName = lastNameProp ?? currentUser.lastName
+  const email = emailProp ?? currentUser.email
   const {
     workspaces: resolvedWorkspaces,
     selectedId,
@@ -149,6 +160,10 @@ export function AppMobileTopbar({
             </Button>
           }
           user={{ firstName, lastName, email, avatarSrc }}
+          onMyProfile={() => router.push(appSettingsHref(pathname, "profile"), { scroll: false })}
+          onAccountSettings={() =>
+            router.push(appSettingsHref(pathname, "business-details"), { scroll: false })
+          }
         />
       </div>
     </div>

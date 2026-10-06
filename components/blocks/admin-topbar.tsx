@@ -7,18 +7,12 @@ import { CamiMark } from "@/components/brand/cami-mark"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/lib/auth-mock"
+import { HQ_ROLE_LABELS } from "@/lib/roles-mock"
 import { cn } from "@/lib/utils"
 
 type AdminTopbarProps = React.ComponentProps<"div"> & {
   brand?: React.ReactNode
   notificationCount?: number
-}
-
-const ROLE_LABELS: Record<string, string> = {
-  hq_admin: "HQ Admin",
-  hq_support: "HQ Support",
-  hq_finance: "HQ Finance",
-  hq_management: "HQ Management",
 }
 
 function initialOf(name?: string) {
@@ -78,7 +72,7 @@ export function AdminTopbar({
   const accountLabel = auth.user.name || "Account"
   const notificationsAriaLabel =
     notificationCount > 0 ? `Notifications, ${notificationCount} unread` : "Notifications"
-  const roleLabel = ROLE_LABELS[auth.roleCodes[0] ?? ""] ?? auth.roleCodes[0] ?? "Member"
+  const roleLabel = HQ_ROLE_LABELS[auth.roleCodes[0] ?? ""] ?? auth.roleCodes[0] ?? "Member"
 
   return (
     <div

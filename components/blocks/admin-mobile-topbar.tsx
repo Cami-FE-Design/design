@@ -7,15 +7,10 @@ import { CamiMark } from "@/components/brand/cami-mark"
 import { Button } from "@/components/ui/button"
 import { SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/lib/auth-mock"
+import { HQ_ROLE_LABELS } from "@/lib/roles-mock"
 import { cn } from "@/lib/utils"
 
 type AdminMobileTopbarProps = React.ComponentProps<"div">
-
-const ROLE_LABELS: Record<string, string> = {
-  hq_admin: "HQ Admin",
-  hq_support: "HQ Support",
-  hq_billing: "HQ Billing",
-}
 
 function initialOf(name: string) {
   return name.trim().charAt(0).toUpperCase() || ""
@@ -31,7 +26,7 @@ export function AdminMobileTopbar({ className, ...props }: AdminMobileTopbarProp
   const { firstName, lastName } = splitName(auth.user.name)
   const initials = `${initialOf(firstName)}${initialOf(lastName)}`
   const accountLabel = auth.user.name || "Account"
-  const roleLabel = ROLE_LABELS[auth.roleCodes[0] ?? ""] ?? auth.roleCodes[0] ?? "Member"
+  const roleLabel = HQ_ROLE_LABELS[auth.roleCodes[0] ?? ""] ?? auth.roleCodes[0] ?? "Member"
 
   return (
     <div
