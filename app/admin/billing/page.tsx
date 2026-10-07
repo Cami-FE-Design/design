@@ -16,6 +16,7 @@ import Link from "next/link"
 import { useMemo, useState } from "react"
 import { AdminShell } from "@/components/blocks/admin-shell"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { PageHeader } from "@/components/blocks/page-header"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
@@ -165,17 +166,15 @@ export default function BillingPage() {
   return (
     <AdminShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Billing</h1>
-            <p className="text-sm text-muted-foreground">
-              Notification consumption per partner. {PERIOD}.
-            </p>
-          </div>
-          <Button variant="outline" radius="full" disabled>
-            Export period
-          </Button>
-        </div>
+        <PageHeader
+          title="Billing"
+          description={<>Notification consumption per partner. {PERIOD}.</>}
+          actions={
+            <Button variant="outline" radius="full" disabled>
+              Export period
+            </Button>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

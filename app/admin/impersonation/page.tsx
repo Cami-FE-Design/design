@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { AccessDeniedCard } from "@/components/blocks/access-denied-card"
 import { AdminShell } from "@/components/blocks/admin-shell"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { PageHeader } from "@/components/blocks/page-header"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -451,18 +452,11 @@ export default function ImpersonationLogPage() {
   return (
     <AdminShell
       header={
-        <div className="flex w-full max-w-6xl flex-col gap-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-medium leading-8 text-foreground">Impersonation log</h1>
-              <p className="text-sm text-muted-foreground">
-                Every Cami HQ session opened on a Pet Business account, and every sensitive field
-                revealed inside that session.
-              </p>
-            </div>
-            <ExportMenu events={visible} />
-          </div>
-        </div>
+        <PageHeader
+          title="Impersonation log"
+          description="Every Cami HQ session opened on a Pet Business account, and every sensitive field revealed inside that session."
+          actions={<ExportMenu events={visible} />}
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

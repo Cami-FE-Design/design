@@ -34,7 +34,7 @@ import { useState } from "react"
 import { AddressSearchField } from "@/components/blocks/address-search-field"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { type BreadcrumbRoot, FullScreenTakeover } from "@/components/blocks/sales-settings"
-import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { SettingsCard, SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -133,7 +133,7 @@ export function BillingDetailsPanel({
           </div>
         ) : null}
 
-        <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
+        <SettingsCard>
           <header className="flex items-start justify-between gap-2">
             <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
               Company details
@@ -185,7 +185,7 @@ export function BillingDetailsPanel({
           <p className="text-sm leading-5 text-muted-foreground">
             Last changed by {details.updatedBy} · {formatDateTime(details.updatedAtIso)}
           </p>
-        </section>
+        </SettingsCard>
       </div>
 
       <BillingDetailsEditDialog

@@ -100,6 +100,7 @@ import { OutcomeStrip } from "@/components/blocks/imports/redesign/outcome-strip
 import { ReviewPanel } from "@/components/blocks/imports/redesign/review-panel"
 import { REVIEW_GRID_TEMPLATE, ReviewRow } from "@/components/blocks/imports/redesign/review-row"
 import { InboxPhase0Showcase } from "@/components/blocks/inbox-phase-0/showcase"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import { InvoiceDocumentView } from "@/components/blocks/invoice-document"
 import { KpiCard, KpiGrid } from "@/components/blocks/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
@@ -130,6 +131,7 @@ import {
   PackageBranchWarning,
   type PackageDecision,
 } from "@/components/blocks/package-branch-warning"
+import { PageHeader } from "@/components/blocks/page-header"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
 import { PeopleGrid } from "@/components/blocks/people-grid"
@@ -153,6 +155,7 @@ import { SectionedSheetShell, type SectionGroup } from "@/components/blocks/sect
 import { CategorySidebar } from "@/components/blocks/service-menu/CategorySidebar"
 import { ServiceCardInner } from "@/components/blocks/service-menu/ServiceCard"
 import { ServiceLocationsSection } from "@/components/blocks/service-menu/ServiceLocationsSection"
+import { SettingsCard } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { ShareInvoiceDialog, type ShareLinkState } from "@/components/blocks/share-invoice-dialog"
 import {
@@ -361,10 +364,13 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Avatar stack",
       "Linked entity chip",
       "Note callout",
+      "Page header",
+      "Inline notice",
       "Pickable card grid",
       "Timeline row",
       "Section card",
       "KPI card and grid",
+      "Settings card",
       "Settings row",
       "Sectioned sheet shell",
       "Address search field",
@@ -2471,6 +2477,79 @@ export function PlaygroundShowcase() {
           </Row>
         </Section>
         <Section
+          title="Page header"
+          description="The title row of a listing page, passed to AppShell or AdminShell as header. Title, one line of description (a count, or what the page is for) and an actions group kept together on the right."
+        >
+          <Row label="With actions" align="start">
+            <PageHeader
+              title="Clients"
+              description="16 clients"
+              actions={
+                <>
+                  <Button variant="outline" radius="full">
+                    Options
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                  <Button radius="full">
+                    <PlusIcon />
+                    Add client
+                  </Button>
+                </>
+              }
+            />
+          </Row>
+          <Row label="With badge" align="start">
+            <PageHeader
+              title="Reporting and analytics"
+              badge={
+                <Badge variant="secondary" size="md">
+                  26
+                </Badge>
+              }
+              description="Access all of your Cami reports."
+            />
+          </Row>
+          <Row label="Title only" align="start">
+            <PageHeader title="Packages" />
+          </Row>
+        </Section>
+        <Section
+          title="Inline notice"
+          description="A tinted box with an icon and one short message, for settings panels, dialogs and card footnotes. No accent border. Anything with a title or buttons is built in place."
+        >
+          <Row label="Warning" align="start">
+            <div className="w-full max-w-xl">
+              <InlineNotice tone="warning">
+                No Google review link set, so the review line won&apos;t send.
+              </InlineNotice>
+            </div>
+          </Row>
+          <Row label="Info" align="start">
+            <div className="w-full max-w-xl">
+              <InlineNotice>
+                WhatsApp templates have to be approved by Meta before they can send.
+              </InlineNotice>
+            </div>
+          </Row>
+          <Row label="Muted" align="start">
+            <div className="w-full max-w-xl">
+              <InlineNotice tone="muted">
+                These are the defaults every partner inherits.
+              </InlineNotice>
+            </div>
+          </Row>
+          <Row label="Footnote (sm)" align="start">
+            <div className="flex w-full max-w-xl flex-col gap-2">
+              <InlineNotice tone="warning" size="sm">
+                You have view-only access to terminals. Ask an HQ admin for edit rights.
+              </InlineNotice>
+              <InlineNotice tone="muted" size="sm">
+                Changing a rate never re-prices past payments.
+              </InlineNotice>
+            </div>
+          </Row>
+        </Section>
+        <Section
           title="Pickable card grid"
           description="Multi-select cards with icon, label, and a check indicator. Used for picking business types in the Edit business type dialog."
         >
@@ -2619,6 +2698,27 @@ export function PlaygroundShowcase() {
               <KpiCard label="No-shows" value="0" info="Lifetime count of no-shows." />
             </KpiGrid>
           </div>
+        </Section>
+        <Section
+          title="Settings card"
+          description="The card every settings panel is built from: one 146 (584px) footprint from sm up, so a column of cards shares one edge. className sets the inner gap or a row layout, never the width."
+        >
+          <Row label="Default" align="start">
+            <SettingsCard>
+              <h3 className="font-heading text-base font-semibold">Business details</h3>
+              <SettingsRow icon={Building2Icon} label="Business name" value="Shampooch JVC" />
+              <SettingsRow icon={FlagIcon} label="Country" value="United Arab Emirates" />
+            </SettingsCard>
+          </Row>
+          <Row label="Row layout" align="start">
+            <SettingsCard className="flex-row items-start justify-between">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm font-medium">Deposits</span>
+                <span className="text-sm text-muted-foreground">Ask for a deposit at booking.</span>
+              </div>
+              <Switch defaultChecked aria-label="Deposits" />
+            </SettingsCard>
+          </Row>
         </Section>
         <Section
           title="Settings row"

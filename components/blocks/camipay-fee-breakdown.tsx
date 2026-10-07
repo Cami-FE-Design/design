@@ -18,7 +18,7 @@
 // The rate comes in as a snapshot taken at capture, not from the live rate
 // card. A rate change must never restate a past sale (INV-01).
 
-import { InfoIcon } from "lucide-react"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import {
   type CamiPayRail,
   type CamiPayRate,
@@ -83,13 +83,10 @@ export function CamiPayFeeBreakdown({
   // reading AED 0.00, which looks like a rounding artefact rather than a term.
   if (isZeroRate(rate)) {
     return (
-      <p className="flex items-start gap-2 rounded-xl bg-muted/50 px-3 py-2.5 text-xs leading-4 text-muted-foreground">
-        <InfoIcon className="mt-px size-3.5 shrink-0" />
-        <span>
-          No Cami fee applies to this {railLabel(rail)} payment. The full{" "}
-          {formatMoney(Math.abs(amountMinor))} settles to you.
-        </span>
-      </p>
+      <InlineNotice tone="muted" size="sm">
+        No Cami fee applies to this {railLabel(rail)} payment. The full{" "}
+        {formatMoney(Math.abs(amountMinor))} settles to you.
+      </InlineNotice>
     )
   }
 
@@ -111,13 +108,10 @@ export function CamiPayFeeBreakdown({
 
       <Row label="Net to you" value={formatMoney(fee.netMinor)} emphasis />
 
-      <p className="mt-1 flex items-start gap-2 rounded-xl bg-muted/50 px-3 py-2.5 text-xs leading-4 text-muted-foreground">
-        <InfoIcon className="mt-px size-3.5 shrink-0" />
-        <span>
-          Charged at your rate on {capturedOnLabel}, and locked to it. This is everything Cami
-          charges on this payment.
-        </span>
-      </p>
+      <InlineNotice tone="muted" size="sm" className="mt-1">
+        Charged at your rate on {capturedOnLabel}, and locked to it. This is everything Cami charges
+        on this payment.
+      </InlineNotice>
     </div>
   )
 }

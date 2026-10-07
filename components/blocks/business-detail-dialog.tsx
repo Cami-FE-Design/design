@@ -26,6 +26,7 @@ import * as z from "zod"
 import { BusinessLocationsSection } from "@/components/blocks/admin/business-locations-section"
 import { HqCamiPayPanel } from "@/components/blocks/hq-camipay-panel"
 import { HqTerminalsPanel } from "@/components/blocks/hq-terminals-panel"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import { LoginAsOwnerDialog } from "@/components/blocks/login-as-owner-dialog"
 import { MerchantCode } from "@/components/blocks/merchant-code"
 import { SectionCard } from "@/components/blocks/section-card"
@@ -1407,19 +1408,15 @@ export function BusinessNotificationsSection({
             a decimal that went missing while typing bills a real partner a real
             amount. One notice naming the channels rather than a line per row. */}
         {implausibleRates.length > 0 ? (
-          <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-cami-yellow-12">
-            <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>
-              {implausibleRates
-                .map(
-                  (c) =>
-                    `${CHANNEL_LABEL[c]} at ${formatRate(resolvedRate(config, c, globalRates))}`,
-                )
-                .join(" and ")}{" "}
-              {implausibleRates.length === 1 ? "is" : "are"} far above a normal per-message rate —
-              check for a missing decimal point. {business.name} is billed on this.
-            </span>
-          </p>
+          <InlineNotice tone="warning" icon={CircleAlertIcon}>
+            {implausibleRates
+              .map(
+                (c) => `${CHANNEL_LABEL[c]} at ${formatRate(resolvedRate(config, c, globalRates))}`,
+              )
+              .join(" and ")}{" "}
+            {implausibleRates.length === 1 ? "is" : "are"} far above a normal per-message rate —
+            check for a missing decimal point. {business.name} is billed on this.
+          </InlineNotice>
         ) : null}
 
         <div className="flex items-center justify-between gap-3 rounded-xl bg-muted/40 px-3 py-2">
@@ -1681,13 +1678,13 @@ function ProfileSheet({
                         Sits alongside the help rather than replacing it, so the
                         field never loses the line saying what it is for. */}
                     {check.kind === "listing" ? (
-                      <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-cami-yellow-12">
-                        <CircleAlertIcon
-                          className="mt-0.5 size-4 shrink-0 text-cami-yellow-11"
-                          aria-hidden
-                        />
-                        <span>{check.message}</span>
-                      </p>
+                      <InlineNotice
+                        tone="warning"
+                        icon={CircleAlertIcon}
+                        iconClassName="text-cami-yellow-11"
+                      >
+                        {check.message}
+                      </InlineNotice>
                     ) : null}
                     {check.kind === "invalid" ? (
                       <p role="alert" className="text-sm leading-5 text-destructive">

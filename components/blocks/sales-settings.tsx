@@ -38,7 +38,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { Fragment, useEffect, useRef, useState } from "react"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
-import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { SettingsCard, SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -864,7 +864,7 @@ function GiftCardsPanel({
           onViewSold={() => router.push("/sales/gift-cards-sold")}
         />
       ) : (
-        <section className="flex w-full flex-col rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146">
+        <SettingsCard className="gap-0 sm:max-w-none">
           <EmptyState
             icon={GiftIcon}
             title="Gift cards inactive"
@@ -880,7 +880,7 @@ function GiftCardsPanel({
               </Button>
             }
           />
-        </section>
+        </SettingsCard>
       )}
 
       {/* Prototype demo toggle — flips the real enabled flag so the empty state

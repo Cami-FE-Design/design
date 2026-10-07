@@ -11,6 +11,7 @@
 
 import { CircleAlertIcon } from "lucide-react"
 import { useEffect, useState } from "react"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -96,10 +97,9 @@ export function GoogleReviewLinkField({
           than nothing, and a hard block here sends the merchant off to hunt for
           the right URL — which in practice means the field stays empty forever. */}
       {check.kind === "listing" ? (
-        <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-cami-yellow-12">
-          <CircleAlertIcon className="mt-0.5 size-4 shrink-0 text-cami-yellow-11" aria-hidden />
-          <span>{check.message}</span>
-        </p>
+        <InlineNotice tone="warning" icon={CircleAlertIcon} iconClassName="text-cami-yellow-11">
+          {check.message}
+        </InlineNotice>
       ) : null}
 
       {check.kind === "invalid" ? (

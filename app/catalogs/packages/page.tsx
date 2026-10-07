@@ -11,6 +11,7 @@ import {
   type PackageFilters,
   PackageFiltersDialog,
 } from "@/components/blocks/package-filters-dialog"
+import { PageHeader } from "@/components/blocks/page-header"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Button } from "@/components/ui/button"
 import {
@@ -134,36 +135,37 @@ export default function PackagesPage() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <h1 className="text-2xl leading-8 font-medium text-foreground">Packages</h1>
-
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full" size="sm">
-                  Options
-                  <ChevronDownIcon className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                {/* /catalogs/packages/sold is not routed yet, so this went to a
+        <PageHeader
+          title="Packages"
+          actions={
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" radius="full" size="sm">
+                    Options
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  {/* /catalogs/packages/sold is not routed yet, so this went to a
                     404. Disabled rather than removed: the action belongs in the
                     menu, it just has nowhere to go until that page exists. */}
-                <DropdownMenuItem disabled>View sold packages</DropdownMenuItem>
-                {dirty ? (
-                  <DropdownMenuItem onSelect={reset}>Reset demo packages</DropdownMenuItem>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuItem disabled>View sold packages</DropdownMenuItem>
+                  {dirty ? (
+                    <DropdownMenuItem onSelect={reset}>Reset demo packages</DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-            <Button asChild radius="full">
-              <Link href="/catalogs/packages/new">
-                <PlusIcon className="size-4" />
-                Add
-              </Link>
-            </Button>
-          </div>
-        </div>
+              <Button asChild radius="full">
+                <Link href="/catalogs/packages/new">
+                  <PlusIcon className="size-4" />
+                  Add
+                </Link>
+              </Button>
+            </>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

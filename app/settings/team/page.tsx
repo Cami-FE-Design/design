@@ -9,6 +9,7 @@ import {
   type AddTeamMemberValues,
 } from "@/components/blocks/add-team-member-dialog"
 import { AppShell } from "@/components/blocks/app-shell"
+import { PageHeader } from "@/components/blocks/page-header"
 import { AddTimeOffDialog } from "@/components/blocks/shifts/add-time-off-dialog"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { TeamAccessDialog } from "@/components/blocks/team-access-dialog"
@@ -405,18 +406,16 @@ function TeamSettingsContent() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Team members</h1>
-            <p className="text-sm text-muted-foreground">Manage who has access to {businessName}</p>
-          </div>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          title="Team members"
+          description={<>Manage who has access to {businessName}</>}
+          actions={
             <Button radius="full" onClick={() => setAddOpen(true)}>
               <PlusIcon />
               Add member
             </Button>
-          </div>
-        </div>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

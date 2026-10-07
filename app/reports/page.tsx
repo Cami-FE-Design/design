@@ -18,6 +18,7 @@ import Link from "next/link"
 import { useMemo, useState } from "react"
 import { AppShell } from "@/components/blocks/app-shell"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { PageHeader } from "@/components/blocks/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -126,38 +127,35 @@ export default function ReportsIndexPage() {
   return (
     <AppShell
       header={
-        <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-3">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl leading-8 font-medium text-foreground">
-                Reporting and analytics
-              </h1>
-              <Badge variant="secondary" size="md">
-                {LIVE_REPORTS.length}
-              </Badge>
-            </div>
-            <p className="text-sm text-muted-foreground">Access all of your Cami reports.</p>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" radius="full" size="sm" className="gap-1.5">
-                {sortLabel}
-                <ArrowUpDownIcon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              {SORT_OPTIONS.map((o) => (
-                <DropdownMenuItem key={o.key} onSelect={() => setSort(o.key)}>
-                  <CheckIcon
-                    className={cn("size-4", sort === o.key ? "opacity-100" : "opacity-0")}
-                  />
-                  {o.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <PageHeader
+          title="Reporting and analytics"
+          badge={
+            <Badge variant="secondary" size="md">
+              {LIVE_REPORTS.length}
+            </Badge>
+          }
+          description="Access all of your Cami reports."
+          actions={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" radius="full" size="sm" className="gap-1.5">
+                  {sortLabel}
+                  <ArrowUpDownIcon className="size-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                {SORT_OPTIONS.map((o) => (
+                  <DropdownMenuItem key={o.key} onSelect={() => setSort(o.key)}>
+                    <CheckIcon
+                      className={cn("size-4", sort === o.key ? "opacity-100" : "opacity-0")}
+                    />
+                    {o.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4">

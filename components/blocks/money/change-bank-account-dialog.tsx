@@ -21,8 +21,9 @@
 // The failure screen is the reason this component exists. It has to say which
 // system refused, and that nothing changed, in words a merchant can act on.
 
-import { AlertTriangleIcon, ArrowLeftIcon, CheckIcon, InfoIcon, XIcon } from "lucide-react"
+import { ArrowLeftIcon, CheckIcon, XIcon } from "lucide-react"
 import { useId, useState } from "react"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -35,7 +36,6 @@ import {
 } from "@/lib/money/bank-account"
 import { formatMoney } from "@/lib/money/format"
 import { PAYOUT_MINIMUM_MINOR } from "@/lib/money/mock"
-import { cn } from "@/lib/utils"
 
 type Step = "consequences" | "details" | "review" | "result"
 
@@ -224,19 +224,23 @@ export function ChangeBankAccountDialog({
                 <ReviewRow term="Minimum payout" value={formatMoney(PAYOUT_MINIMUM_MINOR)} />
               </dl>
 
-              <Notice tone="warning">
+              <InlineNotice
+                tone="warning"
+                className="text-foreground"
+                iconClassName="text-cami-yellow-11"
+              >
                 Payouts stay paused until this account is verified, and will not be sent to your
                 previous account in the meantime.
-              </Notice>
+              </InlineNotice>
             </div>
           ) : null}
 
           {step === "result" && result ? (
             result.ok ? (
               <div className="flex flex-col gap-4">
-                <Notice tone="info">
+                <InlineNotice className="text-foreground" iconClassName="text-cami-sage-12">
                   {draft.bankName} •••• {ibanDigits.slice(-4)} was saved with Cami and with NeoPay.
-                </Notice>
+                </InlineNotice>
                 <p className="text-sm text-foreground">
                   It needs to be verified before any money is sent to it. Payouts are paused until
                   then and your money keeps building up — nothing goes to your old account.
@@ -245,7 +249,13 @@ export function ChangeBankAccountDialog({
             ) : (
               <div className="flex flex-col gap-4">
                 {/* The whole reason this flow is not an inline edit. */}
-                <Notice tone="warning">{result.message}</Notice>
+                <InlineNotice
+                  tone="warning"
+                  className="text-foreground"
+                  iconClassName="text-cami-yellow-11"
+                >
+                  {result.message}
+                </InlineNotice>
                 <p className="text-sm text-foreground">
                   Your payout account is still{" "}
                   {current ? `${current.bankName} •••• ${current.last4}` : "unchanged"}, and payouts
@@ -314,27 +324,6 @@ function Consequence({ children }: { children: React.ReactNode }) {
       <CheckIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" strokeWidth={1.5} />
       <span>{children}</span>
     </li>
-  )
-}
-
-function Notice({ tone, children }: { tone: "warning" | "info"; children: React.ReactNode }) {
-  const Icon = tone === "warning" ? AlertTriangleIcon : InfoIcon
-  return (
-    <div
-      className={cn(
-        "flex gap-2 rounded-xl p-3",
-        tone === "warning" ? "bg-cami-yellow-2" : "bg-cami-sage-2",
-      )}
-    >
-      <Icon
-        className={cn(
-          "mt-px size-4 shrink-0",
-          tone === "warning" ? "text-cami-yellow-11" : "text-cami-sage-12",
-        )}
-        strokeWidth={1.5}
-      />
-      <p className="text-sm text-foreground">{children}</p>
-    </div>
   )
 }
 

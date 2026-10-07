@@ -31,6 +31,8 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { InlineNotice } from "@/components/blocks/inline-notice"
+import { SettingsCard } from "@/components/blocks/settings-panel"
 import { Button } from "@/components/ui/button"
 import { DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -73,8 +75,6 @@ import {
 import { cn } from "@/lib/utils"
 
 /** Shared card footprint with the other settings panels (see sales-settings.tsx). */
-const cardClass =
-  "flex w-full flex-col gap-5 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146"
 
 const CHANNEL_ICON: Record<NotificationChannel, typeof MailIcon> = {
   email: MailIcon,
@@ -168,31 +168,13 @@ function senderNotice(senderId: SenderId): string {
   }
 }
 
-function Notice({
-  icon: Icon,
-  className,
-  children,
-}: {
-  icon: typeof InfoIcon
-  className: string
-  children: React.ReactNode
-}) {
-  // Tinted block, no accent border — the terminal-pairing convention.
-  return (
-    <p className={cn("flex items-start gap-2 rounded-xl p-3 text-sm leading-5", className)}>
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span>{children}</span>
-    </p>
-  )
-}
-
 function SenderIdCard({ onEdit }: { onEdit: () => void }) {
   const { senderId } = useNotifications()
   const state = SENDER_STATE[senderId.status]
   const locked = senderIdLocked(senderId)
 
   return (
-    <section className={cardClass}>
+    <SettingsCard className="gap-5">
       <header className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex items-center gap-2">
@@ -288,10 +270,10 @@ function SenderIdCard({ onEdit }: { onEdit: () => void }) {
         ) : null}
       </div>
 
-      <Notice icon={state.icon} className={state.noticeClass}>
+      <InlineNotice icon={state.icon} className={state.noticeClass}>
         {senderNotice(senderId)}
-      </Notice>
-    </section>
+      </InlineNotice>
+    </SettingsCard>
   )
 }
 
@@ -381,11 +363,11 @@ function SenderIdDialog({
             </span>
           </div>
 
-          <Notice icon={ClockIcon} className="bg-cami-yellow-2 text-foreground">
+          <InlineNotice tone="warning" icon={ClockIcon} className="text-foreground">
             {/* One template literal rather than text around an expression —
                 JSX ate the space after the interpolated name. */}
             {`Registration is handled by the carrier and takes a few days. Messages keep sending as ${FALLBACK_SENDER_ID} until it's approved.`}
-          </Notice>
+          </InlineNotice>
 
           <div className="flex items-center justify-between gap-3">
             {/* An explicit way back to the default. Without it, a merchant who
@@ -434,7 +416,7 @@ function RemindersCard({
   const ungranted = CHANNELS.filter((c) => !grant[c])
 
   return (
-    <section className={cardClass}>
+    <SettingsCard className="gap-5">
       <header className="flex flex-col gap-1">
         <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">Reminders</h3>
         <p className="text-sm leading-5 text-muted-foreground">
@@ -552,13 +534,13 @@ function RemindersCard({
           Cami's side — a missing column reads as a missing feature and turns
           into a support ticket anyway. */}
       {ungranted.length > 0 ? (
-        <Notice icon={InfoIcon} className="bg-muted/50 text-muted-foreground">
+        <InlineNotice tone="muted">
           {ungranted.map((c) => CHANNEL_LABEL[c]).join(" and ")}{" "}
           {ungranted.length === 1 ? "isn't" : "aren't"} enabled for your business. Contact support
           to turn {ungranted.length === 1 ? "it" : "them"} on.
-        </Notice>
+        </InlineNotice>
       ) : null}
-    </section>
+    </SettingsCard>
   )
 }
 
@@ -585,7 +567,7 @@ function UsageCard({ onViewLog, showRates }: { onViewLog: () => void; showRates:
   const billed = CHANNELS.filter((c) => periodUsage[c].cost > 0)
 
   return (
-    <section className={cardClass}>
+    <SettingsCard className="gap-5">
       <header className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
@@ -753,7 +735,7 @@ function UsageCard({ onViewLog, showRates }: { onViewLog: () => void; showRates:
           </div>
         ) : null}
       </div>
-    </section>
+    </SettingsCard>
   )
 }
 

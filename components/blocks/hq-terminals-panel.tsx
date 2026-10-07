@@ -27,6 +27,7 @@ import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { TERMINAL_STATUS_TILE, TerminalStatus } from "@/components/blocks/hq-terminal-status"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import { SectionCard } from "@/components/blocks/section-card"
 import { Button } from "@/components/ui/button"
 import {
@@ -63,20 +64,6 @@ import {
   useHqTerminals,
 } from "@/lib/hq-terminals/store"
 import { cn } from "@/lib/utils"
-
-/**
- * The read-only notice, matching the footnote treatment on the CamiPay card
- * directly above. It is the card's only footnote: a paragraph explaining what
- * Block does belongs in the Block confirm dialog, not above it permanently.
- */
-function FootNote({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-3 px-3 py-2.5 text-xs leading-4 text-cami-yellow-11">
-      <InfoIcon className="mt-px size-3.5 shrink-0" />
-      <span>{children}</span>
-    </p>
-  )
-}
 
 /**
  * Merchant-level terminal access, as a control on the card that is named after
@@ -481,11 +468,11 @@ export function HqTerminalsPanel({ business, disabled = false }: HqTerminalsPane
             touched it; it lives in the Block confirm dialog, where the decision
             is actually being made. */}
         {canEdit ? null : (
-          <FootNote>
+          <InlineNotice tone="warning" size="sm" icon={InfoIcon}>
             {disabled
               ? "This Partner is archived, terminals are read-only."
               : "You have view-only access to terminals. Ask an HQ admin for Partner edit rights."}
-          </FootNote>
+          </InlineNotice>
         )}
       </SectionCard>
 

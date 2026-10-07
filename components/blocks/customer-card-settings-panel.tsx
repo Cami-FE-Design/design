@@ -18,7 +18,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
-import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { SettingsCard, SettingsPanel } from "@/components/blocks/settings-panel"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { getCustomerCard, previewCardSlugForBusiness } from "@/lib/customer-card/mock"
@@ -83,7 +83,7 @@ export function CustomerCardSettingsPanel() {
           the fold and put Save — the only control on this panel — below it: you
           could not set the thing the panel exists to set without scrolling
           first. Side by side, the choice and its consequence are one glance. */}
-      <section className="flex w-full flex-col gap-5 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146">
+      <SettingsCard className="gap-5 sm:max-w-none">
         <div className="flex flex-col gap-1">
           <h3 className="font-heading text-base font-semibold text-foreground">Theme</h3>
           <p className="text-sm text-muted-foreground">
@@ -214,7 +214,7 @@ export function CustomerCardSettingsPanel() {
             </span>
           )}
         </div>
-      </section>
+      </SettingsCard>
     </SettingsPanel>
   )
 }

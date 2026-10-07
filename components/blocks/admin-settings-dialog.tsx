@@ -5,7 +5,6 @@ import {
   ChevronLeftIcon,
   CircleAlertIcon,
   GlobeIcon,
-  InfoIcon,
   type LucideIcon,
   ShieldCheckIcon,
   XIcon,
@@ -14,6 +13,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import type * as React from "react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import { PermissionRolesPane } from "@/components/blocks/permission-roles-pane"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { Badge } from "@/components/ui/badge"
@@ -380,24 +380,18 @@ function NotificationRatesPanel() {
           rate is a commercial decision, and this screen is where a typo bills
           every partner without an override. */}
       {implausible.length > 0 ? (
-        <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-cami-yellow-12">
-          <CircleAlertIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-          <span>
-            {implausible.map((c) => `${CHANNEL_LABEL[c]} at ${formatRate(rates[c])}`).join(" and ")}{" "}
-            {implausible.length === 1 ? "is" : "are"} far above a normal per-message rate — check
-            for a missing decimal point. This is what every partner without an override is billed.
-          </span>
-        </p>
+        <InlineNotice tone="warning" icon={CircleAlertIcon}>
+          {implausible.map((c) => `${CHANNEL_LABEL[c]} at ${formatRate(rates[c])}`).join(" and ")}{" "}
+          {implausible.length === 1 ? "is" : "are"} far above a normal per-message rate — check for
+          a missing decimal point. This is what every partner without an override is billed.
+        </InlineNotice>
       ) : null}
 
-      <p className="flex items-start gap-2 rounded-xl bg-muted/50 p-3 text-sm leading-5 text-muted-foreground">
-        <InfoIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-        <span>
-          These are the defaults every partner inherits. A negotiated rate is set on the partner
-          record under Notifications, and shows there as an override against the number above.
-          Partners see their own rate and consumption, never this screen.
-        </span>
-      </p>
+      <InlineNotice tone="muted">
+        These are the defaults every partner inherits. A negotiated rate is set on the partner
+        record under Notifications, and shows there as an override against the number above.
+        Partners see their own rate and consumption, never this screen.
+      </InlineNotice>
 
       {/* No Save button: writes persist as they're typed, so a Save would either
           do nothing or imply the edits above weren't live yet. Reset is the

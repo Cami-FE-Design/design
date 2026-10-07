@@ -8,7 +8,7 @@ import {
   EditMyProfileDialog,
   VerifyPhoneDialog,
 } from "@/components/blocks/edit-my-profile-dialog"
-import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { SettingsCard, SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -41,7 +41,7 @@ export function MyProfilePanel() {
         </header>
       }
     >
-      <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
+      <SettingsCard>
         <header className="flex items-start justify-between gap-2">
           <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">Contact</h3>
           <Button
@@ -56,7 +56,7 @@ export function MyProfilePanel() {
         </header>
 
         <ContactGrid onEdit={() => setEditing(true)} />
-      </section>
+      </SettingsCard>
 
       {/* Prototype demo control — stands in for the recipient clicking the
           confirmation link in their inbox, which no prototype can do for

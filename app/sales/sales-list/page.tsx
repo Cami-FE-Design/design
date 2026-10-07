@@ -41,6 +41,7 @@ import {
 } from "@/components/blocks/date-range-popover"
 import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { PageHeader } from "@/components/blocks/page-header"
 import { RefundSaleDialog } from "@/components/blocks/refund-sale-dialog"
 import { ShareGiftCardDialog } from "@/components/blocks/share-gift-card-dialog"
 import { ShareInvoiceDialog } from "@/components/blocks/share-invoice-dialog"
@@ -961,42 +962,41 @@ function SalesListPageInner() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl leading-8 font-medium text-foreground">Sales</h1>
-            <p className="text-sm text-muted-foreground">Manage your sales history and invoices</p>
-          </div>
+        <PageHeader
+          title="Sales"
+          description="Manage your sales history and invoices"
+          actions={
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" radius="full" size="sm">
+                    Options
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem>
+                    <FileTextIcon className="size-4" />
+                    Export PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileTextIcon className="size-4" />
+                    Export CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileSpreadsheetIcon className="size-4" />
+                    Export Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full" size="sm">
-                  Options
-                  <ChevronDownIcon className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem>
-                  <FileTextIcon className="size-4" />
-                  Export PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileTextIcon className="size-4" />
-                  Export CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileSpreadsheetIcon className="size-4" />
-                  Export Excel
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button radius="full" onClick={() => setCartOpen(true)}>
-              <PlusIcon className="size-4" />
-              Add new
-            </Button>
-          </div>
-        </div>
+              <Button radius="full" onClick={() => setCartOpen(true)}>
+                <PlusIcon className="size-4" />
+                Add new
+              </Button>
+            </>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col">

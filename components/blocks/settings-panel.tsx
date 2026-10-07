@@ -19,6 +19,7 @@
 // parent, so `flex-1` collapses to auto and the panel simply renders at its
 // natural height — nothing to scroll, nothing clipped.
 
+import type * as React from "react"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
@@ -43,5 +44,24 @@ export function SettingsPanel({
         {children}
       </div>
     </div>
+  )
+}
+
+/**
+ * One card inside a settings panel. Every card shares the same 146 (584px)
+ * footprint from `sm` up, so a column of cards lines up as one edge instead of
+ * each card sizing to its own content. Pass `className` for the inner gap or a
+ * row layout; the footprint itself should not change.
+ */
+export function SettingsCard({ className, ...props }: React.ComponentProps<"section">) {
+  return (
+    <section
+      data-slot="settings-card"
+      className={cn(
+        "flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146",
+        className,
+      )}
+      {...props}
+    />
   )
 }

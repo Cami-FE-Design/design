@@ -18,6 +18,7 @@ import {
   ClientDetailDialog,
 } from "@/components/blocks/client-detail-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { PageHeader } from "@/components/blocks/page-header"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -269,37 +270,34 @@ function AppointmentsListPageInner() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl leading-8 font-medium text-foreground">Appointments</h1>
-            <p className="text-sm text-muted-foreground">
-              View, filter and export appointments booked by your clients.
-            </p>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" radius="full" size="sm">
-                Export
-                <ChevronDownIcon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem>
-                <FileTextIcon className="size-4" />
-                PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileTextIcon className="size-4" />
-                CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileSpreadsheetIcon className="size-4" />
-                Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <PageHeader
+          title="Appointments"
+          description="View, filter and export appointments booked by your clients."
+          actions={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" radius="full" size="sm">
+                  Export
+                  <ChevronDownIcon className="size-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem>
+                  <FileTextIcon className="size-4" />
+                  PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <FileTextIcon className="size-4" />
+                  CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <FileSpreadsheetIcon className="size-4" />
+                  Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4">

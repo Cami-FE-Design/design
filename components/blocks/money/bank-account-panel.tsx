@@ -34,7 +34,7 @@ import {
 } from "@/components/blocks/money/payout-schedule-dialog"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import type { BreadcrumbRoot } from "@/components/blocks/sales-settings"
-import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { SettingsCard, SettingsPanel } from "@/components/blocks/settings-panel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatDate, formatDateTime } from "@/lib/format"
@@ -175,7 +175,7 @@ export function BankAccountPanel({
         ) : null}
 
         {/* ── Destination ─────────────────────────────────────────────────── */}
-        <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
+        <SettingsCard>
           <header className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-1">
               <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
@@ -251,10 +251,10 @@ export function BankAccountPanel({
               </p>
             ) : null}
           </div>
-        </section>
+        </SettingsCard>
 
         {/* ── Schedules ───────────────────────────────────────────────────── */}
-        <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
+        <SettingsCard>
           <header className="flex flex-col gap-1">
             <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
               Payout schedule
@@ -294,10 +294,10 @@ export function BankAccountPanel({
               {formatMoney(PAYOUT_MINIMUM_MINOR)}
             </span>
           </div>
-        </section>
+        </SettingsCard>
 
         {/* ── History ─────────────────────────────────────────────────────── */}
-        <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
+        <SettingsCard>
           <header className="flex flex-col gap-1">
             <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
               Change history
@@ -357,7 +357,7 @@ export function BankAccountPanel({
               )
             })}
           </ul>
-        </section>
+        </SettingsCard>
       </div>
 
       <ChangeBankAccountDialog

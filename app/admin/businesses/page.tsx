@@ -16,6 +16,7 @@ import { AdminShell } from "@/components/blocks/admin-shell"
 import { BusinessDetailDialog } from "@/components/blocks/business-detail-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { NewBusinessSheet } from "@/components/blocks/new-business-sheet"
+import { PageHeader } from "@/components/blocks/page-header"
 import { StateDropdown } from "@/components/blocks/state-dropdown"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Button } from "@/components/ui/button"
@@ -469,18 +470,20 @@ function BusinessesIndex() {
   return (
     <AdminShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Partners</h1>
-            <p className="text-sm text-muted-foreground">
+        <PageHeader
+          title="Partners"
+          description={
+            <>
               {counts.all} {counts.all === 1 ? "partner" : "partners"} on Cami
-            </p>
-          </div>
-          <Button radius="full" onClick={() => setNewBusinessOpen(true)}>
-            <PlusIcon />
-            New Partner
-          </Button>
-        </div>
+            </>
+          }
+          actions={
+            <Button radius="full" onClick={() => setNewBusinessOpen(true)}>
+              <PlusIcon />
+              New Partner
+            </Button>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

@@ -23,6 +23,7 @@ import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
 import { DatePicker } from "@/components/blocks/date-picker"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import { SectionCard } from "@/components/blocks/section-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -86,29 +87,6 @@ const RAIL_ICON: Record<CamiPayRail, LucideIcon> = {
 /* -------------------------------------------------------------------------- */
 /* Shell                                                                      */
 /* -------------------------------------------------------------------------- */
-
-function FootNote({
-  icon: Icon = InfoIcon,
-  children,
-  tone = "muted",
-}: {
-  icon?: LucideIcon
-  children: React.ReactNode
-  tone?: "muted" | "warning"
-}) {
-  return (
-    <p
-      className={cn(
-        "mt-3 flex items-start gap-2 rounded-xl px-3 py-2.5 text-xs leading-4",
-        tone === "muted" && "bg-muted/50 text-muted-foreground",
-        tone === "warning" && "bg-cami-yellow-3 text-cami-yellow-11",
-      )}
-    >
-      <Icon className="mt-px size-3.5 shrink-0" />
-      <span>{children}</span>
-    </p>
-  )
-}
 
 /* -------------------------------------------------------------------------- */
 /* Rails                                                                      */
@@ -418,11 +396,11 @@ function CamiPayCard({
       {/* One footnote, not two. Both sentences answer the same question, "this
           change is narrower than it looks", and two stacked grey blocks read as
           boilerplate where one reads as a rule. */}
-      <FootNote>
+      <InlineNotice tone="muted" size="sm" className="mt-3">
         Turning a rail off removes it from this Partner's checkout, nothing more. Cash and off-rail
         card payments still record to the sale ledger. Changing a rate never re-prices past
         payments, so a change only applies from its effective date forward.
-      </FootNote>
+      </InlineNotice>
 
       {/* History stays Partner-scoped rather than moving inside each rail: the
           question ops asks is "what has this Partner been charged", not "what
@@ -782,11 +760,11 @@ export function HqCamiPayPanel({ business, disabled = false }: HqCamiPayPanelPro
     <>
       <div className="flex flex-col gap-4">
         {readOnly ? (
-          <FootNote tone="warning" icon={InfoIcon}>
+          <InlineNotice tone="warning" size="sm" icon={InfoIcon} className="mt-3">
             {disabled
               ? "This Partner is archived, settlement config is read-only."
               : "You have view-only access to settlement config. Ask an HQ admin for CamiPay edit rights."}
-          </FootNote>
+          </InlineNotice>
         ) : null}
         <CamiPayCard
           business={business}

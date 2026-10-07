@@ -22,6 +22,7 @@
 
 import { InfoIcon } from "lucide-react"
 import type { MockBooking } from "@/app/appointments/mock"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { calendarWriteTarget, countsByLocation } from "@/lib/locations/calendar-scope"
 import { useLocations } from "@/lib/locations/store"
@@ -120,10 +121,9 @@ export function BranchDayStrip({
       </div>
 
       {!write.canWrite ? (
-        <p className="flex items-start gap-2 rounded-xl bg-cami-yellow-2 p-3 text-sm text-foreground">
-          <InfoIcon className="mt-0.5 size-4 shrink-0" />
-          <span>Pick one location to add a booking.</span>
-        </p>
+        <InlineNotice tone="warning" icon={InfoIcon} className="text-foreground">
+          Pick one location to add a booking.
+        </InlineNotice>
       ) : null}
     </div>
   )

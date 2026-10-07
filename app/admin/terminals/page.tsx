@@ -21,6 +21,7 @@ import { BusinessDetailDialog } from "@/components/blocks/business-detail-dialog
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { TERMINAL_STATUS_TILE, TerminalStatus } from "@/components/blocks/hq-terminal-status"
+import { PageHeader } from "@/components/blocks/page-header"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Button } from "@/components/ui/button"
 import {
@@ -454,15 +455,15 @@ function TerminalFleet() {
   return (
     <AdminShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Terminals</h1>
-            <p className="text-sm text-muted-foreground">
+        <PageHeader
+          title="Terminals"
+          description={
+            <>
               {counts.all} units · {counts["with-partners"]} out with Partners ·{" "}
               {counts["in-stock"]} in stock
-            </p>
-          </div>
-        </div>
+            </>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

@@ -28,11 +28,13 @@
 // Deep-links for /screens: `?ct=email` / `?ct=whatsapp` picks the tab, and
 // `?ce=<event>:<channel>` opens straight into one editor.
 
-import { CircleAlertIcon, InfoIcon, MailIcon, MessageCircleIcon, RotateCcwIcon } from "lucide-react"
+import { CircleAlertIcon, MailIcon, MessageCircleIcon, RotateCcwIcon } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { useId, useMemo, useState } from "react"
 import { toast } from "sonner"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import { FullScreenTakeover } from "@/components/blocks/sales-settings"
+import { SettingsCard } from "@/components/blocks/settings-panel"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -69,30 +71,10 @@ import { channelEnabled, eventLabel, type ReminderEvent } from "@/lib/notificati
 import { cn } from "@/lib/utils"
 
 /** Shared card footprint with the other settings panels (see sales-settings.tsx). */
-const cardClass =
-  "flex w-full flex-col gap-5 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146"
 
 const CHANNEL_ICON: Record<CommsChannel, typeof MailIcon> = {
   email: MailIcon,
   whatsapp: MessageCircleIcon,
-}
-
-function Notice({
-  icon: Icon,
-  className,
-  children,
-}: {
-  icon: typeof InfoIcon
-  className: string
-  children: React.ReactNode
-}) {
-  // Tinted block, no accent border — the terminal-pairing convention.
-  return (
-    <p className={cn("flex items-start gap-2 rounded-xl p-3 text-sm leading-5", className)}>
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span>{children}</span>
-    </p>
-  )
 }
 
 // ── Editor ───────────────────────────────────────────────────────────────────
@@ -375,12 +357,12 @@ function TemplateEditor({
             </div>
 
             {unknown.length > 0 ? (
-              <Notice icon={CircleAlertIcon} className="bg-cami-yellow-2 text-cami-yellow-12">
+              <InlineNotice tone="warning" icon={CircleAlertIcon}>
                 {unknown.length === 1
                   ? `{{${unknown[0]}}} isn't a placeholder we recognise, so it will send as written.`
                   : `${unknown.map((u) => `{{${u}}}`).join(", ")} aren't placeholders we recognise, so they will send as written.`}{" "}
                 Check the spelling against the list below.
-              </Notice>
+              </InlineNotice>
             ) : null}
 
             {/* The whole point of PRD-168, and the fix for DZ-263's class of
@@ -391,21 +373,21 @@ function TemplateEditor({
                 is missing. A field in a settings form is somewhere to put a
                 link; this is what gets it filled in. */}
             {used.includes("reviewLink") && !hasGoogleReviewLink(googleReviewLink) ? (
-              <Notice icon={CircleAlertIcon} className="bg-cami-yellow-2 text-cami-yellow-12">
+              <InlineNotice tone="warning" icon={CircleAlertIcon}>
                 No Google review link set, so the review line won&apos;t send — the preview shows
                 the message as it goes out today. Add it under{" "}
                 <span className="font-medium">Business details › External links</span>.
-              </Notice>
+              </InlineNotice>
             ) : null}
 
             {/* cami-sage, not cami-blue: the palette has no blue hue, so
                 `bg-cami-blue-2` compiled to nothing and this notice rendered as
                 bare text on white. Informational notices use sage. */}
             {!isEmail ? (
-              <Notice icon={InfoIcon} className="bg-cami-sage-2 text-cami-sage-12">
+              <InlineNotice>
                 WhatsApp templates have to be approved by Meta before they can send. Editing the
                 copy here starts a new approval, so changes take a few days to go live.
-              </Notice>
+              </InlineNotice>
             ) : null}
           </section>
 
@@ -602,7 +584,7 @@ function ChannelCard({
   const allOff = offCount === COMMS_EVENTS.length
 
   return (
-    <section className={cardClass}>
+    <SettingsCard className="gap-5">
       <header className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <Icon className="size-4 text-muted-foreground" aria-hidden />
@@ -657,7 +639,7 @@ function ChannelCard({
           />
         ))}
       </div>
-    </section>
+    </SettingsCard>
   )
 }
 

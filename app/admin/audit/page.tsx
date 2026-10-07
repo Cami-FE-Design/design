@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo } from "react"
 import { AdminShell } from "@/components/blocks/admin-shell"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { PageHeader } from "@/components/blocks/page-header"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -221,14 +222,10 @@ function AuditLog() {
   return (
     <AdminShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Audit log</h1>
-            <p className="text-sm text-muted-foreground">
-              Every action by Cami HQ and Partner owners. Retained for 12 months.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="Audit log"
+          description="Every action by Cami HQ and Partner owners. Retained for 12 months."
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

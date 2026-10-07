@@ -24,6 +24,7 @@ import { AddressSearchField } from "@/components/blocks/address-search-field"
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
 import { ComboLineIcon } from "@/components/blocks/combo-badge"
+import { InlineNotice } from "@/components/blocks/inline-notice"
 import { PetNotesFields } from "@/components/blocks/pet-notes-fields"
 import { PhoneField } from "@/components/blocks/phone-field"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
@@ -384,10 +385,7 @@ function PickupAndNotesFields({
 
           {pickup.useSavedAddress && savedAddress ? (
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-start gap-2 rounded-xl bg-cami-sage-2 p-3 text-sm text-cami-sage-12">
-                <MapPinIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {savedAddress}
-              </div>
+              <InlineNotice icon={MapPinIcon}> {savedAddress}</InlineNotice>
               {/* Consumer wording for the same fact the staff sheet states: the
                   parent is the only one who can still turn a typed address into
                   a pinned one. Says "us", never "your groomer" — this flow also

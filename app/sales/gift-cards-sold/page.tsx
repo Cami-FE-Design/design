@@ -20,6 +20,7 @@ import { MOCK_SALES, type Sale, SaleDetailDialog } from "@/app/sales/sales-list/
 import { AppShell } from "@/components/blocks/app-shell"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { GiftCardVisual } from "@/components/blocks/gift-card-visual"
+import { PageHeader } from "@/components/blocks/page-header"
 import { ShareGiftCardDialog } from "@/components/blocks/share-gift-card-dialog"
 import { TableToolbar } from "@/components/blocks/table-toolbar"
 import { TimelineRow } from "@/components/blocks/timeline-row"
@@ -326,43 +327,40 @@ function GiftCardsSoldPageInner() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Gift cards sold</h1>
-            <p className="text-sm text-muted-foreground">
-              View, filter and export gift cards purchased by your clients.
-            </p>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" radius="full" size="sm" className="gap-1.5">
-                Options
-                <ChevronDownIcon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem>
-                <SettingsIcon className="size-4" />
-                Gift cards settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Export</DropdownMenuLabel>
-              <DropdownMenuItem>
-                <FileTextIcon className="size-4" />
-                PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileTextIcon className="size-4" />
-                CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileSpreadsheetIcon className="size-4" />
-                Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <PageHeader
+          title="Gift cards sold"
+          description="View, filter and export gift cards purchased by your clients."
+          actions={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" radius="full" size="sm" className="gap-1.5">
+                  Options
+                  <ChevronDownIcon className="size-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem>
+                  <SettingsIcon className="size-4" />
+                  Gift cards settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Export</DropdownMenuLabel>
+                <DropdownMenuItem>
+                  <FileTextIcon className="size-4" />
+                  PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <FileTextIcon className="size-4" />
+                  CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <FileSpreadsheetIcon className="size-4" />
+                  Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4">

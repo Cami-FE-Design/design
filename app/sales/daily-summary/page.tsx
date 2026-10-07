@@ -7,6 +7,7 @@ import { CartFlow } from "@/app/sales/new-sale/cart-flow"
 import { MOCK_SALES } from "@/app/sales/sales-list/page"
 import { AppShell } from "@/components/blocks/app-shell"
 import { DateSelector } from "@/components/blocks/date-selector"
+import { PageHeader } from "@/components/blocks/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -361,44 +362,41 @@ function DailySummaryInner() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl leading-8 font-medium text-foreground">Daily sales</h1>
-            <p className="text-sm text-muted-foreground">
-              View, filter and export the transactions and cash movement for the day.
-            </p>
-          </div>
+        <PageHeader
+          title="Daily sales"
+          description="View, filter and export the transactions and cash movement for the day."
+          actions={
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" radius="full" size="sm">
+                    Export
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem>
+                    <FileTextIcon className="size-4" />
+                    PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileTextIcon className="size-4" />
+                    CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileSpreadsheetIcon className="size-4" />
+                    Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full" size="sm">
-                  Export
-                  <ChevronDownIcon className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem>
-                  <FileTextIcon className="size-4" />
-                  PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileTextIcon className="size-4" />
-                  CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileSpreadsheetIcon className="size-4" />
-                  Excel
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button radius="full" onClick={() => setCartOpen(true)}>
-              <PlusIcon className="size-4" />
-              Add new
-            </Button>
-          </div>
-        </div>
+              <Button radius="full" onClick={() => setCartOpen(true)}>
+                <PlusIcon className="size-4" />
+                Add new
+              </Button>
+            </>
+          }
+        />
       }
     >
       {/* The date picker stays put and the report scrolls under it — the same
