@@ -50,8 +50,8 @@ export const PACKAGES: Package[] = [
         sessionsTotal: 6,
         sessionsRemaining: 3,
         sessionsUsed: 3,
-        purchasedAt: "2026-06-02",
-        expiresAt: "2027-06-02",
+        purchasedAt: "2026-05-02",
+        expiresAt: "2027-05-02",
         soldAtLocationId: "shampooch-jvc",
       },
       {

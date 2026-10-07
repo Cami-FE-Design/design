@@ -151,6 +151,11 @@ export type InvoiceTender = {
   /** When this tender was captured. A deposit predates the invoice date (INV-P10). */
   at: Date
   /**
+   * The location that collected it, by name, when that is not the sale's own
+   * location. Absent otherwise.
+   */
+  collectedAt?: string
+  /**
    * Cash overtender. Rendered as a `Change` line that does NOT count toward
    * collected — change due is not a payment (§3, INV-M4).
    */

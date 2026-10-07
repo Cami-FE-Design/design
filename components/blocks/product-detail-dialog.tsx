@@ -373,6 +373,7 @@ export function ProductDetailDialog({
         open={addStockOpen}
         onOpenChange={setAddStockOpen}
         productName={product.name}
+        productId={product.trackStock ? product.id : undefined}
         stockOnHand={stockOnHand}
         onSave={(qty, _supplyPrice, _reason, locationId) => adjust(product.id, locationId, qty)}
       />
@@ -380,6 +381,7 @@ export function ProductDetailDialog({
         open={removeStockOpen}
         onOpenChange={setRemoveStockOpen}
         productName={product.name}
+        productId={product.trackStock ? product.id : undefined}
         stockOnHand={stockOnHand}
         // Negative: a removal reduces the branch it happened at, and nothing
         // clamps at zero — the built product allows a negative balance, and

@@ -37,6 +37,13 @@ export type MultiLocationEnablement = {
   dataCheck: DataCheckStatus
   /** What the check found. Present only when it failed, and named rather than counted. */
   dataCheckNote?: string
+  /**
+   * Everything a failed check found, one fact per entry. A check rarely finds
+   * one thing, and naming only the first sends the account manager round the
+   * loop once per finding. `dataCheckNote` stays for a check that reports a
+   * single line.
+   */
+  dataCheckFindings?: string[]
   /** Who at HQ turned it on, and when. Recorded because it is an HQ act (INV-08). */
   enabledBy?: string
   enabledAt?: string
@@ -56,12 +63,41 @@ export function canEnable(state: MultiLocationEnablement): boolean {
   return state.dataCheck === "passed"
 }
 
+/**
+ * Every finding standing between this business and the switch, in order. Empty
+ * unless the check failed — a check that has not run has found nothing yet,
+ * which `blockedReason` says on its own.
+ */
+export function checkBlockers(state: MultiLocationEnablement): string[] {
+  if (state.dataCheck !== "failed") return []
+  const findings = (state.dataCheckFindings ?? []).filter((f) => f.trim().length > 0)
+  if (findings.length > 0) return findings
+  return state.dataCheckNote ? [state.dataCheckNote] : []
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+/**
+ * When it was switched on, as "14 Sep 2026". Read from the ISO date's parts
+ * rather than through `Date`, so no timezone moves it a day. Anything that is
+ * not an ISO date passes through unchanged.
+ */
+export function formatEnabledOn(iso: string | undefined): string {
+  if (!iso) return ""
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+  if (!match) return iso
+  const [, year, month, day] = match
+  const name = MONTHS[Number(month) - 1]
+  return name ? `${Number(day)} ${name} ${year}` : iso
+}
+
 /** Why the switch is unavailable, in words an account manager can act on. */
 export function blockedReason(state: MultiLocationEnablement): string | null {
   if (state.dataCheck === "passed") return null
   if (state.dataCheck === "failed") {
-    return state.dataCheckNote
-      ? `The data check found: ${state.dataCheckNote}`
+    const found = checkBlockers(state)
+    return found.length > 0
+      ? `The data check found: ${found.join("; ")}`
       : "The data check found something that has to be fixed first."
   }
   return "The data check has not run yet."

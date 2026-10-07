@@ -5,6 +5,8 @@ import { AppMobileTopbar } from "@/components/blocks/app-mobile-topbar"
 import { AppSettingsController } from "@/components/blocks/app-settings-controller"
 import { AppSidebar } from "@/components/blocks/app-sidebar"
 import { AppTopbar } from "@/components/blocks/app-topbar"
+import { LocationSwitcher } from "@/components/blocks/location-switcher"
+import { LocationAccessGate, NoLocationAccess } from "@/components/blocks/no-location-access"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
@@ -128,6 +130,12 @@ export function AppShell({
               {topbar ?? (
                 <>
                   <AppMobileTopbar className={mobileTopbarClass} />
+                  {/* SCR-04 on a phone. The bar has no room left beside the
+                      workspace switcher, so the location gets its own row under
+                      it. Renders nothing for a single-location business. */}
+                  <LocationSwitcher
+                    className={cn("mx-3 mb-2 w-[calc(100%-1.5rem)] max-w-none", mobileTopbarClass)}
+                  />
                   <AppTopbar className={desktopTopbarClass} />
                 </>
               )}
@@ -146,21 +154,28 @@ export function AppShell({
                     : "rounded-t-2xl",
               )}
             >
+              {/* Somebody who holds no location has nothing here to act on, so
+                  the page's header and content give way to one full-page
+                  state. For everybody else the gate renders nothing of its own. */}
               {header !== null && (
-                <div
-                  className={cn(
-                    "flex min-h-[100px] w-full items-center justify-center px-3 py-6",
-                    headerClassName,
-                  )}
-                >
-                  {header ?? headerFallback}
-                </div>
+                <LocationAccessGate fallback={null}>
+                  <div
+                    className={cn(
+                      "flex min-h-[100px] w-full items-center justify-center px-3 py-6",
+                      headerClassName,
+                    )}
+                  >
+                    {header ?? headerFallback}
+                  </div>
+                </LocationAccessGate>
               )}
               {/* Written once. This is the whole point of the file. */}
               <div
                 className={cn("flex min-h-0 w-full flex-1 flex-col px-3 pb-9", contentClassName)}
               >
-                {children ?? contentFallback}
+                <LocationAccessGate fallback={<NoLocationAccess className="mt-3" />}>
+                  {children ?? contentFallback}
+                </LocationAccessGate>
               </div>
             </div>
           </div>

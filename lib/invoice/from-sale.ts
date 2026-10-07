@@ -18,6 +18,7 @@ import {
   LOCATION_TAX_OVERRIDES,
   resolveTaxIdentity,
 } from "@/lib/locations/tax-identity"
+import type { SalePayment } from "@/lib/sales/payments"
 import type {
   InvoiceDocument,
   InvoiceIssuer,
@@ -96,6 +97,33 @@ const FOOTER_NOTE = "Thank you. Please retain this invoice for your records."
  *               legitimate, which is why it gets a watermark, §6)
  */
 function tendersFor(sale: Sale, amountDueMinor: number): InvoiceTender[] {
+  const tenders = demoTendersFor(sale, amountDueMinor)
+  // A tender names its location only when it was taken somewhere other than
+  // the sale's own location. Without records of its own, every payment was
+  // taken where the sale was made.
+  return tenders.map((t) => {
+    const locationId = sale.payments?.find((p) => p.id === t.id)?.locationId
+    if (!locationId || locationId === sale.locationId) return t
+    return { ...t, collectedAt: NINE_BRANCH_ESTATE.find((l) => l.id === locationId)?.name }
+  })
+}
+
+const KIND_LABEL: Record<SalePayment["kind"], string> = {
+  cash: "Cash",
+  card: "Card",
+  camipay: "CamiPay",
+}
+
+function demoTendersFor(sale: Sale, amountDueMinor: number): InvoiceTender[] {
+  // A sale with its own payment records prints them, each where it was taken.
+  if (sale.payments) {
+    return sale.payments.map((p) => ({
+      id: p.id,
+      method: KIND_LABEL[p.kind],
+      amountMinor: sale.status === "refunded" ? -p.amountMinor : p.amountMinor,
+      at: p.at,
+    }))
+  }
   const method = sale.camipay ? "CamiPay" : "Card"
 
   switch (sale.status) {

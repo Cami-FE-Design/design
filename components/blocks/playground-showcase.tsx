@@ -124,6 +124,7 @@ import { MoveToBranchDialog } from "@/components/blocks/move-to-branch-dialog"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
 import { NavigateToAddress } from "@/components/blocks/navigate-to-address"
 import { ServicePickerPanel } from "@/components/blocks/new-appointment-service-picker"
+import { NoLocationAccess } from "@/components/blocks/no-location-access"
 import { NotificationsSettingsPanel } from "@/components/blocks/notifications-settings-panel"
 import {
   PackageBranchWarning,
@@ -3506,6 +3507,16 @@ export function PlaygroundShowcase() {
               <LocationsProvider persist={false}>
                 <WhatsAppNumbersPanel />
               </LocationsProvider>
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — no location access"
+          description="P1.4.6. A person holding no location sees this in place of every operational page. Sign in as ahmed@getcami.io from the dashed strip under Settings › Locations to see it live."
+        >
+          <Row label="No location at all" align="start">
+            <div className="w-full max-w-[560px]">
+              <NoLocationAccess />
             </div>
           </Row>
         </Section>

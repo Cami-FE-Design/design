@@ -20,11 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { quantityAt } from "@/lib/inventory/branch-stock"
+import { useBranchStock } from "@/lib/inventory/store"
+import { useLocations } from "@/lib/locations/store"
 
 type RemoveStockDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   productName: string
+  /** Which product, so the count can be read at the location chosen. */
+  productId?: string
   stockOnHand: number
   /** The movement, with the branch it happened at (R11, R16). */
   onSave?: (qty: number, reason: string, locationId: string) => void
@@ -34,9 +39,12 @@ export function RemoveStockDialog({
   open,
   onOpenChange,
   productName,
+  productId,
   stockOnHand,
   onSave,
 }: RemoveStockDialogProps) {
+  const { stock } = useBranchStock()
+  const { isMultiLocation, locationName } = useLocations()
   const [qty, setQty] = useState(1)
   const [reason, setReason] = useState("internal-use")
   /**
@@ -45,6 +53,10 @@ export function RemoveStockDialog({
    * wrong, which is the failure DW4.1 is written about.
    */
   const [locationId, setLocationId] = useState<string | null>(null)
+
+  // That location's count once it is settled. Not a limit: stock can go
+  // negative.
+  const atLocation = productId && locationId ? quantityAt(stock, productId, locationId) : undefined
 
   function handleSave() {
     if (!locationId) return
@@ -73,7 +85,9 @@ export function RemoveStockDialog({
           <div className="flex flex-col items-center gap-2 py-2">
             <p className="text-sm font-semibold text-foreground">{productName}</p>
             <span className="rounded-full bg-tomato-3 px-2.5 py-0.5 text-xs font-medium text-tomato-11">
-              {stockOnHand} in stock
+              {atLocation !== undefined && locationId
+                ? `${atLocation} in stock${isMultiLocation ? ` at ${locationName(locationId)}` : ""}`
+                : `${stockOnHand} in stock`}
             </span>
           </div>
 

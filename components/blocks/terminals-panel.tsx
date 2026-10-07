@@ -28,6 +28,7 @@ import { Dialog as DialogPrimitive } from "radix-ui"
 import { useId, useState } from "react"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
+import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
 import { EmptyState } from "@/components/blocks/empty-state"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import type { BreadcrumbRoot } from "@/components/blocks/sales-settings"
@@ -53,6 +54,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { locationName } from "@/lib/locations/mock"
 import { useLocations } from "@/lib/locations/store"
+import { isUnassigned } from "@/lib/terminals/at-checkout"
 import {
   DEMO_SESSIONS,
   DEMO_TERMINALS,
@@ -66,6 +68,7 @@ import {
   TYPICAL_SESSIONS,
   TYPICAL_TERMINALS,
   terminalStatus,
+  UNASSIGNED_DEMO_TERMINAL,
   useTerminals,
 } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
@@ -73,6 +76,11 @@ import { cn } from "@/lib/utils"
 // Match Input's h-12 / rounded-2xl so the location Select doesn't sit shorter
 // than the name field above it.
 const triggerOverride = "data-[size=default]:h-12 rounded-2xl bg-input px-4 font-medium"
+
+/** Where a machine is, as read anywhere it is identified. */
+function terminalLocation(terminal: Pick<Terminal, "locationId">): string {
+  return isUnassigned(terminal) ? "No location" : locationName(terminal.locationId)
+}
 
 /**
  * Demo-only view override, deep-linked from /screens as
@@ -133,6 +141,11 @@ export function TerminalsPanel({
   const { granted } = useLocations()
   const [regenerating, setRegenerating] = useState<Terminal | null>(null)
   const [removing, setRemoving] = useState<Terminal | null>(null)
+  // Name and location changes made while a demo list is on screen. Patched
+  // here rather than in the store, which does not hold the demo machines.
+  const [demoEdits, setDemoEdits] = useState<Record<string, { name: string; locationId: string }>>(
+    {},
+  )
 
   // Bounded by the grant, like every other branch-scoped read (R18). Terminals
   // are seeded against Shampooch's branches, so signing into another business
@@ -143,11 +156,15 @@ export function TerminalsPanel({
     demoState === "empty"
       ? []
       : demoState === "full"
-        ? DEMO_TERMINALS
+        ? [...DEMO_TERMINALS, UNASSIGNED_DEMO_TERMINAL]
         : demoState === "typical"
           ? TYPICAL_TERMINALS
           : store.terminals
-  const terminals = allTerminals.filter((t) => granted.some((l) => l.id === t.locationId))
+  // A machine with no location is listed too, where it can be given one.
+  // Hidden, it was unplaceable and invisible at once.
+  const terminals = allTerminals
+    .map((t) => (demoState !== null && demoEdits[t.id] ? { ...t, ...demoEdits[t.id] } : t))
+    .filter((t) => isUnassigned(t) || granted.some((l) => l.id === t.locationId))
   const sessions =
     demoState === "empty"
       ? []
@@ -218,51 +235,59 @@ export function TerminalsPanel({
         />
       </div>
 
-      {/* Prototype demo controls (gift-cards convention). Signing in happens on
-          the hardware, so nothing in the dashboard can trigger it — the first
-          control stands in for that keypress. */}
-      <div className="mt-auto flex shrink-0 items-center justify-end gap-4 pt-2">
-        {terminals.some((t) => !t.pairedAt) ? (
-          <button
+      {/* Signing in happens on the hardware, so nothing in the dashboard can
+          trigger it — the pair and sign-in controls stand in for that keypress. */}
+      <div className="mt-auto pt-2">
+        <DesignRepoBar label="switch the terminal list and act for the hardware">
+          <Button
             type="button"
+            size="sm"
+            variant="outline"
+            radius="full"
             onClick={() =>
-              withRealState(() => {
-                const target = store.terminals.find((t) => !t.pairedAt)
-                if (!target) return
-                store.pairDevice(target.id)
-                toast.success(`${target.name} paired`)
-              })
+              setDemoState(demoState === null ? "typical" : demoState === "typical" ? "full" : null)
             }
-            className="text-xs text-muted-foreground/40 transition-colors hover:text-muted-foreground"
           >
-            Demo: pair a device
-          </button>
-        ) : null}
-        {terminals.some((t) => t.pairedAt && !t.lockedFor) ? (
-          <button
-            type="button"
-            onClick={() =>
-              withRealState(() => {
-                const target = store.terminals.find((t) => t.pairedAt && !t.lockedFor)
-                if (!target) return
-                store.startSession(target.id)
-                toast.success(`Signed in on ${target.name}`)
-              })
-            }
-            className="text-xs text-muted-foreground/40 transition-colors hover:text-muted-foreground"
-          >
-            Demo: sign in on a terminal
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={() =>
-            setDemoState(demoState === null ? "typical" : demoState === "typical" ? "full" : null)
-          }
-          className="text-xs text-muted-foreground/40 transition-colors hover:text-muted-foreground"
-        >
-          Demo: {demoState === null ? "live" : demoState === "typical" ? "typical" : "all statuses"}
-        </button>
+            Demo:{" "}
+            {demoState === null ? "live" : demoState === "typical" ? "typical" : "all statuses"}
+          </Button>
+          {terminals.some((t) => !t.pairedAt) ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              radius="full"
+              onClick={() =>
+                withRealState(() => {
+                  const target = store.terminals.find((t) => !t.pairedAt)
+                  if (!target) return
+                  store.pairDevice(target.id)
+                  toast.success(`${target.name} paired`)
+                })
+              }
+            >
+              Demo: pair a device
+            </Button>
+          ) : null}
+          {terminals.some((t) => t.pairedAt && !t.lockedFor) ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              radius="full"
+              onClick={() =>
+                withRealState(() => {
+                  const target = store.terminals.find((t) => t.pairedAt && !t.lockedFor)
+                  if (!target) return
+                  store.startSession(target.id)
+                  toast.success(`Signed in on ${target.name}`)
+                })
+              }
+            >
+              Demo: sign in on a terminal
+            </Button>
+          ) : null}
+        </DesignRepoBar>
       </div>
 
       <RegisterTerminalDialog
@@ -313,14 +338,24 @@ export function TerminalsPanel({
       <EditTerminalDialog
         editing={editing}
         onCancel={() => setEditing(null)}
-        onSave={(patch) =>
-          withRealState(() => {
-            if (!editing) return
+        onSave={(patch) => {
+          if (!editing) return
+          // A demo list patches itself, so the machine visibly moves into
+          // place; the store only holds the live list's machines.
+          if (demoState !== null) {
+            setDemoEdits((edits) => ({ ...edits, [editing.terminal.id]: patch }))
+          } else {
             store.updateTerminal(editing.terminal.id, patch)
-            toast.success(editing.field === "name" ? "Terminal renamed" : "Location updated")
-            setEditing(null)
-          })
-        }
+          }
+          toast.success(
+            editing.field === "name"
+              ? "Terminal renamed"
+              : isUnassigned(editing.terminal)
+                ? `Location set to ${locationName(patch.locationId)}`
+                : `Moved to ${locationName(patch.locationId)}`,
+          )
+          setEditing(null)
+        }}
       />
 
       {/* Names the sessions it will end, and scoped to one device — the whole
@@ -492,9 +527,14 @@ function TerminalRow({
   onRemove: (terminal: Terminal) => void
   onUnlock: (terminal: Terminal) => void
 }) {
+  const { granted } = useLocations()
   const status = terminalStatus(terminal, sessions)
   const liveCount = liveSessions(sessions, terminal.id).length
-  const location = locationName(terminal.locationId)
+  const unassigned = isUnassigned(terminal)
+  const location = terminalLocation(terminal)
+  // Somewhere else this person holds to move it to. Without one the action is
+  // absent rather than a menu item leading to an empty list.
+  const canMove = granted.some((l) => l.id !== terminal.locationId)
 
   // One muted line, joined by · — the code first, since it is the thing that
   // identifies the hardware.
@@ -533,6 +573,18 @@ function TerminalRow({
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
+        {unassigned && canMove ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            radius="full"
+            className="mr-2"
+            onClick={() => onChangeLocation(terminal)}
+          >
+            Set location
+          </Button>
+        ) : null}
         <span className="flex w-[7.5rem] shrink-0 items-center gap-1.5 text-sm leading-5 text-muted-foreground">
           <span aria-hidden className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])} />
           <span className="truncate">
@@ -563,9 +615,12 @@ function TerminalRow({
               Show code &amp; PIN
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => onRename(terminal)}>Rename terminal</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onChangeLocation(terminal)}>
-              Change location
-            </DropdownMenuItem>
+            {/* A machine with no location sets one from its row button. */}
+            {canMove && !unassigned ? (
+              <DropdownMenuItem onSelect={() => onChangeLocation(terminal)}>
+                Change location
+              </DropdownMenuItem>
+            ) : null}
             {/* Which devices are signed in, and revoking them one at a time.
                 Only offered once the terminal has actually been paired. */}
             {terminal.pairedAt ? (
@@ -764,7 +819,7 @@ function CredentialsDialog({
             {/* The location is the difference between two identical tablets on
                 two counters, so it belongs anywhere the device is identified. */}
             <p className="mt-1 text-sm leading-5 text-muted-foreground">
-              {locationName(issued.terminal.locationId)}
+              {terminalLocation(issued.terminal)}
             </p>
             <p className="mt-3 text-sm leading-5 text-muted-foreground">
               {issued.mode === "regenerated"
@@ -954,7 +1009,7 @@ function TerminalSessionsDialog({
                   {terminal.name}
                 </DialogTitle>
                 <p className="text-sm leading-5 text-muted-foreground">
-                  {locationName(terminal.locationId)} · Devices signed in on code{" "}
+                  {terminalLocation(terminal)} · Devices signed in on code{" "}
                   <span className="font-mono text-foreground">{terminal.id}</span>
                 </p>
               </div>
@@ -1115,18 +1170,23 @@ function EditTerminalDialog({
   if (seededFor !== key) {
     setSeededFor(key)
     setName(terminal.name)
+    // Opens on where it is now, like live's Change location.
     setLocationId(terminal.locationId)
   }
 
   const trimmed = name.trim()
-  const canSave = field === "name" ? trimmed.length > 0 : locationId !== ""
+  const canSave = field === "name" ? trimmed.length > 0 : granted.some((l) => l.id === locationId)
 
   return (
     <DialogPrimitive.Root open onOpenChange={(o) => !o && onCancel()}>
       <DialogContent className="max-w-md gap-0 p-6">
         <div className="flex items-start justify-between gap-4">
           <DialogTitle className="font-heading text-2xl font-semibold text-foreground">
-            {field === "name" ? "Rename terminal" : "Change location"}
+            {field === "name"
+              ? "Rename terminal"
+              : isUnassigned(terminal)
+                ? "Set location"
+                : "Change location"}
           </DialogTitle>
           <Button
             type="button"

@@ -17,14 +17,14 @@
  *        my screen." This reads the *granted* set, so a manager holding one
  *        branch of nine also gets nothing to switch.
  * - R24  No grant means no access, and never resolves to all branches. The
- *        switcher says so plainly rather than rendering an empty menu.
+ *        switcher renders nothing; the page's no-access state says why.
  *
  * It is context, not security (blueprint §03). Every request is authorized on
  * role capability and granted locations independently, so nothing here decides
  * what a query may return.
  */
 
-import { BuildingIcon, CheckIcon, ChevronDownIcon, LockIcon } from "lucide-react"
+import { BuildingIcon, CheckIcon, ChevronDownIcon } from "lucide-react"
 import { useState } from "react"
 
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
@@ -55,24 +55,9 @@ export function LocationSwitcher({ className }: { className?: string }) {
       )
     : granted
 
-  // R24. An empty scope is a real state with a real consequence, so it is said
-  // out loud — an operator who can see nothing should know that is why.
-  if (hasNoAccess) {
-    return (
-      <div
-        className={cn(
-          "flex h-11 items-center gap-2 rounded-xl bg-destructive/10 px-3 text-sm font-medium text-destructive",
-          className,
-        )}
-      >
-        <LockIcon className="size-4 shrink-0" />
-        <span>No location access</span>
-      </div>
-    )
-  }
-
-  // DW1.2. Absent, not disabled.
-  if (!isMultiLocation) return null
+  // R24. Nothing to switch between. The full-page no-access state already says
+  // why, so the topbar does not repeat it. DW1.2: absent, not disabled.
+  if (hasNoAccess || !isMultiLocation) return null
 
   const selectedIds = new Set(scopedLocations.map((l) => l.id))
   const allSelected = selectedIds.size === granted.length
