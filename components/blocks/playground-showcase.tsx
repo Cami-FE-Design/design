@@ -409,6 +409,7 @@ const LANES: Array<{ id: string; label: string; sections: string[] }> = [
       "Multi-location — per-branch service pricing",
       "Multi-location — public branch picker",
       "Multi-location — branch WhatsApp numbers",
+      "Multi-location — no location access",
       "Multi-location — somebody working at another location",
       "Multi-location — loading and error",
       "Multi-location — money by branch",
