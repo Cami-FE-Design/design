@@ -29,16 +29,12 @@
 
 import { useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
-import { formatAed } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { type MoneyByLocation, shareOfRollUp, summarizeByLocation } from "@/lib/money/by-location"
+import { formatMoneyWhole } from "@/lib/money/format"
 import type { PeriodFilter } from "@/lib/money/ledger"
 import type { MoneyTx } from "@/lib/money/types"
 import { cn } from "@/lib/utils"
-
-function aed(minor: number): string {
-  return formatAed(Math.round(minor / 100))
-}
 
 export function MoneyByLocationView({
   txs,
@@ -162,25 +158,35 @@ function Rows({ data }: { data: MoneyByLocation }) {
                   {Math.round(share * 100)}%
                 </span>
                 <span className="font-heading text-lg font-semibold text-foreground">
-                  {aed(row.summary.moneyIn.totalMinor)}
+                  {formatMoneyWhole(row.summary.moneyIn.totalMinor)}
                 </span>
               </span>
             </div>
 
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
               <span>
-                Sales <span className="text-foreground">{aed(row.summary.moneyIn.salesMinor)}</span>
+                Sales{" "}
+                <span className="text-foreground">
+                  {formatMoneyWhole(row.summary.moneyIn.salesMinor)}
+                </span>
               </span>
               <span>
-                Tips <span className="text-foreground">{aed(row.summary.moneyIn.tipsMinor)}</span>
+                Tips{" "}
+                <span className="text-foreground">
+                  {formatMoneyWhole(row.summary.moneyIn.tipsMinor)}
+                </span>
               </span>
               <span>
                 Fees{" "}
-                <span className="text-foreground">{aed(row.summary.deductions.camiFeeMinor)}</span>
+                <span className="text-foreground">
+                  {formatMoneyWhole(row.summary.deductions.camiFeeMinor)}
+                </span>
               </span>
               <span>
                 Refunds{" "}
-                <span className="text-foreground">{aed(row.summary.deductions.refundsMinor)}</span>
+                <span className="text-foreground">
+                  {formatMoneyWhole(row.summary.deductions.refundsMinor)}
+                </span>
               </span>
             </div>
           </div>
@@ -209,7 +215,7 @@ function Rows({ data }: { data: MoneyByLocation }) {
         <div className="flex items-baseline justify-between gap-3 rounded-2xl bg-muted/30 px-4 py-3">
           <span className="text-sm text-muted-foreground">Business total</span>
           <span className="shrink-0 font-heading text-lg font-semibold text-foreground">
-            {aed(data.rollUp.moneyIn.totalMinor)}
+            {formatMoneyWhole(data.rollUp.moneyIn.totalMinor)}
           </span>
         </div>
       ) : null}

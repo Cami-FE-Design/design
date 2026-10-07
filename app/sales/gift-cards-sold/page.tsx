@@ -61,16 +61,11 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { formatAed } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-const CURRENCY = "AED"
-
-function money(amount: number) {
-  return `${CURRENCY} ${amount.toLocaleString("en-US")}`
-}
 
 const MONTH_SHORT = [
   "Jan",
@@ -446,12 +441,12 @@ function GiftCardsSoldPageInner() {
                     </TableCell>
                     <TableCell>{c.purchaser}</TableCell>
                     <TableCell className="text-muted-foreground">{c.owner}</TableCell>
-                    <TableCell className="text-right">{money(c.totalAed)}</TableCell>
+                    <TableCell className="text-right">{formatAed(c.totalAed)}</TableCell>
                     <TableCell className="text-right text-muted-foreground">
-                      {money(c.redeemedAed)}
+                      {formatAed(c.redeemedAed)}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {money(c.totalAed - c.redeemedAed)}
+                      {formatAed(c.totalAed - c.redeemedAed)}
                     </TableCell>
                   </TableRow>
                 )
@@ -727,7 +722,7 @@ function buildGiftCardPrintHtml(
     ${sender ? `<p>From ${sender}</p>` : ""}
     <div class="gift">${giftSvg}</div>
     <div class="value">
-      <div class="amount">${money(card.totalAed)}</div>
+      <div class="amount">${formatAed(card.totalAed)}</div>
       <div class="biz">Cami</div>
       <div class="meta">
         <div><div class="label">Code:</div>${escapeHtml(card.code)}</div>
@@ -871,7 +866,7 @@ function buildActivity(
   // location is named on each redemption, since a card can be used anywhere.
   let balance = card.totalAed
   const redemptions: ActivityEvent[] = card.ledger.map((entry) => {
-    const redeemed = [`${money(entry.amountAed)} redeemed`, where(entry.locationId)]
+    const redeemed = [`${formatAed(entry.amountAed)} redeemed`, where(entry.locationId)]
       .filter(Boolean)
       .join(" · ")
     balance -= entry.amountAed
@@ -890,7 +885,7 @@ function buildActivity(
           when: formatWhen(entry.at),
           by: entry.by,
           kind: "redeemed",
-          secondary: `Remaining balance ${money(balance)}`,
+          secondary: `Remaining balance ${formatAed(balance)}`,
         }
   })
   events.push(...redemptions.reverse())
@@ -926,7 +921,7 @@ function GiftCardActivity({ card, onOpenSale }: { card: GiftCardSold; onOpenSale
     <div className="flex flex-col gap-6">
       <GiftCardVisual
         className="mx-auto"
-        amount={money(remaining)}
+        amount={formatAed(remaining)}
         code={card.code}
         expires={formatDate(card.expiresAt)}
         copyableCode
@@ -995,9 +990,9 @@ function GiftCardDetails({ card, onOpenSale }: { card: GiftCardSold; onOpenSale:
       <div className="flex flex-col divide-y divide-border/60 px-4 py-4">
         <DetailSection title="Balance">
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-            <DetailField label="Original amount" value={money(card.totalAed)} />
-            <DetailField label="Redeemed" value={money(card.redeemedAed)} />
-            <DetailField label="Remaining" value={money(card.totalAed - card.redeemedAed)} />
+            <DetailField label="Original amount" value={formatAed(card.totalAed)} />
+            <DetailField label="Redeemed" value={formatAed(card.redeemedAed)} />
+            <DetailField label="Remaining" value={formatAed(card.totalAed - card.redeemedAed)} />
             {/* Where it was sold, not where it may be spent. A gift card travels
                 across the estate — the spec's own line is that gift cards and
                 memberships do and a package does not — but the *sale* belongs to

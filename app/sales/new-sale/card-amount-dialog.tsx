@@ -5,7 +5,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { formatAedDecimal } from "./mock"
+import { formatMoney } from "@/lib/money/format"
 
 type CardAmountDialogProps = {
   open: boolean
@@ -63,9 +63,7 @@ function CardBody({
 
       <div className="flex items-center justify-between gap-3 text-sm">
         <span className="text-muted-foreground">Amount to pay</span>
-        <span className="font-medium text-foreground tabular-nums">
-          {formatAedDecimal(toPayMinor)}
-        </span>
+        <span className="font-medium text-foreground tabular-nums">{formatMoney(toPayMinor)}</span>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -85,7 +83,7 @@ function CardBody({
           />
         </div>
         <span className="text-muted-foreground text-xs">
-          {formatAedDecimal(leftMinor)} left to be paid
+          {formatMoney(leftMinor)} left to be paid
         </span>
       </div>
 

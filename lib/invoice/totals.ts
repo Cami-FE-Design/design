@@ -15,11 +15,10 @@
 //   6. Change due is not a payment (INV-M4).
 
 import { VAT_RATE } from "@/app/sales/new-sale/mock"
+import { formatMoney } from "@/lib/money/format"
 import type { InvoiceDocument, InvoiceLine } from "./types"
 
 export { VAT_RATE }
-
-const CURRENCY = "AED"
 
 /**
  * Half-up rounding on the MAGNITUDE, sign reapplied.
@@ -157,12 +156,7 @@ export function showsLineTaxColumns(doc: InvoiceDocument): boolean {
  * correctly at print size.
  */
 export function formatInvoiceAmount(minor: number): string {
-  const abs = Math.abs(minor) / 100
-  const body = `${CURRENCY} ${abs.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
-  return minor < 0 ? `− ${body}` : body
+  return minor < 0 ? `− ${formatMoney(-minor)}` : formatMoney(minor)
 }
 
 /** "5%" — the rate as it appears in the `VAT 5%` label and the tax column. */

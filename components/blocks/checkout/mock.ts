@@ -8,9 +8,9 @@
 // (minor units), VAT back-calculated. Tip is added on top of the tax-inclusive
 // total. Reuse the money helpers from the operator cart — do not fork them.
 
-import { formatAedDecimal, VAT_RATE } from "@/app/sales/new-sale/mock"
+import { VAT_RATE } from "@/app/sales/new-sale/mock"
 
-export { formatAedDecimal, VAT_RATE }
+export { VAT_RATE }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

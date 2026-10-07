@@ -59,6 +59,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { formatAed } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 // Full-window dialog overrides. The important suffix beats the base sm:max-w-md
@@ -99,9 +100,9 @@ const DEFAULT_GIFT_CARD_CONFIG: GiftCardConfig = {
   expiration: "1 year",
 }
 
-function formatAed(value: string) {
+function formatAedText(value: string) {
   const n = Number(value)
-  return Number.isFinite(n) ? `AED ${n.toLocaleString("en-US")}` : `AED ${value}`
+  return Number.isFinite(n) ? formatAed(n) : `AED ${value}`
 }
 
 /**
@@ -926,8 +927,8 @@ function GiftCardSummary({
     values.length === 0
       ? "—"
       : values.length <= INLINE_COUNT
-        ? values.map(formatAed).join(", ")
-        : `${values.slice(0, INLINE_COUNT).map(formatAed).join(", ")} +${
+        ? values.map(formatAedText).join(", ")
+        : `${values.slice(0, INLINE_COUNT).map(formatAedText).join(", ")} +${
             values.length - INLINE_COUNT
           } more`
 

@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui"
+import { formatMoney } from "@/lib/money/format"
 import {
   APPOINTMENT_COLORS,
   type ExtraTimeSegment,
@@ -28,10 +29,11 @@ function minutesToLabel(min: number): string {
   return rem === 0 ? `${h} hr` : `${h} hr, ${rem} min`
 }
 
-function formatPrice(priceType: string, price: number, currency: string): string {
+/** `AED 120.00` · `From AED 80.00` · `Free`. */
+export function formatServicePrice(priceType: string, price: number): string {
   if (priceType === "Free") return "Free"
-  if (priceType === "From") return `From ${currency} ${price.toFixed(2)}`
-  return `${currency} ${price.toFixed(2)}`
+  const amount = formatMoney(Math.round(price * 100))
+  return priceType === "From" ? `From ${amount}` : amount
 }
 
 function VariantRow({
@@ -39,20 +41,18 @@ function VariantRow({
   totalDurationMin,
   priceType,
   price,
-  currency,
 }: {
   name: string
   totalDurationMin: number
   priceType: string
   price: number
-  currency: string
 }) {
   return (
     <div className="flex items-center gap-4 px-4 py-1.5">
       <p className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{name}</p>
       <p className="shrink-0 text-sm text-muted-foreground">{minutesToLabel(totalDurationMin)}</p>
       <p className="shrink-0 w-24 text-right text-sm font-medium text-foreground">
-        {formatPrice(priceType, price, currency)}
+        {formatServicePrice(priceType, price)}
       </p>
     </div>
   )
@@ -139,7 +139,6 @@ export function ServiceCardInner({
   dragging?: boolean
 }) {
   const colorHex = getColorHex(category.color)
-  const currency = "AED"
 
   const isArchived = service.isActive === false
   const isCombo = service.serviceType === "combo"
@@ -213,7 +212,6 @@ export function ServiceCardInner({
                 totalDurationMin={totalMin(v.duration, v.extraTimes)}
                 priceType={v.priceType}
                 price={v.price}
-                currency={currency}
               />
             ))}
 
@@ -234,7 +232,7 @@ export function ServiceCardInner({
             </div>
             <div className="flex shrink-0 items-center gap-3">
               <span className="text-base font-medium text-foreground">
-                {formatPrice(service.priceType, service.price, currency)}
+                {formatServicePrice(service.priceType, service.price)}
               </span>
               {menu}
             </div>

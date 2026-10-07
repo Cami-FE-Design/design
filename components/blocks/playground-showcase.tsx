@@ -239,6 +239,7 @@ import { getCustomerCard } from "@/lib/customer-card/mock"
 import { CUSTOMER_CARD_THEMES, getCustomerCardTheme } from "@/lib/customer-card/theme"
 import { DAYCARE_SESSIONS } from "@/lib/daycare-mock"
 import { MOCK_DEALS } from "@/lib/deals/mock"
+import { formatAed } from "@/lib/format"
 import { CamiPayProvider, ZERO_RATE } from "@/lib/hq-camipay/store"
 import { type HqTerminalStatus, HqTerminalsProvider } from "@/lib/hq-terminals/store"
 import { type ClientPetScenarioId, getClientPetScenario } from "@/lib/imports/client-pet-mock"
@@ -667,7 +668,7 @@ function ServicePricingDemo() {
           Raise the business default
         </Button>
         <span className="text-xs text-muted-foreground">
-          Now AED {defaults.price} · {defaults.duration} min
+          Now {formatAed(defaults.price)} · {defaults.duration} min
         </span>
         <Button
           type="button"
@@ -4738,7 +4739,7 @@ export function PlaygroundShowcase() {
                 values={SALES_BY_PAYMENT_VALUES}
                 centreLabel="collected"
                 centreValue="AED 10,240"
-                formatValue={(n) => `AED ${n.toLocaleString("en-US")}`}
+                formatValue={formatAed}
               />
             </div>
             <span className="w-56 text-xs leading-snug text-muted-foreground">
@@ -4754,7 +4755,7 @@ export function PlaygroundShowcase() {
                 values={SALES_BY_PAYMENT_VALUES}
                 centreLabel="collected"
                 centreValue="AED 10,240"
-                formatValue={(n) => `AED ${n.toLocaleString("en-US")}`}
+                formatValue={formatAed}
                 wide
               />
             </div>

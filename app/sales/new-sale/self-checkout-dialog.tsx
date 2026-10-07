@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { formatAedDecimal } from "./mock"
+import { formatMoney } from "@/lib/money/format"
 
 // Self-checkout: the operator texts the client a secure link from the Select
 // payment step. The client pays on their own phone (they land on the existing
@@ -116,7 +116,7 @@ export function SelfCheckoutDialog({
             <div className="flex flex-col leading-tight">
               <span className="text-muted-foreground text-xs">To pay</span>
               <span className="font-semibold text-foreground text-lg tabular-nums">
-                {formatAedDecimal(toPayMinor)}
+                {formatMoney(toPayMinor)}
               </span>
             </div>
             <Button

@@ -257,12 +257,6 @@ export function formatTimeRange(start: string, durationMin: number): string {
   return `${fmt(startTotal)} – ${fmt(endTotal)}`
 }
 
-export function formatAed(minor: number): string {
-  if (minor === 0) return "AED 0"
-  const aed = Math.round(minor / 100)
-  return `AED ${aed.toLocaleString("en-US")}`
-}
-
 const SEEDED_BOOKINGS: Omit<MockBooking, "locationId">[] = [
   // Aya Hassan — column 1
   {

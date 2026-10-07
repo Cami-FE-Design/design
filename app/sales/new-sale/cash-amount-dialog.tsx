@@ -5,7 +5,9 @@ import { useEffect, useState } from "react"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { formatAedDecimal, STAFF } from "./mock"
+import { formatAed } from "@/lib/format"
+import { formatMoney } from "@/lib/money/format"
+import { STAFF } from "./mock"
 
 type CashAmountDialogProps = {
   open: boolean
@@ -177,7 +179,7 @@ function CashBody({
             onClick={() => setEntry(String(chip))}
             className="shrink-0 rounded-full border border-border px-4 py-1.5 font-medium text-foreground text-sm transition-colors hover:bg-muted/50"
           >
-            AED {chip}
+            {formatAed(chip)}
           </button>
         ))}
       </div>
@@ -208,7 +210,7 @@ function CashBody({
 
       <div className="flex items-center justify-between gap-3">
         <span className="font-medium text-foreground text-sm">
-          Left to pay · {formatAedDecimal(leftMinor)}
+          Left to pay · {formatMoney(leftMinor)}
         </span>
         <Button
           type="button"

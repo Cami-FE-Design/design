@@ -70,10 +70,11 @@ import {
   serviceTotals,
   slotGroupsForLocation,
 } from "@/lib/booking"
+import { formatAed } from "@/lib/format"
 import { slotsForStaff } from "@/lib/locations/cross-branch-availability"
 import type { WeekSchedule } from "@/lib/locations/hours"
 import { type PetNoteEntry, petNoteLabel, petNotesComplete } from "@/lib/pet-notes"
-import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
+import { formatDuration, type PublicBusiness } from "@/lib/public-business"
 import { ROSTER_LEAVES, ROSTER_SHIFTS } from "@/lib/team/shifts-mock"
 import { cn } from "@/lib/utils"
 
@@ -961,11 +962,11 @@ function ConfirmStep({
             </div>
             <span className="flex shrink-0 flex-col items-end tabular-nums">
               <span className="text-sm font-medium text-foreground">
-                {formatPriceAed(line.priceAed)}
+                {formatAed(line.priceAed)}
               </span>
               {line.listPriceAed ? (
                 <span className="text-xs text-muted-foreground line-through">
-                  {formatPriceAed(line.listPriceAed)}
+                  {formatAed(line.listPriceAed)}
                 </span>
               ) : null}
             </span>
@@ -995,11 +996,11 @@ function ConfirmStep({
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between py-1 text-sm">
           <span className="text-muted-foreground">Subtotal</span>
-          <span className="tabular-nums text-muted-foreground">{formatPriceAed(subtotal)}</span>
+          <span className="tabular-nums text-muted-foreground">{formatAed(subtotal)}</span>
         </div>
         <div className="flex items-baseline justify-between py-1 text-sm">
           <span className="text-muted-foreground">VAT (5%)</span>
-          <span className="tabular-nums text-muted-foreground">{formatPriceAed(vat)}</span>
+          <span className="tabular-nums text-muted-foreground">{formatAed(vat)}</span>
         </div>
         <div className="mt-1 flex items-baseline justify-between border-t border-border/60 pt-3">
           <div className="flex flex-col leading-tight">
@@ -1010,7 +1011,7 @@ function ConfirmStep({
             </span>
           </div>
           <span className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">
-            {formatPriceAed(total)}
+            {formatAed(total)}
           </span>
         </div>
       </div>
@@ -1141,11 +1142,11 @@ function DesktopSummary({
                 </div>
                 <span className="flex shrink-0 flex-col items-end tabular-nums">
                   <span className="font-medium text-foreground text-sm">
-                    {formatPriceAed(line.priceAed)}
+                    {formatAed(line.priceAed)}
                   </span>
                   {line.listPriceAed ? (
                     <span className="text-muted-foreground text-xs line-through">
-                      {formatPriceAed(line.listPriceAed)}
+                      {formatAed(line.listPriceAed)}
                     </span>
                   ) : null}
                 </span>
@@ -1169,7 +1170,7 @@ function DesktopSummary({
             </span>
           </div>
           <span className="font-semibold text-foreground text-lg tabular-nums">
-            {formatPriceAed(totals.priceAed)}
+            {formatAed(totals.priceAed)}
           </span>
         </div>
       ) : null}
@@ -1458,7 +1459,7 @@ export function BookingFlow({
               className="flex flex-col items-start leading-tight disabled:opacity-60"
             >
               <span className="font-semibold text-foreground text-lg tabular-nums">
-                {formatPriceAed(totals.priceAed)}
+                {formatAed(totals.priceAed)}
               </span>
               <span className="flex items-center gap-1 text-muted-foreground text-xs">
                 <ShoppingBagIcon className="size-3.5" />
@@ -1529,7 +1530,7 @@ export function BookingFlow({
                     </span>
                   </div>
                   <span className="shrink-0 text-sm font-medium tabular-nums text-foreground">
-                    {formatPriceAed(s.priceAed)}
+                    {formatAed(s.priceAed)}
                   </span>
                 </div>
               ))}
@@ -1537,7 +1538,7 @@ export function BookingFlow({
             <div className="mt-1 flex items-center justify-between border-t border-border/60 pt-3">
               <span className="text-base font-semibold text-foreground">Total</span>
               <span className="text-base font-semibold tabular-nums text-foreground">
-                {formatPriceAed(totals.priceAed)}
+                {formatAed(totals.priceAed)}
               </span>
             </div>
             <Button

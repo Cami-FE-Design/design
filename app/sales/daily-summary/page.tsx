@@ -24,6 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
 import {
   type DailySummary,
   dayIso,
@@ -50,14 +51,6 @@ const VISIBLE_LOCATIONS = 3
 // read one merged number, which is exactly the failure the PRD's first user
 // story names: "the roll-up shows a per-location breakdown side by side, not a
 // merged total. A single number destroys the job."
-
-function money(minor: number) {
-  const aed = Math.round(minor / 100)
-  if (aed < 0) return `- ${CURRENCY} ${Math.abs(aed).toLocaleString()}`
-  return `${CURRENCY} ${aed.toLocaleString()}`
-}
-
-const CURRENCY = "AED"
 
 // ─── Cards ────────────────────────────────────────────────────────────────────
 
@@ -108,7 +101,7 @@ function TransactionSummary({ summary }: { summary: DailySummary }) {
                   row.grossMinor < 0 ? "text-tomato-11" : "text-foreground",
                 )}
               >
-                {money(row.grossMinor)}
+                {formatMoneyWhole(row.grossMinor)}
               </TableCell>
             </TableRow>
           ))}
@@ -121,7 +114,7 @@ function TransactionSummary({ summary }: { summary: DailySummary }) {
               {summary.transactionTotal.refundQty}
             </TableCell>
             <TableCell className="text-right text-sm font-semibold tabular-nums">
-              {money(summary.transactionTotal.grossMinor)}
+              {formatMoneyWhole(summary.transactionTotal.grossMinor)}
             </TableCell>
           </TableRow>
           {/* Below the total and outside it. Confirmed against the built
@@ -144,7 +137,7 @@ function TransactionSummary({ summary }: { summary: DailySummary }) {
               {summary.giftCardsSold.refundQty}
             </TableCell>
             <TableCell className="text-right text-muted-foreground text-sm tabular-nums">
-              {money(summary.giftCardsSold.grossMinor)}
+              {formatMoneyWhole(summary.giftCardsSold.grossMinor)}
             </TableCell>
           </TableRow>
         </TableBody>
@@ -176,7 +169,7 @@ function CashMovementSummary({ summary }: { summary: DailySummary }) {
                   row.emphasis ? "font-semibold text-foreground" : "text-foreground",
                 )}
               >
-                {money(row.collectedMinor)}
+                {formatMoneyWhole(row.collectedMinor)}
               </TableCell>
               <TableCell
                 className={cn(
@@ -185,7 +178,7 @@ function CashMovementSummary({ summary }: { summary: DailySummary }) {
                   row.emphasis && "font-semibold",
                 )}
               >
-                {money(row.refundedMinor)}
+                {formatMoneyWhole(row.refundedMinor)}
               </TableCell>
             </TableRow>
           ))}
@@ -265,7 +258,7 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
                   {row.refundQty}
                 </TableCell>
                 <TableCell className="text-right text-foreground text-sm tabular-nums">
-                  {money(row.tipsMinor)}
+                  {formatMoneyWhole(row.tipsMinor)}
                 </TableCell>
                 <TableCell
                   className={cn(
@@ -273,7 +266,7 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
                     row.grossMinor < 0 ? "text-tomato-11" : "text-foreground",
                   )}
                 >
-                  {money(row.grossMinor)}
+                  {formatMoneyWhole(row.grossMinor)}
                 </TableCell>
               </TableRow>
             ))}
@@ -302,7 +295,7 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
       <div className="flex items-center justify-between gap-3 border-border/60 border-t bg-muted/30 px-5 py-3">
         <span className="font-semibold text-foreground text-sm">Business total</span>
         <span className="font-semibold text-foreground text-sm tabular-nums">
-          {money(summary.rollUpMinor)}
+          {formatMoneyWhole(summary.rollUpMinor)}
         </span>
       </div>
 

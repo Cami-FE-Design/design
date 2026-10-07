@@ -42,6 +42,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 // Set high enough that the curated demo subset (10 rows) paints in a single
@@ -128,10 +129,6 @@ const MONTH_SHORT = [
 
 function formatDateOnly(d: Date) {
   return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
-}
-
-function formatPrice(minor: number) {
-  return `AED ${Math.round(minor / 100).toLocaleString()}`
 }
 
 function refOf(b: MockBooking) {
@@ -472,7 +469,7 @@ function AppointmentsListPageInner() {
                         currency and a number rather than one amount, and it
                         makes the row taller than the ones around it. */}
                     <TableCell className="text-sm whitespace-nowrap text-foreground tabular-nums">
-                      {formatPrice(b.priceMinor)}
+                      {formatMoneyWhole(b.priceMinor)}
                     </TableCell>
                     <TableCell>
                       <Badge

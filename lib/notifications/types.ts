@@ -1,3 +1,4 @@
+import { formatMoney } from "@/lib/money/format"
 // Notification configuration — Sender ID, channel grants, reminder toggles,
 // rates, and the send log. Pure types, defaults, and helpers; the React
 // provider lives alongside in store.tsx (same split as lib/payment-policy).
@@ -441,7 +442,7 @@ export function periodTotalCost(usage: PeriodUsage): number {
 export const MERCHANT_SEES_RATES = true
 
 export function formatRate(amount: number): string {
-  return `AED ${amount.toFixed(2)}`
+  return formatMoney(Math.round(amount * 100))
 }
 
 /**

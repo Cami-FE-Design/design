@@ -31,22 +31,6 @@ export const HAS_PETS = true
 
 // ─── Money ────────────────────────────────────────────────────────────────────
 
-/** Format fils as a tax-inclusive "AED 25" string (whole units, like sales). */
-export function money(minor: number): string {
-  const aed = Math.round(minor / 100)
-  if (aed < 0) return `- ${CURRENCY} ${Math.abs(aed).toLocaleString("en-US")}`
-  return `${CURRENCY} ${aed.toLocaleString("en-US")}`
-}
-
-/** Format fils as "AED 118.80" — always 2 decimals (tips, payment totals). */
-export function formatAedDecimal(minor: number): string {
-  const aed = minor / 100
-  return `${CURRENCY} ${aed.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
-}
-
 export function formatDuration(durationMin: number): string {
   if (durationMin < 60) return `${durationMin}min`
   const h = Math.floor(durationMin / 60)

@@ -20,11 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { formatMoneyWhole } from "@/lib/money/format"
 import {
   CURRENT_USER,
   GIFT_CARD_DEFAULT_EXPIRATION,
   GIFT_CARD_EXPIRATION_OPTIONS,
-  money,
   TEAM_MEMBERS,
 } from "./mock"
 import type { GiftCardDraft } from "./types"
@@ -217,7 +217,7 @@ export function GiftCardDialog({
           <div className="flex flex-col">
             <span className="text-muted-foreground text-xs">Item total</span>
             <span className="font-semibold text-foreground text-lg tabular-nums">
-              {money(priceMinor)}
+              {formatMoneyWhole(priceMinor)}
             </span>
           </div>
           <div className="flex items-center gap-2">

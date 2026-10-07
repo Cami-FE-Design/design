@@ -18,6 +18,8 @@
  */
 
 import type { Deal } from "@/lib/deals/mock"
+import { formatAed } from "@/lib/format"
+import { formatMoney } from "@/lib/money/format"
 
 /** What the till knows about the cart when it asks. */
 export type TillContext = {
@@ -51,10 +53,10 @@ export function limitBlock(deal: Deal, ctx: TillContext): LimitBlock | null {
     if (ctx.cartTotalMinor < minMinor) {
       const shortMinor = minMinor - ctx.cartTotalMinor
       return {
-        reason: `Spend AED ${(minMinor / 100).toLocaleString("en-US")} to use this`,
+        reason: `Spend ${formatAed(minMinor / 100)} to use this`,
         // The gap, not just the threshold. "Minimum AED 150" makes an operator
         // do the subtraction; this is the number they would have worked out.
-        detail: `AED ${(shortMinor / 100).toFixed(2)} more to go`,
+        detail: `${formatMoney(shortMinor)} more to go`,
       }
     }
   }
@@ -98,7 +100,7 @@ export function describeLimits(deal: Deal): string[] {
     out.push(`${deal.limits.totalUses.toLocaleString("en-US")} total uses`)
   }
   if (deal.limits.minimumPurchaseEnabled && deal.limits.minimumPurchaseAmount != null) {
-    out.push(`min. AED ${deal.limits.minimumPurchaseAmount.toLocaleString("en-US")}`)
+    out.push(`min. ${formatAed(deal.limits.minimumPurchaseAmount)}`)
   }
   return out
 }

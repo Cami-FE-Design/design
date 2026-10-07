@@ -26,7 +26,6 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { formatAed } from "@/app/appointments/mock"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -49,6 +48,7 @@ import {
   stayNights,
   staySubtotalMinor,
 } from "@/lib/boarding-mock"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 // ─── Date/time formatting ──────────────────────────────────────────────────────
@@ -246,7 +246,7 @@ function StayCard({
         <div className="flex min-w-0 flex-col leading-tight">
           <span className="truncate text-sm font-semibold text-foreground">{stay.serviceName}</span>
           <span className="truncate text-xs text-muted-foreground">
-            {formatAed(stay.ratePerNightMinor)}/night · {facilityName(stay.facilityId)} —{" "}
+            {formatMoneyWhole(stay.ratePerNightMinor)}/night · {facilityName(stay.facilityId)} —{" "}
             {roomName(stay.roomId)}
           </span>
         </div>
@@ -430,7 +430,7 @@ export function BoardingDetailSheet({ open, onOpenChange, stay }: BoardingDetail
           <div className="flex flex-col leading-tight">
             <span className="text-xs text-muted-foreground">Subtotal</span>
             <span className="text-base font-semibold tabular-nums text-foreground">
-              {formatAed(subtotal)}{" "}
+              {formatMoneyWhole(subtotal)}{" "}
               <span className="text-xs font-normal text-muted-foreground">({nights} Nights)</span>
             </span>
           </div>

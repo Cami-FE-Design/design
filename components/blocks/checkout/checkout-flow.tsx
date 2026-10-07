@@ -14,6 +14,7 @@ import { ComboLineIcon } from "@/components/blocks/combo-badge"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { formatMoney } from "@/lib/money/format"
 import type { PublicBusiness } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
 import {
@@ -21,7 +22,6 @@ import {
   type CheckoutSale,
   type CheckoutSavedCard,
   checkoutTotals,
-  formatAedDecimal,
   TIP_AMOUNTS,
   TIP_MOST_COMMON_MINOR,
 } from "./mock"
@@ -102,11 +102,11 @@ function LineRow({ line, hasPets }: { line: CheckoutLine; hasPets: boolean }) {
       </div>
       <span className="flex shrink-0 flex-col items-end tabular-nums">
         <span className="text-sm font-medium text-foreground">
-          {formatAedDecimal(line.priceMinor * line.qty)}
+          {formatMoney(line.priceMinor * line.qty)}
         </span>
         {line.listPriceMinor && line.listPriceMinor > line.priceMinor ? (
           <span className="text-xs text-muted-foreground line-through">
-            {formatAedDecimal(line.listPriceMinor * line.qty)}
+            {formatMoney(line.listPriceMinor * line.qty)}
           </span>
         ) : null}
       </span>
@@ -166,16 +166,16 @@ function LedgerSection({
 
   return (
     <section className="flex flex-col border-t border-border/60 pt-3">
-      <LedgerRow label="Subtotal" value={formatAedDecimal(subtotalMinor)} muted />
-      <LedgerRow label="VAT (5%)" value={formatAedDecimal(taxMinor)} muted />
+      <LedgerRow label="Subtotal" value={formatMoney(subtotalMinor)} muted />
+      <LedgerRow label="VAT (5%)" value={formatMoney(taxMinor)} muted />
       {membershipDiscount > 0 ? (
         <LedgerRow
           label={`${sale.membership?.name} discount`}
-          value={`- ${formatAedDecimal(membershipDiscount)}`}
+          value={`- ${formatMoney(membershipDiscount)}`}
           muted
         />
       ) : null}
-      {tipMinor > 0 ? <LedgerRow label="Tip" value={formatAedDecimal(tipMinor)} muted /> : null}
+      {tipMinor > 0 ? <LedgerRow label="Tip" value={formatMoney(tipMinor)} muted /> : null}
 
       {/* coupon/membership as an inline accent link, Luma "Add a coupon" pattern */}
       {sale.membership ? (
@@ -183,7 +183,7 @@ function LedgerSection({
           <AccentLink onClick={onToggleMembership}>
             {membershipJoined
               ? `${sale.membership.name} applied · remove`
-              : `Join ${sale.membership.name} and save ${formatAedDecimal(sale.membership.saveMinor)}`}
+              : `Join ${sale.membership.name} and save ${formatMoney(sale.membership.saveMinor)}`}
           </AccentLink>
         </div>
       ) : null}
@@ -194,7 +194,7 @@ function LedgerSection({
           {sale.paidMinor ? "Left to pay" : "Total"}
         </span>
         <span className="text-3xl font-semibold tracking-tight tabular-nums text-foreground">
-          {formatAedDecimal(payable)}
+          {formatMoney(payable)}
         </span>
       </div>
     </section>
@@ -216,7 +216,7 @@ function TipSection({
         action={
           tipMinor > 0 ? (
             <span className="text-sm font-medium text-foreground">
-              Tip <span className="tabular-nums">{formatAedDecimal(tipMinor)}</span>
+              Tip <span className="tabular-nums">{formatMoney(tipMinor)}</span>
             </span>
           ) : null
         }
@@ -251,7 +251,7 @@ function TipSection({
                   active ? "text-cami-violet-12" : "text-foreground",
                 )}
               >
-                {minor === 0 ? "No tip" : formatAedDecimal(minor).replace("AED ", "")}
+                {minor === 0 ? "No tip" : formatMoney(minor).replace("AED ", "")}
               </span>
             </button>
           )
@@ -383,7 +383,7 @@ function PaymentSection({
             Pay with Apple Pay
           </>
         ) : (
-          `Pay ${formatAedDecimal(payableMinor)}`
+          `Pay ${formatMoney(payableMinor)}`
         )}
       </Button>
 

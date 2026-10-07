@@ -4,7 +4,6 @@ import { XIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import {
-  formatAed,
   formatDuration,
   MOCK_BOOKINGS,
   MOCK_STAFF,
@@ -29,6 +28,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { SearchInput } from "@/components/ui/search-input"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 /**
@@ -328,7 +328,9 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                                     · {line.staffName} · {formatDuration(line.durationMin)}
                                   </span>
                                 </span>
-                                <span className="font-medium">{formatAed(line.priceMinor)}</span>
+                                <span className="font-medium">
+                                  {formatMoneyWhole(line.priceMinor)}
+                                </span>
                               </span>
                             ))}
                           </span>
@@ -426,7 +428,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                                   {formatDuration(b.durationMin)}
                                 </span>
                               </span>
-                              <span className="font-medium">{formatAed(b.priceMinor)}</span>
+                              <span className="font-medium">{formatMoneyWhole(b.priceMinor)}</span>
                             </span>
                           </button>
                         </TimelineRow>

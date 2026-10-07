@@ -5,7 +5,7 @@ import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { formatAedDecimal } from "./mock"
+import { formatMoney } from "@/lib/money/format"
 import type { PaymentLinkDetails } from "./self-checkout-dialog"
 
 // PRO-909. Once a payment link is out, the cart is locked: the amount and the
@@ -53,8 +53,8 @@ export function PaymentLinkLockScreen({
             Payment link sent
           </h1>
           <p className="text-pretty text-muted-foreground leading-relaxed">
-            {firstName} can pay {formatAedDecimal(link.amountMinor)} on their own phone. We sent the
-            link to +971 {link.phone}.
+            {firstName} can pay {formatMoney(link.amountMinor)} on their own phone. We sent the link
+            to +971 {link.phone}.
           </p>
         </div>
 

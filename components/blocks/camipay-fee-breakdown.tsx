@@ -24,10 +24,10 @@ import {
   type CamiPayRate,
   computeFee,
   explainFee,
-  formatAed,
   isZeroRate,
   railLabel,
 } from "@/lib/hq-camipay/store"
+import { formatMoney } from "@/lib/money/format"
 
 export type CamiPayFeeBreakdownProps = {
   rail: CamiPayRail
@@ -87,7 +87,7 @@ export function CamiPayFeeBreakdown({
         <InfoIcon className="mt-px size-3.5 shrink-0" />
         <span>
           No Cami fee applies to this {railLabel(rail)} payment. The full{" "}
-          {formatAed(Math.abs(amountMinor))} settles to you.
+          {formatMoney(Math.abs(amountMinor))} settles to you.
         </span>
       </p>
     )
@@ -99,17 +99,17 @@ export function CamiPayFeeBreakdown({
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-col gap-1.5">
-        <Row label="Sale amount" value={formatAed(Math.abs(amountMinor))} />
+        <Row label="Sale amount" value={formatMoney(Math.abs(amountMinor))} />
         <Row
           label="Cami fee"
           hint={explainFee(rate, amountMinor)}
-          value={`- ${formatAed(fee.totalMinor)}`}
+          value={`- ${formatMoney(fee.totalMinor)}`}
         />
       </div>
 
       <div className="h-px bg-border/60" />
 
-      <Row label="Net to you" value={formatAed(fee.netMinor)} emphasis />
+      <Row label="Net to you" value={formatMoney(fee.netMinor)} emphasis />
 
       <p className="mt-1 flex items-start gap-2 rounded-xl bg-muted/50 px-3 py-2.5 text-xs leading-4 text-muted-foreground">
         <InfoIcon className="mt-px size-3.5 shrink-0" />

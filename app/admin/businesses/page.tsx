@@ -33,12 +33,12 @@ import {
   type AdminBusiness,
   adminBusinesses,
   type BusinessState,
-  formatAed,
   formatDate,
   relativeTime,
   stateLabel,
 } from "@/lib/admin-businesses"
 import { useAuth } from "@/lib/auth-mock"
+import { formatAed } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type StateFilter = "all" | BusinessState
@@ -185,7 +185,9 @@ function WeeklyCell({ weekly }: { weekly: AdminBusiness["weekly"] }) {
   }
   return (
     <div className="flex flex-col text-sm tabular-nums">
-      <span className="font-medium text-foreground">AED {formatAed(weekly.markPaidAed)}</span>
+      <span className="font-medium text-foreground">
+        {formatAed(Math.round(weekly.markPaidAed))}
+      </span>
       <span className="text-muted-foreground">
         {weekly.bookings} {weekly.bookings === 1 ? "booking" : "bookings"}, {weekly.invoices}{" "}
         {weekly.invoices === 1 ? "invoice" : "invoices"}

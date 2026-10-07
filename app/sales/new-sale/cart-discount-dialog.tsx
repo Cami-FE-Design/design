@@ -5,8 +5,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { formatMoney } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
-import { formatAedDecimal } from "./mock"
 
 type Mode = "amount" | "percent"
 
@@ -102,11 +102,11 @@ export function CartDiscountDialog({
             <span className="text-muted-foreground text-sm">Total after discount</span>
             <span className="flex items-center gap-2">
               <span className="font-semibold text-foreground text-lg tabular-nums">
-                {formatAedDecimal(afterMinor)}
+                {formatMoney(afterMinor)}
               </span>
               {discountMinor > 0 ? (
                 <span className="text-muted-foreground text-sm line-through tabular-nums">
-                  {formatAedDecimal(baseMinor)}
+                  {formatMoney(baseMinor)}
                 </span>
               ) : null}
             </span>

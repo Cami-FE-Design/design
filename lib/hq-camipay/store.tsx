@@ -19,6 +19,7 @@
 // tests) still render.
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { formatMoney } from "@/lib/money/format"
 
 // v2: the rate stopped being a bare percentage and became percent + fixed +
 // an optional ceiling for the fixed part. The old v1 payload cannot be read as
@@ -376,15 +377,6 @@ export function scheduledRates(
 /* Rate formatting and fee maths                                              */
 /* -------------------------------------------------------------------------- */
 
-/** `7500` becomes `AED 75.00`. Always two decimals, money never trims. */
-export function formatAed(minor: number): string {
-  const sign = minor < 0 ? "-" : ""
-  return `${sign}AED ${(Math.abs(minor) / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
-}
-
 export function formatPercent(percent: number): string {
   // Trailing zero reads as precision that isn't there: 2%, not 2.00%.
   return `${Number(percent.toFixed(2))}%`
@@ -399,8 +391,8 @@ export function formatPercent(percent: number): string {
 export function formatRate(rate: CamiPayRate): string {
   if (isZeroRate(rate)) return "No fee"
   if (rate.fixedMinor === 0) return formatPercent(rate.percent)
-  if (rate.percent === 0) return `${formatAed(rate.fixedMinor)} per transaction`
-  return `${formatPercent(rate.percent)} + ${formatAed(rate.fixedMinor)}`
+  if (rate.percent === 0) return `${formatMoney(rate.fixedMinor)} per transaction`
+  return `${formatPercent(rate.percent)} + ${formatMoney(rate.fixedMinor)}`
 }
 
 /**
@@ -410,7 +402,7 @@ export function formatRate(rate: CamiPayRate): string {
  */
 export function formatRateBracket(rate: CamiPayRate): string | null {
   if (rate.fixedMinor === 0 || rate.fixedBelowMinor === null) return null
-  return `${formatAed(rate.fixedMinor)} applies under ${formatAed(rate.fixedBelowMinor)}, ${formatPercent(rate.percent)} alone at or above`
+  return `${formatMoney(rate.fixedMinor)} applies under ${formatMoney(rate.fixedBelowMinor)}, ${formatPercent(rate.percent)} alone at or above`
 }
 
 export type FeeBreakdown = {
@@ -452,9 +444,9 @@ export function computeFee(rate: CamiPayRate, amountMinor: number): FeeBreakdown
  */
 export function explainFee(rate: CamiPayRate, amountMinor: number): string {
   const { fixedApplied } = computeFee(rate, amountMinor)
-  const pct = `${formatPercent(rate.percent)} of ${formatAed(Math.abs(amountMinor))}`
+  const pct = `${formatPercent(rate.percent)} of ${formatMoney(Math.abs(amountMinor))}`
   if (!fixedApplied) return pct
-  return `${pct} + ${formatAed(rate.fixedMinor)}`
+  return `${pct} + ${formatMoney(rate.fixedMinor)}`
 }
 
 /* -------------------------------------------------------------------------- */

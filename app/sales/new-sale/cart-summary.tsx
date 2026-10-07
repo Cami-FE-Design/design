@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { formatMoney, formatMoneyWhole } from "@/lib/money/format"
 import type { AllocatedSession } from "@/lib/packages/allocate"
 import { cn } from "@/lib/utils"
 import {
@@ -32,11 +33,9 @@ import {
   bundleDiscounts,
   dealDiscounts,
   dealDiscountTotalMinor,
-  formatAedDecimal,
   formatDuration,
   grossTotalMinor,
   HAS_PETS,
-  money,
   totals,
   VAT_RATE,
 } from "./mock"
@@ -239,20 +238,20 @@ function ServiceLineRow({
               knowing packages exist. Losing the coverage restores the price
               from `originalPriceMinor`. */}
           <RowActions
-            value={money(dealPricing(line)?.netMinor ?? line.priceMinor)}
+            value={formatMoneyWhole(dealPricing(line)?.netMinor ?? line.priceMinor)}
             strikeValue={
               // A session parked the real figure on the line, so the strike
               // reads it rather than the price — which is now 0.
               line.originalPriceMinor != null
-                ? money(line.originalPriceMinor)
+                ? formatMoneyWhole(line.originalPriceMinor)
                 : // A deal wins the strike over a bundle's list price. Both are
                   // "what this would have cost", and two struck figures on one row
                   // is a row nobody reads — the bundle's saving is stated in the
                   // footer regardless, and the deal is the one just chosen.
                   dealPricing(line)
-                  ? money(line.priceMinor)
+                  ? formatMoneyWhole(line.priceMinor)
                   : line.listPriceMinor && line.listPriceMinor > line.priceMinor
-                    ? money(line.listPriceMinor)
+                    ? formatMoneyWhole(line.listPriceMinor)
                     : undefined
             }
             name={line.name}
@@ -299,8 +298,10 @@ function ProductLineRow({
             <DealChip line={line} />
           </div>
           <RowActions
-            value={money(dealPricing(line)?.netMinor ?? line.priceMinor * line.qty)}
-            strikeValue={dealPricing(line) ? money(line.priceMinor * line.qty) : undefined}
+            value={formatMoneyWhole(dealPricing(line)?.netMinor ?? line.priceMinor * line.qty)}
+            strikeValue={
+              dealPricing(line) ? formatMoneyWhole(line.priceMinor * line.qty) : undefined
+            }
             name={line.name}
             onEdit={onEdit}
             onRemove={onRemove}
@@ -325,7 +326,7 @@ function GiftCardLineRow({
   const gc = line.giftCard
   const meta = gc
     ? [
-        `${money(gc.valueMinor)} value`,
+        `${formatMoneyWhole(gc.valueMinor)} value`,
         gc.expiration === "Never" ? "no expiry" : `valid for ${gc.expiration}`,
         gc.staffName,
       ]
@@ -347,7 +348,7 @@ function GiftCardLineRow({
             ) : null}
           </div>
           <RowActions
-            value={money(line.priceMinor)}
+            value={formatMoneyWhole(line.priceMinor)}
             name={line.name}
             onEdit={onEdit}
             onRemove={onRemove}
@@ -510,14 +511,14 @@ export function CartFooter({
           label={
             bundles.length > 0 || deals.length > 0 ? "Total amount (excl. discounts)" : "Total"
           }
-          value={formatAedDecimal(bundles.length > 0 ? grossMinor : totalMinor)}
+          value={formatMoney(bundles.length > 0 ? grossMinor : totalMinor)}
           muted
         />
         {bundles.map((b) => (
           <BreakdownRow
             key={b.uid}
-            label={`${formatAedDecimal(b.amountMinor)} off · Bundle discount`}
-            value={`- ${formatAedDecimal(b.amountMinor)}`}
+            label={`${formatMoney(b.amountMinor)} off · Bundle discount`}
+            value={`- ${formatMoney(b.amountMinor)}`}
             muted
           />
         ))}
@@ -528,14 +529,14 @@ export function CartFooter({
           <BreakdownRow
             key={d.uid}
             label={d.label}
-            value={`- ${formatAedDecimal(d.amountMinor)}`}
+            value={`- ${formatMoney(d.amountMinor)}`}
             muted
           />
         ))}
         {discountMinor > 0 ? (
-          <BreakdownRow label="Discount" value={`- ${formatAedDecimal(discountMinor)}`} muted />
+          <BreakdownRow label="Discount" value={`- ${formatMoney(discountMinor)}`} muted />
         ) : null}
-        <BreakdownRow label="To pay" value={formatAedDecimal(discountedMinor)} strong />
+        <BreakdownRow label="To pay" value={formatMoney(discountedMinor)} strong />
         {/* `blockedReason` keeps Continue shut below and is no longer printed
             here. Sitting inside this block it was an error about neither money
             nor anything else on screen — an operator reading for a figure met
@@ -687,10 +688,10 @@ export function CheckoutFooter({
           <div className="mb-3 flex flex-col gap-1">
             {expanded ? (
               <>
-                <BreakdownRow label="Subtotal" value={formatAedDecimal(subtotalMinor)} muted />
+                <BreakdownRow label="Subtotal" value={formatMoney(subtotalMinor)} muted />
                 <BreakdownRow
                   label={`Tax (VAT ${Math.round(VAT_RATE * 100)}%)`}
-                  value={formatAedDecimal(taxMinor)}
+                  value={formatMoney(taxMinor)}
                   muted
                 />
                 {/* Named on the Payment step too. A part-paid sale is the one
@@ -700,7 +701,7 @@ export function CheckoutFooter({
                   <BreakdownRow
                     key={d.key}
                     label={d.label}
-                    value={`- ${formatAedDecimal(d.amountMinor)}`}
+                    value={`- ${formatMoney(d.amountMinor)}`}
                     muted
                   />
                 ))}
@@ -708,18 +709,18 @@ export function CheckoutFooter({
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="text-cami-violet-11">Tips</span>
                     <span className="text-muted-foreground tabular-nums">
-                      {formatAedDecimal(tipMinor)}
+                      {formatMoney(tipMinor)}
                     </span>
                   </div>
                 ) : null}
                 <div className="border-border/60 border-t pt-1">
-                  <BreakdownRow label="Total" value={formatAedDecimal(toPay)} strong />
+                  <BreakdownRow label="Total" value={formatMoney(toPay)} strong />
                 </div>
                 {packagePaidMinor > 0 ? (
                   <div className="flex items-center justify-between gap-3 pt-1 text-sm">
                     <span className="text-foreground">Package</span>
                     <span className="text-muted-foreground tabular-nums">
-                      - {formatAedDecimal(packagePaidMinor)}
+                      - {formatMoney(packagePaidMinor)}
                     </span>
                   </div>
                 ) : null}
@@ -739,7 +740,7 @@ export function CheckoutFooter({
                       ) : null}
                     </span>
                     <span className="text-muted-foreground tabular-nums">
-                      - {formatAedDecimal(p.amountMinor)}
+                      - {formatMoney(p.amountMinor)}
                     </span>
                   </div>
                 ))}
@@ -749,12 +750,12 @@ export function CheckoutFooter({
               <div className="flex items-center justify-between gap-3 pt-1">
                 <span className="font-semibold text-foreground text-sm">Change</span>
                 <span className="font-semibold text-foreground text-sm tabular-nums">
-                  {formatAedDecimal(change)}
+                  {formatMoney(change)}
                 </span>
               </div>
             ) : (
               <p className="pt-1 font-semibold text-foreground text-sm">
-                {left === 0 ? "Full payment added" : `Left to pay · ${formatAedDecimal(left)}`}
+                {left === 0 ? "Full payment added" : `Left to pay · ${formatMoney(left)}`}
               </p>
             )}
           </div>
@@ -763,26 +764,24 @@ export function CheckoutFooter({
         <div className="mb-3 flex flex-col gap-1">
           <BreakdownRow
             label={deductions.length > 0 ? "Total amount (excl. discounts)" : "Total"}
-            value={formatAedDecimal(grossMinor)}
+            value={formatMoney(grossMinor)}
             muted
           />
           {deductions.map((d) => (
             <BreakdownRow
               key={d.key}
               label={d.label}
-              value={`- ${formatAedDecimal(d.amountMinor)}`}
+              value={`- ${formatMoney(d.amountMinor)}`}
               muted
             />
           ))}
           {tipMinor > 0 ? (
             <div className="flex items-center justify-between gap-3 text-sm">
               <span className="text-cami-violet-11">Tips</span>
-              <span className="text-muted-foreground tabular-nums">
-                {formatAedDecimal(tipMinor)}
-              </span>
+              <span className="text-muted-foreground tabular-nums">{formatMoney(tipMinor)}</span>
             </div>
           ) : null}
-          <BreakdownRow label="To pay" value={formatAedDecimal(toPay)} strong />
+          <BreakdownRow label="To pay" value={formatMoney(toPay)} strong />
         </div>
       )}
       <div className="flex items-center gap-2">

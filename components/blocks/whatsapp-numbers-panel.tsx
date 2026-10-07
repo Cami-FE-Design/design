@@ -32,6 +32,7 @@ import {
   businessCommsTotals,
   WHATSAPP_STATUS_COPY,
 } from "@/lib/locations/whatsapp"
+import { formatMoney } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 const TONE_CLASS: Record<"neutral" | "pending" | "good", string> = {
@@ -207,7 +208,10 @@ export function WhatsAppNumbersPanel({
                     Conversations <span className="text-foreground">{binding.conversations}</span>
                   </span>
                   <span className="text-muted-foreground">
-                    Cost <span className="text-foreground">AED {binding.cost.toFixed(2)}</span>
+                    Cost{" "}
+                    <span className="text-foreground">
+                      {formatMoney(Math.round(binding.cost * 100))}
+                    </span>
                   </span>
                 </div>
               ) : null}
@@ -231,7 +235,7 @@ export function WhatsAppNumbersPanel({
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted/30 px-4 py-3 text-sm">
           <span className="text-muted-foreground">All locations, this period</span>
           <span className="font-medium text-foreground">
-            {totals.conversations} conversations · AED {totals.cost.toFixed(2)}
+            {totals.conversations} conversations · {formatMoney(Math.round(totals.cost * 100))}
           </span>
         </div>
       </div>

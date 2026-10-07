@@ -43,8 +43,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { formatAed } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { formatAed, formatDate, MOCK_CLIENTS, type MockClient } from "./mock"
+import { formatDate, MOCK_CLIENTS, type MockClient } from "./mock"
 
 type SortKey = "name" | "sales" | "createdAt"
 type SortDir = "asc" | "desc"

@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { formatAed } from "@/lib/format"
 import { needsAttention, stockForProduct, stockLevel } from "@/lib/inventory/branch-stock"
 import { useBranchStock } from "@/lib/inventory/store"
 import { useLocations } from "@/lib/locations/store"
@@ -162,10 +163,6 @@ export const MOCK_PRODUCTS: Product[] = [
     photos: ["a"],
   },
 ]
-
-function formatPrice(amount: number) {
-  return `AED ${amount.toLocaleString()}`
-}
 
 type SortField = "name" | "retailPrice"
 type SortDir = "asc" | "desc"
@@ -324,7 +321,7 @@ export function ProductsTable({
               <QuantityCell product={product} />
             </TableCell>
             <TableCell className="text-sm whitespace-nowrap text-foreground">
-              {formatPrice(product.retailPrice)}
+              {formatAed(product.retailPrice)}
             </TableCell>
             <TableCell>
               <Badge variant={product.status === "active" ? "default" : "secondary"}>

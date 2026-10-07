@@ -387,11 +387,6 @@ export const MOCK_CLIENTS: MockClient[] = [
   },
 ]
 
-export function formatAed(value: number): string {
-  if (value === 0) return "AED 0"
-  return `AED ${value.toLocaleString("en-US")}`
-}
-
 export function formatDate(iso: string): string {
   const date = new Date(iso)
   return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })

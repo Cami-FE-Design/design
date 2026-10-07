@@ -5,15 +5,7 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
-
-const CURRENCY = "AED"
-
-function money(minor: number) {
-  return `${CURRENCY} ${(minor / 100).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
-}
+import { formatMoney } from "@/lib/money/format"
 
 const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 const MONTH_SHORT = [
@@ -94,7 +86,7 @@ export function VoidSaleDialog({ open, onOpenChange, payments }: VoidSaleDialogP
               <ul className="flex flex-col gap-0.5 text-cami-yellow-12">
                 {payments.map((p) => (
                   <li key={`${p.method}-${p.at.getTime()}-${p.amountMinor}`}>
-                    {money(p.amountMinor)} paid by {p.method} on {formatLongDate(p.at)}
+                    {formatMoney(p.amountMinor)} paid by {p.method} on {formatLongDate(p.at)}
                   </li>
                 ))}
               </ul>

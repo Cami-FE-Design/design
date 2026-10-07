@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { formatAed } from "@/lib/format"
 import {
   businessQuantity,
   formatQuantity,
@@ -106,9 +107,12 @@ export function ProductDetailDialog({
   // Money the shelf is worth, derived from the same scoped quantity for the
   // same reason — price × what is actually on hand. An uncounted product has
   // no quantity to value, so it has no total either.
-  const money = (amount: number) => `AED ${amount.toLocaleString()}`
-  const totalRetailValue = product.trackStock ? money(product.retailPrice * stockOnHand) : undefined
-  const totalSupplyValue = product.trackStock ? money(product.supplyPrice * stockOnHand) : undefined
+  const totalRetailValue = product.trackStock
+    ? formatAed(product.retailPrice * stockOnHand)
+    : undefined
+  const totalSupplyValue = product.trackStock
+    ? formatAed(product.supplyPrice * stockOnHand)
+    : undefined
 
   // The worst state among the branches in scope, which is what the header badge
   // colours by. Not the roll-up: 18 at one branch and -2 at another sum to a
@@ -301,19 +305,13 @@ export function ProductDetailDialog({
                       label="Stock on hand"
                       value={product.trackStock ? String(stockOnHand) : "Unlimited"}
                     />
-                    <Field
-                      label="Retail price"
-                      value={`AED ${product.retailPrice.toLocaleString()}`}
-                    />
+                    <Field label="Retail price" value={formatAed(product.retailPrice)} />
                     {/* Cost figures come from booked-in deliveries, which this
                         repo does not model yet — so they read "–" rather than
                         "AED 0", which would claim the stock is worth nothing.
                         The built product passes undefined on the same path. */}
                     <Field label="Total retail value" value={totalRetailValue} />
-                    <Field
-                      label="Supply price"
-                      value={`AED ${product.supplyPrice.toLocaleString()}`}
-                    />
+                    <Field label="Supply price" value={formatAed(product.supplyPrice)} />
                     <Field label="Total supply value" value={totalSupplyValue} />
                     <Field label="Average cost" />
                     <Field label="Total cost" />

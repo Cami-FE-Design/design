@@ -25,8 +25,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { mapsSearchHref } from "@/lib/address"
 import { BOOKING_DAYS, type BookingDetail, type BookingStatus, calendarLinks } from "@/lib/booking"
+import { formatAed } from "@/lib/format"
 import { petNoteLabel } from "@/lib/pet-notes"
-import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
+import { formatDuration, type PublicBusiness } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
 
 // Self-service management surface reached from the confirmation (magic-link in
@@ -232,7 +233,7 @@ export function ManageBooking({
               ))}
               <DetailRow
                 label="Total"
-                value={<span className="tabular-nums">{formatPriceAed(booking.priceAed)}</span>}
+                value={<span className="tabular-nums">{formatAed(booking.priceAed)}</span>}
               />
             </div>
 

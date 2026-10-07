@@ -79,6 +79,7 @@ import {
   visitWriteBlock,
   visitWriteBlockMessage,
 } from "@/lib/locations/visit-access"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 export type ClientTag = {
@@ -216,11 +217,6 @@ const SALE_BADGE_CLASS: Record<ConcreteSaleStatus, string> = {
   unpaid: "bg-cami-yellow-3 text-cami-yellow-11",
   draft: "bg-cami-gray-5 text-cami-gray-12",
   refunded: "bg-olive-5 text-olive-12",
-}
-
-function formatAed(minor: number) {
-  if (minor < 0) return `- AED ${Math.abs(Math.round(minor / 100)).toLocaleString()}`
-  return `AED ${Math.round(minor / 100).toLocaleString()}`
 }
 
 // ─── Overview identity + wallet ───────────────────────────────────────────────
@@ -457,9 +453,9 @@ export function ClientDetailDialog({
             setSaleStatus("unpaid")
           }}
           className="inline-flex cursor-pointer items-center rounded-full bg-cami-yellow-3 px-2.5 py-0.5 text-xs font-medium text-cami-yellow-11 transition-colors hover:bg-cami-yellow-4"
-          aria-label={`Show unpaid sales — ${formatAed(unpaidMinor)}`}
+          aria-label={`Show unpaid sales — ${formatMoneyWhole(unpaidMinor)}`}
         >
-          {formatAed(unpaidMinor)}
+          {formatMoneyWhole(unpaidMinor)}
         </button>
       ) : null}
       {!client.phone && !client.email && !client.recencyLabel && !noShowCount && !unpaidMinor ? (
@@ -1462,18 +1458,18 @@ function SaleCard({ sale, showBranch }: { sale: ClientSale; showBranch: boolean 
             className="flex items-baseline justify-between gap-2 text-sm"
           >
             <span className="min-w-0 flex-1 truncate">{item.name}</span>
-            <span className="font-medium">{formatAed(item.priceMinor)}</span>
+            <span className="font-medium">{formatMoneyWhole(item.priceMinor)}</span>
           </li>
         ))}
         {sale.status === "part-paid" && typeof sale.paidMinor === "number" ? (
           <li className="flex items-baseline justify-between gap-2 text-sm text-muted-foreground">
             <span>Paid part</span>
-            <span>{formatAed(-sale.paidMinor)}</span>
+            <span>{formatMoneyWhole(-sale.paidMinor)}</span>
           </li>
         ) : null}
         <li className="flex items-baseline justify-between gap-2 text-sm">
           <span className="font-semibold">Total</span>
-          <span className="font-semibold">{formatAed(totalMinor)}</span>
+          <span className="font-semibold">{formatMoneyWhole(totalMinor)}</span>
         </li>
       </ul>
       {block ? (
@@ -1811,7 +1807,7 @@ export function ClientOverview({
           />
           <KpiCard
             label="Total sales"
-            value={formatAed(salesMinor)}
+            value={formatMoneyWhole(salesMinor)}
             info="Lifetime revenue from this client."
           />
           <KpiCard
@@ -1969,7 +1965,7 @@ function OverviewHeaderBlock({
     // The currency belongs to the figure, not to the label: "75" under
     // "AED SALES" asks the reader to reassemble an amount that was never
     // broken up anywhere else in the product.
-    { label: "Sales", value: formatAed(salesMinor) },
+    { label: "Sales", value: formatMoneyWhole(salesMinor) },
     {
       label: noShows === 1 ? "No-show" : "No-shows",
       value: noShows,
@@ -2190,7 +2186,11 @@ function WalletCard({ profile }: { profile: OverviewProfile }) {
     })
   }
   if (giftCardAed > 0) {
-    balances.push({ id: "gift-card", label: "Gift card", value: formatAed(giftCardAed * 100) })
+    balances.push({
+      id: "gift-card",
+      label: "Gift card",
+      value: formatMoneyWhole(giftCardAed * 100),
+    })
   }
   if (membershipTier) {
     balances.push({ id: "membership", label: "Membership", value: membershipTier })

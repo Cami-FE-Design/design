@@ -4,7 +4,6 @@ import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, PlusIcon } from "lucid
 import { useMemo, useState } from "react"
 
 import {
-  formatAed,
   formatDuration,
   type MockServiceCatalogItem,
   serviceGroupLabel,
@@ -22,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 export type PetOption = {
@@ -275,7 +275,7 @@ function ServiceCheckGroup({
                       </span>
                     </div>
                     <span className="shrink-0 text-base font-semibold leading-tight tabular-nums text-foreground">
-                      {formatAed(item.priceMinor)}
+                      {formatMoneyWhole(item.priceMinor)}
                     </span>
                   </div>
                   {item.warnings && item.warnings.length > 0 ? (

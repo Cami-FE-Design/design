@@ -60,7 +60,6 @@ import {
   computeFee,
   effectiveRate,
   explainFee,
-  formatAed,
   formatEffectiveDate,
   formatRate,
   formatRateBracket,
@@ -76,6 +75,7 @@ import {
   todayIso,
   useCamiPay,
 } from "@/lib/hq-camipay/store"
+import { formatMoney } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 const RAIL_ICON: Record<CamiPayRail, LucideIcon> = {
@@ -499,9 +499,9 @@ function WorkedExample({ rate, amountMinor }: { rate: CamiPayRate; amountMinor: 
   return (
     <div className="flex items-baseline justify-between gap-3 text-xs tabular-nums">
       <span className="text-muted-foreground">
-        On {formatAed(amountMinor)}, {explainFee(rate, amountMinor)}
+        On {formatMoney(amountMinor)}, {explainFee(rate, amountMinor)}
       </span>
-      <span className="shrink-0 font-medium text-foreground">{formatAed(fee.totalMinor)}</span>
+      <span className="shrink-0 font-medium text-foreground">{formatMoney(fee.totalMinor)}</span>
     </div>
   )
 }

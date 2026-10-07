@@ -12,13 +12,13 @@ import {
 
 import {
   clientIdOf,
-  formatAed,
   formatTimeRange,
   type MockBooking,
   type MockBookingStatus,
   type MockServiceCategory,
 } from "@/app/appointments/mock"
 import { clientNotesFor } from "@/lib/client-notes"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 type CategoryStyle = {
@@ -180,7 +180,7 @@ export function AppointmentBlock({
                 style.chip,
               )}
             >
-              {formatAed(booking.priceMinor)}
+              {formatMoneyWhole(booking.priceMinor)}
             </span>
           ) : null}
         </div>

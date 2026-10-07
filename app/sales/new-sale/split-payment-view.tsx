@@ -8,9 +8,9 @@ import {
   Trash2Icon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { formatMoney } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 import type { Payment } from "./cart-summary"
-import { formatAedDecimal } from "./mock"
 
 type SplitPaymentViewProps = {
   payments: Payment[]
@@ -71,7 +71,7 @@ export function SplitPaymentView({
                 ) : null}
               </span>
               <span className="shrink-0 font-medium text-foreground text-sm tabular-nums">
-                {formatAedDecimal(p.amountMinor)}
+                {formatMoney(p.amountMinor)}
               </span>
               <button
                 type="button"

@@ -21,6 +21,7 @@ import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
 import { locationName } from "@/lib/locations/mock"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoney } from "@/lib/money/format"
 import {
   type AllocatedSession,
   aggregateSessionCoverage,
@@ -61,7 +62,6 @@ import {
   createdComboToServiceItem,
   dealDiscounts,
   dealDiscountTotalMinor,
-  formatAedDecimal,
   SERVICES,
   totals,
 } from "./mock"
@@ -1558,9 +1558,9 @@ function ConfirmationScreen({
       </span>
       <div className="flex flex-col gap-1">
         <h1 className="font-heading font-semibold text-2xl text-foreground">Payment complete</h1>
-        <p className="text-muted-foreground">{formatAedDecimal(paidMinor)} paid</p>
+        <p className="text-muted-foreground">{formatMoney(paidMinor)} paid</p>
         {changeMinor > 0 ? (
-          <p className="font-medium text-foreground">Change · {formatAedDecimal(changeMinor)}</p>
+          <p className="font-medium text-foreground">Change · {formatMoney(changeMinor)}</p>
         ) : null}
       </div>
     </div>

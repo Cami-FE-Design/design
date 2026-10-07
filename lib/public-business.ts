@@ -686,10 +686,6 @@ export function formatDuration(minutes: number): string {
   return `${h}h ${m}m`
 }
 
-export function formatPriceAed(value: number): string {
-  return `AED ${value.toLocaleString("en-AE")}`
-}
-
 /**
  * Whether a venue's customers have a card to be sent to. Live is part of the
  * answer: a business still being set up has nothing to link anyone to.

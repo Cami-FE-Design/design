@@ -24,14 +24,10 @@
 import { TriangleAlertIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { formatAed } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
 import type { PackageMismatch } from "@/lib/service-catalog/package-branch-check"
 import { cn } from "@/lib/utils"
-
-function aed(minor: number): string {
-  return formatAed(Math.round(minor / 100))
-}
 
 /** How staff resolved it. Both options are what operators already do by hand. */
 export type PackageDecision = "honour" | "chargeDifference"
@@ -62,7 +58,7 @@ export function PackageBranchWarning({
     mismatch.kind === "notOfferedHere"
       ? `${serviceName} isn't offered at this location. The package was sold at ${soldAt}.`
       : mismatch.kind === "priceDiffers"
-        ? `${serviceName} was sold at ${aed(mismatch.soldAtMinor)} at ${soldAt}, and is ${aed(mismatch.hereMinor)} here.`
+        ? `${serviceName} was sold at ${formatMoneyWhole(mismatch.soldAtMinor)} at ${soldAt}, and is ${formatMoneyWhole(mismatch.hereMinor)} here.`
         : `${serviceName} was sold as ${mismatch.soldAtMin} min at ${soldAt}, and is ${mismatch.hereMin} min here.`
 
   return (

@@ -50,6 +50,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { formatAed } from "@/lib/format"
 import { CamiPayProvider } from "@/lib/hq-camipay/store"
 import {
   BRANCH_DEPOSIT,
@@ -416,8 +417,7 @@ function PaymentPolicySubScreen({
               {policy.limitByValue ? (
                 <>
                   {" "}
-                  on appointments over{" "}
-                  <strong>AED {policy.minValueAed.toLocaleString("en-US")}</strong>
+                  on appointments over <strong>{formatAed(policy.minValueAed)}</strong>
                 </>
               ) : null}
             </SummaryLine>
@@ -1259,7 +1259,7 @@ function ServiceCustomizationsTakeover({ onClose }: { onClose: () => void }) {
                       </div>
                     </div>
                     <span className="ps-7 text-sm text-foreground lg:ps-0">
-                      AED {service.price.toLocaleString("en-US")}
+                      {formatAed(service.price)}
                     </span>
                     <div className="ps-7 lg:ps-0">
                       <DepositCell

@@ -17,7 +17,7 @@ import {
 } from "lucide-react"
 import { Fragment, useMemo, useState } from "react"
 
-import { formatAed, MOCK_WHATSAPP_TEMPLATES, resolveTemplate } from "@/app/appointments/mock"
+import { MOCK_WHATSAPP_TEMPLATES, resolveTemplate } from "@/app/appointments/mock"
 import {
   type Conversation,
   type ConversationState,
@@ -51,6 +51,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 const FUNNEL_ORDER: FunnelStatus[] = ["new-inquiry", "engaged", "quoted", "scheduled", "closed"]
@@ -652,12 +653,12 @@ function ClientPanel({
           />
           <KpiCard
             label="Avg ticket"
-            value={a.avgTicketMinor ? formatAed(a.avgTicketMinor) : "—"}
+            value={a.avgTicketMinor ? formatMoneyWhole(a.avgTicketMinor) : "—"}
             info="Average spend per visit."
           />
           <KpiCard
             label="Lifetime"
-            value={a.lifetimeMinor ? formatAed(a.lifetimeMinor) : "—"}
+            value={a.lifetimeMinor ? formatMoneyWhole(a.lifetimeMinor) : "—"}
             info="Total lifetime revenue from this client."
           />
         </KpiGrid>

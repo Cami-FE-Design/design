@@ -21,7 +21,6 @@ import {
 import {
   clientIdOf,
   EXTRA_TIME_LABEL,
-  formatAed,
   formatTimeRange,
   type MockBooking,
   type MockBookingStatus,
@@ -38,6 +37,7 @@ import { Badge } from "@/components/ui/badge"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Separator } from "@/components/ui/separator"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { formatPetNotes } from "@/lib/pet-notes"
 import { cn } from "@/lib/utils"
 
@@ -342,15 +342,15 @@ function ServiceItemRow({ item }: { item: MockServiceItem }) {
         </div>
         <div className="flex shrink-0 flex-col items-end leading-tight tabular-nums">
           <span className="text-[11px] font-medium">
-            {formatAed(covered ? 0 : item.priceMinor)}
+            {formatMoneyWhole(covered ? 0 : item.priceMinor)}
           </span>
           {item.membership ? (
             <span className="text-[10px] text-muted-foreground line-through">
-              {formatAed(item.membership.grossPriceMinor)}
+              {formatMoneyWhole(item.membership.grossPriceMinor)}
             </span>
           ) : item.comboGrossPriceMinor ? (
             <span className="text-[10px] text-muted-foreground line-through">
-              {formatAed(item.comboGrossPriceMinor)}
+              {formatMoneyWhole(item.comboGrossPriceMinor)}
             </span>
           ) : null}
         </div>
@@ -493,7 +493,7 @@ export function AppointmentQuickPanel({
           {serviceItems.length} {serviceItems.length === 1 ? "service" : "services"}
         </span>
         <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
-          {formatAed(total)}
+          {formatMoneyWhole(total)}
         </span>
       </footer>
       {/* THE LAST THING ON THE CARD. Service count above it, note below —

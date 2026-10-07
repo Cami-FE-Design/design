@@ -66,6 +66,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { REASON_CODES } from "@/lib/admin-businesses"
 import { useCurrentUser } from "@/lib/current-user"
+import { formatAed } from "@/lib/format"
 import { BUSINESS_TIPPING, useBranchSettings } from "@/lib/locations/branch-settings"
 import { BUSINESS_DEPOSIT, type DepositSettings, describeDeposit } from "@/lib/locations/deposit"
 import {
@@ -1117,7 +1118,7 @@ function InvoicingTab({ location }: { location: Location }) {
             label="Only on bookings over"
             value={
               deposit.settings.minBookingAed > 0
-                ? `AED ${deposit.settings.minBookingAed.toLocaleString("en-US")}`
+                ? formatAed(deposit.settings.minBookingAed)
                 : "Every booking"
             }
           />

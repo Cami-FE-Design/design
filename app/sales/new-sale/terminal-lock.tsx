@@ -5,7 +5,7 @@ import { useState } from "react"
 import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
-import { formatAedDecimal } from "./mock"
+import { formatMoney } from "@/lib/money/format"
 
 // Terminal checkout, locked cart. Same rule PRO-909 set for payment links:
 // once the sale is routed to a card machine the cart is frozen, because the
@@ -70,7 +70,7 @@ export function TerminalLockScreen({
           {/* The device is named because the operator chose it — on a counter
               with three registers, "the card terminal" is not an address. */}
           <p className="text-pretty text-muted-foreground leading-relaxed">
-            {firstName} pays {formatAedDecimal(charge.amountMinor)} on this machine at{" "}
+            {firstName} pays {formatMoney(charge.amountMinor)} on this machine at{" "}
             {charge.terminalLocation}. This screen updates when the card clears.
           </p>
         </div>

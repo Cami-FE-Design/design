@@ -12,7 +12,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { findRedeemableGiftCard, money, type RedeemableGiftCard } from "./mock"
+import { formatMoneyWhole } from "@/lib/money/format"
+import { findRedeemableGiftCard, type RedeemableGiftCard } from "./mock"
 
 // Business name shown on the gift card visual (venue config in production).
 const BUSINESS_NAME = "Cami"
@@ -134,7 +135,7 @@ export function RedeemGiftCardDialog({
           <>
             <GiftCardVisual
               className="mx-auto"
-              amount={money(card.balanceMinor)}
+              amount={formatMoneyWhole(card.balanceMinor)}
               subtitle={BUSINESS_NAME}
               code={card.code}
               expires={card.expires}
@@ -160,7 +161,7 @@ export function RedeemGiftCardDialog({
                 />
               </div>
               <span className="text-muted-foreground text-sm leading-5">
-                {money(leftAfterMinor)} left to be paid
+                {formatMoneyWhole(leftAfterMinor)} left to be paid
               </span>
             </label>
 

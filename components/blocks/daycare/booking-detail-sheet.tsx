@@ -25,7 +25,6 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { formatAed } from "@/app/appointments/mock"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -45,6 +44,7 @@ import {
   formatTime,
   formatTimeRange,
 } from "@/lib/daycare-mock"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 const LATE_FEE_MINOR = 2500
@@ -225,7 +225,7 @@ function SessionCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col leading-tight">
           <span className="truncate text-sm font-semibold text-foreground">
-            {session.serviceName} · {formatAed(session.priceMinor)}
+            {session.serviceName} · {formatMoneyWhole(session.priceMinor)}
           </span>
           <span className="truncate text-xs text-muted-foreground">
             {formatTime(session.start)} · {session.planLabel ?? formatDuration(session.durationMin)}
@@ -399,7 +399,7 @@ export function DaycareDetailSheet({ open, onOpenChange, session }: DaycareDetai
           <div className="flex flex-col leading-tight">
             <span className="text-xs text-muted-foreground">Subtotal</span>
             <span className="text-base font-semibold tabular-nums text-foreground">
-              {formatAed(subtotal)}{" "}
+              {formatMoneyWhole(subtotal)}{" "}
               <span className="text-xs font-normal text-muted-foreground">
                 ({formatDuration(session.durationMin)})
               </span>

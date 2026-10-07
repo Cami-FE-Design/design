@@ -17,8 +17,9 @@ import {
 import { dealDiscountMinor, offersAtTill } from "@/lib/deals/eligible"
 import { formatDiscountValue, MOCK_DEALS } from "@/lib/deals/mock"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { TODAY_ISO } from "@/lib/money/mock"
-import { money, STAFF } from "./mock"
+import { STAFF } from "./mock"
 import type { CartLine } from "./types"
 
 export type LinePatch = {
@@ -270,10 +271,12 @@ export function EditLineDialog({
         <div className="flex items-center justify-between gap-3 pt-2">
           <div className="flex flex-col">
             <span className="text-muted-foreground text-xs">
-              {discountMinor > 0 ? `Item total · ${money(discountMinor)} off` : "Item total"}
+              {discountMinor > 0
+                ? `Item total · ${formatMoneyWhole(discountMinor)} off`
+                : "Item total"}
             </span>
             <span className="font-semibold text-foreground text-lg tabular-nums">
-              {money(totalMinor)}
+              {formatMoneyWhole(totalMinor)}
             </span>
           </div>
           <div className="flex items-center gap-2">

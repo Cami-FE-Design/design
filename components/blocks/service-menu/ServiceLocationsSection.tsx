@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
+import { formatAed } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import type { Location } from "@/lib/locations/types"
 import {
@@ -133,7 +134,7 @@ export function ServiceLocationsSection({
       <p className="text-sm text-muted-foreground">
         Business default:{" "}
         <span className="font-medium text-foreground">
-          AED {defaults.price} · {formatDurationMin(defaults.duration)}
+          {formatAed(defaults.price)} · {formatDurationMin(defaults.duration)}
         </span>
         .
       </p>

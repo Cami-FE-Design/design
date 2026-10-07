@@ -4,8 +4,8 @@ import { CoinsIcon, DeleteIcon, PercentIcon, XIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { formatMoney } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
-import { formatAedDecimal } from "./mock"
 
 type Mode = "amount" | "percent"
 
@@ -143,7 +143,7 @@ function TipBody({
         <span className="text-muted-foreground text-sm">
           {mode === "amount"
             ? `${pct.toFixed(2).replace(/\.?0+$/, "")}% tip`
-            : `${formatAedDecimal(tipMinor)} tip`}
+            : `${formatMoney(tipMinor)} tip`}
         </span>
         <Button
           type="button"

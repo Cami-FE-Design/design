@@ -18,6 +18,7 @@ import { SessionsRemainingChip } from "@/components/blocks/sessions-remaining-ch
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
 import type { ServiceCoverage } from "@/lib/packages/allocate"
 import { useBranchOfferingNote } from "@/lib/service-catalog/use-branch-offering-note"
 import { cn } from "@/lib/utils"
@@ -27,7 +28,6 @@ import {
   APPOINTMENTS,
   formatDuration,
   GIFT_CARD_PRESETS_MINOR,
-  money,
   PRODUCTS,
   SERVICE_CATEGORIES,
   SERVICES,
@@ -304,7 +304,7 @@ function ServiceRow({
         </div>
       </div>
       <span className="shrink-0 text-sm font-medium text-foreground">
-        {money(service.priceMinor)}
+        {formatMoneyWhole(service.priceMinor)}
       </span>
     </button>
   )
@@ -353,7 +353,7 @@ function ProductRow({ product, onAdd }: { product: ProductItem; onAdd: () => voi
         ) : null}
       </div>
       <span className="shrink-0 text-sm font-medium text-foreground">
-        {money(product.priceMinor)}
+        {formatMoneyWhole(product.priceMinor)}
       </span>
     </button>
   )
@@ -380,7 +380,7 @@ function GiftCardsView({
           <GiftCardTile
             key={valueMinor}
             title="Gift card"
-            subtitle={money(valueMinor)}
+            subtitle={formatMoneyWhole(valueMinor)}
             onClick={() => setDraft(newGiftCardDraft(valueMinor))}
           />
         ))}
@@ -541,7 +541,7 @@ function AppointmentCard({
               </span>
             </span>
             <span className="shrink-0 font-medium text-foreground tabular-nums">
-              {money(line.priceMinor)}
+              {formatMoneyWhole(line.priceMinor)}
             </span>
           </div>
         ))}

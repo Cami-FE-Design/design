@@ -76,6 +76,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { formatAed } from "@/lib/format"
 import { type CamiPayRail, type CamiPayRate, railLabel } from "@/lib/hq-camipay/store"
 import { invoiceFromSale, originalFor, receiptNumberFor } from "@/lib/invoice/from-sale"
 import { documentTitle } from "@/lib/invoice/totals"
@@ -89,15 +90,6 @@ import {
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const CURRENCY = "AED"
-
-function money(amount: number) {
-  if (amount < 0) {
-    return `- ${CURRENCY} ${Math.abs(amount).toLocaleString()}`
-  }
-  return `${CURRENCY} ${amount.toLocaleString()}`
-}
 
 const MONTH_SHORT = [
   "Jan",
@@ -198,7 +190,7 @@ export type Sale = {
   client: string
   status: SaleStatus
   /**
-   * The branch that took the money (R11, G1).
+   * The branch that took the formatAed (R11, G1).
    *
    * Not optional. A sale is the clearest operational write there is, and G6
    * hangs off it: the receipt sequence is per branch and prefixed, and the tax
@@ -750,11 +742,11 @@ function SaleLineRow({ item }: { item: SaleItem }) {
       </div>
       <div className="flex shrink-0 flex-col items-end">
         <span className="font-medium text-foreground tabular-nums">
-          {money(Math.round(item.priceMinor / 100))}
+          {formatAed(Math.round(item.priceMinor / 100))}
         </span>
         {item.originalPriceMinor != null ? (
           <span className="text-muted-foreground text-xs tabular-nums line-through">
-            {money(Math.round(item.originalPriceMinor / 100))}
+            {formatAed(Math.round(item.originalPriceMinor / 100))}
           </span>
         ) : null}
       </div>
@@ -1146,10 +1138,10 @@ function SalesListPageInner() {
                         {formatDateOnly(d.createdAt)}
                       </TableCell>
                       <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground tabular-nums">
-                        {money(Math.round(d.tipsMinor / 100))}
+                        {formatAed(Math.round(d.tipsMinor / 100))}
                       </TableCell>
                       <TableCell className="text-right text-sm whitespace-nowrap text-foreground tabular-nums">
-                        {money(Math.round(d.grossMinor / 100))}
+                        {formatAed(Math.round(d.grossMinor / 100))}
                       </TableCell>
                     </TableRow>
                   )
@@ -1226,7 +1218,7 @@ function SalesListPageInner() {
                         {formatDateOnly(s.saleAt)}
                       </TableCell>
                       <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground tabular-nums">
-                        {money(Math.round(s.tipsMinor / 100))}
+                        {formatAed(Math.round(s.tipsMinor / 100))}
                       </TableCell>
                       <TableCell
                         className={cn(
@@ -1234,7 +1226,7 @@ function SalesListPageInner() {
                           s.grossMinor < 0 ? "text-tomato-11" : "text-foreground",
                         )}
                       >
-                        {money(Math.round(s.grossMinor / 100))}
+                        {formatAed(Math.round(s.grossMinor / 100))}
                       </TableCell>
                     </TableRow>
                   )
@@ -1673,7 +1665,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <div className="flex flex-col gap-0.5">
                       <span className="font-semibold text-foreground">
-                        {money(giftCard.valueAed)} - Gift Card
+                        {formatAed(giftCard.valueAed)} - Gift Card
                       </span>
                       <span className="text-sm text-muted-foreground">
                         {giftCard.code} <span aria-hidden>•</span>{" "}
@@ -1737,7 +1729,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
 
                   <div className="flex items-baseline justify-between gap-2 text-sm font-medium text-foreground">
                     <span>Refund Amount</span>
-                    <span className="tabular-nums">- {money(totalAbs)}</span>
+                    <span className="tabular-nums">- {formatAed(totalAbs)}</span>
                   </div>
 
                   <div className="h-px bg-border/60" />
@@ -1745,11 +1737,11 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   <div className="flex flex-col gap-1.5 text-sm">
                     <div className="flex items-baseline justify-between gap-2 text-muted-foreground">
                       <span>Subtotal</span>
-                      <span className="tabular-nums">- {money(totalAbs)}</span>
+                      <span className="tabular-nums">- {formatAed(totalAbs)}</span>
                     </div>
                     <div className="flex items-baseline justify-between gap-2 font-semibold text-foreground">
                       <span>Total</span>
-                      <span className="tabular-nums">- {money(totalAbs)}</span>
+                      <span className="tabular-nums">- {formatAed(totalAbs)}</span>
                     </div>
                   </div>
 
@@ -1769,7 +1761,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                       </span>
                     </div>
                     <span className="shrink-0 font-medium text-foreground tabular-nums">
-                      - {money(totalAbs)}
+                      - {formatAed(totalAbs)}
                     </span>
                   </div>
                 </div>
@@ -1809,7 +1801,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                     <li className="flex items-baseline justify-between gap-3 text-sm">
                       <div className="flex min-w-0 flex-1 flex-col">
                         <span className="font-medium text-foreground">
-                          {giftCard ? `${money(giftCard.valueAed)} - Gift Card` : "Haircut"}
+                          {giftCard ? `${formatAed(giftCard.valueAed)} - Gift Card` : "Haircut"}
                         </span>
                         <span className="truncate text-xs text-muted-foreground">
                           {giftCard
@@ -1818,7 +1810,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                         </span>
                       </div>
                       <span className="shrink-0 font-medium text-foreground tabular-nums">
-                        {money(totalAbs)}
+                        {formatAed(totalAbs)}
                       </span>
                     </li>
                   </ul>
@@ -1829,11 +1821,11 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                 <div className="flex flex-col gap-1.5 text-sm">
                   <div className="flex items-baseline justify-between gap-2 text-muted-foreground">
                     <span>Subtotal</span>
-                    <span className="tabular-nums">{money(totalAbs)}</span>
+                    <span className="tabular-nums">{formatAed(totalAbs)}</span>
                   </div>
                   <div className="flex items-baseline justify-between gap-2 font-semibold text-foreground">
                     <span>Total</span>
-                    <span className="tabular-nums">{money(totalAbs)}</span>
+                    <span className="tabular-nums">{formatAed(totalAbs)}</span>
                   </div>
                 </div>
 
@@ -1860,7 +1852,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                             </span>
                           </div>
                           <span className="shrink-0 font-medium text-foreground tabular-nums">
-                            {money(Math.round(p.amountMinor / 100))}
+                            {formatAed(Math.round(p.amountMinor / 100))}
                           </span>
                         </div>
                       </div>
@@ -1892,7 +1884,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                     <div className="h-px bg-border/60" />
                     <div className="flex items-baseline justify-between gap-2 text-sm font-semibold text-foreground">
                       <span>{balance > 0 ? "Balance" : "Change"}</span>
-                      <span className="tabular-nums">{money(Math.abs(balance))}</span>
+                      <span className="tabular-nums">{formatAed(Math.abs(balance))}</span>
                     </div>
                   </>
                 ) : null}
@@ -1920,7 +1912,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   data.payments.map((p, index, all) => (
                     <ActivityRow
                       key={p.id}
-                      title={`${money(Math.round(p.amountMinor / 100))} paid by ${methodLabel(p).toLowerCase()}`}
+                      title={`${formatAed(Math.round(p.amountMinor / 100))} paid by ${methodLabel(p).toLowerCase()}`}
                       timestamp={`${formatDateOnly(p.at)} at ${formatTimeOnly(p.at)}`}
                       body={`Payment taken by Hussain Shabbir${
                         takenElsewhere(p) ? ` · at ${locationName(p.locationId)}` : ""
@@ -1945,7 +1937,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   ))
                 ) : (
                   <ActivityRow
-                    title={`${money(Math.abs(gross))} paid by cash`}
+                    title={`${formatAed(Math.abs(gross))} paid by cash`}
                     timestamp={`Yesterday at ${formatTimeOnly(data.saleAt)}`}
                     body="Payment taken by Hussain Shabbir"
                     trailing={
@@ -2266,7 +2258,7 @@ function DraftDetailDialog({
                         </span>
                       </div>
                       <span className="shrink-0 font-medium text-foreground tabular-nums">
-                        {money(total)}
+                        {formatAed(total)}
                       </span>
                     </li>
                   </ul>
@@ -2276,11 +2268,11 @@ function DraftDetailDialog({
                   <div className="flex flex-col gap-1.5 text-sm">
                     <div className="flex items-baseline justify-between gap-2 text-muted-foreground">
                       <span>Subtotal</span>
-                      <span className="tabular-nums">{money(total)}</span>
+                      <span className="tabular-nums">{formatAed(total)}</span>
                     </div>
                     <div className="flex items-baseline justify-between gap-2 font-semibold text-foreground">
                       <span>Total</span>
-                      <span className="tabular-nums">{money(total)}</span>
+                      <span className="tabular-nums">{formatAed(total)}</span>
                     </div>
                   </div>
 
@@ -2288,7 +2280,7 @@ function DraftDetailDialog({
 
                   <div className="flex items-baseline justify-between gap-2 text-sm font-semibold text-foreground">
                     <span>Balance</span>
-                    <span className="tabular-nums">{money(balance)}</span>
+                    <span className="tabular-nums">{formatAed(balance)}</span>
                   </div>
                 </div>
               </TabsContent>

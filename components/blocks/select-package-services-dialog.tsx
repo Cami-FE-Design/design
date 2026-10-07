@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { formatAed } from "@/lib/format"
 
 // ─── Types & mock data ──────────────────────────────────────────────────────────
 
@@ -82,10 +83,6 @@ export const SERVICE_CATALOG: ServiceCategory[] = [
 ]
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
-
-export function formatPrice(n: number): string {
-  return `AED ${n.toLocaleString("en-US")}`
-}
 
 /** All selectable leaves in a category (variants flattened in). */
 function categoryLeaves(category: ServiceCategory): ServiceLeaf[] {
@@ -235,7 +232,7 @@ export function SelectPackageServicesDialog({
                         </p>
                       </div>
                       <span className="shrink-0 text-sm text-muted-foreground">
-                        from {formatPrice(item.fromPrice ?? item.variants[0].price)}
+                        from {formatAed(item.fromPrice ?? item.variants[0].price)}
                       </span>
                     </div>
                     {item.variants.map((v) => (
@@ -255,7 +252,7 @@ export function SelectPackageServicesDialog({
                           </div>
                         </div>
                         <span className="shrink-0 text-sm text-muted-foreground">
-                          {formatPrice(v.price)}
+                          {formatAed(v.price)}
                         </span>
                       </label>
                     ))}
@@ -277,7 +274,7 @@ export function SelectPackageServicesDialog({
                       </div>
                     </div>
                     <span className="shrink-0 text-sm text-muted-foreground">
-                      {formatPrice(item.price ?? 0)}
+                      {formatAed(item.price ?? 0)}
                     </span>
                   </label>
                 ),

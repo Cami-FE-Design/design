@@ -11,6 +11,7 @@
 // file is the seam where that swap happens.
 
 import { MOCK_SALES, type Sale } from "@/app/sales/sales-list/page"
+import { formatAed } from "@/lib/format"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import {
   businessTaxIdentityFor,
@@ -168,7 +169,7 @@ function linesFor(sale: Sale, grossMinor: number): InvoiceLine[] {
     return [
       {
         id: "l1",
-        description: `AED ${sale.giftCard.valueAed.toLocaleString("en-US")} - Gift Card`,
+        description: `${formatAed(sale.giftCard.valueAed)} - Gift Card`,
         subLabel: `Code: ${sale.giftCard.code}`,
         qty: 1,
         unitGrossMinor: grossMinor,

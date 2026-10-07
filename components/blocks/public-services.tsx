@@ -1,4 +1,5 @@
-import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
+import { formatAed } from "@/lib/format"
+import { formatDuration, type PublicBusiness } from "@/lib/public-business"
 import type { PublicServiceGroup } from "@/lib/public-offering"
 
 /**
@@ -56,7 +57,7 @@ export function PublicServices({
                   </p>
                 </div>
                 <span className="shrink-0 text-sm font-medium text-foreground tabular-nums">
-                  {formatPriceAed(service.priceAed)}
+                  {formatAed(service.priceAed)}
                 </span>
               </li>
             ))}

@@ -3,7 +3,6 @@
 import { ChevronsRightIcon, MoonIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
-import { formatAed } from "@/app/appointments/mock"
 import { DatePicker } from "@/components/blocks/date-picker"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -27,6 +26,7 @@ import {
   BOARDING_SERVICES,
   nightsBetween,
 } from "@/lib/boarding-mock"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 // ─── DateAvatarCard (matches new-appointment-sheet / appointment-detail-sheet) ──
@@ -208,7 +208,7 @@ export function NewBoardingSheet({ open, onOpenChange, date }: NewBoardingSheetP
                   <SelectContent>
                     {BOARDING_SERVICES.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
-                        {s.name} · {formatAed(s.ratePerNightMinor)}/night
+                        {s.name} · {formatMoneyWhole(s.ratePerNightMinor)}/night
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -270,7 +270,7 @@ export function NewBoardingSheet({ open, onOpenChange, date }: NewBoardingSheetP
                   />
                   <span className="flex-1 text-sm text-foreground">{a.label}</span>
                   <span className="text-sm tabular-nums text-muted-foreground">
-                    {formatAed(a.priceMinor)}
+                    {formatMoneyWhole(a.priceMinor)}
                   </span>
                 </label>
               ))}
@@ -294,7 +294,7 @@ export function NewBoardingSheet({ open, onOpenChange, date }: NewBoardingSheetP
           <div className="flex flex-col leading-tight">
             <span className="text-xs text-muted-foreground">Total</span>
             <span className="text-base font-semibold tabular-nums text-foreground">
-              {formatAed(totalMinor)}
+              {formatMoneyWhole(totalMinor)}
               {nights > 0 ? (
                 <span className="text-xs font-normal text-muted-foreground">
                   {" "}

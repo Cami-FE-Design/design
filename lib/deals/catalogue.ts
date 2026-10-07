@@ -13,6 +13,7 @@
 
 import { PRODUCTS, SERVICE_CATEGORIES, SERVICES } from "@/app/sales/new-sale/mock"
 import type { ScopeKind } from "@/lib/deals/wizard"
+import { formatMoney } from "@/lib/money/format"
 import { priceLabel, sessionsLabel } from "@/lib/packages/catalog"
 import { PACKAGES } from "@/lib/packages/mock"
 
@@ -30,10 +31,6 @@ export type ScopePickerGroup = {
   items: ScopePickerItem[]
 }
 
-function aed(minor: number): string {
-  return `AED ${(minor / 100).toLocaleString("en-US", { minimumFractionDigits: 2 })}`
-}
-
 function serviceGroups(): ScopePickerGroup[] {
   return SERVICE_CATEGORIES.map((cat) => ({
     id: cat.id,
@@ -42,7 +39,7 @@ function serviceGroups(): ScopePickerGroup[] {
       id: s.id,
       name: s.name,
       subtitle: s.durationMin ? `${s.durationMin} min` : undefined,
-      priceLabel: aed(s.priceMinor),
+      priceLabel: formatMoney(s.priceMinor),
     })),
   })).filter((g) => g.items.length > 0)
 }
@@ -56,7 +53,7 @@ function productGroups(): ScopePickerGroup[] {
         id: p.id,
         name: p.name,
         subtitle: p.size,
-        priceLabel: aed(p.priceMinor),
+        priceLabel: formatMoney(p.priceMinor),
       })),
     },
   ]
@@ -71,7 +68,7 @@ function packageGroups(): ScopePickerGroup[] {
         id: pkg.id,
         name: pkg.name,
         subtitle: sessionsLabel(pkg),
-        priceLabel: aed(priceLabel(pkg).amountMinor),
+        priceLabel: formatMoney(priceLabel(pkg).amountMinor),
       })),
     },
   ]

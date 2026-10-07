@@ -1,7 +1,8 @@
 import { Avatar } from "@/components/ui/avatar"
 import type { BookingDetail } from "@/lib/booking"
+import { formatAed } from "@/lib/format"
 import { petNoteLabel } from "@/lib/pet-notes"
-import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
+import { formatDuration, type PublicBusiness } from "@/lib/public-business"
 
 // Booking confirmation email (E3-5). Cami-branded but the PET BUSINESS leads —
 // their name and identity sit at the top; Cami is a quiet footer signature.
@@ -83,7 +84,7 @@ export function ConfirmationEmail({
             )}
             <Row
               label="Total"
-              value={<span className="tabular-nums">{formatPriceAed(booking.priceAed)}</span>}
+              value={<span className="tabular-nums">{formatAed(booking.priceAed)}</span>}
             />
           </tbody>
         </table>

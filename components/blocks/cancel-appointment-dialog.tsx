@@ -3,7 +3,6 @@
 import { CheckIcon, InfoIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
-import { formatAed } from "@/app/appointments/mock"
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
@@ -16,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 // Same trigger sizing as the refund flow so the reason dropdown reads as the
@@ -120,13 +120,13 @@ export function CancelAppointmentDialog({
           <div className="flex items-center justify-between text-sm">
             <span className="text-foreground">Appointment total</span>
             <span className="font-medium tabular-nums text-foreground">
-              {formatAed(totalMinor)}
+              {formatMoneyWhole(totalMinor)}
             </span>
           </div>
           <Separator />
           <p className="text-sm text-muted-foreground">
             {feeMinor > 0
-              ? `A cancellation fee of ${formatAed(feeMinor)} will be charged`
+              ? `A cancellation fee of ${formatMoneyWhole(feeMinor)} will be charged`
               : "No fee will be charged"}
           </p>
           <Button

@@ -4,7 +4,6 @@ import { AlertCircleIcon, ArrowLeftIcon, SearchXIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import {
-  formatAed,
   formatDuration,
   type MockServiceCatalogItem,
   serviceGroupLabel,
@@ -16,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { useBranchOfferingNote } from "@/lib/service-catalog/use-branch-offering-note"
 
 type ServicePickerPanelProps = {
@@ -146,7 +146,7 @@ function ServiceCategoryGroup({
                     </span>
                   </div>
                   <span className="shrink-0 text-base font-semibold leading-tight tabular-nums text-foreground">
-                    {formatAed(item.priceMinor)}
+                    {formatMoneyWhole(item.priceMinor)}
                   </span>
                 </div>
                 {(() => {

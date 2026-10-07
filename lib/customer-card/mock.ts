@@ -31,6 +31,7 @@
 
 import { MOCK_CLIENTS, type MockClient, patchTestState } from "@/app/clients/mock"
 import { type ClientAppointment, getClientActivity } from "@/lib/clients/activity"
+import { formatAed } from "@/lib/format"
 import { resolvePublicView } from "@/lib/public-business"
 
 export type WalletTile = {
@@ -179,7 +180,7 @@ export function buildCustomerCard(client: MockClient, slug: string): CustomerCar
     wallet.push({
       id: "gift-card",
       label: "Gift card",
-      value: `AED ${client.giftCardAed.toLocaleString("en-AE")}`,
+      value: formatAed(client.giftCardAed),
     })
   }
   // The package with the most left is the one worth a tile. A customer checking

@@ -33,6 +33,7 @@ import {
   resolvedStatus,
 } from "@/lib/deals/mock"
 import { isRunnable } from "@/lib/locations/promotion-scope"
+import { formatMoney } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 export const STATUS_BADGE: Record<
@@ -43,10 +44,6 @@ export const STATUS_BADGE: Record<
   scheduled: { label: "Scheduled", variant: "muted" },
   inactive: { label: "Inactive", variant: "muted" },
   archived: { label: "Archived", variant: "destructive" },
-}
-
-export function formatMinor(minor: number): string {
-  return `AED ${(minor / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 export function DealsTable({
@@ -111,7 +108,7 @@ export function DealsTable({
             <div className="flex w-28 shrink-0 flex-col items-end leading-tight">
               <span className="text-muted-foreground text-xs">Total sales</span>
               <span className="font-semibold text-foreground text-sm tabular-nums">
-                {formatMinor(deal.totalSalesMinor)}
+                {formatMoney(deal.totalSalesMinor)}
               </span>
             </div>
 

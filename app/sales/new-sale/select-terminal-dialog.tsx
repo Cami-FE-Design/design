@@ -6,9 +6,9 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { locationName } from "@/lib/locations/mock"
+import { formatMoney } from "@/lib/money/format"
 import { type Terminal, type TerminalSession, terminalStatus } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
-import { formatAedDecimal } from "./mock"
 
 // Picking the machine before the sale goes to it. The sale is routed to ONE
 // device, so the operator says which — a counter with three registers can't
@@ -78,7 +78,7 @@ export function SelectTerminalDialog({
             Send to terminal
           </DialogTitle>
           <p className="text-muted-foreground text-sm leading-5">
-            {formatAedDecimal(amountMinor)} will be charged on the device you pick.
+            {formatMoney(amountMinor)} will be charged on the device you pick.
           </p>
         </div>
 

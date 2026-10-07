@@ -35,6 +35,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { type AdminBusiness, adminBusinesses } from "@/lib/admin-businesses"
+import { formatMoney } from "@/lib/money/format"
 import { type HqRates, useHqRates } from "@/lib/notifications/hq-store"
 import {
   amountDue,
@@ -67,10 +68,7 @@ const PERIOD = periodShape(0).labelLong
 type ChannelFilter = "all" | NotificationChannel
 
 function formatAed(amount: number): string {
-  return `AED ${amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
+  return formatMoney(Math.round(amount * 100))
 }
 
 function BillingRow({ business, globalRates }: { business: AdminBusiness; globalRates: HqRates }) {

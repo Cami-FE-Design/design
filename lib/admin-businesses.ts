@@ -514,10 +514,6 @@ export function formatDateTime(iso: string): string {
   })
 }
 
-export function formatAed(value: number): string {
-  return new Intl.NumberFormat("en-AE", { maximumFractionDigits: 0 }).format(value)
-}
-
 export type GlobalAuditEvent = AuditEvent & {
   businessId: string
   businessName: string

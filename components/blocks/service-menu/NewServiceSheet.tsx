@@ -90,6 +90,7 @@ import {
 } from "@/lib/service-catalog/types"
 import { cn } from "@/lib/utils"
 import { AddVariantDialog } from "./AddVariantDialog"
+import { formatServicePrice } from "./ServiceCard"
 
 type NewServiceSheetProps = {
   categories: ServiceCategory[]
@@ -1162,7 +1163,6 @@ function BasicDetailsSection({
                             price={basePrice}
                             duration={baseDuration}
                             extraTimes={baseExtraTimes}
-                            currency={currency}
                             borderColor={borderColor}
                             onEdit={() =>
                               setVariantDialog({
@@ -1189,7 +1189,6 @@ function BasicDetailsSection({
                           price={field.price}
                           duration={field.duration}
                           extraTimes={field.extraTimes}
-                          currency={currency}
                           borderColor={borderColor}
                           onEdit={() =>
                             setVariantDialog({
@@ -1262,12 +1261,6 @@ function cssTr(t: { x: number; y: number; scaleX: number; scaleY: number } | nul
   return `translate3d(${t.x}px, ${t.y}px, 0)`
 }
 
-function formatPrice(priceType: string, price: number, currency: string): string {
-  if (priceType === "Free") return "Free"
-  if (priceType === "From") return `From ${currency} ${price.toFixed(2)}`
-  return `${currency} ${price.toFixed(2)}`
-}
-
 function SortableVariantRow({
   id,
   name,
@@ -1275,7 +1268,6 @@ function SortableVariantRow({
   price,
   duration,
   extraTimes,
-  currency,
   borderColor,
   onEdit,
   onDelete,
@@ -1286,7 +1278,6 @@ function SortableVariantRow({
   price: number
   duration: number
   extraTimes?: ExtraTimeSegment[]
-  currency: string
   borderColor: string
   onEdit: () => void
   onDelete: () => void
@@ -1324,7 +1315,7 @@ function SortableVariantRow({
         </p>
       </div>
       <p className="shrink-0 text-sm font-medium text-foreground">
-        {formatPrice(priceType, price, currency)}
+        {formatServicePrice(priceType, price)}
       </p>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

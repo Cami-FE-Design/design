@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { formatMoney } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 // Matches the trigger sizing used across the add-pet / add-product forms so the
@@ -30,13 +31,6 @@ import { cn } from "@/lib/utils"
 const triggerOverride = "data-[size=default]:h-12 rounded-2xl bg-input px-4 font-medium"
 
 const CURRENCY = "AED"
-
-function money(minor: number) {
-  return `${CURRENCY} ${(minor / 100).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
-}
 
 // UAE VAT is 5% and prices are tax-inclusive, so the tax shown on a refund is
 // the VAT component already baked into the gross total: gross × 5/105.
@@ -385,7 +379,7 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
                       </span>
                     </span>
                     <span className="shrink-0 font-medium text-foreground tabular-nums">
-                      {money(it.amountMinor)}
+                      {formatMoney(it.amountMinor)}
                     </span>
                   </label>
                   <Separator />
@@ -396,11 +390,11 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
 
           <div className="flex items-center justify-between py-3 text-sm">
             <span className="text-muted-foreground">Tax</span>
-            <span className="text-muted-foreground tabular-nums">{money(itemTaxMinor)}</span>
+            <span className="text-muted-foreground tabular-nums">{formatMoney(itemTaxMinor)}</span>
           </div>
           <div className="flex items-center justify-between text-base font-semibold text-foreground">
             <span>Total to refund</span>
-            <span className="tabular-nums">{money(selectedTotalMinor)}</span>
+            <span className="tabular-nums">{formatMoney(selectedTotalMinor)}</span>
           </div>
         </TabsContent>
 
@@ -437,7 +431,7 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
                   <FieldRow
                     label="Refund amount"
                     htmlFor={`refund-amount-${p.id}`}
-                    description={`${money(p.availableMinor)} available to refund`}
+                    description={`${formatMoney(p.availableMinor)} available to refund`}
                   >
                     <div className="relative">
                       <span className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm font-medium text-muted-foreground">
@@ -499,14 +493,16 @@ function RefundCompleteScreen({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={fullScreenSuccessClass}>
         <DialogTitle className="sr-only">Refund complete</DialogTitle>
-        <DialogDescription className="sr-only">{money(amountMinor)} refunded</DialogDescription>
+        <DialogDescription className="sr-only">
+          {formatMoney(amountMinor)} refunded
+        </DialogDescription>
         <div className="flex h-full flex-1 flex-col items-center justify-center gap-5 px-6 py-12 text-center">
           <span className="flex size-20 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11">
             <CheckIcon className="size-10" strokeWidth={2.5} />
           </span>
           <div className="flex flex-col gap-1">
             <h1 className="font-heading text-2xl font-semibold text-foreground">Refund complete</h1>
-            <p className="text-muted-foreground">{money(amountMinor)} refunded</p>
+            <p className="text-muted-foreground">{formatMoney(amountMinor)} refunded</p>
           </div>
         </div>
       </DialogContent>

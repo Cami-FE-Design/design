@@ -35,7 +35,6 @@ import { toast } from "sonner"
 
 import {
   type DepositState,
-  formatAed,
   formatDuration,
   MOCK_SERVICE_CATALOG,
   MOCK_WHATSAPP_TEMPLATES,
@@ -99,6 +98,7 @@ import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog
 import { openAppointmentsFor } from "@/lib/clients/open-appointments"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
 import { depositForServices, examplePolicyText } from "@/lib/payment-policy/types"
 import type { PetNoteEntry } from "@/lib/pet-notes"
@@ -1212,11 +1212,11 @@ export function NewAppointmentSheet({
                         </span>
                         {depositState === "required" ? (
                           <span className="text-xs font-medium text-gold-11">
-                            {formatAed(depositMinor)} deposit requested
+                            {formatMoneyWhole(depositMinor)} deposit requested
                           </span>
                         ) : depositState === "paid" ? (
                           <span className="text-xs font-medium text-cami-green-11">
-                            {formatAed(depositMinor)} deposit paid
+                            {formatMoneyWhole(depositMinor)} deposit paid
                           </span>
                         ) : (
                           <span className="text-xs text-muted-foreground">No deposit required</span>
@@ -1281,8 +1281,8 @@ export function NewAppointmentSheet({
               {depositState === "required" ? (
                 <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-gold-11">
                   <AlertCircleIcon className="size-3.5 shrink-0" aria-hidden />
-                  {formatAed(depositMinor)} deposit unpaid — collect it or send a payment link
-                  before checkout
+                  {formatMoneyWhole(depositMinor)} deposit unpaid — collect it or send a payment
+                  link before checkout
                 </p>
               ) : null}
               {hasPets ? (
@@ -1302,7 +1302,7 @@ export function NewAppointmentSheet({
                       type="button"
                       className="inline-flex items-center gap-1 text-sm font-semibold text-foreground hover:underline"
                     >
-                      {totalServices > 0 ? formatAed(totalMinor) : "Full payment added"}
+                      {totalServices > 0 ? formatMoneyWhole(totalMinor) : "Full payment added"}
                       <ChevronRightIcon className="size-3.5" aria-hidden />
                     </button>
                   </div>
@@ -1688,12 +1688,12 @@ function ServiceRowList({
               <div className="relative flex shrink-0 items-center leading-tight">
                 <span className="flex flex-col items-end leading-tight tabular-nums transition-opacity group-hover/service:invisible">
                   <span className="text-base font-semibold text-foreground">
-                    {formatAed(s.catalog.priceMinor)}
+                    {formatMoneyWhole(s.catalog.priceMinor)}
                   </span>
                   {s.comboOriginalPriceMinor &&
                   s.comboOriginalPriceMinor !== s.catalog.priceMinor ? (
                     <span className="text-sm font-normal text-muted-foreground line-through">
-                      {formatAed(s.comboOriginalPriceMinor)}
+                      {formatMoneyWhole(s.comboOriginalPriceMinor)}
                     </span>
                   ) : null}
                 </span>

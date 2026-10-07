@@ -35,7 +35,6 @@ import { useEffect, useState } from "react"
 import {
   clientIdOf,
   EXTRA_TIME_LABEL,
-  formatAed,
   formatDuration,
   type MockBooking,
   type MockBookingStatus,
@@ -71,6 +70,7 @@ import {
 import type { PlaceRef } from "@/lib/address"
 import { clientNotesFor } from "@/lib/client-notes"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
 import { useNotifications } from "@/lib/notifications/store"
 import {
   CHANNEL_LABEL,
@@ -326,17 +326,17 @@ function SaleTotalSection({
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-card">
         {expanded ? (
           <div className="flex flex-col gap-2 border-b border-border/60 px-4 py-4 text-sm">
-            <FooterRow label="Subtotal" value={formatAed(totals.subtotal)} muted />
-            <FooterRow label="Tax" value={formatAed(totals.tax)} muted />
-            <FooterRow label="Total" value={formatAed(totals.total)} emphasis />
+            <FooterRow label="Subtotal" value={formatMoneyWhole(totals.subtotal)} muted />
+            <FooterRow label="Tax" value={formatMoneyWhole(totals.tax)} muted />
+            <FooterRow label="Total" value={formatMoneyWhole(totals.total)} emphasis />
             <div className="mt-2 border-t border-border/60 pt-3">
-              <FooterRow label="Cash" value={`- ${formatAed(totals.cashPaid)}`} muted />
+              <FooterRow label="Cash" value={`- ${formatMoneyWhole(totals.cashPaid)}`} muted />
             </div>
           </div>
         ) : (
           <div className="flex flex-col gap-1.5 px-4 pt-4 pb-3 text-sm">
-            <FooterRow label="Total" value={formatAed(totals.total)} muted />
-            <FooterRow label="Payments" value={`- ${formatAed(totals.cashPaid)}`} muted />
+            <FooterRow label="Total" value={formatMoneyWhole(totals.total)} muted />
+            <FooterRow label="Payments" value={`- ${formatMoneyWhole(totals.cashPaid)}`} muted />
           </div>
         )}
 
@@ -354,7 +354,9 @@ function SaleTotalSection({
               <ChevronDownIcon className="size-3.5" />
             )}
           </span>
-          <span className="font-semibold tabular-nums text-foreground">{formatAed(saleTotal)}</span>
+          <span className="font-semibold tabular-nums text-foreground">
+            {formatMoneyWhole(saleTotal)}
+          </span>
         </button>
       </div>
     </section>
@@ -487,7 +489,7 @@ function ClientCard({
           <div className="flex flex-wrap items-center gap-1.5">
             {client.unpaidMinor && client.unpaidMinor > 0 ? (
               <span className="inline-flex items-center rounded-full bg-cami-yellow-3 px-2.5 py-1 text-xs font-medium text-cami-yellow-11">
-                {formatAed(client.unpaidMinor)} Unpaid
+                {formatMoneyWhole(client.unpaidMinor)} Unpaid
               </span>
             ) : null}
             {client.isFirstVisit ? (
@@ -572,11 +574,11 @@ function PaymentPolicySection({ booking }: { booking: MockBooking }) {
             <span className="text-sm font-semibold text-foreground">Requires confirmation</span>
             {booking.hasDeposit ? (
               <span className="text-xs font-medium text-cami-green-11">
-                {formatAed(depositMinor)} deposit paid
+                {formatMoneyWhole(depositMinor)} deposit paid
               </span>
             ) : (
               <span className="text-xs font-medium text-gold-11">
-                {formatAed(depositMinor)} deposit requested
+                {formatMoneyWhole(depositMinor)} deposit requested
               </span>
             )}
           </div>
@@ -725,17 +727,17 @@ function ServicesSection({ booking, staffName }: { booking: MockBooking; staffNa
                     </div>
                     <span className="flex shrink-0 flex-col items-end leading-tight tabular-nums">
                       <span className="text-base font-semibold text-foreground">
-                        {formatAed(covered ? 0 : item.priceMinor)}
+                        {formatMoneyWhole(covered ? 0 : item.priceMinor)}
                       </span>
                       {/* One struck-through gross, whichever applies: a session
                           drawn down, or a combo's discount. */}
                       {item.membership ? (
                         <span className="text-sm font-normal text-muted-foreground line-through">
-                          {formatAed(item.membership.grossPriceMinor)}
+                          {formatMoneyWhole(item.membership.grossPriceMinor)}
                         </span>
                       ) : item.comboGrossPriceMinor ? (
                         <span className="text-sm font-normal text-muted-foreground line-through">
-                          {formatAed(item.comboGrossPriceMinor)}
+                          {formatMoneyWhole(item.comboGrossPriceMinor)}
                         </span>
                       ) : null}
                     </span>
