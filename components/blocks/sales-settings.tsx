@@ -35,8 +35,9 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Dialog as DialogPrimitive } from "radix-ui"
-import { Fragment, useEffect, useRef, useState } from "react"
+import { Fragment, useRef, useState } from "react"
 import { EmptyState } from "@/components/blocks/empty-state"
+import { FullScreenTakeover } from "@/components/blocks/full-screen-edit-dialog"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { SettingsCard, SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
@@ -61,13 +62,6 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { formatAed } from "@/lib/format"
 import { cn } from "@/lib/utils"
-
-// Full-window dialog overrides. The important suffix beats the base sm:max-w-md
-// from the Dialog primitive. `bg-background!` replaces the dialog's translucent
-// `bg-white-a11` so the full-screen takeover stays opaque over the settings
-// modal's dim overlay (otherwise the backdrop bleeds through as a grey haze).
-const fullScreenDialogClass =
-  "fixed! inset-0! top-0! left-0! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! flex-col bg-background! p-0"
 
 const selectTriggerOverride =
   "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
@@ -103,109 +97,6 @@ const DEFAULT_GIFT_CARD_CONFIG: GiftCardConfig = {
 function formatAedText(value: string) {
   const n = Number(value)
   return Number.isFinite(n) ? formatAed(n) : `AED ${value}`
-}
-
-/**
- * Full-screen edit/add takeover with the shared scroll-reveal header title:
- * the header shows the title only once the large body title scrolls out of
- * view (matches the business-details edit dialog). `actions` is the right-side
- * button cluster (Close / Save / Options …). Exported for other settings
- * panels (e.g. the Payments policy editors) so takeover chrome can't drift.
- * `wide` widens the content column for table-shaped editors.
- */
-export function FullScreenTakeover({
-  title,
-  ariaDescription,
-  subtitle,
-  actions,
-  onClose,
-  wide,
-  contentClassName,
-  children,
-}: {
-  title: string
-  ariaDescription: string
-  subtitle?: string
-  actions: React.ReactNode
-  onClose: () => void
-  /** Shorthand for the widest column, used by the per-service table. */
-  wide?: boolean
-  /**
-   * Explicit width for the centred column, e.g. `max-w-4xl`. Same name and job
-   * as `FullScreenEditDialog`'s, so the two takeovers read alike. Wins over
-   * `wide`, which is only a two-way switch between a reading column and a table.
-   */
-  contentClassName?: string
-  children: React.ReactNode
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const titleRef = useRef<HTMLHeadingElement>(null)
-  const [showHeaderTitle, setShowHeaderTitle] = useState(false)
-  const widthClass = contentClassName ?? (wide ? "max-w-6xl" : "max-w-2xl")
-
-  useEffect(() => {
-    let cleanup: (() => void) | undefined
-    const setup = () => {
-      const el = scrollRef.current
-      const title = titleRef.current
-      if (!el || !title) {
-        const id = window.requestAnimationFrame(setup)
-        cleanup = () => window.cancelAnimationFrame(id)
-        return
-      }
-      const update = () => {
-        const titleRect = title.getBoundingClientRect()
-        const containerRect = el.getBoundingClientRect()
-        setShowHeaderTitle(titleRect.bottom < containerRect.top)
-      }
-      update()
-      el.addEventListener("scroll", update, { passive: true })
-      cleanup = () => el.removeEventListener("scroll", update)
-    }
-    setup()
-    return () => cleanup?.()
-  }, [])
-
-  return (
-    <DialogPrimitive.Root open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className={fullScreenDialogClass}>
-        <DialogTitle className="sr-only">{title}</DialogTitle>
-        <DialogDescription className="sr-only">{ariaDescription}</DialogDescription>
-
-        <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
-          <div className={cn("mx-auto flex items-center justify-between gap-3", widthClass)}>
-            <span
-              className={cn(
-                "min-w-0 truncate font-heading text-base font-semibold leading-6 text-foreground transition-opacity duration-200",
-                showHeaderTitle ? "opacity-100" : "opacity-0",
-              )}
-              aria-hidden={!showHeaderTitle}
-            >
-              {title}
-            </span>
-            <div className="ms-auto flex items-center gap-2">{actions}</div>
-          </div>
-        </header>
-
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-12 lg:px-10">
-          <div className={cn("mx-auto flex w-full flex-col gap-10", widthClass)}>
-            <div className="flex flex-col gap-3">
-              <h2
-                ref={titleRef}
-                className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
-              >
-                {title}
-              </h2>
-              {subtitle ? (
-                <p className="max-w-2xl text-base leading-6 text-muted-foreground">{subtitle}</p>
-              ) : null}
-            </div>
-            {children}
-          </div>
-        </div>
-      </DialogContent>
-    </DialogPrimitive.Root>
-  )
 }
 
 // Payment methods moved to the Payments section (Fresha parity) — Sales now

@@ -7,10 +7,9 @@ import {
   FlagIcon,
   GlobeIcon,
   PercentIcon,
-  XIcon,
 } from "lucide-react"
-import { Dialog as DialogPrimitive } from "radix-ui"
 import { useEffect, useRef, useState } from "react"
+import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
 import { GoogleReviewLinkField } from "@/components/blocks/google-review-link-field"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
@@ -21,7 +20,6 @@ import {
   XGlyphIcon,
 } from "@/components/blocks/social-icons"
 import { Button } from "@/components/ui/button"
-import { DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -35,14 +33,8 @@ import { useBusinessLinks } from "@/lib/business-links/store"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { useLocations } from "@/lib/locations/store"
 import { overriddenCount, TIMEZONE_OPTIONS, timezoneLabel } from "@/lib/locations/timezone"
-import { cn } from "@/lib/utils"
 
 const triggerOverride = "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
-
-// Full-window dialog overrides. Important suffix beats the base sm:max-w-md
-// from the Dialog primitive.
-const fullScreenDialogClass =
-  "fixed! inset-0! top-0! left-0! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! flex-col p-0"
 
 type IconComponent = React.ComponentType<{ className?: string }>
 type FocusField =
@@ -206,9 +198,6 @@ function BusinessDetailsEditDialog({
     locations.map((l) => l.timezone),
     zone,
   )
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const titleRef = useRef<HTMLHeadingElement>(null)
-  const [showHeaderTitle, setShowHeaderTitle] = useState(false)
   const fieldRefs = useRef<Partial<Record<FocusField, HTMLInputElement | null>>>({})
 
   useEffect(() => {
@@ -219,33 +208,6 @@ function BusinessDetailsEditDialog({
     setBusinessTimezone(zone)
     onOpenChange(false)
   }
-
-  useEffect(() => {
-    if (!open) return
-    setShowHeaderTitle(false)
-
-    let cleanup: (() => void) | undefined
-    const setup = () => {
-      const el = scrollRef.current
-      const title = titleRef.current
-      if (!el || !title) {
-        const id = window.requestAnimationFrame(setup)
-        cleanup = () => window.cancelAnimationFrame(id)
-        return
-      }
-      const update = () => {
-        const titleRect = title.getBoundingClientRect()
-        const containerRect = el.getBoundingClientRect()
-        setShowHeaderTitle(titleRect.bottom < containerRect.top)
-      }
-      update()
-      el.addEventListener("scroll", update, { passive: true })
-      cleanup = () => el.removeEventListener("scroll", update)
-    }
-    setup()
-
-    return () => cleanup?.()
-  }, [open])
 
   // Focus the requested field once the dialog has mounted + animated in.
   useEffect(() => {
@@ -265,192 +227,129 @@ function BusinessDetailsEditDialog({
   }
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={fullScreenDialogClass}>
-        <DialogTitle className="sr-only">Edit business details</DialogTitle>
-        <DialogDescription className="sr-only">
-          Edit your business identity, currency, tax settings, and external links.
-        </DialogDescription>
-
-        <header className="sticky top-0 z-10 border-border/40 border-b bg-background">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 lg:px-6">
-            <span
-              className={cn(
-                "min-w-0 truncate font-heading text-base font-semibold leading-6 text-foreground transition-opacity duration-200",
-                showHeaderTitle ? "opacity-100" : "opacity-0",
-              )}
-              aria-hidden={!showHeaderTitle}
-            >
-              Edit business details
-            </span>
-            <div className="ml-auto flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-lg"
-                radius="full"
-                aria-label="Close"
-                onClick={() => onOpenChange(false)}
-                className="lg:hidden"
-              >
-                <XIcon className="size-5" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                radius="full"
-                onClick={() => onOpenChange(false)}
-                className="hidden lg:inline-flex"
-              >
-                Close
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                radius="full"
-                onClick={save}
-                className="hidden lg:inline-flex"
-              >
-                Save
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-12 lg:px-10">
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-10">
-            <h2
-              ref={titleRef}
-              className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
-            >
-              Edit business details
-            </h2>
-
-            <section className="flex flex-col gap-5">
-              <div className="flex flex-col gap-1">
-                <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
-                  Business info
-                </h3>
-                <p className="text-sm leading-5 text-muted-foreground">
-                  Choose the name displayed on your online booking profile, sales receipts, and
-                  messages to clients.
-                </p>
-              </div>
-              <div className="flex flex-col gap-6">
-                <Field label="Business name">
-                  <Input
-                    ref={setFieldRef("businessName")}
-                    key={businessName}
-                    defaultValue={businessName}
-                  />
-                </Field>
-                <Field label="Country">
-                  <Select defaultValue="ae">
-                    <SelectTrigger className={triggerOverride}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ae">United Arab Emirates</SelectItem>
-                      <SelectItem value="sa">Saudi Arabia</SelectItem>
-                      <SelectItem value="us">United States</SelectItem>
-                      <SelectItem value="gb">United Kingdom</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Currency">
-                  <Select defaultValue="aed">
-                    <SelectTrigger className={triggerOverride}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="aed">AED</SelectItem>
-                      <SelectItem value="sar">SAR</SelectItem>
-                      <SelectItem value="usd">USD</SelectItem>
-                      <SelectItem value="gbp">GBP</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field label="Tax calculation">
-                  <Select defaultValue="included">
-                    <SelectTrigger className={triggerOverride}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="included">Retail prices include tax</SelectItem>
-                      <SelectItem value="excluded">Retail prices exclude tax</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <div className="flex flex-col gap-1.5">
-                  <Field label="Time zone">
-                    <Select value={zone} onValueChange={setZone}>
-                      <SelectTrigger className={triggerOverride}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TIMEZONE_OPTIONS.map((tz) => (
-                          <SelectItem key={tz.id} value={tz.id}>
-                            {tz.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  {/* R19's first half. Said only to a chain: a single-site
+    <FullScreenEditDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Edit business details"
+      ariaDescription="Edit your business identity, currency, tax settings, and external links."
+      contentClassName="max-w-2xl"
+      onSave={save}
+    >
+      <section className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+            Business info
+          </h3>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Choose the name displayed on your online booking profile, sales receipts, and messages
+            to clients.
+          </p>
+        </div>
+        <div className="flex flex-col gap-6">
+          <Field label="Business name">
+            <Input
+              ref={setFieldRef("businessName")}
+              key={businessName}
+              defaultValue={businessName}
+            />
+          </Field>
+          <Field label="Country">
+            <Select defaultValue="ae">
+              <SelectTrigger className={triggerOverride}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ae">United Arab Emirates</SelectItem>
+                <SelectItem value="sa">Saudi Arabia</SelectItem>
+                <SelectItem value="us">United States</SelectItem>
+                <SelectItem value="gb">United Kingdom</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Currency">
+            <Select defaultValue="aed">
+              <SelectTrigger className={triggerOverride}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="aed">AED</SelectItem>
+                <SelectItem value="sar">SAR</SelectItem>
+                <SelectItem value="usd">USD</SelectItem>
+                <SelectItem value="gbp">GBP</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <Field label="Tax calculation">
+            <Select defaultValue="included">
+              <SelectTrigger className={triggerOverride}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="included">Retail prices include tax</SelectItem>
+                <SelectItem value="excluded">Retail prices exclude tax</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+          <div className="flex flex-col gap-1.5">
+            <Field label="Time zone">
+              <Select value={zone} onValueChange={setZone}>
+                <SelectTrigger className={triggerOverride}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONE_OPTIONS.map((tz) => (
+                    <SelectItem key={tz.id} value={tz.id}>
+                      {tz.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            {/* R19's first half. Said only to a chain: a single-site
                       business has nothing that inherits it. */}
-                  {isMultiLocation ? (
-                    <p className="text-muted-foreground text-xs leading-5">
-                      Every location follows this unless it sets its own.{" "}
-                      {ownZone === 0
-                        ? "None do yet."
-                        : ownZone === 1
-                          ? "1 location keeps its own and won’t change."
-                          : `${ownZone} locations keep their own and won’t change.`}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-            </section>
-
-            <section className="flex flex-col gap-5">
-              <div className="flex flex-col gap-1">
-                <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
-                  External links
-                </h3>
-                <p className="text-sm leading-5 text-muted-foreground">
-                  Add your company website and social media links for sharing with clients.
-                </p>
-              </div>
-              <div className="flex flex-col gap-6">
-                <Field label="Facebook">
-                  <Input ref={setFieldRef("facebook")} placeholder="facebook.com/your-business" />
-                </Field>
-                <Field label="X (Twitter)">
-                  <Input ref={setFieldRef("twitter")} placeholder="x.com/your-business" />
-                </Field>
-                <Field label="Instagram">
-                  <Input ref={setFieldRef("instagram")} placeholder="instagram.com/your-business" />
-                </Field>
-                <Field label="Website">
-                  <Input ref={setFieldRef("website")} defaultValue="www.shampooch.ae" />
-                </Field>
-                <GoogleReviewLinkField
-                  id="business-google-review-link"
-                  inputRef={setFieldRef("googleReview")}
-                />
-              </div>
-            </section>
+            {isMultiLocation ? (
+              <p className="text-muted-foreground text-xs leading-5">
+                Every location follows this unless it sets its own.{" "}
+                {ownZone === 0
+                  ? "None do yet."
+                  : ownZone === 1
+                    ? "1 location keeps its own and won’t change."
+                    : `${ownZone} locations keep their own and won’t change.`}
+              </p>
+            ) : null}
           </div>
         </div>
+      </section>
 
-        <footer className="border-border/40 border-t bg-background px-4 py-3 lg:hidden">
-          <Button type="button" size="lg" radius="full" className="w-full" onClick={save}>
-            Save
-          </Button>
-        </footer>
-      </DialogContent>
-    </DialogPrimitive.Root>
+      <section className="flex flex-col gap-5">
+        <div className="flex flex-col gap-1">
+          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+            External links
+          </h3>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Add your company website and social media links for sharing with clients.
+          </p>
+        </div>
+        <div className="flex flex-col gap-6">
+          <Field label="Facebook">
+            <Input ref={setFieldRef("facebook")} placeholder="facebook.com/your-business" />
+          </Field>
+          <Field label="X (Twitter)">
+            <Input ref={setFieldRef("twitter")} placeholder="x.com/your-business" />
+          </Field>
+          <Field label="Instagram">
+            <Input ref={setFieldRef("instagram")} placeholder="instagram.com/your-business" />
+          </Field>
+          <Field label="Website">
+            <Input ref={setFieldRef("website")} defaultValue="www.shampooch.ae" />
+          </Field>
+          <GoogleReviewLinkField
+            id="business-google-review-link"
+            inputRef={setFieldRef("googleReview")}
+          />
+        </div>
+      </section>
+    </FullScreenEditDialog>
   )
 }
 

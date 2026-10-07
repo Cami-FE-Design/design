@@ -30,13 +30,14 @@ import {
   StethoscopeIcon,
   SunIcon,
   Trash2Icon,
-  XIcon,
 } from "lucide-react"
 import { useSearchParams } from "next/navigation"
-import { Dialog as DialogPrimitive } from "radix-ui"
 import { Fragment, useEffect, useRef, useState } from "react"
 import { CitySelect } from "@/components/blocks/city-select"
-import { FullScreenEditDialog as SharedFullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
+import {
+  FullScreenEditDialog,
+  FullScreenEditDialog as SharedFullScreenEditDialog,
+} from "@/components/blocks/full-screen-edit-dialog"
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { NO_ACCESS_NEXT_STEP, NO_ACCESS_TITLE } from "@/components/blocks/no-location-access"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
@@ -101,9 +102,6 @@ import { cn } from "@/lib/utils"
 const INHERIT = "__business__"
 
 const triggerOverride = "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
-
-const fullScreenDialogClass =
-  "fixed! inset-0! top-0! left-0! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! flex-col p-0"
 
 type BasicInfoField = "name" | "publicName" | "phone" | "email"
 type AddressField =
@@ -1426,152 +1424,6 @@ function ManageRow({
   )
 }
 
-// ============================================================================
-// Edit dialog (full-screen takeover)
-// ============================================================================
-
-function FullScreenEditDialog({
-  open,
-  onOpenChange,
-  title,
-  description,
-  subtitle,
-  onSave,
-  saveDisabled,
-  children,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  title: string
-  description: string
-  subtitle?: string
-  /** What Save commits. Absent means Save just closes. */
-  onSave?: () => void
-  /** Refuse the save while the form holds something that cannot be stored. */
-  saveDisabled?: boolean
-  children: React.ReactNode
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const titleRef = useRef<HTMLHeadingElement>(null)
-  const [showHeaderTitle, setShowHeaderTitle] = useState(false)
-
-  useEffect(() => {
-    if (!open) return
-    setShowHeaderTitle(false)
-
-    let cleanup: (() => void) | undefined
-    const setup = () => {
-      const el = scrollRef.current
-      const titleEl = titleRef.current
-      if (!el || !titleEl) {
-        const id = window.requestAnimationFrame(setup)
-        cleanup = () => window.cancelAnimationFrame(id)
-        return
-      }
-      const update = () => {
-        const titleRect = titleEl.getBoundingClientRect()
-        const containerRect = el.getBoundingClientRect()
-        setShowHeaderTitle(titleRect.bottom < containerRect.top)
-      }
-      update()
-      el.addEventListener("scroll", update, { passive: true })
-      cleanup = () => el.removeEventListener("scroll", update)
-    }
-    setup()
-
-    return () => cleanup?.()
-  }, [open])
-
-  return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={fullScreenDialogClass}>
-        <DialogTitle className="sr-only">{title}</DialogTitle>
-        <DialogDescription className="sr-only">{description}</DialogDescription>
-
-        <header className="sticky top-0 z-10 border-border/40 border-b bg-background">
-          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3 lg:px-6">
-            <span
-              className={cn(
-                "min-w-0 truncate font-heading text-base font-semibold leading-6 text-foreground transition-opacity duration-200",
-                showHeaderTitle ? "opacity-100" : "opacity-0",
-              )}
-              aria-hidden={!showHeaderTitle}
-            >
-              {title}
-            </span>
-            <div className="ml-auto flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-lg"
-                radius="full"
-                aria-label="Close"
-                onClick={() => onOpenChange(false)}
-                className="lg:hidden"
-              >
-                <XIcon className="size-5" />
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                radius="full"
-                onClick={() => onOpenChange(false)}
-                className="hidden lg:inline-flex"
-              >
-                Close
-              </Button>
-              <Button
-                type="button"
-                size="lg"
-                radius="full"
-                disabled={saveDisabled}
-                onClick={() => (onSave ? onSave() : onOpenChange(false))}
-                className="hidden lg:inline-flex"
-              >
-                Save
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-12 lg:px-10">
-          <div className="mx-auto flex w-full max-w-2xl flex-col gap-10">
-            <div className="flex flex-col gap-2">
-              <h2
-                ref={titleRef}
-                className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
-              >
-                {title}
-              </h2>
-              {subtitle ? (
-                <p className="text-base leading-6 text-muted-foreground">{subtitle}</p>
-              ) : null}
-            </div>
-            {children}
-          </div>
-        </div>
-
-        {/* The same commit as the header's Save, not a second behaviour. This
-            footer read onOpenChange directly, which meant Save on a narrow
-            screen discarded the edit while Save on a wide one kept it. */}
-        <footer className="border-border/40 border-t bg-background px-4 py-3 lg:hidden">
-          <Button
-            type="button"
-            size="lg"
-            radius="full"
-            className="w-full"
-            disabled={saveDisabled}
-            onClick={() => (onSave ? onSave() : onOpenChange(false))}
-          >
-            Save
-          </Button>
-        </footer>
-      </DialogContent>
-    </DialogPrimitive.Root>
-  )
-}
-
 /** Every control these dialogs read on save. The invoice note is a textarea. */
 type FieldElement = HTMLInputElement | HTMLTextAreaElement
 
@@ -1646,7 +1498,8 @@ function BasicInfoEditDialog({
       onOpenChange={onOpenChange}
       title="Edit basic info"
       subtitle={`Change the contact details for ${location.name}`}
-      description="Edit this location's name and contact details."
+      ariaDescription="Edit this location's name and contact details."
+      contentClassName="max-w-2xl"
       onSave={save}
     >
       <section className="flex flex-col gap-5">
@@ -1749,7 +1602,8 @@ function BusinessTypeEditDialog({
       onOpenChange={onOpenChange}
       title="Edit business type"
       subtitle={`Change what ${location.name} offers`}
-      description="Choose every service this location offers."
+      ariaDescription="Choose every service this location offers."
+      contentClassName="max-w-2xl"
       onSave={save}
     >
       <section className="flex flex-col gap-5">
@@ -1845,10 +1699,11 @@ function AddressEditDialog({
   return (
     <FullScreenEditDialog
       open={open}
+      contentClassName="max-w-2xl"
       onOpenChange={onOpenChange}
       title="Edit address"
       subtitle={`Change where ${location.name} is`}
-      description="Edit the business location address."
+      ariaDescription="Edit the business location address."
       onSave={save}
     >
       <section className="flex flex-col gap-5">
@@ -1983,10 +1838,11 @@ function InvoicingDetailsEditDialog({
   return (
     <FullScreenEditDialog
       open={open}
+      contentClassName="max-w-2xl"
       onOpenChange={onOpenChange}
       title="Edit invoicing details"
       subtitle={`Change the invoicing entity for ${location.name}`}
-      description="Edit the legal entity and address shown on invoices and receipts."
+      ariaDescription="Edit the legal entity and address shown on invoices and receipts."
       onSave={save}
     >
       <section className="flex flex-col gap-5">
@@ -2258,10 +2114,11 @@ function HoursEditDialog({
   return (
     <FullScreenEditDialog
       open={open}
+      contentClassName="max-w-2xl"
       onOpenChange={onOpenChange}
       title="Edit business hours"
       subtitle={`Change opening hours for ${location.name}`}
-      description="Set the days and hours this location is open."
+      ariaDescription="Set the days and hours this location is open."
       onSave={save}
     >
       <section className="flex flex-col gap-3">
@@ -2460,10 +2317,11 @@ function TaxDefaultsEditDialog({
   return (
     <FullScreenEditDialog
       open={open}
+      contentClassName="max-w-2xl"
       onOpenChange={onOpenChange}
       title="Edit tax defaults"
       subtitle={`Change tax defaults for ${location.name}`}
-      description="Change the default tax rates applied to services and products at this location."
+      ariaDescription="Change the default tax rates applied to services and products at this location."
       onSave={save}
     >
       <section className="flex flex-col gap-6">
@@ -2616,10 +2474,11 @@ function ReceiptSequencingEditDialog({
   return (
     <FullScreenEditDialog
       open={open}
+      contentClassName="max-w-2xl"
       onOpenChange={onOpenChange}
       title="Edit receipt sequencing"
       subtitle={`Change receipt sequence for ${location.name}`}
-      description="Set the prefix and the next receipt number for this location."
+      ariaDescription="Set the prefix and the next receipt number for this location."
       onSave={save}
       saveDisabled={!nextValid}
     >
@@ -2749,10 +2608,11 @@ function DepositEditDialog({
   return (
     <FullScreenEditDialog
       open={open}
+      contentClassName="max-w-2xl"
       onOpenChange={onOpenChange}
       title="Deposit"
       subtitle={`Change the deposit for ${location.name}`}
-      description="What this location takes upfront, and when it is refundable."
+      ariaDescription="What this location takes upfront, and when it is refundable."
       onSave={save}
     >
       <section className="flex flex-col gap-3">
@@ -2877,10 +2737,11 @@ function TippingEditDialog({
   return (
     <FullScreenEditDialog
       open={open}
+      contentClassName="max-w-2xl"
       onOpenChange={onOpenChange}
       title="Tip values and calculation"
       subtitle={`Change tipping for ${location.name}`}
-      description="Configure tipping options, default tip values, and how tips are calculated."
+      ariaDescription="Configure tipping options, default tip values, and how tips are calculated."
       onSave={save}
     >
       <section className="flex flex-col gap-3">

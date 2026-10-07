@@ -36,6 +36,8 @@ type FullScreenEditDialogProps = {
   title: string
   /** Subtitle below the big title. A node so callers can add a "Learn more" link, etc. */
   subtitle?: React.ReactNode
+  /** Screen-reader description. Defaults to the subtitle, then the title. */
+  ariaDescription?: string
   /** Optional Save handler. Omit to render only the Close button. */
   onSave?: () => void
   saveDisabled?: boolean
@@ -66,6 +68,7 @@ export function FullScreenEditDialog({
   onOpenChange,
   title,
   subtitle,
+  ariaDescription,
   onSave,
   saveDisabled,
   saveLabel,
@@ -79,6 +82,154 @@ export function FullScreenEditDialog({
   // <AuthProvider> (e.g. /settings/team, where there's no admin auth scope).
   const auth = useContext(AuthContext)
   const t = COPY[auth?.locale ?? "en"]
+
+  return (
+    <TakeoverFrame
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      ariaDescription={ariaDescription ?? subtitle ?? title}
+      subtitle={subtitle}
+      widthClass={contentClassName ?? "max-w-3xl"}
+      titleAs="h1"
+      actions={
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-lg"
+            radius="full"
+            aria-label={closeLabel ?? t.close}
+            onClick={() => onOpenChange(false)}
+            className="lg:hidden"
+          >
+            <XIcon className="size-5" />
+          </Button>
+          {onDelete ? (
+            <Button type="button" variant="destructive" size="lg" radius="full" onClick={onDelete}>
+              {deleteLabel ?? "Delete"}
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            radius="full"
+            onClick={() => onOpenChange(false)}
+            className="hidden lg:inline-flex"
+          >
+            {closeLabel ?? t.close}
+          </Button>
+          {onSave ? (
+            <Button
+              type="button"
+              size="lg"
+              radius="full"
+              disabled={saveDisabled}
+              onClick={onSave}
+              className="hidden lg:inline-flex"
+            >
+              {saveLabel ?? t.save}
+            </Button>
+          ) : null}
+        </>
+      }
+      // Save for narrow screens. The header's Close and Save are both
+      // `hidden lg:inline-flex`, which left every caller passing `onSave` -
+      // chain setup, team access, roles, packages, combos - with no way to
+      // commit below `lg`: the only control there was the X, which discards.
+      // A dialog with no `onSave` renders nothing here and is unchanged.
+      footer={
+        onSave ? (
+          <Button
+            type="button"
+            size="lg"
+            radius="full"
+            className="w-full"
+            disabled={saveDisabled}
+            onClick={onSave}
+          >
+            {saveLabel ?? t.save}
+          </Button>
+        ) : null
+      }
+    >
+      {children}
+    </TakeoverFrame>
+  )
+}
+
+/**
+ * Full-screen takeover with caller-supplied header actions (Close / Save /
+ * Options …), for editors whose buttons are not a plain Close + Save. Always
+ * open while mounted; `onClose` fires on Escape and on the overlay. `wide`
+ * widens the content column for table-shaped editors.
+ */
+export function FullScreenTakeover({
+  title,
+  ariaDescription,
+  subtitle,
+  actions,
+  onClose,
+  wide,
+  contentClassName,
+  children,
+}: {
+  title: string
+  ariaDescription: string
+  subtitle?: string
+  actions: React.ReactNode
+  onClose: () => void
+  /** Shorthand for the widest column, used by the per-service table. */
+  wide?: boolean
+  /** Explicit width for the centred column, e.g. `max-w-4xl`. Wins over `wide`. */
+  contentClassName?: string
+  children: React.ReactNode
+}) {
+  return (
+    <TakeoverFrame
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={title}
+      ariaDescription={ariaDescription}
+      subtitle={subtitle}
+      widthClass={contentClassName ?? (wide ? "max-w-6xl" : "max-w-2xl")}
+      titleAs="h2"
+      actions={actions}
+    >
+      {children}
+    </TakeoverFrame>
+  )
+}
+
+/**
+ * The chrome both takeovers share: an opaque full-viewport dialog, a sticky
+ * header whose small title fades in once the big title scrolls out of view,
+ * and a centred column that the header's buttons line up with.
+ */
+function TakeoverFrame({
+  open,
+  onOpenChange,
+  title,
+  ariaDescription,
+  subtitle,
+  widthClass,
+  titleAs: Title,
+  actions,
+  footer,
+  children,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  ariaDescription: React.ReactNode
+  subtitle?: React.ReactNode
+  widthClass: string
+  titleAs: "h1" | "h2"
+  actions: React.ReactNode
+  footer?: React.ReactNode
+  children: React.ReactNode
+}) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const titleRef = useRef<HTMLHeadingElement | null>(null)
   const [showHeaderTitle, setShowHeaderTitle] = useState(false)
@@ -112,13 +263,11 @@ export function FullScreenEditDialog({
     return () => cleanup?.()
   }, [open])
 
-  const widthClass = contentClassName ?? "max-w-3xl"
-
   return (
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogContent className={fullScreenDialogClass}>
         <DialogTitle className="sr-only">{title}</DialogTitle>
-        <DialogDescription className="sr-only">{subtitle ?? title}</DialogDescription>
+        <DialogDescription className="sr-only">{ariaDescription}</DialogDescription>
 
         <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
           <div className={cn("mx-auto flex items-center justify-between gap-3", widthClass)}>
@@ -131,64 +280,19 @@ export function FullScreenEditDialog({
             >
               {title}
             </span>
-            <div className="ms-auto flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-lg"
-                radius="full"
-                aria-label={closeLabel ?? t.close}
-                onClick={() => onOpenChange(false)}
-                className="lg:hidden"
-              >
-                <XIcon className="size-5" />
-              </Button>
-              {onDelete ? (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="lg"
-                  radius="full"
-                  onClick={onDelete}
-                >
-                  {deleteLabel ?? "Delete"}
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="outline"
-                size="lg"
-                radius="full"
-                onClick={() => onOpenChange(false)}
-                className="hidden lg:inline-flex"
-              >
-                {closeLabel ?? t.close}
-              </Button>
-              {onSave ? (
-                <Button
-                  type="button"
-                  size="lg"
-                  radius="full"
-                  disabled={saveDisabled}
-                  onClick={onSave}
-                  className="hidden lg:inline-flex"
-                >
-                  {saveLabel ?? t.save}
-                </Button>
-              ) : null}
-            </div>
+            <div className="ms-auto flex items-center gap-2">{actions}</div>
           </div>
         </header>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-12 lg:px-10">
           <div className={cn("mx-auto flex w-full flex-col gap-10", widthClass)}>
             <div className="flex flex-col gap-3">
-              <h1
+              <Title
                 ref={titleRef}
                 className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
               >
                 {title}
-              </h1>
+              </Title>
               {subtitle ? (
                 <p className="max-w-2xl text-base leading-6 text-muted-foreground">{subtitle}</p>
               ) : null}
@@ -197,28 +301,9 @@ export function FullScreenEditDialog({
           </div>
         </div>
 
-        {/*
-         * Save for narrow screens. The header's Close and Save are both
-         * `hidden lg:inline-flex`, which left every caller passing `onSave` -
-         * chain setup, team access, roles, packages, combos - with no way to
-         * commit below `lg`: the only control there was the X, which discards.
-         * A dialog with no `onSave` renders nothing here and is unchanged.
-         *
-         * Same shape as the sticky footer in business-profile-form.tsx and
-         * location-form.tsx, so it is the idiom rather than a new one.
-         */}
-        {onSave ? (
+        {footer ? (
           <footer className="border-border/40 border-t bg-background px-4 py-3 lg:hidden">
-            <Button
-              type="button"
-              size="lg"
-              radius="full"
-              className="w-full"
-              disabled={saveDisabled}
-              onClick={onSave}
-            >
-              {saveLabel ?? t.save}
-            </Button>
+            {footer}
           </footer>
         ) : null}
       </DialogContent>

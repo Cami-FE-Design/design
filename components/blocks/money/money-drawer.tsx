@@ -34,12 +34,12 @@ import { useRouter, useSearchParams } from "next/navigation"
 import type * as React from "react"
 import { Suspense, useState } from "react"
 import type { DateRange } from "@/components/blocks/date-range-popover"
+import { FullScreenTakeover } from "@/components/blocks/full-screen-edit-dialog"
 import { MoneyActivityView } from "@/components/blocks/money/money-activity"
 import { type MoneySummaryVariant, MoneySummaryView } from "@/components/blocks/money/money-summary"
 import { PayoutDetailDialog } from "@/components/blocks/money/payout-detail-dialog"
 import { RailBadge } from "@/components/blocks/money/rail-badge"
 import { TransactionDetailDialog } from "@/components/blocks/money/transaction-detail-dialog"
-import { FullScreenTakeover } from "@/components/blocks/sales-settings"
 import { Button } from "@/components/ui/button"
 import {
   Sheet,
