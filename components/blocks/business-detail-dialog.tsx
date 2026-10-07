@@ -313,17 +313,17 @@ export function BusinessDetailDialog({
                 className="no-scrollbar -my-1 max-w-full gap-5 overflow-x-auto px-9 py-1"
               >
                 <TabsTrigger value="general">General</TabsTrigger>
-                {/* Only for a chain. A single-site partner has no branches to
-                    reason about, and a tab that says so on every account is a
-                    concept four of five Account Managers never need (G3). */}
-                {isChain ? (
-                  <TabsTrigger value="locations">
-                    Locations
+                {/* Every partner: the multi-location switch lives here, and HQ
+                    turns it on before a second location exists. A single-site
+                    partner's tab shows the switch and its one address. */}
+                <TabsTrigger value="locations">
+                  Locations
+                  {isChain ? (
                     <span className="text-sm font-normal text-muted-foreground">
                       {business.locationIds?.length}
                     </span>
-                  </TabsTrigger>
-                ) : null}
+                  ) : null}
+                </TabsTrigger>
                 <TabsTrigger value="team">
                   Team
                   <span className="text-sm font-normal text-muted-foreground">

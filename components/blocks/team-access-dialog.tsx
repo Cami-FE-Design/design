@@ -22,10 +22,10 @@
  * ticked set, and the difference matters — a ticked set would silently exclude
  * branch ten.
  *
- * Why an empty grant is allowed and named: it is a real state with a real
- * consequence (R24). The member reads and writes nothing, and it must never
- * resolve to every branch. Left as an unticked list it would look like an
- * unfinished form rather than a decision.
+ * Why an empty grant cannot be confirmed: every role but the owner works
+ * somewhere, the same rule the add/edit form enforces. A member seeded with no
+ * grant (R24) still opens here and reads as such, but Confirm stays off until
+ * a location is ticked. Save errors are the caller's to toast.
  */
 
 import { useEffect, useState } from "react"
@@ -57,10 +57,10 @@ export function TeamAccessDialog({
 }: {
   /**
    * Whether this member's locations have loaded. Loading and error are reached
-   * from /playground. Neither says "No location selected" — that is R24's fact
-   * about a real empty grant, and claiming it before the grant has arrived
-   * is a false statement about somebody's access. Confirm stays off too:
-   * saving a grant that was never read would overwrite it with nothing.
+   * from /playground. Neither asks for a location — claiming the grant is
+   * empty before it has arrived is a false statement about somebody's access.
+   * Confirm stays off too: saving a grant that was never read would overwrite
+   * it with nothing.
    */
   status?: SurfaceStatus
   onRetry?: () => void
@@ -92,6 +92,8 @@ export function TeamAccessDialog({
   const role = roleById(roleId)
   const isOwner = holdsAllLocations(roleId)
   const shownIds = isOwner ? locations.map((l) => l.id) : grantedIds
+  // Every role but the owner works somewhere — same rule as the add/edit form.
+  const missingLocation = !isOwner && shownIds.length === 0
 
   function save() {
     // An owner's grant is stored as "all", not as today's list of ids, so a
@@ -151,10 +153,6 @@ export function TeamAccessDialog({
               </div>
             ) : status === "error" ? (
               <LoadError what="this member’s locations" onRetry={onRetry} />
-            ) : !isOwner && shownIds.length === 0 ? (
-              // The one state worth a line: Confirm with nothing picked leaves
-              // this person with no access at all (R24).
-              <p className="text-sm text-muted-foreground">No location selected.</p>
             ) : null}
             {/* A dropdown, not a stack of cards. Nine branches already
                 scrolled this dialog past its own buttons and twenty would make
@@ -169,6 +167,12 @@ export function TeamAccessDialog({
                 disabled={isOwner}
               />
             ) : null}
+            {status === "ready" && missingLocation ? (
+              // The form's error style (FormMessage), under the control.
+              <p role="alert" className="font-medium text-destructive text-sm">
+                Pick at least one location.
+              </p>
+            ) : null}
           </div>
 
           <div className="flex justify-end gap-2">
@@ -180,7 +184,12 @@ export function TeamAccessDialog({
             >
               Close
             </Button>
-            <Button type="button" radius="full" onClick={save} disabled={status !== "ready"}>
+            <Button
+              type="button"
+              radius="full"
+              onClick={save}
+              disabled={status !== "ready" || missingLocation}
+            >
               Confirm
             </Button>
           </div>

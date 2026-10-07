@@ -124,6 +124,7 @@ import { MoveToBranchDialog } from "@/components/blocks/move-to-branch-dialog"
 import { MyProfilePanel } from "@/components/blocks/my-profile-panel"
 import { NavigateToAddress } from "@/components/blocks/navigate-to-address"
 import { ServicePickerPanel } from "@/components/blocks/new-appointment-service-picker"
+import { NoLocationAccess } from "@/components/blocks/no-location-access"
 import { NotificationsSettingsPanel } from "@/components/blocks/notifications-settings-panel"
 import {
   PackageBranchWarning,
@@ -3036,7 +3037,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — branch lifecycle"
-          description="SCR-01's state half (R01, R12). Four states, each named for its consequence: paused hides the booking page and stops the calendar, archived takes no writes ever again. Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find. The full panel, with Suspend / Reactivate / Archive, is at /shell-demo?settings=locations."
+          description="SCR-01's state half (R01, R12). Four states, each named for its consequence: suspended hides the booking page and stops the calendar, archived takes no writes ever again. Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find. The full panel, with Suspend / Reactivate / Archive, is at /shell-demo?settings=locations."
         >
           <Row label="Status badge">
             {(["live", "suspended", "archived"] as const).map((status) => (
@@ -3400,13 +3401,15 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — a write names one branch"
-          description="G1 and R11. Every operational write lands on exactly one branch, with no default — the PRD's release criterion takes that fallback out of the repo. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A paused branch is listed and badged rather than hidden (R12). Live on the appointment sheet, where Save waits for the branch and the service picker reads against it (DW3.3)."
+          description="G1 and R11. Every operational write lands on exactly one branch, with no default — the PRD's release criterion takes that fallback out of the repo. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A suspended branch is listed and badged rather than hidden (R12). Live on the appointment sheet, where Save waits for the branch and the service picker reads against it (DW3.3)."
         >
+          {/* Nine held, one picked in the topbar switcher. Holding a single
+              location would render nothing at all — that is DW1.2, not this. */}
           <Row label="One branch in scope · resolved, not asked" align="start">
             <LocationsProvider
               persist={false}
               initialLocations={NINE_BRANCH_ESTATE}
-              initialGrants={["shampooch-jvc"]}
+              initialScope={{ kind: "one", locationId: "shampooch-jvc" }}
             >
               <WriteTargetDemo action="This appointment" />
             </LocationsProvider>
@@ -3416,15 +3419,15 @@ export function PlaygroundShowcase() {
               <WriteTargetDemo action="This appointment" />
             </LocationsProvider>
           </Row>
-          {/* Open the list here: two of the nine are paused and both are in it,
-              badged. Pick one and it says why it cannot hold the write, and
-              Save stays shut because nothing was reported upward. */}
-          <Row label="Nine in scope · pick a paused one and it says why (R12)" align="start">
+          {/* Open the list here: two of the nine are suspended and both are in
+              it, badged. Pick one and it says so, and Save stays shut because
+              nothing was reported upward. */}
+          <Row label="Nine in scope · open it and pick a suspended one (R12)" align="start">
             <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
               <WriteTargetDemo action="This appointment" />
             </LocationsProvider>
           </Row>
-          <Row label="Only a paused branch · nowhere to record it (R12)" align="start">
+          <Row label="Only a suspended branch · nowhere to record it (R12)" align="start">
             <LocationsProvider
               persist={false}
               initialLocations={NINE_BRANCH_ESTATE}
@@ -3454,7 +3457,7 @@ export function PlaygroundShowcase() {
         </Section>
         <Section
           title="Multi-location — client visits at another branch"
-          description="SCR-07 (R13, R18, G1). Millie: four visits and three sales across three branches. The read is never narrowed — one business, one owner, one P&L. The grant narrows what you may DO: as the owner every visit carries its actions, as JVC reception the Jumeirah visit still reads in full, price included, with its buttons replaced by the reason. Al Quoz is paused, so it takes writes from nobody. Overview gains 'Visits by branch'."
+          description="SCR-07 (R13, R18, G1). Millie: four visits and three sales across three branches. The read is never narrowed — one business, one owner, one P&L. The grant narrows what you may DO: as the owner every visit carries its actions, as JVC reception the Jumeirah visit still reads in full, price included, with its buttons replaced by the reason. Al Quoz is suspended, so it takes writes from nobody. Overview gains 'Visits by branch'."
         >
           <Row label="Owner · holds every branch" align="start">
             <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
@@ -3504,6 +3507,16 @@ export function PlaygroundShowcase() {
               <LocationsProvider persist={false}>
                 <WhatsAppNumbersPanel />
               </LocationsProvider>
+            </div>
+          </Row>
+        </Section>
+        <Section
+          title="Multi-location — no location access"
+          description="P1.4.6. A person holding no location sees this in place of every operational page. Sign in as ahmed@getcami.io from the dashed strip under Settings › Locations to see it live."
+        >
+          <Row label="No location at all" align="start">
+            <div className="w-full max-w-[560px]">
+              <NoLocationAccess />
             </div>
           </Row>
         </Section>

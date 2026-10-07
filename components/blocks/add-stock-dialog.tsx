@@ -21,11 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { quantityAt } from "@/lib/inventory/branch-stock"
+import { useBranchStock } from "@/lib/inventory/store"
+import { useLocations } from "@/lib/locations/store"
 
 type AddStockDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   productName: string
+  /** Which product, so the count can be read at the location chosen. */
+  productId?: string
   stockOnHand: number
   /** The movement, with the branch it happened at (R11, R16). */
   onSave?: (qty: number, supplyPrice: string, reason: string, locationId: string) => void
@@ -35,9 +40,12 @@ export function AddStockDialog({
   open,
   onOpenChange,
   productName,
+  productId,
   stockOnHand,
   onSave,
 }: AddStockDialogProps) {
+  const { stock } = useBranchStock()
+  const { isMultiLocation, locationName } = useLocations()
   const [qty, setQty] = useState(1)
   const [supplyPrice, setSupplyPrice] = useState("0.00")
   const [savePrice, setSavePrice] = useState(true)
@@ -48,6 +56,7 @@ export function AddStockDialog({
    * shampoo at "the business" is not a thing that happens.
    */
   const [locationId, setLocationId] = useState<string | null>(null)
+  const atLocation = productId && locationId ? quantityAt(stock, productId, locationId) : undefined
 
   function handleSave() {
     if (!locationId) return
@@ -76,7 +85,9 @@ export function AddStockDialog({
           <div className="flex flex-col items-center gap-2 py-2">
             <p className="text-sm font-semibold text-foreground">{productName}</p>
             <span className="rounded-full bg-tomato-3 px-2.5 py-0.5 text-xs font-medium text-tomato-11">
-              {stockOnHand} in stock
+              {atLocation !== undefined && locationId
+                ? `${atLocation} in stock${isMultiLocation ? ` at ${locationName(locationId)}` : ""}`
+                : `${stockOnHand} in stock`}
             </span>
           </div>
 

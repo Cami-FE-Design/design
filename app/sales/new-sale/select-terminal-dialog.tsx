@@ -130,7 +130,7 @@ export function SelectTerminalDialog({
                     {terminal.name}
                   </span>
                   <span className="truncate text-muted-foreground text-sm leading-5">
-                    {reason ?? locationName(terminal.locationId)}
+                    {reason ?? (locationName(terminal.locationId) || "No location")}
                   </span>
                 </span>
               </button>

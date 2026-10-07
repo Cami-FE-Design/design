@@ -32,6 +32,7 @@ import { useCreatedCombos } from "@/lib/service-catalog/created-combos"
 import { findOffering, resolveOffering } from "@/lib/service-catalog/offerings"
 import { useLocationOfferings } from "@/lib/service-catalog/offerings-store"
 import { checkPackageAtBranch } from "@/lib/service-catalog/package-branch-check"
+import { machinesForSale, merchantMachines } from "@/lib/terminals/at-checkout"
 import { refusalMessage, refuseCharge } from "@/lib/terminals/charge-at-branch"
 import {
   DEMO_SESSIONS,
@@ -344,12 +345,13 @@ function CartFlowInner({
   // the two-terminal demo set rather than hiding the flow from review.
   const { isMultiLocation, granted } = useLocations()
   const terminalStore = useTerminals()
-  // Counted the way Payment settings lists them: only machines at a location
-  // this person holds. A saved row with no location, or one from another
-  // business, is invisible in settings — counting it here made the store look
-  // configured, skipped the demo set, and left every location with no machine.
-  const ownTerminals = terminalStore.terminals.filter((t) =>
-    granted.some((l) => l.id === t.locationId),
+  // Counted the way Payment settings lists them: machines at a location this
+  // person holds, and machines with no location. One from another business is
+  // invisible in settings — counting it here made the store look configured,
+  // skipped the demo set, and left every location with no machine.
+  const ownTerminals = merchantMachines(
+    terminalStore.terminals,
+    granted.map((l) => l.id),
   )
   const scenario = terminalScenario(deepTerminals)
   // The unconfigured fallback spans the estate for a chain and stays the
@@ -381,11 +383,10 @@ function CartFlowInner({
       // `?terminals=moved` stands for a machine already attached to this sale
       // and moved to another branch since, so it is NOT filtered out — that is
       // the whole case. Everything else is scoped.
-      deepTerminals === "moved"
-        ? registeredTerminals
-        : isMultiLocation && saleLocationId
-          ? registeredTerminals.filter((t) => t.locationId === saleLocationId)
-          : registeredTerminals,
+      // A chain never offers a machine with no location; a single site does.
+      machinesForSale(registeredTerminals, saleLocationId, isMultiLocation, {
+        keepPlaced: deepTerminals === "moved",
+      }),
     [registeredTerminals, isMultiLocation, saleLocationId, deepTerminals],
   )
 

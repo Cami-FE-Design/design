@@ -1178,7 +1178,7 @@ const SECTIONS: Section[] = [
         epic: "Epic 2 · Create branches and control access",
         path: "/playground#multi-location-branch-switcher",
         label: "Branch switcher · SCR-04 (playground)",
-        note: "Five scopes side by side: all branches, one, a subset, a single-branch business (renders nothing — DW1.2) and a staff member granted none (locked, because empty is never 'all' — R24). Also live in the topbar on every route.",
+        note: "Five scopes side by side: all branches, one, a subset, a single-branch business (renders nothing — DW1.2) and a staff member granted none (locked, because empty is never 'all' — R24). Also live in the topbar on every route. Hover a location for Only, which leaves just that one in view.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
@@ -1227,6 +1227,42 @@ const SECTIONS: Section[] = [
         path: "/playground#multi-location-loading-and-error",
         label: "Loading and error · PRD-169 Done-means (playground)",
         note: "Locations, Deals, WhatsApp numbers, Stock and Team access in the two states a route never reaches on local data — one toggle drives all five, Try again puts them back. Error never shows a partial list (G7): stock drops its total. Team access will not Confirm and never says 'No location granted' before the grant has loaded (R24).",
+      },
+      {
+        epic: "Epic 2 · Create branches and control access",
+        path: "/clients",
+        label: "No location access, full page · P1.4.6",
+        note: "Sign in as ahmed@getcami.io from the dashed strip under Settings › Locations: every operational page shows the no-access state instead of its content. Sign back in as Maz Khan from the same strip.",
+      },
+      {
+        epic: "Epic 2 · Create branches and control access",
+        path: "/playground#multi-location-no-location-access",
+        label: "No location access · P1.4.6 (playground)",
+        note: "Both cases side by side: no location at all, and a location they do not hold.",
+      },
+      {
+        epic: "Epic 2 · Create branches and control access",
+        path: "/appointments",
+        label: "Location switcher on a phone · P1.5.1",
+        note: "At phone width the switcher sits on its own row under the topbar and opens the same dropdown. Desktop is unchanged.",
+      },
+      {
+        epic: "Epic 2 · Create branches and control access",
+        path: "/settings/team",
+        label: "A team member needs a location · P1.4.7",
+        note: "Add member opens with a location already ticked. Untick it and Add: 'Pick at least one location.' with a toast. The access dialog (?access=m_ahmed) holds the same rule. Owners are exempt.",
+      },
+      {
+        epic: "Epic 2 · Create branches and control access",
+        path: "/shell-demo?settings=locations&loc=shampooch-jvc&lt=invoicing",
+        label: "Branch tax identity · SCR-12",
+        note: "Opens JVC's Invoicing tab directly — `?loc=<id>&lt=<tab>` on the Locations panel. Every inheritable row says whose value it is (R23). JVC overrides only its receipt prefix; Jumeirah is a separate registered company with its own TRN. Receipt numbers print with the prefix, which is what stops two branches colliding at 21857 (R25), and the forward-only warning is load-bearing (INV-12). Tipping is whole-block — Al Quoz is the seeded custom case.",
+      },
+      {
+        epic: "Epic 2 · Create branches and control access",
+        path: "/playground#multi-location-branch-lifecycle",
+        label: "Branch state badge · SCR-01 (playground)",
+        note: "The four lifecycle states in one row (R01, R12). Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
@@ -1313,6 +1349,36 @@ const SECTIONS: Section[] = [
         note: "R16 — quantity and reorder points per branch, the business total derived and never stored (DW4.2). Rows first, sum after: 18 and -2 add up to a healthy-looking 16. Empty and negative stay apart. Also in the Products Quantity column, healthy branches folded and the rest capped at five worst-first.",
       },
       {
+        epic: "Epic 4 · Complete branch checkout",
+        path: "/sales/sales-list?sale=18",
+        label: "Sale detail, where each payment was taken · P1.8.2",
+        note: "The sale's location sits in the header. A payment taken at another location names it — the AED 20 card deposit at Jumeirah. Someone who does not hold that location gets no Refund on it and no Void.",
+      },
+      {
+        epic: "Epic 4 · Complete branch checkout",
+        path: "/sales/invoice-document?sale=18",
+        label: "Invoice, location per payment · P1.8.11",
+        note: "A payment taken at another location names it on the invoice.",
+      },
+      {
+        epic: "Epic 4 · Complete branch checkout",
+        path: "/sales/gift-cards-sold?card=gc-2",
+        label: "Gift card history by location · P1.11.7",
+        note: "Activity: each redemption names the location it was used at.",
+      },
+      {
+        epic: "Epic 4 · Complete branch checkout",
+        path: "/products?product=p2",
+        label: "Stock at the chosen location",
+        note: "⋯ → Remove stock or Add stock → pick a location: the count shown is that location's. Stock can still go below zero.",
+      },
+      {
+        epic: "Epic 4 · Complete branch checkout",
+        path: "/shell-demo?settings=payments&pp=terminal&tp=full",
+        label: "Card machines by location · P1.8.3.1",
+        note: "A machine with no location reads 'No location' and offers Set location; a placed machine's ⋯ offers Change location. A chain's checkout never offers a machine with no location; a single-location business's still does.",
+      },
+      {
         epic: "Epic 5 · Preserve existing workflows for the pilot",
         path: "/playground#multi-location-branch-whatsapp-numbers",
         label: "Branch WhatsApp numbers · SCR-14 (playground)",
@@ -1326,9 +1392,9 @@ const SECTIONS: Section[] = [
       },
       {
         epic: "Epic 6 · Migrate and activate the pilot",
-        path: "/admin/businesses?business=shampooch",
-        label: "CamiHQ chain view · SCR-16",
-        note: "Shampooch → Locations. E15 — reuses the owner's components (estate from lib/locations, money from MoneyByLocationView) rather than a second chain dashboard. Read-only: standing a chain up happens as the owner, where the change has an actor (INV-08). Absent for single-site partners — open Velvet Paw.",
+        path: "/admin/businesses?business=shampooch&section=locations",
+        label: "CamiHQ chain view and multi-location switch · SCR-16",
+        note: "Shampooch → Locations. The multi-location switch sits at the top, off by default, and turns on only once the data check passes; a failed check lists every finding — the dashed strip shows it failing. It shows for every partner, single-location ones too (Velvet Paw). Below it, a chain's estate and money.",
       },
     ],
   },
@@ -1338,12 +1404,6 @@ const SECTIONS: Section[] = [
     description:
       "Adapt local services, prices, fiscal settings and lifecycle. No Phase 2 tickets yet, so this follows the phase plan.",
     screens: [
-      {
-        epic: "Epic 7 · Customize branch services and fiscal settings",
-        path: "/shell-demo?settings=locations&loc=shampooch-jvc&lt=invoicing",
-        label: "Branch tax identity · SCR-12",
-        note: "Opens JVC's Invoicing tab directly — `?loc=<id>&lt=<tab>` on the Locations panel. Every inheritable row says whose value it is (R23). JVC overrides only its receipt prefix; Jumeirah is a separate registered company with its own TRN. Receipt numbers print with the prefix, which is what stops two branches colliding at 21857 (R25), and the forward-only warning is load-bearing (INV-12). Tipping is whole-block — Al Quoz is the seeded custom case.",
-      },
       {
         epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/catalogs/service-menu?service=bath-small&ss=locations",
@@ -1379,12 +1439,6 @@ const SECTIONS: Section[] = [
         path: "/playground#multi-location-package-mismatch-at-checkout",
         label: "Package mismatch · SCR-13 (playground)",
         note: "KC1.5, corrected 2026-09-03: warn, never block. Four cases — same terms (nothing renders), priced differently, different duration, not offered here. Both figures shown so reception can decide in front of the client, and the choice recorded on the sale. The warning itself; the cart it sits in is under 'Packages at the till'.",
-      },
-      {
-        epic: "Epic 8 · Branch lifecycle and booking refinements",
-        path: "/playground#multi-location-branch-lifecycle",
-        label: "Branch state badge · SCR-01 (playground)",
-        note: "The four lifecycle states in one row (R01, R12). Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find.",
       },
       {
         epic: "Epic 8 · Branch lifecycle and booking refinements",

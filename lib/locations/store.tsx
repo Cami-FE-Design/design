@@ -147,7 +147,11 @@ type LocationsValue = {
   /** HQ only. Recorded with who did it, because it is an HQ act (INV-08). */
   setEnabled: (enabled: boolean) => void
 
-  /** No grant at all. Performs no operational read or write, and never means "all" (R24). */
+  /**
+   * No grant at all, on a business with multi-location switched on. Performs no
+   * operational read or write, and never means "all" (R24). With the switch off
+   * there are no grants to hold, so nobody is gated.
+   */
   hasNoAccess: boolean
 
   /** The active scope of the session (R03). */
@@ -558,7 +562,7 @@ export function LocationsProvider({
       isMultiLocation: actsAsChain(enablement, granted.length),
       enablement,
       setEnabled,
-      hasNoAccess: granted.length === 0,
+      hasNoAccess: enablement.enabled && granted.length === 0,
       scope,
       setScope,
       scopedLocations,

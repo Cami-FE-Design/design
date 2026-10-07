@@ -38,6 +38,7 @@ import { Fragment, useEffect, useRef, useState } from "react"
 import { CitySelect } from "@/components/blocks/city-select"
 import { FullScreenEditDialog as SharedFullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
+import { NO_ACCESS_NEXT_STEP, NO_ACCESS_TITLE } from "@/components/blocks/no-location-access"
 import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { SettingsPanel } from "@/components/blocks/settings-panel"
 import { SettingsRow } from "@/components/blocks/settings-row"
@@ -262,7 +263,7 @@ export function LocationForm({
           <LoadError what="locations" onRetry={onRetry} />
         ) : locations.length === 0 ? (
           <p className="rounded-xl bg-muted/50 p-3 text-sm leading-5 text-muted-foreground">
-            You have not been given any locations. Ask the account owner for access.
+            {NO_ACCESS_TITLE}. {NO_ACCESS_NEXT_STEP}
           </p>
         ) : (
           locations.map((loc) => (
