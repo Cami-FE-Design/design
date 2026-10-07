@@ -1597,7 +1597,7 @@ type SaleDetailDialogProps = {
 
 export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialogProps) {
   const router = useRouter()
-  const { granted, isMultiLocation, locationName } = useLocations()
+  const { granted, isMultiLocation, locationName, enablement } = useLocations()
   const open = sale !== null
   // Hold the last sale so the dialog animates out with its content still
   // rendered after `sale` is cleared.
@@ -1627,8 +1627,10 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
   const elsewhereIds = new Set(elsewhere.map((p) => p.id))
   const refundable = payments.filter((p) => !elsewhereIds.has(p.id))
   // Taken somewhere other than the sale's own location: the only payments
-  // whose location is worth naming.
-  const takenElsewhere = (p: SalePayment) => isMultiLocation && p.locationId !== data?.locationId
+  // whose location is worth naming. Named for anyone at a multi-location
+  // business, including someone who holds one location — that is who most
+  // needs to know a payment, and its refund, belong somewhere else.
+  const takenElsewhere = (p: SalePayment) => enablement.enabled && p.locationId !== data?.locationId
   const refundPayment = refundable.find((p) => p.id === refundPaymentId) ?? null
   function openPaymentRefund(id: string) {
     setRefundPaymentId(id)

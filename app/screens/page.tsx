@@ -1178,7 +1178,7 @@ const SECTIONS: Section[] = [
         epic: "Epic 2 · Create branches and control access",
         path: "/playground#multi-location-branch-switcher",
         label: "Branch switcher · SCR-04 (playground)",
-        note: "Five scopes side by side: all branches, one, a subset, a single-branch business (renders nothing — DW1.2) and a staff member granted none (locked, because empty is never 'all' — R24). Also live in the topbar on every route.",
+        note: "Five scopes side by side: all branches, one, a subset, a single-branch business (renders nothing — DW1.2) and a staff member granted none (locked, because empty is never 'all' — R24). Also live in the topbar on every route. Hover a location for Only, which leaves just that one in view.",
       },
       {
         epic: "Epic 2 · Create branches and control access",

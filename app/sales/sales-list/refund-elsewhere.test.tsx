@@ -52,6 +52,11 @@ describe("a payment taken at another location", () => {
     expect(screen.getAllByText("Shampooch JVC")).toHaveLength(1)
   })
 
+  it("still names the other location for a viewer who holds one", () => {
+    renderAs(["shampooch-jvc"])
+    expect(screen.getByText(/· Shampooch Jumeirah$/)).toBeDefined()
+  })
+
   it("offers no void to a viewer who does not hold it, and keeps refund for the rest", () => {
     renderAs(["shampooch-jvc"])
     openQuickActions()

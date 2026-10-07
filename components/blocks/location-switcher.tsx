@@ -160,7 +160,7 @@ export function LocationSwitcher({ className }: { className?: string }) {
                   e.preventDefault()
                   toggle(loc.id)
                 }}
-                className={cn("gap-2", isLastSelected && "cursor-default")}
+                className={cn("group/loc gap-2", isLastSelected && "cursor-default")}
                 aria-checked={checked}
                 role="menuitemcheckbox"
               >
@@ -169,6 +169,22 @@ export function LocationSwitcher({ className }: { className?: string }) {
                 />
                 <span className="min-w-0 flex-1 truncate">{loc.name}</span>
                 <LocationStatusBadge status={loc.status} />
+                {/* Narrows to this one in a click, instead of unticking the
+                    rest one by one. Shown on hover or focus; absent when this
+                    is already the only one. */}
+                {isLastSelected ? null : (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setScope({ kind: "one", locationId: loc.id })
+                    }}
+                    className="shrink-0 rounded-md px-1.5 py-0.5 text-xs font-medium text-cami-violet-11 opacity-0 transition-opacity hover:bg-muted group-hover/loc:opacity-100 group-focus/loc:opacity-100 focus-visible:opacity-100"
+                  >
+                    Only
+                  </button>
+                )}
               </DropdownMenuItem>
             )
           })}
