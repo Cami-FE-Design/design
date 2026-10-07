@@ -108,7 +108,7 @@ export const APPT_STATUS_LABEL: Record<ClientApptStatus, string> = {
   arrived: "Arrived",
   started: "Started",
   completed: "Completed",
-  canceled: "Canceled",
+  canceled: "Cancelled",
   "no-show": "No-show",
 }
 

@@ -6,7 +6,6 @@ import {
   ArrowLeftIcon,
   BuildingIcon,
   CalendarClockIcon,
-  CalendarXIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronsRightIcon,
@@ -23,10 +22,8 @@ import {
   MessageSquareIcon,
   MoreVerticalIcon,
   PencilIcon,
-  PlayIcon,
   RepeatIcon,
   TagIcon,
-  ThumbsUpIcon,
   UsersIcon,
   XIcon,
 } from "lucide-react"
@@ -68,6 +65,11 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import type { PlaceRef } from "@/lib/address"
+import {
+  BOOKING_STATUS_LABEL,
+  BOOKING_STATUS_OPTIONS,
+  BOOKING_STATUS_TONE,
+} from "@/lib/appointments/status"
 import { clientNotesFor } from "@/lib/client-notes"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
@@ -120,100 +122,6 @@ function formatHeaderDate(iso: string): string {
 
 // ─── Status pill: status-keyed hero band styling + dropdown rules ─────────────
 
-type StatusTheme = {
-  fill: string
-  text: string
-  subText: string
-  /** Pill background within the hero band. */
-  pillBg: string
-  pillText: string
-}
-
-// Hero band palette — mirrors NewAppointmentSheet STATUS_THEME so the detail
-// sheet at /sales/appointments-list reads identically to the edit modal at
-// /appointments for the same status. Pastel step-5/6 fills with dark text on
-// passive/active states; lime/9 for "Started" with lime-12 text; tomato/8 for
-// no-show destructive weight. The status pill inside the band uses solid
-// bg-foreground (matching the NewAppointmentSheet trigger) for consistent
-// pill styling across both modals.
-const STATUS_THEME: Record<MockBookingStatus, StatusTheme> = {
-  booked: {
-    fill: "bg-blue-5",
-    text: "text-blue-12",
-    subText: "text-blue-12/70",
-    pillBg: "bg-foreground",
-    pillText: "text-background",
-  },
-  confirmed: {
-    fill: "bg-lime-5",
-    text: "text-lime-12",
-    subText: "text-lime-12/70",
-    pillBg: "bg-foreground",
-    pillText: "text-background",
-  },
-  "checked-in": {
-    fill: "bg-lime-3",
-    text: "text-lime-12",
-    subText: "text-lime-12/70",
-    pillBg: "bg-foreground",
-    pillText: "text-background",
-  },
-  "ready-for-pickup": {
-    fill: "bg-lime-9",
-    text: "text-lime-12",
-    subText: "text-lime-12/70",
-    pillBg: "bg-foreground",
-    pillText: "text-background",
-  },
-  completed: {
-    fill: "bg-cami-gray-6",
-    text: "text-cami-gray-12",
-    subText: "text-cami-gray-12/70",
-    pillBg: "bg-foreground",
-    pillText: "text-background",
-  },
-  cancelled: {
-    fill: "bg-olive-5",
-    text: "text-olive-12",
-    subText: "text-olive-12/70",
-    pillBg: "bg-foreground",
-    pillText: "text-background",
-  },
-  "no-show": {
-    fill: "bg-tomato-8",
-    text: "text-tomato-12",
-    subText: "text-tomato-12/70",
-    pillBg: "bg-foreground",
-    pillText: "text-background",
-  },
-}
-
-type StatusOption = {
-  value: MockBookingStatus
-  label: string
-  Icon: LucideIcon
-  destructive?: boolean
-}
-
-const FULL_STATUS_OPTIONS: StatusOption[] = [
-  { value: "booked", label: "Booked", Icon: CalendarClockIcon },
-  { value: "confirmed", label: "Confirmed", Icon: ThumbsUpIcon },
-  { value: "checked-in", label: "Arrived", Icon: MapPinIcon },
-  { value: "ready-for-pickup", label: "Started", Icon: PlayIcon },
-  { value: "no-show", label: "No-show", Icon: EyeOffIcon, destructive: true },
-  { value: "cancelled", label: "Canceled", Icon: CalendarXIcon, destructive: true },
-]
-
-const STATUS_LABEL: Record<MockBookingStatus, string> = {
-  booked: "Booked",
-  confirmed: "Confirmed",
-  "checked-in": "Arrived",
-  "ready-for-pickup": "Started",
-  completed: "Completed",
-  cancelled: "Canceled",
-  "no-show": "No-show",
-}
-
 function StatusPill({
   status,
   onChange,
@@ -221,7 +129,6 @@ function StatusPill({
   status: MockBookingStatus
   onChange: (next: MockBookingStatus) => void
 }) {
-  const theme = STATUS_THEME[status]
   const isTerminal = status === "completed" || status === "cancelled"
 
   if (isTerminal) {
@@ -229,11 +136,10 @@ function StatusPill({
       <span
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium",
-          theme.pillBg,
-          theme.pillText,
+          "bg-foreground text-background",
         )}
       >
-        {STATUS_LABEL[status]}
+        {BOOKING_STATUS_LABEL[status]}
         <CheckIcon className="size-3.5" />
       </span>
     )
@@ -243,7 +149,7 @@ function StatusPill({
   const options =
     status === "no-show"
       ? [{ value: "booked" as const, label: "Undo no-show", Icon: EyeOffIcon }]
-      : FULL_STATUS_OPTIONS
+      : BOOKING_STATUS_OPTIONS
 
   return (
     <DropdownMenu>
@@ -252,11 +158,10 @@ function StatusPill({
           type="button"
           className={cn(
             "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-opacity hover:opacity-90",
-            theme.pillBg,
-            theme.pillText,
+            "bg-foreground text-background",
           )}
         >
-          {STATUS_LABEL[status]}
+          {BOOKING_STATUS_LABEL[status]}
           <ChevronDownIcon className="size-3.5" />
         </button>
       </DropdownMenuTrigger>
@@ -1068,7 +973,7 @@ export function AppointmentDetailSheet({
   const [mode, setMode] = useState<SheetMode>(initialMode ?? "detail")
   // Read above the `!booking` early return — hooks can't sit behind it.
   const { log: notificationLog } = useNotifications()
-  // Selecting "Canceled" opens a full-screen confirmation flow rather than
+  // Selecting "Cancelled" opens a full-screen confirmation flow rather than
   // flipping the status outright; the status only changes once confirmed.
   const [cancelOpen, setCancelOpen] = useState(false)
 
@@ -1132,7 +1037,7 @@ export function AppointmentDetailSheet({
     },
   ]
 
-  const theme = STATUS_THEME[status]
+  const theme = BOOKING_STATUS_TONE[status]
   const iso = isoOfAnchor(booking.dayOffset)
   const dateLabel = formatHeaderDate(iso)
   const timeLabel = formatTime(booking.start)

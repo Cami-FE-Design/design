@@ -87,6 +87,7 @@ import {
   paymentsFor,
   type SalePayment,
 } from "@/lib/sales/payments"
+import { SALE_STATUS_CLASS, SALE_STATUS_LABEL } from "@/lib/sales/status"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -580,21 +581,6 @@ export const MOCK_SALES: Sale[] = [
   },
 ]
 
-// Mirrors the SALE_BADGE_CLASS in client-detail-dialog (step-5 + step-12) so
-// the same sale status reads identically in the listing row, the detail
-// dialog header pill, and the Sales tab badges in the client modal. Hue map:
-// completed = lime (paid), part-paid = gold, unpaid = cami-yellow, refunded
-// = olive, voided = tomato. Voided uses step-8/-12 to match the destructive
-// No-show badge weight in the appointments list — both are terminal "bad"
-// states and read with the same visual emphasis.
-const STATUS_META: Record<SaleStatus, { label: string; className: string }> = {
-  completed: { label: "Completed", className: "bg-lime-5 text-lime-12" },
-  "part-paid": { label: "Part Paid", className: "bg-gold-5 text-gold-12" },
-  unpaid: { label: "Unpaid", className: "bg-cami-yellow-3 text-cami-yellow-11" },
-  refunded: { label: "Refunded", className: "bg-olive-5 text-olive-12" },
-  voided: { label: "Voided", className: "bg-tomato-8 text-tomato-12" },
-}
-
 // ─── Draft mock data ──────────────────────────────────────────────────────────
 //
 // Drafts are unsubmitted sales — no sale number yet, just a short hex reference
@@ -752,17 +738,6 @@ function SaleLineRow({ item }: { item: SaleItem }) {
       </div>
     </li>
   )
-}
-
-// Status pill used at the top of the centered sale-detail dialog header.
-// Same palette as the listing row badge for visual continuity between the
-// row and the open detail dialog.
-const STATUS_DIALOG_PILL: Record<SaleStatus, string> = {
-  completed: "bg-lime-5 text-lime-12",
-  "part-paid": "bg-gold-5 text-gold-12",
-  unpaid: "bg-cami-yellow-3 text-cami-yellow-11",
-  refunded: "bg-olive-5 text-olive-12",
-  voided: "bg-tomato-8 text-tomato-12",
 }
 
 // ─── Sort ─────────────────────────────────────────────────────────────────────
@@ -1166,7 +1141,10 @@ function SalesListPageInner() {
               </TableHeader>
               <TableBody>
                 {sorted.map((s) => {
-                  const status = STATUS_META[s.status]
+                  const status = {
+                    label: SALE_STATUS_LABEL[s.status],
+                    className: SALE_STATUS_CLASS[s.status],
+                  }
                   return (
                     <TableRow key={s.id}>
                       <TableCell className="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] transition-colors [tr:hover_&]:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))]">
@@ -1380,8 +1358,11 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
   if (!data) return null
 
   const giftCard = data.giftCard
-  const status = STATUS_META[data.status]
-  const pill = STATUS_DIALOG_PILL[data.status]
+  const status = {
+    label: SALE_STATUS_LABEL[data.status],
+    className: SALE_STATUS_CLASS[data.status],
+  }
+  const pill = SALE_STATUS_CLASS[data.status]
   const gross = Math.round(data.grossMinor / 100)
 
   // Demo payment numbers — derived from status so the receipt body reads right
@@ -2150,7 +2131,7 @@ function DraftDetailDialog({
                   <span
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium",
-                      STATUS_DIALOG_PILL.unpaid,
+                      SALE_STATUS_CLASS.unpaid,
                     )}
                   >
                     Unpaid

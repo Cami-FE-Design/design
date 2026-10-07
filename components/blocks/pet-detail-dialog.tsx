@@ -102,7 +102,7 @@ const VISIT_STATUS_MORE: Array<{ value: PetVisitStatus; label: string }> = [
   { value: "arrived", label: "Arrived" },
   { value: "started", label: "Started" },
   { value: "completed", label: "Completed" },
-  { value: "canceled", label: "Canceled" },
+  { value: "canceled", label: "Cancelled" },
   { value: "no-show", label: "No-show" },
 ]
 

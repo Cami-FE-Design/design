@@ -74,7 +74,7 @@ const STATUS_LABEL: Record<DaycareStatus, string> = {
   booked: "Booked",
   "checked-in": "Checked in",
   "checked-out": "Checked out",
-  cancelled: "Canceled",
+  cancelled: "Cancelled",
   "no-show": "No-show",
 }
 
@@ -88,7 +88,7 @@ const STATUS_OPTIONS: {
   { value: "checked-in", label: "Checked in", Icon: MapPinIcon },
   { value: "checked-out", label: "Checked out", Icon: DoorOpenIcon },
   { value: "no-show", label: "No-show", Icon: EyeOffIcon, destructive: true },
-  { value: "cancelled", label: "Canceled", Icon: CalendarXIcon, destructive: true },
+  { value: "cancelled", label: "Cancelled", Icon: CalendarXIcon, destructive: true },
 ]
 
 function StatusPill({

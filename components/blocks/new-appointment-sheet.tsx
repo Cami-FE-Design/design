@@ -4,27 +4,20 @@ import {
   AlertCircleIcon,
   ArrowLeftIcon,
   BuildingIcon,
-  CalendarClockIcon,
-  CalendarXIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronRightIcon,
   ChevronsRightIcon,
   CirclePlusIcon,
   CreditCardIcon,
-  EyeOffIcon,
   FileTextIcon,
   FlagIcon,
-  type LucideIcon,
-  MapPinIcon,
   MessageCircleIcon,
   MoreHorizontalIcon,
   PencilIcon,
-  PlayIcon,
   PlusIcon,
   RotateCwIcon,
   TagIcon,
-  ThumbsUpIcon,
   Trash2Icon,
   XIcon,
 } from "lucide-react"
@@ -95,6 +88,11 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { PlaceRef } from "@/lib/address"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
+import {
+  BOOKING_STATUS_LABEL,
+  BOOKING_STATUS_OPTIONS,
+  BOOKING_STATUS_TONE,
+} from "@/lib/appointments/status"
 import { openAppointmentsFor } from "@/lib/clients/open-appointments"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { useLocations } from "@/lib/locations/store"
@@ -358,13 +356,6 @@ function defaultPets(startTime: string): SelectedPet[] {
   ]
 }
 
-type StatusOption = {
-  value: MockBookingStatus
-  label: string
-  Icon: LucideIcon
-  destructive?: boolean
-}
-
 // Menu order mirrors Fresha: Booked → Confirmed → Arrived → Started → No-show
 // → Cancel. "Completed" is intentionally omitted — it's reached automatically
 // after a service is delivered, not a forward-action the operator picks.
@@ -402,32 +393,6 @@ function repeatLabel(config: RepeatConfig): string {
   }
   const base = REPEAT_OPTIONS.find((o) => o.value === config.frequency)?.label ?? "Doesn't repeat"
   return base.toLowerCase()
-}
-
-const STATUS_OPTIONS: StatusOption[] = [
-  { value: "booked", label: "Booked", Icon: CalendarClockIcon },
-  { value: "confirmed", label: "Confirmed", Icon: ThumbsUpIcon },
-  { value: "checked-in", label: "Arrived", Icon: MapPinIcon },
-  { value: "ready-for-pickup", label: "Started", Icon: PlayIcon },
-  { value: "no-show", label: "No-show", Icon: EyeOffIcon, destructive: true },
-  { value: "cancelled", label: "Canceled", Icon: CalendarXIcon, destructive: true },
-]
-
-// Hero-header palette. Passive/done states use pastel fill tokens (step 5/6)
-// paired with foreground (step 12). Active states (Confirmed, Started) use the
-// saturated step 9 — Confirmed = Cami brand violet with white text; Started =
-// lime/9 with lime/12 dark text (lime/9 is too bright for white per Radix
-// contrast guidance, same rule as yellow/amber). No-show keeps tomato/8 for
-// destructive weight. `checked-in` (Arrived) sits at lime/5 pastel — revisit
-// once that state gets its own token.
-const STATUS_THEME: Record<MockBookingStatus, { fill: string; text: string; subText: string }> = {
-  booked: { fill: "bg-blue-5", text: "text-blue-12", subText: "text-blue-12/70" },
-  confirmed: { fill: "bg-lime-5", text: "text-lime-12", subText: "text-lime-12/70" },
-  "checked-in": { fill: "bg-lime-3", text: "text-lime-12", subText: "text-lime-12/70" },
-  "ready-for-pickup": { fill: "bg-lime-9", text: "text-lime-12", subText: "text-lime-12/70" },
-  completed: { fill: "bg-cami-gray-6", text: "text-cami-gray-12", subText: "text-cami-gray-12/70" },
-  cancelled: { fill: "bg-olive-5", text: "text-olive-12", subText: "text-olive-12/70" },
-  "no-show": { fill: "bg-tomato-8", text: "text-tomato-12", subText: "text-tomato-12/70" },
 }
 
 type NewAppointmentSheetProps = {
@@ -536,9 +501,8 @@ export function NewAppointmentSheet({
   // Only to name the branch an existing booking already sits at. The create
   // flow's target comes from WriteTargetLocation, which resolves its own.
   const { isMultiLocation, locationName } = useLocations()
-  const theme = STATUS_THEME[status]
-  const statusLabel =
-    STATUS_OPTIONS.find((s) => s.value === status)?.label ?? STATUS_FALLBACK_LABEL[status]
+  const theme = BOOKING_STATUS_TONE[status]
+  const statusLabel = BOOKING_STATUS_LABEL[status]
   const dateLabel = formatHeaderDate(date)
   const timeLabel = formatTime(startTime)
   const totalMinor = pets.reduce(
@@ -955,7 +919,7 @@ export function NewAppointmentSheet({
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-52">
-                      {STATUS_OPTIONS.map((option) => (
+                      {BOOKING_STATUS_OPTIONS.map((option) => (
                         <DropdownMenuItem
                           key={option.value}
                           onSelect={() => setStatus(option.value)}
@@ -2034,17 +1998,4 @@ function formatTime(hhmm: string): string {
   const period = h >= 12 ? "PM" : "AM"
   const display = ((h + 11) % 12) + 1
   return `${display}:${mStr ?? "00"}${period}`
-}
-
-// Status labels for values not exposed in the dropdown (e.g. `completed` is
-// reached automatically, never picked from the menu, but still needs a pill
-// label if the sheet opens against an existing booking in that state).
-const STATUS_FALLBACK_LABEL: Record<MockBookingStatus, string> = {
-  booked: "Booked",
-  confirmed: "Confirmed",
-  "checked-in": "Arrived",
-  "ready-for-pickup": "Started",
-  completed: "Completed",
-  cancelled: "Canceled",
-  "no-show": "No-show",
 }

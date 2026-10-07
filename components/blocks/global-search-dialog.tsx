@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { SearchInput } from "@/components/ui/search-input"
+import { bookingStatusBadge } from "@/lib/appointments/status"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
@@ -39,18 +40,6 @@ import { cn } from "@/lib/utils"
  */
 const fullScreenDialogClass =
   "fixed! inset-0! top-0! left-0! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! flex-col bg-background! p-0"
-
-// Same status→chip palette as the appointments list and detail sheet so a
-// "Booked" chip reads identically everywhere.
-const STATUS_META: Record<MockBookingStatus, { label: string; className: string }> = {
-  booked: { label: "Booked", className: "bg-blue-5 text-blue-12" },
-  confirmed: { label: "Confirmed", className: "bg-lime-5 text-lime-12" },
-  "checked-in": { label: "Arrived", className: "bg-lime-3 text-lime-12" },
-  "ready-for-pickup": { label: "Started", className: "bg-lime-9 text-lime-12" },
-  completed: { label: "Completed", className: "bg-cami-gray-6 text-cami-gray-12" },
-  cancelled: { label: "Canceled", className: "bg-olive-5 text-olive-12" },
-  "no-show": { label: "No-show", className: "bg-tomato-8 text-tomato-12" },
-}
 
 // Demo dates anchor on 18 May 2026 (a Monday) — the same anchor the
 // appointments list and the detail sheet use. Bookings carrying a `dayOffset`
@@ -310,7 +299,10 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                               <AppointmentSubject appt={appt} />
                             </span>
                             <Badge
-                              className={cn("border-transparent", STATUS_META.booked.className)}
+                              className={cn(
+                                "border-transparent",
+                                bookingStatusBadge("booked").className,
+                              )}
                             >
                               {appt.status ?? "Booked"}
                             </Badge>
@@ -343,7 +335,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                 ) : (
                   <ul className="mt-4 flex flex-col">
                     {bookingMatches.map((b, index) => {
-                      const status = STATUS_META[b.status]
+                      const status = bookingStatusBadge(b.status)
                       const staff = STAFF_BY_ID[b.staffId]
                       const date = dateOf(b)
                       // Date shows once per day group; later cards on the same day

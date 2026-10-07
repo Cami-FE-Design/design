@@ -36,6 +36,7 @@ import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Separator } from "@/components/ui/separator"
+import { BOOKING_STATUS_LABEL } from "@/lib/appointments/status"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { formatPetNotes } from "@/lib/pet-notes"
@@ -45,7 +46,6 @@ import { cn } from "@/lib/utils"
 // since the full status palette (blue/lime/teal/amber/olive/tomato) is not
 // yet wired in globals.css. Intent column documents the design-spec target.
 type StatusMeta = {
-  label: string
   Icon: LucideIcon
   // Status header bar background + foreground (saturated pill on the popover top)
   fill: string
@@ -59,7 +59,6 @@ type StatusMeta = {
 const STATUS_META: Record<MockBookingStatus, StatusMeta> = {
   // intent: blue/5 + blue/12 + dashed blue/11
   booked: {
-    label: "Booked",
     Icon: Clock3Icon,
     fill: "bg-cami-gray-3",
     foreground: "text-cami-gray-12",
@@ -68,7 +67,6 @@ const STATUS_META: Record<MockBookingStatus, StatusMeta> = {
   },
   // intent: lime/5 + lime/12 + lime/11
   confirmed: {
-    label: "Confirmed",
     Icon: ThumbsUpIcon,
     fill: "bg-cami-green-3",
     foreground: "text-cami-green-12",
@@ -76,7 +74,6 @@ const STATUS_META: Record<MockBookingStatus, StatusMeta> = {
   },
   // intent: teal/5 + teal/12 + teal/11
   "checked-in": {
-    label: "Arrived",
     Icon: ArrowRightToLineIcon,
     fill: "bg-cami-sage-3",
     foreground: "text-cami-sage-12",
@@ -84,7 +81,6 @@ const STATUS_META: Record<MockBookingStatus, StatusMeta> = {
   },
   // intent: amber/5 + amber/12 + amber/11
   "ready-for-pickup": {
-    label: "Started",
     Icon: BellRingIcon,
     fill: "bg-cami-yellow-3",
     foreground: "text-cami-yellow-12",
@@ -92,14 +88,12 @@ const STATUS_META: Record<MockBookingStatus, StatusMeta> = {
   },
   // intent: gray/6 + gray/12 + gray/11
   completed: {
-    label: "Completed",
     Icon: CheckIcon,
     fill: "bg-cami-gray-4",
     foreground: "text-cami-gray-12",
   },
   // intent: olive/5 + olive/12 + olive/11
   cancelled: {
-    label: "Canceled",
     Icon: XIcon,
     fill: "bg-cami-gray-3",
     foreground: "text-cami-gray-11",
@@ -107,7 +101,6 @@ const STATUS_META: Record<MockBookingStatus, StatusMeta> = {
   },
   // intent: tomato/8 + tomato/12 + tomato/11
   "no-show": {
-    label: "No-show",
     Icon: EyeOffIcon,
     fill: "bg-cami-pink-3",
     foreground: "text-cami-pink-12",
@@ -158,7 +151,7 @@ function StatusHeaderBar({
         )}
       >
         <Icon className="size-3" aria-hidden />
-        {meta.label}
+        {BOOKING_STATUS_LABEL[status]}
         {interactive ? <ChevronDownIcon className="size-3" aria-hidden /> : null}
       </span>
     </div>

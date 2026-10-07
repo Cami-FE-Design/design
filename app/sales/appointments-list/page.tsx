@@ -10,12 +10,7 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
-import {
-  MOCK_BOOKINGS,
-  MOCK_STAFF,
-  type MockBooking,
-  type MockBookingStatus,
-} from "@/app/appointments/mock"
+import { MOCK_BOOKINGS, MOCK_STAFF, type MockBooking } from "@/app/appointments/mock"
 import { AppShell } from "@/components/blocks/app-shell"
 import { AppointmentDetailSheet } from "@/components/blocks/appointment-detail-sheet"
 import {
@@ -41,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { bookingStatusBadge } from "@/lib/appointments/status"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
@@ -152,19 +148,6 @@ function clientIdOf(name: string) {
 }
 
 // ─── Status meta ──────────────────────────────────────────────────────────────
-
-// Mirrors the NewAppointmentSheet / AppointmentDetailSheet hero-band palette
-// (pale step-5/6 fills with dark text) so the same status reads identically
-// in this row badge and in the open detail sheet's hero band.
-const STATUS_META: Record<MockBookingStatus, { label: string; className: string }> = {
-  booked: { label: "Booked", className: "bg-blue-5 text-blue-12" },
-  confirmed: { label: "Confirmed", className: "bg-lime-5 text-lime-12" },
-  "checked-in": { label: "Arrived", className: "bg-lime-3 text-lime-12" },
-  "ready-for-pickup": { label: "Started", className: "bg-lime-9 text-lime-12" },
-  completed: { label: "Completed", className: "bg-cami-gray-6 text-cami-gray-12" },
-  cancelled: { label: "Canceled", className: "bg-olive-5 text-olive-12" },
-  "no-show": { label: "No-show", className: "bg-tomato-8 text-tomato-12" },
-}
 
 // ─── Sort ─────────────────────────────────────────────────────────────────────
 
@@ -398,7 +381,7 @@ function AppointmentsListPageInner() {
             </TableHeader>
             <TableBody>
               {shown.map((b) => {
-                const status = STATUS_META[b.status]
+                const status = bookingStatusBadge(b.status)
                 return (
                   <TableRow key={b.id}>
                     <TableCell className="sticky left-0 z-10 bg-background font-mono text-sm shadow-[1px_0_0_0_var(--border)] transition-colors [tr:hover_&]:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))]">

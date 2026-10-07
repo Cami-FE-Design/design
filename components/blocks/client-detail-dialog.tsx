@@ -80,6 +80,7 @@ import {
   visitWriteBlockMessage,
 } from "@/lib/locations/visit-access"
 import { formatMoneyWhole } from "@/lib/money/format"
+import { SALE_STATUS_CLASS, SALE_STATUS_LABEL } from "@/lib/sales/status"
 import { cn } from "@/lib/utils"
 
 export type ClientTag = {
@@ -170,7 +171,7 @@ const APPT_STATUS_MORE: Array<{ value: ApptStatus; label: string }> = [
   { value: "arrived", label: "Arrived" },
   { value: "started", label: "Started" },
   { value: "completed", label: "Completed" },
-  { value: "canceled", label: "Canceled" },
+  { value: "canceled", label: "Cancelled" },
   { value: "no-show", label: "No-show" },
 ]
 
@@ -184,7 +185,6 @@ type MockPet = {
 // ─── Sales ────────────────────────────────────────────────────────────────────
 
 type SaleStatus = "all" | ClientSaleStatus
-type ConcreteSaleStatus = ClientSaleStatus
 
 const SALES_STATUS_PRIMARY: Array<{ value: SaleStatus; label: string }> = [
   { value: "all", label: "All" },
@@ -197,27 +197,6 @@ const SALES_STATUS_MORE: Array<{ value: SaleStatus; label: string }> = [
   { value: "unpaid", label: "Unpaid" },
   { value: "refunded", label: "Refunded" },
 ]
-
-const SALE_STATUS_LABEL: Record<ConcreteSaleStatus, string> = {
-  paid: "Paid",
-  "part-paid": "Part paid",
-  unpaid: "Unpaid",
-  draft: "Draft",
-  refunded: "Refunded",
-}
-
-// Soft-pill set, one tone per status so they're visually distinct at a glance.
-// Step-5/-12 to match the visual weight of the appointment status badges
-// (which use the same step pattern). Unpaid = cami-yellow step-3/-11 to match
-// the "AED N Unpaid" pill in the appointment detail sheet. Part paid = gold
-// (orange-tan, between paid and unpaid). Paid = lime.
-const SALE_BADGE_CLASS: Record<ConcreteSaleStatus, string> = {
-  paid: "bg-lime-5 text-lime-12",
-  "part-paid": "bg-gold-5 text-gold-12",
-  unpaid: "bg-cami-yellow-3 text-cami-yellow-11",
-  draft: "bg-cami-gray-5 text-cami-gray-12",
-  refunded: "bg-olive-5 text-olive-12",
-}
 
 // ─── Overview identity + wallet ───────────────────────────────────────────────
 
@@ -1447,7 +1426,7 @@ function SaleCard({ sale, showBranch }: { sale: ClientSale; showBranch: boolean 
             ) : null}
           </div>
         </div>
-        <Badge className={cn("border-transparent", SALE_BADGE_CLASS[sale.status])}>
+        <Badge className={cn("border-transparent", SALE_STATUS_CLASS[sale.status])}>
           {SALE_STATUS_LABEL[sale.status]}
         </Badge>
       </div>
