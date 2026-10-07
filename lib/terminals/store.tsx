@@ -244,6 +244,22 @@ export const DEMO_SESSIONS: TerminalSession[] = [
   },
 ]
 
+/**
+ * A machine nobody has placed: the shape a row saved before machines carried a
+ * location reads back as (`locationId` ""). Kept out of DEMO_TERMINALS, which
+ * checkout falls back to and which every placed-machine test reads; the
+ * panel's "all statuses" demo lists it, reading No location.
+ */
+export const UNASSIGNED_DEMO_TERMINAL: Terminal = {
+  id: "TRM-7W3E5H",
+  name: "Spare Card Reader",
+  locationId: "",
+  pairedAt: "Jul 12",
+  pin: "152846",
+  lockedFor: null,
+  lastSeenAt: "4 days ago",
+}
+
 /** Two terminals at one location, one running and one mid-setup. */
 export const TYPICAL_TERMINALS: Terminal[] = DEMO_TERMINALS.slice(0, 2)
 export const TYPICAL_SESSIONS: TerminalSession[] = DEMO_SESSIONS.filter((s) =>

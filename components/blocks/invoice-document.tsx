@@ -611,7 +611,10 @@ function TenderBlock({ doc, responsive = false }: { doc: InvoiceDocument; respon
           <div key={tender.id} className="flex items-baseline justify-between gap-4 text-[9pt]">
             <span className="flex min-w-0 flex-col">
               <span className={INK}>{tender.method}</span>
-              <span className={cn("text-[7.5pt]", MUTED)}>{formatDateTimeLong(tender.at)}</span>
+              <span className={cn("text-[7.5pt]", MUTED)}>
+                {formatDateTimeLong(tender.at)}
+                {tender.collectedAt ? ` · ${tender.collectedAt}` : ""}
+              </span>
             </span>
             <span className={cn("shrink-0 tabular-nums", INK)}>
               {/* Change goes back across the counter, so it reads negative and

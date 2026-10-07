@@ -98,6 +98,15 @@ export function stockForProduct(
   )
 }
 
+/** One location's count for one product. A location with no row has none of it. */
+export function quantityAt(
+  all: ReadonlyArray<BranchStock>,
+  productId: string,
+  locationId: string,
+): number {
+  return stockForProduct(all, productId, [locationId])[0]?.quantity ?? 0
+}
+
 /**
  * The business quantity (R16, DW4.2).
  *

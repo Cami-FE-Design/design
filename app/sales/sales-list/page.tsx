@@ -80,6 +80,12 @@ import { type CamiPayRail, type CamiPayRate, railLabel } from "@/lib/hq-camipay/
 import { invoiceFromSale, originalFor, receiptNumberFor } from "@/lib/invoice/from-sale"
 import { documentTitle } from "@/lib/invoice/totals"
 import { useLocations } from "@/lib/locations/store"
+import {
+  demoPaidMinor,
+  paymentsElsewhere,
+  paymentsFor,
+  type SalePayment,
+} from "@/lib/sales/payments"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -216,6 +222,13 @@ export type Sale = {
   giftCard?: SaleGiftCard
   /** Set when the payment went over CamiPay. Absent means cash. */
   camipay?: SaleCamiPay
+  /**
+   * The payments, each with the location that collected it.
+   *
+   * Absent on most of the seed, which derives one payment from the status at
+   * the sale's own location. Present where a payment was taken somewhere else.
+   */
+  payments?: SalePayment[]
 }
 
 // Rate snapshots for the mock sales, copied from Shampooch JVC's rate card in
@@ -309,6 +322,25 @@ export const MOCK_SALES: Sale[] = [
         meta: "45min · Husain NGI",
       },
       { name: "Nail trim", priceMinor: 4500, meta: "20min · Husain NGI" },
+    ],
+    // A deposit taken at another location the day before, and the balance
+    // here. Refunding or voiding the deposit belongs to Jumeirah, so a
+    // viewer who holds JVC alone is not offered either for it.
+    payments: [
+      {
+        id: "p1",
+        kind: "card",
+        amountMinor: 2000,
+        at: new Date(2026, 4, 23, 18, 40),
+        locationId: "shampooch-jumeirah",
+      },
+      {
+        id: "p2",
+        kind: "cash",
+        amountMinor: 2500,
+        at: new Date(2026, 4, 24, 11, 15),
+        locationId: "shampooch-jvc",
+      },
     ],
   },
   {
@@ -717,10 +749,12 @@ function SaleLineRow({ item }: { item: SaleItem }) {
         ) : null}
       </div>
       <div className="flex shrink-0 flex-col items-end">
-        <span className="font-medium text-foreground tabular-nums">{money(item.priceMinor)}</span>
+        <span className="font-medium text-foreground tabular-nums">
+          {money(Math.round(item.priceMinor / 100))}
+        </span>
         {item.originalPriceMinor != null ? (
           <span className="text-muted-foreground text-xs tabular-nums line-through">
-            {money(item.originalPriceMinor)}
+            {money(Math.round(item.originalPriceMinor / 100))}
           </span>
         ) : null}
       </div>
@@ -1312,12 +1346,16 @@ type SaleDetailDialogProps = {
 
 export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDetailDialogProps) {
   const router = useRouter()
+  const { granted, isMultiLocation, locationName, enablement } = useLocations()
   const open = sale !== null
   // Hold the last sale so the dialog animates out with its content still
   // rendered after `sale` is cleared.
   const [last, setLast] = useState<Sale | null>(sale)
   const [tab, setTab] = useState<"details" | "activity">("details")
   const [refundOpen, setRefundOpen] = useState(false)
+  // The one payment a "Refund payment" opened the refund for; null when the
+  // whole sale is being refunded.
+  const [refundPaymentId, setRefundPaymentId] = useState<string | null>(null)
   const [voidOpen, setVoidOpen] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareInvoiceOpen, setShareInvoiceOpen] = useState(false)
@@ -1330,6 +1368,23 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
   }, [sale])
 
   const data = sale ?? last
+  const heldIds = new Set(granted.map((l) => l.id))
+  const payments = data ? paymentsFor(data) : []
+  // Taken at a location this viewer does not hold. Refunding or voiding one is
+  // refused (LOCATION_ACCESS_DENIED), so neither is offered for it.
+  const elsewhere = paymentsElsewhere(payments, heldIds)
+  const elsewhereIds = new Set(elsewhere.map((p) => p.id))
+  const refundable = payments.filter((p) => !elsewhereIds.has(p.id))
+  // Taken somewhere other than the sale's own location: the only payments
+  // whose location is worth naming. Named for anyone at a multi-location
+  // business, including someone who holds one location — that is who most
+  // needs to know a payment, and its refund, belong somewhere else.
+  const takenElsewhere = (p: SalePayment) => enablement.enabled && p.locationId !== data?.locationId
+  const refundPayment = refundable.find((p) => p.id === refundPaymentId) ?? null
+  function openPaymentRefund(id: string) {
+    setRefundPaymentId(id)
+    setRefundOpen(true)
+  }
   if (!data) return null
 
   const giftCard = data.giftCard
@@ -1346,14 +1401,10 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
   //                renders in its own card above the original sale)
   //   • voided:    no payment
   const grossAbsMinor = Math.abs(data.grossMinor)
-  const paidMinor =
-    data.status === "completed"
-      ? grossAbsMinor + 500
-      : data.status === "part-paid"
-        ? Math.round(grossAbsMinor * 0.8)
-        : data.status === "refunded"
-          ? grossAbsMinor
-          : 0
+  // A sale with its own payment records paid what they add up to.
+  const paidMinor = data.payments
+    ? data.payments.reduce((sum, p) => sum + p.amountMinor, 0)
+    : demoPaidMinor(data)
   const paid = Math.round(paidMinor / 100)
   const totalAbs = Math.round(grossAbsMinor / 100)
   // Positive = customer still owes (Balance). Negative = change due. Zero = paid in full.
@@ -1403,8 +1454,15 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
   const invoiceOrigin =
     typeof window === "undefined" ? "https://business.getcami.io" : window.location.origin
   const invoiceUrl = `${invoiceOrigin}/invoice/${data.id}`
-  const voidPayments =
-    collectedMinor <= 0
+  const methodLabel = (p: SalePayment) =>
+    p.kind === "cash"
+      ? "Cash"
+      : p.kind === "card"
+        ? "Card"
+        : railLabel(data.camipay?.rail ?? "terminal")
+  const voidPayments = data.payments
+    ? data.payments.map((p) => ({ amountMinor: p.amountMinor, method: methodLabel(p), at: p.at }))
+    : collectedMinor <= 0
       ? []
       : data.status === "completed"
         ? (() => {
@@ -1493,8 +1551,15 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                           (Refund sale hidden on unpaid — nothing to refund) */}
                     <DropdownMenuContent align="end" className="w-52">
                       <DropdownMenuLabel>Quick actions</DropdownMenuLabel>
-                      {data.status !== "voided" && data.status !== "unpaid" ? (
-                        <DropdownMenuItem onSelect={() => setRefundOpen(true)}>
+                      {data.status !== "voided" &&
+                      data.status !== "unpaid" &&
+                      refundable.length > 0 ? (
+                        <DropdownMenuItem
+                          onSelect={() => {
+                            setRefundPaymentId(null)
+                            setRefundOpen(true)
+                          }}
+                        >
                           <RotateCcwIcon className="size-4" />
                           Refund sale
                         </DropdownMenuItem>
@@ -1527,7 +1592,12 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                         Download PDF
                       </DropdownMenuItem>
 
-                      {data.status !== "voided" && data.status !== "refunded" ? (
+                      {/* Voiding deletes every payment, so it is not offered
+                          while any of them was taken at a location this viewer
+                          does not hold. */}
+                      {data.status !== "voided" &&
+                      data.status !== "refunded" &&
+                      elsewhere.length === 0 ? (
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -1559,6 +1629,12 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   <span>{formatDateOnly(data.saleAt)}</span>
                   <span aria-hidden>·</span>
                   <span>Pet</span>
+                  {isMultiLocation ? (
+                    <>
+                      <span aria-hidden>·</span>
+                      <span>{locationName(data.locationId)}</span>
+                    </>
+                  ) : null}
                 </div>
               </div>
             </DialogHeader>
@@ -1761,40 +1837,35 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   </div>
                 </div>
 
-                {/* Payment block — skipped for voided sales (no money moved). */}
-                {data.status !== "voided" && paid > 0 ? (
-                  <>
-                    <div className="h-px bg-border/60" />
-                    <div className="flex items-baseline justify-between gap-3 text-sm">
-                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
-                          Payment
-                          {data.camipay ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-cami-violet-3 px-1.5 py-0.5 text-xs font-medium text-cami-violet-11">
-                              {data.camipay.rail === "terminal" ? (
-                                <CreditCardIcon className="size-3" />
-                              ) : (
-                                <LinkIcon className="size-3" />
-                              )}
-                              {railLabel(data.camipay.rail)}
+                {/* Payment block — skipped for voided sales (no money moved).
+                    One line per payment; a location is named only on one taken
+                    somewhere other than the sale's. */}
+                {data.status !== "voided" && paid > 0
+                  ? payments.map((p) => (
+                      <div key={p.id} className="flex flex-col gap-4">
+                        <div className="h-px bg-border/60" />
+                        <div className="flex items-baseline justify-between gap-3 text-sm">
+                          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                            <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
+                              Payment
+                              <PaymentMethodBadge
+                                kind={p.kind}
+                                rail={data.camipay?.rail}
+                                label={methodLabel(p)}
+                              />
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-cami-green-3 px-1.5 py-0.5 text-xs font-medium text-cami-green-11">
-                              <BanknoteIcon className="size-3" />
-                              Cash
+                            <span className="truncate text-xs text-muted-foreground">
+                              {formatDateOnly(p.at)} at {formatTimeOnly(p.at)}
+                              {takenElsewhere(p) ? ` · ${locationName(p.locationId)}` : ""}
                             </span>
-                          )}
-                        </span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {formatDateOnly(data.saleAt)} at {formatTimeOnly(data.saleAt)}
-                        </span>
+                          </div>
+                          <span className="shrink-0 font-medium text-foreground tabular-nums">
+                            {money(Math.round(p.amountMinor / 100))}
+                          </span>
+                        </div>
                       </div>
-                      <span className="shrink-0 font-medium text-foreground tabular-nums">
-                        {money(paid)}
-                      </span>
-                    </div>
-                  </>
-                ) : null}
+                    ))
+                  : null}
 
                 {/* What Cami took out of this payment. Only for CamiPay, and
                     only once money has actually moved — a fee on an unpaid or
@@ -1845,31 +1916,52 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                     />
                   }
                 />
-                <ActivityRow
-                  title={`${money(Math.abs(gross))} paid by cash`}
-                  timestamp={`Yesterday at ${formatTimeOnly(data.saleAt)}`}
-                  body="Payment taken by Hussain Shabbir"
-                  trailing={
-                    <span className="inline-flex size-8 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11 ring-2 ring-background">
-                      <BanknoteIcon className="size-4" />
-                    </span>
-                  }
-                  footer={
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" radius="full" className="gap-1.5">
-                          Actions
-                          <ChevronDownIcon className="size-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start">
-                        <DropdownMenuItem>Refund payment</DropdownMenuItem>
-                        <DropdownMenuItem>Print receipt</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  }
-                  isLast
-                />
+                {data.payments ? (
+                  data.payments.map((p, index, all) => (
+                    <ActivityRow
+                      key={p.id}
+                      title={`${money(Math.round(p.amountMinor / 100))} paid by ${methodLabel(p).toLowerCase()}`}
+                      timestamp={`${formatDateOnly(p.at)} at ${formatTimeOnly(p.at)}`}
+                      body={`Payment taken by Hussain Shabbir${
+                        takenElsewhere(p) ? ` · at ${locationName(p.locationId)}` : ""
+                      }`}
+                      trailing={
+                        <span className="inline-flex size-8 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11 ring-2 ring-background">
+                          {p.kind === "cash" ? (
+                            <BanknoteIcon className="size-4" />
+                          ) : (
+                            <CreditCardIcon className="size-4" />
+                          )}
+                        </span>
+                      }
+                      footer={
+                        <PaymentActions
+                          canRefund={!elsewhereIds.has(p.id)}
+                          onRefund={() => openPaymentRefund(p.id)}
+                        />
+                      }
+                      isLast={index === all.length - 1}
+                    />
+                  ))
+                ) : (
+                  <ActivityRow
+                    title={`${money(Math.abs(gross))} paid by cash`}
+                    timestamp={`Yesterday at ${formatTimeOnly(data.saleAt)}`}
+                    body="Payment taken by Hussain Shabbir"
+                    trailing={
+                      <span className="inline-flex size-8 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11 ring-2 ring-background">
+                        <BanknoteIcon className="size-4" />
+                      </span>
+                    }
+                    footer={
+                      <PaymentActions
+                        canRefund={elsewhere.length === 0}
+                        onRefund={payments[0] ? () => openPaymentRefund(payments[0].id) : undefined}
+                      />
+                    }
+                    isLast
+                  />
+                )}
               </ol>
               <p className="text-xs text-muted-foreground">
                 Activity for this sale in the last 90 days
@@ -1888,9 +1980,32 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
           subjectLabel: "Pet",
           // Refundable = what was collected, capped at the sale total (a
           // completed sale's `paidMinor` includes change tendered back).
-          availableMinor: Math.min(paidMinor, grossAbsMinor),
+          availableMinor: refundPayment
+            ? Math.min(refundPayment.amountMinor, grossAbsMinor)
+            : data.payments
+              ? refundable.reduce((sum, p) => sum + p.amountMinor, 0)
+              : Math.min(paidMinor, grossAbsMinor),
           paymentMethod: "Cash",
           alreadyRefunded: data.status === "refunded",
+          // Only the payments this viewer may refund. One taken at a location
+          // they do not hold is not offered (LOCATION_ACCESS_DENIED).
+          payments: refundPayment
+            ? [
+                {
+                  id: refundPayment.id,
+                  method: methodLabel(refundPayment),
+                  kind: refundPayment.kind === "cash" ? ("cash" as const) : ("card" as const),
+                  availableMinor: Math.min(refundPayment.amountMinor, grossAbsMinor),
+                },
+              ]
+            : data.payments
+              ? refundable.map((p) => ({
+                  id: p.id,
+                  method: methodLabel(p),
+                  kind: p.kind === "cash" ? ("cash" as const) : ("card" as const),
+                  availableMinor: p.amountMinor,
+                }))
+              : undefined,
         }}
       />
 
@@ -1922,6 +2037,57 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
         documentLabel={`${documentTitle(invoiceDoc)} #${invoiceDoc.number}`}
       />
     </Dialog>
+  )
+}
+
+/** The method chip on a payment line. */
+function PaymentMethodBadge({
+  kind,
+  rail,
+  label,
+}: {
+  kind: SalePayment["kind"]
+  rail?: CamiPayRail
+  label: string
+}) {
+  if (kind === "cash") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md bg-cami-green-3 px-1.5 py-0.5 text-xs font-medium text-cami-green-11">
+        <BanknoteIcon className="size-3" />
+        {label}
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-cami-violet-3 px-1.5 py-0.5 text-xs font-medium text-cami-violet-11">
+      {kind === "camipay" && rail === "online" ? (
+        <LinkIcon className="size-3" />
+      ) : (
+        <CreditCardIcon className="size-3" />
+      )}
+      {label}
+    </span>
+  )
+}
+
+/**
+ * A payment's actions on the Activity tab. Refund is absent, not disabled, for
+ * a payment taken at a location the viewer does not hold.
+ */
+function PaymentActions({ canRefund, onRefund }: { canRefund: boolean; onRefund?: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" radius="full" className="gap-1.5">
+          Actions
+          <ChevronDownIcon className="size-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        {canRefund ? <DropdownMenuItem onSelect={onRefund}>Refund payment</DropdownMenuItem> : null}
+        <DropdownMenuItem>Print receipt</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

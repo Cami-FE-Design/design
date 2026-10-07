@@ -141,6 +141,23 @@ type GiftCardSold = {
   owner: string
   totalAed: number
   redeemedAed: number
+  /** When it was paid for. Absent while unpaid. */
+  paidAt?: Date
+  /**
+   * Every redemption, oldest first, each at the location it happened. A gift
+   * card travels, so these can be anywhere in the estate. They add up to
+   * `redeemedAed`.
+   */
+  ledger: GiftCardRedemption[]
+}
+
+type GiftCardRedemption = {
+  id: string
+  at: Date
+  locationId: string
+  /** AED taken off the balance. */
+  amountAed: number
+  by: string
 }
 
 const STATUS_META: Record<GiftCardStatus, { label: string; className: string }> = {
@@ -157,12 +174,14 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
     issuedAt: new Date(2026, 5, 29),
     expiresAt: new Date(2027, 5, 29),
     status: "unpaid",
-    saleNo: 20,
-    locationId: "shampooch-jvc",
+    saleNo: 25,
+    locationId: "shampooch-downtown-dubai",
     purchaser: "Walk-In",
     owner: "Not claimed",
     totalAed: 1800,
     redeemedAed: 0,
+    // Unpaid: issued, never paid for, never used.
+    ledger: [],
   },
   {
     id: "gc-2",
@@ -176,6 +195,23 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
     owner: "Millie Cassidy",
     totalAed: 3500,
     redeemedAed: 1200,
+    paidAt: new Date(2026, 4, 12, 9, 5),
+    ledger: [
+      {
+        id: "u1",
+        at: new Date(2026, 4, 20, 14, 10),
+        locationId: "shampooch-jumeirah",
+        amountAed: 800,
+        by: "Husain NGI",
+      },
+      {
+        id: "u2",
+        at: new Date(2026, 5, 2, 11, 30),
+        locationId: "shampooch-jvc",
+        amountAed: 400,
+        by: "Husain NGI",
+      },
+    ],
   },
   {
     id: "gc-3",
@@ -184,11 +220,28 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
     expiresAt: new Date(2027, 3, 3),
     status: "redeemed",
     saleNo: 22,
-    locationId: "shampooch-jvc",
+    locationId: "shampooch-jumeirah",
     purchaser: "Tom Cassidy",
     owner: "Sarah Johnson",
     totalAed: 5300,
     redeemedAed: 5300,
+    paidAt: new Date(2026, 3, 3, 16, 45),
+    ledger: [
+      {
+        id: "u1",
+        at: new Date(2026, 3, 10, 12, 0),
+        locationId: "shampooch-jvc",
+        amountAed: 3000,
+        by: "Husain NGI",
+      },
+      {
+        id: "u2",
+        at: new Date(2026, 4, 2, 15, 20),
+        locationId: "shampooch-jumeirah",
+        amountAed: 2300,
+        by: "Husain NGI",
+      },
+    ],
   },
   {
     id: "gc-4",
@@ -197,11 +250,13 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
     expiresAt: new Date(2026, 1, 20),
     status: "expired",
     saleNo: 23,
-    locationId: "shampooch-mirdif",
+    locationId: "shampooch-al-quoz",
     purchaser: "Luke Williams",
     owner: "Not claimed",
     totalAed: 7000,
     redeemedAed: 0,
+    paidAt: new Date(2025, 1, 20, 12, 10),
+    ledger: [],
   },
   {
     id: "gc-5",
@@ -210,11 +265,28 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
     expiresAt: new Date(2027, 5, 1),
     status: "active",
     saleNo: 24,
-    locationId: "shampooch-jvc",
+    locationId: "shampooch-al-reem",
     purchaser: "Aamena Fatta",
     owner: "Aamena Fatta",
     totalAed: 10500,
     redeemedAed: 4500,
+    paidAt: new Date(2026, 5, 1, 15, 33),
+    ledger: [
+      {
+        id: "u1",
+        at: new Date(2026, 5, 8, 10, 15),
+        locationId: "shampooch-al-reem",
+        amountAed: 2500,
+        by: "Husain NGI",
+      },
+      {
+        id: "u2",
+        at: new Date(2026, 5, 20, 17, 40),
+        locationId: "shampooch-downtown-dubai",
+        amountAed: 2000,
+        by: "Husain NGI",
+      },
+    ],
   },
 ]
 
@@ -761,7 +833,21 @@ type ActivityEvent = {
   secondary?: React.ReactNode
 }
 
-function buildActivity(card: GiftCardSold, onOpenSale: () => void): ActivityEvent[] {
+/** "20 May 2026 at 2:10pm" — the ledger carries real times, so it prints them. */
+function formatWhen(d: Date) {
+  let h = d.getHours()
+  const m = d.getMinutes()
+  const meridiem = h >= 12 ? "pm" : "am"
+  h = h % 12 || 12
+  return `${formatDate(d)} at ${h}:${m.toString().padStart(2, "0")}${meridiem}`
+}
+
+/** The card's history, newest first: the purchase, each redemption, the claim. */
+function buildActivity(
+  card: GiftCardSold,
+  onOpenSale: () => void,
+  where: (locationId: string) => string | null,
+): ActivityEvent[] {
   const remaining = card.totalAed - card.redeemedAed
   const claimed = card.owner !== "Not claimed"
   const events: ActivityEvent[] = []
@@ -780,28 +866,39 @@ function buildActivity(card: GiftCardSold, onOpenSale: () => void): ActivityEven
       ),
     })
   }
-  if (card.redeemedAed > 0 && remaining === 0) {
-    events.push({
-      id: "fully",
-      title: "Gift card fully redeemed",
-      when: "Today at 11:20am",
-      by: "Husain NGI",
-      kind: "fully-redeemed",
-    })
-  } else if (card.redeemedAed > 0) {
-    events.push({
-      id: "partial",
-      title: `${money(card.redeemedAed)} redeemed`,
-      when: "Yesterday at 3:38pm",
-      by: "Husain NGI",
-      kind: "redeemed",
-      secondary: `Remaining balance ${money(remaining)}`,
-    })
-  }
+
+  // Walked oldest first so each entry can state the balance it left. The
+  // location is named on each redemption, since a card can be used anywhere.
+  let balance = card.totalAed
+  const redemptions: ActivityEvent[] = card.ledger.map((entry) => {
+    const redeemed = [`${money(entry.amountAed)} redeemed`, where(entry.locationId)]
+      .filter(Boolean)
+      .join(" · ")
+    balance -= entry.amountAed
+    return balance === 0
+      ? {
+          id: entry.id,
+          title: "Gift card fully redeemed",
+          when: formatWhen(entry.at),
+          by: entry.by,
+          kind: "fully-redeemed",
+          secondary: redeemed,
+        }
+      : {
+          id: entry.id,
+          title: redeemed,
+          when: formatWhen(entry.at),
+          by: entry.by,
+          kind: "redeemed",
+          secondary: `Remaining balance ${money(balance)}`,
+        }
+  })
+  events.push(...redemptions.reverse())
+
   events.push({
     id: "purchased",
     title: "Gift card purchased",
-    when: "Yesterday at 3:33pm",
+    when: card.paidAt ? formatWhen(card.paidAt) : formatDate(card.issuedAt),
     by: "Husain NGI",
     kind: "purchased",
     secondary: (
@@ -818,8 +915,12 @@ function buildActivity(card: GiftCardSold, onOpenSale: () => void): ActivityEven
 }
 
 function GiftCardActivity({ card, onOpenSale }: { card: GiftCardSold; onOpenSale: () => void }) {
+  const { isMultiLocation, locationName } = useLocations()
   const remaining = card.totalAed - card.redeemedAed
-  const events = buildActivity(card, onOpenSale)
+  // Locations only where there is more than one to tell apart.
+  const events = buildActivity(card, onOpenSale, (id) =>
+    isMultiLocation ? locationName(id) : null,
+  )
 
   return (
     <div className="flex flex-col gap-6">

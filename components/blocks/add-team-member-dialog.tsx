@@ -11,7 +11,7 @@ import {
   ScissorsIcon,
   SettingsIcon,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select"
 import { useLocations } from "@/lib/locations/store"
 import { seedServices } from "@/lib/service-catalog/mock-data"
-import { MERCHANT_ROLES, roleById } from "@/lib/team/roles"
+import { holdsAllLocations, MERCHANT_ROLES, roleById } from "@/lib/team/roles"
 import { cn } from "@/lib/utils"
 
 // Match Input's h-12 / rounded-2xl / bg-input. Same pattern used by
@@ -86,7 +86,7 @@ const phoneCodes = ["+971", "+966", "+965", "+974", "+44", "+1"]
 const days = Array.from({ length: 31 }, (_, i) => String(i + 1))
 const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-const formSchema = z.object({
+const baseSchema = z.object({
   firstName: z.string().trim().min(1, "First name is required."),
   lastName: z.string().trim().min(1, "Last name is required."),
   email: z.string().trim().email("Enter a valid email."),
@@ -126,6 +126,17 @@ const formSchema = z.object({
    */
   assignedLocationIds: z.array(z.string()),
 })
+// Every role but the owner (who holds every location) works somewhere.
+// The error sits under "Works at" (P1.4.7).
+const formSchema = baseSchema.superRefine((values, ctx) => {
+  if (!holdsAllLocations(values.roleId) && values.assignedLocationIds.length === 0) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["assignedLocationIds"],
+      message: "Pick at least one location.",
+    })
+  }
+})
 
 export type AddTeamMemberValues = z.infer<typeof formSchema>
 
@@ -148,8 +159,9 @@ const defaultValues: AddTeamMemberValues = {
   // Not the owner: there is exactly one, and inviting a second by default is
   // the wrong shape. Staff is the narrowest useful starting point.
   roleId: "staff",
-  // Nothing granted until the owner says so. An invited member who can see
-  // every branch by default is precisely what R24 forbids.
+  // Nothing granted here. A new member's dialog pre-selects one location on
+  // open (see `seededRef`), the way the live form pre-selects the default
+  // venue — never every branch, which is what R24 forbids.
   assignedLocationIds: [],
 }
 
@@ -203,7 +215,7 @@ export function AddTeamMemberDialog({
   const firstName = form.watch("firstName").trim()
   const lastName = form.watch("lastName").trim()
   const email = form.watch("email").trim()
-  const { locations: allLocations } = useLocations()
+  const { locations: allLocations, granted, scopedLocations } = useLocations()
   const locationCount = allLocations.length
   const grantedIds = form.watch("assignedLocationIds") ?? []
   const initials =
@@ -213,7 +225,7 @@ export function AddTeamMemberDialog({
 
   // An owner holds every location, so its badge counts the estate rather than
   // the (empty, untickable) grant array.
-  const grantedCount = form.watch("roleId") === "owner" ? locationCount : grantedIds.length
+  const grantedCount = holdsAllLocations(form.watch("roleId")) ? locationCount : grantedIds.length
   // The nav carries both counts, the way the built form does — how many
   // services and how many locations, so a section says what is in it before
   // you open it.
@@ -232,6 +244,24 @@ export function AddTeamMemberDialog({
     locations: grantedCount > 0 ? String(grantedCount) : undefined,
   }
 
+  // A new member starts at one location, the way the live form pre-selects the
+  // default venue: the location the topbar is on when it names exactly one,
+  // otherwise the first the viewer holds. Once per open, and only after the
+  // locations have loaded, so a pick made while open is never overwritten.
+  const seedId = scopedLocations.length === 1 ? scopedLocations[0].id : granted[0]?.id
+  const seededRef = useRef(false)
+  useEffect(() => {
+    if (!open || editing) {
+      seededRef.current = false
+      return
+    }
+    if (seededRef.current || !seedId) return
+    seededRef.current = true
+    if ((form.getValues("assignedLocationIds") ?? []).length === 0) {
+      form.setValue("assignedLocationIds", [seedId])
+    }
+  }, [open, editing, seedId, form])
+
   function reset() {
     form.reset(defaultValues)
     setSection(initialSection)
@@ -242,6 +272,13 @@ export function AddTeamMemberDialog({
     reset()
     onOpenChange(false)
   }
+
+  // Save is pressed from whichever section is open, so a failed save lands on
+  // the section holding the error.
+  const submit = form.handleSubmit(handleSubmit, (errors) => {
+    if (errors.firstName || errors.lastName || errors.email) setSection("profile")
+    else if (errors.assignedLocationIds) setSection("locations")
+  })
 
   return (
     <FullScreenEditDialog
@@ -260,12 +297,12 @@ export function AddTeamMemberDialog({
       }
       saveLabel={editing ? "Save" : "Add"}
       saveDisabled={!canSubmit}
-      onSave={form.handleSubmit(handleSubmit)}
+      onSave={submit}
       contentClassName="max-w-3xl"
     >
       <Form {...form}>
         <form
-          onSubmit={form.handleSubmit(handleSubmit)}
+          onSubmit={submit}
           className="grid min-w-0 grid-cols-1 gap-8 md:grid-cols-[260px_minmax(0,1fr)]"
         >
           <SectionNav active={section} onChange={setSection} counts={sectionCounts} />
@@ -888,9 +925,8 @@ function ServicesSection({ form }: { form: FormReturn }) {
  * make a receptionist a manager, and an owner's untickable list is not a
  * missing feature — capability and scope do not widen each other.
  *
- * Ticking nothing is a real, permitted state: the member performs no
- * operational read or write, and it must never resolve to every branch (R24).
- * So the empty case is said out loud rather than left as an unticked list.
+ * Every role but the owner needs at least one location to save (P1.4.7); the
+ * schema's "Pick at least one location." shows under the list.
  */
 function LocationsSection({ form }: { form: FormReturn }) {
   // The granted set, not the estate (R18). An owner's grant is "all", so this
@@ -898,33 +934,37 @@ function LocationsSection({ form }: { form: FormReturn }) {
   // seeing, assigning to, or configuring the other eight.
   const { granted: locations } = useLocations()
   const selected = form.watch("assignedLocationIds") ?? []
-  const isOwner = form.watch("roleId") === "owner"
+  const isOwner = holdsAllLocations(form.watch("roleId"))
 
-  const allSelected = locations.length > 0 && locations.every((l) => selected.includes(l.id))
-  const _someSelected = selected.length > 0 && !allSelected
-
-  function _toggle(id: string, next: boolean) {
-    if (isOwner) return
-    const set = new Set(selected)
-    if (next) set.add(id)
-    else set.delete(id)
-    form.setValue("assignedLocationIds", Array.from(set), { shouldDirty: true })
-  }
+  // Re-checked on every change once a save has been tried, so the error
+  // clears the moment a location is picked.
+  const submitted = form.formState.isSubmitted
 
   return (
     <SectionShell title="Works at" description="Choose the locations where this team member works.">
-      {!isOwner && selected.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No location selected.</p>
-      ) : null}
       {/* A dropdown, not a stack of cards. The answer is two or three
           branches whether the estate is three or twenty, so the control should
           cost what the answer costs. Same shape as the topbar switcher and the
           access dialog — one gesture for choosing branches. */}
-      <LocationMultiSelect
-        locations={locations}
-        selectedIds={isOwner ? locations.map((l) => l.id) : selected}
-        onChange={(ids) => form.setValue("assignedLocationIds", ids, { shouldDirty: true })}
-        disabled={isOwner}
+      <FormField
+        control={form.control}
+        name="assignedLocationIds"
+        render={() => (
+          <FormItem>
+            <LocationMultiSelect
+              locations={locations}
+              selectedIds={isOwner ? locations.map((l) => l.id) : selected}
+              onChange={(ids) =>
+                form.setValue("assignedLocationIds", ids, {
+                  shouldDirty: true,
+                  shouldValidate: submitted,
+                })
+              }
+              disabled={isOwner}
+            />
+            <FormMessage />
+          </FormItem>
+        )}
       />
     </SectionShell>
   )

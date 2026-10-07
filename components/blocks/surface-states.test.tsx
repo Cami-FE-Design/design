@@ -44,7 +44,7 @@ describe("team access before the grant has loaded", () => {
   const ahmed = TEAM_MEMBERS.find((m) => m.id === "m_ahmed")!
 
   for (const status of ["loading", "error"] as const) {
-    it(`never says "No location selected" and will not save while ${status}`, () => {
+    it(`never asks for a location and will not save while ${status}`, () => {
       withLocations(
         <TeamAccessDialog
           open
@@ -54,15 +54,15 @@ describe("team access before the grant has loaded", () => {
           status={status}
         />,
       )
-      expect(screen.queryByText(/No location selected/)).toBeNull()
+      expect(screen.queryByText(/Pick at least one location/)).toBeNull()
       expect((screen.getByRole("button", { name: "Confirm" }) as HTMLButtonElement).disabled).toBe(
         true,
       )
     })
   }
 
-  it("says the empty grant out loud once it has loaded", () => {
+  it("asks for a location once the empty grant has loaded", () => {
     withLocations(<TeamAccessDialog open onOpenChange={vi.fn()} member={ahmed} onSave={vi.fn()} />)
-    expect(screen.getByText(/No location selected/)).toBeDefined()
+    expect(screen.getByText(/Pick at least one location/)).toBeDefined()
   })
 })

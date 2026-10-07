@@ -15,11 +15,13 @@
  * adds only what HQ genuinely has that the owner does not: which partner am I
  * looking at, and the fact that this is not my data.
  *
- * ## Single-site partners see no chain view
+ * ## Single-site partners see no chain view, but do see the switch
  *
  * G3 read in the HQ plane. Four of the five seeded partners trade from one
  * address, and a tab full of chain concepts would make an Account Manager
- * reason about branches for an account that has none.
+ * reason about branches for an account that has none. The multi-location
+ * switch is the exception: HQ turns it on before the second branch exists, so
+ * it has to be reachable on an account that still has one.
  *
  * ## What is deliberately not here: a write path
  *
@@ -34,12 +36,19 @@ import { ArrowUpRightIcon, BuildingIcon } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
 
+import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
 import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { MoneyByLocationView } from "@/components/blocks/money/money-by-location"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import type { AdminBusiness } from "@/lib/admin-businesses"
-import { blockedReason, canEnable } from "@/lib/locations/enablement"
+import {
+  blockedReason,
+  canEnable,
+  checkBlockers,
+  formatEnabledOn,
+  type MultiLocationEnablement,
+} from "@/lib/locations/enablement"
 import { locationsForBusiness } from "@/lib/locations/from-business"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LocationsProvider, useLocations } from "@/lib/locations/store"
@@ -62,27 +71,7 @@ export function BusinessLocationsSection({ business }: { business: AdminBusiness
   const branchIds = business.locationIds ?? []
 
   if (branchIds.length <= 1) {
-    return (
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
-            Locations
-          </h3>
-          <p className="text-sm leading-5 text-muted-foreground">One location.</p>
-        </div>
-        <div className="flex items-start gap-3 rounded-2xl bg-muted/40 p-4">
-          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
-            <BuildingIcon className="size-4" />
-          </span>
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-sm font-medium leading-5 text-foreground">{business.name}</span>
-            <span className="text-sm leading-5 text-muted-foreground">
-              {business.street}, {business.city}
-            </span>
-          </div>
-        </div>
-      </section>
-    )
+    return <SingleLocationView business={business} />
   }
 
   return (
@@ -103,6 +92,62 @@ export function BusinessLocationsSection({ business }: { business: AdminBusiness
       <ChainView business={business} />
     </LocationsProvider>
   )
+}
+
+/**
+ * One address, and the switch above it. The switch is held here rather than
+ * in a provider: the demo provider seeds the chain's switched-on state, and a
+ * single-site partner starts off.
+ */
+function SingleLocationView({ business }: { business: AdminBusiness }) {
+  const [enablement, setEnablement] = useState<MultiLocationEnablement>({
+    enabled: false,
+    dataCheck: "passed",
+  })
+  return (
+    <div className="flex flex-col gap-6">
+      <EnablementCard
+        business={business}
+        enablement={enablement}
+        setEnabled={(enabled) => setEnablement((current) => switchedTo(current, enabled))}
+      />
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+            Locations
+          </h3>
+          <p className="text-sm leading-5 text-muted-foreground">One location.</p>
+        </div>
+        <div className="flex items-start gap-3 rounded-2xl bg-muted/40 p-4">
+          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-background text-muted-foreground">
+            <BuildingIcon className="size-4" />
+          </span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="text-sm font-medium leading-5 text-foreground">{business.name}</span>
+            <span className="text-sm leading-5 text-muted-foreground">
+              {business.street}, {business.city}
+            </span>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+/** The switch flipped, recording who and when on the way on (INV-08). */
+function switchedTo(current: MultiLocationEnablement, enabled: boolean): MultiLocationEnablement {
+  return {
+    ...current,
+    enabled,
+    enabledBy: enabled ? "Michelle You" : current.enabledBy,
+    enabledAt: enabled ? new Date().toISOString().slice(0, 10) : current.enabledAt,
+  }
+}
+
+/** The chain's switch, read from the provider every chain surface reads. */
+function ChainEnablementCard({ business }: { business: AdminBusiness }) {
+  const { enablement, setEnabled } = useLocations()
+  return <EnablementCard business={business} enablement={enablement} setEnabled={setEnabled} />
 }
 
 /**
@@ -142,11 +187,27 @@ const VISIBLE_BRANCHES = 4
  * see what has to be fixed and who has to fix it.
  *
  * Turning it OFF is never blocked. Somebody standing an account down should not
- * be stopped by the reason they are standing it down.
+ * be stopped by the reason they are standing it down. Either way it applies
+ * straight away, like the other merchant switches HQ holds.
  */
-function EnablementCard({ business }: { business: AdminBusiness }) {
-  const { enablement, setEnabled } = useLocations()
+function EnablementCard({
+  business,
+  enablement: stored,
+  setEnabled,
+}: {
+  business: AdminBusiness
+  enablement: MultiLocationEnablement
+  setEnabled: (enabled: boolean) => void
+}) {
+  // Demo only: a failed check is not reachable from the seeded chain, whose
+  // check passed before it was switched on. The control below stands in for
+  // the check coming back with findings. It lands on an account that is off,
+  // the state the findings stand in front of, without touching the stored
+  // switch, so showing the check passing again puts back whatever was there.
+  const [demoFailed, setDemoFailed] = useState(false)
+  const enablement = demoFailed ? { ...stored, ...DEMO_FAILED_CHECK, enabled: false } : stored
   const reason = blockedReason(enablement)
+  const blockers = checkBlockers(enablement)
   const allowed = canEnable(enablement)
 
   return (
@@ -156,7 +217,7 @@ function EnablementCard({ business }: { business: AdminBusiness }) {
           <span className="text-sm font-medium leading-5 text-foreground">Multi-location</span>
           <span className="text-sm leading-5 text-muted-foreground">
             {enablement.enabled
-              ? `On since ${enablement.enabledAt}, switched on by ${enablement.enabledBy}.`
+              ? `On since ${formatEnabledOn(enablement.enabledAt)}, switched on by ${enablement.enabledBy}.`
               : `Off. Locations are hidden from ${business.name}.`}
           </span>
         </div>
@@ -171,18 +232,54 @@ function EnablementCard({ business }: { business: AdminBusiness }) {
 
       {/* The check, said out loud whatever it found — including that it passed,
           because an Account Manager about to switch an account on wants to know
-          the thing behind the switch actually ran. */}
-      <p
-        className={
-          reason
-            ? "rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground"
-            : "text-sm leading-5 text-muted-foreground"
-        }
-      >
-        {reason ?? "Data check passed."}
-      </p>
+          the thing behind the switch actually ran. A failed check lists every
+          finding, so one round of fixes clears it. */}
+      {blockers.length > 0 ? (
+        <div className="flex flex-col gap-1 rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground">
+          <p className="font-medium">Data check failed. Fix these first:</p>
+          <ul aria-label="Data check findings" className="list-disc pl-5">
+            {blockers.map((blocker) => (
+              <li key={blocker}>{blocker}</li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p
+          className={
+            reason
+              ? "rounded-xl bg-cami-yellow-2 p-3 text-sm leading-5 text-foreground"
+              : "text-sm leading-5 text-muted-foreground"
+          }
+        >
+          {reason ?? "Data check passed."}
+        </p>
+      )}
+
+      {/* The seeded chain always passes its check, so a failed one is only
+          reachable from here — in the design-repo strip, not the page. */}
+      <DesignRepoBar label="see the data check fail">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          radius="full"
+          onClick={() => setDemoFailed((v) => !v)}
+        >
+          {demoFailed ? "Show the check passing" : "Show the check failing"}
+        </Button>
+      </DesignRepoBar>
     </section>
   )
+}
+
+/** What the demo's failed check found. Facts an account manager can hand on. */
+const DEMO_FAILED_CHECK: Pick<MultiLocationEnablement, "dataCheck" | "dataCheckFindings"> = {
+  dataCheck: "failed",
+  dataCheckFindings: [
+    "12 appointments have no location",
+    "3 card machines have no location",
+    "2 team members have no location",
+  ],
 }
 
 function ChainView({ business }: { business: AdminBusiness }) {
@@ -194,7 +291,7 @@ function ChainView({ business }: { business: AdminBusiness }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <EnablementCard business={business} />
+      <ChainEnablementCard business={business} />
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <h3 className="font-heading text-base font-semibold leading-6 text-foreground">

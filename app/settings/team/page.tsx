@@ -34,7 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { type LocationGrants, useLocations } from "@/lib/locations/store"
 import { TEAM_MEMBERS, type TeamMember } from "@/lib/team/mock"
-import { roleById } from "@/lib/team/roles"
+import { holdsAllLocations, roleById } from "@/lib/team/roles"
 import { RotaProvider, useRota } from "@/lib/team/shifts-store"
 import { cn } from "@/lib/utils"
 
@@ -60,6 +60,21 @@ function MemberLocations({ grants }: { grants: LocationGrants }) {
   }
   if (grants.length === 1) return <span>{locationName(grants[0])}</span>
   return <span>{grants.length} locations</span>
+}
+
+/**
+ * Whether a member belongs in the list at the topbar's scope. Owners hold every
+ * location, so they are always listed; a member with no grant is listed only
+ * when the scope is every location, since they work at none in particular.
+ */
+function inTeamScope(
+  member: Pick<TeamMember, "roleId" | "locationGrants">,
+  scopedIds: ReadonlyArray<string>,
+  scopeIsAll: boolean,
+): boolean {
+  if (member.locationGrants === "all" || holdsAllLocations(member.roleId)) return true
+  if (member.locationGrants.length === 0) return scopeIsAll
+  return member.locationGrants.some((id) => scopedIds.includes(id))
 }
 
 function MemberAvatar({ initials, status }: { initials: string; status: MemberStatus }) {
@@ -264,7 +279,7 @@ function MemberTable({
 
 function TeamSettingsContent() {
   const router = useRouter()
-  const { locationName } = useLocations()
+  const { locationName, isMultiLocation, scope, scopedLocations } = useLocations()
   const { name: businessName } = useDemoBusiness()
   const [members, setMembers] = useState<Member[]>(TEAM_MEMBERS)
   const [addOpen, setAddOpen] = useState(false)
@@ -301,7 +316,7 @@ function TeamSettingsContent() {
   // Name, email and the branches they work — a chain's team list is searched
   // for "who is at Marina" as often as for a person.
   const q = query.trim().toLowerCase()
-  const visible = q
+  const searched = q
     ? members.filter((m) => {
         const grants =
           m.locationGrants === "all"
@@ -310,6 +325,12 @@ function TeamSettingsContent() {
         return `${m.name ?? ""} ${m.email} ${grants}`.toLowerCase().includes(q)
       })
     : members
+  // The list follows the topbar location switcher. A single-location business
+  // has nothing to scope, so everyone is listed.
+  const scopedIds = scopedLocations.map((l) => l.id)
+  const visible = isMultiLocation
+    ? searched.filter((m) => inTeamScope(m, scopedIds, scope.kind === "all"))
+    : searched
   const activeMembers = visible.filter((m) => m.status === "active")
   const pendingMembers = visible.filter((m) => m.status === "pending")
   const viewMember = members.find((m) => m.id === viewMemberId) ?? null
@@ -520,8 +541,9 @@ function TeamSettingsContent() {
                       roleId: values.roleId,
                       // An owner holds the estate, so their grant is not a
                       // list and must not be flattened into one (R04).
-                      locationGrants:
-                        values.roleId === "owner" ? "all" : values.assignedLocationIds,
+                      locationGrants: holdsAllLocations(values.roleId)
+                        ? "all"
+                        : values.assignedLocationIds,
                     }
                   : m,
               ),
