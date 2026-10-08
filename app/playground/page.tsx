@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { PlaygroundShowcase } from "@/components/blocks/playground-showcase"
+import { PlaygroundShowcase } from "@/components/blocks/playground/playground-showcase"
 import { DirectoryLayout } from "@/components/blocks/shared/directory-layout"
 import { BackToTop } from "@/components/blocks/shell/back-to-top"
 import { ThemeToggle } from "@/components/blocks/shell/theme-toggle"
