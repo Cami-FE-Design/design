@@ -3,12 +3,10 @@
 import {
   BellIcon,
   Building2Icon,
-  ChevronLeftIcon,
   CirclePercentIcon,
   CreditCardIcon,
   FolderIcon,
   GlobeIcon,
-  type LucideIcon,
   MapPinIcon,
   MessageCircleIcon,
   MessageSquareTextIcon,
@@ -16,10 +14,7 @@ import {
   TagIcon,
   UserIcon,
   WalletIcon,
-  XIcon,
 } from "lucide-react"
-import { Dialog as DialogPrimitive } from "radix-ui"
-import { useEffect, useState } from "react"
 import { FilesSection } from "@/components/blocks/clients/documents-files-card"
 import { DealsPage } from "@/components/blocks/deals/deals-page"
 import { BillingSettingsPanel } from "@/components/blocks/money/billing-settings-panel"
@@ -31,26 +26,12 @@ import { LocationForm } from "@/components/blocks/settings/location-form"
 import { MyProfilePanel } from "@/components/blocks/settings/my-profile-panel"
 import { NotificationsSettingsPanel } from "@/components/blocks/settings/notifications-settings-panel"
 import { SalesSettings } from "@/components/blocks/settings/sales-settings"
+import {
+  SettingsDialogFrame,
+  type SettingsGroup,
+} from "@/components/blocks/settings/settings-dialog-frame"
 import { SettingsPanel } from "@/components/blocks/settings/settings-panel"
 import { WhatsAppNumbersPanel } from "@/components/blocks/settings/whatsapp-numbers-panel"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
-
-type SettingsCategory = {
-  id: string
-  label: string
-  description?: string
-  icon?: LucideIcon
-  /** Marks the screen as not yet ready for handoff. Adds a visible WIP badge. */
-  wip?: boolean
-}
-
-type SettingsGroup = {
-  label: string
-  items: SettingsCategory[]
-}
 
 const GROUPS: SettingsGroup[] = [
   {
@@ -208,8 +189,6 @@ const GROUPS: SettingsGroup[] = [
   },
 ]
 
-const ALL_CATEGORIES: SettingsCategory[] = GROUPS.flatMap((g) => g.items)
-
 type AppSettingsDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -221,129 +200,35 @@ export function AppSettingsDialog({
   onOpenChange,
   defaultCategoryId = "profile",
 }: AppSettingsDialogProps) {
-  const [activeId, setActiveId] = useState(defaultCategoryId)
-  const [mobileView, setMobileView] = useState<"rail" | "content">("rail")
-  const active = ALL_CATEGORIES.find((c) => c.id === activeId) ?? ALL_CATEGORIES[0]
-
-  useEffect(() => {
-    if (open) setMobileView("rail")
-  }, [open])
-
-  useEffect(() => {
-    if (open) setActiveId(defaultCategoryId)
-  }, [open, defaultCategoryId])
-
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={cn(
-          "h-[680px] max-h-[calc(100dvh-3rem)] w-[1080px] max-w-[calc(100vw-3rem)] flex-row gap-0 p-0",
-          "sm:max-w-[calc(100vw-3rem)]",
-          "max-lg:h-[calc(100dvh-3rem)]",
-        )}
-      >
-        <DialogTitle className="sr-only">Settings</DialogTitle>
-        <DialogDescription className="sr-only">
-          Pet Business portal settings, organized by category.
-        </DialogDescription>
-
-        <aside
-          className={cn(
-            "shrink-0 flex-col gap-5 overflow-y-auto bg-muted/30 px-3 py-5",
-            "w-full lg:w-[260px] lg:border-r lg:border-border/40",
-            mobileView === "rail" ? "flex" : "hidden lg:flex",
-          )}
-        >
-          {GROUPS.map((group) => (
-            <div key={group.label} className="flex flex-col gap-1">
-              <p className="px-2 text-xs font-medium text-muted-foreground">{group.label}</p>
-              <ul className="flex flex-col gap-px">
-                {group.items.map((item) => {
-                  const isActive = item.id === activeId
-                  const Icon = item.icon
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveId(item.id)
-                          setMobileView("content")
-                        }}
-                        className={cn(
-                          "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-foreground/5",
-                          isActive && "bg-foreground/10",
-                        )}
-                      >
-                        {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" /> : null}
-                        <span className="truncate">{item.label}</span>
-                        {item.wip ? (
-                          <Badge variant="secondary" className="ml-auto font-normal">
-                            WIP
-                          </Badge>
-                        ) : null}
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          ))}
-        </aside>
-
-        <div
-          className={cn(
-            "relative min-w-0 flex-1 flex-col overflow-hidden",
-            mobileView === "content" ? "flex" : "hidden lg:flex",
-          )}
-        >
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Back to settings menu"
-            onClick={() => setMobileView("rail")}
-            className="absolute left-3 top-3 z-10 rounded-full text-muted-foreground lg:hidden"
-          >
-            <ChevronLeftIcon className="size-5" />
-          </Button>
-          <DialogClose asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Close settings"
-              className="absolute right-4 top-4 z-10 rounded-full text-muted-foreground"
-            >
-              <XIcon className="size-5" strokeWidth={2} />
-            </Button>
-          </DialogClose>
-
-          {/* Padding and top offset live here; the scrolling belongs to the
-              panel, which pins its own header (settings-panel.tsx). Deals
-              carries its own padding, as it does in the dev repo, because its
-              detail view runs a full-bleed header rule. */}
-          <div
-            className={cn(
-              "flex min-h-0 flex-1 flex-col",
-              active.id === "deals" ? "" : "px-6 pt-9 max-lg:pt-14 lg:px-10",
-            )}
-          >
-            {active.id === "profile" ? <MyProfilePanel /> : null}
-            {active.id === "business-details" ? <BusinessProfilePanel /> : null}
-            {active.id === "locations" ? <LocationsPanel /> : null}
-            {active.id === "language" ? <LanguagePanel /> : null}
-            {active.id === "forms" ? <FilesPanel /> : null}
-            {active.id === "sales" ? <SalesSettings /> : null}
-            {active.id === "deals" ? <DealsPage /> : null}
-            {active.id === "payments" ? <PaymentsSettingsPanel /> : null}
-            {active.id === "billing" ? <BillingSettingsPanel /> : null}
-            {active.id === "notifications" ? <NotificationsSettingsPanel /> : null}
-            {active.id === "comms-templates" ? <CommsTemplatesPanel /> : null}
-            {active.id === "whatsapp-numbers" ? <WhatsAppNumbersPanel /> : null}
-            {active.id === "branding" ? <CustomerCardSettingsPanel /> : null}
-          </div>
-        </div>
-      </DialogContent>
-    </DialogPrimitive.Root>
+    <SettingsDialogFrame
+      open={open}
+      onOpenChange={onOpenChange}
+      groups={GROUPS}
+      defaultCategoryId={defaultCategoryId}
+      ariaDescription="Pet Business portal settings, organized by category."
+      // Deals carries its own padding, as it does in the dev repo, because its
+      // detail view runs a full-bleed header rule.
+      isUnpadded={(category) => category.id === "deals"}
+    >
+      {(active) => (
+        <>
+          {active.id === "profile" ? <MyProfilePanel /> : null}
+          {active.id === "business-details" ? <BusinessProfilePanel /> : null}
+          {active.id === "locations" ? <LocationsPanel /> : null}
+          {active.id === "language" ? <LanguagePanel /> : null}
+          {active.id === "forms" ? <FilesPanel /> : null}
+          {active.id === "sales" ? <SalesSettings /> : null}
+          {active.id === "deals" ? <DealsPage /> : null}
+          {active.id === "payments" ? <PaymentsSettingsPanel /> : null}
+          {active.id === "billing" ? <BillingSettingsPanel /> : null}
+          {active.id === "notifications" ? <NotificationsSettingsPanel /> : null}
+          {active.id === "comms-templates" ? <CommsTemplatesPanel /> : null}
+          {active.id === "whatsapp-numbers" ? <WhatsAppNumbersPanel /> : null}
+          {active.id === "branding" ? <CustomerCardSettingsPanel /> : null}
+        </>
+      )}
+    </SettingsDialogFrame>
   )
 }
 

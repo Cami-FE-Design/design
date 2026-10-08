@@ -2,8 +2,8 @@
 
 import { ChevronDownIcon, ChevronsLeftIcon } from "lucide-react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
+import { useOpenSettings } from "@/components/blocks/settings/settings-url"
 import { Button } from "@/components/ui/button"
 import { SheetClose } from "@/components/ui/sheet"
 import { bottomMenu, type MenuItem, topMenu } from "@/lib/app-menu"
@@ -170,16 +170,9 @@ export function AppMobileDrawer() {
 }
 
 function DrawerSettingsItem({ item }: { item: MenuItem }) {
-  const router = useRouter()
-  const pathname = usePathname() ?? "/"
+  const openSettingsAt = useOpenSettings()
   const Icon = item.icon
-
-  function openSettings() {
-    const search = typeof window !== "undefined" ? window.location.search : ""
-    const next = new URLSearchParams(search)
-    next.set("settings", "profile")
-    router.push(`${pathname}?${next.toString()}`)
-  }
+  const openSettings = () => openSettingsAt("profile")
 
   return (
     <SheetClose asChild>

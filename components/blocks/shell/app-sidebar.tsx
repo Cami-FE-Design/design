@@ -2,8 +2,8 @@
 
 import { ChevronDownIcon, ChevronsRightIcon } from "lucide-react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
 import { forwardRef, useEffect, useState } from "react"
+import { useOpenSettings } from "@/components/blocks/settings/settings-url"
 import { Button } from "@/components/ui/button"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -331,16 +331,9 @@ export function AppSidebar({ className, defaultExpanded = false, ...props }: App
 }
 
 function SidebarSettingsItem({ item, expanded }: { item: MenuItem; expanded: boolean }) {
-  const router = useRouter()
-  const pathname = usePathname() ?? "/"
+  const openSettingsAt = useOpenSettings()
   const Icon = item.icon
-
-  function openSettings() {
-    const search = typeof window !== "undefined" ? window.location.search : ""
-    const next = new URLSearchParams(search)
-    next.set("settings", "profile")
-    router.push(`${pathname}?${next.toString()}`)
-  }
+  const openSettings = () => openSettingsAt("profile")
 
   const button = (
     <Button

@@ -1,24 +1,17 @@
 "use client"
 
-import {
-  BellIcon,
-  ChevronLeftIcon,
-  CircleAlertIcon,
-  GlobeIcon,
-  type LucideIcon,
-  ShieldCheckIcon,
-  XIcon,
-} from "lucide-react"
-import { Dialog as DialogPrimitive } from "radix-ui"
+import { BellIcon, CircleAlertIcon, GlobeIcon, ShieldCheckIcon } from "lucide-react"
 import type * as React from "react"
-import { useEffect, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 import { PermissionRolesPane } from "@/components/blocks/admin/permission-roles-pane"
+import {
+  SettingsDialogFrame,
+  type SettingsGroup,
+} from "@/components/blocks/settings/settings-dialog-frame"
 import { SettingsPanel } from "@/components/blocks/settings/settings-panel"
 import { InlineNotice } from "@/components/blocks/shared/inline-notice"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-mock"
 import { useHqRates } from "@/lib/notifications/hq-store"
@@ -30,22 +23,6 @@ import {
   rateLooksImplausible,
 } from "@/lib/notifications/types"
 import { cn } from "@/lib/utils"
-
-type SettingsCategory = {
-  id: string
-  label: string
-  /** Subtitle shown under the right-pane title. */
-  description?: string
-  /** Icon shown in the left rail, except for the avatar item. */
-  icon?: LucideIcon
-  /** Marks the screen as not yet ready for handoff. Adds a visible WIP badge. */
-  wip?: boolean
-}
-
-type SettingsGroup = {
-  label: string
-  items: SettingsCategory[]
-}
 
 const GROUPS: SettingsGroup[] = [
   {
@@ -91,8 +68,6 @@ const GROUPS: SettingsGroup[] = [
   },
 ]
 
-const ALL_CATEGORIES: SettingsCategory[] = GROUPS.flatMap((g) => g.items)
-
 type AdminSettingsDialogProps = {
   /** Controlled open state. */
   open: boolean
@@ -106,18 +81,6 @@ export function AdminSettingsDialog({
   defaultCategoryId = "roles",
 }: AdminSettingsDialogProps) {
   const auth = useAuth()
-  const [activeId, setActiveId] = useState(defaultCategoryId)
-  const [mobileView, setMobileView] = useState<"rail" | "content">("rail")
-  const active = ALL_CATEGORIES.find((c) => c.id === activeId) ?? ALL_CATEGORIES[0]
-
-  useEffect(() => {
-    if (open) setMobileView("rail")
-  }, [open])
-
-  useEffect(() => {
-    if (open) setActiveId(defaultCategoryId)
-  }, [open, defaultCategoryId])
-
   const initials = auth.user.name
     .split(" ")
     .map((n) => n.charAt(0))
@@ -126,119 +89,47 @@ export function AdminSettingsDialog({
     .toUpperCase()
 
   return (
-    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={cn(
-          "h-[680px] max-h-[calc(100dvh-3rem)] w-[1080px] max-w-[calc(100vw-3rem)] flex-row gap-0 p-0",
-          "sm:max-w-[calc(100vw-3rem)]",
-          "max-lg:h-[calc(100dvh-3rem)]",
-        )}
-      >
-        <DialogTitle className="sr-only">Settings</DialogTitle>
-        <DialogDescription className="sr-only">
-          Cami HQ settings, organized by category.
-        </DialogDescription>
-
-        <aside
-          className={cn(
-            "shrink-0 flex-col gap-5 overflow-y-auto bg-muted/30 px-3 py-5",
-            "w-full lg:w-[260px] lg:border-r lg:border-border/40",
-            mobileView === "rail" ? "flex" : "hidden lg:flex",
-          )}
+    <SettingsDialogFrame
+      open={open}
+      onOpenChange={onOpenChange}
+      groups={GROUPS}
+      defaultCategoryId={defaultCategoryId}
+      ariaDescription="Cami HQ settings, organized by category."
+      // The profile row reads as the signed-in person, not a menu label.
+      itemOverride={(item) =>
+        item.id === "profile"
+          ? {
+              leading: (
+                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-cami-violet-9 text-[9px] font-medium leading-none text-white">
+                  {initials}
+                </span>
+              ),
+              label: auth.user.name,
+            }
+          : null
+      }
+    >
+      {(active) => (
+        // Title stays put, body scrolls under it (settings-panel.tsx).
+        <SettingsPanel
+          header={
+            <header className="flex flex-col gap-2">
+              <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+                {active.label}
+              </h2>
+              {active.description ? (
+                <p className="text-sm leading-5 text-muted-foreground">{active.description}</p>
+              ) : null}
+            </header>
+          }
         >
-          {GROUPS.map((group) => (
-            <div key={group.label} className="flex flex-col gap-1">
-              <p className="px-2 text-xs font-medium text-muted-foreground">{group.label}</p>
-              <ul className="flex flex-col gap-px">
-                {group.items.map((item) => {
-                  const isActive = item.id === activeId
-                  const isProfile = item.id === "profile"
-                  const Icon = item.icon
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveId(item.id)
-                          setMobileView("content")
-                        }}
-                        className={cn(
-                          "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-foreground/5",
-                          isActive && "bg-foreground/10",
-                        )}
-                      >
-                        {isProfile ? (
-                          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-cami-violet-9 text-[9px] font-medium leading-none text-white">
-                            {initials}
-                          </span>
-                        ) : Icon ? (
-                          <Icon className="size-4 shrink-0 text-muted-foreground" />
-                        ) : null}
-                        <span className="truncate">{isProfile ? auth.user.name : item.label}</span>
-                        {item.wip ? (
-                          <Badge variant="secondary" className="ml-auto font-normal">
-                            WIP
-                          </Badge>
-                        ) : null}
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          ))}
-        </aside>
-
-        <div
-          className={cn(
-            "relative min-w-0 flex-1 flex-col overflow-hidden",
-            mobileView === "content" ? "flex" : "hidden lg:flex",
-          )}
-        >
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label="Back to settings menu"
-            onClick={() => setMobileView("rail")}
-            className="absolute left-3 top-3 z-10 rounded-full text-muted-foreground lg:hidden"
-          >
-            <ChevronLeftIcon className="size-5" />
-          </Button>
-          <DialogClose asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Close settings"
-              className="absolute right-4 top-4 z-10 rounded-full text-muted-foreground"
-            >
-              <XIcon className="size-5" strokeWidth={2} />
-            </Button>
-          </DialogClose>
-
-          {/* Title stays put, body scrolls under it (settings-panel.tsx). */}
-          <div className="flex min-h-0 flex-1 flex-col px-6 pt-9 max-lg:pt-14 lg:px-10">
-            <SettingsPanel
-              header={
-                <header className="flex flex-col gap-2">
-                  <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
-                    {active.label}
-                  </h2>
-                  {active.description ? (
-                    <p className="text-sm leading-5 text-muted-foreground">{active.description}</p>
-                  ) : null}
-                </header>
-              }
-            >
-              {active.id === "roles" ? <RolesPanel /> : null}
-              {active.id === "language" ? <LanguagePanel /> : null}
-              {active.id === "profile" ? <ProfilePanel /> : null}
-              {active.id === "notification-rates" ? <NotificationRatesPanel /> : null}
-            </SettingsPanel>
-          </div>
-        </div>
-      </DialogContent>
-    </DialogPrimitive.Root>
+          {active.id === "roles" ? <RolesPanel /> : null}
+          {active.id === "language" ? <LanguagePanel /> : null}
+          {active.id === "profile" ? <ProfilePanel /> : null}
+          {active.id === "notification-rates" ? <NotificationRatesPanel /> : null}
+        </SettingsPanel>
+      )}
+    </SettingsDialogFrame>
   )
 }
 

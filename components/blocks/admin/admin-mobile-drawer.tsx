@@ -1,8 +1,9 @@
 "use client"
 
 import { ChevronsLeftIcon } from "lucide-react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useMemo } from "react"
+import { useOpenSettings } from "@/components/blocks/settings/settings-url"
 import { CamiMark } from "@/components/brand/cami-mark"
 import { Button } from "@/components/ui/button"
 import { SheetClose } from "@/components/ui/sheet"
@@ -62,16 +63,9 @@ function DrawerLeaf({ item, active }: DrawerLeafProps) {
 }
 
 function DrawerSettingsItem({ item }: { item: AdminMenuItem }) {
-  const router = useRouter()
-  const pathname = usePathname() ?? "/"
+  const openSettingsAt = useOpenSettings()
   const Icon = item.icon
-
-  function openSettings() {
-    const search = typeof window !== "undefined" ? window.location.search : ""
-    const next = new URLSearchParams(search)
-    next.set("settings", "roles")
-    router.push(`${pathname}?${next.toString()}`)
-  }
+  const openSettings = () => openSettingsAt("roles")
 
   return (
     <SheetClose asChild>

@@ -1,7 +1,6 @@
 "use client"
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useCallback } from "react"
+import { useSettingsParam } from "@/components/blocks/settings/settings-url"
 import { AppSettingsDialog } from "@/components/blocks/shell/app-settings-dialog"
 
 /**
@@ -10,28 +9,12 @@ import { AppSettingsDialog } from "@/components/blocks/shell/app-settings-dialog
  * Mirrors AdminSettingsController on the HQ side.
  */
 export function AppSettingsController() {
-  const params = useSearchParams()
-  const pathname = usePathname() ?? "/"
-  const router = useRouter()
-  const settingsId = params.get("settings")
-  const open = !!settingsId
-
-  const handleOpenChange = useCallback(
-    (next: boolean) => {
-      if (next) return
-      const newParams = new URLSearchParams(params.toString())
-      newParams.delete("settings")
-      const qs = newParams.toString()
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
-    },
-    [params, pathname, router],
-  )
-
+  const { open, categoryId, onOpenChange } = useSettingsParam()
   return (
     <AppSettingsDialog
       open={open}
-      onOpenChange={handleOpenChange}
-      defaultCategoryId={settingsId ?? "profile"}
+      onOpenChange={onOpenChange}
+      defaultCategoryId={categoryId ?? "profile"}
     />
   )
 }

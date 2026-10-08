@@ -6,8 +6,7 @@ import { AppSettingsController } from "@/components/blocks/shell/app-settings-co
 import { AppSidebar } from "@/components/blocks/shell/app-sidebar"
 import { AppTopbar } from "@/components/blocks/shell/app-topbar"
 import { LocationSwitcher } from "@/components/blocks/shell/location-switcher"
-import { LocationAccessGate, NoLocationAccess } from "@/components/blocks/shell/no-location-access"
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
+import { type ShellBreakpoint, ShellFrame } from "@/components/blocks/shell/shell-frame"
 import { cn } from "@/lib/utils"
 
 /**
@@ -45,7 +44,7 @@ import { cn } from "@/lib/utils"
  * chrome gets; it never duplicates the content.
  */
 
-type Breakpoint = "desktop" | "mobile"
+type Breakpoint = ShellBreakpoint
 
 type AppShellProps = React.ComponentProps<"div"> & {
   breakpoint?: Breakpoint
@@ -74,123 +73,37 @@ export function AppShell({
   frameClassName,
   ...props
 }: AppShellProps) {
-  const responsive = breakpoint === undefined
-
-  // Which chrome shows, and when. Three cases, and only the classes differ —
-  // the tree below is the same in all of them.
-  const rootLayout = responsive
-    ? "flex-col lg:flex-row lg:items-start"
-    : breakpoint === "desktop"
-      ? "flex-row items-start"
-      : "flex-col"
-  const sidebarClass = responsive ? "hidden lg:flex" : breakpoint === "desktop" ? "flex" : "hidden"
-  const desktopTopbarClass = sidebarClass
-  const mobileTopbarClass = responsive
-    ? "flex lg:hidden"
-    : breakpoint === "desktop"
-      ? "hidden"
-      : "flex"
-  // The drawer is the mobile nav, so it goes wherever the mobile topbar does.
-  const drawerClass = mobileTopbarClass === "hidden" ? "hidden" : undefined
-
-  const headerFallback = (
-    <p className="text-base font-medium leading-6 text-muted-foreground">Page Header</p>
-  )
-  const contentFallback = (
-    <div className="flex min-h-0 flex-1 flex-col items-center justify-center border-2 border-dashed border-border">
-      <p className="text-base font-normal leading-6 text-muted-foreground">Main Content</p>
-    </div>
-  )
-
   return (
     <>
-      <Sheet>
-        <div
-          data-slot="app-shell"
-          data-breakpoint={responsive ? "responsive" : breakpoint}
-          className={cn(
-            // `h-dvh`, not `h-screen`: on mobile browsers 100vh is the LARGE
-            // viewport (URL bar collapsed), so with the bar shown the bottom of
-            // the shell sits below the fold and is unreachable — the body does
-            // not scroll, `overflow-clip`. On desktop dvh and vh are the same,
-            // so one value serves both.
-            "relative flex h-dvh w-full overflow-clip bg-sand-3",
-            rootLayout,
-            className,
-          )}
-          {...props}
-        >
-          {sidebar ?? <AppSidebar className={sidebarClass} />}
-
-          <div className="relative z-[1] flex h-full min-w-0 w-full flex-1 flex-col">
-            {/* The topbar sits on its own layer above the rounded content frame,
-                so dropdowns anchored to it render over the page rather than
-                under it. */}
-            <div className="relative z-[2] w-full">
-              {topbar ?? (
-                <>
-                  <AppMobileTopbar className={mobileTopbarClass} />
-                  {/* SCR-04 on a phone. The bar has no room left beside the
-                      workspace switcher, so the location gets its own row under
-                      it. Renders nothing for a single-location business. */}
-                  <LocationSwitcher
-                    className={cn("mx-3 mb-2 w-[calc(100%-1.5rem)] max-w-none", mobileTopbarClass)}
-                  />
-                  <AppTopbar className={desktopTopbarClass} />
-                </>
-              )}
-            </div>
-
-            <div
-              className={cn(
-                "relative z-[1] flex w-full flex-1 flex-col overflow-hidden bg-background shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]",
-                frameClassName,
-                // Both corners on mobile, where the frame spans the width; only
-                // the left one on desktop, where the sidebar meets it.
-                responsive
-                  ? "rounded-t-2xl lg:rounded-tr-none"
-                  : breakpoint === "desktop"
-                    ? "rounded-tl-2xl"
-                    : "rounded-t-2xl",
-              )}
-            >
-              {/* Somebody who holds no location has nothing here to act on, so
-                  the page's header and content give way to one full-page
-                  state. For everybody else the gate renders nothing of its own. */}
-              {header !== null && (
-                <LocationAccessGate fallback={null}>
-                  <div
-                    className={cn(
-                      "flex min-h-[100px] w-full items-center justify-center px-3 py-6",
-                      headerClassName,
-                    )}
-                  >
-                    {header ?? headerFallback}
-                  </div>
-                </LocationAccessGate>
-              )}
-              {/* Written once. This is the whole point of the file. */}
-              <div
-                className={cn("flex min-h-0 w-full flex-1 flex-col px-3 pb-9", contentClassName)}
-              >
-                <LocationAccessGate fallback={<NoLocationAccess className="mt-3" />}>
-                  {children ?? contentFallback}
-                </LocationAccessGate>
-              </div>
-            </div>
-          </div>
-
-          <SheetContent
-            side="left"
-            showCloseButton={false}
-            inline
-            className={cn("data-[side=left]:max-w-[311px]", drawerClass)}
-          >
-            <SheetTitle className="sr-only">Menu</SheetTitle>
-            {drawer ?? <AppMobileDrawer />}
-          </SheetContent>
-        </div>
-      </Sheet>
+      <ShellFrame
+        slot="app-shell"
+        breakpoint={breakpoint}
+        className={cn("bg-sand-3", className)}
+        frameClassName={cn("shadow-[-22px_-44px_88px_0_rgba(221,221,221,0.87)]", frameClassName)}
+        headerClassName={cn("min-h-[100px]", headerClassName)}
+        contentClassName={contentClassName}
+        header={header}
+        locationGate
+        chrome={(classes) => ({
+          sidebar: sidebar ?? <AppSidebar className={classes.sidebar} />,
+          topbar: topbar ?? (
+            <>
+              <AppMobileTopbar className={classes.mobileTopbar} />
+              {/* SCR-04 on a phone. The bar has no room left beside the
+                  workspace switcher, so the location gets its own row under
+                  it. Renders nothing for a single-location business. */}
+              <LocationSwitcher
+                className={cn("mx-3 mb-2 w-[calc(100%-1.5rem)] max-w-none", classes.mobileTopbar)}
+              />
+              <AppTopbar className={classes.desktopTopbar} />
+            </>
+          ),
+          drawer: drawer ?? <AppMobileDrawer />,
+        })}
+        {...props}
+      >
+        {children}
+      </ShellFrame>
       <Suspense fallback={null}>
         <AppSettingsController />
       </Suspense>
