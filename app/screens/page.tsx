@@ -867,7 +867,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?c=unmatched-closed",
         label: "Match · same number on two records",
-        note: "Match to client: with the search empty, both records on this number show — pick one. The confirm step says what happens to the number (saved / already there / different: Keep or Replace — Michelle's open call). After Match the thread gains 'Matched to … by Queenie' and every earlier message stays. 'Change linked client' in the ⋯ menu of any matched chat re-matches and keeps both lines.",
+        note: "Match to client: with the search empty, both records on this number show — pick one. The confirm step says what happens to the number (saved, already there, or different: Keep or Replace). After Match the thread gains 'Matched to … by Queenie' and every earlier message stays. 'Change linked client' in the ⋯ menu of any matched chat re-matches and keeps both lines.",
       },
       {
         path: "/messages/inbox/phase-0?c=unmatched-fatima",
