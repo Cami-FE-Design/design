@@ -1,7 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
-
-import { RemoveStockDialog } from "@/components/blocks/products/remove-stock-dialog"
+import { RemoveStockDialog } from "@/components/blocks/products/stock-movement-dialog"
 import { quantityAt } from "@/lib/inventory/branch-stock"
 import { BRANCH_STOCK } from "@/lib/inventory/mock"
 import { BranchStockProvider } from "@/lib/inventory/store"

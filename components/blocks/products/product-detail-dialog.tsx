@@ -13,12 +13,14 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { AddStockDialog } from "@/components/blocks/products/add-stock-dialog"
 import { DeleteProductDialog } from "@/components/blocks/products/delete-product-dialog"
 import { ProductBranchStock } from "@/components/blocks/products/product-branch-stock"
 import { ProductImagePlaceholder } from "@/components/blocks/products/product-image-placeholder"
 import type { Product } from "@/components/blocks/products/products-table"
-import { RemoveStockDialog } from "@/components/blocks/products/remove-stock-dialog"
+import {
+  AddStockDialog,
+  RemoveStockDialog,
+} from "@/components/blocks/products/stock-movement-dialog"
 import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { SectionCard } from "@/components/blocks/shared/section-card"
 import { Badge } from "@/components/ui/badge"
