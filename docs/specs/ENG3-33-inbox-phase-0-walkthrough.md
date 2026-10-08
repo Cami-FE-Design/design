@@ -147,17 +147,17 @@ the coverage table and the contract proposal.
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-closed>
 1. Right pane → **Match to client**. Don't type anything.
 - "This number is on 2 client records. Pick the right one." — both listed.
-2. Pick **Khalid Omar** → **Match**.
-- "This number is already on their record." After Match: the chat is Khalid's, the line "Matched to Khalid Omar by Queenie" is added, and his message from before is still there.
+2. Pick **Khalid Omar**. The number is already on his record, so picking him is the match: no confirm step.
+- The chat is Khalid's, the line "Matched to Khalid Omar by Queenie" is added, and his message from before is still there.
 
 **F2 · Search, and what happens to the number** [IX-C3 row 2]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-fatima>
 1. **Match to client** → type `Fatima`.
 - Two results.
 2. Pick **Fatima Noor** (no number on her record).
-- "This number will be saved on their record."
-3. **Back**, pick **Fatima Al Hashimi** (a different number).
-- Keep their current number (default) or Replace it.
+- "Match to Fatima Noor". "+971 52 883 0044 will be saved on their record." Cancel or Match.
+3. **Cancel**, open Match again, pick **Fatima Al Hashimi** (a different number).
+- On record and This chat, both numbers. "Update their number to the one from this chat" is unchecked: Match links the chat and keeps her number. Check it: her number on record is struck through and the button reads **Match and update number**.
 4. Try searching `Luna` — found by pet name.
 
 **F3 · Archived, and another location** [IX-C3 edge cases]
@@ -174,18 +174,17 @@ the coverage table and the contract proposal.
 
 ## G. Adding a new client from the chat
 
-**G1 · The name from their WhatsApp profile** [IX-C4 rows 1, 2, 3, 6]
+**G1 · Add a client** [IX-C4 rows 1, 2, 6]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-fatima>
 1. Right pane → **Add new client** (or chat header **Link client** → **Add new client**).
-- A short dialog. Phone filled and read only. First name "Fatima" from her WhatsApp profile, with a sparkle in the field; hover it: "Guessed from WhatsApp". Last name optional. No pet field.
-2. **Save client**.
+- A short dialog. Phone filled and read only. First name and last name empty: nothing is prefilled. Save is off until a first name is typed. No pet field.
+2. Type `Fatima` → **Save client**.
 - The chat becomes Fatima's, the line "Fatima added as a new client by Queenie" is added, and the card shows "No appointments yet".
 
-**G2 · No usable name** [IX-C4 row 4, proposed change]
+**G2 · Name not known** [IX-C4 rows 3 and 4, proposed change]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-saturday>
-1. **Add new client**.
-- The WhatsApp profile name is "🌸", which has no letters, and the message has no name. First name is empty and Save is off. Nothing is sent to the client.
-2. Cancel, and reply in the chat to ask for their name. Free text to an unmatched chat is allowed.
+1. Reply in the chat to ask for their name. Free text to an unmatched chat is allowed. Nothing is sent by Cami on its own.
+2. **Add new client** once you know it.
 
 **G3 · No name, window closed** [IX-C4 row 4 with the window closed]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-quiet>
@@ -208,9 +207,9 @@ the coverage table and the contract proposal.
 
 **H1 · Summary** [IX-C6 rows 1, 2, 7]
 <http://localhost:3000/messages/inbox/phase-0>
-- Name, phone, View profile and Pets at once, then Appointments: upcoming visits and the last three (relative and actual date, staff avatar with the name on hover, service, AED). Coco's Behavior note is under her. Client notes last, with author and date.
+- Name, phone, View profile and Pets at once, then **Upcoming**, then **Last visits** (the last three; relative and actual date, staff avatar with the name on hover, service, AED). Coco's Behavior note is under her. Client notes last, with author and date.
 - <http://localhost:3000/messages/inbox/phase-0?c=huda>: two pets, notes on Bella only.
-- `&pets=off`: no Pets section; the card starts with Appointments.
+- `&pets=off`: no Pets section; the card starts with Upcoming.
 
 **H2 · Visits slow** [IX-C6 "history endpoint slow"]
 <http://localhost:3000/messages/inbox/phase-0?state=visits-slow>
@@ -222,7 +221,12 @@ the coverage table and the contract proposal.
 
 **H4 · Unmatched** [IX-C6 edge case, P9]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-saturday>
-- No summary: the dashed avatar, the number with the WhatsApp profile name, then Match to client and Add new client.
+- No summary: the dashed avatar and the number, then Match to client and Add new client.
+
+**H5 · Tablet and small laptop** [T1-D1]
+<http://localhost:3000/messages/inbox/phase-0?c=huda>
+- Narrow the window below 1280: the client pane starts hidden; the panel icon (tooltip Show client) opens it as a sheet over the chat. Tap the dimmed chat or × to close.
+- Below 1024: the list fills the screen; tap a chat to open it full width, with a back arrow to the list.
 
 ---
 

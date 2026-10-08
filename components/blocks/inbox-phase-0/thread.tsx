@@ -3,6 +3,7 @@
 import {
   AlertCircleIcon,
   AlertTriangleIcon,
+  ArrowLeftIcon,
   ArrowLeftRightIcon,
   CheckIcon,
   ChevronDownIcon,
@@ -41,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 import { Composer } from "./composer"
@@ -66,6 +68,7 @@ const FLOATING_DAY_MS = 1200
 
 function ThreadHeader({
   conversation,
+  onBack,
   paneOpen,
   onTogglePane,
   onMatch,
@@ -74,6 +77,8 @@ function ThreadHeader({
   copy,
 }: {
   conversation: InboxConversation
+  /** One pane at a time (narrow windows): back to the list. */
+  onBack?: () => void
   paneOpen: boolean
   onTogglePane: () => void
   onMatch: () => void
@@ -89,6 +94,18 @@ function ThreadHeader({
   const PaneIcon = paneOpen ? PanelRightCloseIcon : PanelRightOpenIcon
   return (
     <header className="flex min-w-0 items-center gap-2 border-b border-border px-4 py-3">
+      {onBack ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="-ms-2 shrink-0 rounded-full text-foreground"
+          onClick={onBack}
+          aria-label={copy.back}
+        >
+          <ArrowLeftIcon className="size-5 rtl:rotate-180" aria-hidden />
+        </Button>
+      ) : null}
       <h2 className="flex min-h-9 min-w-0 flex-1 items-center gap-2.5">
         <ConversationAvatar conversation={conversation} size="sm" unmatchedLabel={copy.unmatched} />
         <span className="min-w-0 truncate text-base font-semibold text-foreground">
@@ -136,17 +153,22 @@ function ThreadHeader({
           </DropdownMenuContent>
         </DropdownMenu>
       ) : null}
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        aria-label={paneOpen ? copy.hideClientPane : copy.showClientPane}
-        aria-pressed={paneOpen}
-        onClick={onTogglePane}
-        className="shrink-0 rounded-full text-foreground"
-      >
-        <PaneIcon aria-hidden className="size-5 rtl:-scale-x-100" />
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label={paneOpen ? copy.hideClientPane : copy.showClientPane}
+            aria-pressed={paneOpen}
+            onClick={onTogglePane}
+            className="shrink-0 rounded-full text-foreground"
+          >
+            <PaneIcon aria-hidden className="size-5 rtl:-scale-x-100" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{paneOpen ? copy.hideClientPane : copy.showClientPane}</TooltipContent>
+      </Tooltip>
     </header>
   )
 }
@@ -776,9 +798,14 @@ export function Thread({
   paneOpen,
   onTogglePane,
   onAdd,
+  onBack,
+  className,
 }: {
   /** Whether the client pane beside the chat is showing. */
   paneOpen: boolean
+  /** One pane at a time (narrow windows): back to the list. */
+  onBack?: () => void
+  className?: string
   onTogglePane: () => void
   /** Opens the add-client form (unmatched chats). */
   onAdd: () => void
@@ -802,7 +829,10 @@ export function Thread({
   return (
     <section
       data-inbox-thread
-      className="flex min-w-[400px] flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+      className={cn(
+        "flex min-w-[400px] flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm",
+        className,
+      )}
     >
       {status === "loading" ? (
         <ThreadSkeleton />
@@ -829,6 +859,7 @@ export function Thread({
         <>
           <ThreadHeader
             conversation={conversation}
+            onBack={onBack}
             paneOpen={paneOpen}
             onTogglePane={onTogglePane}
             onMatch={onMatch}

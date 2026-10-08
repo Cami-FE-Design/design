@@ -38,9 +38,8 @@ describe("Inbox Phase 0 — identity (IX-C3, IX-C4)", () => {
     const khalidAvatar = khalid.querySelector("[data-slot=avatar]")
     expect(khalidAvatar?.getAttribute("data-fallback")).toBe("character")
     expect(khalidAvatar?.textContent).not.toMatch(/KO/)
+    // The number is already on his record, so picking him is the match.
     await user.click(khalid)
-    expect(screen.getByText("This number is already on their record.")).toBeTruthy()
-    await user.click(screen.getByRole("button", { name: "Match" }))
     expect(screen.getByText("Matched to Khalid Omar by Queenie")).toBeTruthy()
     // Everything written before the match is still there (IX-C3 row 3).
     expect(
@@ -57,8 +56,14 @@ describe("Inbox Phase 0 — identity (IX-C3, IX-C4)", () => {
     await user.click(await screen.findByRole("menuitem", { name: /Change linked client/ }))
     await user.type(screen.getByPlaceholderText("Name, phone, email or pet"), "Rana")
     await user.click(screen.getByRole("button", { name: /Rana Haddad/ }))
-    // A different number on the record: Keep is the default (Michelle's open call).
-    expect(screen.getByText("Their record has a different number:")).toBeTruthy()
+    // A different number on the record: Keep is the default; checking the box
+    // updates it and says so on the button.
+    expect(screen.getByRole("heading", { name: "Match to Rana Haddad" })).toBeTruthy()
+    const update = screen.getByRole("checkbox", { name: /Update their number/ })
+    expect(update.getAttribute("aria-checked")).toBe("false")
+    await user.click(update)
+    expect(screen.getByRole("button", { name: "Match and update number" })).toBeTruthy()
+    await user.click(update)
     await user.click(screen.getByRole("button", { name: "Match" }))
     expect(
       screen.getByText("Match changed from Layla Haddad to Rana Haddad by Queenie"),
@@ -67,32 +72,27 @@ describe("Inbox Phase 0 — identity (IX-C3, IX-C4)", () => {
     unmount()
   })
 
-  it("IX-C4 rows 1-3: a short dialog, the chat's phone, the WhatsApp profile name marked as a guess", async () => {
+  it("IX-C4 rows 1-2: a short dialog, the chat's phone, nothing prefilled", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-fatima")
     await user.click(screen.getAllByRole("button", { name: /Add new client/ })[0]!)
     const dialog = screen.getByRole("dialog")
     expect(within(dialog).getByRole("heading", { name: "Add a new client" })).toBeTruthy()
-    expect((within(dialog).getByLabelText(/First name/) as HTMLInputElement).value).toBe("Fatima")
-    expect((within(dialog).getByLabelText(/Last name/) as HTMLInputElement).value).toBe("Noor")
-    expect(within(dialog).getByText("Guessed from WhatsApp")).toBeTruthy()
+    expect((within(dialog).getByLabelText(/First name/) as HTMLInputElement).value).toBe("")
+    expect((within(dialog).getByLabelText(/Last name/) as HTMLInputElement).value).toBe("")
     expect(within(dialog).getByText(/52 883 0044/)).toBeTruthy()
-    expect(
-      within(dialog).getByRole("button", { name: "Save client" }).hasAttribute("disabled"),
-    ).toBe(false)
     unmount()
   })
 
-  it("IX-C4 row 4: an emoji profile name and no name in the thread leave it blank, Save off", async () => {
+  it("IX-C4: Save stays off until reception types a first name", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-saturday")
     await user.click(screen.getAllByRole("button", { name: /Add new client/ })[0]!)
     const dialog = screen.getByRole("dialog")
-    expect((within(dialog).getByLabelText(/First name/) as HTMLInputElement).value).toBe("")
-    expect(within(dialog).queryByText(/Guessed from their message/)).toBeNull()
-    expect(
-      within(dialog).getByRole("button", { name: "Save client" }).hasAttribute("disabled"),
-    ).toBe(true)
+    const save = () => within(dialog).getByRole("button", { name: "Save client" })
+    expect(save().hasAttribute("disabled")).toBe(true)
+    await user.type(within(dialog).getByLabelText(/First name/), "Rana")
+    expect(save().hasAttribute("disabled")).toBe(false)
     unmount()
   })
 

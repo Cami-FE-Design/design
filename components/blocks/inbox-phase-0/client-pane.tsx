@@ -1,14 +1,6 @@
 "use client"
 
-import {
-  ArrowLeftIcon,
-  CirclePlusIcon,
-  LinkIcon,
-  MapPinIcon,
-  SparklesIcon,
-  UserRoundIcon,
-  XIcon,
-} from "lucide-react"
+import { CirclePlusIcon, LinkIcon, MapPinIcon, UserRoundIcon, XIcon } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 
 import {
@@ -23,18 +15,17 @@ import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
 import { ClientSummary } from "@/components/blocks/client-summary"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { SearchInput } from "@/components/ui/search-input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
 import { formatPhone, type InboxCopy, type Lang } from "./copy"
-import { ConversationAvatar, guessName, type PaneStatus, Phone, profileNameParts } from "./shared"
+import { ConversationAvatar, type PaneStatus, Phone } from "./shared"
 
 // ─── Pane 3 — the client (IX-C6, IX-C3, IX-C4) ────────────────────────────────
 // The pane is a tab host so IX-F7 (S1) can add Calendar without a rebuild. A
@@ -228,16 +219,16 @@ function MatchSearch({
 function MatchConfirm({
   conversation,
   client,
+  hasPets,
   copy,
-  lang,
-  onBack,
+  onCancel,
   onConfirm,
 }: {
   conversation: InboxConversation
   client: DirectoryClient
+  hasPets: boolean
   copy: InboxCopy
-  lang: Lang
-  onBack: () => void
+  onCancel: () => void
   onConfirm: (choice: PhoneChoice) => void
 }) {
   const name = [client.firstName, client.lastName].filter(Boolean).join(" ")
@@ -247,80 +238,93 @@ function MatchConfirm({
       : client.phoneE164 === conversation.phoneE164
         ? "same"
         : "keep"
-  const [choice, setChoice] = useState<"keep" | "replace">("keep")
+  // Keep is the default (IX-C3): a family or second phone must not overwrite
+  // the number on record unless reception asks for it.
+  const [update, setUpdate] = useState(false)
 
+  // Same shell as the search step and Add: a title bar, the body, the actions.
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <DialogTitle className="min-w-0 flex-1 truncate text-base font-semibold text-foreground">
+          {copy.matchTo(name)}
+        </DialogTitle>
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
           radius="full"
-          aria-label={copy.back}
-          onClick={onBack}
+          aria-label={copy.close}
+          onClick={onCancel}
         >
-          <ArrowLeftIcon className="size-4 rtl:-scale-x-100" aria-hidden />
+          <XIcon className="size-4" aria-hidden />
         </Button>
-        <Avatar size="lg" fallback="character" name={name} hashSeed={client.publicId} />
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="truncate font-heading text-base font-semibold text-foreground">
-            {name}
-          </span>
-          {client.archived ? (
-            <span>
-              <Badge tone="gray">{copy.archived}</Badge>
+      </div>
+
+      <div className="flex flex-col gap-4 p-4">
+        {/* The client picked, as the search row showed them. */}
+        <div className="flex items-center gap-3 rounded-xl border border-border p-3">
+          <Avatar size="md" fallback="character" name={name} hashSeed={client.publicId} />
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="flex flex-wrap items-center gap-1.5">
+              <span className="truncate text-sm font-medium text-foreground">{name}</span>
+              {client.archived ? <Badge tone="gray">{copy.archived}</Badge> : null}
             </span>
-          ) : null}
+            <span className="truncate text-xs text-muted-foreground">
+              {client.phoneE164 ? <Phone e164={client.phoneE164} /> : (client.email ?? "—")}
+              {hasPets && client.pets.length
+                ? ` · ${client.pets.map((p) => p.name).join(", ")}`
+                : ""}
+            </span>
+          </span>
         </div>
-      </div>
-      <p className="text-sm font-medium text-foreground">{copy.confirmMatchTitle(name)}</p>
-      <div className="flex flex-col gap-2 rounded-xl bg-muted/40 p-3 text-sm">
+
+        {/* What happens to this chat's number (IX-C3 row 2). */}
         {phoneCase === "save" ? (
-          <p>
-            {copy.phoneWillSave} <Phone e164={conversation.phoneE164} className="font-medium" />
+          <p className="text-sm text-foreground">
+            <Phone e164={conversation.phoneE164} className="font-medium" />{" "}
+            <span className="text-muted-foreground">{copy.phoneWillSave}</span>
           </p>
-        ) : phoneCase === "same" ? (
-          <p>{copy.phoneAlreadyOn}</p>
         ) : (
-          <>
-            <p>
-              {copy.phoneDifferent} <Phone e164={client.phoneE164!} className="font-medium" />
-            </p>
-            <RadioGroup
-              dir={lang === "ar" ? "rtl" : "ltr"}
-              value={choice}
-              onValueChange={(v) => setChoice(v as "keep" | "replace")}
-              className="gap-2 pt-1"
-            >
-              <Label className="flex items-center gap-2 font-normal">
-                <RadioGroupItem value="keep" />
-                {copy.keepExisting}
-              </Label>
-              <Label className="flex items-center gap-2 font-normal">
-                <RadioGroupItem value="replace" />
-                <span>
-                  {copy.replacePhone} (<Phone e164={conversation.phoneE164} />)
-                </span>
-              </Label>
-            </RadioGroup>
-          </>
+          <div className="flex flex-col gap-3">
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">{copy.onRecord}</dt>
+              <dd
+                className={cn(
+                  "font-medium text-foreground",
+                  update && "text-muted-foreground line-through",
+                )}
+              >
+                <Phone e164={client.phoneE164!} />
+              </dd>
+              <dt className="text-muted-foreground">{copy.thisChat}</dt>
+              <dd className="font-medium text-foreground">
+                <Phone e164={conversation.phoneE164} />
+              </dd>
+            </dl>
+            <Label className="flex items-center gap-2 font-normal">
+              <Checkbox checked={update} onCheckedChange={(v) => setUpdate(v === true)} />
+              {copy.updateNumber}
+            </Label>
+          </div>
         )}
-      </div>
-      <p className="text-xs text-muted-foreground">{copy.historyStays}</p>
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" radius="full" onClick={onBack}>
-          {copy.back}
-        </Button>
-        <Button
-          type="button"
-          radius="full"
-          className="gap-1.5"
-          onClick={() => onConfirm(phoneCase === "keep" ? choice : phoneCase)}
-        >
-          <LinkIcon className="size-4" aria-hidden />
-          {copy.confirmMatch}
-        </Button>
+
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" radius="full" onClick={onCancel}>
+            {copy.cancel}
+          </Button>
+          <Button
+            type="button"
+            radius="full"
+            className="gap-1.5"
+            onClick={() =>
+              onConfirm(phoneCase === "keep" ? (update ? "replace" : "keep") : phoneCase)
+            }
+          >
+            <LinkIcon className="size-4" aria-hidden />
+            {phoneCase === "keep" && update ? copy.matchAndUpdate : copy.confirmMatch}
+          </Button>
+        </div>
       </div>
     </div>
   )
@@ -340,8 +344,8 @@ function threadPhone(e164: string): { phoneCode: string; phone: string } {
   return { phoneCode: "+971", phone: e164 }
 }
 
-/** IX-C4: a short dialog over the chat. First name is all that is required, the
- *  phone is the chat's, and a name is only ever a guess the form says is one. */
+/** IX-C4: a short dialog over the chat. First name is all that is required and
+ *  the phone is the chat's. Nothing is prefilled: reception types the name. */
 function AddClientDialog({
   open,
   onOpenChange,
@@ -363,25 +367,16 @@ function AddClientDialog({
   onMatchInstead: () => void
   onFullForm: () => void
 }) {
-  // The name guess, best source first: the WhatsApp profile name the client set,
-  // then a name in their messages, else blank. Always marked as a guess.
-  const guess = useMemo(() => {
-    const profile = profileNameParts(conversation.profileName)
-    if (profile) return { ...profile, source: "profile" as const }
-    const fromMessage = guessName(conversation.messages)
-    return fromMessage ? { firstName: fromMessage, lastName: "", source: "message" as const } : null
-  }, [conversation.profileName, conversation.messages])
-  const [firstName, setFirstName] = useState(guess?.firstName ?? "")
-  const [lastName, setLastName] = useState(guess?.lastName ?? "")
-  // Reopening starts clean, with the guess (if any) filled again.
+  const [firstName, setFirstName] = useState("")
+  const [lastName, setLastName] = useState("")
+  // Reopening starts clean.
   useEffect(() => {
     if (open) {
-      setFirstName(guess?.firstName ?? "")
-      setLastName(guess?.lastName ?? "")
+      setFirstName("")
+      setLastName("")
     }
-  }, [open, guess])
+  }, [open])
   const existing = clientsOnNumber(directory, conversation.phoneE164)
-  const isGuess = !!guess && firstName === guess.firstName
   const close = () => onOpenChange(false)
 
   return (
@@ -447,32 +442,12 @@ function AddClientDialog({
                 <Label htmlFor="add-first">
                   {copy.firstName} <span aria-hidden>*</span>
                 </Label>
-                <div className="relative">
-                  <Input
-                    id="add-first"
-                    autoFocus
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    aria-describedby={isGuess ? "add-first-guess" : undefined}
-                    className={cn(isGuess && "pe-10")}
-                  />
-                  {/* A guessed name is marked in the field, its source in the tooltip. */}
-                  {isGuess ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="absolute inset-y-0 end-3 flex items-center text-cami-violet-11">
-                          <SparklesIcon className="size-4" aria-hidden />
-                          <span id="add-first-guess" className="sr-only">
-                            {guess?.source === "profile" ? copy.guessedProfile : copy.guessed}
-                          </span>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {guess?.source === "profile" ? copy.guessedProfile : copy.guessed}
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : null}
-                </div>
+                <Input
+                  id="add-first"
+                  autoFocus
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="add-last">{copy.lastName}</Label>
@@ -563,13 +538,6 @@ function UnmatchedBand({
       <div className="flex min-w-0 flex-col gap-0.5">
         <span className="truncate text-lg font-semibold leading-tight text-foreground">
           <Phone e164={conversation.phoneE164} />
-          {conversation.profileName ? (
-            // The name they set in WhatsApp, after the number: "+971 55 447 1209 (🌸)".
-            <span dir="auto" className="font-normal text-muted-foreground">
-              {" "}
-              ({conversation.profileName})
-            </span>
-          ) : null}
         </span>
       </div>
     </div>
@@ -626,8 +594,11 @@ export function ClientPane({
   addOpen,
   onClose,
   hidden = false,
+  className,
   onAddOpenChange: setAddOpen,
 }: {
+  /** Overlay sizing below 1280, where the pane is a sheet over the chat. */
+  className?: string
   /** The add form. Held by the screen, since the thread header opens it too. */
   addOpen: boolean
   /** Hides the pane, like the toggle in the thread header. */
@@ -689,27 +660,31 @@ export function ClientPane({
           }}
         >
           {picked ? (
-            <>
-              <DialogTitle className="sr-only">{copy.matchTitle}</DialogTitle>
-              <MatchConfirm
-                conversation={conversation}
-                client={picked}
-                copy={copy}
-                lang={lang}
-                onBack={() => setPicked(null)}
-                onConfirm={(choice) => {
-                  onMatch(picked, choice)
-                  onModeChange("summary")
-                }}
-              />
-            </>
+            <MatchConfirm
+              conversation={conversation}
+              client={picked}
+              hasPets={hasPets}
+              copy={copy}
+              onCancel={() => onModeChange("summary")}
+              onConfirm={(choice) => {
+                onMatch(picked, choice)
+                onModeChange("summary")
+              }}
+            />
           ) : (
             <MatchSearch
               conversation={conversation}
               directory={directory}
               hasPets={hasPets}
               copy={copy}
-              onPick={setPicked}
+              onPick={(c) => {
+                // The number is already on their record: nothing to decide, so
+                // picking them is the match.
+                if (c.phoneE164 === conversation.phoneE164) {
+                  onMatch(c, "same")
+                  onModeChange("summary")
+                } else setPicked(c)
+              }}
               onAddInstead={
                 conversation.customer
                   ? null
@@ -731,7 +706,7 @@ export function ClientPane({
     if (conversation.customer) {
       const customer = conversation.customer
       body = (
-        <div key={customer.publicId} className="flex min-h-full flex-1 flex-col">
+        <div key={customer.publicId} className="flex min-h-full shrink-0 grow flex-col">
           <ClientSummary
             initial={{
               customerId: customer.publicId,
@@ -798,6 +773,7 @@ export function ClientPane({
         "flex w-[26rem] min-w-80 shrink flex-col overflow-hidden rounded-2xl border border-border shadow-sm",
         "bg-card",
         hidden && "hidden",
+        className,
       )}
     >
       {/* Same shell as the thread and list headers, so the bottom borders line up. */}
