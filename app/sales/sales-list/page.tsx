@@ -77,7 +77,7 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { endOfDay, formatAed, formatDate, formatTime, startOfDay } from "@/lib/format"
-import { type CamiPayRail, type CamiPayRate, railLabel } from "@/lib/hq-camipay/store"
+import { type CamiPayRail, railLabel } from "@/lib/hq-camipay/store"
 import { invoiceFromSale, originalFor, receiptNumberFor } from "@/lib/invoice/from-sale"
 import { documentTitle } from "@/lib/invoice/totals"
 import { useLocations } from "@/lib/locations/store"
