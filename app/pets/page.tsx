@@ -39,8 +39,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { formatDate, formatTimeAgo } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { formatDate, formatRelative, MOCK_PETS, type MockPet } from "./mock"
+import { MOCK_PETS, type MockPet, PETS_TODAY } from "./mock"
 
 type SortKey = "name" | "lastVisit" | "totalVisits" | "createdAt"
 type SortDir = "asc" | "desc"
@@ -163,7 +164,7 @@ function PetRow({ pet, onOpen }: { pet: MockPet; onOpen: () => void }) {
         <OwnersCell owners={pet.owners} seed={familySeed} />
       </TableCell>
       <TableCell className="text-sm text-foreground tabular-nums">
-        {formatRelative(pet.lastVisitDate)}
+        {formatTimeAgo(pet.lastVisitDate, { precision: "day", now: PETS_TODAY })}
       </TableCell>
       <TableCell className="text-sm text-foreground tabular-nums">{pet.totalVisits}</TableCell>
       <TableCell className="text-sm text-muted-foreground tabular-nums">

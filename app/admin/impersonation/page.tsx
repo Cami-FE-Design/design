@@ -46,13 +46,12 @@ import {
   type ImpersonationStatus,
   impersonationEvents,
   PII_FIELD_LABELS,
-  relativeTime,
   statusBadgeClass,
   statusLabel,
   uniqueBusinesses,
 } from "@/lib/admin-impersonation"
 import { useAuth } from "@/lib/auth-mock"
-import { formatTimestamp } from "@/lib/format"
+import { formatTimeAgo, formatTimestamp } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type StatusFilter = ImpersonationStatus | "all"
@@ -156,7 +155,7 @@ function EventRow({
       </TableCell>
       <TableCell className="text-sm text-foreground">
         <div className="flex flex-col leading-tight">
-          <span>{relativeTime(event.startedAt, nowMs)}</span>
+          <span>{formatTimeAgo(event.startedAt, { now: nowMs })}</span>
           <span className="text-xs text-muted-foreground">{formatTimestamp(event.startedAt)}</span>
         </div>
       </TableCell>
@@ -357,7 +356,7 @@ function EventDetailSheet({
                         >
                           <div className="flex flex-col leading-tight">
                             <span className="text-sm text-foreground">
-                              {relativeTime(p.at, nowMs)}
+                              {formatTimeAgo(p.at, { now: nowMs })}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {formatTimestamp(p.at)}

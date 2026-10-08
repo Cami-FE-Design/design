@@ -23,7 +23,7 @@
 
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
-import { formatTime } from "@/lib/format"
+import { formatDate, formatLongDate, formatTime } from "@/lib/format"
 import {
   documentTitle,
   formatInvoiceAmount,
@@ -37,17 +37,9 @@ import { cn } from "@/lib/utils"
 
 // ─── Dates ────────────────────────────────────────────────────────────────────
 
-const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-/** "16 Aug 2026" — the compact form used in the meta block. */
-function formatDate(d: Date) {
-  return `${d.getDate()} ${MONTH[d.getMonth()]} ${d.getFullYear()}`
-}
-
 /** "Sunday, 16 Aug 2026 at 9:43am" — the long form, matching the reference. */
 function formatDateTimeLong(d: Date) {
-  return `${WEEKDAY[d.getDay()]}, ${formatDate(d)} at ${formatTime(d)}`
+  return `${formatLongDate(d)} at ${formatTime(d)}`
 }
 
 // ─── Pagination ───────────────────────────────────────────────────────────────

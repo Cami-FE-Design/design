@@ -17,7 +17,7 @@ import { SessionsRemainingChip } from "@/components/blocks/sales/sessions-remain
 import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
-import { formatDurationCompact } from "@/lib/format"
+import { formatDuration } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import type { ServiceCoverage } from "@/lib/packages/allocate"
@@ -285,7 +285,7 @@ function ServiceRow({
             {service.isCombo ? <ComboBadge size="sm" /> : null}
           </div>
           <span className="text-xs text-muted-foreground">
-            {formatDurationCompact(service.durationMin)}
+            {formatDuration(service.durationMin)}
             {service.componentNames?.length
               ? ` · ${comboServicesLabel(service.componentNames.length)}`
               : ""}
@@ -537,7 +537,7 @@ function AppointmentCard({
               <span className="text-foreground">{line.name}</span>
               <span className="text-muted-foreground">
                 {" "}
-                · {line.staffName} · {formatDurationCompact(line.durationMin)}
+                · {line.staffName} · {formatDuration(line.durationMin)}
               </span>
             </span>
             <span className="shrink-0 font-medium text-foreground tabular-nums">

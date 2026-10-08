@@ -74,7 +74,6 @@ import {
   formatDate,
   REASON_CODES,
   type ReasonCodeId,
-  relativeTime,
   STAFF_ROLE_LABELS,
   STATE_DESCRIPTION,
   STATE_DOT,
@@ -85,7 +84,7 @@ import {
 import { PermissionGate } from "@/lib/auth-mock"
 import { checkGoogleReviewLink, displayGoogleReviewLink } from "@/lib/business-links/links"
 import { EMIRATES } from "@/lib/business-profile"
-import { formatTimestamp } from "@/lib/format"
+import { formatTimeAgo, formatTimestamp } from "@/lib/format"
 import { useHqRates } from "@/lib/notifications/hq-store"
 import {
   amountDue,
@@ -1037,7 +1036,7 @@ function ActivitySection({ business }: { business: AdminBusiness }) {
               )}
             >
               <div className="flex flex-col">
-                <span className="text-sm text-foreground">{relativeTime(event.at)}</span>
+                <span className="text-sm text-foreground">{formatTimeAgo(event.at)}</span>
                 <span className="text-xs text-muted-foreground">{formatTimestamp(event.at)}</span>
               </div>
               <div className="flex flex-col">

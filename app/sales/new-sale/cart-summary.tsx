@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { formatDurationCompact } from "@/lib/format"
+import { formatDuration } from "@/lib/format"
 import { formatMoney, formatMoneyWhole } from "@/lib/money/format"
 import type { AllocatedSession } from "@/lib/packages/allocate"
 import { cn } from "@/lib/utils"
@@ -195,7 +195,7 @@ function ServiceLineRow({
   /** The package session that paid for this line, if one did. */
   session?: AllocatedSession
 }) {
-  const meta = [line.durationMin != null ? formatDurationCompact(line.durationMin) : null, subject]
+  const meta = [line.durationMin != null ? formatDuration(line.durationMin) : null, subject]
     .filter(Boolean)
     .join(" · ")
 

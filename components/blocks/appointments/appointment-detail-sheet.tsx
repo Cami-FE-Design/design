@@ -70,7 +70,7 @@ import {
   BOOKING_STATUS_TONE,
 } from "@/lib/appointments/status"
 import { clientNotesFor } from "@/lib/client-notes"
-import { formatClock, formatDurationCompact, formatWeekdayDate } from "@/lib/format"
+import { formatClock, formatDuration, formatWeekdayDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { useNotifications } from "@/lib/notifications/store"
@@ -612,7 +612,7 @@ function ServicesSection({ booking, staffName }: { booking: MockBooking; staffNa
                             after it, and stamping each with the booking's start
                             would claim three services began at once. */}
                         {index === 0 ? `${formatClock(booking.start)} · ` : null}
-                        {formatDurationCompact(item.durationMin)} · {item.staffName ?? staffName}
+                        {formatDuration(item.durationMin)} · {item.staffName ?? staffName}
                       </span>
                     </div>
                     <span className="flex shrink-0 flex-col items-end leading-tight tabular-nums">

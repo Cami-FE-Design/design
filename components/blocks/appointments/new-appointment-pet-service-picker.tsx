@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
-import { formatDurationCompact } from "@/lib/format"
+import { formatDuration } from "@/lib/format"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
@@ -265,7 +265,7 @@ function ServiceCheckGroup({
                         {item.isCombo ? <ComboBadge /> : null}
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {formatDurationCompact(item.durationMin)}
+                        {formatDuration(item.durationMin)}
                         {item.componentNames?.length
                           ? ` · ${comboServicesLabel(item.componentNames.length)}`
                           : ""}

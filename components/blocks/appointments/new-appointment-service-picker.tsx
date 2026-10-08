@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
-import { formatDurationCompact } from "@/lib/format"
+import { formatDuration } from "@/lib/format"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { useBranchOfferingNote } from "@/lib/service-catalog/use-branch-offering-note"
 
@@ -136,7 +136,7 @@ function ServiceCategoryGroup({
                       {item.isCombo ? <ComboBadge /> : null}
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      {formatDurationCompact(item.durationMin)}
+                      {formatDuration(item.durationMin)}
                       {item.componentNames?.length
                         ? ` · ${comboServicesLabel(item.componentNames.length)}`
                         : ""}

@@ -200,21 +200,5 @@ export function speciesLabel(species: AvatarSpecies): string {
   return SPECIES_LABEL[species]
 }
 
-export function formatDate(iso: string): string {
-  const date = new Date(iso)
-  return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
-}
-
-export function formatRelative(iso?: string): string {
-  if (!iso) return "Never"
-  const date = new Date(iso)
-  const now = new Date("2026-05-11")
-  const days = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
-  if (days < 0) return formatDate(iso)
-  if (days === 0) return "Today"
-  if (days === 1) return "Yesterday"
-  if (days < 7) return `${days} days ago`
-  if (days < 30) return `${Math.floor(days / 7)}w ago`
-  if (days < 365) return `${Math.floor(days / 30)}mo ago`
-  return `${Math.floor(days / 365)}y ago`
-}
+/** The demo's "today", so last-visit recency reads the same on any day. */
+export const PETS_TODAY = new Date("2026-05-11")

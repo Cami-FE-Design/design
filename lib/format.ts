@@ -37,10 +37,10 @@ function toDate(input: string | Date): Date {
   return input instanceof Date ? input : new Date(input)
 }
 
-/** `15 Jul 2026` — day-first, matching Fresha and the existing Sales screens. */
+/** `05 Jul 2026` — two-digit day first, as cami-business formats every date. */
 export function formatDate(input: string | Date): string {
   const d = toDate(input)
-  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
+  return `${String(d.getDate()).padStart(2, "0")} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
 }
 
 /** `1:39pm` */
@@ -57,16 +57,6 @@ export function formatTime(input: string | Date): string {
 export function formatDateTime(input: string | Date): string {
   const d = toDate(input)
   return `${formatDate(d)}, ${formatTime(d)}`
-}
-
-/** `1h 30m` · `45m` · `0m` — from a minutes count. */
-export function formatDuration(minutes: number): string {
-  if (minutes <= 0) return "0m"
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  if (h && m) return `${h}h ${m}m`
-  if (h) return `${h}h`
-  return `${m}m`
 }
 
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -118,20 +108,16 @@ export function minutesOfDay(hhmm: string): number {
   return (h ?? 0) * 60 + (m ?? 0)
 }
 
-/** `1h 30min` · `45min` · `2h` */
-export function formatDurationCompact(minutes: number): string {
+/**
+ * `1h 30min` · `45min` · `2h` — the one duration style for operational screens
+ * (calendar, sales, reports, daycare), as in cami-business. The service catalog
+ * (`formatDurationMin`) and the public booking page keep their own.
+ */
+export function formatDuration(minutes: number): string {
   if (minutes < 60) return `${minutes}min`
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   return m === 0 ? `${h}h` : `${h}h ${m}min`
-}
-
-/** `1 hr 30 min` · `45 min` · `2 hr` */
-export function formatDurationLong(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`
-  const h = Math.floor(minutes / 60)
-  const m = minutes % 60
-  return m === 0 ? `${h} hr` : `${h} hr ${m} min`
 }
 
 /** A local Date as `YYYY-MM-DD`, with no timezone shift. */
@@ -171,4 +157,48 @@ export function initialOf(name?: string): string {
 export function splitName(full: string): { firstName: string; lastName: string } {
   const [first, ...rest] = full.trim().split(/\s+/)
   return { firstName: first ?? "", lastName: rest.join(" ") }
+}
+
+/**
+ * How long ago something happened — the one standard for the whole app.
+ *
+ * `precision: "time"` (default) is for timestamps: activity, sessions, audit
+ * events. `"day"` is for things that only have a date, like a last visit, so
+ * they never read "3 hr ago".
+ *
+ *   Just now · 5 min ago · 3 hr ago        (time precision, under a day)
+ *   Today · Yesterday · 3 days ago
+ *   2 wk ago · 4 mo ago · 2 yr ago
+ *   Never                                  (no date at all)
+ *
+ * Days count calendar days between local midnights, so something from late
+ * last night is "Yesterday", not "1 day ago". A date in the future reads as
+ * "Today" (day) or "Just now" (time).
+ */
+export function formatTimeAgo(
+  input: string | Date | null | undefined,
+  {
+    now = Date.now(),
+    precision = "time",
+  }: { now?: number | Date; precision?: "time" | "day" } = {},
+): string {
+  if (!input) return "Never"
+  const then = toDay(input)
+  if (Number.isNaN(then.getTime())) return "Never"
+  const nowDate = now instanceof Date ? now : new Date(now)
+
+  if (precision === "time") {
+    const minutes = Math.floor((nowDate.getTime() - then.getTime()) / 60_000)
+    if (minutes < 1) return "Just now"
+    if (minutes < 60) return `${minutes} min ago`
+    if (minutes < 24 * 60) return `${Math.floor(minutes / 60)} hr ago`
+  }
+
+  const days = Math.round((startOfDay(nowDate).getTime() - startOfDay(then).getTime()) / 86_400_000)
+  if (days <= 0) return "Today"
+  if (days === 1) return "Yesterday"
+  if (days < 7) return `${days} days ago`
+  if (days < 30) return `${Math.floor(days / 7)} wk ago`
+  if (days < 365) return `${Math.floor(days / 30)} mo ago`
+  return `${Math.floor(days / 365)} yr ago`
 }

@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { type UploadedFile, useDemoFiles, useLocalFilesStore } from "@/lib/demo-files"
+import { formatDate, formatTime } from "@/lib/format"
 import { buildConsentPdfUrl } from "@/lib/mock-pdf"
 import { cn } from "@/lib/utils"
 
@@ -89,23 +90,6 @@ const SEED_FORMS: ConsentForm[] = [
 ]
 
 // ─── Formatting ─────────────────────────────────────────────────────────────
-
-/** Matches the app-wide date style used on the clients / pets lists (e.g. "Jul 7, 2026"). */
-function formatFileDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  })
-}
-
-/** Row time, lowercased to match the app style (e.g. "10:10am"). */
-function formatFormTime(iso: string): string {
-  return new Date(iso)
-    .toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    .replace(" ", "")
-    .toLowerCase()
-}
 
 /** Status pill copy + colour, reusing the original Signed / Pending tag treatment. */
 const FORM_STATUS_BADGE: Record<ConsentFormStatus, { label: string; className: string }> = {
@@ -170,7 +154,7 @@ function FormRow({
       <div className="flex min-w-0 flex-1 flex-col leading-tight">
         <span className="truncate text-sm font-medium text-foreground">{form.name}</span>
         <span className="truncate text-xs text-muted-foreground">
-          {formatFileDate(form.sharedAt)} · {formatFormTime(form.sharedAt)} · {form.fileName}
+          {formatDate(form.sharedAt)} · {formatTime(form.sharedAt)} · {form.fileName}
         </span>
       </div>
       <Badge className={cn("shrink-0 border-transparent", badge.className)}>{badge.label}</Badge>
@@ -964,7 +948,7 @@ export function FilesSection({
           ) : (
             <span className="truncate text-sm font-medium text-foreground">{file.name}</span>
           )}
-          <span className="text-xs text-muted-foreground">{formatFileDate(file.uploadedAt)}</span>
+          <span className="text-xs text-muted-foreground">{formatDate(file.uploadedAt)}</span>
         </div>
         <FileActionsMenu
           label={`Actions for ${file.name}`}

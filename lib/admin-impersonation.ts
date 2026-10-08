@@ -398,17 +398,3 @@ export function eventsToOwnerSummary(
 export function findEventById(id: string): ImpersonationEvent | undefined {
   return impersonationEvents.find((e) => e.id === id)
 }
-
-export function relativeTime(iso: string, nowMs = Date.now()): string {
-  const then = new Date(iso).getTime()
-  const diff = nowMs - then
-  if (diff < 60_000) return "Just now"
-  const m = Math.round(diff / 60_000)
-  if (m < 60) return `${m} min ago`
-  const h = Math.round(m / 60)
-  if (h < 24) return `${h} hr ago`
-  const d = Math.round(h / 24)
-  if (d < 30) return `${d} d ago`
-  const mo = Math.round(d / 30)
-  return `${mo} mo ago`
-}

@@ -1,4 +1,5 @@
 import type { AvatarSpecies } from "@/components/ui/avatar"
+import { formatDate } from "@/lib/format"
 
 export type MockPet = {
   id: string
@@ -68,7 +69,7 @@ export function patchTestExpiry(test: ClientPatchTest): Date {
 export function formatPatchTestDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return iso
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+  return formatDate(date)
 }
 
 export type MockClient = {
@@ -386,8 +387,3 @@ export const MOCK_CLIENTS: MockClient[] = [
     tags: ["client-vip", "client-tipper"],
   },
 ]
-
-export function formatDate(iso: string): string {
-  const date = new Date(iso)
-  return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
-}

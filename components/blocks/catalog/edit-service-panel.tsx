@@ -41,7 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { formatDurationCompact } from "@/lib/format"
+import { formatDuration } from "@/lib/format"
 import { slotRefusal } from "@/lib/locations/cross-branch-availability"
 import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
@@ -119,10 +119,10 @@ const TIME_OPTIONS = (() => {
 //   5min steps up to 2h, then 15min steps to 4h, 30min steps to 8h, 1h steps to 13h.
 const DURATION_OPTIONS = (() => {
   const out: { value: number; label: string }[] = []
-  for (let m = 5; m <= 120; m += 5) out.push({ value: m, label: formatDurationCompact(m) })
-  for (let m = 135; m <= 240; m += 15) out.push({ value: m, label: formatDurationCompact(m) })
-  for (let m = 270; m <= 480; m += 30) out.push({ value: m, label: formatDurationCompact(m) })
-  for (let m = 540; m <= 780; m += 60) out.push({ value: m, label: formatDurationCompact(m) })
+  for (let m = 5; m <= 120; m += 5) out.push({ value: m, label: formatDuration(m) })
+  for (let m = 135; m <= 240; m += 15) out.push({ value: m, label: formatDuration(m) })
+  for (let m = 270; m <= 480; m += 30) out.push({ value: m, label: formatDuration(m) })
+  for (let m = 540; m <= 780; m += 60) out.push({ value: m, label: formatDuration(m) })
   return out
 })()
 
@@ -330,7 +330,7 @@ export function EditServicePanel({
         >
           <div className="flex min-w-0 flex-1 flex-col leading-tight">
             <span className="truncate text-base font-semibold leading-tight text-foreground">
-              {catalog.name}, {formatDurationCompact(duration)}
+              {catalog.name}, {formatDuration(duration)}
             </span>
           </div>
           <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -682,7 +682,7 @@ export function EditServicePanel({
       <footer className="flex flex-col gap-3 border-t border-border bg-card px-6 py-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Total</span>
-          <span className="font-semibold tabular-nums">{formatDurationCompact(totalDuration)}</span>
+          <span className="font-semibold tabular-nums">{formatDuration(totalDuration)}</span>
         </div>
         <div className="flex items-center gap-3">
           <DropdownMenu>

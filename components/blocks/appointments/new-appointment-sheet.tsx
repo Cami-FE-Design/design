@@ -94,7 +94,7 @@ import {
 } from "@/lib/appointments/status"
 import { openAppointmentsFor } from "@/lib/clients/open-appointments"
 import { useDemoBusiness } from "@/lib/demo-business"
-import { formatClock, formatDurationCompact, formatWeekdayDate } from "@/lib/format"
+import { formatClock, formatDuration, formatWeekdayDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
@@ -1645,7 +1645,7 @@ function ServiceRowList({
                   <span className="text-base font-semibold text-foreground">{s.catalog.name}</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {formatClock(s.startTime)} · {formatDurationCompact(s.catalog.durationMin)} ·{" "}
+                  {formatClock(s.startTime)} · {formatDuration(s.catalog.durationMin)} ·{" "}
                   {s.staffName ?? "Any team member"}
                 </span>
               </div>

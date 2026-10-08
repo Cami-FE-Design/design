@@ -3,10 +3,10 @@ import {
   addDaysIso,
   formatClock,
   formatDate,
-  formatDurationCompact,
-  formatDurationLong,
+  formatDuration,
   formatLongDate,
   formatTime,
+  formatTimeAgo,
   formatWeekdayDate,
   initialOf,
   minutesOfDay,
@@ -26,6 +26,11 @@ describe("dates", () => {
     expect(formatTime(tue)).toBe("1:39pm")
     expect(formatLongDate(tue)).toBe("Tuesday, 14 Jul 2026")
     expect(formatWeekdayDate(tue)).toBe("Tue, 14 Jul")
+  })
+
+  it("gives the day two digits, as cami-business does", () => {
+    expect(formatDate(new Date(2026, 6, 5))).toBe("05 Jul 2026")
+    expect(formatLongDate("2026-07-05")).toBe("Sunday, 05 Jul 2026")
   })
 
   it("reads a YYYY-MM-DD day as local midnight", () => {
@@ -50,12 +55,35 @@ describe("slot times", () => {
 })
 
 describe("durations", () => {
-  it("has a compact and a spelled-out form", () => {
-    expect(formatDurationCompact(45)).toBe("45min")
-    expect(formatDurationCompact(90)).toBe("1h 30min")
-    expect(formatDurationCompact(120)).toBe("2h")
-    expect(formatDurationLong(45)).toBe("45 min")
-    expect(formatDurationLong(90)).toBe("1 hr 30 min")
+  it("reads like cami-business on operational screens", () => {
+    expect(formatDuration(45)).toBe("45min")
+    expect(formatDuration(90)).toBe("1h 30min")
+    expect(formatDuration(120)).toBe("2h")
+  })
+})
+
+describe("time ago", () => {
+  const now = new Date(2026, 4, 11, 15, 0)
+  const ago = (ms: number) => new Date(now.getTime() - ms)
+  const MIN = 60_000
+
+  it("reads a timestamp to the minute, then by calendar day", () => {
+    expect(formatTimeAgo(ago(20_000), { now })).toBe("Just now")
+    expect(formatTimeAgo(ago(5 * MIN), { now })).toBe("5 min ago")
+    expect(formatTimeAgo(ago(3 * 60 * MIN), { now })).toBe("3 hr ago")
+    expect(formatTimeAgo(new Date(2026, 4, 10, 9, 0), { now })).toBe("Yesterday")
+    expect(formatTimeAgo(new Date(2026, 4, 8), { now })).toBe("3 days ago")
+    expect(formatTimeAgo(new Date(2026, 3, 26), { now })).toBe("2 wk ago")
+    expect(formatTimeAgo(new Date(2026, 0, 2), { now })).toBe("4 mo ago")
+    expect(formatTimeAgo(new Date(2024, 4, 1), { now })).toBe("2 yr ago")
+  })
+
+  it("reads a date-only value by day, and says Never when there is none", () => {
+    expect(formatTimeAgo("2026-05-11", { now, precision: "day" })).toBe("Today")
+    expect(formatTimeAgo("2026-05-10", { now, precision: "day" })).toBe("Yesterday")
+    expect(formatTimeAgo("2026-05-20", { now, precision: "day" })).toBe("Today")
+    expect(formatTimeAgo(null)).toBe("Never")
+    expect(formatTimeAgo(undefined, { precision: "day" })).toBe("Never")
   })
 })
 

@@ -478,24 +478,6 @@ export function stateBadge(state: BusinessState) {
   return { className: stateBadgeStyles[state], label: stateLabels[state] }
 }
 
-export function relativeTime(iso: string | null): string {
-  if (!iso) return "Never"
-  const then = new Date(iso).getTime()
-  const now = Date.now()
-  const diff = now - then
-  const minutes = Math.round(diff / 60000)
-  if (minutes < 1) return "Just now"
-  if (minutes < 60) return `${minutes} min ago`
-  const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours} hr ago`
-  const days = Math.round(hours / 24)
-  if (days < 30) return `${days} d ago`
-  const months = Math.round(days / 30)
-  if (months < 12) return `${months} mo ago`
-  const years = Math.round(months / 12)
-  return `${years} yr ago`
-}
-
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {
     day: "2-digit",

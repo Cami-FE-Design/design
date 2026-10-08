@@ -2,7 +2,7 @@
 
 import { CareBookingSheet } from "@/components/blocks/appointments/care-booking-sheet"
 import { type DaycareSession, formatTime, formatTimeRange } from "@/lib/daycare-mock"
-import { formatDurationLong } from "@/lib/format"
+import { formatDuration } from "@/lib/format"
 import { formatMoneyWhole } from "@/lib/money/format"
 
 // A daycare session in the shared care drawer: price and plan on the service
@@ -19,7 +19,7 @@ type DaycareDetailSheetProps = {
 export function DaycareDetailSheet({ open, onOpenChange, session }: DaycareDetailSheetProps) {
   if (!session) return null
   const addOns = session.addOns.reduce((sum, a) => sum + a.priceMinor, 0)
-  const duration = formatDurationLong(session.durationMin)
+  const duration = formatDuration(session.durationMin)
 
   return (
     <CareBookingSheet

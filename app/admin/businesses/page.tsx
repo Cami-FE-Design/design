@@ -35,11 +35,10 @@ import {
   adminBusinesses,
   type BusinessState,
   formatDate,
-  relativeTime,
   stateLabel,
 } from "@/lib/admin-businesses"
 import { useAuth } from "@/lib/auth-mock"
-import { formatAed } from "@/lib/format"
+import { formatAed, formatTimeAgo } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type StateFilter = "all" | BusinessState
@@ -260,7 +259,7 @@ function BusinessRow({
         {formatDate(business.createdAt)}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {relativeTime(business.lastActivityAt)}
+        {formatTimeAgo(business.lastActivityAt)}
       </TableCell>
     </TableRow>
   )

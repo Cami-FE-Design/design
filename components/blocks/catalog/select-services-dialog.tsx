@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { formatDurationLong } from "@/lib/format"
+import { formatDurationMin } from "@/lib/service-catalog/types"
 import { cn } from "@/lib/utils"
 
 // ─── Types & mock data ──────────────────────────────────────────────────────────
@@ -260,7 +260,7 @@ export function SelectServicesDialog({
                             {service.name}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {formatDurationLong(service.duration)}
+                            {formatDurationMin(service.duration)}
                           </p>
                         </div>
                         <span className="shrink-0 text-sm text-muted-foreground">
