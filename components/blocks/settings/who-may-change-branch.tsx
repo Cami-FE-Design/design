@@ -64,7 +64,10 @@ export function WhoMayChangeBranch() {
           <tr>
             <th className="pb-2 text-left font-medium text-muted-foreground">At Jumeirah</th>
             {ACTORS.map((a) => (
-              <th key={a.label} className="px-2 pb-2 text-left font-medium text-foreground">
+              <th
+                key={`${a.label}-${a.note}`}
+                className="px-2 pb-2 text-left font-medium text-foreground"
+              >
                 {a.label}
                 <span className="block text-xs font-normal text-muted-foreground">{a.note}</span>
               </th>
@@ -78,7 +81,7 @@ export function WhoMayChangeBranch() {
               {ACTORS.map((a) => {
                 const verdict = mayChangeBranch(a.actor, action.id, AT)
                 return (
-                  <td key={a.label} className="px-2 py-2">
+                  <td key={`${a.label}-${a.note}`} className="px-2 py-2">
                     {verdict.allowed ? (
                       <span className="inline-flex items-center gap-1 text-cami-green-11">
                         <CheckIcon className="size-4" aria-hidden />
