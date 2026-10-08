@@ -102,13 +102,13 @@ headings, breadcrumbs, empty states). Pairs with the terminology rule below.
 | File | Behavior when `hasPets` |
 | --- | --- |
 | `app/clients/page.tsx` | Pets column + pet sections render (true) / hidden (false). |
-| `components/blocks/client-detail-dialog.tsx` | Pets section in client detail. |
-| `components/blocks/client-edit-sheet.tsx` | Pet fields in add/edit. |
-| `components/blocks/appointment-block.tsx` | Pet name/species line on the block. |
-| `components/blocks/appointments-toolbar.tsx` | Pet-scoped filters. |
-| `components/blocks/appointment-popover.tsx` | Pet detail in popover (required prop). |
-| `components/blocks/new-appointment-sheet.tsx` | See appointment flow below. |
-| `components/blocks/people-grid.tsx` | Pet column in staff/people grid. |
+| `components/blocks/clients/client-detail-dialog.tsx` | Pets section in client detail. |
+| `components/blocks/clients/client-edit-sheet.tsx` | Pet fields in add/edit. |
+| `components/blocks/appointments/appointment-block.tsx` | Pet name/species line on the block. |
+| `components/blocks/appointments/appointments-toolbar.tsx` | Pet-scoped filters. |
+| `components/blocks/appointments/appointment-popover.tsx` | Pet detail in popover (required prop). |
+| `components/blocks/appointments/new-appointment-sheet.tsx` | See appointment flow below. |
+| `components/blocks/appointments/people-grid.tsx` | Pet column in staff/people grid. |
 
 ## Appointment flow — pet surfaces (from live app)
 

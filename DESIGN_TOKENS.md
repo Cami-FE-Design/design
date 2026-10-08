@@ -165,7 +165,7 @@ One named gradient token. Sourced from Figma `playground` node 328:3612.
 
 | Token | Tailwind utility | Used for |
 | ----- | ---------------- | -------- |
-| `--gradient-hq-aurora` | `bg-hq-aurora` | HQ auth screen page background ([HqAuthLayout](components/blocks/hq-auth-layout.tsx)) |
+| `--gradient-hq-aurora` | `bg-hq-aurora` | HQ auth screen page background ([HqAuthLayout](components/blocks/auth/hq-auth-layout.tsx)) |
 
 `--gradient-hq-aurora` composition (top → bottom of the layer stack):
 

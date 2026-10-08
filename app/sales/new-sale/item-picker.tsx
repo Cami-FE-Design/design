@@ -12,9 +12,9 @@ import {
   SearchXIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
-import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { SessionsRemainingChip } from "@/components/blocks/sessions-remaining-chip"
+import { ComboBadge, comboServicesLabel } from "@/components/blocks/catalog/combo-badge"
+import { SessionsRemainingChip } from "@/components/blocks/sales/sessions-remaining-chip"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { useLocations } from "@/lib/locations/store"

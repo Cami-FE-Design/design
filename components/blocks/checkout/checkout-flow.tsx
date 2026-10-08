@@ -10,7 +10,7 @@ import {
 } from "lucide-react"
 import { useState } from "react"
 
-import { ComboLineIcon } from "@/components/blocks/combo-badge"
+import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

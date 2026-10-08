@@ -10,12 +10,12 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
-import { ExpiredPackageWarning } from "@/components/blocks/expired-package-warning"
+import { ExpiredPackageWarning } from "@/components/blocks/sales/expired-package-warning"
 import {
   PackageBranchWarning,
   type PackageDecision,
-} from "@/components/blocks/package-branch-warning"
-import { WriteTargetLocation } from "@/components/blocks/write-target-location"
+} from "@/components/blocks/sales/package-branch-warning"
+import { WriteTargetLocation } from "@/components/blocks/settings/write-target-location"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"

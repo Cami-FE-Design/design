@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { CitySelect } from "@/components/blocks/city-select"
-import { SetupCard, SetupLayout } from "@/components/blocks/setup-shell"
+import { SetupCard, SetupLayout } from "@/components/blocks/auth/setup-shell"
+import { CitySelect } from "@/components/blocks/shared/city-select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

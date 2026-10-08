@@ -14,7 +14,7 @@
 
 import { DownloadIcon } from "lucide-react"
 import { MOCK_SALES } from "@/app/sales/sales-list/page"
-import { InvoiceDocumentView } from "@/components/blocks/invoice-document"
+import { InvoiceDocumentView } from "@/components/blocks/sales/invoice-document"
 import { Button } from "@/components/ui/button"
 import { invoiceFromSale } from "@/lib/invoice/from-sale"
 import { documentTitle } from "@/lib/invoice/totals"

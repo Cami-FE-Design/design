@@ -9,7 +9,7 @@ import {
   UserPlusIcon,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { EmptyState } from "@/components/blocks/empty-state"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {

@@ -16,9 +16,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
-import { AppShell } from "@/components/blocks/app-shell"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { PageHeader } from "@/components/blocks/page-header"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {

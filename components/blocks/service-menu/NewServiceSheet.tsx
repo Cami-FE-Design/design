@@ -44,8 +44,8 @@ import {
   useForm,
 } from "react-hook-form"
 import { toast } from "sonner"
-import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
 import { ServiceLocationsSection } from "@/components/blocks/service-menu/ServiceLocationsSection"
+import { FullScreenEditDialog } from "@/components/blocks/shared/full-screen-edit-dialog"
 import {
   Checkbox,
   DropdownMenu,

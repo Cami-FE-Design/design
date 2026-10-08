@@ -145,7 +145,7 @@ Treat it as older than the PRD: see [Where the blueprint is stale](#where-the-bl
 
 | Rule | Where |
 | --- | --- |
-| R03 · scope is one branch, a subset, or all granted, and filters survive a change | `lib/locations/store.tsx`, `components/blocks/location-switcher.tsx` |
+| R03 · scope is one branch, a subset, or all granted, and filters survive a change | `lib/locations/store.tsx`, `components/blocks/shell/location-switcher.tsx` |
 | R04 · capability and location scope are independent axes | `grants` in the store, separate from any role |
 | R11 · no operational write resolves a default location | `requiresTargetLocation` / `activeLocation` |
 | R24 · no grant means no access, and never means all | `hasNoAccess`, and the switcher's locked state |
@@ -1115,7 +1115,7 @@ And four the review prompted:
 
 | Was | Held | Now |
 | --- | --- | --- |
-| `LOCATIONS` in `components/blocks/location-form.tsx` | one rich branch, module const, no store | moved to `lib/locations/mock.ts`, types to `lib/locations/types.ts` |
+| `LOCATIONS` in `components/blocks/settings/location-form.tsx` | one rich branch, module const, no store | moved to `lib/locations/mock.ts`, types to `lib/locations/types.ts` |
 | `TERMINAL_LOCATIONS` in `lib/terminals/store.tsx` | "Downtown Clinic", "Field team" — names that existed nowhere else | deleted; seeded terminals remapped onto real branch ids |
 | the topbar's second workspace row | `` `${businessName} · Jumeirah` `` — a branch dressed as a workspace | deleted; branches live in `LocationSwitcher`, on their own axis |
 | `const LOCATION = BUSINESS_NAME` in `lib/money/mock.ts` | every transaction attributed to the *business* | points at a branch; see [Known gaps](#known-gaps) |

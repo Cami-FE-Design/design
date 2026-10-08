@@ -3,7 +3,7 @@
 import { CheckIcon, ListIcon, PlusIcon } from "lucide-react"
 import { useState } from "react"
 
-import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
+import { ComboBadge, comboServicesLabel } from "@/components/blocks/catalog/combo-badge"
 import {
   DropdownMenu,
   DropdownMenuContent,

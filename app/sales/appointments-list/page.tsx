@@ -11,15 +11,15 @@ import {
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { MOCK_BOOKINGS, MOCK_STAFF, type MockBooking } from "@/app/appointments/mock"
-import { AppShell } from "@/components/blocks/app-shell"
-import { AppointmentDetailSheet } from "@/components/blocks/appointment-detail-sheet"
+import { AppointmentDetailSheet } from "@/components/blocks/appointments/appointment-detail-sheet"
 import {
   type ClientDetailClient,
   ClientDetailDialog,
-} from "@/components/blocks/client-detail-dialog"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { PageHeader } from "@/components/blocks/page-header"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+} from "@/components/blocks/clients/client-detail-dialog"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {

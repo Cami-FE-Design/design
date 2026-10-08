@@ -4,7 +4,7 @@
 **Milestone**: Boarding / Daycare module · **Project**: v0 Web OS for a single branch
 **Branch**: `feature/boarding-daycare`
 **Reference app**: **Cuddles** (`market.cuddlesapp.com/calendar`) — calendar + booking-detail drawer. Screenshots in `docs/specs/refs/` (add).
-**Depends on**: resources model (`components/blocks/settings-resources-panel.tsx` — Kennel / Daycare Hall resource types), `lib/scheduling-mock.ts` (per-night service + facility), pets + pet-parent directory (PRO-85).
+**Depends on**: resources model (`components/blocks/settings/settings-resources-panel.tsx` — Kennel / Daycare Hall resource types), `lib/scheduling-mock.ts` (per-night service + facility), pets + pet-parent directory (PRO-85).
 
 ---
 

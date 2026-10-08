@@ -29,7 +29,7 @@
 import { RotateCcwIcon } from "lucide-react"
 import { useState } from "react"
 
-import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
+import { LocationStatusBadge } from "@/components/blocks/settings/location-status-badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

@@ -11,7 +11,7 @@ import {
   grossTotalMinor,
   SERVICES,
 } from "@/app/sales/new-sale/mock"
-import { expandCombo } from "@/components/blocks/new-appointment-sheet"
+import { expandCombo } from "@/components/blocks/appointments/new-appointment-sheet"
 import { bookingLines, serviceTotals } from "@/lib/booking"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import {

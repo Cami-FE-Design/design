@@ -18,9 +18,9 @@ import {
   type InboxMessage,
   windowFrom,
 } from "@/app/messages/inbox/phase-0/mock"
-import { AppShell } from "@/components/blocks/app-shell"
-import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
-import { EmptyState } from "@/components/blocks/empty-state"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { AppShell } from "@/components/blocks/shell/app-shell"
+import { DesignRepoBar } from "@/components/blocks/shell/design-repo-bar"
 import { Button } from "@/components/ui/button"
 import { SegmentedToggle } from "@/components/ui/segmented-toggle"
 import {

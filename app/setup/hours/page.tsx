@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { SetupCard, SetupLayout } from "@/components/blocks/setup-shell"
+import { SetupCard, SetupLayout } from "@/components/blocks/auth/setup-shell"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {

@@ -1,5 +1,5 @@
 import type * as React from "react"
-import { AdminAuthProvider } from "@/components/blocks/admin-auth-provider"
+import { AdminAuthProvider } from "@/components/blocks/admin/admin-auth-provider"
 import { AdminRolesProvider } from "@/lib/admin-roles-store"
 import { CamiPayProvider } from "@/lib/hq-camipay/store"
 import { HqTerminalsProvider } from "@/lib/hq-terminals/store"

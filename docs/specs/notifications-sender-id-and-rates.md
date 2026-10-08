@@ -1,11 +1,11 @@
 # Notification configuration — Sender ID, channel controls, rates
 
-> **Built.** All six surfaces ship. Merchant: `components/blocks/notifications-settings-panel.tsx`
+> **Built.** All six surfaces ship. Merchant: `components/blocks/settings/notifications-settings-panel.tsx`
 > (Business Settings › Notifications) and notification events in
-> `components/blocks/appointment-detail-sheet.tsx`. Cami HQ: the Notifications tab
-> in `components/blocks/business-detail-dialog.tsx`, the Sender ID field in
-> `components/blocks/new-business-sheet.tsx`, the rates panel in
-> `components/blocks/admin-settings-dialog.tsx`, and the new `/admin/billing`
+> `components/blocks/appointments/appointment-detail-sheet.tsx`. Cami HQ: the Notifications tab
+> in `components/blocks/admin/business-detail-dialog.tsx`, the Sender ID field in
+> `components/blocks/admin/new-business-sheet.tsx`, the rates panel in
+> `components/blocks/admin/admin-settings-dialog.tsx`, and the new `/admin/billing`
 > route. Model in `lib/notifications/types.ts`, merchant provider in
 > `lib/notifications/store.tsx`, platform rate list in
 > `lib/notifications/hq-store.tsx`, per-partner config on
@@ -230,7 +230,7 @@ merchant's log stops reconciling against their invoice.
 
 ## Merchant — Settings › Notifications
 
-New group in the settings rail in `components/blocks/app-settings-dialog.tsx`,
+New group in the settings rail in `components/blocks/shell/app-settings-dialog.tsx`,
 between **Payments** and **Forms**. `BellIcon`. Description: *"Sender ID,
 reminder channels, and your message usage."*
 
@@ -330,7 +330,7 @@ while WhatsApp is ungranted, because the grant model can't produce one. The
 ## Merchant — appointment activity timeline
 
 Notification sends become events in the existing `ActivityPanel`
-(`components/blocks/appointment-detail-sheet.tsx`). No new route and no new
+(`components/blocks/appointments/appointment-detail-sheet.tsx`). No new route and no new
 component: the panel already models `{ id, title, timestamp, body }` and already
 opens from the detail sheet via a `mode` swap.
 
@@ -383,7 +383,7 @@ whenever someone remembers to open settings.
 
 ## HQ — per-merchant notification controls
 
-New **Notifications** tab on `components/blocks/business-detail-dialog.tsx`,
+New **Notifications** tab on `components/blocks/admin/business-detail-dialog.tsx`,
 after **Activity**, before **Manage**. Three sections:
 
 1. **Channels** — Email / SMS / WhatsApp master switches. This is the
@@ -428,7 +428,7 @@ merchant's customers receive.
 Two pieces, and the second is a new route.
 
 **Global rates** live in the HQ settings dialog
-(`components/blocks/admin-settings-dialog.tsx`, category `notification-rates`):
+(`components/blocks/admin/admin-settings-dialog.tsx`, category `notification-rates`):
 a table of channel × country × AED per message. Per-country because UAE SMS
 pricing is the entire reason this thread exists; a single global SMS rate would
 be wrong on the first row. Only the UAE row carries values — inventing numbers

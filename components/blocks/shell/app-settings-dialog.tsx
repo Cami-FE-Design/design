@@ -1,0 +1,401 @@
+"use client"
+
+import {
+  BellIcon,
+  Building2Icon,
+  ChevronLeftIcon,
+  CirclePercentIcon,
+  CreditCardIcon,
+  FolderIcon,
+  GlobeIcon,
+  type LucideIcon,
+  MapPinIcon,
+  MessageCircleIcon,
+  MessageSquareTextIcon,
+  PaletteIcon,
+  TagIcon,
+  UserIcon,
+  WalletIcon,
+  XIcon,
+} from "lucide-react"
+import { Dialog as DialogPrimitive } from "radix-ui"
+import { useEffect, useState } from "react"
+import { FilesSection } from "@/components/blocks/clients/documents-files-card"
+import { DealsPage } from "@/components/blocks/deals/deals-page"
+import { BillingSettingsPanel } from "@/components/blocks/money/billing-settings-panel"
+import { PaymentsSettingsPanel } from "@/components/blocks/payment-policy/payments-settings-panel"
+import { BusinessProfileForm } from "@/components/blocks/settings/business-profile-form"
+import { CommsTemplatesPanel } from "@/components/blocks/settings/comms-templates-panel"
+import { CustomerCardSettingsPanel } from "@/components/blocks/settings/customer-card-settings-panel"
+import { LocationForm } from "@/components/blocks/settings/location-form"
+import { MyProfilePanel } from "@/components/blocks/settings/my-profile-panel"
+import { NotificationsSettingsPanel } from "@/components/blocks/settings/notifications-settings-panel"
+import { SalesSettings } from "@/components/blocks/settings/sales-settings"
+import { SettingsPanel } from "@/components/blocks/settings/settings-panel"
+import { WhatsAppNumbersPanel } from "@/components/blocks/settings/whatsapp-numbers-panel"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
+
+type SettingsCategory = {
+  id: string
+  label: string
+  description?: string
+  icon?: LucideIcon
+  /** Marks the screen as not yet ready for handoff. Adds a visible WIP badge. */
+  wip?: boolean
+}
+
+type SettingsGroup = {
+  label: string
+  items: SettingsCategory[]
+}
+
+const GROUPS: SettingsGroup[] = [
+  {
+    label: "Account",
+    items: [
+      {
+        id: "profile",
+        label: "My profile",
+        description: "Your personal details, sign-in security, and preferences.",
+        icon: UserIcon,
+      },
+    ],
+  },
+  {
+    label: "Workspace",
+    items: [
+      {
+        id: "business-details",
+        label: "Business details",
+        description: "Legal entity, currency, tax, default languages, and external links.",
+        icon: Building2Icon,
+      },
+      // Next to Business details, not under Messaging, and named for what it
+      // is. Messaging is about messages — whether one sends, and what it says.
+      // This is a page, reached from a message the way the booking page is. And
+      // the palette set here now themes the messages too, so filing it as
+      // "Customer card" described a fraction of what it does.
+      {
+        id: "branding",
+        label: "Branding",
+        description: "The palette clients see, on their card and in your messages.",
+        icon: PaletteIcon,
+      },
+      {
+        id: "locations",
+        label: "Locations",
+        description: "Where you operate. Each location has its own address, contact, and hours.",
+        icon: MapPinIcon,
+      },
+      {
+        id: "language",
+        label: "Language & region",
+        description: "Switching locale flips the entire portal direction.",
+        icon: GlobeIcon,
+        wip: true,
+      },
+    ],
+  },
+  {
+    label: "Sales",
+    items: [
+      {
+        id: "sales",
+        label: "Sales",
+        description: "Gift cards for checkout.",
+        icon: TagIcon,
+      },
+    ],
+  },
+  // Where the dev repo mounts it (`AppSettingsDialog`, groups.marketing): a
+  // settings tab, not a Catalogs route.
+  {
+    label: "Marketing",
+    items: [
+      {
+        id: "deals",
+        label: "Deals",
+        description: "Set up and manage the deals you offer to your clients.",
+        icon: CirclePercentIcon,
+      },
+    ],
+  },
+  // Own top-level section, not a Sales sub-item — mirrors Fresha's Workspace
+  // settings where Payments stands alone.
+  {
+    label: "Payments",
+    items: [
+      {
+        id: "payments",
+        label: "Payments",
+        description: "Payment policy and payment methods for bookings and checkout.",
+        icon: CreditCardIcon,
+      },
+    ],
+  },
+  // Its own section, not a Payments sub-item. Payments is how clients pay the
+  // merchant; Billing is the merchant's own legal identity and their money with
+  // Cami. Mirrors the benchmark, where the two are separate cards.
+  {
+    label: "Billing",
+    items: [
+      {
+        id: "billing",
+        label: "Billing",
+        description: "Legal details, payout account, and what Cami charged you.",
+        icon: WalletIcon,
+      },
+    ],
+  },
+  // Own top-level section, like Payments — messaging is what a merchant is billed
+  // per message for, so it isn't a sub-item of Business details.
+  //
+  // Group is "Messaging", not "Notifications", because it now holds two items
+  // and one of them was called Notifications too. A single-item group repeating
+  // its own name is just a section divider — Sales, Payments and Billing all do
+  // it harmlessly. With two items the group name has to be the thing they share,
+  // and "Notifications › Notifications" said nothing about how that item differed
+  // from its sibling. Messaging is that umbrella: one half decides whether a
+  // message sends, the other what it says.
+  //
+  // The item's `id` stays `notifications`, so every deep link, /screens entry and
+  // the Reminders→templates hand-off keep working, and the panel's own heading
+  // still matches the item label.
+  {
+    label: "Messaging",
+    items: [
+      {
+        id: "notifications",
+        label: "Notifications",
+        description: "Sender ID, which reminders send, and what they cost.",
+        icon: BellIcon,
+      },
+      // Sibling of Notifications, not a tab inside it: that panel already
+      // carries Settings and Log, and a 7-event list with a full-screen editor
+      // is a destination rather than a tab. Notifications decides whether a
+      // message sends; this decides what it says.
+      {
+        id: "comms-templates",
+        label: "Communication templates",
+        description: "The wording of every automated email and WhatsApp message.",
+        icon: MessageSquareTextIcon,
+      },
+      // Which number a message arrives on is what decides the branch (R21), so
+      // it sits with Messaging rather than with Locations — an owner setting
+      // numbers up is thinking about the channel, not about addresses.
+      {
+        id: "whatsapp-numbers",
+        label: "WhatsApp numbers",
+        description: "The number each location answers on, and its migration.",
+        icon: MessageCircleIcon,
+      },
+    ],
+  },
+  {
+    label: "Forms",
+    items: [
+      {
+        id: "forms",
+        label: "Form templates",
+        description:
+          "Reusable form templates. Documents added here are the only ones available to send to clients and pets for signature.",
+        icon: FolderIcon,
+      },
+    ],
+  },
+]
+
+const ALL_CATEGORIES: SettingsCategory[] = GROUPS.flatMap((g) => g.items)
+
+type AppSettingsDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  defaultCategoryId?: string
+}
+
+export function AppSettingsDialog({
+  open,
+  onOpenChange,
+  defaultCategoryId = "profile",
+}: AppSettingsDialogProps) {
+  const [activeId, setActiveId] = useState(defaultCategoryId)
+  const [mobileView, setMobileView] = useState<"rail" | "content">("rail")
+  const active = ALL_CATEGORIES.find((c) => c.id === activeId) ?? ALL_CATEGORIES[0]
+
+  useEffect(() => {
+    if (open) setMobileView("rail")
+  }, [open])
+
+  useEffect(() => {
+    if (open) setActiveId(defaultCategoryId)
+  }, [open, defaultCategoryId])
+
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className={cn(
+          "h-[680px] max-h-[calc(100dvh-3rem)] w-[1080px] max-w-[calc(100vw-3rem)] flex-row gap-0 p-0",
+          "sm:max-w-[calc(100vw-3rem)]",
+          "max-lg:h-[calc(100dvh-3rem)]",
+        )}
+      >
+        <DialogTitle className="sr-only">Settings</DialogTitle>
+        <DialogDescription className="sr-only">
+          Pet Business portal settings, organized by category.
+        </DialogDescription>
+
+        <aside
+          className={cn(
+            "shrink-0 flex-col gap-5 overflow-y-auto bg-muted/30 px-3 py-5",
+            "w-full lg:w-[260px] lg:border-r lg:border-border/40",
+            mobileView === "rail" ? "flex" : "hidden lg:flex",
+          )}
+        >
+          {GROUPS.map((group) => (
+            <div key={group.label} className="flex flex-col gap-1">
+              <p className="px-2 text-xs font-medium text-muted-foreground">{group.label}</p>
+              <ul className="flex flex-col gap-px">
+                {group.items.map((item) => {
+                  const isActive = item.id === activeId
+                  const Icon = item.icon
+                  return (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveId(item.id)
+                          setMobileView("content")
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium text-foreground transition-colors hover:bg-foreground/5",
+                          isActive && "bg-foreground/10",
+                        )}
+                      >
+                        {Icon ? <Icon className="size-4 shrink-0 text-muted-foreground" /> : null}
+                        <span className="truncate">{item.label}</span>
+                        {item.wip ? (
+                          <Badge variant="secondary" className="ml-auto font-normal">
+                            WIP
+                          </Badge>
+                        ) : null}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
+        </aside>
+
+        <div
+          className={cn(
+            "relative min-w-0 flex-1 flex-col overflow-hidden",
+            mobileView === "content" ? "flex" : "hidden lg:flex",
+          )}
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Back to settings menu"
+            onClick={() => setMobileView("rail")}
+            className="absolute left-3 top-3 z-10 rounded-full text-muted-foreground lg:hidden"
+          >
+            <ChevronLeftIcon className="size-5" />
+          </Button>
+          <DialogClose asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Close settings"
+              className="absolute right-4 top-4 z-10 rounded-full text-muted-foreground"
+            >
+              <XIcon className="size-5" strokeWidth={2} />
+            </Button>
+          </DialogClose>
+
+          {/* Padding and top offset live here; the scrolling belongs to the
+              panel, which pins its own header (settings-panel.tsx). Deals
+              carries its own padding, as it does in the dev repo, because its
+              detail view runs a full-bleed header rule. */}
+          <div
+            className={cn(
+              "flex min-h-0 flex-1 flex-col",
+              active.id === "deals" ? "" : "px-6 pt-9 max-lg:pt-14 lg:px-10",
+            )}
+          >
+            {active.id === "profile" ? <MyProfilePanel /> : null}
+            {active.id === "business-details" ? <BusinessProfilePanel /> : null}
+            {active.id === "locations" ? <LocationsPanel /> : null}
+            {active.id === "language" ? <LanguagePanel /> : null}
+            {active.id === "forms" ? <FilesPanel /> : null}
+            {active.id === "sales" ? <SalesSettings /> : null}
+            {active.id === "deals" ? <DealsPage /> : null}
+            {active.id === "payments" ? <PaymentsSettingsPanel /> : null}
+            {active.id === "billing" ? <BillingSettingsPanel /> : null}
+            {active.id === "notifications" ? <NotificationsSettingsPanel /> : null}
+            {active.id === "comms-templates" ? <CommsTemplatesPanel /> : null}
+            {active.id === "whatsapp-numbers" ? <WhatsAppNumbersPanel /> : null}
+            {active.id === "branding" ? <CustomerCardSettingsPanel /> : null}
+          </div>
+        </div>
+      </DialogContent>
+    </DialogPrimitive.Root>
+  )
+}
+
+function BusinessProfilePanel() {
+  return <BusinessProfileForm />
+}
+
+function LanguagePanel() {
+  return (
+    <SettingsPanel
+      header={
+        <header className="flex flex-col gap-2">
+          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+            Language &amp; region
+          </h2>
+          <p className="text-sm leading-5 text-muted-foreground">
+            Switching locale flips the entire portal direction.
+          </p>
+        </header>
+      }
+    >
+      <p className="text-sm leading-5 text-muted-foreground">
+        Locale switcher isn't wired for the Pet Business portal yet. Coming with the i18n pass.
+      </p>
+    </SettingsPanel>
+  )
+}
+
+function LocationsPanel() {
+  return <LocationForm />
+}
+
+function FilesPanel() {
+  return (
+    <SettingsPanel
+      header={
+        <header className="flex flex-col gap-2">
+          <h2 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+            Form templates
+          </h2>
+          {/* The only panel blurb long enough to wrap, so it needs the cap the
+              one-line headers get for free: same w-146 footprint as the card
+              below it, otherwise the text runs a full column wider than the
+              thing it describes. */}
+          <p className="max-w-146 text-sm leading-5 text-muted-foreground">
+            Reusable forms you can send to clients and pets for signature. Uploads made on a profile
+            stay personal to that profile and won&apos;t appear here.
+          </p>
+        </header>
+      }
+    >
+      <FilesSection variant="settings" />
+    </SettingsPanel>
+  )
+}

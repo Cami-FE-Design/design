@@ -2,9 +2,9 @@
 
 import { ReceiptTextIcon } from "lucide-react"
 import { useEffect, useState } from "react"
-import { AppShell } from "@/components/blocks/app-shell"
-import { ImpersonationBanner } from "@/components/blocks/impersonation-banner"
-import { PIIReveal } from "@/components/blocks/pii-reveal"
+import { ImpersonationBanner } from "@/components/blocks/admin/impersonation-banner"
+import { PIIReveal } from "@/components/blocks/admin/pii-reveal"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/lib/auth-mock"
 import { useDemoBusiness } from "@/lib/demo-business"

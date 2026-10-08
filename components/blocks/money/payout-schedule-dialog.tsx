@@ -13,7 +13,7 @@
 // destination is neither. Friction should track consequence, not category.
 
 import { useState } from "react"
-import { FullScreenTakeover } from "@/components/blocks/full-screen-edit-dialog"
+import { FullScreenTakeover } from "@/components/blocks/shared/full-screen-edit-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Select,

@@ -24,7 +24,7 @@
 // link landed on the default. useSearchParams reacts to the navigation instead.
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
+import { DesignRepoBar } from "@/components/blocks/shell/design-repo-bar"
 import { SegmentedToggle } from "@/components/ui/segmented-toggle"
 import {
   Select,

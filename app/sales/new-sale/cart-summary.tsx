@@ -12,9 +12,9 @@ import {
   Trash2Icon,
 } from "lucide-react"
 import { Fragment, useState } from "react"
-import { ComboLineIcon } from "@/components/blocks/combo-badge"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { SessionsRemainingChip } from "@/components/blocks/sessions-remaining-chip"
+import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
+import { SessionsRemainingChip } from "@/components/blocks/sales/sessions-remaining-chip"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {

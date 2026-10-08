@@ -17,8 +17,8 @@ import {
   type InboxConversation,
   searchDirectory,
 } from "@/app/messages/inbox/phase-0/mock"
-import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
-import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
+import { ClientDetailDialog } from "@/components/blocks/clients/client-detail-dialog"
+import { ClientEditSheet } from "@/components/blocks/clients/client-edit-sheet"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"

@@ -1,5 +1,5 @@
 import { CheckIcon } from "lucide-react"
-import { AuthLayout } from "@/components/blocks/auth-layout"
+import { AuthLayout } from "@/components/blocks/auth/auth-layout"
 
 export default function SetupDonePage() {
   return (

@@ -287,7 +287,7 @@ Inline-edit for:
 - Price (permission-gated, see below)
 - Client / pet
 
-The takeover is the existing `<FullScreenEditDialog>` from PRO-101 era (per memory at `components/blocks/full-screen-edit-dialog.tsx`), deep-linked to the relevant section. Closes back to the Detail Panel on save.
+The takeover is the existing `<FullScreenEditDialog>` from PRO-101 era (per memory at `components/blocks/shared/full-screen-edit-dialog.tsx`), deep-linked to the relevant section. Closes back to the Detail Panel on save.
 
 ### Permission gating
 

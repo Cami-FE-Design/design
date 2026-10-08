@@ -8,14 +8,14 @@
 
 import { CheckIcon, ChevronDownIcon } from "lucide-react"
 import { Fragment, useMemo, useState } from "react"
+import { MetricBarChart } from "@/components/blocks/reports/metric-bar-chart"
+import { ReportFiltersSheet } from "@/components/blocks/reports/report-filters-sheet"
 import {
   type DateRange,
   DateRangePopover,
   defaultRange,
-} from "@/components/blocks/date-range-popover"
-import { MetricBarChart } from "@/components/blocks/reports/metric-bar-chart"
-import { ReportFiltersSheet } from "@/components/blocks/reports/report-filters-sheet"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+} from "@/components/blocks/shared/date-range-popover"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,

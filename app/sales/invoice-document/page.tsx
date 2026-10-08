@@ -15,8 +15,8 @@ import { ArrowLeftIcon, DownloadIcon, PaperclipIcon, PrinterIcon } from "lucide-
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useRef } from "react"
 import { MOCK_SALES } from "@/app/sales/sales-list/page"
-import { AppShell } from "@/components/blocks/app-shell"
-import { InvoiceDocumentView } from "@/components/blocks/invoice-document"
+import { InvoiceDocumentView } from "@/components/blocks/sales/invoice-document"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Button } from "@/components/ui/button"
 import {
   Select,

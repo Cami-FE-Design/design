@@ -11,9 +11,9 @@ what is on `/admin/businesses`.
 
 Implementation:
 
-- `components/blocks/hq-camipay-panel.tsx`, the module
+- `components/blocks/admin/hq-camipay-panel.tsx`, the module
 - `lib/hq-camipay/store.tsx`, config and rate-card state
-- `components/blocks/business-detail-dialog.tsx`, hosts it in the Settings tab
+- `components/blocks/admin/business-detail-dialog.tsx`, hosts it in the Settings tab
 
 ## Problem
 

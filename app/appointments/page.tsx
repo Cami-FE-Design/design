@@ -3,10 +3,13 @@
 import { useState } from "react"
 import { CartFlow } from "@/app/sales/new-sale/cart-flow"
 import type { CartLine, ClientAttachment } from "@/app/sales/new-sale/types"
-import { AppShell } from "@/components/blocks/app-shell"
-import { AppointmentsToolbar, type ViewMode } from "@/components/blocks/appointments-toolbar"
-import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
-import { NewAppointmentSheet } from "@/components/blocks/new-appointment-sheet"
+import {
+  AppointmentsToolbar,
+  type ViewMode,
+} from "@/components/blocks/appointments/appointments-toolbar"
+import { NewAppointmentSheet } from "@/components/blocks/appointments/new-appointment-sheet"
+import { AppShell } from "@/components/blocks/shell/app-shell"
+import { DesignRepoBar } from "@/components/blocks/shell/design-repo-bar"
 import { Button } from "@/components/ui/button"
 
 const TODAY = "2026-05-13"

@@ -1,0 +1,2001 @@
+"use client"
+
+import {
+  AlertCircleIcon,
+  ArrowLeftIcon,
+  BuildingIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  ChevronsRightIcon,
+  CirclePlusIcon,
+  CreditCardIcon,
+  FileTextIcon,
+  FlagIcon,
+  MessageCircleIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  PlusIcon,
+  RotateCwIcon,
+  TagIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
+import { toast } from "sonner"
+
+import {
+  type DepositState,
+  formatDuration,
+  MOCK_SERVICE_CATALOG,
+  MOCK_WHATSAPP_TEMPLATES,
+  type MockBookingStatus,
+  type MockServiceCatalogItem,
+  resolveTemplate,
+  templatesForBooking,
+  type WhatsAppTemplate,
+} from "@/app/appointments/mock"
+import type { CartLine, CatalogClient } from "@/app/sales/new-sale/types"
+import { ClientOpenAppointmentsBanner } from "@/components/blocks/appointments/client-open-appointments-banner"
+import {
+  PetAndServicePickerPanel,
+  type PetOption,
+} from "@/components/blocks/appointments/new-appointment-pet-service-picker"
+import { ServicePickerPanel } from "@/components/blocks/appointments/new-appointment-service-picker"
+import { PickupFields } from "@/components/blocks/appointments/pickup-fields"
+import { ServiceAccentRail } from "@/components/blocks/appointments/service-accent-rail"
+import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
+import { EditServicePanel } from "@/components/blocks/catalog/edit-service-panel"
+import { ClientNoteBanner } from "@/components/blocks/clients/client-note-banner"
+import { PetEditSheet } from "@/components/blocks/clients/pet-edit-sheet"
+import { PetNotesFields } from "@/components/blocks/clients/pet-notes-fields"
+import { SendMessageDialog } from "@/components/blocks/messaging/send-message-dialog"
+import { WriteTargetLocation } from "@/components/blocks/settings/write-target-location"
+import { ConfirmDialog } from "@/components/blocks/shared/confirm-dialog"
+import { DatePicker } from "@/components/blocks/shared/date-picker"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { NoteDialog } from "@/components/blocks/shared/note-dialog"
+import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { SearchInput } from "@/components/ui/search-input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import type { PlaceRef } from "@/lib/address"
+import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
+import {
+  BOOKING_STATUS_LABEL,
+  BOOKING_STATUS_OPTIONS,
+  BOOKING_STATUS_TONE,
+} from "@/lib/appointments/status"
+import { openAppointmentsFor } from "@/lib/clients/open-appointments"
+import { useDemoBusiness } from "@/lib/demo-business"
+import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
+import { usePaymentPolicy } from "@/lib/payment-policy/store"
+import { depositForServices, examplePolicyText } from "@/lib/payment-policy/types"
+import type { PetNoteEntry } from "@/lib/pet-notes"
+import { cn } from "@/lib/utils"
+
+type SelectedPet = {
+  uid: string
+  name: string
+  species: AvatarSpecies
+  breed: string
+  weight: string
+  services: SelectedService[]
+}
+
+// A service the operator has added to the new appointment. Wraps the catalog
+// item with per-instance overrides (start time, staff). Time defaults to the
+// appointment's start; staff defaults to "any" (renders as a stub for now).
+export type SelectedService = {
+  uid: string
+  catalog: MockServiceCatalogItem
+  startTime: string
+  staffName?: string
+  /** Soft warnings rendered as amber pills below the service row.
+   *  E.g. "Team member doesn't provide service", "Not available on this day". */
+  warnings?: string[]
+  /**
+   * Set on the rows a combo expanded into (PRD-143). All components of one
+   * pick share the id, so removing any of them removes the combo — a combo is
+   * sold as a unit, and half of one is not a thing the price covers.
+   */
+  comboGroupId?: string
+  /** The combo this row came out of, for the row's marker. */
+  comboName?: string
+  /** What this component costs on its own, struck through next to its share. */
+  comboOriginalPriceMinor?: number
+}
+
+/**
+ * Booking a combo books its component services (PRD-143), so picking one adds
+ * a row per component rather than a single combo row — mirroring the as-built
+ * AddAppointmentSheet, which expands a combo the moment it is chosen.
+ *
+ * Each component keeps its own duration and runs back-to-back from the
+ * combo's start — or all at the same time, when the combo is set to be booked
+ * in parallel. The combo's price is split across the components in
+ * proportion to what they cost alone (remainder on the last row, so the rows
+ * always sum to the combo's price), and the standalone price rides along to be
+ * struck through.
+ */
+export function expandCombo(
+  combo: MockServiceCatalogItem,
+  catalog: MockServiceCatalogItem[],
+  opts: { startTime: string; staffName?: string },
+): SelectedService[] {
+  const names = combo.componentNames ?? []
+  if (names.length === 0) return []
+
+  const groupId = `combo-${combo.id}-${Date.now()}`
+  const components = names.map((name) => {
+    const match = catalog.find((c) => !c.isCombo && c.name === name)
+    return {
+      name,
+      // A bridged combo can bundle services this picker has never heard of, so
+      // fall back to an even share of the combo's own duration and price.
+      durationMin: match?.durationMin ?? Math.round(combo.durationMin / names.length),
+      standaloneMinor: match?.priceMinor ?? Math.round(combo.priceMinor / names.length),
+      category: match?.category ?? combo.category,
+      categoryLabel: match?.categoryLabel ?? combo.categoryLabel,
+      accentHex: match?.accentHex ?? combo.accentHex,
+    }
+  })
+
+  const standaloneTotal = components.reduce((sum, c) => sum + c.standaloneMinor, 0)
+  const parallel = combo.comboScheduleType === "parallel"
+  const baseStart = hhmmToMinutes(opts.startTime)
+  let allocated = 0
+  let cursor = baseStart
+
+  return components.map((component, i) => {
+    const isLast = i === components.length - 1
+    const share = isLast
+      ? combo.priceMinor - allocated
+      : standaloneTotal > 0
+        ? Math.round((combo.priceMinor * component.standaloneMinor) / standaloneTotal)
+        : Math.round(combo.priceMinor / components.length)
+    allocated += share
+
+    // A parallel combo's components all start together — different team
+    // members working at once, which is the whole point of that setting.
+    const startTime = minutesToHhmm(parallel ? baseStart : cursor)
+    if (!parallel) cursor += component.durationMin
+
+    return {
+      uid: `${groupId}-${i}`,
+      catalog: {
+        id: `${groupId}-${i}`,
+        category: component.category,
+        categoryLabel: component.categoryLabel,
+        accentHex: component.accentHex,
+        // The as-built label: "Combo name - Service name".
+        name: `${combo.name} - ${component.name}`,
+        durationMin: component.durationMin,
+        priceMinor: share,
+      },
+      startTime,
+      staffName: opts.staffName,
+      comboGroupId: groupId,
+      comboName: combo.name,
+      comboOriginalPriceMinor: component.standaloneMinor,
+    }
+  })
+}
+
+function hhmmToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":")
+  return Number(h) * 60 + Number(m ?? 0)
+}
+
+function minutesToHhmm(min: number): string {
+  const h = Math.floor(min / 60) % 24
+  const m = min % 60
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+}
+
+// Mock pet pool used by the demo "+ Add pet" affordance. Real implementation
+// will fetch from the pet-parents directory, scoped to the selected client.
+const MOCK_PET_POOL: Omit<SelectedPet, "uid" | "services">[] = [
+  { name: "Bobo", species: "dog", breed: "French Bulldog", weight: "10 lbs" },
+  { name: "Mochi", species: "cat", breed: "Domestic Shorthair", weight: "8 lbs" },
+  { name: "Saffron", species: "other", breed: "Other", weight: "26 lbs" },
+  { name: "Max", species: "dog", breed: "Labrador Retriever", weight: "65 lbs" },
+]
+
+type SelectedClient = {
+  id: string
+  name: string
+  phone: string
+  /** Saved address on the client profile — pre-fills the pet address. */
+  address?: string
+  /**
+   * What the map search knew about `address`, when the profile address was
+   * picked rather than typed (PRD-144). Carried through so reusing the saved
+   * address reuses its pin too, instead of downgrading to a text search.
+   */
+  addressPlace?: PlaceRef
+}
+
+// Mock client directory used by the demo client picker. Searchable by name
+// or phone number. Real implementation reads from the pet-parents directory.
+const MOCK_CLIENTS: SelectedClient[] = [
+  {
+    id: "karen-dougall",
+    name: "Karen Dougall",
+    phone: "+971 54 433 3592",
+    address: "Villa 12, Street 4B, Jumeirah 1, Dubai",
+  },
+  {
+    id: "maaz-test",
+    name: "Maaz Test You",
+    phone: "+971 50 963 6445",
+    address: "Apt 1804, Marina Heights Tower, Dubai Marina",
+    addressPlace: { placeId: "ChIJdemo_marina_heights", point: { lat: 25.0805, lng: 55.1403 } },
+  },
+  { id: "demo-profile", name: "Demo Profile", phone: "+1 234 567 8901" },
+  {
+    id: "aaesha-al-ali",
+    name: "Aaesha Al Ali",
+    phone: "+971 50 374 5511",
+    address: "Villa 7, Al Barsha 2, Dubai",
+    addressPlace: { placeId: "ChIJdemo_al_barsha_villa_7", point: { lat: 25.1107, lng: 55.1985 } },
+  },
+  { id: "aaliyah-hazari", name: "Aaliyah Hazari", phone: "+971 52 692 6368" },
+  /**
+   * The two clients the client record actually holds a history for.
+   *
+   * This list and `app/clients/mock.ts` were two directories, and the
+   * already-booked check reads the second — so the banner was correct, tested,
+   * and impossible to open: nobody reachable from this picker had an
+   * appointment anywhere. The same shape as the package panel keyed on clients
+   * the till had never heard of.
+   *
+   * Ids and phones match the client record, so opening Millie here and at
+   * /clients?client=millie-cassidy is the same person rather than a namesake.
+   */
+  {
+    id: "millie-cassidy",
+    name: "Millie Cassidy",
+    phone: "+971 58 509 9313",
+    address: "Apt 2203, Bay Central, Dubai Marina",
+  },
+  { id: "kirsty-dingomal", name: "Kirsty Dingomal", phone: "+44 7508 219989" },
+]
+
+// Mock client → pet ownership. Real implementation reads from the
+// pet-parents directory's many-to-many relationship.
+const MOCK_CLIENT_PETS: Record<string, string[]> = {
+  "karen-dougall": ["Bobo", "Mochi"],
+  "maaz-test": ["Saffron"],
+  "demo-profile": ["Max"],
+  "aaesha-al-ali": ["Max"],
+  // The pets their client record already names, so a booking started here does
+  // not offer a different animal than the record does.
+  "millie-cassidy": ["Bobo", "Mochi", "Kiwi"],
+  "kirsty-dingomal": ["Biscuit"],
+}
+
+function normalizePhone(s: string): string {
+  return s.replace(/\s|-|\(|\)/g, "")
+}
+
+// Reverse lookup: which client owns this pet? Returns the first owner found
+// (per memory, pet ⇄ client is many-to-many in v0 — we pick the first match).
+function findClientForPet(petName: string): SelectedClient | null {
+  for (const [clientId, petNames] of Object.entries(MOCK_CLIENT_PETS)) {
+    if (petNames.includes(petName)) {
+      return MOCK_CLIENTS.find((c) => c.id === clientId) ?? null
+    }
+  }
+  return null
+}
+
+/**
+ * When a client is selected, return only their pets minus the ones already on
+ * this appointment. When no client is selected (walk-in), return the full
+ * pool minus already-attached pets.
+ */
+function computeAvailablePets(client: SelectedClient | null, attached: SelectedPet[]): PetOption[] {
+  const attachedNames = new Set(attached.map((p) => p.name).filter(Boolean))
+  const pool = client
+    ? MOCK_PET_POOL.filter((p) => (MOCK_CLIENT_PETS[client.id] ?? []).includes(p.name))
+    : MOCK_PET_POOL
+  return pool.filter((p) => !attachedNames.has(p.name))
+}
+
+// Default pet + services seeded into the sheet for design review. Lets us
+// iterate on the populated layout without clicking through the picker every
+// reload. Replace with [] once persistence + picker are real.
+function defaultPets(startTime: string): SelectedPet[] {
+  const fullGroom = MOCK_SERVICE_CATALOG.find((s) => s.id === "full-grooming-md")
+  const washBlow = MOCK_SERVICE_CATALOG.find((s) => s.id === "wash-blow-sm")
+  if (!fullGroom || !washBlow) return []
+  return [
+    {
+      uid: "seed-bobo",
+      ...MOCK_PET_POOL[0]!,
+      services: [
+        { uid: "seed-full-groom", catalog: fullGroom, startTime, staffName: "Sophie" },
+        {
+          uid: "seed-wash-blow",
+          catalog: washBlow,
+          startTime: "11:30",
+          staffName: "Aisha",
+          warnings: ["Team member doesn't provide service"],
+        },
+      ],
+    },
+  ]
+}
+
+// Menu order mirrors Fresha: Booked → Confirmed → Arrived → Started → No-show
+// → Cancel. "Completed" is intentionally omitted — it's reached automatically
+// after a service is delivered, not a forward-action the operator picks.
+type RepeatFrequency = "no-repeat" | "daily" | "weekly" | "monthly" | "custom"
+type RepeatUnit = "day" | "week" | "month"
+type RepeatEnds = "never" | "after" | "specific-date"
+
+type RepeatConfig = {
+  frequency: RepeatFrequency
+  customInterval: number
+  customUnit: RepeatUnit
+  ends: RepeatEnds
+  endsAfter: number
+  endsDate: string
+}
+
+const REPEAT_OPTIONS: { value: RepeatFrequency; label: string }[] = [
+  { value: "no-repeat", label: "Doesn't repeat" },
+  { value: "daily", label: "Every day" },
+  { value: "weekly", label: "Every week" },
+  { value: "monthly", label: "Every month" },
+  { value: "custom", label: "Custom" },
+]
+
+const UNIT_LABEL: Record<RepeatUnit, string> = { day: "Day", week: "Week", month: "Month" }
+
+// Number-of-times options shown in the "Ends" dropdown — 2..15 then 20/25/30.
+const AFTER_TIMES_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30]
+
+function repeatLabel(config: RepeatConfig): string {
+  if (config.frequency === "custom") {
+    const unit = config.customUnit
+    const plural = config.customInterval === 1 ? unit : `${unit}s`
+    return `every ${config.customInterval} ${plural}`
+  }
+  const base = REPEAT_OPTIONS.find((o) => o.value === config.frequency)?.label ?? "Doesn't repeat"
+  return base.toLowerCase()
+}
+
+type NewAppointmentSheetProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** ISO date for the appointment slot the user clicked from (defaults today). */
+  date: string
+  /** HH:mm 24h start time. */
+  startTime?: string
+  /** Pet-business mode: shows client + pet picker. Without-pets is the generic shell. */
+  hasPets?: boolean
+  /**
+   * `create` (default): brand-new appointment. Status is fixed to `booked`, the
+   * status pill is hidden, and the primary CTA is "Save".
+   * `edit`: existing appointment. Status pill is interactive, primary CTA is
+   * "Update", and the post-save lifecycle transitions are available.
+   */
+  flow?: "create" | "edit"
+  /** Initial status for edit mode (defaults to "confirmed"). Ignored in create. */
+  initialStatus?: MockBookingStatus
+  /**
+   * The branch the existing appointment already belongs to (edit flow only).
+   *
+   * Stated, never asked: the create flow resolves a branch because the write
+   * has none yet, but an existing booking has one and moving it is SCR-06. The
+   * sheet had neither — no question and no answer — so an operator who read
+   * the branch on the detail sheet lost it the moment they opened the surface
+   * where they change things, on the one screen where what a branch offers
+   * decides what can be booked.
+   */
+  existingLocationId?: string
+  /**
+   * Fired when the operator hits Checkout (edit flow). Hands the appointment's
+   * services as cart lines + the attached client so the host can launch the
+   * checkout flow (CartFlow) at the Tip step.
+   */
+  onCheckout?: (lines: CartLine[], client: CatalogClient | null) => void
+}
+
+export function NewAppointmentSheet({
+  open,
+  onOpenChange,
+  date,
+  startTime = "10:00",
+  hasPets = true,
+  flow = "create",
+  initialStatus = "confirmed",
+  existingLocationId,
+  onCheckout,
+}: NewAppointmentSheetProps) {
+  const isEdit = flow === "edit"
+  const [status, setStatus] = useState<MockBookingStatus>(isEdit ? initialStatus : "booked")
+  const [selectedClient, setSelectedClient] = useState<SelectedClient | null>(null)
+  // R11: an appointment is an operational write, so it names one branch and
+  // there is no default. This is the most-made write in the product and the
+  // one surface that never asked — the built calendar derives a venue from
+  // "the first venue of the first staff member who has one", which is the
+  // fallback the PRD's release criterion says to remove rather than flag off.
+  const [locationId, setLocationId] = useState<string | null>(null)
+  const [pets, setPets] = useState<SelectedPet[]>(() => defaultPets(startTime))
+  // Same list the pickers show, so a combo expands against the services the
+  // operator just saw — including any combo created on the service menu.
+  const serviceCatalog = useAppointmentServiceCatalog()
+  const availablePets = computeAvailablePets(selectedClient, pets)
+  // Unbounded by the grant on purpose: the duplicate worth catching is the one
+  // at the branch you cannot see, which is exactly what R13's uniform field set
+  // exists to make readable.
+  const openAppointments = useMemo(
+    () => openAppointmentsFor(selectedClient?.id),
+    [selectedClient?.id],
+  )
+  const [note, setNote] = useState<string | null>(null)
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false)
+  // Pickup defaults to off — most appointments are self-drop, and if it were on
+  // by default every block on the calendar would carry the pickup icon.
+  const [needsPickup, setNeedsPickup] = useState(false)
+  const [useSavedAddress, setUseSavedAddress] = useState(true)
+  const [customPickupAddress, setCustomPickupAddress] = useState("")
+  // Set when the address above was picked from the map search, cleared when it
+  // is edited by hand — the field owns that rule, this only stores the result.
+  const [customPickupPlace, setCustomPickupPlace] = useState<PlaceRef | undefined>(undefined)
+  const [petNotes, setPetNotes] = useState<PetNoteEntry[]>([])
+  const savedAddress = selectedClient?.address
+  const savedAddressPlace = selectedClient?.addressPlace
+  const [messageTemplate, setMessageTemplate] = useState<WhatsAppTemplate | null>(null)
+  const [petPendingDelete, setPetPendingDelete] = useState<string | null>(null)
+  const [petBeingEdited, setPetBeingEdited] = useState<string | null>(null)
+  const [activePetUid, setActivePetUid] = useState<string | null>(null)
+  const [mode, setMode] = useState<
+    "appointment" | "select-service" | "select-pet-and-service" | "edit-service" | "edit-repeating"
+  >("appointment")
+  const [repeatConfig, setRepeatConfig] = useState<RepeatConfig>(() => ({
+    frequency: "no-repeat",
+    customInterval: 1,
+    customUnit: "week",
+    ends: "never",
+    endsAfter: 2,
+    endsDate: date,
+  }))
+  const [editingServiceUid, setEditingServiceUid] = useState<string | null>(null)
+  const [editingPetUid, setEditingPetUid] = useState<string | null>(null)
+  // Tracks why the service picker was opened. "add" appends a new service to
+  // activePetUid; "swap" replaces the catalog on the editing service.
+  const [pickerIntent, setPickerIntent] = useState<"add" | "swap">("add")
+
+  // Only to name the branch an existing booking already sits at. The create
+  // flow's target comes from WriteTargetLocation, which resolves its own.
+  const { isMultiLocation, locationName } = useLocations()
+  const theme = BOOKING_STATUS_TONE[status]
+  const statusLabel = BOOKING_STATUS_LABEL[status]
+  const dateLabel = formatHeaderDate(date)
+  const timeLabel = formatTime(startTime)
+  const totalMinor = pets.reduce(
+    (sum, pet) => sum + pet.services.reduce((s, svc) => s + svc.catalog.priceMinor, 0),
+    0,
+  )
+  const totalServices = pets.reduce((n, pet) => n + pet.services.length, 0)
+  // Both halves are required: something to book, and somewhere to book it.
+  // A view can span nine branches; a write cannot (G1).
+  const canSave = totalServices > 0 && (isEdit || locationId !== null)
+  const { name: businessName } = useDemoBusiness()
+
+  // Hand the appointment's services to the checkout flow as cart lines. Each
+  // pet's services flatten into individual service lines (the cart shows names
+  // + prices; pet grouping isn't carried over for the prototype).
+  function handleCheckout() {
+    if (!onCheckout) return
+    let seq = 0
+    const lines: CartLine[] = pets.flatMap((pet) =>
+      pet.services.map((svc) => {
+        seq += 1
+        return {
+          uid: `appt-${seq}`,
+          kind: "service" as const,
+          name: svc.catalog.name,
+          priceMinor: svc.catalog.priceMinor,
+          durationMin: svc.catalog.durationMin,
+          staffName: svc.staffName ?? "Any",
+          qty: 1,
+          sourceId: svc.catalog.id,
+          warnings: svc.warnings,
+        }
+      }),
+    )
+    const client: CatalogClient | null = selectedClient
+      ? { id: selectedClient.id, name: selectedClient.name, phone: selectedClient.phone }
+      : null
+    onCheckout(lines, client)
+  }
+  // Token values for resolving WhatsApp templates in the Messages section.
+  const firstService = pets.flatMap((p) => p.services)[0]
+  const messageTokens = {
+    client: selectedClient?.name,
+    service: firstService?.catalog.name,
+    staff: firstService?.staffName,
+    date: dateLabel,
+    time: timeLabel,
+    business: businessName,
+    location: businessName,
+    paymentLink: "cami.app/pay",
+    bookingLink: "cami.app/book",
+  }
+  // Deposit comes from the configured payment policy (Settings → Payments),
+  // respecting per-service overrides and the min-value scope limiter. The
+  // paid/required axis stays derived from status so the status-gated dropdown
+  // remains demonstrable (PRO-68): booked owes a deposit, confirmed has paid it.
+  const { policy } = usePaymentPolicy()
+  const router = useRouter()
+  const pathname = usePathname() ?? "/"
+  const depositMinor = depositForServices(
+    policy,
+    pets.flatMap((pet) =>
+      pet.services.map((svc) => ({
+        serviceId: svc.catalog.id,
+        priceMinor: svc.catalog.priceMinor,
+      })),
+    ),
+  )
+  const policyActive = policy.type === "deposit" && depositMinor > 0
+  const depositState: DepositState = !policyActive
+    ? "none"
+    : status === "booked"
+      ? "required"
+      : status === "confirmed"
+        ? "paid"
+        : "none"
+  const messageTemplates = templatesForBooking(status, depositState)
+  const editingPet = pets.find((p) => p.uid === editingPetUid) ?? null
+  const editingService = editingPet?.services.find((s) => s.uid === editingServiceUid) ?? null
+
+  function handleOpenServicePicker(petUid: string) {
+    setActivePetUid(petUid)
+    setPickerIntent("add")
+    setMode("select-service")
+  }
+
+  function handleOpenSwapServicePicker() {
+    setPickerIntent("swap")
+    setMode("select-service")
+  }
+
+  function handlePickServiceFromPicker(catalog: MockServiceCatalogItem) {
+    if (pickerIntent === "swap" && editingPetUid && editingServiceUid) {
+      // Swap the catalog on the editing service, preserving its duration override
+      // (durationMin comes from catalog; user can re-adjust in the edit panel).
+      setPets((prev) =>
+        prev.map((pet) =>
+          pet.uid === editingPetUid
+            ? {
+                ...pet,
+                services: pet.services.map((s) =>
+                  s.uid === editingServiceUid ? { ...s, catalog } : s,
+                ),
+              }
+            : pet,
+        ),
+      )
+      setMode("edit-service")
+      return
+    }
+    const targetUid = activePetUid ?? pets[0]?.uid
+    if (!targetUid) return
+    // A combo comes in as its component services, not as one row.
+    const added: SelectedService[] = catalog.isCombo
+      ? expandCombo(catalog, serviceCatalog, { startTime })
+      : [{ uid: `${catalog.id}-${Date.now()}`, catalog, startTime }]
+    setPets((prev) =>
+      prev.map((pet) =>
+        pet.uid === targetUid ? { ...pet, services: [...pet.services, ...added] } : pet,
+      ),
+    )
+    setMode("appointment")
+  }
+
+  function handleRemoveService(petUid: string, serviceUid: string) {
+    setPets((prev) => {
+      // Removing one component of a combo removes the combo: the price covers
+      // the bundle, so a leftover half-combo would be charged as one.
+      const groupId = prev
+        .find((p) => p.uid === petUid)
+        ?.services.find((s) => s.uid === serviceUid)?.comboGroupId
+      const updated = prev.map((pet) =>
+        pet.uid === petUid
+          ? {
+              ...pet,
+              services: pet.services.filter((s) =>
+                groupId ? s.comboGroupId !== groupId : s.uid !== serviceUid,
+              ),
+            }
+          : pet,
+      )
+      // A detached pet with no services left isn't worth keeping around.
+      return updated.filter((p) => !(p.name === "" && p.services.length === 0))
+    })
+  }
+
+  function handleEditService(petUid: string, serviceUid: string) {
+    setEditingPetUid(petUid)
+    setEditingServiceUid(serviceUid)
+    setMode("edit-service")
+  }
+
+  function handleUpdateService(updated: SelectedService) {
+    if (!editingPetUid) return
+    setPets((prev) =>
+      prev.map((pet) =>
+        pet.uid === editingPetUid
+          ? {
+              ...pet,
+              // Spread the existing row first: the edit panel rebuilds the
+              // service from its own fields, so a plain replace dropped
+              // comboGroupId / comboName / the struck-through price and
+              // detached a combo component from its combo.
+              services: pet.services.map((s) => (s.uid === updated.uid ? { ...s, ...updated } : s)),
+            }
+          : pet,
+      ),
+    )
+    setMode("appointment")
+    setEditingPetUid(null)
+    setEditingServiceUid(null)
+  }
+
+  function handleDeleteEditingService() {
+    if (!editingPetUid || !editingServiceUid) return
+    handleRemoveService(editingPetUid, editingServiceUid)
+    setMode("appointment")
+    setEditingPetUid(null)
+    setEditingServiceUid(null)
+  }
+
+  function handleAttachPet(petUid: string, option: PetOption) {
+    setPets((prev) =>
+      prev.map((p) =>
+        p.uid === petUid
+          ? {
+              ...p,
+              name: option.name,
+              species: option.species,
+              breed: option.breed,
+              weight: option.weight,
+            }
+          : p,
+      ),
+    )
+    // Auto-attach the pet's owner if no client is set yet.
+    if (!selectedClient) {
+      const owner = findClientForPet(option.name)
+      if (owner) setSelectedClient(owner)
+    }
+  }
+
+  function handleDetachPet(petUid: string) {
+    // Strip the pet's identity but keep its services. If a detached entry
+    // already exists, merge this pet's services into it and drop this entry —
+    // we only ever want ONE "Select pet" slot on the appointment.
+    // If the pet has no services to leave behind, just drop the entry: an
+    // empty detached row isn't worth showing.
+    setPets((prev) => {
+      const target = prev.find((p) => p.uid === petUid)
+      if (!target) return prev
+      if (target.services.length === 0) {
+        return prev.filter((p) => p.uid !== petUid)
+      }
+      const existingDetached = prev.find((p) => p.uid !== petUid && p.name === "")
+      if (existingDetached) {
+        return prev
+          .map((p) =>
+            p.uid === existingDetached.uid
+              ? { ...p, services: [...p.services, ...target.services] }
+              : p,
+          )
+          .filter((p) => p.uid !== petUid)
+      }
+      return prev.map((p) =>
+        p.uid === petUid ? { ...p, name: "", species: "other", breed: "", weight: "" } : p,
+      )
+    })
+  }
+
+  function handleConfirmDeletePet() {
+    if (!petPendingDelete) return
+    setPets((prev) => prev.filter((p) => p.uid !== petPendingDelete))
+    setPetPendingDelete(null)
+  }
+
+  function handleOpenAddPet() {
+    setActivePetUid(null)
+    setMode("select-pet-and-service")
+  }
+
+  function handleSavePetAndServices(pet: PetOption, services: MockServiceCatalogItem[]) {
+    const newUid = `pet-${Date.now()}`
+    setPets((prev) => [
+      ...prev,
+      {
+        uid: newUid,
+        name: pet.name,
+        species: pet.species,
+        breed: pet.breed,
+        weight: pet.weight,
+        services: services.flatMap((catalog) =>
+          catalog.isCombo
+            ? expandCombo(catalog, serviceCatalog, { startTime })
+            : [
+                {
+                  uid: `${catalog.id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                  catalog,
+                  startTime,
+                },
+              ],
+        ),
+      },
+    ])
+    // Auto-attach the pet's owner if no client is set yet.
+    if (!selectedClient) {
+      const owner = findClientForPet(pet.name)
+      if (owner) setSelectedClient(owner)
+    }
+    setMode("appointment")
+  }
+
+  function handleSheetOpenChange(next: boolean) {
+    if (!next) {
+      // Reset transient state on close so the next "Add" lands on a fresh sheet
+      // with the demo seed pet + services re-applied.
+      setPets(defaultPets(startTime))
+      setActivePetUid(null)
+      setStatus(isEdit ? initialStatus : "booked")
+      setMode("appointment")
+    }
+    onOpenChange(next)
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={handleSheetOpenChange}>
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        className="flex w-[480px] max-w-[480px] flex-col gap-0 overflow-hidden p-0"
+      >
+        <SheetTitle className="sr-only">
+          {mode === "appointment" ? "New appointment" : "Select a service"}
+        </SheetTitle>
+        <SheetDescription className="sr-only">
+          Create a new appointment for {dateLabel} at {timeLabel}.
+        </SheetDescription>
+
+        {mode === "select-service" ? (
+          <ServicePickerPanel
+            onBack={() => setMode(pickerIntent === "swap" ? "edit-service" : "appointment")}
+            onSelectService={handlePickServiceFromPicker}
+            locationId={locationId}
+          />
+        ) : mode === "select-pet-and-service" ? (
+          <PetAndServicePickerPanel
+            availablePets={availablePets}
+            onBack={() => setMode("appointment")}
+            onSave={handleSavePetAndServices}
+          />
+        ) : mode === "edit-repeating" ? (
+          <EditRepeatingPanel
+            value={repeatConfig}
+            onApply={(next) => {
+              setRepeatConfig(next)
+              setMode("appointment")
+            }}
+            onBack={() => setMode("appointment")}
+          />
+        ) : mode === "edit-service" && editingPet && editingService ? (
+          <EditServicePanel
+            service={editingService}
+            onBack={() => {
+              setMode("appointment")
+              setEditingPetUid(null)
+              setEditingServiceUid(null)
+            }}
+            onApply={handleUpdateService}
+            onDelete={handleDeleteEditingService}
+            onChangeService={handleOpenSwapServicePicker}
+            locationId={locationId ?? existingLocationId ?? null}
+            date={date}
+          />
+        ) : (
+          <>
+            <header className="flex min-h-12 items-center gap-3 border-b border-border/60 px-1.5">
+              <SheetClose asChild>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label="Close">
+                  <ChevronsRightIcon />
+                </Button>
+              </SheetClose>
+            </header>
+            <header
+              data-slot="appointment-sheet-header"
+              data-status={status}
+              data-flow={flow}
+              className={cn(
+                "flex items-center gap-3 px-6 py-7 transition-colors",
+                isEdit ? theme.fill : "bg-sand-2",
+                isEdit ? theme.text : "text-foreground",
+              )}
+            >
+              <DateAvatarCard date={date} />
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <button
+                  type="button"
+                  className="self-start truncate text-[22px] font-semibold leading-7 tracking-tight hover:opacity-90"
+                  aria-label="Change date"
+                >
+                  {dateLabel}
+                </button>
+                <div
+                  className={cn(
+                    "text-xs leading-4",
+                    isEdit ? theme.subText : "text-muted-foreground",
+                  )}
+                >
+                  <button type="button" className="font-medium hover:underline">
+                    {timeLabel}
+                  </button>
+                  <span aria-hidden>, </span>
+                  <button
+                    type="button"
+                    className="hover:underline"
+                    onClick={() => setMode("edit-repeating")}
+                  >
+                    {repeatLabel(repeatConfig)}
+                  </button>
+                  {/* Stated, not offered — no button, because moving a booking
+                      between branches is SCR-06 and not a thing to do by
+                      mistake while reading the header.
+
+                      Full-strength colour against the line's muted 70%, and the
+                      switcher's building icon. The same three facts in the same
+                      order as the detail sheet, so the branch does not move when
+                      an operator goes from reading to editing. */}
+                  {isEdit && existingLocationId && isMultiLocation ? (
+                    <>
+                      <span aria-hidden>, </span>
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 align-middle font-medium",
+                          theme.text,
+                        )}
+                      >
+                        <BuildingIcon className="size-3.5 shrink-0" aria-hidden />
+                        {locationName(existingLocationId)}
+                      </span>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                {isEdit ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-3.5 py-1.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
+                        aria-label={`Status: ${statusLabel}. Change status.`}
+                      >
+                        {statusLabel}
+                        <ChevronDownIcon className="size-4" aria-hidden />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-52">
+                      {BOOKING_STATUS_OPTIONS.map((option) => (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onSelect={() => setStatus(option.value)}
+                          variant={option.destructive ? "destructive" : "default"}
+                        >
+                          <option.Icon className="size-4" aria-hidden />
+                          {option.label}
+                          {option.value === status ? (
+                            <CheckIcon className="ml-auto size-4" aria-hidden />
+                          ) : null}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className={cn(
+                        "inline-flex size-10 items-center justify-center rounded-full border border-current/20 bg-transparent transition-opacity hover:opacity-80",
+                        isEdit ? theme.text : "text-foreground",
+                      )}
+                      aria-label="Quick actions"
+                    >
+                      <MoreHorizontalIcon className="size-5" aria-hidden />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem onSelect={() => setNoteDialogOpen(true)}>
+                      <FileTextIcon className="size-4" aria-hidden />
+                      {note ? "Edit note" : "Add a note"}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </header>
+
+            <div className="flex flex-1 flex-col gap-6 overflow-y-auto bg-sand-2 px-6 py-5">
+              {/* Client + quick message render in both modes. Pet attachment is
+                  the only pets-only affordance; it lives in the services section. */}
+              <ClientPicker
+                selected={selectedClient}
+                onSelect={setSelectedClient}
+                onClear={() => setSelectedClient(null)}
+                templates={messageTemplates}
+                onMessage={setMessageTemplate}
+                onCustom={() =>
+                  setMessageTemplate({
+                    id: "custom",
+                    name: "Custom message",
+                    body: "",
+                    statuses: [],
+                    automation: "manual",
+                  })
+                }
+                previewFor={(t) => resolveTemplate(t.body, messageTokens)}
+              />
+
+              {/* DZ-209: client notes surface while the booking is being made,
+                  not only once it exists — a package balance or "always asks
+                  for Aya" changes what gets booked. Renders nothing until a
+                  client with notes is selected. */}
+              <ClientNoteBanner clientId={selectedClient?.id} />
+
+              {/* And whether they are already booked (R13, EC-1). The client
+                  record has carried this since SCR-07, but a record answers
+                  only when somebody thinks to open it, and somebody mid-booking
+                  does not — so the one story whose Done-when is "duplicate
+                  caught BEFORE booking" needs it here, unprompted. It states
+                  and never blocks: two appointments on a day is routinely
+                  correct, and reception has the client in front of them. */}
+              <ClientOpenAppointmentsBanner open={openAppointments} bookingAt={locationId} />
+
+              {/* After the client, before the services, and the second half of
+                  that is the one that matters: the service list is read against
+                  the branch, so asking afterwards would mean rechecking every
+                  service already chosen. The client carries no such tie — the
+                  directory is one business's, not one branch's — so who it is
+                  for is the first thing reception is told and the first thing
+                  this sheet asks.
+                  Renders nothing for a single-branch business (DW1.2), states
+                  the branch rather than offering it when only one is in scope,
+                  and says so plainly when no write is possible at all (R24). */}
+              {/* Asked when the appointment is being created, never when it
+                  already exists. An existing booking already belongs to a
+                  branch, and moving it to another is SCR-06 — a destination
+                  bounded by grants, with both branches on the money. Re-asking
+                  here would move it silently and settle it nowhere. */}
+              {isEdit ? null : (
+                <WriteTargetLocation
+                  value={locationId}
+                  onChange={setLocationId}
+                  action="This appointment"
+                  variant="card"
+                />
+              )}
+
+              <section data-slot="services-section" className="flex flex-col gap-3">
+                <h2 className="text-lg font-semibold leading-7 text-foreground">Services</h2>
+                {hasPets ? (
+                  pets.length === 0 ? (
+                    <EmptyServicesCard onAdd={handleOpenAddPet} />
+                  ) : (
+                    <>
+                      <div className="flex flex-col gap-4 rounded-2xl border border-border/60 bg-card p-4">
+                        {pets.map((pet, idx) => (
+                          <div key={pet.uid} className="flex flex-col gap-4">
+                            {idx > 0 ? <div className="h-px bg-border/60" aria-hidden /> : null}
+                            <PetServiceGroup
+                              pet={pet}
+                              availablePets={availablePets}
+                              onAttachPet={(option) => handleAttachPet(pet.uid, option)}
+                              onAddMore={() => handleOpenServicePicker(pet.uid)}
+                              onRemoveService={(serviceUid) =>
+                                handleRemoveService(pet.uid, serviceUid)
+                              }
+                              onEditService={(serviceUid) => handleEditService(pet.uid, serviceUid)}
+                              onRemovePet={() => handleDetachPet(pet.uid)}
+                              onEditPet={() => setPetBeingEdited(pet.uid)}
+                              onDeletePet={() => setPetPendingDelete(pet.uid)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleOpenAddPet}
+                        className="inline-flex h-10 items-center gap-2 self-start rounded-xl bg-muted/40 px-3 text-left text-muted-foreground transition-colors hover:bg-muted/60"
+                      >
+                        <CirclePlusIcon className="size-4 shrink-0" aria-hidden />
+                        <span className="text-sm leading-5">Add pet</span>
+                      </button>
+                    </>
+                  )
+                ) : totalServices === 0 ? (
+                  <EmptyServicesCard onAdd={() => handleOpenServicePicker(pets[0]?.uid ?? "")} />
+                ) : (
+                  <div className="flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4">
+                    <ServiceRowList
+                      services={pets[0]?.services ?? []}
+                      onRemoveService={(serviceUid) =>
+                        handleRemoveService(pets[0]?.uid ?? "", serviceUid)
+                      }
+                      onEditService={(serviceUid) =>
+                        handleEditService(pets[0]?.uid ?? "", serviceUid)
+                      }
+                    />
+                    <ServiceGroupActions
+                      onAddMore={() => handleOpenServicePicker(pets[0]?.uid ?? "")}
+                    />
+                  </div>
+                )}
+              </section>
+
+              <section data-slot="pickup-section" className="flex flex-col gap-3">
+                <h2 className="text-lg font-semibold leading-7 text-foreground">Pet Address</h2>
+                <PickupFields
+                  needsPickup={needsPickup}
+                  onNeedsPickup={setNeedsPickup}
+                  useSavedAddress={useSavedAddress}
+                  onUseSavedAddress={setUseSavedAddress}
+                  address={customPickupAddress}
+                  onAddress={setCustomPickupAddress}
+                  place={customPickupPlace}
+                  onPlace={setCustomPickupPlace}
+                  savedAddress={savedAddress}
+                  savedPlace={savedAddressPlace}
+                  clientName={selectedClient?.name}
+                />
+              </section>
+
+              <section data-slot="pet-notes-section" className="flex flex-col gap-3">
+                <h2 className="text-lg font-semibold leading-7 text-foreground">Pet notes</h2>
+                <div className="rounded-2xl border border-border/60 bg-card p-4">
+                  <PetNotesFields
+                    entries={petNotes}
+                    onEntries={setPetNotes}
+                    idPrefix="appointment-pet-notes"
+                    label="What should the groomer know?"
+                  />
+                </div>
+              </section>
+
+              {note !== null ? (
+                <section data-slot="notes-section" className="flex flex-col gap-3">
+                  {/* "Appointment note", not "Notes": it sits directly under
+                      "Pet notes", and DZ-209 is precisely about being able to
+                      tell the three note kinds apart — this one is the
+                      occasion, pet notes are the animal, client notes are the
+                      person. A bare "Notes" next to "Pet notes" reads as the
+                      same thing twice. */}
+                  <h2 className="text-lg font-semibold leading-7 text-foreground">
+                    Appointment note
+                  </h2>
+                  <div className="group/note relative min-h-24 rounded-2xl border border-border/60 bg-card p-4 transition-colors hover:bg-muted/30">
+                    <button
+                      type="button"
+                      onClick={() => setNoteDialogOpen(true)}
+                      className="block w-full pr-20 text-start text-sm text-foreground"
+                    >
+                      {note || "Empty note — click to edit"}
+                    </button>
+                    <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            radius="full"
+                            onClick={() => setNoteDialogOpen(true)}
+                            aria-label="Edit note"
+                          >
+                            <PencilIcon className="size-4" aria-hidden />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Edit</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            radius="full"
+                            onClick={() => setNote(null)}
+                            aria-label="Delete note"
+                          >
+                            <Trash2Icon className="size-4" aria-hidden />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Delete</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
+                </section>
+              ) : null}
+
+              {policyActive ? (
+                <section data-slot="payment-policy-section" className="flex flex-col gap-3">
+                  <h2 className="text-lg font-semibold leading-7 text-foreground">
+                    Payment policy
+                  </h2>
+                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <CreditCardIcon
+                        className="size-5 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
+                      <div className="flex min-w-0 flex-col">
+                        <span className="text-sm font-semibold text-foreground">
+                          Requires confirmation
+                        </span>
+                        {depositState === "required" ? (
+                          <span className="text-xs font-medium text-gold-11">
+                            {formatMoneyWhole(depositMinor)} deposit requested
+                          </span>
+                        ) : depositState === "paid" ? (
+                          <span className="text-xs font-medium text-cami-green-11">
+                            {formatMoneyWhole(depositMinor)} deposit paid
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No deposit required</span>
+                        )}
+                      </div>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          radius="full"
+                          aria-label="Payment policy options"
+                        >
+                          <MoreHorizontalIcon className="size-4" aria-hidden />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        {depositState === "required" ? (
+                          <DropdownMenuItem
+                            onSelect={() => {
+                              const reminder = MOCK_WHATSAPP_TEMPLATES.find(
+                                (t) => t.id === "deposit-reminder",
+                              )
+                              if (reminder) setMessageTemplate(reminder)
+                            }}
+                          >
+                            <MessageCircleIcon className="size-4" aria-hidden />
+                            Send reminder
+                          </DropdownMenuItem>
+                        ) : null}
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            toast.info(examplePolicyText(policy, businessName), {
+                              description: policy.terms || undefined,
+                            })
+                          }
+                        >
+                          Show policy
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          // Opens the settings dialog on this page, straight into
+                          // the payment policy editor takeover.
+                          onSelect={() => router.push(`${pathname}?settings=payments&pp=edit`)}
+                        >
+                          Edit policy
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-tomato-11 focus:bg-tomato-3 focus:text-tomato-11 data-highlighted:bg-tomato-3 data-highlighted:text-tomato-11">
+                          Remove policy
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </section>
+              ) : null}
+            </div>
+
+            <footer
+              data-slot="appointment-sheet-footer"
+              className="border-t border-border bg-card px-6 py-4"
+            >
+              {depositState === "required" ? (
+                <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-gold-11">
+                  <AlertCircleIcon className="size-3.5 shrink-0" aria-hidden />
+                  {formatMoneyWhole(depositMinor)} deposit unpaid — collect it or send a payment
+                  link before checkout
+                </p>
+              ) : null}
+              {hasPets ? (
+                <Button
+                  radius="full"
+                  disabled={!canSave}
+                  className="w-full"
+                  onClick={isEdit ? handleCheckout : undefined}
+                >
+                  {isEdit ? "Checkout" : "Save"}
+                </Button>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground">Total</span>
+                    <button
+                      type="button"
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-foreground hover:underline"
+                    >
+                      {totalServices > 0 ? formatMoneyWhole(totalMinor) : "Full payment added"}
+                      <ChevronRightIcon className="size-3.5" aria-hidden />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      radius="full"
+                      disabled={!canSave}
+                      onClick={handleCheckout}
+                    >
+                      Checkout
+                    </Button>
+                    <Button
+                      radius="full"
+                      disabled={!canSave}
+                      onClick={isEdit ? handleCheckout : undefined}
+                    >
+                      {isEdit ? "Checkout" : "Save"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </footer>
+          </>
+        )}
+      </SheetContent>
+      <NoteDialog
+        open={noteDialogOpen}
+        onOpenChange={setNoteDialogOpen}
+        initialValue={note}
+        onSave={(v) => setNote(v)}
+        onDelete={() => setNote(null)}
+      />
+      <SendMessageDialog
+        open={messageTemplate !== null}
+        onOpenChange={(next) => {
+          if (!next) setMessageTemplate(null)
+        }}
+        templateName={messageTemplate?.name ?? ""}
+        recipientName={selectedClient?.name ?? "Walk-in"}
+        recipientPhone={selectedClient?.phone}
+        initialBody={messageTemplate ? resolveTemplate(messageTemplate.body, messageTokens) : ""}
+      />
+      <ConfirmDialog
+        open={petPendingDelete !== null}
+        onOpenChange={(next) => {
+          if (!next) setPetPendingDelete(null)
+        }}
+        title="Delete this pet?"
+        description="This permanently removes the pet's profile from your business — not just from this appointment. Their history, notes, and any future bookings will be lost."
+        confirmLabel="Delete pet"
+        destructive
+        onConfirm={handleConfirmDeletePet}
+      />
+      <PetEditSheet
+        open={petBeingEdited !== null}
+        onOpenChange={(next) => {
+          if (!next) setPetBeingEdited(null)
+        }}
+        mode="edit"
+        initial={(() => {
+          const p = pets.find((p) => p.uid === petBeingEdited)
+          return p ? { name: p.name, species: p.species, breed: p.breed } : undefined
+        })()}
+      />
+    </Sheet>
+  )
+}
+
+function EditRepeatingPanel({
+  value,
+  onApply,
+  onBack,
+}: {
+  value: RepeatConfig
+  onApply: (next: RepeatConfig) => void
+  onBack: () => void
+}) {
+  const [local, setLocal] = useState<RepeatConfig>(value)
+  const triggerClass = "data-[size=default]:h-12 rounded-2xl bg-input px-4 font-medium"
+
+  const endsValue =
+    local.ends === "never"
+      ? "never"
+      : local.ends === "specific-date"
+        ? "specific-date"
+        : `after-${local.endsAfter}`
+
+  function handleEndsChange(v: string) {
+    if (v === "never") setLocal({ ...local, ends: "never" })
+    else if (v === "specific-date") setLocal({ ...local, ends: "specific-date" })
+    else if (v.startsWith("after-")) {
+      const n = Number(v.slice(6))
+      setLocal({ ...local, ends: "after", endsAfter: n })
+    }
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex min-h-12 items-center gap-3 border-b border-border/60 px-1.5">
+        <Button type="button" variant="ghost" size="sm" onClick={onBack}>
+          <ArrowLeftIcon />
+          Back
+        </Button>
+      </header>
+
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto bg-sand-2 px-6 py-5">
+        <h2 className="font-heading text-2xl font-semibold leading-tight text-foreground">
+          Edit repeating options
+        </h2>
+
+        <div className="flex flex-col gap-2">
+          <Label>Frequency</Label>
+          <Select
+            value={local.frequency}
+            onValueChange={(v) => setLocal({ ...local, frequency: v as RepeatFrequency })}
+          >
+            <SelectTrigger className={triggerClass}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {REPEAT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {local.frequency === "custom" ? (
+          <div className="flex flex-col gap-2">
+            <Label>Every</Label>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                min={1}
+                value={local.customInterval}
+                onChange={(e) =>
+                  setLocal({
+                    ...local,
+                    customInterval: Math.max(1, Number(e.target.value) || 1),
+                  })
+                }
+                className="w-24"
+              />
+              <Select
+                value={local.customUnit}
+                onValueChange={(v) => setLocal({ ...local, customUnit: v as RepeatUnit })}
+              >
+                <SelectTrigger className={cn(triggerClass, "flex-1")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(["day", "week", "month"] as RepeatUnit[]).map((u) => (
+                    <SelectItem key={u} value={u}>
+                      {UNIT_LABEL[u]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ) : null}
+
+        {local.frequency !== "no-repeat" ? (
+          <div className="flex flex-col gap-2">
+            <Label>Ends</Label>
+            <Select value={endsValue} onValueChange={handleEndsChange}>
+              <SelectTrigger className={triggerClass}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="never">Never</SelectItem>
+                {AFTER_TIMES_OPTIONS.map((n) => (
+                  <SelectItem key={n} value={`after-${n}`}>
+                    After {n} times
+                  </SelectItem>
+                ))}
+                <SelectItem value="specific-date">Specific date</SelectItem>
+              </SelectContent>
+            </Select>
+            {local.ends === "specific-date" ? (
+              <DatePicker
+                value={local.endsDate}
+                onChange={(next) => setLocal({ ...local, endsDate: next })}
+              />
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+
+      <footer className="flex items-center justify-end border-t border-border/60 bg-card px-6 py-4">
+        <Button type="button" radius="full" onClick={() => onApply(local)} className="w-full">
+          Apply changes
+        </Button>
+      </footer>
+    </div>
+  )
+}
+
+function DetachedPetPicker({
+  availablePets,
+  onAttach,
+}: {
+  availablePets: PetOption[]
+  onAttach: (option: PetOption) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const q = query.trim().toLowerCase()
+  const filtered = q ? availablePets.filter((p) => p.name.toLowerCase().includes(q)) : availablePets
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) setQuery("")
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-3 py-2.5 text-start transition-colors hover:bg-muted/40"
+        >
+          <div
+            aria-hidden
+            className="flex size-9 items-center justify-center rounded-full border border-dashed border-border bg-muted/30 text-muted-foreground"
+          >
+            <PlusIcon className="size-4" />
+          </div>
+          <span className="flex-1 truncate text-sm font-medium text-muted-foreground">
+            Select pet
+          </span>
+          <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] gap-2 p-2 supports-backdrop-filter:backdrop-blur-[8px]"
+      >
+        <SearchInput size="lg" onValueChange={setQuery} placeholder="Search pets" />
+        <ul className="max-h-72 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-muted-foreground">No pets found.</li>
+          ) : (
+            filtered.map((option) => (
+              <li key={option.name}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onAttach(option)
+                    setOpen(false)
+                    setQuery("")
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start transition-colors hover:bg-muted/50"
+                >
+                  <Avatar
+                    name={option.name}
+                    fallback="species"
+                    species={option.species}
+                    size="sm"
+                    shape="circle"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                    <span className="truncate text-sm font-medium">{option.name}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {option.breed} · {option.weight}
+                    </span>
+                  </div>
+                </button>
+              </li>
+            ))
+          )}
+          <li className="mt-1 border-t border-border/60 pt-1">
+            <button
+              type="button"
+              // TODO: open "Add new pet" flow
+              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-cami-violet-11 transition-colors hover:bg-muted/50"
+            >
+              <PlusIcon className="size-4" aria-hidden />
+              New pet
+            </button>
+          </li>
+        </ul>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function PetServiceGroup({
+  pet,
+  availablePets,
+  onAttachPet,
+  onAddMore,
+  onRemoveService,
+  onEditService,
+  onRemovePet,
+  onEditPet,
+  onDeletePet,
+}: {
+  pet: SelectedPet
+  availablePets: PetOption[]
+  onAttachPet: (option: PetOption) => void
+  onAddMore: () => void
+  onRemoveService: (serviceUid: string) => void
+  onEditService: (serviceUid: string) => void
+  onRemovePet: () => void
+  onEditPet: () => void
+  onDeletePet: () => void
+}) {
+  const detached = pet.name === ""
+  return (
+    <div className="flex flex-col gap-3">
+      {detached ? (
+        <DetachedPetPicker availablePets={availablePets} onAttach={onAttachPet} />
+      ) : (
+        <header className="flex items-center gap-2">
+          <Avatar
+            name={pet.name}
+            fallback="species"
+            species={pet.species}
+            size="md"
+            shape="circle"
+          />
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-semibold text-foreground">{pet.name}</span>
+            <span className="text-xs text-muted-foreground">
+              {pet.breed} · {pet.weight}
+            </span>
+          </div>
+        </header>
+      )}
+      {pet.services.length > 0 ? (
+        <ServiceRowList
+          services={pet.services}
+          onRemoveService={onRemoveService}
+          onEditService={onEditService}
+        />
+      ) : null}
+      <ServiceGroupActions
+        onAddMore={onAddMore}
+        onRemovePet={onRemovePet}
+        onEditPet={onEditPet}
+        onDeletePet={onDeletePet}
+      />
+    </div>
+  )
+}
+
+function ServiceRowList({
+  services,
+  onRemoveService,
+  onEditService,
+}: {
+  services: SelectedService[]
+  onRemoveService: (uid: string) => void
+  onEditService: (uid: string) => void
+}) {
+  return (
+    <ul className="-mx-3 flex flex-col gap-1">
+      {services.map((s) => (
+        <li
+          key={s.uid}
+          className="group/service flex gap-3 rounded-2xl px-3 py-2 transition-colors hover:bg-muted/50"
+        >
+          <ServiceAccentRail item={s.catalog} />
+          <div className="flex min-w-0 flex-1 flex-col gap-2 py-3">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                {/* A combo has already expanded into its component rows by the
+                    time it lands here, so the row reads like a booked one: the
+                    glyph, then "Combo name - Service name". */}
+                <div className="flex min-w-0 items-center gap-1.5">
+                  {s.comboName ? <ComboLineIcon className="size-4" /> : null}
+                  <span className="text-base font-semibold text-foreground">{s.catalog.name}</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {formatTime(s.startTime)} · {formatDuration(s.catalog.durationMin)} ·{" "}
+                  {s.staffName ?? "Any team member"}
+                </span>
+              </div>
+              <div className="relative flex shrink-0 items-center leading-tight">
+                <span className="flex flex-col items-end leading-tight tabular-nums transition-opacity group-hover/service:invisible">
+                  <span className="text-base font-semibold text-foreground">
+                    {formatMoneyWhole(s.catalog.priceMinor)}
+                  </span>
+                  {s.comboOriginalPriceMinor &&
+                  s.comboOriginalPriceMinor !== s.catalog.priceMinor ? (
+                    <span className="text-sm font-normal text-muted-foreground line-through">
+                      {formatMoneyWhole(s.comboOriginalPriceMinor)}
+                    </span>
+                  ) : null}
+                </span>
+                <div className="absolute inset-y-0 right-0 flex items-center gap-1 opacity-0 transition-opacity group-hover/service:opacity-100 group-focus-within/service:opacity-100">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-sm"
+                        radius="full"
+                        onClick={() => onEditService(s.uid)}
+                        aria-label={`Edit ${s.catalog.name}`}
+                      >
+                        <PencilIcon className="size-4" aria-hidden />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Edit</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon-sm"
+                        radius="full"
+                        onClick={() => onRemoveService(s.uid)}
+                        aria-label={`Remove ${s.catalog.name}`}
+                      >
+                        <Trash2Icon className="size-4" aria-hidden />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete</TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            </div>
+            {s.warnings && s.warnings.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {s.warnings.map((w) => (
+                  <ServiceWarningPill key={w} text={w} />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function EmptyServicesCard({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card">
+      <EmptyState
+        icon={TagIcon}
+        title="Add a service to save the appointment"
+        action={
+          <Button type="button" variant="outline" radius="full" size="sm" onClick={onAdd}>
+            <CirclePlusIcon className="size-4" aria-hidden />
+            Add service
+          </Button>
+        }
+      />
+    </div>
+  )
+}
+
+function ServiceWarningPill({ text }: { text: string }) {
+  return (
+    <Badge variant="warning" size="md">
+      <AlertCircleIcon aria-hidden />
+      {text}
+    </Badge>
+  )
+}
+
+function ServiceGroupActions({
+  onAddMore,
+  onRemovePet,
+  onAddStaffAlert,
+  onEditPet,
+  onDeletePet,
+}: {
+  onAddMore: () => void
+  onRemovePet?: () => void
+  onAddStaffAlert?: () => void
+  onEditPet?: () => void
+  onDeletePet?: () => void
+}) {
+  return (
+    <div className="flex items-center gap-2 pt-1">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button type="button" variant="outline" size="sm" radius="full">
+            Action
+            <ChevronDownIcon className="size-4 opacity-70" aria-hidden />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuItem onSelect={() => onRemovePet?.()}>
+            <RotateCwIcon className="size-4" aria-hidden />
+            Remove pet
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onAddStaffAlert?.()}>
+            <FlagIcon className="size-4" aria-hidden />
+            Add staff alert
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => onEditPet?.()}>Edit pet details</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onSelect={() => onDeletePet?.()}>
+            Delete pet
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Button type="button" variant="outline" size="sm" radius="full" onClick={onAddMore}>
+        <CirclePlusIcon className="size-4" aria-hidden />
+        Add service
+      </Button>
+    </div>
+  )
+}
+
+function DateAvatarCard({ date }: { date: string }) {
+  const d = new Date(`${date}T00:00:00`)
+  const month = d.toLocaleDateString("en-US", { month: "short" }).toUpperCase()
+  const day = d.getDate()
+  return (
+    <div
+      data-slot="date-avatar-card"
+      aria-hidden
+      className="flex h-12 w-[3rem] shrink-0 flex-col overflow-hidden rounded-[9px] bg-background text-foreground shadow-[0_0_0_2px_var(--background)]"
+    >
+      <div className="bg-black/10 py-[3px] text-center font-bold text-[9px] tracking-tight text-foreground/50 leading-none">
+        {month}
+      </div>
+      <div className="flex flex-1 items-center justify-center font-bold text-2xl leading-none text-foreground/70">
+        {day}
+      </div>
+    </div>
+  )
+}
+
+function ClientPicker({
+  selected,
+  onSelect,
+  onClear,
+  templates,
+  onMessage,
+  onCustom,
+  previewFor,
+}: {
+  selected: SelectedClient | null
+  onSelect: (client: SelectedClient) => void
+  onClear: () => void
+  /** Status-filtered templates for the current booking. May be empty. */
+  templates?: WhatsAppTemplate[]
+  onMessage?: (template: WhatsAppTemplate) => void
+  /** Open the send dialog with a blank message (no template). */
+  onCustom?: () => void
+  /** Resolves a template into its preview text (tokens filled from the booking). */
+  previewFor?: (template: WhatsAppTemplate) => string
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const q = query.trim().toLowerCase()
+  const qPhone = normalizePhone(q)
+  const filtered = q
+    ? MOCK_CLIENTS.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) || (qPhone && normalizePhone(c.phone).includes(qPhone)),
+      )
+    : MOCK_CLIENTS
+  return (
+    <div className="flex flex-col gap-2">
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next)
+          if (!next) setQuery("")
+        }}
+      >
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-center gap-3 rounded-2xl border border-border/60 bg-card px-3 py-2.5 text-start transition-colors hover:bg-muted/40"
+          >
+            {selected ? (
+              <>
+                <Avatar name={selected.name} fallback="character" size="md" shape="circle" />
+                <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                  <span className="truncate text-sm font-semibold text-foreground">
+                    {selected.name}
+                  </span>
+                  <span className="truncate text-xs text-muted-foreground">{selected.phone}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  aria-hidden
+                  className="flex size-9 items-center justify-center rounded-full border border-dashed border-border bg-muted/30 text-muted-foreground"
+                >
+                  <PlusIcon className="size-4" />
+                </div>
+                <span className="flex-1 truncate text-sm font-medium text-muted-foreground">
+                  Add client
+                </span>
+              </>
+            )}
+            <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          className="w-[var(--radix-popover-trigger-width)] gap-2 p-2 supports-backdrop-filter:backdrop-blur-[8px]"
+        >
+          <SearchInput size="lg" onValueChange={setQuery} placeholder="Search by name or phone" />
+          {/* `overscroll-contain`: without it the wheel chains out of this list
+              into the sheet behind, which is inside a dialog that does not
+              scroll — so the list read as frozen the moment the pointer was
+              over it. The scrollbar was there and the wheel did nothing. */}
+          <ul className="max-h-72 overflow-y-auto overscroll-contain">
+            {filtered.length === 0 ? (
+              <li className="px-3 py-2 text-sm text-muted-foreground">No clients found.</li>
+            ) : (
+              filtered.map((client) => (
+                <li key={client.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelect(client)
+                      setOpen(false)
+                      setQuery("")
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start transition-colors hover:bg-muted/50"
+                  >
+                    <Avatar name={client.name} fallback="character" size="sm" shape="circle" />
+                    <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                      <span className="truncate text-sm font-medium">{client.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{client.phone}</span>
+                    </div>
+                  </button>
+                </li>
+              ))
+            )}
+            <li className="mt-1 border-t border-border/60 pt-1">
+              <button
+                type="button"
+                // TODO: open "Add new client" full-screen takeover
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-cami-violet-11 transition-colors hover:bg-muted/50"
+              >
+                <PlusIcon className="size-4" aria-hidden />
+                New client
+              </button>
+            </li>
+            {selected ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClear()
+                    setOpen(false)
+                    setQuery("")
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-destructive transition-colors hover:bg-destructive/10"
+                >
+                  <XIcon className="size-4" aria-hidden />
+                  Remove client
+                </button>
+              </li>
+            ) : null}
+          </ul>
+        </PopoverContent>
+      </Popover>
+      {selected && onMessage ? (
+        <div className="flex items-center gap-2 pt-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button type="button" variant="outline" size="sm" radius="full">
+                <MessageCircleIcon className="size-4" aria-hidden />
+                Quick message
+                <ChevronDownIcon className="size-4 opacity-70" aria-hidden />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-72">
+              {templates && templates.length > 0 ? (
+                templates.map((template) => (
+                  <DropdownMenuItem
+                    key={template.id}
+                    onSelect={() => onMessage(template)}
+                    className="flex-col items-start gap-0.5"
+                  >
+                    <span className="text-sm font-medium text-foreground">{template.name}</span>
+                    <span className="w-full truncate text-xs text-muted-foreground">
+                      {previewFor ? previewFor(template) : template.body}
+                    </span>
+                  </DropdownMenuItem>
+                ))
+              ) : (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                  No templates for this status.
+                </div>
+              )}
+              {onCustom ? (
+                <DropdownMenuItem onSelect={onCustom} className="gap-2">
+                  <PencilIcon className="size-4" aria-hidden />
+                  <span className="text-sm font-medium text-foreground">Write custom message</span>
+                </DropdownMenuItem>
+              ) : null}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/messages/inbox" className="font-medium">
+                  Message center
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+// "2026-05-13" → "Wed, 13 May"
+function formatHeaderDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`)
+  const weekday = d.toLocaleDateString("en-GB", { weekday: "short" })
+  const day = d.getDate()
+  const month = d.toLocaleDateString("en-GB", { month: "short" })
+  return `${weekday}, ${day} ${month}`
+}
+
+// "10:00" → "10:00AM"
+function formatTime(hhmm: string): string {
+  const [hStr, mStr] = hhmm.split(":")
+  const h = Number(hStr)
+  const period = h >= 12 ? "PM" : "AM"
+  const display = ((h + 11) % 12) + 1
+  return `${display}:${mStr ?? "00"}${period}`
+}

@@ -20,7 +20,7 @@
 // number somebody typed twice.
 
 import { MOCK_CLIENTS } from "@/app/clients/mock"
-import { ClientOverview, resolveProfile } from "@/components/blocks/client-detail-dialog"
+import { ClientOverview, resolveProfile } from "@/components/blocks/clients/client-detail-dialog"
 import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
 import { getClientActivity } from "@/lib/clients/activity"
 import { buildCustomerCard } from "@/lib/customer-card/mock"

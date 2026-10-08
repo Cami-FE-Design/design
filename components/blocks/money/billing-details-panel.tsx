@@ -31,12 +31,12 @@ import {
   ScrollTextIcon,
 } from "lucide-react"
 import { useState } from "react"
-import { AddressSearchField } from "@/components/blocks/address-search-field"
-import { FullScreenTakeover } from "@/components/blocks/full-screen-edit-dialog"
-import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
-import type { BreadcrumbRoot } from "@/components/blocks/sales-settings"
-import { SettingsCard, SettingsPanel } from "@/components/blocks/settings-panel"
-import { SettingsRow } from "@/components/blocks/settings-row"
+import type { BreadcrumbRoot } from "@/components/blocks/settings/sales-settings"
+import { SettingsCard, SettingsPanel } from "@/components/blocks/settings/settings-panel"
+import { SettingsRow } from "@/components/blocks/settings/settings-row"
+import { AddressSearchField } from "@/components/blocks/shared/address-search-field"
+import { FullScreenTakeover } from "@/components/blocks/shared/full-screen-edit-dialog"
+import { NotionBreadcrumb } from "@/components/blocks/shell/notion-breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {

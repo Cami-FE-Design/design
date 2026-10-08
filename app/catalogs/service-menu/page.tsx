@@ -2,8 +2,8 @@
 
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
-import { AppShell } from "@/components/blocks/app-shell"
 import { ServiceMenuPage } from "@/components/blocks/service-menu/ServiceMenuPage"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 
 const SERVICE_SECTIONS = [
   "basic",

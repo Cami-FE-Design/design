@@ -2,14 +2,14 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
 import {
   PACKAGE_SECTIONS,
   type PackageDraft,
   PackageForm,
   type PackageSectionId,
-} from "@/components/blocks/package-form"
-import { SectionNav } from "@/components/blocks/section-nav"
+} from "@/components/blocks/catalog/package-form"
+import { FullScreenEditDialog } from "@/components/blocks/shared/full-screen-edit-dialog"
+import { SectionNav } from "@/components/blocks/shared/section-nav"
 import { usePackages } from "@/lib/packages/store"
 
 export default function NewPackagePage() {

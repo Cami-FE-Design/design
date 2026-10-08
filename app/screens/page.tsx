@@ -1,8 +1,8 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Fragment } from "react"
-import { BackToTop } from "@/components/blocks/back-to-top"
-import { ThemeToggle } from "@/components/blocks/theme-toggle"
+import { BackToTop } from "@/components/blocks/shell/back-to-top"
+import { ThemeToggle } from "@/components/blocks/shell/theme-toggle"
 import { REPORTS } from "@/lib/reports/registry"
 
 export const metadata: Metadata = {

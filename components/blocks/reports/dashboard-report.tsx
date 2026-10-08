@@ -9,10 +9,10 @@
 
 import { ChartNoAxesCombinedIcon } from "lucide-react"
 import { Suspense } from "react"
-import { EmptyState } from "@/components/blocks/empty-state"
 import { PerformanceDashboard } from "@/components/blocks/reports/dashboard/performance-dashboard"
 import { PerformanceOverTimeReport } from "@/components/blocks/reports/performance-over-time-report"
 import { PerformanceSummaryReport } from "@/components/blocks/reports/performance-summary-report"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import type { ReportDef } from "@/lib/reports/types"
 
 export function DashboardReport({ report }: { report: ReportDef }) {

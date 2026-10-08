@@ -2,7 +2,7 @@
 
 import { ChevronLeftIcon, InfoIcon, XIcon } from "lucide-react"
 import { useState } from "react"
-import { GiftCardVisual } from "@/components/blocks/gift-card-visual"
+import { GiftCardVisual } from "@/components/blocks/sales/gift-card-visual"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,

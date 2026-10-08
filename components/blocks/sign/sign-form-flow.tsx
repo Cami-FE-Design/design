@@ -2,9 +2,8 @@
 
 import { CheckIcon, ClockIcon, Loader2Icon, PenLineIcon } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
-
-import { PdfViewer } from "@/components/blocks/pdf-viewer-lazy"
-import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
+import { PublicTopGradient } from "@/components/blocks/public/public-top-gradient"
+import { PdfViewer } from "@/components/blocks/shared/pdf-viewer-lazy"
 import { SignaturePreview } from "@/components/blocks/sign/signature-dialog"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"

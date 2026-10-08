@@ -2,15 +2,15 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
 import {
   PRODUCT_SECTIONS,
   ProductForm,
   type ProductFormSectionId,
   type ProductSectionId,
-} from "@/components/blocks/product-form"
-import { ProductPhotosCard } from "@/components/blocks/product-photos-card"
-import { SectionNav } from "@/components/blocks/section-nav"
+} from "@/components/blocks/products/product-form"
+import { ProductPhotosCard } from "@/components/blocks/products/product-photos-card"
+import { FullScreenEditDialog } from "@/components/blocks/shared/full-screen-edit-dialog"
+import { SectionNav } from "@/components/blocks/shared/section-nav"
 
 export default function NewProductPage() {
   const router = useRouter()

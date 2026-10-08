@@ -10,7 +10,7 @@ import {
   PlusIcon,
 } from "lucide-react"
 import { useRef, useState } from "react"
-import { EmptyState } from "@/components/blocks/empty-state"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import {
   Button,
   Dialog,

@@ -257,7 +257,7 @@ The first attempt filed the bank account and the legal entity under Payments, wh
 
 **The drawer is not allowed to be a second opinion.** Fresha's drawer header and their account summary are two different figures both readable as "balance" (§2.1). Cami's drawer renders the same `summarize()` output the summary page renders, per custodian, so the two surfaces cannot disagree — and it shows one card per sender rather than one blended number with two schedules hiding behind it.
 
-**Reuse, do not rebuild:** [`lib/format.ts`](../../lib/format.ts) · [`camipay-rates-panel.tsx`](../../components/blocks/payment-policy/camipay-rates-panel.tsx) and [`lib/hq-camipay/store.tsx`](../../lib/hq-camipay/store.tsx) (take rate already in-product, PRO-737 — satisfies T3-5 and gives rate-at-capture for T3-6) · [`invoice-document.tsx`](../../components/blocks/invoice-document.tsx) (DSG-72 — Cami's own tax invoice for T3-2 renders through it) · [`lib/terminals/`](../../lib/terminals/) (DSG-62 — terminal rail context) · [`lib/reports/`](../../lib/reports/) (period filter and export idiom) · settings dialog conventions per [`sales-settings.tsx`](../../components/blocks/sales-settings.tsx).
+**Reuse, do not rebuild:** [`lib/format.ts`](../../lib/format.ts) · [`camipay-rates-panel.tsx`](../../components/blocks/payment-policy/camipay-rates-panel.tsx) and [`lib/hq-camipay/store.tsx`](../../lib/hq-camipay/store.tsx) (take rate already in-product, PRO-737 — satisfies T3-5 and gives rate-at-capture for T3-6) · [`invoice-document.tsx`](../../components/blocks/sales/invoice-document.tsx) (DSG-72 — Cami's own tax invoice for T3-2 renders through it) · [`lib/terminals/`](../../lib/terminals/) (DSG-62 — terminal rail context) · [`lib/reports/`](../../lib/reports/) (period filter and export idiom) · settings dialog conventions per [`sales-settings.tsx`](../../components/blocks/settings/sales-settings.tsx).
 
 ---
 
@@ -336,7 +336,7 @@ Fresha's shape works and is adopted wholesale: period headings newest first, two
 | Fee → cause | Not traceable from the screen | Every fee expands to the sale, with the working: `3% of AED 240.00 + AED 0.75` (T3-4) |
 | VAT on the fee | Absent | Stated, and reclaimable (INV-P9, T3-8) |
 
-**Two documents, one source.** The itemised fee activity and Cami's tax invoice are both derived from the same `FeePeriod`, so they cannot disagree about the total. The tax invoice renders through DSG-72's [`invoice-document.tsx`](../../components/blocks/invoice-document.tsx) rather than a second renderer — two documents both claiming to be tax invoices, with their own layouts and their own rounding, is §2.1 one level up.
+**Two documents, one source.** The itemised fee activity and Cami's tax invoice are both derived from the same `FeePeriod`, so they cannot disagree about the total. The tax invoice renders through DSG-72's [`invoice-document.tsx`](../../components/blocks/sales/invoice-document.tsx) rather than a second renderer — two documents both claiming to be tax invoices, with their own layouts and their own rounding, is §2.1 one level up.
 
 **The rate is snapshotted on the transaction** (`SET-C2`, QA `SET-X5`). A fee line renders `tx.rateSnapshot`, never the live rate card, so a renegotiation cannot restate a statement the merchant already filed. Pinned in `fees.test.ts`.
 

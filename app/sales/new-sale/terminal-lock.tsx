@@ -2,7 +2,7 @@
 
 import { CreditCardIcon } from "lucide-react"
 import { useState } from "react"
-import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
+import { DesignRepoBar } from "@/components/blocks/shell/design-repo-bar"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { formatMoney } from "@/lib/money/format"

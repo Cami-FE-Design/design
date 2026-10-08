@@ -28,7 +28,7 @@
 
 import { CirclePlusIcon, TrashIcon, TriangleAlertIcon } from "lucide-react"
 import { useState } from "react"
-import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
+import { FullScreenEditDialog } from "@/components/blocks/shared/full-screen-edit-dialog"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"

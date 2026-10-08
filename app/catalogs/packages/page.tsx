@@ -3,16 +3,16 @@
 import { CalendarClockIcon, ChevronDownIcon, PlusIcon, SlidersHorizontalIcon } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { AppShell } from "@/components/blocks/app-shell"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { PackageDetailDialog } from "@/components/blocks/package-detail-dialog"
+import { PackageDetailDialog } from "@/components/blocks/catalog/package-detail-dialog"
 import {
   DEFAULT_PACKAGE_FILTERS,
   type PackageFilters,
   PackageFiltersDialog,
-} from "@/components/blocks/package-filters-dialog"
-import { PageHeader } from "@/components/blocks/page-header"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+} from "@/components/blocks/catalog/package-filters-dialog"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,

@@ -8,9 +8,9 @@ import {
   type ComboDraft,
   ComboForm,
   type ComboSectionId,
-} from "@/components/blocks/combo-form"
-import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
-import { SectionNav } from "@/components/blocks/section-nav"
+} from "@/components/blocks/catalog/combo-form"
+import { FullScreenEditDialog } from "@/components/blocks/shared/full-screen-edit-dialog"
+import { SectionNav } from "@/components/blocks/shared/section-nav"
 import { useServiceCatalogMutations } from "@/lib/service-catalog/store"
 
 export default function NewComboPage() {

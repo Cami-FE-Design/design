@@ -38,20 +38,20 @@ import {
   ChevronRightIcon,
 } from "lucide-react"
 import { useState } from "react"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { AppShell } from "@/components/blocks/shell/app-shell"
+import { AddTimeOffDialog } from "@/components/blocks/shifts/add-time-off-dialog"
 import {
   AddTeamMemberDialog,
   type AddTeamMemberValues,
-} from "@/components/blocks/add-team-member-dialog"
-import { AppShell } from "@/components/blocks/app-shell"
-import { BranchRotaStrip } from "@/components/blocks/branch-rota-strip"
+} from "@/components/blocks/team/add-team-member-dialog"
+import { BranchRotaStrip } from "@/components/blocks/team/branch-rota-strip"
 import {
   addDays,
   DEMO_WEEK_START,
   ScheduledShifts,
   weekLabel,
-} from "@/components/blocks/scheduled-shifts"
-import { AddTimeOffDialog } from "@/components/blocks/shifts/add-time-off-dialog"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+} from "@/components/blocks/team/scheduled-shifts"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,

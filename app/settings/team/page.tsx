@@ -4,16 +4,16 @@ import { ChevronDownIcon, PlusIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useState } from "react"
 import { toast } from "sonner"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { AppShell } from "@/components/blocks/shell/app-shell"
+import { AddTimeOffDialog } from "@/components/blocks/shifts/add-time-off-dialog"
 import {
   AddTeamMemberDialog,
   type AddTeamMemberValues,
-} from "@/components/blocks/add-team-member-dialog"
-import { AppShell } from "@/components/blocks/app-shell"
-import { PageHeader } from "@/components/blocks/page-header"
-import { AddTimeOffDialog } from "@/components/blocks/shifts/add-time-off-dialog"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
-import { TeamAccessDialog } from "@/components/blocks/team-access-dialog"
-import { TeamMemberDetailDialog } from "@/components/blocks/team-member-detail-dialog"
+} from "@/components/blocks/team/add-team-member-dialog"
+import { TeamAccessDialog } from "@/components/blocks/team/team-access-dialog"
+import { TeamMemberDetailDialog } from "@/components/blocks/team/team-member-detail-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {

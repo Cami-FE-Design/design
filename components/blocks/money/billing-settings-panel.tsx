@@ -35,7 +35,7 @@ import {
   BillingDetailsPanel,
 } from "@/components/blocks/money/billing-details-panel"
 import { MoneyFeesPanel } from "@/components/blocks/money/money-fees-panel"
-import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { SettingsPanel } from "@/components/blocks/settings/settings-panel"
 
 const cardClass =
   "group flex flex-col gap-2.5 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors hover:bg-foreground/3"

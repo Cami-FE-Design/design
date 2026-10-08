@@ -24,18 +24,18 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { FullScreenTakeover } from "@/components/blocks/full-screen-edit-dialog"
-import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { CamiPayRatesPanel } from "@/components/blocks/payment-policy/camipay-rates-panel"
-import { PaymentMethodsPanel } from "@/components/blocks/sales-settings"
-import { SettingsCard, SettingsPanel } from "@/components/blocks/settings-panel"
+import { PaymentMethodsPanel } from "@/components/blocks/settings/sales-settings"
+import { SettingsCard, SettingsPanel } from "@/components/blocks/settings/settings-panel"
 import {
   type TerminalsDemoDialog,
   type TerminalsDemoState,
   TerminalsPanel,
-} from "@/components/blocks/terminals-panel"
+} from "@/components/blocks/settings/terminals-panel"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { FullScreenTakeover } from "@/components/blocks/shared/full-screen-edit-dialog"
+import { NotionBreadcrumb } from "@/components/blocks/shell/notion-breadcrumb"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"

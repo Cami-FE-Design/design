@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
-import { BackToTop } from "@/components/blocks/back-to-top"
 import { PlaygroundShowcase } from "@/components/blocks/playground-showcase"
-import { ThemeToggle } from "@/components/blocks/theme-toggle"
+import { BackToTop } from "@/components/blocks/shell/back-to-top"
+import { ThemeToggle } from "@/components/blocks/shell/theme-toggle"
 
 export const metadata: Metadata = {
   title: "Playground",

@@ -11,10 +11,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-
+import { AppleIcon, GoogleIcon } from "@/components/blocks/auth/social-icons"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
-import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
-import { AppleIcon, GoogleIcon } from "@/components/blocks/social-icons"
+import { PublicTopGradient } from "@/components/blocks/public/public-top-gradient"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {

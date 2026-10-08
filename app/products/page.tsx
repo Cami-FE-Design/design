@@ -16,15 +16,19 @@ import {
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useState } from "react"
-import { AppShell } from "@/components/blocks/app-shell"
-import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { PageHeader } from "@/components/blocks/page-header"
-import { ProductDetailDialog } from "@/components/blocks/product-detail-dialog"
-import { MOCK_PRODUCTS, type Product, ProductsTable } from "@/components/blocks/products-table"
-import { SelectBrandDialog } from "@/components/blocks/select-brand-dialog"
-import { SelectCategoryDialog } from "@/components/blocks/select-category-dialog"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { ProductDetailDialog } from "@/components/blocks/products/product-detail-dialog"
+import {
+  MOCK_PRODUCTS,
+  type Product,
+  ProductsTable,
+} from "@/components/blocks/products/products-table"
+import { SelectBrandDialog } from "@/components/blocks/products/select-brand-dialog"
+import { SelectCategoryDialog } from "@/components/blocks/products/select-category-dialog"
+import { ConfirmDialog } from "@/components/blocks/shared/confirm-dialog"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,

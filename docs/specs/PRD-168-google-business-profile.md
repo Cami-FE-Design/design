@@ -1,6 +1,6 @@
 # Google Business Profile link — one place to set it, one message that uses it
 
-> **Built.** Field: `components/blocks/google-review-link-field.tsx`, shared by
+> **Built.** Field: `components/blocks/settings/google-review-link-field.tsx`, shared by
 > Business Settings › Business details (`business-profile-form.tsx`) and
 > onboarding's About step (`app/setup/about/page.tsx`). Link model and
 > validation in `lib/business-links/links.ts`, provider in
@@ -161,7 +161,7 @@ ticket's last-but-one bullet implies:
 
 **1. Business details › External links — the source of truth.**
 A fifth row beside Facebook, X, Instagram, Website, in
-`components/blocks/business-profile-form.tsx`. It is a merchant-level public
+`components/blocks/settings/business-profile-form.tsx`. It is a merchant-level public
 link and this is the one card where a merchant already looks for "our links".
 The section exists in both repos with the same idiom, so it costs a row.
 

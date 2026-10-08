@@ -9,10 +9,10 @@ import {
   type ProductFormInitialValues,
   type ProductFormSectionId,
   type ProductSectionId,
-} from "@/components/blocks/product-form"
-import { ProductPhotosCard } from "@/components/blocks/product-photos-card"
-import { MOCK_PRODUCTS } from "@/components/blocks/products-table"
-import { SectionNav } from "@/components/blocks/section-nav"
+} from "@/components/blocks/products/product-form"
+import { ProductPhotosCard } from "@/components/blocks/products/product-photos-card"
+import { MOCK_PRODUCTS } from "@/components/blocks/products/products-table"
+import { SectionNav } from "@/components/blocks/shared/section-nav"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 

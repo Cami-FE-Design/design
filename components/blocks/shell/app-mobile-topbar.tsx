@@ -1,0 +1,171 @@
+"use client"
+
+import { BellIcon, ChevronDownIcon, CirclePlusIcon, MenuIcon, SearchIcon } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import type * as React from "react"
+import { useState } from "react"
+import { appSettingsHref } from "@/components/blocks/shell/app-settings-controller"
+import { DemoBusinessRename } from "@/components/blocks/shell/demo-business-rename"
+import { GlobalSearchDialog } from "@/components/blocks/shell/global-search-dialog"
+import { NotificationSheet } from "@/components/blocks/shell/notification-sheet"
+import { ProfileMenu } from "@/components/blocks/shell/profile-menu"
+import { QuickAddMenu } from "@/components/blocks/shell/quick-add-menu"
+import {
+  type Workspace,
+  WorkspaceSwitcher,
+  WorkspaceThumb,
+} from "@/components/blocks/shell/workspace-switcher"
+import { Button } from "@/components/ui/button"
+import { SheetTrigger } from "@/components/ui/sheet"
+import { useCurrentUser } from "@/lib/current-user"
+import { useDemoWorkspaces } from "@/lib/demo-business"
+import { cn } from "@/lib/utils"
+
+type AppMobileTopbarProps = React.ComponentProps<"div"> & {
+  firstName?: string
+  lastName?: string
+  email?: string
+  avatarSrc?: string
+  notificationCount?: number
+  workspaces?: Workspace[]
+  workspaceJoinedDate?: string
+}
+
+function initialOf(name?: string) {
+  if (!name) return ""
+  return name.trim().charAt(0).toUpperCase()
+}
+
+const iconButtonClass = "size-11 rounded-full text-sidebar-foreground"
+
+export function AppMobileTopbar({
+  className,
+  firstName: firstNameProp,
+  lastName: lastNameProp,
+  email: emailProp,
+  avatarSrc: avatarSrcProp,
+  notificationCount = 0,
+  workspaces,
+  workspaceJoinedDate = "Apr 14, 2025",
+  ...props
+}: AppMobileTopbarProps) {
+  const router = useRouter()
+  const pathname = usePathname() ?? "/"
+  // Same account as the desktop topbar, so the two bars never disagree.
+  const { user: currentUser } = useCurrentUser()
+  const avatarSrc = avatarSrcProp ?? currentUser.avatarSrc
+  const firstName = firstNameProp ?? currentUser.firstName
+  const lastName = lastNameProp ?? currentUser.lastName
+  const email = emailProp ?? currentUser.email
+  const {
+    workspaces: resolvedWorkspaces,
+    selectedId,
+    selected,
+    select,
+  } = useDemoWorkspaces(workspaces)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const accountLabel = `${firstName} ${lastName}`.trim() || "Account"
+  const initials = `${initialOf(firstName)}${initialOf(lastName)}`
+  const notificationsAriaLabel =
+    notificationCount > 0 ? `Notifications, ${notificationCount} unread` : "Notifications"
+
+  return (
+    <div
+      data-slot="app-mobile-topbar"
+      className={cn("flex h-[72px] w-full items-center justify-between px-3", className)}
+      {...props}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-0.5 pr-2">
+        <SheetTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Open menu"
+            className="size-11 rounded-xl text-sidebar-foreground"
+          >
+            <MenuIcon className="size-5" />
+          </Button>
+        </SheetTrigger>
+        <WorkspaceSwitcher
+          trigger={
+            <Button
+              variant="secondary"
+              className="h-10 min-w-0 flex-1 justify-between gap-2 rounded-xl bg-background pr-4 pl-3 text-sm font-medium text-foreground drop-shadow-[-22px_-44px_44px_rgba(221,221,221,0.87)] hover:bg-background/90"
+            >
+              <span className="flex min-w-0 flex-1 items-center gap-2 text-left">
+                <WorkspaceThumb
+                  src={selected?.imageSrc}
+                  size="sm"
+                  alt={selected?.name ?? "Workspace"}
+                />
+                <span className="min-w-0 flex-1 truncate">{selected?.name ?? "Workspace"}</span>
+              </span>
+              <ChevronDownIcon className="size-4 shrink-0" />
+            </Button>
+          }
+          currentWorkspace={{ ...selected, joinedDate: workspaceJoinedDate }}
+          workspaces={resolvedWorkspaces}
+          selectedWorkspaceId={selectedId}
+          user={{ firstName, lastName, avatarSrc }}
+          onSelectWorkspace={select}
+        />
+      </div>
+      <div className="flex items-center gap-0.5">
+        <DemoBusinessRename />
+        <QuickAddMenu
+          trigger={
+            <Button variant="ghost" size="icon" aria-label="Quick add" className={iconButtonClass}>
+              <CirclePlusIcon className="size-5" />
+            </Button>
+          }
+        />
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Search"
+          className={iconButtonClass}
+          onClick={() => setSearchOpen(true)}
+        >
+          <SearchIcon className="size-5" />
+        </Button>
+        <GlobalSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
+        <NotificationSheet
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={notificationsAriaLabel}
+              className={iconButtonClass}
+            >
+              <BellIcon className="size-5" />
+            </Button>
+          }
+        />
+        <ProfileMenu
+          trigger={
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={`${accountLabel} account`}
+              className="size-11 rounded-full"
+            >
+              <span className="flex size-8 items-center justify-center overflow-hidden rounded-full border-[1.21px] border-cami-violet-7 bg-cami-violet-8">
+                {avatarSrc ? (
+                  // biome-ignore lint/performance/noImgElement: avatar URL may be cross-origin and is small
+                  <img src={avatarSrc} alt={accountLabel} className="size-full object-cover" />
+                ) : (
+                  <span className="text-xs font-medium text-white">{initials}</span>
+                )}
+              </span>
+            </Button>
+          }
+          user={{ firstName, lastName, email, avatarSrc }}
+          onMyProfile={() => router.push(appSettingsHref(pathname, "profile"), { scroll: false })}
+          onAccountSettings={() =>
+            router.push(appSettingsHref(pathname, "business-details"), { scroll: false })
+          }
+        />
+      </div>
+    </div>
+  )
+}

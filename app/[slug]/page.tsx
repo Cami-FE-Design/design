@@ -1,10 +1,13 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { PublicAbout } from "@/components/blocks/public-about"
-import { PublicBranchLive, PublicChainPickerLive } from "@/components/blocks/public-branch-live"
-import { PublicCover } from "@/components/blocks/public-cover"
-import { PublicFooter } from "@/components/blocks/public-footer"
-import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
+import { PublicAbout } from "@/components/blocks/public/public-about"
+import {
+  PublicBranchLive,
+  PublicChainPickerLive,
+} from "@/components/blocks/public/public-branch-live"
+import { PublicCover } from "@/components/blocks/public/public-cover"
+import { PublicFooter } from "@/components/blocks/public/public-footer"
+import { PublicTopGradient } from "@/components/blocks/public/public-top-gradient"
 import { branchAsBusiness, listPublicPageSlugs, resolvePublicView } from "@/lib/public-business"
 
 type Params = Promise<{ slug: string }>

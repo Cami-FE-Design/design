@@ -23,7 +23,7 @@
 
 import { ArrowLeftIcon, CheckIcon, XIcon } from "lucide-react"
 import { useId, useState } from "react"
-import { InlineNotice } from "@/components/blocks/inline-notice"
+import { InlineNotice } from "@/components/blocks/shared/inline-notice"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"

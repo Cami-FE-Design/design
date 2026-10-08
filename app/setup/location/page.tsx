@@ -1,9 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { AddressSearchField, type PlaceSuggestion } from "@/components/blocks/address-search-field"
-import { CitySelect } from "@/components/blocks/city-select"
-import { SetupCard, SetupLayout, WireBox } from "@/components/blocks/setup-shell"
+import { SetupCard, SetupLayout, WireBox } from "@/components/blocks/auth/setup-shell"
+import {
+  AddressSearchField,
+  type PlaceSuggestion,
+} from "@/components/blocks/shared/address-search-field"
+import { CitySelect } from "@/components/blocks/shared/city-select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {

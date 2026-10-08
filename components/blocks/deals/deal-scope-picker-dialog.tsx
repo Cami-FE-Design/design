@@ -20,7 +20,7 @@
 import { SearchIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
-import { EmptyState } from "@/components/blocks/empty-state"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {

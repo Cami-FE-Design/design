@@ -1,9 +1,9 @@
 # Communication templates — merchant-editable email and WhatsApp copy
 
-> **Built.** Merchant panel: `components/blocks/comms-templates-panel.tsx`
+> **Built.** Merchant panel: `components/blocks/settings/comms-templates-panel.tsx`
 > (Business Settings › Communication templates). Model in `lib/comms/templates.ts`,
 > token vocabulary in `lib/comms/tokens.ts`, provider in `lib/comms/store.tsx`.
-> The Reminders card in `components/blocks/notifications-settings-panel.tsx` now
+> The Reminders card in `components/blocks/settings/notifications-settings-panel.tsx` now
 > links each event label into its editor.
 > Reviewable from `/screens` under "Pet Business, notifications and templates".
 > Open items are marked in place below.

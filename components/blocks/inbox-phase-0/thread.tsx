@@ -25,7 +25,7 @@ import {
   type InboxMedia,
   type InboxMessage,
 } from "@/app/messages/inbox/phase-0/mock"
-import { EmptyState } from "@/components/blocks/empty-state"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"

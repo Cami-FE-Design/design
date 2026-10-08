@@ -22,31 +22,31 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
 import { MOCK_BOOKINGS, MOCK_STAFF, type MockBooking } from "@/app/appointments/mock"
 import { MOCK_SALES, type Sale, SaleDetailDialog } from "@/app/sales/sales-list/page"
-import { AppointmentDetailSheet } from "@/components/blocks/appointment-detail-sheet"
+import { AppointmentDetailSheet } from "@/components/blocks/appointments/appointment-detail-sheet"
 import {
   type ClientDetailClient,
   ClientDetailDialog,
-} from "@/components/blocks/client-detail-dialog"
-import {
-  type DateRange,
-  DateRangePopover,
-  defaultRange,
-} from "@/components/blocks/date-range-popover"
-import { DateSelector } from "@/components/blocks/date-selector"
-import { EmptyState } from "@/components/blocks/empty-state"
+} from "@/components/blocks/clients/client-detail-dialog"
 import {
   PetDetailDialog,
   type PetDetailOwner,
   type PetDetailPet,
-} from "@/components/blocks/pet-detail-dialog"
-import { ProductDetailDialog } from "@/components/blocks/product-detail-dialog"
-import type { Product } from "@/components/blocks/products-table"
+} from "@/components/blocks/clients/pet-detail-dialog"
+import { ProductDetailDialog } from "@/components/blocks/products/product-detail-dialog"
+import type { Product } from "@/components/blocks/products/products-table"
 import { ReportFiltersSheet } from "@/components/blocks/reports/report-filters-sheet"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+import {
+  type DateRange,
+  DateRangePopover,
+  defaultRange,
+} from "@/components/blocks/shared/date-range-popover"
+import { DateSelector } from "@/components/blocks/shared/date-selector"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
 import {
   TeamMemberDetailDialog,
   type TeamMemberDetailMember,
-} from "@/components/blocks/team-member-detail-dialog"
+} from "@/components/blocks/team/team-member-detail-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {

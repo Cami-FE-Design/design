@@ -13,7 +13,7 @@ import {
   SunIcon,
 } from "lucide-react"
 import { useState } from "react"
-import { SetupCard, SetupLayout } from "@/components/blocks/setup-shell"
+import { SetupCard, SetupLayout } from "@/components/blocks/auth/setup-shell"
 import { cn } from "@/lib/utils"
 
 type BusinessType = {

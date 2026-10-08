@@ -9,9 +9,9 @@
 import { CheckIcon, ChevronDownIcon } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { type DateRange, DateRangePopover } from "@/components/blocks/date-range-popover"
 import { ReportFiltersSheet } from "@/components/blocks/reports/report-filters-sheet"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { type DateRange, DateRangePopover } from "@/components/blocks/shared/date-range-popover"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,

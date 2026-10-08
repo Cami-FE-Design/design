@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
-import { RolePermissionsEditor } from "@/components/blocks/role-permissions-editor"
+import { RolePermissionsEditor } from "@/components/blocks/admin/role-permissions-editor"
+import { FullScreenEditDialog } from "@/components/blocks/shared/full-screen-edit-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"

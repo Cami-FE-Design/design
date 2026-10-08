@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable"
 import { GripVerticalIcon, MoreHorizontalIcon } from "lucide-react"
-import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
+import { ComboBadge, comboServicesLabel } from "@/components/blocks/catalog/combo-badge"
 import {
   Button,
   DropdownMenu,

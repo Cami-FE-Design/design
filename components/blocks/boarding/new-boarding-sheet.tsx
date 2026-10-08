@@ -3,7 +3,7 @@
 import { ChevronsRightIcon, MoonIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
-import { DatePicker } from "@/components/blocks/date-picker"
+import { DatePicker } from "@/components/blocks/shared/date-picker"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"

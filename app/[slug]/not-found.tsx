@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
+import { PublicTopGradient } from "@/components/blocks/public/public-top-gradient"
 import { Button } from "@/components/ui/button"
 
 export default function PublicBusinessNotFound() {

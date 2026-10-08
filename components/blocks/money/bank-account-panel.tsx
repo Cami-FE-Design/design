@@ -32,9 +32,9 @@ import {
   type CamiPayoutCadence,
   PayoutScheduleDialog,
 } from "@/components/blocks/money/payout-schedule-dialog"
-import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
-import type { BreadcrumbRoot } from "@/components/blocks/sales-settings"
-import { SettingsCard, SettingsPanel } from "@/components/blocks/settings-panel"
+import type { BreadcrumbRoot } from "@/components/blocks/settings/sales-settings"
+import { SettingsCard, SettingsPanel } from "@/components/blocks/settings/settings-panel"
+import { NotionBreadcrumb } from "@/components/blocks/shell/notion-breadcrumb"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatDate, formatDateTime } from "@/lib/format"

@@ -11,7 +11,7 @@
 // aggregate by sum; ratio kinds (percent) can't be summed across time, so they
 // aggregate as a weighted average by that day's activity — the honest roll-up.
 
-import type { DateRange } from "@/components/blocks/date-range-popover"
+import type { DateRange } from "@/components/blocks/shared/date-range-popover"
 import {
   PERFORMANCE_SUMMARY_MEMBERS,
   PERFORMANCE_SUMMARY_SECTIONS,
