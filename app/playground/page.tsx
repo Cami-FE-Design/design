@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { PlaygroundShowcase } from "@/components/blocks/playground-showcase"
+import { DirectoryLayout } from "@/components/blocks/shared/directory-layout"
 import { BackToTop } from "@/components/blocks/shell/back-to-top"
 import { ThemeToggle } from "@/components/blocks/shell/theme-toggle"
 
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function PlaygroundPage() {
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-10">
+    <main className="mx-auto w-full max-w-[90rem] px-6 py-10">
       <header className="mb-10 flex items-start justify-between gap-6">
         <div>
           <h1 className="text-2xl font-medium text-foreground">Cami playground</h1>
@@ -21,7 +22,9 @@ export default function PlaygroundPage() {
         </div>
         <ThemeToggle />
       </header>
-      <PlaygroundShowcase />
+      <DirectoryLayout searchPlaceholder="Search components">
+        <PlaygroundShowcase />
+      </DirectoryLayout>
       <BackToTop />
     </main>
   )

@@ -336,150 +336,6 @@ function sectionSlug(title: string): string {
     .replace(/^-|-$/g, "")
 }
 
-/**
- * The lanes the sections are grouped into. Read by the index at the top of the
- * page and by <Lane> itself, so the two can't drift.
- *
- * 67 sections in one flat scroll had no legend: a primitive, a ticket demo and
- * an HQ surface sat next to each other, and the only way to reach one was to
- * know it was there. Titles stay the anchors — the lanes are what makes them
- * findable.
- */
-const LANES: Array<{ id: string; label: string; sections: string[] }> = [
-  {
-    id: "primitives",
-    label: "Primitives",
-    sections: [
-      "Button",
-      "Badge",
-      "Avatar",
-      "Input and Textarea",
-      "Checkbox, Radio, Switch",
-      "Search input",
-      "Segmented toggle",
-      "Select",
-      "Tabs",
-      "Card",
-      "Separator",
-      "Dialog",
-      "Sheet, Popover, Dropdown, Tooltip",
-    ],
-  },
-  {
-    id: "blocks",
-    label: "Building blocks",
-    sections: [
-      "Empty state",
-      "Recency badge",
-      "Avatar stack",
-      "Linked entity chip",
-      "Note callout",
-      "Page header",
-      "Inline notice",
-      "Pickable card grid",
-      "Timeline row",
-      "Section card",
-      "KPI card and grid",
-      "Settings card",
-      "Settings row",
-      "Sectioned sheet shell",
-      "Address search field",
-      "Add a signature dialog",
-      "PDF viewer",
-    ],
-  },
-  {
-    id: "detail-views",
-    label: "Detail views & takeovers",
-    sections: [
-      "Client detail dialog",
-      "Pet detail dialog",
-      "Team member detail dialog",
-      "Boarding & daycare booking drawers",
-      "My profile (settings panel)",
-      "Add / Edit takeovers",
-      "Global search takeover",
-    ],
-  },
-  {
-    id: "business",
-    label: "Business app features",
-    sections: [
-      "Inbox Phase 0 — list, composer, client pane",
-      "Multi-location — a deal, and where it runs",
-      "Multi-location — branch switcher",
-      "Multi-location — branch lifecycle",
-      "Multi-location — per-branch hours",
-      "Multi-location — per-branch availability",
-      "Multi-location — where a promotion runs",
-      "Multi-location — the duplicate caught before booking",
-      "Multi-location — who may change what about a branch",
-      "Multi-location — a category a branch has emptied",
-      "Multi-location — packages at the till",
-      "Multi-location — scheduled shifts",
-      "Multi-location — per-branch stock",
-      "Multi-location — nine branches (D5)",
-      "Multi-location — chain setup",
-      "Multi-location — branch access grants",
-      "Multi-location — a write names one branch",
-      "Multi-location — client visits at another branch",
-      "Multi-location — per-branch service pricing",
-      "Multi-location — public branch picker",
-      "Multi-location — branch WhatsApp numbers",
-      "Multi-location — no location access",
-      "Multi-location — somebody working at another location",
-      "Multi-location — loading and error",
-      "Multi-location — money by branch",
-      "Multi-location — cross-branch move",
-      "Multi-location — all-branches calendar",
-      "Multi-location — package mismatch at checkout",
-      "Appointments — booking block",
-      "Appointments — toolbar and people grid",
-      "Appointments — pickup & pet notes",
-      "Client notes (Staff Alert)",
-      "Pet notes — structured categories",
-      "Navigate to address",
-      "Service menu — cards & sidebar",
-      "Combos across surfaces",
-      "New sale — Gift cards in checkout",
-      "New sale — Payment link (self checkout)",
-      "New sale — POS Terminal (card present)",
-      "Payment policy — deposit & no-show config",
-      "Terminals (DSG-62)",
-      "Notifications settings",
-      "Communication templates",
-      "Google review link (PRD-168)",
-      "Money — account summary (DSG-77)",
-      "Money — activity and detail (DSG-78)",
-      "Money — bank account (DSG-75)",
-      "Money — invoices and fees (DSG-76)",
-      "Money — billing details (DSG-74)",
-      "CamiPay fee breakdown — Partner side",
-      "Invoice document — A4 downloadable",
-      "Invoice document — share & email actions",
-      "Product import — review states (DSG-80)",
-      "Clients and pets import — review states (DSG-84)",
-      "Performance dashboard — chart primitives",
-      "Reporting module (DSG-43 / PRO-703)",
-      "Customer card — per-venue theming",
-      "Client card — the two faces",
-      "Client card — message to card",
-    ],
-  },
-  {
-    id: "hq",
-    label: "Cami HQ",
-    sections: [
-      "Cami HQ — CamiPay settlement config",
-      "Cami HQ — terminal fleet, Partner card",
-      "Terminal status — one vocabulary, two surfaces",
-      "Partner code — CM-####",
-      "Notifications, Cami HQ control plane",
-      "Impersonation banner",
-    ],
-  },
-]
-
 function Lane({
   id,
   label,
@@ -492,7 +348,7 @@ function Lane({
   children: React.ReactNode
 }) {
   return (
-    <div id={`lane-${id}`} className="scroll-mt-6">
+    <div id={`lane-${id}`} data-nav-lane={id} data-nav-label={label} className="scroll-mt-6">
       <div className="flex flex-col gap-1 border-b-2 border-foreground/15 pt-10 pb-2">
         <h2 className="font-heading text-xl font-semibold text-foreground">{label}</h2>
         <p className="text-xs text-muted-foreground">{blurb}</p>
@@ -547,6 +403,9 @@ function Section({ title, description, lazy, children }: SectionProps) {
   return (
     <section
       id={slug}
+      data-nav-section
+      data-nav-title={title}
+      data-search={description ?? ""}
       className="scroll-mt-20 border-t border-border py-10 first:border-t-0 first:pt-0"
     >
       <div className="mb-6 flex flex-col gap-1">
@@ -575,7 +434,12 @@ function Row({
   const top = align === "start"
   return (
     <div
-      className={cn("grid grid-cols-[140px_1fr] gap-6 py-3", top ? "items-start" : "items-center")}
+      // minmax(0, 1fr): a demo wider than the column (the 11-staff people
+      // grid) scrolls inside its own frame instead of widening the page.
+      className={cn(
+        "grid grid-cols-[140px_minmax(0,1fr)] gap-6 py-3",
+        top ? "items-start" : "items-center",
+      )}
     >
       <span
         className={cn(
@@ -585,7 +449,9 @@ function Row({
       >
         {label}
       </span>
-      <div className={cn("flex flex-wrap gap-4", top ? "items-start" : "items-center gap-3")}>
+      <div
+        className={cn("flex min-w-0 flex-wrap gap-4", top ? "items-start" : "items-center gap-3")}
+      >
         {children}
       </div>
     </div>
@@ -1695,38 +1561,6 @@ export function PlaygroundShowcase() {
 
   return (
     <TooltipProvider delayDuration={100}>
-      {/* Index. Deep links were already possible — the anchors have been there
-          since the sections were added — but nothing listed them, so finding a
-          section meant scrolling 67 of them. */}
-      <nav aria-label="Sections" className="flex flex-col gap-5">
-        {LANES.map((lane) => (
-          <div key={lane.id} className="flex flex-col gap-1.5">
-            <div className="flex items-baseline gap-2">
-              <a
-                href={`#lane-${lane.id}`}
-                className="text-sm font-medium text-foreground hover:underline"
-              >
-                {lane.label}
-              </a>
-              <span className="text-xs tabular-nums text-muted-foreground">
-                {lane.sections.length}
-              </span>
-            </div>
-            <div className="flex flex-wrap gap-x-3 gap-y-1">
-              {lane.sections.map((title) => (
-                <a
-                  key={title}
-                  href={`#${sectionSlug(title)}`}
-                  className="text-xs text-muted-foreground hover:text-foreground hover:underline"
-                >
-                  {title}
-                </a>
-              ))}
-            </div>
-          </div>
-        ))}
-      </nav>
-
       <Lane
         id="primitives"
         label="Primitives"
@@ -3907,7 +3741,7 @@ export function PlaygroundShowcase() {
             </div>
           </Row>
           <Row label="People grid (clipped to 600px)">
-            <div className="h-150 w-full">
+            <div className="h-150 w-full min-w-0">
               <PeopleGrid
                 staff={MOCK_STAFF}
                 bookings={MOCK_BOOKINGS}

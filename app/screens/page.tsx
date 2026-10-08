@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import Link from "next/link"
 import { Fragment } from "react"
+import { DirectoryLayout } from "@/components/blocks/shared/directory-layout"
 import { BackToTop } from "@/components/blocks/shell/back-to-top"
 import { ThemeToggle } from "@/components/blocks/shell/theme-toggle"
 import { REPORTS } from "@/lib/reports/registry"
@@ -2059,6 +2060,11 @@ const TOTAL = SECTIONS.reduce((sum, section) => sum + section.screens.length, 0)
  * "…case=maaz-pets&at=revie / w". A query string has natural seams; wrap on
  * those instead.
  */
+/** What search matches a run of screens on: its epic, routes, labels and notes. */
+function searchText(epic: string | undefined, screens: Screen[]): string {
+  return [epic, ...screens.flatMap((s) => [s.path, s.label, s.note])].filter(Boolean).join(" ")
+}
+
 function RoutePath({ path }: { path: string }) {
   // Keyed by the path up to and including each segment, which is unique even
   // when a query repeats a fragment.
@@ -2080,7 +2086,7 @@ function RoutePath({ path }: { path: string }) {
 
 export default function ScreensPage() {
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-10">
+    <main className="mx-auto w-full max-w-6xl px-6 py-10">
       <header className="mb-10 flex items-start justify-between gap-6">
         <div>
           <h1 className="text-2xl font-medium text-foreground">Screens</h1>
@@ -2092,131 +2098,113 @@ export default function ScreensPage() {
         <ThemeToggle />
       </header>
 
-      {/* Index. 31 groups in one scroll meant the only way to find a surface
-          was to know it was there; every group is linkable on its own now. */}
-      <nav aria-label="Groups" className="mb-14 flex flex-col gap-5">
-        {LANES.map((lane) => {
-          const sections = SECTIONS.filter((section) => section.lane === lane.id)
-          if (sections.length === 0) return null
-          const count = sections.reduce((sum, section) => sum + section.screens.length, 0)
-          return (
-            <div key={lane.id} className="flex flex-col gap-1.5">
-              <div className="flex items-baseline gap-2">
-                <a
-                  href={`#lane-${lane.id}`}
-                  className="text-sm font-medium text-foreground hover:underline"
-                >
-                  {lane.label}
-                </a>
-                <span className="text-xs tabular-nums text-muted-foreground">{count}</span>
-              </div>
-              <div className="flex flex-wrap gap-x-3 gap-y-1">
+      <DirectoryLayout searchPlaceholder="Search screens">
+        <div className="flex flex-col gap-12">
+          {LANES.map((lane) => {
+            const sections = SECTIONS.filter((section) => section.lane === lane.id)
+            if (sections.length === 0) return null
+            return (
+              <div
+                key={lane.id}
+                id={`lane-${lane.id}`}
+                data-nav-lane={lane.id}
+                data-nav-label={lane.label}
+                className="scroll-mt-6 flex flex-col gap-12"
+              >
+                <div className="flex flex-col gap-1 border-b-2 border-foreground/15 pb-2">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">
+                    {lane.label}
+                  </h2>
+                  <p className="text-xs text-muted-foreground">{lane.blurb}</p>
+                </div>
+
                 {sections.map((section) => (
-                  <a
+                  <section
                     key={section.title}
-                    href={`#${sectionSlug(section.title)}`}
-                    className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+                    id={sectionSlug(section.title)}
+                    data-nav-section
+                    data-nav-title={section.title}
+                    className="scroll-mt-6"
                   >
-                    {section.title}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )
-        })}
-      </nav>
-
-      <div className="flex flex-col gap-12">
-        {LANES.map((lane) => {
-          const sections = SECTIONS.filter((section) => section.lane === lane.id)
-          if (sections.length === 0) return null
-          return (
-            <div key={lane.id} id={`lane-${lane.id}`} className="scroll-mt-6 flex flex-col gap-12">
-              <div className="flex flex-col gap-1 border-b-2 border-foreground/15 pb-2">
-                <h2 className="font-heading text-xl font-semibold text-foreground">{lane.label}</h2>
-                <p className="text-xs text-muted-foreground">{lane.blurb}</p>
-              </div>
-
-              {sections.map((section) => (
-                <section
-                  key={section.title}
-                  id={sectionSlug(section.title)}
-                  className="scroll-mt-6"
-                >
-                  {section.alias ? (
-                    <span id={section.alias} className="block scroll-mt-6" aria-hidden />
-                  ) : null}
-                  <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-foreground/10 pb-3">
-                    <div>
-                      <h3 className="font-heading text-base font-medium text-foreground">
-                        <a href={`#${sectionSlug(section.title)}`} className="hover:underline">
-                          {section.title}
-                        </a>
-                      </h3>
-                      {section.description ? (
-                        <p className="mt-1 text-xs text-muted-foreground">{section.description}</p>
-                      ) : null}
+                    {section.alias ? (
+                      <span id={section.alias} className="block scroll-mt-6" aria-hidden />
+                    ) : null}
+                    <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-foreground/10 pb-3">
+                      <div>
+                        <h3 className="font-heading text-base font-medium text-foreground">
+                          <a href={`#${sectionSlug(section.title)}`} className="hover:underline">
+                            {section.title}
+                          </a>
+                        </h3>
+                        {section.description ? (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {section.description}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span className="text-xs tabular-nums text-muted-foreground">
+                        {section.screens.length}
+                      </span>
                     </div>
-                    <span className="text-xs tabular-nums text-muted-foreground">
-                      {section.screens.length}
-                    </span>
-                  </div>
 
-                  {/* Grouped by route, not listed in write order: one route
+                    {/* Grouped by route, not listed in write order: one route
                       often has several things worth looking at, and printing
                       its path against every one of them read as duplication —
                       worse when the rows for one route were split apart by
                       another. Each route appears once, with its variants under
                       it. */}
-                  {groupByEpic(section.screens).map((run, runIndex) => (
-                    <div
-                      key={run.epic ?? `run-${runIndex}`}
-                      className={runIndex > 0 ? "mt-6" : undefined}
-                    >
-                      {run.epic ? (
-                        <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          {run.epic}
-                        </h4>
-                      ) : null}
-                      <ul className="flex flex-col gap-1">
-                        {groupByPath(run.screens).map((group) => (
-                          <li
-                            key={group.path}
-                            className="grid grid-cols-[minmax(0,16rem)_1fr] gap-6"
-                          >
-                            <RoutePath path={group.path} />
-                            <ul className="flex min-w-0 flex-col">
-                              {group.screens.map((screen) => (
-                                <li key={screen.label}>
-                                  <Link
-                                    href={screen.path}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="group -mx-2 block rounded-md px-2 py-2 transition-colors hover:bg-foreground/[0.04]"
-                                  >
-                                    <span className="text-sm text-foreground underline-offset-4 group-hover:underline">
-                                      {screen.label}
-                                    </span>
-                                    {screen.note ? (
-                                      <span className="ml-2 text-xs text-muted-foreground">
-                                        {screen.note}
+                    {groupByEpic(section.screens).map((run, runIndex) => (
+                      <div
+                        key={run.epic ?? `run-${runIndex}`}
+                        data-search={searchText(run.epic, run.screens)}
+                        className={runIndex > 0 ? "mt-6" : undefined}
+                      >
+                        {run.epic ? (
+                          <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            {run.epic}
+                          </h4>
+                        ) : null}
+                        <ul className="flex flex-col gap-1">
+                          {groupByPath(run.screens).map((group) => (
+                            <li
+                              key={group.path}
+                              data-search={searchText(undefined, group.screens)}
+                              className="grid grid-cols-[minmax(0,16rem)_1fr] gap-6"
+                            >
+                              <RoutePath path={group.path} />
+                              <ul className="flex min-w-0 flex-col">
+                                {group.screens.map((screen) => (
+                                  <li key={screen.label}>
+                                    <Link
+                                      href={screen.path}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="group -mx-2 block rounded-md px-2 py-2 transition-colors hover:bg-foreground/[0.04]"
+                                    >
+                                      <span className="text-sm text-foreground underline-offset-4 group-hover:underline">
+                                        {screen.label}
                                       </span>
-                                    ) : null}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </section>
-              ))}
-            </div>
-          )
-        })}
-      </div>
+                                      {screen.note ? (
+                                        <span className="ml-2 text-xs text-muted-foreground">
+                                          {screen.note}
+                                        </span>
+                                      ) : null}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </section>
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      </DirectoryLayout>
 
       <BackToTop />
     </main>
