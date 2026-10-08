@@ -269,6 +269,10 @@ function InboxPhase0() {
   const [directory, setDirectory] = useState<DirectoryClient[]>(seed.directory)
   const [paneMode, setPaneMode] = useState<PaneMode>("summary")
   const [paneOpen, setPaneOpen] = useState(true)
+  // Narrow windows show the list or the chat. A link to a chat opens the chat.
+  const [narrowView, setNarrowView] = useState<"list" | "chat">(() =>
+    params.get("c") ? "chat" : "list",
+  )
   const [addOpen, setAddOpen] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const outcome: SendOutcome =
@@ -303,6 +307,7 @@ function InboxPhase0() {
   }
 
   function select(id: string) {
+    setNarrowView("chat")
     setPaneMode("summary")
     setAddOpen(false)
     go({ c: id === DEFAULT_CHAT ? null : id })
@@ -495,10 +500,20 @@ function InboxPhase0() {
   // "Next send" opens with the bar already showing.
   const [showControls, setShowControls] = useState(params.get("controls") === "open")
   const frameWidth = width === "fit" ? undefined : Number(width) - SIDEBAR_COLLAPSED
+  const viewportTier = useLayoutTier()
+  // The 1280 and 1366 frames are desktop widths, whatever the window is.
+  const tier: LayoutTier = frameWidth ? "wide" : viewportTier
+  const overlayPane = tier !== "wide"
+  const oneAtATime = tier === "narrow"
+  // The pane sits beside the chat only when there is room; below that it
+  // starts closed and opens over the chat.
+  useEffect(() => {
+    setPaneOpen(!overlayPane)
+  }, [overlayPane])
   const threadAnchor = useThreadAnchor(access === "full" || access === "read-only", lang, width)
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col p-3">
+    <div className="relative flex min-h-0 flex-1 flex-col p-3 lg:pl-0">
       {/* The chip floats in the top bar, centered on the thread. A portal keeps
           it above the topbar, which would otherwise eat the clicks. */}
       {threadAnchor
@@ -637,9 +652,13 @@ function InboxPhase0() {
             dir={lang === "ar" ? "rtl" : "ltr"}
             lang={lang}
             style={frameWidth ? { width: frameWidth } : undefined}
-            className={cn("flex min-h-0 shrink-0 gap-3", !frameWidth && "w-full")}
+            className={cn("relative flex min-h-0 shrink-0 gap-3", !frameWidth && "w-full")}
           >
             <ConversationList
+              className={cn(
+                oneAtATime && "w-full max-w-none",
+                oneAtATime && narrowView === "chat" && "hidden",
+              )}
               status={listStatus}
               conversations={visible}
               selectedId={selected?.publicId ?? null}
@@ -665,10 +684,27 @@ function InboxPhase0() {
               paneOpen={paneOpen}
               onTogglePane={() => setPaneOpen((v) => !v)}
               onAdd={() => setAddOpen(true)}
+              onBack={oneAtATime ? () => setNarrowView("list") : undefined}
+              className={cn(
+                oneAtATime && "min-w-0",
+                oneAtATime && narrowView === "list" && "hidden",
+              )}
             />
+            {overlayPane && paneOpen ? (
+              // Tapping the chat behind the sheet closes it.
+              <button
+                type="button"
+                aria-label={copy.hideClientPane}
+                className="absolute inset-0 z-10 rounded-2xl bg-black/15"
+                onClick={() => setPaneOpen(false)}
+              />
+            ) : null}
             {/* Always mounted: hidden keeps its Match and Add dialogs reachable. */}
             <ClientPane
               hidden={!paneOpen}
+              className={cn(
+                overlayPane && "absolute inset-y-0 end-0 z-20 max-w-[calc(100%-1.5rem)] shadow-xl",
+              )}
               status={
                 listStatus === "loading" || threadStatus === "loading" ? "loading" : threadStatus
               }
@@ -693,6 +729,31 @@ function InboxPhase0() {
       )}
     </div>
   )
+}
+
+// ─── Layout tiers ────────────────────────────────────────────────────────────
+// 1280 and up: three panes. 1024 to 1279: list and chat, the client pane a
+// sheet over the chat. Below 1024 (tablet portrait): one pane at a time, the
+// chat full width with a back arrow, the client pane a sheet.
+type LayoutTier = "wide" | "medium" | "narrow"
+
+function useLayoutTier(): LayoutTier {
+  const [tier, setTier] = useState<LayoutTier>("wide")
+  useEffect(() => {
+    // Test environments have no matchMedia; they get the desktop layout.
+    if (typeof window.matchMedia !== "function") return
+    const wide = window.matchMedia("(min-width: 1280px)")
+    const medium = window.matchMedia("(min-width: 1024px)")
+    const read = () => setTier(wide.matches ? "wide" : medium.matches ? "medium" : "narrow")
+    read()
+    wide.addEventListener("change", read)
+    medium.addEventListener("change", read)
+    return () => {
+      wide.removeEventListener("change", read)
+      medium.removeEventListener("change", read)
+    }
+  }, [])
+  return tier
 }
 
 export function InboxPhase0Screen() {

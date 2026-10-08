@@ -95,33 +95,3 @@ export function previewOf(
   if (media) return { icon, text: mediaLabel(media.kind, copy) }
   return { text: "" }
 }
-
-/** IX-C4 row 3: a name the client gave in a message — "this is Fatima",
- *  "I'm Rana", "my name is Omar". Latest message first. Only ever a guess the
- *  form marks as one; nothing is guessed from a number. */
-export function guessName(messages: InboxMessage[]): string | null {
-  const pattern = /\b(?:this is|i'm|i am|my name is|it's|it is|name's)\s+([A-Z][a-z]{1,20})\b/i
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i]!
-    if (m.direction !== "inbound" || !m.body) continue
-    const found = m.body.match(pattern)?.[1]
-    if (found) return found.charAt(0).toUpperCase() + found.slice(1).toLowerCase()
-  }
-  return null
-}
-
-/** A WhatsApp profile name as a name guess: emoji and symbols dropped, the
- *  first word as the first name, the rest as the last. Nothing usable (an
- *  emoji, a dot) gives null, never a made-up name. */
-export function profileNameParts(
-  profileName: string | null,
-): { firstName: string; lastName: string } | null {
-  if (!profileName) return null
-  const clean = profileName
-    .replace(/[^\p{L}\p{M}\s'.-]/gu, "")
-    .replace(/\s+/g, " ")
-    .trim()
-  if (!/\p{L}/u.test(clean)) return null
-  const [first, ...rest] = clean.split(" ")
-  return { firstName: first!, lastName: rest.join(" ") }
-}
