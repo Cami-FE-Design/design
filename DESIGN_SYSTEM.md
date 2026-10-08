@@ -44,11 +44,11 @@ Numbering: **1 to 12 is Radix or Cami. 50 to 950 is Tailwind.**
 
 Full token tables in [DESIGN_TOKENS.md](./DESIGN_TOKENS.md).
 
-## Components (24 primitives)
+## Components (30 primitives)
 
 In `components/ui/`, installed via shadcn and editable:
 
-`badge`, `button`, `card`, `checkbox`, `dialog`, `dropdown-menu`, `form`, `hover-card`, `input`, `label`, `otp-input`, `password-input`, `popover`, `radio-group`, `search-input`, `select`, `separator`, `sheet`, `sonner` (toast), `switch`, `table`, `tabs`, `textarea`, `tooltip`.
+`accordion`, `avatar`, `badge`, `button`, `calendar`, `card`, `checkbox`, `dialog`, `dropdown-menu`, `form`, `hover-card`, `input`, `label`, `otp-input`, `password-input`, `popover`, `radio-group`, `recency-badge`, `search-input`, `segmented-toggle`, `select`, `separator`, `sheet`, `skeleton`, `sonner` (toast), `switch`, `table`, `tabs`, `textarea`, `tooltip`.
 
 Each is project-owned code, not a vendored npm dependency. Edit freely.
 
@@ -200,7 +200,7 @@ The Notion teamspace settings is the reference. `BusinessDetailDialog` in `compo
 
 ### Inline state-edit dropdown
 
-`StateDropdown` (in `components/blocks/`) is a ghost-button trigger that opens a list of mutually exclusive states. Trigger reads the current state's label in a state-tinted color, with a chevron. Items have a colored dot on the left and a checkmark on the current value.
+`StateDropdown` (in `components/blocks/shared/`) is a ghost-button trigger that opens a list of mutually exclusive states. Trigger reads the current state's label in a state-tinted color, with a chevron. Items have a colored dot on the left and a checkmark on the current value.
 
 Use for any controlled state field that ops needs to edit at a glance (table rows, the AccessSection top row inside a detail dialog). Map the colors via `STATE_OPTIONS`, `STATE_DOT`, `STATE_TRIGGER_TEXT` exports from the data layer so the trigger and dot stay in sync.
 
@@ -210,6 +210,7 @@ Three treatments for in-page messaging, picked by severity:
 
 - **Filled tomato strip**: the destructive-state banner (`ReasonBanner` in the modal). `bg-tomato-9` with white text, white-circle icon containing a tomato-colored InfoIcon, action button on a second line. Reserved for "this entity is in a problem state right now" surfaces.
 - **Tinted tomato card** (`bg-tomato-3 p-4 rounded-2xl`): the inline confirmation warning shown inside destructive dialogs (Archive). Use when the body of a Dialog needs to flag irreversibility before the user commits. Icon is wrapped in a `bg-sand-3` neutral chip — the destructive context comes from the surrounding tomato card, not from the icon itself.
+- **Inline notice**: `<InlineNotice tone="warning|info|muted" size="md|sm">` from `components/blocks/shared/inline-notice.tsx`. A tinted box with an icon and one message, for panels, dialogs and card footnotes. No left accent border. Build in place only when the box needs a title or buttons.
 - **Neutral sand chip**: the icon at the top of a confirmation dialog (`bg-sand-3 text-sand-11` circle). Use for "stop and read" callouts that aren't destructive — e.g. impersonation, password reset, slug change. Keeps the dialog feeling clinical instead of alarming.
 
 ### Destructive Button
@@ -228,34 +229,76 @@ The `.link` utility class in `app/globals.css` produces an underline that draws 
 
 ### Auth pages
 
-All `/sign-in/*` routes render through `AuthLayout` + `AuthCard` from `components/blocks/`.
+All `/sign-in/*` routes render through `AuthLayout` + `AuthCard` from `components/blocks/auth/`.
 
 - **Layout**: `<AuthLayout splitPane={true|false}>`. Split-pane shows the form pane on the left (max-w 640px) and `AuthMarketingPanel` on the right. `splitPane={false}` hides the marketing panel and widens the form pane to the combined width (max-w 1292px) — used for verify, where the experience should feel focused.
 - **Card**: `<AuthCard title description? icon? backHref? backLabel?>`. When `backHref` is set, an xl ghost icon button with `ArrowLeftIcon` and a tooltip is absolutely positioned at the top-left of the pane. The pane is `relative` already so the corner buttons (back-left, cancel-right) anchor to it.
 - **Sign-in flow**: email (`/sign-in`) → password (`/sign-in/password`) → optional 2FA verify (`/sign-in/verify`). Sibling routes for password reset (`/sign-in/forgot-password`, `/sign-in/reset-password`), first-login (`/sign-in/welcome`), and invite acceptance (`/sign-in/accept-invite`) share the same layout and card.
 - **OTP verify** (`/sign-in/verify`): auto-submits the moment the code is the configured length. Inputs lock + dim during verifying, shake + clear + return-focus on error, swap to a check on success. Uses `splitPane={false}`.
 
+## Before you build something new
+
+Most things a new screen needs already exist once. Use these rather than writing a local copy; a second copy is how the same status ended up spelled "Canceled" in one place and "Cancelled" in another.
+
+| Need | Use | Where |
+| ---- | --- | ----- |
+| Show money in fils, two decimals | `formatMoney(minor)` | `lib/money/format.ts` |
+| Show money in fils, whole AED | `formatMoneyWhole(minor)` | `lib/money/format.ts` |
+| Show whole AED (reports, prices) | `formatAed(value)` | `lib/format.ts` |
+| Dates, times, durations | `formatDate`, `formatTime`, `formatDateTime`, `formatDuration` | `lib/format.ts` |
+| A booking status label or tint | `BOOKING_STATUS_LABEL`, `BOOKING_STATUS_TONE`, `bookingStatusBadge`, `BOOKING_STATUS_OPTIONS` | `lib/appointments/status.ts` |
+| A sale status label or tint | `SALE_STATUS_LABEL`, `SALE_STATUS_CLASS` | `lib/sales/status.ts` |
+| A listing page's title row | `PageHeader` | `components/blocks/shared/page-header.tsx` |
+| A tinted note or warning | `InlineNotice` | `components/blocks/shared/inline-notice.tsx` |
+| A card in a settings panel | `SettingsCard`, inside `SettingsPanel` | `components/blocks/settings/settings-panel.tsx` |
+| A full-screen add/edit flow | `FullScreenEditDialog` (Close/Save) or `FullScreenTakeover` (own actions) | `components/blocks/shared/full-screen-edit-dialog.tsx` |
+| An empty list or no results | `EmptyState` | `components/blocks/shared/empty-state.tsx` |
+| Confirm a destructive action | `ConfirmDialog` | `components/blocks/shared/confirm-dialog.tsx` |
+| Search, filters and actions above a table | `TableToolbar` | `components/blocks/shared/table-toolbar.tsx` |
+| A date range with presets | `DateRangePopover` | `components/blocks/shared/date-range-popover.tsx` |
+
+Not sure whether something exists: search `/playground` for it first, then `components/blocks/shared/`.
+
 ## Folder layout
 
 ```
-app/                 Next.js App Router entries
-                       (auth)/sign-in/{,password,verify,forgot-password,reset-password,welcome,accept-invite}
-                       admin/businesses/new
-                       settings/team
+app/                     Next.js App Router entries. Every route is listed on /screens.
 components/
-  ui/                shadcn primitives (24 files)
-  blocks/            composed product patterns
-                       app-shell, app-sidebar, app-topbar
-                       app-mobile-topbar, app-mobile-drawer
-                       auth-layout, auth-card, auth-marketing-panel, social-icons
-                       workspace-switcher, profile-menu, quick-add-menu
-                       notification-sheet, table-toolbar
-                       theme-toggle, playground-showcase
-  theme-provider.tsx ThemeProvider wrapper for next-themes
-hooks/               empty, add shared hooks here
-lib/                 utils.ts (cn helper), app-menu.ts (sidebar nav data)
-styles/              empty, add CSS splits here if needed
+  ui/                    shadcn primitives (30 files), project-owned
+  blocks/                composed product patterns, one folder per domain
+    shared/              used across domains: empty-state, confirm-dialog,
+                           inline-notice, page-header, full-screen-edit-dialog,
+                           table-toolbar, date pickers, pdf-viewer, directory-layout
+    shell/               app frame: app-shell, sidebar, topbars, mobile drawer,
+                           global search, notifications, location switcher,
+                           app settings dialog
+    auth/                sign-in, setup and HQ auth layouts
+    appointments/        calendar, booking sheets, new appointment
+    boarding/ daycare/   boarding and daycare drawers
+    clients/             client and pet detail and edit, notes, tags, documents
+    messaging/           messages inbox, send message
+    inbox-phase-0/       the ENG3-33 inbox prototype
+    sales/               refund, void, invoice, gift card share, CamiPay fee
+    checkout/ deals/     pet-parent pay page; deals
+    catalog/             services, combos, packages
+    service-menu/        the service menu and its sheets
+    products/            products, stock, brands, categories, suppliers
+    imports/             bulk import flows
+    settings/            settings panels: sales, locations, notifications,
+                           templates, terminals, my profile, business details
+    money/ payment-policy/  money surfaces and payment settings
+    team/ shifts/        team members, access, shifts and rota
+    customer-card/ sign/ the customer card; consent form signing
+    public/ booking/     the public business page and booking flow
+    reports/             reporting module
+    admin/               Cami HQ
+    playground/          /playground, one file per lane
+  theme-provider.tsx     ThemeProvider wrapper for next-themes
+lib/                     data, mocks and helpers, grouped by the same domains
+docs/specs/              feature specs, cited from code comments and /screens
 ```
+
+A new block goes in the folder of the domain it serves. If two domains use it, it goes in `shared/`. Tests sit next to the file they cover.
 
 ## Scripts
 
@@ -268,7 +311,9 @@ styles/              empty, add CSS splits here if needed
 | Know how to run the project | [README.md](./README.md) |
 | Understand why each piece of the stack is here | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | Find the exact hex for a semantic slot | [DESIGN_TOKENS.md](./DESIGN_TOKENS.md) |
-| See a component in every state | `pnpm dev`, then `/playground` |
+| See a component in every state | `pnpm dev`, then `/playground` (search with `/`) |
+| Find a routed screen | `/screens` |
+| Check whether something already exists | [Before you build something new](#before-you-build-something-new) |
 | Open a PR | [CONTRIBUTING.md](./CONTRIBUTING.md) |
 | Edit a component's visuals | `components/ui/<name>.tsx` |
 | Change a token value | `app/globals.css`, then update DESIGN_TOKENS.md |
@@ -284,9 +329,3 @@ Deliberate omissions. Add only when a concrete need arises.
 - Additional Radix color scales beyond the six currently imported.
 - Dark variants for the Cami custom palettes.
 - A typography component or heading scale wrappers.
-
-## Current status
-
-- 2 commits on `main`, local only.
-- 0 open issues, 0 PRs (no remote yet).
-- Dark mode scaffolded but not reviewed by design. Uses Radix Sand dark throughout.

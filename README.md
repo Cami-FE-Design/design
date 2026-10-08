@@ -11,7 +11,7 @@ pnpm install
 pnpm dev
 ```
 
-Open http://localhost:3000 for the app and http://localhost:3000/playground for the component showcase.
+Open http://localhost:3000/screens for a map of every routed page, and http://localhost:3000/playground for every component in its states. Both have a sidebar and a search box (press `/`).
 
 ## Live preview
 
@@ -41,9 +41,10 @@ Deployed on [Vercel](https://vercel.com/michellehyou-8474s-projects/design) from
 app/                # Next.js App Router entries
 components/
   ui/               # shadcn primitives (project-owned, edit freely)
-  blocks/           # Composed components built from ui primitives
+  blocks/           # Composed components, one folder per domain
+                    # (shared/, shell/, appointments/, clients/, settings/, admin/ …)
 hooks/              # Shared React hooks
-lib/                # Framework-agnostic helpers
+lib/                # Data, mocks and helpers, grouped by domain
 styles/             # Additional CSS if you need to split globals.css
 ```
 

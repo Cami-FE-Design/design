@@ -51,13 +51,14 @@ Cami is a Next.js App Router application with a design system layer built on sha
 - **Server Components by default.** Add `"use client"` only when you need state, effects, or browser APIs. The playground and theme toggle are client components because they use hooks.
 - **Import alias.** `@/` maps to the repo root. Use it for all intra-repo imports.
 - **`components/ui/` is vendor-like but project-owned.** It is copied from shadcn and expected to be edited. Do not try to upgrade these files with `pnpm update` or the shadcn CLI's overwrite flag without reviewing the diff.
-- **`components/blocks/` is composed.** Block components consume `ui/` primitives and encode product patterns. Do not import `radix-ui` primitives directly from blocks, go through `ui/`.
+- **`components/blocks/` is composed, and grouped by domain.** Block components consume `ui/` primitives and encode product patterns. Do not import `radix-ui` primitives directly from blocks, go through `ui/`. Each domain has a folder (`appointments/`, `clients/`, `settings/`, `admin/` …); a block used by more than one domain lives in `shared/`. The full map is in [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md#folder-layout).
+- **One copy of each formatter and status map.** Money, dates, booking status and sale status each have a single home in `lib/`. See [Before you build something new](./DESIGN_SYSTEM.md#before-you-build-something-new).
 
 ## What is not here yet
 
 These are intentional omissions as of the first commit. Revisit when the need is concrete.
 
-- **Storybook.** The playground route covers the component review need for now. Add Storybook once the component set is stable and visual regression testing becomes valuable.
+- **Storybook.** The `/playground` route (every component state) and `/screens` (every routed page) cover the review need for now. Add Storybook once the component set is stable and visual regression testing becomes valuable.
 - **E2E tests.** Vitest handles unit logic. Playwright or similar can come when there are real user flows to cover.
 - **Internationalization.** No `next-intl` or equivalent. Cami is English-only for now.
 - **Analytics and error tracking.** No Sentry, PostHog, or equivalent wired in. These should be added at the integration point, not speculatively.
