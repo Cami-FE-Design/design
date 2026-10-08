@@ -11,7 +11,6 @@ import {
   CURRENT_STAFF,
   DEMO_NOW,
   type DirectoryClient,
-  INBOX_TEMPLATES,
   type InboxConversation,
   type InboxCustomer,
   type InboxMedia,
@@ -38,7 +37,6 @@ import {
   type PaneMode,
   type PhoneChoice,
   type VisitsMode,
-  type Waiting,
 } from "./client-pane"
 import { ConversationList } from "./conversation-list"
 import { COPY, type Lang } from "./copy"
@@ -176,8 +174,6 @@ const SEND_LATENCY_MS = 1200
 const LATE_FAILURE_MS = 6000
 const CLIENT_LINE_EN = "One more question — is there parking nearby?"
 const CLIENT_LINE_AR = "سؤال أخير — هل يوجد موقف سيارات؟"
-/** What the client answers when Cami has asked their name (IX-C4 row 4). */
-const NAME_REPLY = "It's Rana, thanks!"
 
 const newId = () => `msg-new-${Math.random().toString(36).slice(2, 10)}`
 
@@ -272,7 +268,8 @@ function InboxPhase0() {
   const [conversations, setConversations] = useState<InboxConversation[]>(seed.chats)
   const [directory, setDirectory] = useState<DirectoryClient[]>(seed.directory)
   const [paneMode, setPaneMode] = useState<PaneMode>("summary")
-  const [waiting, setWaiting] = useState<Record<string, Waiting>>({})
+  const [paneOpen, setPaneOpen] = useState(true)
+  const [addOpen, setAddOpen] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const outcome: SendOutcome =
     SEND_OUTCOMES.find((o) => o.value === params.get("send"))?.value ?? "ok"
@@ -307,6 +304,7 @@ function InboxPhase0() {
 
   function select(id: string) {
     setPaneMode("summary")
+    setAddOpen(false)
     go({ c: id === DEFAULT_CHAT ? null : id })
   }
 
@@ -404,11 +402,7 @@ function InboxPhase0() {
       origin: "live",
       sentFromPhoneApp: false,
       sentByStaffName: null,
-      body: waiting[selected.publicId]
-        ? NAME_REPLY
-        : lang === "ar"
-          ? CLIENT_LINE_AR
-          : CLIENT_LINE_EN,
+      body: lang === "ar" ? CLIENT_LINE_AR : CLIENT_LINE_EN,
       templateCode: null,
       deliveryState: "sent",
       retryCount: 0,
@@ -422,9 +416,6 @@ function InboxPhase0() {
       lastInboundAt: at,
       windowClosesAt: windowFrom(at),
     }))
-    // Waiting for a name: the reply is what the form was waiting for.
-    const w = waiting[selected.publicId]
-    if (w) setWaiting((all) => ({ ...all, [selected.publicId]: { ...w, repliedAt: at } }))
   }
 
   // ─── Identity (IX-C3, IX-C4) — every change kept, with who and when ─────────
@@ -464,7 +455,6 @@ function InboxPhase0() {
         d.map((x) => (x.publicId === client.publicId ? { ...x, phoneE164: phone } : x)),
       )
     }
-    stopWaiting()
   }
 
   function createClient(nc: NewClient) {
@@ -498,37 +488,8 @@ function InboxPhase0() {
         },
       ],
     }))
-    stopWaiting()
   }
 
-  /** IX-C4 row 4 / P10. Window open: the question goes as a message. Closed:
-   *  nothing is sent, and the form waits. */
-  function askName() {
-    if (!selected) return
-    const at = new Date(clock()).toISOString()
-    if (windowOpen) sendMessage(COPY.en.askNameText, null)
-    setWaiting((w) => ({ ...w, [selected.publicId]: { askedAt: at, sent: windowOpen } }))
-  }
-
-  /** The closed-window question as a template — IX-A4's half of P10. */
-  function sendAskTemplate() {
-    if (!selected) return
-    const t = INBOX_TEMPLATES.find((x) => x.code === "ask_name")!
-    sendMessage(t.body, t.code)
-    const at = new Date(clock()).toISOString()
-    setWaiting((w) => ({ ...w, [selected.publicId]: { askedAt: at, sent: true } }))
-  }
-
-  function stopWaiting() {
-    if (!selected) return
-    const id = selected.publicId
-    setWaiting((w) => {
-      const { [id]: _gone, ...rest } = w
-      return rest
-    })
-  }
-
-  const windowOpen = !!selected?.windowClosesAt && now < Date.parse(selected.windowClosesAt)
   const access: Access = scenario.access ?? "full"
   // ?controls=open — a walkthrough link that needs "Client writes now" or
   // "Next send" opens with the bar already showing.
@@ -578,7 +539,7 @@ function InboxPhase0() {
                   <div
                     dir={lang === "ar" ? "rtl" : "ltr"}
                     lang={lang}
-                    className="pointer-events-auto absolute top-full left-1/2 z-50 mt-2 w-[min(1080px,calc(100vw-1.5rem))] -translate-x-1/2"
+                    className="pointer-events-auto absolute top-full left-1/2 z-50 mt-2 w-[min(1080px,calc(100vw-1.5rem))] -translate-x-1/2 rounded-xl bg-card shadow-lg"
                   >
                     <DesignRepoBar
                       label="switch the state, what the next send does, language and frame width"
@@ -701,8 +662,13 @@ function InboxPhase0() {
               noChats={listStatus === "empty"}
               copy={copy}
               lang={lang}
+              paneOpen={paneOpen}
+              onTogglePane={() => setPaneOpen((v) => !v)}
+              onAdd={() => setAddOpen(true)}
             />
+            {/* Always mounted: hidden keeps its Match and Add dialogs reachable. */}
             <ClientPane
+              hidden={!paneOpen}
               status={
                 listStatus === "loading" || threadStatus === "loading" ? "loading" : threadStatus
               }
@@ -710,8 +676,6 @@ function InboxPhase0() {
               directory={directory}
               mode={access === "full" ? paneMode : "summary"}
               onModeChange={setPaneMode}
-              waiting={selected ? (waiting[selected.publicId] ?? null) : null}
-              windowOpen={windowOpen}
               hasPets={hasPets}
               visitsMode={scenario.visits ?? "normal"}
               canEdit={access === "full"}
@@ -720,9 +684,9 @@ function InboxPhase0() {
               lang={lang}
               onMatch={matchChat}
               onCreate={createClient}
-              onAskName={askName}
-              onSendAskTemplate={sendAskTemplate}
-              onStopWaiting={stopWaiting}
+              addOpen={addOpen}
+              onAddOpenChange={setAddOpen}
+              onClose={() => setPaneOpen(false)}
             />
           </div>
         </div>

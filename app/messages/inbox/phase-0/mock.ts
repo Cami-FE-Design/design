@@ -89,6 +89,10 @@ export type IdentityEvent = {
 export type InboxConversation = {
   publicId: string
   phoneE164: string
+  /** The name the client set in WhatsApp, sent with every inbound message
+   *  (`contacts[0].profile.name`, FND-1 sample). Self-set: a nickname, an emoji,
+   *  a business. Only ever a guess to confirm, never saved on its own. */
+  profileName: string | null
   /** Nullable, and load-bearing — null is the unmatched state. */
   customer: InboxCustomer | null
   lastMessageAt: string
@@ -300,12 +304,13 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "layla",
       phoneE164: "+971501234501",
+      profileName: "Layla H",
       customer: {
         publicId: "cus-layla",
         firstName: "Layla",
         lastName: "Haddad",
         pets: [{ name: "Coco", species: "dog", breed: "Toy poodle" }],
-        lastService: { name: "Full groom", at: at(34 * DAY) },
+        lastService: { name: "Full groom, medium breed, hand scissoring", at: at(34 * DAY) },
         nextBooking: null,
       },
       messages: [
@@ -330,6 +335,7 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "unmatched-saturday",
       phoneE164: "+971554471209",
+      profileName: "🌸",
       customer: null,
       messages: [
         inbound({
@@ -343,12 +349,13 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "omar",
       phoneE164: "+971507788120",
+      profileName: "Omar Khalil",
       customer: {
         publicId: "cus-omar",
         firstName: "Omar",
         lastName: "Khalil",
         pets: [{ name: "Leo", species: "cat", breed: "British shorthair" }],
-        lastService: { name: "Bath & tidy", at: at(27 * DAY) },
+        lastService: { name: "Bath, blow-dry and sanitary tidy", at: at(27 * DAY) },
         nextBooking: { service: "Bath & tidy", at: ahead(6 * DAY - 22 * HOUR) },
       },
       messages: longHistory(),
@@ -356,6 +363,7 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "unmatched-fatima",
       phoneE164: "+971528830044",
+      profileName: "Fatima Noor",
       customer: null,
       messages: [
         inbound({
@@ -384,12 +392,13 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "sara",
       phoneE164: "+971509913377",
+      profileName: "Sara N.",
       customer: {
         publicId: "cus-sara",
         firstName: "Sara",
         lastName: "Nasser",
         pets: [{ name: "Milo", species: "dog", breed: "Cavapoo" }],
-        lastService: { name: "Puppy intro groom", at: at(12 * DAY) },
+        lastService: { name: "Puppy introduction groom, under 6 months", at: at(12 * DAY) },
         nextBooking: { service: "Puppy intro groom", at: ahead(19 * HOUR + 30 * MINUTE) },
       },
       messages: [
@@ -411,12 +420,13 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "noura",
       phoneE164: "+971561200987",
+      profileName: "Noura 💅",
       customer: {
         publicId: "cus-noura",
         firstName: "Noura",
         lastName: "Saeed",
         pets: [],
-        lastService: { name: "Nail trim", at: at(60 * DAY) },
+        lastService: { name: "Nail trim and paw pad tidy", at: at(60 * DAY) },
         nextBooking: { service: "Nail trim", at: ahead(3 * HOUR + 30 * MINUTE) },
       },
       messages: [
@@ -434,12 +444,13 @@ export function buildConversations(): InboxConversation[] {
       // to see IX-A2's "window closes while I am typing".
       id: "maryam",
       phoneE164: "+971502228814",
+      profileName: "Maryam",
       customer: {
         publicId: "cus-maryam",
         firstName: "Maryam",
         lastName: "Aziz",
         pets: [{ name: "Simba", species: "cat", breed: "Maine coon" }],
-        lastService: { name: "De-shed treatment", at: at(45 * DAY) },
+        lastService: { name: "De-shedding treatment with conditioning mask", at: at(45 * DAY) },
         nextBooking: null,
       },
       messages: [
@@ -457,22 +468,25 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "unmatched-closed",
       phoneE164: "+971585550132",
+      profileName: "Khalid",
       customer: null,
       messages: [
         inbound({ ago: 2 * DAY + 3 * HOUR, body: "Hi, what are your prices for a full groom?" }),
       ],
     }),
     conversation({
-      // Unmatched, window closed, and on no client record: the only chat where
-      // Add can ask for a name with the window shut (IX-C4 row 4, P10).
+      // Unmatched, window closed, and on no client record: only a no-blank
+      // template can go out until the client writes again.
       id: "unmatched-quiet",
       phoneE164: "+971567890011",
+      profileName: "Sam",
       customer: null,
       messages: [inbound({ ago: 30 * HOUR, body: "Hi, are you open on Fridays?" })],
     }),
     conversation({
       id: "huda",
       phoneE164: "+971503344556",
+      profileName: "Huda R",
       customer: {
         publicId: "cus-huda",
         firstName: "Huda",
@@ -481,7 +495,7 @@ export function buildConversations(): InboxConversation[] {
           { name: "Bella", species: "dog", breed: "Shih tzu" },
           { name: "Max", species: "dog", breed: "Maltese" },
         ],
-        lastService: { name: "Full groom", at: at(20 * DAY) },
+        lastService: { name: "Full groom, medium breed, hand scissoring", at: at(20 * DAY) },
         nextBooking: { service: "Full groom", at: ahead(4 * DAY) },
       },
       // Mum and daughter on one number: one chat. The person is chosen at booking (IX-F1, S1).
@@ -598,7 +612,7 @@ export function buildDirectory(conversations: InboxConversation[]): DirectoryCli
       phoneE164: "+971501119900",
       email: "f.hashimi@example.com",
       pets: [{ name: "Oreo", species: "cat", breed: "Ragdoll" }],
-      lastService: { name: "Bath & tidy", at: at(90 * DAY) },
+      lastService: { name: "Bath, blow-dry and sanitary tidy", at: at(90 * DAY) },
     }),
     // Archived: matchable, shown as archived (IX-C3 edge case, INV-02).
     client({
@@ -609,7 +623,7 @@ export function buildDirectory(conversations: InboxConversation[]): DirectoryCli
       email: null,
       archived: true,
       pets: [{ name: "Rocky", species: "dog", breed: "Beagle" }],
-      lastService: { name: "Full groom", at: at(400 * DAY) },
+      lastService: { name: "Full groom, medium breed, hand scissoring", at: at(400 * DAY) },
     }),
     // A client from another location: business-wide, match allowed.
     client({
@@ -620,7 +634,7 @@ export function buildDirectory(conversations: InboxConversation[]): DirectoryCli
       email: "rana@example.com",
       homeLocation: "Shampooch JLT",
       pets: [{ name: "Nala", species: "cat", breed: "Siamese" }],
-      lastService: { name: "Nail trim", at: at(15 * DAY) },
+      lastService: { name: "Nail trim and paw pad tidy", at: at(15 * DAY) },
     }),
     // The same number on two records — why that chat stayed unmatched (P6).
     // "Show both, I pick." Merge is LATER.
@@ -631,7 +645,7 @@ export function buildDirectory(conversations: InboxConversation[]): DirectoryCli
       phoneE164: "+971585550132",
       email: "khalid.omar@example.com",
       pets: [{ name: "Buddy", species: "dog", breed: "Labrador" }],
-      lastService: { name: "Full groom", at: at(40 * DAY) },
+      lastService: { name: "Full groom, medium breed, hand scissoring", at: at(40 * DAY) },
     }),
     client({
       publicId: "cus-khalid-2",
@@ -639,7 +653,7 @@ export function buildDirectory(conversations: InboxConversation[]): DirectoryCli
       lastName: "O.",
       phoneE164: "+971585550132",
       email: null,
-      lastService: { name: "Bath & tidy", at: at(300 * DAY) },
+      lastService: { name: "Bath, blow-dry and sanitary tidy", at: at(300 * DAY) },
     }),
   ]
 }

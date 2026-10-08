@@ -32,7 +32,7 @@ describe("Inbox Phase 0 — identity (IX-C3, IX-C4)", () => {
   it("matches a number that is on two records: shows both, I pick, and the match is recorded", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-closed")
-    await user.click(screen.getByRole("button", { name: /Match to client/ }))
+    await user.click(screen.getAllByRole("button", { name: /Match to client/ })[0]!)
     expect(screen.getByText("This number is on 2 client records. Pick the right one.")).toBeTruthy()
     const khalid = screen.getByRole("button", { name: /Khalid Omar/ })
     const khalidAvatar = khalid.querySelector("[data-slot=avatar]")
@@ -53,7 +53,8 @@ describe("Inbox Phase 0 — identity (IX-C3, IX-C4)", () => {
     const user = userEvent.setup()
     const { unmount } = openAt("")
     expect(screen.getByText("Linked to Layla Haddad automatically by Cami")).toBeTruthy()
-    await user.click(screen.getByRole("button", { name: /Change the match/ }))
+    await user.click(screen.getByRole("button", { name: "Chat actions" }))
+    await user.click(await screen.findByRole("menuitem", { name: /Change linked client/ }))
     await user.type(screen.getByPlaceholderText("Name, phone, email or pet"), "Rana")
     await user.click(screen.getByRole("button", { name: /Rana Haddad/ }))
     // A different number on the record: Keep is the default (Michelle's open call).
@@ -66,45 +67,43 @@ describe("Inbox Phase 0 — identity (IX-C3, IX-C4)", () => {
     unmount()
   })
 
-  it("opens Profile with the known phone and does not guess a name", async () => {
+  it("IX-C4 rows 1-3: a short dialog, the chat's phone, the WhatsApp profile name marked as a guess", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-fatima")
-    await user.click(screen.getByRole("button", { name: /Add new client/ }))
+    await user.click(screen.getAllByRole("button", { name: /Add new client/ })[0]!)
     const dialog = screen.getByRole("dialog")
-    expect(within(dialog).getByRole("heading", { name: "Profile" })).toBeTruthy()
+    expect(within(dialog).getByRole("heading", { name: "Add a new client" })).toBeTruthy()
+    expect((within(dialog).getByLabelText(/First name/) as HTMLInputElement).value).toBe("Fatima")
+    expect((within(dialog).getByLabelText(/Last name/) as HTMLInputElement).value).toBe("Noor")
+    expect(within(dialog).getByText("Guessed from WhatsApp")).toBeTruthy()
+    expect(within(dialog).getByText(/52 883 0044/)).toBeTruthy()
+    expect(
+      within(dialog).getByRole("button", { name: "Save client" }).hasAttribute("disabled"),
+    ).toBe(false)
+    unmount()
+  })
+
+  it("IX-C4 row 4: an emoji profile name and no name in the thread leave it blank, Save off", async () => {
+    const user = userEvent.setup()
+    const { unmount } = openAt("?c=unmatched-saturday")
+    await user.click(screen.getAllByRole("button", { name: /Add new client/ })[0]!)
+    const dialog = screen.getByRole("dialog")
     expect((within(dialog).getByLabelText(/First name/) as HTMLInputElement).value).toBe("")
-    expect((dialog.querySelector('input[type="tel"]') as HTMLInputElement).value).toBe(
-      "52 883 0044",
-    )
     expect(within(dialog).queryByText(/Guessed from their message/)).toBeNull()
     expect(
-      within(dialog)
-        .getAllByRole("button", { name: "Add client" })
-        .every((b) => b.hasAttribute("disabled")),
+      within(dialog).getByRole("button", { name: "Save client" }).hasAttribute("disabled"),
     ).toBe(true)
     unmount()
   })
 
-  it("leaves the first name empty when the thread has no name", async () => {
-    const user = userEvent.setup()
-    const { unmount } = openAt("?c=unmatched-saturday")
-    await user.click(screen.getByRole("button", { name: /Add new client/ }))
-    const dialog = screen.getByRole("dialog")
-    expect((within(dialog).getByLabelText(/First name/) as HTMLInputElement).value).toBe("")
-    expect(within(dialog).queryByText(/Guessed from their message/)).toBeNull()
-    expect((dialog.querySelector('input[type="tel"]') as HTMLInputElement).value).toBe(
-      "55 447 1209",
-    )
-    unmount()
-  })
-
-  it("opens Profile even when the number is already on a client", async () => {
+  it("IX-C4 row 5: a number already on a client offers Match instead, never a second client", async () => {
     const user = userEvent.setup()
     const { unmount } = openAt("?c=unmatched-closed")
-    await user.click(screen.getByRole("button", { name: /Add new client/ }))
+    await user.click(screen.getAllByRole("button", { name: /Add new client/ })[0]!)
     const dialog = screen.getByRole("dialog")
-    expect(within(dialog).getByRole("heading", { name: "Profile" })).toBeTruthy()
-    expect(within(dialog).queryByText(/This number is on/)).toBeNull()
+    expect(within(dialog).getByText("This number is on 2 clients")).toBeTruthy()
+    expect(within(dialog).queryByLabelText(/First name/)).toBeNull()
+    expect(within(dialog).getByRole("button", { name: /Match to client/ })).toBeTruthy()
     unmount()
   })
 })
@@ -131,7 +130,7 @@ describe("Inbox Phase 0 — media (IX-A6)", () => {
 })
 
 describe("Inbox Phase 0 — templates and failed send", () => {
-  it("uses the Clients character avatar on list and pane, and none in the thread header", () => {
+  it("uses the Clients character avatar on list, pane and thread header", () => {
     const { unmount } = openAt("")
     const layla = screen.getByRole("button", { name: /Layla Haddad/ })
     const listAvatar = layla.querySelector("[data-slot=avatar]")
@@ -148,7 +147,10 @@ describe("Inbox Phase 0 — templates and failed send", () => {
       (el) => el.getAttribute("data-fallback") === "character" && !layla.contains(el),
     )
     expect(pane).toBeTruthy()
-    expect(document.querySelector("header [data-slot=avatar]")).toBeNull()
+    const threadHeader = document.querySelector("[data-inbox-thread] header")
+    expect(threadHeader?.querySelector("[data-slot=avatar]")?.getAttribute("data-fallback")).toBe(
+      "character",
+    )
     unmount()
   })
 
@@ -161,7 +163,8 @@ describe("Inbox Phase 0 — templates and failed send", () => {
     expect(within(list).queryByRole("textbox")).toBeNull()
     expect(screen.getAllByRole("heading", { name: "Inbox" })).toHaveLength(1)
     expect(screen.getByRole("button", { name: /Omar Khalil/ })).toBeTruthy()
-    await user.click(screen.getByRole("button", { name: /Change the match/ }))
+    await user.click(screen.getByRole("button", { name: "Chat actions" }))
+    await user.click(await screen.findByRole("menuitem", { name: /Change linked client/ }))
     expect(screen.getByPlaceholderText("Name, phone, email or pet")).toBeTruthy()
     expect(within(list).queryByPlaceholderText("Search chats")).toBeNull()
     unmount()

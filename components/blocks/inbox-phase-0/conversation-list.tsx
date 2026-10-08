@@ -155,11 +155,11 @@ export function ConversationList({
       className="flex w-72 max-w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
     >
       <div className="flex items-center border-b border-border px-4 py-3">
-        <h1 className="flex min-h-8 min-w-0 flex-1 items-center truncate text-base font-semibold text-foreground">
+        <h1 className="flex min-h-9 min-w-0 flex-1 items-center truncate text-base font-semibold text-foreground">
           {copy.inbox}
         </h1>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-sand-3">
+      <div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto bg-sand-3">
         {status === "loading" ? (
           <ListSkeleton />
         ) : status === "error" ? (

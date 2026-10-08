@@ -27,9 +27,11 @@ URL. The seeded chats each carry one situation (§2). Nothing is stored between 
 | T1-D7 | **Match and Add live in the right pane**; Add is a short dialog over the chat, with a link to the existing full client form. The unmatched pane itself is unchanged | `IX-C3`, `IX-C4` row 1 and the full-intake edge case |
 | T1-D8 | **Unread is out of Phase 0.** No story asks for it (Mike, 2026-09-28). The list does not show a count, a dot, a badge, or a bold name or preview. Read and unread rows look the same. `unreadCount` is not in the contract | Michelle, 2026-09-30, pointing at Mike's comment |
 | T1-D9 | **An unmatched list avatar is a dashed circle with a person icon.** Not phone-digit initials, and not a search icon beside the number. The word "Unmatched" stays on that avatar for the screen reader. The unmatched right pane keeps its own search icon | Michelle, 2026-09-30 |
-| T1-D10 | **Thread header is the name, and the phone when the chat is matched.** No "WhatsApp" subline and no avatar. Named list and pane avatars use the same pet-parent character avatar as Clients (`Avatar` with `fallback="character"`). Unmatched list avatars are the dashed person (T1-D9) | Michelle, 2026-09-30 |
-| T1-D11 | **Name and phone appear once, in the thread header.** The matched client pane does not repeat them. It keeps the pet-parent avatar, pets, last service, visits and notes | Michelle, 2026-09-30 |
+| T1-D10 | **Thread header is the avatar and the name, or the dashed avatar and the number when unmatched.** No phone when matched (it is on the card, T1-D11), no "WhatsApp" subline. A panel button on the right hides and shows the client pane. Named list and pane avatars use the same pet-parent character avatar as Clients (`Avatar` with `fallback="character"`). Unmatched list avatars are the dashed person (T1-D9) | Michelle, 2026-09-30; phone moved to the card 2026-10-07 |
+| T1-D11 | **The card carries the client's name and phone**, under the avatar in a `bg-muted/40` band like the client profile header. The thread header keeps the name only. Supersedes "name and phone appear once, in the thread header" (2026-09-30): the card is a standalone client view and will appear where there is no thread header | Michelle, 2026-10-07 |
 | T1-D12 | **A failed message keeps the red "Not sent · reason" line and Retry.** The bubble has no red border and no red icon | Michelle, 2026-09-30 |
+| T1-D14 | **Visits on the card: every upcoming visit, then the last three completed.** Upcoming visits never take one of the three slots, so `IX-C6` row 2 holds. Grouped by visit day, each service on its own line: staff initials avatar (name in a tooltip and the accessible label), service, AED. Section title "Appointments". Day labels show the relative day and the date in one color ("Tomorrow · 25 Sept", "5 weeks ago · 21 Aug"). FND-4's "completed only" needs amending for upcoming | Michelle, 2026-10-07 |
+| T1-D15 | **No computed usual staff or rhythm on the card.** The staff avatar on each line shows who, and the relative dates show the real rhythm, irregular gaps included. `IX-C6` rows 3 and 4 stay deferred to `CC-1` (rows are verbatim, so they are not reworded) | Michelle, 2026-10-07 |
 | T1-D13 | **The list header is "Inbox" and a search icon in a pale circle.** The field is hidden until that icon is clicked. Clicking the icon again, or clearing the field, hides it and the list is unfiltered. The page does not title itself Inbox a second time above the panes | Michelle, 2026-09-30 |
 
 ## 2. States covered
@@ -159,13 +161,13 @@ Template names and wording are placeholders until FND-5b records the approved on
 
 | Row | Frame |
 | --- | --- |
-| 1 Name, pet, last service, no spinner | `/` — name and phone on the thread header, pet and last service on the pane, painted with the messages. Usual stylist **deferred — `CC-1`** |
-| 2 Last three visits: what, who, when, how much | `/` — AED |
-| 3 Usual staff per service type | **Deferred — `CC-1`** |
-| 4 Visit rhythm | **Deferred — `CC-1`** |
+| 1 Name, pet, last service, no spinner | `/`: name and phone in the card band, pets, and the last service as the first visit row, painted with the messages. Usual stylist **deferred, `CC-1`** |
+| 2 Last three visits: what, who, when, how much | `/`: upcoming visits first, then the last three completed (T1-D14). Who is the staff avatar, name on hover |
+| 3 Usual staff per service type | **Deferred, `CC-1`** (T1-D15) |
+| 4 Visit rhythm | **Deferred, `CC-1`**. Relative dates on each visit stand in (T1-D15) |
 | 5 Brand new client: clean empty panel | Add a client (`?c=unmatched-fatima` → Save) |
 | 6 Stylist sees no prices | No screen — data rule; no stylist login until S2 |
-| 7 Notes, team only | `/` — "Team only · never sent to the client" |
+| 7 Notes, team only | `/`: "Client notes", body and author · day, time. Team only is a data rule (staff only, never sent); no label on screen |
 | Edge: history slow | `?state=visits-slow` |
 | Edge: client at another location | Match "Rana" — badge on the summary; visit location waits on V0.3 |
 | Edge: unmatched | `?c=unmatched-saturday` — no summary, Match and Add only (P9) |
@@ -281,15 +283,21 @@ Match, Add (they change the record). Read without reply: `?state=read-only`.
 Display only; data through the customer module's hooks; the inbox passes the thread
 read's client fields as initial data.
 
-1. **Identity** — the same pet-parent avatar as Clients, on the pane. Full name and phone (LTR) are on the thread header, once, and are not repeated here (T1-D11). Badges: Archived; "Client at {location}" when their home location is another one. *(Painted with the messages.)*
-2. **Pets** — name, species icon, breed. Hidden when the business has no pets. *(Painted with the messages.)*
-3. **Last service** — service name and day. *(Painted with the messages.)*
-4. **Last visits** — three rows: service; staff · day; amount in AED. Skeleton rows while loading; an inline "Couldn't load visits · Retry" on failure, the rest of the summary stays.
-5. **Notes** — body, author · day, labelled "Team only · never sent to the client".
-6. **Empty** — a new client with no visits, notes or last service shows one calm "New client" panel instead of empty sections.
+Built as `components/blocks/client-summary.tsx`, a new component, not the client dialog
+(P13). It owns its strings and imports nothing from the inbox; its sample reads are
+`lib/client-summary/mock.ts`.
 
-Not in Phase 0: usual stylist per service type and visit rhythm (`CC-1`), the Photos tab
-(`CC-1`), rebook (`IX-F6`). The pane leaves room for them; nothing placeholders them.
+1. **Identity band** (`bg-muted/40`, as the client profile header): pet-parent avatar, full name, phone (LTR) (T1-D11). Badges: Archived; "Client at {location}" when their home location is another one. *(Painted with the messages.)*
+2. **Pets**: chips with species icon, name, breed. Every pet. Hidden when the business has no pets or the client has none. *(Painted with the messages.)*
+3. **Appointments**: every upcoming visit, then the last three completed, grouped by day (T1-D14). Each line: staff initials avatar (name on hover), service, AED. The last service paints with the messages as the first group; the rest load as skeletons. On failure, "Couldn't load visits · Try again" inside the card; the rest of the card stays.
+4. **Client notes**: one card, each note's body, then author · day, time ("Aisha · 21 Aug, 2:30pm").
+5. **Empty**: a new client with no visits, notes or last service shows one calm "New client" panel instead of empty sections.
+
+Section titles sit outside their cards. The card is display only: no Edit, Add note, Rebook
+or tabs.
+
+Not in Phase 0: usual stylist per service type and visit rhythm (`CC-1`, T1-D15), the Photos
+tab (`CC-1`), rebook (`IX-F6`).
 "Wrong client? Change the match" sits under the summary but belongs to the inbox, not
 to `ClientSummary`.
 
