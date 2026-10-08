@@ -47,7 +47,8 @@ const COPY = {
       other: "Other",
     } satisfies Record<PetNoteCategoryId, string>,
     viewProfile: "View profile",
-    appointments: "Appointments",
+    upcoming: "Upcoming",
+    appointments: "Last visits",
     notes: "Client notes",
     noAppointments: "No appointments yet",
     visitsError: "Couldn't load visits",
@@ -74,7 +75,8 @@ const COPY = {
       other: "أخرى",
     } satisfies Record<PetNoteCategoryId, string>,
     viewProfile: "عرض الملف",
-    appointments: "المواعيد",
+    upcoming: "القادمة",
+    appointments: "آخر الزيارات",
     notes: "ملاحظات العميل",
     noAppointments: "لا توجد مواعيد بعد",
     visitsError: "تعذّر تحميل الزيارات",
@@ -324,7 +326,7 @@ export function ClientSummary({
     ) : null
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-muted/40">
+    <div className="flex min-h-full shrink-0 grow flex-col bg-muted/40">
       {/* Painted from initial data: who they are. */}
       <div className="flex items-center gap-3 px-4 py-4">
         <Avatar size="lg" fallback="character" name={initial.name} hashSeed={initial.customerId} />
@@ -367,56 +369,70 @@ export function ClientSummary({
 
       <div className="flex flex-col divide-y divide-border/60 border-t border-border/60">
         {pets}
-        <Section title={copy.appointments}>
-          <Card busy={state.status === "loading"}>
-            {ready && ready.upcoming.length + ready.visits.length === 0 ? (
-              <EmptyState icon={CalendarIcon} title={copy.noAppointments} className="py-8" />
-            ) : ready ? (
-              // Every upcoming visit, then the last three completed (IX-C6 row 2).
-              [...ready.upcoming, ...ready.visits].map((v) => (
+        {/* Booked and not yet happened, soonest first. Left out when none. */}
+        {ready && ready.upcoming.length > 0 ? (
+          <Section title={copy.upcoming}>
+            <Card>
+              {ready.upcoming.map((v) => (
                 <VisitGroup key={v.id} visit={v} now={now} copy={copy} shortDate={shortDate} />
-              ))
-            ) : (
-              <>
-                {/* The last service paints with the chat; the rest fills in. */}
-                {initial.lastService ? (
-                  <div className="flex flex-col gap-2 py-3">
-                    <DayLabel
-                      iso={initial.lastService.at}
-                      now={now}
-                      copy={copy}
-                      shortDate={shortDate}
-                    />
-                    <span className="flex items-center gap-2 text-sm text-foreground">
-                      {state.status === "loading" ? (
-                        <Skeleton className="size-5 rounded-full" />
-                      ) : null}
-                      {initial.lastService.name}
-                    </span>
-                  </div>
-                ) : null}
-                {state.status === "loading" ? (
-                  <div className="flex flex-col gap-2 py-3">
-                    <Skeleton className="h-3 w-20" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between gap-3 py-3">
-                    <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
-                      {copy.visitsError}
-                    </span>
-                    <Button variant="ghost" size="xs" radius="full" onClick={retry}>
-                      <RotateCwIcon aria-hidden />
-                      {copy.retry}
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
-          </Card>
-        </Section>
+              ))}
+            </Card>
+          </Section>
+        ) : null}
+
+        {/* The last three completed (IX-C6 row 2). A first booking with no past
+            visit shows Upcoming alone; no appointments at all is the empty state. */}
+        {ready && ready.visits.length === 0 && ready.upcoming.length > 0 ? null : (
+          <Section title={copy.appointments}>
+            <Card busy={state.status === "loading"}>
+              {ready && ready.visits.length === 0 ? (
+                <EmptyState icon={CalendarIcon} title={copy.noAppointments} className="py-8" />
+              ) : ready ? (
+                ready.visits.map((v) => (
+                  <VisitGroup key={v.id} visit={v} now={now} copy={copy} shortDate={shortDate} />
+                ))
+              ) : (
+                <>
+                  {/* The last service paints with the chat; the rest fills in. */}
+                  {initial.lastService ? (
+                    <div className="flex flex-col gap-2 py-3">
+                      <DayLabel
+                        iso={initial.lastService.at}
+                        now={now}
+                        copy={copy}
+                        shortDate={shortDate}
+                      />
+                      <span className="flex items-center gap-2 text-sm text-foreground">
+                        {state.status === "loading" ? (
+                          <Skeleton className="size-5 rounded-full" />
+                        ) : null}
+                        {initial.lastService.name}
+                      </span>
+                    </div>
+                  ) : null}
+                  {state.status === "loading" ? (
+                    <div className="flex flex-col gap-2 py-3">
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-3 py-3">
+                      <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <AlertTriangleIcon className="size-4 shrink-0" aria-hidden />
+                        {copy.visitsError}
+                      </span>
+                      <Button variant="ghost" size="xs" radius="full" onClick={retry}>
+                        <RotateCwIcon aria-hidden />
+                        {copy.retry}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </Card>
+          </Section>
+        )}
 
         {ready && ready.notes.length > 0 ? (
           <Section title={copy.notes}>

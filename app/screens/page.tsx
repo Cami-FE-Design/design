@@ -827,12 +827,12 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Inbox CRM, Phase 0 — T1 prototype (ENG3-33)",
     description:
-      "The Phase 0 WhatsApp inbox, scoped to the story rows in cami-docs-v1 inbox-crm-phase-0 (IX-A1/A2/A4/A5/A6, IX-C3/C4/C6) and nothing beyond them. Three panes, all visible at 1280 and 1366. The dashed 'Design repo' chip floats over the top right and does not take a row. It opens the switches: page state, what the next send does, English/Arabic (RTL), pets on/off and a 1280/1366 width frame. Every switch is in the URL, so each frame is a link.",
+      "The Phase 0 WhatsApp inbox, scoped to the story rows in cami-docs-v1 inbox-crm-phase-0 (IX-A1/A2/A4/A5/A6, IX-C3/C4/C6) and nothing beyond them. Three panes at 1280 and up. From 1024 to 1279 the client pane opens as a sheet over the chat; below 1024 (tablet portrait) one pane shows at a time. The dashed 'Design repo' chip floats over the top right and does not take a row. It opens the switches: page state, what the next send does, English/Arabic (RTL), pets on/off and a 1280/1366 width frame. Every switch is in the URL, so each frame is a link.",
     screens: [
       {
         path: "/messages/inbox/phase-0",
         label: "Live inbox · matched chat",
-        note: "Layla's chat: day grouping, each Cami-sent message signed with the staff name. Name and phone sit once, in the thread header. The client pane is ClientSummary: Pets first (Coco, with a Behavior pet note under her), then Appointments (upcoming, then the last three, each day with its relative and actual date, staff avatars with names on hover), then Client notes. View profile opens the full client dialog. The panel icon in the chat header hides and shows the pane. Unread is out of Phase 0, so rows are not bold and carry no count. Type + Ctrl/⌘+Enter sends: Sending → Sent. The shortcut is on the Send button's tooltip.",
+        note: "Layla's chat: day grouping, each Cami-sent message signed with the staff name. Name and phone sit once, in the thread header. The client pane is ClientSummary: Pets first (Coco, with a Behavior pet note under her), then Upcoming, then Last visits (the last three; each day with its relative and actual date, staff avatars with names on hover), then Client notes. View profile opens the full client dialog. The panel icon in the chat header hides and shows the pane (tooltip: Show client, Hide client). Unread is out of Phase 0, so rows are not bold and carry no count. Type + Ctrl/⌘+Enter sends: Sending → Sent. The shortcut is on the Send button's tooltip.",
       },
       {
         path: "/messages/inbox/phase-0?c=omar",
@@ -842,7 +842,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?c=unmatched-saturday",
         label: "Unmatched number",
-        note: "The number stands in for the name, with the WhatsApp profile name in brackets after it. The list avatar is a dashed circle with a person icon. Free text can be sent before linking. Link client in the chat header, or Match and Add in the client pane, open their flows as dialogs.",
+        note: "The number stands in for the name. The list avatar is a dashed circle with a person icon. Free text can be sent before linking. Link client in the chat header, or Match and Add in the client pane, open their flows as dialogs.",
       },
       {
         path: "/messages/inbox/phase-0?c=maryam",
@@ -867,17 +867,17 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?c=unmatched-closed",
         label: "Match · same number on two records",
-        note: "Match to client: with the search empty, both records on this number show — pick one. The confirm step says what happens to the number (saved, already there, or different: Keep or Replace). After Match the thread gains 'Matched to … by Queenie' and every earlier message stays. 'Change linked client' in the ⋯ menu of any matched chat re-matches and keeps both lines.",
+        note: "Match to client: with the search empty, both records on this number show. Pick one: the number is already on their record, so picking them is the match, with no confirm step. A client with a different number gets a confirm step: On record and This chat, and 'Update their number to the one from this chat', unchecked by default. After Match the thread gains 'Matched to … by Queenie' and every earlier message stays. 'Change linked client' in the ⋯ menu of any matched chat re-matches and keeps both lines.",
       },
       {
         path: "/messages/inbox/phase-0?c=unmatched-fatima",
-        label: "Add client · name guessed",
-        note: "Add new client opens a short dialog: phone filled and read only, first name the only required field, and 'Fatima' filled from her WhatsApp profile name. The sparkle in the field says it is a guess (hover: 'Guessed from WhatsApp'). Save binds the chat and the pane shows 'No appointments yet'. The welcome pack PDF in the thread is a file sent from the chat.",
+        label: "Add client",
+        note: "Add new client opens a short dialog: phone filled and read only, first name the only required field. Nothing is prefilled: reception types the name. Save binds the chat and the pane shows 'No appointments yet'. The welcome pack PDF in the thread is a file sent from the chat.",
       },
       {
         path: "/messages/inbox/phase-0?c=unmatched-saturday",
-        label: "Add client · no name known",
-        note: "The WhatsApp profile name is an emoji and the message has no name, so first name stays empty and Save stays off until reception types one. Reception can ask in the chat with free text. Cami never makes a name up. The photo at the top is an unmatched chat receiving media.",
+        label: "Unmatched · free text",
+        note: "Reception can reply before linking, and ask for a name in the chat if they need one. Save in Add stays off until a first name is typed. Cami never makes a name up. The photo at the top is an unmatched chat receiving media.",
       },
       {
         path: "/messages/inbox/phase-0?c=omar",
@@ -887,7 +887,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?state=visits-error",
         label: "Client pane · partial and slow",
-        note: "Name and phone are on the thread header. Pets and last service paint with the messages. Pet notes, the appointments (what, who, when, AED) and team-only client notes are a second read. This link fails that read: the name stays, the visits say so with a retry. ?state=visits-slow shows the skeleton rows.",
+        note: "Name and phone are on the thread header. Pets and last service paint with the messages. Pet notes, Upcoming and Last visits (what, who, when, AED) and team-only client notes are a second read. This link fails that read: the name stays, the visits say so with a retry. ?state=visits-slow shows the skeleton rows.",
       },
       {
         path: "/messages/inbox/phase-0?state=read-only",
@@ -898,6 +898,11 @@ const SECTIONS: Section[] = [
         path: "/messages/inbox/phase-0?lang=ar&width=1280",
         label: "Arabic, RTL, at 1280",
         note: "The whole inbox mirrored with real Arabic copy; phone numbers stay left-to-right. The dashed outline is the 1280 frame minus the collapsed sidebar.",
+      },
+      {
+        path: "/messages/inbox/phase-0?c=huda",
+        label: "Tablet and small laptop",
+        note: "Narrow the window. From 1024 to 1279 the list and chat stay; Show client opens the pane as a sheet over the chat, and tapping the dimmed chat or × closes it. Below 1024 (tablet portrait) the list fills the screen; tapping a chat opens it full width with a back arrow.",
       },
       {
         path: "/messages/inbox/phase-0?state=list-loading",

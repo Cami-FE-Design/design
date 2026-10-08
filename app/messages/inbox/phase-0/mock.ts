@@ -89,10 +89,6 @@ export type IdentityEvent = {
 export type InboxConversation = {
   publicId: string
   phoneE164: string
-  /** The name the client set in WhatsApp, sent with every inbound message
-   *  (`contacts[0].profile.name`, FND-1 sample). Self-set: a nickname, an emoji,
-   *  a business. Only ever a guess to confirm, never saved on its own. */
-  profileName: string | null
   /** Nullable, and load-bearing — null is the unmatched state. */
   customer: InboxCustomer | null
   lastMessageAt: string
@@ -304,7 +300,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "layla",
       phoneE164: "+971501234501",
-      profileName: "Layla H",
       customer: {
         publicId: "cus-layla",
         firstName: "Layla",
@@ -335,7 +330,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "unmatched-saturday",
       phoneE164: "+971554471209",
-      profileName: "🌸",
       customer: null,
       messages: [
         inbound({
@@ -349,7 +343,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "omar",
       phoneE164: "+971507788120",
-      profileName: "Omar Khalil",
       customer: {
         publicId: "cus-omar",
         firstName: "Omar",
@@ -363,7 +356,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "unmatched-fatima",
       phoneE164: "+971528830044",
-      profileName: "Fatima Noor",
       customer: null,
       messages: [
         inbound({
@@ -392,7 +384,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "sara",
       phoneE164: "+971509913377",
-      profileName: "Sara N.",
       customer: {
         publicId: "cus-sara",
         firstName: "Sara",
@@ -420,7 +411,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "noura",
       phoneE164: "+971561200987",
-      profileName: "Noura 💅",
       customer: {
         publicId: "cus-noura",
         firstName: "Noura",
@@ -444,7 +434,6 @@ export function buildConversations(): InboxConversation[] {
       // to see IX-A2's "window closes while I am typing".
       id: "maryam",
       phoneE164: "+971502228814",
-      profileName: "Maryam",
       customer: {
         publicId: "cus-maryam",
         firstName: "Maryam",
@@ -468,7 +457,6 @@ export function buildConversations(): InboxConversation[] {
     conversation({
       id: "unmatched-closed",
       phoneE164: "+971585550132",
-      profileName: "Khalid",
       customer: null,
       messages: [
         inbound({ ago: 2 * DAY + 3 * HOUR, body: "Hi, what are your prices for a full groom?" }),
@@ -479,14 +467,12 @@ export function buildConversations(): InboxConversation[] {
       // template can go out until the client writes again.
       id: "unmatched-quiet",
       phoneE164: "+971567890011",
-      profileName: "Sam",
       customer: null,
       messages: [inbound({ ago: 30 * HOUR, body: "Hi, are you open on Fridays?" })],
     }),
     conversation({
       id: "huda",
       phoneE164: "+971503344556",
-      profileName: "Huda R",
       customer: {
         publicId: "cus-huda",
         firstName: "Huda",
