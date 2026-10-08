@@ -19,10 +19,10 @@
 // cannot supply, this view is where it shows up as a hole rather than as a
 // number somebody typed twice.
 
-import { MOCK_CLIENTS } from "@/app/clients/mock"
 import { ClientOverview, resolveProfile } from "@/components/blocks/clients/client-detail-dialog"
 import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
 import { getClientActivity } from "@/lib/clients/activity"
+import { MOCK_CLIENTS } from "@/lib/clients/mock"
 import { buildCustomerCard } from "@/lib/customer-card/mock"
 import { getCustomerCardTheme } from "@/lib/customer-card/theme"
 import { getPublicBusiness } from "@/lib/public-business"

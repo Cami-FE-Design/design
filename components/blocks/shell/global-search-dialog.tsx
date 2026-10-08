@@ -2,34 +2,33 @@
 
 import { XIcon } from "lucide-react"
 import { useMemo, useState } from "react"
-
-import {
-  MOCK_BOOKINGS,
-  MOCK_STAFF,
-  type MockBooking,
-  type MockBookingStatus,
-} from "@/app/appointments/mock"
-import { MOCK_CLIENTS, type MockClient } from "@/app/clients/mock"
-import { AppointmentSubject } from "@/app/sales/new-sale/appointment-subject"
-import { CartFlow } from "@/app/sales/new-sale/cart-flow"
-import { APPOINTMENTS } from "@/app/sales/new-sale/mock"
-import type { CartLine, ClientAttachment } from "@/app/sales/new-sale/types"
 import { NewAppointmentSheet } from "@/components/blocks/appointments/new-appointment-sheet"
 import {
   type ClientDetailClient,
   ClientDetailDialog,
 } from "@/components/blocks/clients/client-detail-dialog"
+import { AppointmentSubject } from "@/components/blocks/sales/new-sale/appointment-subject"
+import { CartFlow } from "@/components/blocks/sales/new-sale/cart-flow"
 import { TimelineDate, TimelineRow } from "@/components/blocks/shared/timeline-row"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { SearchInput } from "@/components/ui/search-input"
+import {
+  MOCK_BOOKINGS,
+  MOCK_STAFF,
+  type MockBooking,
+  type MockBookingStatus,
+} from "@/lib/appointments/mock"
 import { bookingStatusBadge } from "@/lib/appointments/status"
+import { MOCK_CLIENTS, type MockClient } from "@/lib/clients/mock"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { formatDuration } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
+import type { CartLine, ClientAttachment } from "@/lib/sales/cart-types"
+import { APPOINTMENTS } from "@/lib/sales/new-sale-mock"
 import { cn } from "@/lib/utils"
 
 /**

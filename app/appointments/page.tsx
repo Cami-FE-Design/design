@@ -1,16 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { CartFlow } from "@/app/sales/new-sale/cart-flow"
-import type { CartLine, ClientAttachment } from "@/app/sales/new-sale/types"
 import {
   AppointmentsToolbar,
   type ViewMode,
 } from "@/components/blocks/appointments/appointments-toolbar"
 import { NewAppointmentSheet } from "@/components/blocks/appointments/new-appointment-sheet"
+import { CartFlow } from "@/components/blocks/sales/new-sale/cart-flow"
 import { AppShell } from "@/components/blocks/shell/app-shell"
 import { DesignRepoBar } from "@/components/blocks/shell/design-repo-bar"
 import { Button } from "@/components/ui/button"
+import type { CartLine, ClientAttachment } from "@/lib/sales/cart-types"
 
 const TODAY = "2026-05-13"
 

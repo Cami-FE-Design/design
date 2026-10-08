@@ -2,10 +2,10 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeAll, describe, expect, it, vi } from "vitest"
 
-import { EditLineDialog } from "@/app/sales/new-sale/edit-line-dialog"
-import type { CartLine } from "@/app/sales/new-sale/types"
+import { EditLineDialog } from "@/components/blocks/sales/new-sale/edit-line-dialog"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LocationsProvider } from "@/lib/locations/store"
+import type { CartLine } from "@/lib/sales/cart-types"
 
 /**
  * A deal attaches to a line, and only if it runs at this sale's branch

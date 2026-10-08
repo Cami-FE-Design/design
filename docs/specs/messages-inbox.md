@@ -105,7 +105,7 @@ The Moego per-pet **note tabs** + **Appointments accordion** (Next / Last appoin
 
 ## Data model (mock)
 
-New mock module `app/messages/mock.ts` (or `lib/messages-mock.ts`). Reuses `WhatsAppTemplate` from appointments.
+New mock module `lib/messages/mock.ts`. Reuses `WhatsAppTemplate` from appointments.
 
 ```ts
 type FunnelStatus = "new-inquiry" | "engaged" | "quoted" | "scheduled" | "closed"

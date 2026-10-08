@@ -10,7 +10,6 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
-import { MOCK_BOOKINGS, MOCK_STAFF, type MockBooking } from "@/app/appointments/mock"
 import { AppointmentDetailSheet } from "@/components/blocks/appointments/appointment-detail-sheet"
 import {
   type ClientDetailClient,
@@ -37,6 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { MOCK_BOOKINGS, MOCK_STAFF, type MockBooking } from "@/lib/appointments/mock"
 import { bookingStatusBadge } from "@/lib/appointments/status"
 import { formatDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"

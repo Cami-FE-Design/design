@@ -1,6 +1,6 @@
 import { Avatar } from "@/components/ui/avatar"
-import { CLIENTS, HAS_PETS } from "./mock"
-import type { AppointmentItem } from "./types"
+import type { AppointmentItem } from "@/lib/sales/cart-types"
+import { CLIENTS, HAS_PETS } from "@/lib/sales/new-sale-mock"
 
 /**
  * The subject row of an appointment card. On with-pets businesses it shows the

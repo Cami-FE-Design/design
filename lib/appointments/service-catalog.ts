@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
-import { MOCK_SERVICE_CATALOG, type MockServiceCatalogItem } from "@/app/appointments/mock"
+import { MOCK_SERVICE_CATALOG, type MockServiceCatalogItem } from "@/lib/appointments/mock"
 import { useCreatedCombos } from "@/lib/service-catalog/created-combos"
 import { useServiceCategories } from "@/lib/service-catalog/store"
 import { APPOINTMENT_COLORS } from "@/lib/service-catalog/types"

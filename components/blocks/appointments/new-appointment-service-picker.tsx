@@ -2,14 +2,13 @@
 
 import { AlertCircleIcon, ArrowLeftIcon, SearchXIcon } from "lucide-react"
 import { useMemo, useState } from "react"
-
-import { type MockServiceCatalogItem, serviceGroupLabel } from "@/app/appointments/mock"
 import { ServiceAccentRail } from "@/components/blocks/appointments/service-accent-rail"
 import { ComboBadge, comboServicesLabel } from "@/components/blocks/catalog/combo-badge"
 import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
+import { type MockServiceCatalogItem, serviceGroupLabel } from "@/lib/appointments/mock"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
 import { formatDuration } from "@/lib/format"
 import { formatMoneyWhole } from "@/lib/money/format"

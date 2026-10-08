@@ -71,6 +71,7 @@ import {
   slotGroupsForLocation,
 } from "@/lib/booking"
 import { formatAed } from "@/lib/format"
+import { VAT_RATE, vatOf } from "@/lib/invoice/totals"
 import { slotsForStaff } from "@/lib/locations/cross-branch-availability"
 import type { WeekSchedule } from "@/lib/locations/hours"
 import { type PetNoteEntry, petNoteLabel, petNotesComplete } from "@/lib/pet-notes"
@@ -919,8 +920,8 @@ function ConfirmStep({
     services.map((s) => s.id),
     catalog,
   )
-  const subtotal = Math.round(total / 1.05)
-  const vat = total - subtotal
+  const vat = vatOf(total, VAT_RATE)
+  const subtotal = total - vat
 
   return (
     <div className="flex flex-col gap-5">

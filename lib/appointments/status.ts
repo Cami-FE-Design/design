@@ -7,7 +7,7 @@ import {
   PlayIcon,
   ThumbsUpIcon,
 } from "lucide-react"
-import type { MockBookingStatus } from "@/app/appointments/mock"
+import type { MockBookingStatus } from "@/lib/appointments/mock"
 
 // One vocabulary for a booking's status. The appointments list, global search,
 // the detail and edit sheets and the calendar popover each kept their own copy

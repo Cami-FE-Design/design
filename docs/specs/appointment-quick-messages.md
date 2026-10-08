@@ -67,7 +67,7 @@ Templates render in stored order within the matched set. No category grouping in
 No template store exists yet. Add a mock:
 
 ```ts
-// app/appointments/mock.ts
+// lib/appointments/mock.ts
 export type WhatsAppTemplate = {
   id: string
   name: string             // "Deposit reminder"

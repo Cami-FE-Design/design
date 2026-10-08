@@ -40,8 +40,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { formatDate, formatTimeAgo } from "@/lib/format"
+import { MOCK_PETS, type MockPet, PETS_TODAY } from "@/lib/pets/mock"
 import { cn } from "@/lib/utils"
-import { MOCK_PETS, type MockPet, PETS_TODAY } from "./mock"
 
 type SortKey = "name" | "lastVisit" | "totalVisits" | "createdAt"
 type SortDir = "asc" | "desc"

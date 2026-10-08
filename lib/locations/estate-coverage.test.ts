@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest"
 
-import { MOCK_BOOKINGS, MOCK_STAFF } from "@/app/appointments/mock"
-import { MOCK_SALES } from "@/app/sales/sales-list/page"
+import { MOCK_BOOKINGS, MOCK_STAFF } from "@/lib/appointments/mock"
 import { BRANCH_STOCK } from "@/lib/inventory/mock"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LOCATION_TAX_OVERRIDES } from "@/lib/locations/tax-identity"
 import { BRANCH_WHATSAPP } from "@/lib/locations/whatsapp"
 import { summarizeByLocation } from "@/lib/money/by-location"
 import { MONEY_TXS, periodBounds } from "@/lib/money/mock"
+import { MOCK_SALES } from "@/lib/sales/mock"
 import { DEMO_TERMINALS } from "@/lib/terminals/store"
 
 /**

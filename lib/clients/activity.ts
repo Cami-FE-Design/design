@@ -12,7 +12,7 @@
 // Two decisions worth reading.
 //
 // 1. Pets are NOT redefined here. Every client already carries their pets
-//    (id, name, species) on their record in app/clients/mock.ts; PET_DETAILS
+//    (id, name, species) on their record in lib/clients/mock.ts; PET_DETAILS
 //    adds only what a record has no room for — breed, weight, coat. A second
 //    list of pets is exactly the drift this file is fixing, so there isn't one.
 //

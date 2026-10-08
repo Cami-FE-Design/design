@@ -17,7 +17,14 @@ import {
   ThumbsUpIcon,
   XIcon,
 } from "lucide-react"
-
+import { AppointmentBlock } from "@/components/blocks/appointments/appointment-block"
+import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
+import { ClientNoteBanner } from "@/components/blocks/clients/client-note-banner"
+import { NavigateToAddress } from "@/components/blocks/shared/navigate-to-address"
+import { Avatar } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
+import { Separator } from "@/components/ui/separator"
 import {
   clientIdOf,
   EXTRA_TIME_LABEL,
@@ -27,15 +34,7 @@ import {
   type MockServiceItem,
   serviceItemLabel,
   serviceItemsOf,
-} from "@/app/appointments/mock"
-import { AppointmentBlock } from "@/components/blocks/appointments/appointment-block"
-import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
-import { ClientNoteBanner } from "@/components/blocks/clients/client-note-banner"
-import { NavigateToAddress } from "@/components/blocks/shared/navigate-to-address"
-import { Avatar } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Separator } from "@/components/ui/separator"
+} from "@/lib/appointments/mock"
 import { BOOKING_STATUS_LABEL } from "@/lib/appointments/status"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"

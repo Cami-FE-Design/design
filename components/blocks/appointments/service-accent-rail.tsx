@@ -1,5 +1,5 @@
-import type { MockServiceCatalogItem } from "@/app/appointments/mock"
-import { SERVICE_CATEGORY_ACCENT } from "@/app/appointments/mock"
+import type { MockServiceCatalogItem } from "@/lib/appointments/mock"
+import { SERVICE_CATEGORY_ACCENT } from "@/lib/appointments/mock"
 import { cn } from "@/lib/utils"
 
 /**

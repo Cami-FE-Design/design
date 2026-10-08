@@ -1,7 +1,7 @@
 // Template token model — the {{placeholder}} vocabulary every merchant-authored
 // message is written against, and the one function that resolves them.
 //
-// Moved here from app/appointments/mock.ts (which re-exports for its existing
+// Moved here from lib/appointments/mock.ts (which re-exports for its existing
 // callers) because the settings-side template editor needs the same vocabulary,
 // and a settings panel importing from an `app/appointments` mock is backwards.
 // Spec: docs/specs/DSG-83-communication-templates.md

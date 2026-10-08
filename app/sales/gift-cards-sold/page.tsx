@@ -16,7 +16,7 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { MOCK_SALES, type Sale, SaleDetailDialog } from "@/app/sales/sales-list/page"
+import { SaleDetailDialog } from "@/app/sales/sales-list/page"
 import { GiftCardVisual } from "@/components/blocks/sales/gift-card-visual"
 import { ShareGiftCardDialog } from "@/components/blocks/sales/share-gift-card-dialog"
 import { EmptyState } from "@/components/blocks/shared/empty-state"
@@ -64,6 +64,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { formatAed, formatDate, formatLongDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
+import { MOCK_SALES, type Sale } from "@/lib/sales/mock"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

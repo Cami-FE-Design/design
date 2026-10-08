@@ -3,25 +3,6 @@
 import { CirclePlusIcon, CreditCardIcon } from "lucide-react"
 import { Suspense, useState } from "react"
 import { toast } from "sonner"
-
-import {
-  MOCK_BOOKINGS,
-  MOCK_SERVICE_CATALOG,
-  MOCK_STAFF,
-  type MockBooking,
-  type MockBookingStatus,
-  type MockServiceCategory,
-} from "@/app/appointments/mock"
-import { CartContent, CartFooter } from "@/app/sales/new-sale/cart-summary"
-import { GiftCardDialog, newGiftCardDraft } from "@/app/sales/new-sale/gift-card-dialog"
-import { comboCartLines, SERVICES } from "@/app/sales/new-sale/mock"
-import { PaymentLinkLockScreen } from "@/app/sales/new-sale/payment-link-lock"
-import { PaymentView } from "@/app/sales/new-sale/payment-view"
-import { RedeemGiftCardDialog } from "@/app/sales/new-sale/redeem-gift-card-dialog"
-import { SelectTerminalDialog } from "@/app/sales/new-sale/select-terminal-dialog"
-import { SelfCheckoutDialog } from "@/app/sales/new-sale/self-checkout-dialog"
-import { TerminalLockScreen } from "@/app/sales/new-sale/terminal-lock"
-import type { CartLine } from "@/app/sales/new-sale/types"
 import { AppointmentBlock } from "@/components/blocks/appointments/appointment-block"
 import { AppointmentQuickPanel } from "@/components/blocks/appointments/appointment-popover"
 import { AppointmentsToolbar } from "@/components/blocks/appointments/appointments-toolbar"
@@ -91,6 +72,17 @@ import { TableReport } from "@/components/blocks/reports/table-report"
 import { CamiPayFeeBreakdown } from "@/components/blocks/sales/camipay-fee-breakdown"
 import { EmailInvoiceDialog } from "@/components/blocks/sales/email-invoice-dialog"
 import { InvoiceDocumentView } from "@/components/blocks/sales/invoice-document"
+import { CartContent, CartFooter } from "@/components/blocks/sales/new-sale/cart-summary"
+import {
+  GiftCardDialog,
+  newGiftCardDraft,
+} from "@/components/blocks/sales/new-sale/gift-card-dialog"
+import { PaymentLinkLockScreen } from "@/components/blocks/sales/new-sale/payment-link-lock"
+import { PaymentView } from "@/components/blocks/sales/new-sale/payment-view"
+import { RedeemGiftCardDialog } from "@/components/blocks/sales/new-sale/redeem-gift-card-dialog"
+import { SelectTerminalDialog } from "@/components/blocks/sales/new-sale/select-terminal-dialog"
+import { SelfCheckoutDialog } from "@/components/blocks/sales/new-sale/self-checkout-dialog"
+import { TerminalLockScreen } from "@/components/blocks/sales/new-sale/terminal-lock"
 import {
   PackageBranchWarning,
   type PackageDecision,
@@ -120,6 +112,14 @@ import { TeamAccessDialog } from "@/components/blocks/team/team-access-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import type { PlaceRef } from "@/lib/address"
+import {
+  MOCK_BOOKINGS,
+  MOCK_SERVICE_CATALOG,
+  MOCK_STAFF,
+  type MockBooking,
+  type MockBookingStatus,
+  type MockServiceCategory,
+} from "@/lib/appointments/mock"
 import {
   BOOKING_DAYS,
   BOOKING_STAFF,
@@ -176,6 +176,8 @@ import {
 } from "@/lib/reports/dashboard/mock"
 import { CHART_CAT_SWATCH } from "@/lib/reports/dashboard/palette"
 import { getReport } from "@/lib/reports/registry"
+import type { CartLine } from "@/lib/sales/cart-types"
+import { comboCartLines, SERVICES } from "@/lib/sales/new-sale-mock"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import type { LocationOffering, ServiceDefaults } from "@/lib/service-catalog/offerings"
 import {

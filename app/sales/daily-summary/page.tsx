@@ -3,8 +3,7 @@
 import { ChevronDownIcon, FileSpreadsheetIcon, FileTextIcon, PlusIcon } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
-import { CartFlow } from "@/app/sales/new-sale/cart-flow"
-import { MOCK_SALES } from "@/app/sales/sales-list/page"
+import { CartFlow } from "@/components/blocks/sales/new-sale/cart-flow"
 import { DateSelector } from "@/components/blocks/shared/date-selector"
 import { PageHeader } from "@/components/blocks/shared/page-header"
 import { AppShell } from "@/components/blocks/shell/app-shell"
@@ -28,6 +27,7 @@ import { toDayIso } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { type DailySummary, latestTradingDay, summarizeDay } from "@/lib/sales/daily-summary"
+import { MOCK_SALES } from "@/lib/sales/mock"
 import { cn } from "@/lib/utils"
 
 /**

@@ -24,6 +24,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatDate, formatLongDate, formatTime } from "@/lib/format"
+import { VAT_RATE, vatOf } from "@/lib/invoice/totals"
 import { formatMoney } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
@@ -36,7 +37,7 @@ const CURRENCY = "AED"
 // UAE VAT is 5% and prices are tax-inclusive, so the tax shown on a refund is
 // the VAT component already baked into the gross total: gross × 5/105.
 function taxOf(grossMinor: number) {
-  return Math.round((grossMinor * 5) / 105)
+  return vatOf(grossMinor, VAT_RATE)
 }
 
 // "Friday, 22 May 2026" — matches the sale meta line in the refund header.

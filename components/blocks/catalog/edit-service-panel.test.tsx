@@ -1,9 +1,8 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-
-import { MOCK_SERVICE_CATALOG } from "@/app/appointments/mock"
 import { EditServicePanel } from "@/components/blocks/catalog/edit-service-panel"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { MOCK_SERVICE_CATALOG } from "@/lib/appointments/mock"
 import { LocationsProvider } from "@/lib/locations/store"
 
 // Reception's half of SCR-10. Lena Petrov works JVC mornings and Jumeirah

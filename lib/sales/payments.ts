@@ -1,3 +1,4 @@
+import type { Sale } from "@/lib/sales/mock"
 // The payments on a sale, each with the location that collected it.
 //
 // A sale belongs to one location (R11), but its payments need not: a deposit
@@ -5,8 +6,6 @@
 // location on the payment is what a refund or void of that payment is checked
 // against (LOCATION_ACCESS_DENIED). The receipt names it only when it differs
 // from the sale's own location.
-
-import type { Sale } from "@/app/sales/sales-list/page"
 
 export type SalePaymentKind = "cash" | "card" | "camipay"
 

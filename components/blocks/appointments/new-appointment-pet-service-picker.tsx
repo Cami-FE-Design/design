@@ -2,8 +2,6 @@
 
 import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, PlusIcon } from "lucide-react"
 import { useMemo, useState } from "react"
-
-import { type MockServiceCatalogItem, serviceGroupLabel } from "@/app/appointments/mock"
 import { ServiceAccentRail } from "@/components/blocks/appointments/service-accent-rail"
 import { ComboBadge, comboServicesLabel } from "@/components/blocks/catalog/combo-badge"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
@@ -16,6 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { type MockServiceCatalogItem, serviceGroupLabel } from "@/lib/appointments/mock"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
 import { formatDuration } from "@/lib/format"
 import { formatMoneyWhole } from "@/lib/money/format"

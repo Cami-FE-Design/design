@@ -25,18 +25,6 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
-
-import {
-  type DepositState,
-  MOCK_SERVICE_CATALOG,
-  MOCK_WHATSAPP_TEMPLATES,
-  type MockBookingStatus,
-  type MockServiceCatalogItem,
-  resolveTemplate,
-  templatesForBooking,
-  type WhatsAppTemplate,
-} from "@/app/appointments/mock"
-import type { CartLine, CatalogClient } from "@/app/sales/new-sale/types"
 import { ClientOpenAppointmentsBanner } from "@/components/blocks/appointments/client-open-appointments-banner"
 import {
   PetAndServicePickerPanel,
@@ -86,6 +74,16 @@ import {
 } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import type { PlaceRef } from "@/lib/address"
+import {
+  type DepositState,
+  MOCK_SERVICE_CATALOG,
+  MOCK_WHATSAPP_TEMPLATES,
+  type MockBookingStatus,
+  type MockServiceCatalogItem,
+  resolveTemplate,
+  templatesForBooking,
+  type WhatsAppTemplate,
+} from "@/lib/appointments/mock"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
 import {
   BOOKING_STATUS_LABEL,
@@ -100,6 +98,7 @@ import { formatMoneyWhole } from "@/lib/money/format"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
 import { depositForServices, examplePolicyText } from "@/lib/payment-policy/types"
 import type { PetNoteEntry } from "@/lib/pet-notes"
+import type { CartLine, CatalogClient } from "@/lib/sales/cart-types"
 import { cn } from "@/lib/utils"
 
 type SelectedPet = {
@@ -272,7 +271,7 @@ const MOCK_CLIENTS: SelectedClient[] = [
   /**
    * The two clients the client record actually holds a history for.
    *
-   * This list and `app/clients/mock.ts` were two directories, and the
+   * This list and `lib/clients/mock.ts` were two directories, and the
    * already-booked check reads the second — so the banner was correct, tested,
    * and impossible to open: nobody reachable from this picker had an
    * appointment anywhere. The same shape as the package panel keyed on clients

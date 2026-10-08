@@ -21,9 +21,9 @@
  */
 
 import { InfoIcon } from "lucide-react"
-import type { MockBooking } from "@/app/appointments/mock"
 import { LocationStatusBadge } from "@/components/blocks/settings/location-status-badge"
 import { InlineNotice } from "@/components/blocks/shared/inline-notice"
+import type { MockBooking } from "@/lib/appointments/mock"
 import { calendarWriteTarget, countsByLocation } from "@/lib/locations/calendar-scope"
 import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"

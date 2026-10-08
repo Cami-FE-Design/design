@@ -20,8 +20,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SearchInput } from "@/components/ui/search-input"
-import { CLIENTS } from "./mock"
-import type { CatalogClient, ClientAttachment } from "./types"
+import type { CatalogClient, ClientAttachment } from "@/lib/sales/cart-types"
+import { CLIENTS } from "@/lib/sales/new-sale-mock"
 
 type ClientPanelProps = {
   attachment: ClientAttachment

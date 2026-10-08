@@ -29,6 +29,25 @@ import {
   expiredWithSessionsLeft,
 } from "@/lib/packages/allocate"
 import { packagesFor } from "@/lib/packages/customer-packages"
+import type {
+  AppointmentItem,
+  CartLine,
+  CatalogClient,
+  ClientAttachment,
+  GiftCardDraft,
+  ProductItem,
+  ServiceItem,
+} from "@/lib/sales/cart-types"
+import {
+  CLIENT_REQUIRED,
+  CLIENTS,
+  comboCartLines,
+  createdComboToServiceItem,
+  dealDiscounts,
+  dealDiscountTotalMinor,
+  SERVICES,
+  totals,
+} from "@/lib/sales/new-sale-mock"
 import { useCreatedCombos } from "@/lib/service-catalog/created-combos"
 import { findOffering, resolveOffering } from "@/lib/service-catalog/offerings"
 import { useLocationOfferings } from "@/lib/service-catalog/offerings-store"
@@ -55,16 +74,6 @@ import { CustomTipDialog } from "./custom-tip-dialog"
 import { EditLineDialog, type LinePatch } from "./edit-line-dialog"
 import { GiftCardDialog, newGiftCardDraft } from "./gift-card-dialog"
 import { ItemPicker } from "./item-picker"
-import {
-  CLIENT_REQUIRED,
-  CLIENTS,
-  comboCartLines,
-  createdComboToServiceItem,
-  dealDiscounts,
-  dealDiscountTotalMinor,
-  SERVICES,
-  totals,
-} from "./mock"
 import { type ActivePaymentLink, PaymentLinkLockScreen } from "./payment-link-lock"
 import { PaymentView } from "./payment-view"
 import { RedeemGiftCardDialog } from "./redeem-gift-card-dialog"
@@ -79,15 +88,6 @@ import { type PaymentLinkDetails, SelfCheckoutDialog } from "./self-checkout-dia
 import { SplitPaymentView } from "./split-payment-view"
 import { type ActiveTerminalCharge, TerminalLockScreen } from "./terminal-lock"
 import { TipView, tipForPreset } from "./tip-view"
-import type {
-  AppointmentItem,
-  CartLine,
-  CatalogClient,
-  ClientAttachment,
-  GiftCardDraft,
-  ProductItem,
-  ServiceItem,
-} from "./types"
 
 // Monotonic line ids — duplicates of the same source stack as separate lines.
 let lineSeq = 0

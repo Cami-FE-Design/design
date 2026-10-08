@@ -4,7 +4,7 @@ import type { AvatarSpecies } from "@/components/ui/avatar"
 // Overnight pet stays. Priced per night, span day columns on the calendar.
 // Mirrors the Cuddles reference (calendar + booking-detail drawer) but uses the
 // cami design system, tokens, and the same status-lifecycle vocabulary as
-// appointments (see app/appointments/mock.ts).
+// appointments (see lib/appointments/mock.ts).
 
 export type BoardingStatus = "booked" | "checked-in" | "checked-out" | "cancelled" | "no-show"
 

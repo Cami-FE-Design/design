@@ -11,11 +11,11 @@
  * promotion target of its own.
  */
 
-import { PRODUCTS, SERVICE_CATEGORIES, SERVICES } from "@/app/sales/new-sale/mock"
 import type { ScopeKind } from "@/lib/deals/wizard"
 import { formatMoney } from "@/lib/money/format"
 import { priceLabel, sessionsLabel } from "@/lib/packages/catalog"
 import { PACKAGES } from "@/lib/packages/mock"
+import { PRODUCTS, SERVICE_CATEGORIES, SERVICES } from "@/lib/sales/new-sale-mock"
 
 export type ScopePickerItem = {
   id: string

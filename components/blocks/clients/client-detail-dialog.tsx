@@ -16,16 +16,6 @@ import {
   XIcon,
 } from "lucide-react"
 import { useState } from "react"
-
-import {
-  type ClientAllergies,
-  type ClientPatchTest,
-  formatPatchTestDate,
-  MOCK_CLIENTS,
-  type MockClient,
-  patchTestExpiry,
-  patchTestState,
-} from "@/app/clients/mock"
 import { ClientEditSheet } from "@/components/blocks/clients/client-edit-sheet"
 import { DocumentsFormsAndFiles } from "@/components/blocks/clients/documents-files-card"
 import { PetDetailDialog } from "@/components/blocks/clients/pet-detail-dialog"
@@ -69,6 +59,15 @@ import {
   PET_DETAILS,
   type PetDetail,
 } from "@/lib/clients/activity"
+import {
+  type ClientAllergies,
+  type ClientPatchTest,
+  formatPatchTestDate,
+  MOCK_CLIENTS,
+  type MockClient,
+  patchTestExpiry,
+  patchTestState,
+} from "@/lib/clients/mock"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { useLocations } from "@/lib/locations/store"
 import {
@@ -202,7 +201,7 @@ const SALES_STATUS_MORE: Array<{ value: SaleStatus; label: string }> = [
 
 /**
  * Everything the dialog shows that varies per client, resolved from the client
- * record in app/clients/mock.ts and their activity in lib/clients/activity.ts.
+ * record in lib/clients/mock.ts and their activity in lib/clients/activity.ts.
  *
  * This started as module-level constants — one address, one source, one set of
  * tags, one package, one appointment list, one sales list. Every client the

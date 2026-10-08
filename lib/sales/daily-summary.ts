@@ -32,8 +32,8 @@
  * not counted here".
  */
 
-import type { Sale } from "@/app/sales/sales-list/page"
 import { toDayIso } from "@/lib/format"
+import type { Sale } from "@/lib/sales/mock"
 
 export type TransactionRow = {
   label: string

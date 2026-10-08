@@ -245,7 +245,9 @@ Most things a new screen needs already exist once. Use these rather than writing
 | Show money in fils, two decimals | `formatMoney(minor)` | `lib/money/format.ts` |
 | Show money in fils, whole AED | `formatMoneyWhole(minor)` | `lib/money/format.ts` |
 | Show whole AED (reports, prices) | `formatAed(value)` | `lib/format.ts` |
-| Dates, times, durations | `formatDate`, `formatTime`, `formatDateTime`, `formatDuration` | `lib/format.ts` |
+| Dates, times, durations, "time ago" | `formatDate`, `formatTime`, `formatDateTime`, `formatDuration`, `formatTimeAgo` | `lib/format.ts` |
+| VAT inside a VAT-inclusive amount | `VAT_RATE`, `vatOf` | `lib/invoice/totals.ts` |
+| Mock data (sales, appointments, clients, pets) | `MOCK_SALES`, `MOCK_BOOKINGS`, `MOCK_CLIENTS` … | `lib/sales/mock.ts`, `lib/appointments/mock.ts`, `lib/clients/mock.ts`, `lib/pets/mock.ts` |
 | A booking status label or tint | `BOOKING_STATUS_LABEL`, `BOOKING_STATUS_TONE`, `bookingStatusBadge`, `BOOKING_STATUS_OPTIONS` | `lib/appointments/status.ts` |
 | A sale status label or tint | `SALE_STATUS_LABEL`, `SALE_STATUS_CLASS` | `lib/sales/status.ts` |
 | A listing page's title row | `PageHeader` | `components/blocks/shared/page-header.tsx` |

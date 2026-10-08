@@ -16,19 +16,6 @@ import {
   XIcon,
 } from "lucide-react"
 import { Fragment, useMemo, useState } from "react"
-
-import { MOCK_WHATSAPP_TEMPLATES, resolveTemplate } from "@/app/appointments/mock"
-import {
-  type Conversation,
-  type ConversationState,
-  FUNNEL_META,
-  type FunnelStatus,
-  formatSla,
-  formatSlaShort,
-  MOCK_CONVERSATIONS,
-  slaTone,
-  type ThreadItem,
-} from "@/app/messages/mock"
 import { NewAppointmentSheet } from "@/components/blocks/appointments/new-appointment-sheet"
 import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { KpiCard, KpiGrid } from "@/components/blocks/shared/kpi-card"
@@ -51,6 +38,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { MOCK_WHATSAPP_TEMPLATES, resolveTemplate } from "@/lib/appointments/mock"
+import {
+  type Conversation,
+  type ConversationState,
+  FUNNEL_META,
+  type FunnelStatus,
+  formatSla,
+  formatSlaShort,
+  MOCK_CONVERSATIONS,
+  slaTone,
+  type ThreadItem,
+} from "@/lib/messages/mock"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 

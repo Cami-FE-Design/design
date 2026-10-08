@@ -12,13 +12,6 @@ import {
   TriangleAlertIcon,
 } from "lucide-react"
 import { useId, useState } from "react"
-
-import {
-  MOCK_STAFF,
-  MOCK_STAFF_SHIFTS,
-  type MockServiceCatalogItem,
-  type MockStaff,
-} from "@/app/appointments/mock"
 import { ConfirmDialog } from "@/components/blocks/shared/confirm-dialog"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -41,6 +34,12 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  MOCK_STAFF,
+  MOCK_STAFF_SHIFTS,
+  type MockServiceCatalogItem,
+  type MockStaff,
+} from "@/lib/appointments/mock"
 import { formatDuration } from "@/lib/format"
 import { slotRefusal } from "@/lib/locations/cross-branch-availability"
 import { useLocations } from "@/lib/locations/store"

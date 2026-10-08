@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { formatAed } from "@/lib/format"
 import { formatMoney } from "@/lib/money/format"
-import { STAFF } from "./mock"
+import { STAFF } from "@/lib/sales/new-sale-mock"
 
 type CashAmountDialogProps = {
   open: boolean

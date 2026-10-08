@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 
-import type { Sale } from "@/app/sales/sales-list/page"
 import { toDayIso } from "@/lib/format"
 import { latestTradingDay, summarizeDay } from "@/lib/sales/daily-summary"
+import type { Sale } from "@/lib/sales/mock"
 
 /**
  * The end-of-day view answers which branch (R09, R18, RP-A1).

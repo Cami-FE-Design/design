@@ -23,7 +23,7 @@ here:
 ## Problem
 
 Every automated message the product sends is hardcoded. `MOCK_WHATSAPP_TEMPLATES`
-in `app/appointments/mock.ts` holds real merchant-authored copy (Aziz's Pet Loft
+in `lib/appointments/mock.ts` holds real merchant-authored copy (Aziz's Pet Loft
 sheet, via ENG-58) that no merchant can reach — and the comment on its
 "Appointment created" entry has been promising a home for it since:
 
@@ -47,7 +47,7 @@ over email, and cannot decide what it says.
 
 There were already two non-matching template taxonomies in the repo:
 
-| `REMINDER_EVENTS` (`lib/notifications/types.ts`) | `MOCK_WHATSAPP_TEMPLATES` (`app/appointments/mock.ts`) |
+| `REMINDER_EVENTS` (`lib/notifications/types.ts`) | `MOCK_WHATSAPP_TEMPLATES` (`lib/appointments/mock.ts`) |
 | --- | --- |
 | `booking-confirmed` | `appointment-created` (`automation: "automated"`) |
 | `reminder-24h`, `reminder-2h` | `appointment-reminder` |

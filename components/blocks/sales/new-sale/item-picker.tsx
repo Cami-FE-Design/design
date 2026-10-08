@@ -21,18 +21,24 @@ import { formatDuration } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import type { ServiceCoverage } from "@/lib/packages/allocate"
-import { useBranchOfferingNote } from "@/lib/service-catalog/use-branch-offering-note"
-import { cn } from "@/lib/utils"
-import { AppointmentSubject } from "./appointment-subject"
-import { GiftCardDialog, newGiftCardDraft } from "./gift-card-dialog"
+import type {
+  AppointmentItem,
+  GiftCardDraft,
+  PickerView,
+  ProductItem,
+  ServiceItem,
+} from "@/lib/sales/cart-types"
 import {
   APPOINTMENTS,
   GIFT_CARD_PRESETS_MINOR,
   PRODUCTS,
   SERVICE_CATEGORIES,
   SERVICES,
-} from "./mock"
-import type { AppointmentItem, GiftCardDraft, PickerView, ProductItem, ServiceItem } from "./types"
+} from "@/lib/sales/new-sale-mock"
+import { useBranchOfferingNote } from "@/lib/service-catalog/use-branch-offering-note"
+import { cn } from "@/lib/utils"
+import { AppointmentSubject } from "./appointment-subject"
+import { GiftCardDialog, newGiftCardDraft } from "./gift-card-dialog"
 
 type ItemPickerProps = {
   /**

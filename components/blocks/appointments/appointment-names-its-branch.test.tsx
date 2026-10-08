@@ -15,10 +15,10 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
 
-import { MOCK_BOOKINGS } from "@/app/appointments/mock"
 import { AppointmentQuickPanel } from "@/components/blocks/appointments/appointment-popover"
 import { NewAppointmentSheet } from "@/components/blocks/appointments/new-appointment-sheet"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { MOCK_BOOKINGS } from "@/lib/appointments/mock"
 import { LocationsProvider } from "@/lib/locations/store"
 import { ServiceCatalogProvider } from "@/lib/service-catalog/store"
 

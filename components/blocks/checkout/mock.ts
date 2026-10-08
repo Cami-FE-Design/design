@@ -1,3 +1,4 @@
+import { VAT_RATE } from "@/lib/invoice/totals"
 // Customer-facing pay-page snapshot (PRO-396 / PRO-594 payment link landing).
 //
 // The operator finishes a sale in /sales/new-sale and sends a payment link over
@@ -7,10 +8,6 @@
 // Money model inherits PRO-395 exactly: prices are tax-inclusive, stored in fils
 // (minor units), VAT back-calculated. Tip is added on top of the tax-inclusive
 // total. Reuse the money helpers from the operator cart — do not fork them.
-
-import { VAT_RATE } from "@/app/sales/new-sale/mock"
-
-export { VAT_RATE }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

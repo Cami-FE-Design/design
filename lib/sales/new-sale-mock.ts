@@ -4,6 +4,7 @@
 // back-calculated so Subtotal + Tax always equals Total exactly (ticket edge
 // case: "Rounding under tax-inclusive math").
 
+import { VAT_RATE } from "@/lib/invoice/totals"
 import type {
   AppointmentItem,
   CartLine,
@@ -13,13 +14,11 @@ import type {
   ServiceCategory,
   ServiceItem,
   Staff,
-} from "./types"
+} from "./cart-types"
 
 // ─── Venue config (read from venue settings in production, not hard-coded) ────
 
 export const CURRENCY = "AED"
-/** UAE default VAT rate. Sourced from venue config; do not hard-code in the UI. */
-export const VAT_RATE = 0.05
 /** Block the CTA when no client is attached. Per-venue toggle. */
 export const CLIENT_REQUIRED = false
 /**

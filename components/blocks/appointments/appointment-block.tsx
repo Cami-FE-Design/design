@@ -16,7 +16,7 @@ import {
   type MockBooking,
   type MockBookingStatus,
   type MockServiceCategory,
-} from "@/app/appointments/mock"
+} from "@/lib/appointments/mock"
 import { clientNotesFor } from "@/lib/client-notes"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"

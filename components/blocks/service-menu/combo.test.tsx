@@ -1,18 +1,18 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
+import { expandCombo } from "@/components/blocks/appointments/new-appointment-sheet"
 import {
   MOCK_SERVICE_CATALOG,
   type MockServiceCatalogItem,
   serviceItemLabel,
-} from "@/app/appointments/mock"
+} from "@/lib/appointments/mock"
+import { bookingLines, serviceTotals } from "@/lib/booking"
 import {
   bundleDiscounts,
   comboCartLines,
   grossTotalMinor,
   SERVICES,
-} from "@/app/sales/new-sale/mock"
-import { expandCombo } from "@/components/blocks/appointments/new-appointment-sheet"
-import { bookingLines, serviceTotals } from "@/lib/booking"
+} from "@/lib/sales/new-sale-mock"
 import { seedCategories, seedServices } from "@/lib/service-catalog/mock-data"
 import {
   ServiceCatalogProvider,

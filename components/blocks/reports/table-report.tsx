@@ -20,8 +20,7 @@ import {
 } from "lucide-react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
-import { MOCK_BOOKINGS, MOCK_STAFF, type MockBooking } from "@/app/appointments/mock"
-import { MOCK_SALES, type Sale, SaleDetailDialog } from "@/app/sales/sales-list/page"
+import { SaleDetailDialog } from "@/app/sales/sales-list/page"
 import { AppointmentDetailSheet } from "@/components/blocks/appointments/appointment-detail-sheet"
 import {
   type ClientDetailClient,
@@ -63,6 +62,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { MOCK_BOOKINGS, MOCK_STAFF, type MockBooking } from "@/lib/appointments/mock"
 import {
   formatAed,
   formatDate,
@@ -80,6 +80,7 @@ import {
   type ReportRow,
 } from "@/lib/reports/mock"
 import type { ColumnDef, ColumnKind, ReportDef } from "@/lib/reports/types"
+import { MOCK_SALES, type Sale } from "@/lib/sales/mock"
 import { findTeamMemberByName } from "@/lib/team/mock"
 import { cn, slugify } from "@/lib/utils"
 

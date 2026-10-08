@@ -19,8 +19,8 @@ import { formatDiscountValue, MOCK_DEALS } from "@/lib/deals/mock"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { TODAY_ISO } from "@/lib/money/mock"
-import { STAFF } from "./mock"
-import type { CartLine } from "./types"
+import type { CartLine } from "@/lib/sales/cart-types"
+import { STAFF } from "@/lib/sales/new-sale-mock"
 
 export type LinePatch = {
   priceMinor: number

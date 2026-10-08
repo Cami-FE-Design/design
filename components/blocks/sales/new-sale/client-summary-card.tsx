@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { ClientAttachment } from "./types"
+import type { ClientAttachment } from "@/lib/sales/cart-types"
 
 /**
  * Read-only client card shown on the Tip / Payment steps — avatar, name, phone,

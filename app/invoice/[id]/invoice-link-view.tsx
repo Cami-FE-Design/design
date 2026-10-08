@@ -13,11 +13,11 @@
 // this adds is a thin action bar.
 
 import { DownloadIcon } from "lucide-react"
-import { MOCK_SALES } from "@/app/sales/sales-list/page"
 import { InvoiceDocumentView } from "@/components/blocks/sales/invoice-document"
 import { Button } from "@/components/ui/button"
 import { invoiceFromSale } from "@/lib/invoice/from-sale"
 import { documentTitle } from "@/lib/invoice/totals"
+import { MOCK_SALES } from "@/lib/sales/mock"
 
 export function InvoiceLinkView({ id }: { id: string }) {
   const sale = MOCK_SALES.find((s) => String(s.id) === id)

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { formatMoneyWhole } from "@/lib/money/format"
-import { findRedeemableGiftCard, type RedeemableGiftCard } from "./mock"
+import { findRedeemableGiftCard, type RedeemableGiftCard } from "@/lib/sales/new-sale-mock"
 
 // Business name shown on the gift card visual (venue config in production).
 const BUSINESS_NAME = "Cami"

@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest"
 
 import { TooltipProvider } from "@/components/ui/tooltip"
 import type { AllocatedSession } from "@/lib/packages/allocate"
+import type { CartLine } from "@/lib/sales/cart-types"
+import { totals } from "@/lib/sales/new-sale-mock"
 import { CartContent } from "./cart-summary"
-import { totals } from "./mock"
-import type { CartLine } from "./types"
 
 /**
  * What a session-covered line looks like at the till (KC1.5, SCR-13).

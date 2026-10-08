@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
-import { MOCK_CLIENTS } from "@/app/clients/mock"
 import { ClientDetailDialog } from "@/components/blocks/clients/client-detail-dialog"
+import { MOCK_CLIENTS } from "@/lib/clients/mock"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LocationsProvider } from "@/lib/locations/store"
 

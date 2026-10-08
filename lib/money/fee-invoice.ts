@@ -14,6 +14,7 @@
 // (INV-P4, ADR-001), and a slot for it here would be the first place one
 // appeared.
 
+import { VAT_RATE } from "@/lib/invoice/totals"
 import type { InvoiceDocument, InvoiceLine } from "@/lib/invoice/types"
 import type { FeePeriod } from "./fees"
 
@@ -94,7 +95,7 @@ export function feeInvoiceOf(
     // Always present, always zero here. Cami's fee has no tip, and the field is
     // what keeps `Total (incl. VAT)` and `Amount due` as two rows (EC-39).
     tipMinor: 0,
-    vatRate: 0.05,
+    vatRate: VAT_RATE,
     footerNote: `Fees for ${period.label}. The itemised breakdown is available as a separate download.`,
   }
 }

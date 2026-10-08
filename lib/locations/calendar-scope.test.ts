@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { MockBooking } from "@/app/appointments/mock"
+import type { MockBooking } from "@/lib/appointments/mock"
 import {
   bookingsInScope,
   calendarWriteTarget,

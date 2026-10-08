@@ -28,18 +28,6 @@ import {
   XIcon,
 } from "lucide-react"
 import { useEffect, useState } from "react"
-
-import {
-  clientIdOf,
-  EXTRA_TIME_LABEL,
-  type MockBooking,
-  type MockBookingStatus,
-  type MockStaff,
-  SERVICE_CATEGORY_ACCENT,
-  serviceItemLabel,
-  serviceItemsOf,
-  serviceItemsTotalMinor,
-} from "@/app/appointments/mock"
 import { CancelAppointmentDialog } from "@/components/blocks/appointments/cancel-appointment-dialog"
 import { MoveToBranchDialog } from "@/components/blocks/appointments/move-to-branch-dialog"
 import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
@@ -64,6 +52,17 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import type { PlaceRef } from "@/lib/address"
+import {
+  clientIdOf,
+  EXTRA_TIME_LABEL,
+  type MockBooking,
+  type MockBookingStatus,
+  type MockStaff,
+  SERVICE_CATEGORY_ACCENT,
+  serviceItemLabel,
+  serviceItemsOf,
+  serviceItemsTotalMinor,
+} from "@/lib/appointments/mock"
 import {
   BOOKING_STATUS_LABEL,
   BOOKING_STATUS_OPTIONS,
@@ -430,7 +429,7 @@ function ClientNotesSection({ clientId }: { clientId?: string }) {
 function PaymentPolicySection({ booking }: { booking: MockBooking }) {
   const { policy } = usePaymentPolicy()
   // NOTE: `serviceId` here is the booking item's own id, not a catalog service
-  // id — bookings in app/appointments/mock.ts carry no catalog ids at all. So
+  // id — bookings in lib/appointments/mock.ts carry no catalog ids at all. So
   // the policy's per-service overrides can never match and every item falls
   // back to the business-wide deposit. That is correct for every demo booking
   // (the default policy has no overrides) but it is NOT the production

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { MOCK_SALES } from "@/app/sales/sales-list/page"
 import { invoiceFromSale } from "@/lib/invoice/from-sale"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { BUSINESS_TAX_IDENTITY } from "@/lib/locations/tax-identity"
+import { MOCK_SALES } from "@/lib/sales/mock"
 
 const saleAt = (locationId: string) => {
   const sale = MOCK_SALES.find((s) => s.locationId === locationId)

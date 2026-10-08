@@ -29,8 +29,8 @@
 // customer-writable: the brief says preferences are "editable by staff", and the
 // card says so out loud with "Maintained by <venue>".
 
-import { MOCK_CLIENTS, type MockClient, patchTestState } from "@/app/clients/mock"
 import { type ClientAppointment, getClientActivity } from "@/lib/clients/activity"
+import { MOCK_CLIENTS, type MockClient, patchTestState } from "@/lib/clients/mock"
 import { formatAed } from "@/lib/format"
 import { resolvePublicView } from "@/lib/public-business"
 

@@ -1,7 +1,9 @@
 "use client"
 
 import { useState } from "react"
-
+import { AppointmentDetailSheet } from "@/components/blocks/appointments/appointment-detail-sheet"
+import { AppointmentBlockPopover } from "@/components/blocks/appointments/appointment-popover"
+import { Avatar } from "@/components/ui/avatar"
 import {
   COLUMN_HEADER_HEIGHT,
   DAY_END_HOUR,
@@ -12,10 +14,7 @@ import {
   minutesFromDayStart,
   PX_PER_MIN,
   TIME_AXIS_WIDTH,
-} from "@/app/appointments/mock"
-import { AppointmentDetailSheet } from "@/components/blocks/appointments/appointment-detail-sheet"
-import { AppointmentBlockPopover } from "@/components/blocks/appointments/appointment-popover"
-import { Avatar } from "@/components/ui/avatar"
+} from "@/lib/appointments/mock"
 import { cn } from "@/lib/utils"
 
 type PeopleGridProps = {

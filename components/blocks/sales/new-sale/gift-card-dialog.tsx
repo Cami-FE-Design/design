@@ -21,13 +21,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { formatMoneyWhole } from "@/lib/money/format"
+import type { GiftCardDraft } from "@/lib/sales/cart-types"
 import {
   CURRENT_USER,
   GIFT_CARD_DEFAULT_EXPIRATION,
   GIFT_CARD_EXPIRATION_OPTIONS,
   TEAM_MEMBERS,
-} from "./mock"
-import type { GiftCardDraft } from "./types"
+} from "@/lib/sales/new-sale-mock"
 
 /** A fresh gift-card draft seeded to `valueMinor` (price tracks the value). */
 export function newGiftCardDraft(valueMinor: number): GiftCardDraft {

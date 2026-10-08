@@ -14,11 +14,16 @@
 //      removes the VAT row, it does not render a zero.
 //   6. Change due is not a payment (INV-M4).
 
-import { VAT_RATE } from "@/app/sales/new-sale/mock"
 import { formatMoney } from "@/lib/money/format"
 import type { InvoiceDocument, InvoiceLine } from "./types"
 
-export { VAT_RATE }
+/**
+ * UAE VAT, 5%. Prices are VAT-inclusive, so the VAT on a sale is the share
+ * inside the gross (`vatOf`), never an amount added on top. One constant for
+ * every surface that shows or computes it; in production it comes from venue
+ * config.
+ */
+export const VAT_RATE = 0.05
 
 /**
  * Half-up rounding on the MAGNITUDE, sign reapplied.

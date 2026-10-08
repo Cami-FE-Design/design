@@ -26,9 +26,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { formatDuration } from "@/lib/format"
+import { VAT_RATE } from "@/lib/invoice/totals"
 import { formatMoney, formatMoneyWhole } from "@/lib/money/format"
 import type { AllocatedSession } from "@/lib/packages/allocate"
-import { cn } from "@/lib/utils"
+import type { CartLine } from "@/lib/sales/cart-types"
 import {
   APPOINTMENTS,
   bundleDiscounts,
@@ -37,9 +38,8 @@ import {
   grossTotalMinor,
   HAS_PETS,
   totals,
-  VAT_RATE,
-} from "./mock"
-import type { CartLine } from "./types"
+} from "@/lib/sales/new-sale-mock"
+import { cn } from "@/lib/utils"
 
 /**
  * Subject appended to a snapshotted appointment line's meta — the pet on
