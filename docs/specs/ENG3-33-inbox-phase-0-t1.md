@@ -36,6 +36,7 @@ URL. The seeded chats each carry one situation (§2). Nothing is stored between 
 | T1-D17 | **No name question to the client.** With no guess, first name stays empty and Save stays off until reception types one. Free text to an unmatched chat is allowed (29 Sep decision), so reception can ask in the chat. Retires `IX-C4` row 4's question and its closed-window template (P10) | Michelle, 2026-10-08. Story change proposed to Mike |
 | T1-D18 | **Pet notes show under each pet.** Structured notes (Allergies, Behavior, Medical, Handling, Grooming sensitivity, Other) sit under their pet, never in Client notes. If no pet has notes, pets stay as pills | Michelle, 2026-10-08. Not in FND-4 or `IX-C6`; proposed to Mike |
 | T1-D19 | **Card order and empty states.** Pets first (only with the pet module and a pet), then Appointments, then Client notes. Only Appointments has an empty state ("No appointments yet"); Pets and Client notes are left out when empty | Michelle, 2026-10-08 |
+| T1-D20 | **Add client has no first-pet field.** Name and phone only, even when the business has pets. The pet is added later or at booking, like every other optional field (quick-create). Drops `IX-C4`'s "business has pets" edge case | Michelle, 2026-10-08. Story change proposed to Mike |
 | T1-D13 | **The list header is "Inbox" and a search icon in a pale circle.** The field is hidden until that icon is clicked. Clicking the icon again, or clearing the field, hides it and the list is unfiltered. The page does not title itself Inbox a second time above the panes | Michelle, 2026-09-30 |
 
 ## 2. States covered
@@ -155,7 +156,7 @@ Template names and wording are placeholders until FND-5b records the approved on
 | 4 No name: one question, the form waits | `?c=unmatched-saturday` → Add: the profile name is "🌸", so first name is empty and Save is off. No question is sent (T1-D17). **Story change proposed** |
 | 5 Already a client → match instead | `?c=unmatched-closed` → Add — "This number is on 2 clients", Match instead |
 | 6 Save binds, clean empty card, recorded | Save: "added as a new client by Queenie", the card shows "No appointments yet" (T1-D19) |
-| Edge: business has pets | **Not built.** The Add dialog has no first-pet field yet; asked Mike whether it stays in Phase 0 |
+| Edge: business has pets | **Dropped** (T1-D20): no first-pet field. Story change proposed |
 | Edge: abandon | Cancel — chat stays unmatched, nothing created |
 | Edge: free text closed | No question exists (T1-D17). With the window closed, only a no-blank template can go out |
 | Edge: full intake | "Open full client form": the existing `ClientEditSheet`, prefilled |
@@ -241,7 +242,7 @@ Retry is the same request with the same key; a template retries as the template.
 | `GET /customers?search=` — name, phone, email, **pet** | Match search | Exists except pet (`IX-C3` backend adds it). Results need `archived`, `homeLocation`, `pets`, `phoneE164`, `email` |
 | Clients on this number | "This number is on 2 client records" | Search by phone; P6 leaves such chats unmatched |
 | `PUT /inbox/conversations/{id}/customer` `{ customerId, phone: "save" \| "keep" \| "replace" }` | Match / re-match confirm | Sets `customer_id`, writes a link event, saves the number per the choice. **Keep vs Replace is Michelle's open call** |
-| `POST /inbox/conversations/{id}/customer` (create) `{ firstName, lastName?, pet? }` | Add client | Customer module quick-create + first pet; links and records `created`. Number already a client → `NUMBER_ALREADY_CLIENT` |
+| `POST /inbox/conversations/{id}/customer` (create) `{ firstName, lastName? }` | Add client | Customer module quick-create, no pet (T1-D20); links and records `created`. Number already a client → `NUMBER_ALREADY_CLIENT` |
 
 ### 4.6 What the draft schema is missing
 
@@ -328,5 +329,4 @@ to `ClientSummary`.
 | New columns and the link table (§4.6) | Backend owner, FND-2 |
 | Where phone normalisation lives | Backend, with the customer-module owner |
 | Media bucket and retention | Backend |
-| Story changes from T1: pet notes, upcoming visits, card order and empty states, profile name guess, retiring the name question (T1-D14, D16 to D19) | Mike |
-| The first-pet field in Add (`IX-C4` edge case): still in Phase 0? | Mike |
+| Story changes from T1: pet notes, upcoming visits, card order and empty states, profile name guess, retiring the name question, no first-pet field (T1-D14, D16 to D20) | Mike |
