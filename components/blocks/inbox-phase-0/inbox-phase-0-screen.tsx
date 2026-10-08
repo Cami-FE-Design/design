@@ -11,7 +11,6 @@ import {
   CURRENT_STAFF,
   DEMO_NOW,
   type DirectoryClient,
-  INBOX_TEMPLATES,
   type InboxConversation,
   type InboxCustomer,
   type InboxMedia,
@@ -38,7 +37,6 @@ import {
   type PaneMode,
   type PhoneChoice,
   type VisitsMode,
-  type Waiting,
 } from "./client-pane"
 import { ConversationList } from "./conversation-list"
 import { COPY, type Lang } from "./copy"
@@ -176,8 +174,6 @@ const SEND_LATENCY_MS = 1200
 const LATE_FAILURE_MS = 6000
 const CLIENT_LINE_EN = "One more question — is there parking nearby?"
 const CLIENT_LINE_AR = "سؤال أخير — هل يوجد موقف سيارات؟"
-/** What the client answers when Cami has asked their name (IX-C4 row 4). */
-const NAME_REPLY = "It's Rana, thanks!"
 
 const newId = () => `msg-new-${Math.random().toString(36).slice(2, 10)}`
 
@@ -272,7 +268,12 @@ function InboxPhase0() {
   const [conversations, setConversations] = useState<InboxConversation[]>(seed.chats)
   const [directory, setDirectory] = useState<DirectoryClient[]>(seed.directory)
   const [paneMode, setPaneMode] = useState<PaneMode>("summary")
-  const [waiting, setWaiting] = useState<Record<string, Waiting>>({})
+  const [paneOpen, setPaneOpen] = useState(true)
+  // Narrow windows show the list or the chat. A link to a chat opens the chat.
+  const [narrowView, setNarrowView] = useState<"list" | "chat">(() =>
+    params.get("c") ? "chat" : "list",
+  )
+  const [addOpen, setAddOpen] = useState(false)
   const [retrying, setRetrying] = useState(false)
   const outcome: SendOutcome =
     SEND_OUTCOMES.find((o) => o.value === params.get("send"))?.value ?? "ok"
@@ -306,7 +307,9 @@ function InboxPhase0() {
   }
 
   function select(id: string) {
+    setNarrowView("chat")
     setPaneMode("summary")
+    setAddOpen(false)
     go({ c: id === DEFAULT_CHAT ? null : id })
   }
 
@@ -404,11 +407,7 @@ function InboxPhase0() {
       origin: "live",
       sentFromPhoneApp: false,
       sentByStaffName: null,
-      body: waiting[selected.publicId]
-        ? NAME_REPLY
-        : lang === "ar"
-          ? CLIENT_LINE_AR
-          : CLIENT_LINE_EN,
+      body: lang === "ar" ? CLIENT_LINE_AR : CLIENT_LINE_EN,
       templateCode: null,
       deliveryState: "sent",
       retryCount: 0,
@@ -422,9 +421,6 @@ function InboxPhase0() {
       lastInboundAt: at,
       windowClosesAt: windowFrom(at),
     }))
-    // Waiting for a name: the reply is what the form was waiting for.
-    const w = waiting[selected.publicId]
-    if (w) setWaiting((all) => ({ ...all, [selected.publicId]: { ...w, repliedAt: at } }))
   }
 
   // ─── Identity (IX-C3, IX-C4) — every change kept, with who and when ─────────
@@ -464,7 +460,6 @@ function InboxPhase0() {
         d.map((x) => (x.publicId === client.publicId ? { ...x, phoneE164: phone } : x)),
       )
     }
-    stopWaiting()
   }
 
   function createClient(nc: NewClient) {
@@ -498,46 +493,27 @@ function InboxPhase0() {
         },
       ],
     }))
-    stopWaiting()
   }
 
-  /** IX-C4 row 4 / P10. Window open: the question goes as a message. Closed:
-   *  nothing is sent, and the form waits. */
-  function askName() {
-    if (!selected) return
-    const at = new Date(clock()).toISOString()
-    if (windowOpen) sendMessage(COPY.en.askNameText, null)
-    setWaiting((w) => ({ ...w, [selected.publicId]: { askedAt: at, sent: windowOpen } }))
-  }
-
-  /** The closed-window question as a template — IX-A4's half of P10. */
-  function sendAskTemplate() {
-    if (!selected) return
-    const t = INBOX_TEMPLATES.find((x) => x.code === "ask_name")!
-    sendMessage(t.body, t.code)
-    const at = new Date(clock()).toISOString()
-    setWaiting((w) => ({ ...w, [selected.publicId]: { askedAt: at, sent: true } }))
-  }
-
-  function stopWaiting() {
-    if (!selected) return
-    const id = selected.publicId
-    setWaiting((w) => {
-      const { [id]: _gone, ...rest } = w
-      return rest
-    })
-  }
-
-  const windowOpen = !!selected?.windowClosesAt && now < Date.parse(selected.windowClosesAt)
   const access: Access = scenario.access ?? "full"
   // ?controls=open — a walkthrough link that needs "Client writes now" or
   // "Next send" opens with the bar already showing.
   const [showControls, setShowControls] = useState(params.get("controls") === "open")
   const frameWidth = width === "fit" ? undefined : Number(width) - SIDEBAR_COLLAPSED
+  const viewportTier = useLayoutTier()
+  // The 1280 and 1366 frames are desktop widths, whatever the window is.
+  const tier: LayoutTier = frameWidth ? "wide" : viewportTier
+  const overlayPane = tier !== "wide"
+  const oneAtATime = tier === "narrow"
+  // The pane sits beside the chat only when there is room; below that it
+  // starts closed and opens over the chat.
+  useEffect(() => {
+    setPaneOpen(!overlayPane)
+  }, [overlayPane])
   const threadAnchor = useThreadAnchor(access === "full" || access === "read-only", lang, width)
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col p-3">
+    <div className="relative flex min-h-0 flex-1 flex-col p-3 lg:pl-0">
       {/* The chip floats in the top bar, centered on the thread. A portal keeps
           it above the topbar, which would otherwise eat the clicks. */}
       {threadAnchor
@@ -578,7 +554,7 @@ function InboxPhase0() {
                   <div
                     dir={lang === "ar" ? "rtl" : "ltr"}
                     lang={lang}
-                    className="pointer-events-auto absolute top-full left-1/2 z-50 mt-2 w-[min(1080px,calc(100vw-1.5rem))] -translate-x-1/2"
+                    className="pointer-events-auto absolute top-full left-1/2 z-50 mt-2 w-[min(1080px,calc(100vw-1.5rem))] -translate-x-1/2 rounded-xl bg-card shadow-lg"
                   >
                     <DesignRepoBar
                       label="switch the state, what the next send does, language and frame width"
@@ -676,9 +652,13 @@ function InboxPhase0() {
             dir={lang === "ar" ? "rtl" : "ltr"}
             lang={lang}
             style={frameWidth ? { width: frameWidth } : undefined}
-            className={cn("flex min-h-0 shrink-0 gap-3", !frameWidth && "w-full")}
+            className={cn("relative flex min-h-0 shrink-0 gap-3", !frameWidth && "w-full")}
           >
             <ConversationList
+              className={cn(
+                oneAtATime && "w-full max-w-none",
+                oneAtATime && narrowView === "chat" && "hidden",
+              )}
               status={listStatus}
               conversations={visible}
               selectedId={selected?.publicId ?? null}
@@ -701,8 +681,30 @@ function InboxPhase0() {
               noChats={listStatus === "empty"}
               copy={copy}
               lang={lang}
+              paneOpen={paneOpen}
+              onTogglePane={() => setPaneOpen((v) => !v)}
+              onAdd={() => setAddOpen(true)}
+              onBack={oneAtATime ? () => setNarrowView("list") : undefined}
+              className={cn(
+                oneAtATime && "min-w-0",
+                oneAtATime && narrowView === "list" && "hidden",
+              )}
             />
+            {overlayPane && paneOpen ? (
+              // Tapping the chat behind the sheet closes it.
+              <button
+                type="button"
+                aria-label={copy.hideClientPane}
+                className="absolute inset-0 z-10 rounded-2xl bg-black/15"
+                onClick={() => setPaneOpen(false)}
+              />
+            ) : null}
+            {/* Always mounted: hidden keeps its Match and Add dialogs reachable. */}
             <ClientPane
+              hidden={!paneOpen}
+              className={cn(
+                overlayPane && "absolute inset-y-0 end-0 z-20 max-w-[calc(100%-1.5rem)] shadow-xl",
+              )}
               status={
                 listStatus === "loading" || threadStatus === "loading" ? "loading" : threadStatus
               }
@@ -710,8 +712,6 @@ function InboxPhase0() {
               directory={directory}
               mode={access === "full" ? paneMode : "summary"}
               onModeChange={setPaneMode}
-              waiting={selected ? (waiting[selected.publicId] ?? null) : null}
-              windowOpen={windowOpen}
               hasPets={hasPets}
               visitsMode={scenario.visits ?? "normal"}
               canEdit={access === "full"}
@@ -720,15 +720,40 @@ function InboxPhase0() {
               lang={lang}
               onMatch={matchChat}
               onCreate={createClient}
-              onAskName={askName}
-              onSendAskTemplate={sendAskTemplate}
-              onStopWaiting={stopWaiting}
+              addOpen={addOpen}
+              onAddOpenChange={setAddOpen}
+              onClose={() => setPaneOpen(false)}
             />
           </div>
         </div>
       )}
     </div>
   )
+}
+
+// ─── Layout tiers ────────────────────────────────────────────────────────────
+// 1280 and up: three panes. 1024 to 1279: list and chat, the client pane a
+// sheet over the chat. Below 1024 (tablet portrait): one pane at a time, the
+// chat full width with a back arrow, the client pane a sheet.
+type LayoutTier = "wide" | "medium" | "narrow"
+
+function useLayoutTier(): LayoutTier {
+  const [tier, setTier] = useState<LayoutTier>("wide")
+  useEffect(() => {
+    // Test environments have no matchMedia; they get the desktop layout.
+    if (typeof window.matchMedia !== "function") return
+    const wide = window.matchMedia("(min-width: 1280px)")
+    const medium = window.matchMedia("(min-width: 1024px)")
+    const read = () => setTier(wide.matches ? "wide" : medium.matches ? "medium" : "narrow")
+    read()
+    wide.addEventListener("change", read)
+    medium.addEventListener("change", read)
+    return () => {
+      wide.removeEventListener("change", read)
+      medium.removeEventListener("change", read)
+    }
+  }, [])
+  return tier
 }
 
 export function InboxPhase0Screen() {

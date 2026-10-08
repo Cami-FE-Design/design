@@ -37,14 +37,22 @@ export function ConversationAvatar({
   unmatchedLabel,
 }: {
   conversation: InboxConversation
-  size?: "md" | "lg" | "empty"
+  size?: "sm" | "md" | "lg" | "empty"
   unmatchedLabel?: string
 }) {
   const name = customerName(conversation)
   if (!name) {
     // "empty" is the unmatched pane mark, about 96px. List rows stay "md".
-    const box = size === "empty" ? "size-24" : size === "lg" ? "size-12" : "size-9"
-    const icon = size === "empty" ? "size-10" : size === "lg" ? "size-5" : "size-4"
+    const box =
+      size === "empty" ? "size-24" : size === "lg" ? "size-12" : size === "sm" ? "size-7" : "size-9"
+    const icon =
+      size === "empty"
+        ? "size-10"
+        : size === "lg"
+          ? "size-5"
+          : size === "sm"
+            ? "size-3.5"
+            : "size-4"
     return (
       <span
         className={`inline-flex ${box} shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50 text-muted-foreground`}
@@ -86,18 +94,4 @@ export function previewOf(
   if (m.body) return { icon, text: m.body }
   if (media) return { icon, text: mediaLabel(media.kind, copy) }
   return { text: "" }
-}
-
-/** IX-C4 row 3: a name the client gave in a message — "this is Fatima",
- *  "I'm Rana", "my name is Omar". Latest message first. Only ever a guess the
- *  form marks as one; nothing is guessed from a number. */
-export function guessName(messages: InboxMessage[]): string | null {
-  const pattern = /\b(?:this is|i'm|i am|my name is|it's|it is|name's)\s+([A-Z][a-z]{1,20})\b/i
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i]!
-    if (m.direction !== "inbound" || !m.body) continue
-    const found = m.body.match(pattern)?.[1]
-    if (found) return found.charAt(0).toUpperCase() + found.slice(1).toLowerCase()
-  }
-  return null
 }

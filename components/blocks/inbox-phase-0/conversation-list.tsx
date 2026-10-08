@@ -134,6 +134,7 @@ export function ConversationList({
   copy,
   lang,
   now,
+  className,
 }: {
   status: PaneStatus
   conversations: InboxConversation[]
@@ -143,6 +144,7 @@ export function ConversationList({
   copy: InboxCopy
   lang: Lang
   now: number
+  className?: string
 }) {
   const sorted = useMemo(
     () => [...conversations].sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt)),
@@ -152,14 +154,17 @@ export function ConversationList({
   return (
     <aside
       aria-label={copy.chatList}
-      className="flex w-72 max-w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+      className={cn(
+        "flex w-72 max-w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm",
+        className,
+      )}
     >
       <div className="flex items-center border-b border-border px-4 py-3">
-        <h1 className="flex min-h-8 min-w-0 flex-1 items-center truncate text-base font-semibold text-foreground">
+        <h1 className="flex min-h-9 min-w-0 flex-1 items-center truncate text-base font-semibold text-foreground">
           {copy.inbox}
         </h1>
       </div>
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-sand-3">
+      <div className="no-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto bg-sand-3">
         {status === "loading" ? (
           <ListSkeleton />
         ) : status === "error" ? (

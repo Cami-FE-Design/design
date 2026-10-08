@@ -9,6 +9,8 @@ import {
   type InboxConversation,
 } from "@/app/messages/inbox/phase-0/mock"
 
+import { ClientSummary } from "@/components/blocks/clients/client-summary"
+
 import { ClientPane, type PaneMode } from "./client-pane"
 import { Composer } from "./composer"
 import { ConversationList } from "./conversation-list"
@@ -44,6 +46,7 @@ function Frame({ label, children }: { label: string; children: React.ReactNode }
 export function InboxPhase0Showcase() {
   const { chats, directory, chat } = useSeed()
   const [mode, setMode] = useState<PaneMode>("summary")
+  const [addOpen, setAddOpen] = useState(false)
   const listSubset = ["unmatched-saturday", "layla", "noura", "omar"].map(chat)
 
   return (
@@ -109,7 +112,9 @@ export function InboxPhase0Showcase() {
       <div className="flex flex-wrap gap-6">
         {(
           [
-            ["Client pane — ClientSummary", "layla"],
+            ["Client pane — ClientSummary, pet with notes", "layla"],
+            ["Client pane — two pets, notes on one", "huda"],
+            ["Client pane — without pets: Pets left out", "noura"],
             ["Client pane — unmatched: Match and Add only", "unmatched-saturday"],
           ] as const
         ).map(([label, id]) => (
@@ -119,10 +124,8 @@ export function InboxPhase0Showcase() {
                 status="ready"
                 conversation={chat(id)}
                 directory={directory}
-                mode={id === "layla" ? "summary" : mode}
+                mode={id.startsWith("unmatched") ? mode : "summary"}
                 onModeChange={setMode}
-                waiting={null}
-                windowOpen
                 hasPets
                 visitsMode="normal"
                 canEdit
@@ -131,13 +134,58 @@ export function InboxPhase0Showcase() {
                 lang="en"
                 onMatch={noop}
                 onCreate={noop}
-                onAskName={noop}
-                onSendAskTemplate={noop}
-                onStopWaiting={noop}
+                addOpen={addOpen}
+                onAddOpenChange={setAddOpen}
+                onClose={noop}
               />
             </div>
           </Frame>
         ))}
+      </div>
+      <div className="flex flex-wrap gap-6">
+        {/* Just added from the chat: no history, so only Appointments' empty state. */}
+        <Frame label="ClientSummary — new client, no appointments">
+          <div className="flex h-[24rem] w-[400px] overflow-hidden rounded-2xl border border-border">
+            <ClientSummary
+              initial={{
+                customerId: "cus-new",
+                name: "Fatima Noor",
+                phone: "+971 50 555 0142",
+                pets: [],
+                lastService: null,
+                archived: false,
+                homeLocation: null,
+              }}
+              hasPets
+              now={DEMO_NOW}
+              lang="en"
+              onViewProfile={noop}
+            />
+          </div>
+        </Frame>
+        <Frame label="ClientSummary — visits read failed">
+          <div className="flex h-[24rem] w-[400px] overflow-hidden rounded-2xl border border-border">
+            <ClientSummary
+              initial={{
+                customerId: "cus-sara",
+                name: "Sara Nasser",
+                phone: "+971 50 123 4503",
+                pets: [{ name: "Milo", species: "dog", breed: "Cavapoo" }],
+                lastService: {
+                  name: "Puppy introduction groom, under 6 months",
+                  at: new Date(DEMO_NOW - 12 * 864e5).toISOString(),
+                },
+                archived: false,
+                homeLocation: null,
+              }}
+              hasPets
+              now={DEMO_NOW}
+              lang="en"
+              simulate="error"
+              onViewProfile={noop}
+            />
+          </div>
+        </Frame>
       </div>
       <p className="text-xs text-muted-foreground">
         {chats.length} seeded chats. Every flow, with links:

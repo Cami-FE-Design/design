@@ -147,17 +147,17 @@ the coverage table and the contract proposal.
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-closed>
 1. Right pane → **Match to client**. Don't type anything.
 - "This number is on 2 client records. Pick the right one." — both listed.
-2. Pick **Khalid Omar** → **Match**.
-- "This number is already on their record." After Match: the chat is Khalid's, the line "Matched to Khalid Omar by Queenie" is added, and his message from before is still there.
+2. Pick **Khalid Omar**. The number is already on his record, so picking him is the match: no confirm step.
+- The chat is Khalid's, the line "Matched to Khalid Omar by Queenie" is added, and his message from before is still there.
 
 **F2 · Search, and what happens to the number** [IX-C3 row 2]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-fatima>
 1. **Match to client** → type `Fatima`.
 - Two results.
 2. Pick **Fatima Noor** (no number on her record).
-- "This number will be saved on their record."
-3. **Back**, pick **Fatima Al Hashimi** (a different number).
-- Keep their current number (default) or Replace it. *Michelle's open decision — this is the proposal.*
+- "Match to Fatima Noor". "+971 52 883 0044 will be saved on their record." Cancel or Match.
+3. **Cancel**, open Match again, pick **Fatima Al Hashimi** (a different number).
+- On record and This chat, both numbers. "Update their number to the one from this chat" is unchecked: Match links the chat and keeps her number. Check it: her number on record is struck through and the button reads **Match and update number**.
 4. Try searching `Luna` — found by pet name.
 
 **F3 · Archived, and another location** [IX-C3 edge cases]
@@ -167,36 +167,28 @@ the coverage table and the contract proposal.
 
 **F4 · Wrong client? Re-match** [IX-C3 row 4]
 <http://localhost:3000/messages/inbox/phase-0>
-1. Right pane, bottom → **Wrong client? Change the match** → search `Rana` → pick her → **Match**.
+1. Chat header **⋯** → **Change linked client** → search `Rana` → pick her → **Match**.
 - The line "Match changed from Layla Haddad to Rana Haddad by Queenie" is added. The first line ("Linked… by Cami") stays — both changes are kept.
 
 ---
 
 ## G. Adding a new client from the chat
 
-**G1 · The name is in their message** [IX-C4 rows 1, 2, 3, 6]
+**G1 · Add a client** [IX-C4 rows 1, 2, 6]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-fatima>
-1. Right pane → **Add new client**.
-- Phone filled. First name "Fatima", highlighted, "Guessed from their message — check it". Last name and first pet optional.
-2. **Save client**.
-- The chat becomes Fatima's, the line "Fatima added as a new client by Queenie" is added, and the pane shows "New client".
+1. Right pane → **Add new client** (or chat header **Link client** → **Add new client**).
+- A short dialog. Phone filled and read only. First name and last name empty: nothing is prefilled. Save is off until a first name is typed. No pet field.
+2. Type `Fatima` → **Save client**.
+- The chat becomes Fatima's, the line "Fatima added as a new client by Queenie" is added, and the card shows "No appointments yet".
 
-**G2 · No name: ask once, wait, add** [IX-C4 row 4]
-<http://localhost:3000/messages/inbox/phase-0?c=unmatched-saturday&controls=open>
-1. **Add new client** — First name empty, Save off. Click **Ask for their name**.
-- The question goes into the chat. The pane: "Waiting for their name".
-2. Open **Add new client** again.
-- "Already asked … waiting for their reply" — no second question.
-3. Cancel, then **Client writes now** in the dashed bar.
-- The client replies "It's Rana, thanks!". The pane: "They replied — Their reply gives a name: Rana".
-4. **Add Rana** → **Save client**.
+**G2 · Name not known** [IX-C4 rows 3 and 4, proposed change]
+<http://localhost:3000/messages/inbox/phase-0?c=unmatched-saturday>
+1. Reply in the chat to ask for their name. Free text to an unmatched chat is allowed. Nothing is sent by Cami on its own.
+2. **Add new client** once you know it.
 
-**G3 · No name, window closed: nothing is sent** [IX-C4 row 4 with the window closed, P10]
+**G3 · No name, window closed** [IX-C4 row 4 with the window closed]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-quiet>
-1. **Add new client** → **Ask for their name**.
-- Nothing is sent. The pane waits: "Free text is closed, so the question can't go as a message…"
-2. **Send as template**.
-- The question goes as the "Ask for a name" template.
+1. The composer is closed. **Choose a template** → "Ask for a name" or "Thanks, reply here". Neither has a blank, so both can go on an unmatched chat.
 
 **G4 · The number is already a client** [IX-C4 row 5]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-closed>
@@ -205,9 +197,9 @@ the coverage table and the contract proposal.
 
 **G5 · Full details, pets, abandon** [IX-C4 edge cases]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-fatima>
-1. **Add new client** → "Need consent or an address? Open the full client form" — the existing client form, prefilled.
-2. **Cancel** — the chat stays unmatched, nothing is created.
-3. The same with <http://localhost:3000/messages/inbox/phase-0?c=unmatched-fatima&pets=off> — no first-pet field.
+1. **Add new client** → **Open full client form**: the existing client form, prefilled.
+2. **Cancel**: the chat stays unmatched, nothing is created.
+3. The dialog has no first-pet field, with or without pets (T1-D20).
 
 ---
 
@@ -215,7 +207,9 @@ the coverage table and the contract proposal.
 
 **H1 · Summary** [IX-C6 rows 1, 2, 7]
 <http://localhost:3000/messages/inbox/phase-0>
-- Name, phone, pet and last service at once. Last three visits (what, who, when, AED) a moment later. Notes: "Team only · never sent to the client".
+- Name, phone, View profile and Pets at once, then **Upcoming**, then **Last visits** (the last three; relative and actual date, staff avatar with the name on hover, service, AED). Coco's Behavior note is under her. Client notes last, with author and date.
+- <http://localhost:3000/messages/inbox/phase-0?c=huda>: two pets, notes on Bella only.
+- `&pets=off`: no Pets section; the card starts with Upcoming.
 
 **H2 · Visits slow** [IX-C6 "history endpoint slow"]
 <http://localhost:3000/messages/inbox/phase-0?state=visits-slow>
@@ -227,7 +221,12 @@ the coverage table and the contract proposal.
 
 **H4 · Unmatched** [IX-C6 edge case, P9]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-saturday>
-- No summary — only Match to client and Add new client.
+- No summary: the dashed avatar and the number, then Match to client and Add new client.
+
+**H5 · Tablet and small laptop** [T1-D1]
+<http://localhost:3000/messages/inbox/phase-0?c=huda>
+- Narrow the window below 1280: the client pane starts hidden; the panel icon (tooltip Show client) opens it as a sheet over the chat. Tap the dimmed chat or × to close.
+- Below 1024: the list fills the screen; tap a chat to open it full width, with a back arrow to the list.
 
 ---
 

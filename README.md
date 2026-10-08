@@ -48,6 +48,12 @@ lib/                # Data, mocks and helpers, grouped by domain
 styles/             # Additional CSS if you need to split globals.css
 ```
 
+## Related repos
+
+The PMOS product workspace (product context, PM workflows, and work artifacts) used to
+live here under `cami design with dotzero/PMOS`. It moved to its own repo:
+<https://github.com/michhyou/cami-pmos>. Nothing in this repo depended on it.
+
 ## Next steps
 
 - Read [ARCHITECTURE.md](./ARCHITECTURE.md) for stack choices and why each one is here.
