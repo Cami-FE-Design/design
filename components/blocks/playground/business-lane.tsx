@@ -74,6 +74,11 @@ import { MoneyFeesView } from "@/components/blocks/money/money-fees"
 import { MoneySummaryView } from "@/components/blocks/money/money-summary"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { Lane, LazyMount, Row, Section } from "@/components/blocks/playground/kit"
+import {
+  SelectBrandDialog,
+  SelectCategoryDialog,
+  SelectSupplierDialog,
+} from "@/components/blocks/products/product-attribute-dialogs"
 import { ProductBranchStock } from "@/components/blocks/products/product-branch-stock"
 import { PublicBranchPicker } from "@/components/blocks/public/public-branch-picker"
 import { CapacityHeatmap } from "@/components/blocks/reports/charts/capacity-heatmap"
@@ -2093,6 +2098,37 @@ function CustomerCardPreview({
   )
 }
 
+function ProductPickersDemo() {
+  const [open, setOpen] = useState<"brand" | "category" | "supplier" | null>(null)
+  const [picked, setPicked] = useState<Record<string, string>>({})
+  const pick = (kind: string) => (item: { name: string }) =>
+    setPicked((prev) => ({ ...prev, [kind]: item.name }))
+  return (
+    <Row label="Open one">
+      {(["brand", "category", "supplier"] as const).map((kind) => (
+        <Button key={kind} variant="outline" radius="full" onClick={() => setOpen(kind)}>
+          {picked[kind] ?? `Select a ${kind}`}
+        </Button>
+      ))}
+      <SelectBrandDialog
+        open={open === "brand"}
+        onOpenChange={(o) => setOpen(o ? "brand" : null)}
+        onSelect={pick("brand")}
+      />
+      <SelectCategoryDialog
+        open={open === "category"}
+        onOpenChange={(o) => setOpen(o ? "category" : null)}
+        onSelect={pick("category")}
+      />
+      <SelectSupplierDialog
+        open={open === "supplier"}
+        onOpenChange={(o) => setOpen(o ? "supplier" : null)}
+        onSelect={pick("supplier")}
+      />
+    </Row>
+  )
+}
+
 export function BusinessLane() {
   const reportPaymentsSummary = getReport("payments-summary")
   const reportDiscountSummary = getReport("discount-summary")
@@ -3075,6 +3111,12 @@ export function BusinessLane() {
           />
           <NavigateToAddress size="compact" address="Villa 12, Street 4B, Jumeirah 1, Dubai" />
         </Row>
+      </Section>
+      <Section
+        title="Product pickers — brand, category, supplier"
+        description="One dialog, three configs. Search a list, pick one, or add a new one in a second dialog and have it picked. Suppliers show no product count and ask for a short description when added."
+      >
+        <ProductPickersDemo />
       </Section>
       <Section
         title="Service menu — cards & sidebar"

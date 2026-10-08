@@ -9,9 +9,11 @@ import {
   Trash2Icon,
 } from "lucide-react"
 import { useState } from "react"
-import { SelectBrandDialog } from "@/components/blocks/products/select-brand-dialog"
-import { SelectCategoryDialog } from "@/components/blocks/products/select-category-dialog"
-import { SelectSupplierDialog } from "@/components/blocks/products/select-supplier-dialog"
+import {
+  SelectBrandDialog,
+  SelectCategoryDialog,
+  SelectSupplierDialog,
+} from "@/components/blocks/products/product-attribute-dialogs"
 import { WriteTargetLocation } from "@/components/blocks/settings/write-target-location"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

@@ -16,14 +16,16 @@ import {
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useState } from "react"
+import {
+  SelectBrandDialog,
+  SelectCategoryDialog,
+} from "@/components/blocks/products/product-attribute-dialogs"
 import { ProductDetailDialog } from "@/components/blocks/products/product-detail-dialog"
 import {
   MOCK_PRODUCTS,
   type Product,
   ProductsTable,
 } from "@/components/blocks/products/products-table"
-import { SelectBrandDialog } from "@/components/blocks/products/select-brand-dialog"
-import { SelectCategoryDialog } from "@/components/blocks/products/select-category-dialog"
 import { ConfirmDialog } from "@/components/blocks/shared/confirm-dialog"
 import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { PageHeader } from "@/components/blocks/shared/page-header"
