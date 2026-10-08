@@ -13,6 +13,7 @@ import {
   type SummaryVisit,
 } from "@/lib/client-summary/mock"
 import type { PetNoteCategoryId } from "@/lib/pet-notes"
+import { cn } from "@/lib/utils"
 
 // `ClientSummary` (FND-4): a display-only client view owned by the customer
 // side. A host passes what it already has as initial data and the card reads
@@ -233,9 +234,12 @@ export function ClientSummary({
   timeZone,
   simulate,
   onViewProfile,
+  className,
 }: {
   /** The host opens the full profile. Without it the pill is absent, never dead. */
   onViewProfile?: () => void
+  /** A host that paints the grey itself (the inbox pane's scroll area) passes bg-transparent. */
+  className?: string
   initial: ClientSummaryInitial
   /** The merchant has the pet module. Pets show only with it and a pet (FND-4). */
   hasPets: boolean
@@ -326,7 +330,7 @@ export function ClientSummary({
     ) : null
 
   return (
-    <div className="flex min-h-full shrink-0 grow flex-col bg-muted/40">
+    <div className={cn("flex min-h-full shrink-0 grow flex-col bg-muted/40", className)}>
       {/* Painted from initial data: who they are. */}
       <div className="flex items-center gap-3 px-4 py-4">
         <Avatar size="lg" fallback="character" name={initial.name} hashSeed={initial.customerId} />

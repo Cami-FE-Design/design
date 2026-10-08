@@ -505,7 +505,7 @@ function UnmatchedPane({
   onAdd: () => void
 }) {
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-muted/40">
+    <div className="flex min-h-full flex-1 flex-col">
       <UnmatchedBand conversation={conversation} copy={copy} />
       <div className="flex flex-col gap-4 border-t border-border/60 p-4">
         <div className="flex w-full flex-col gap-2">
@@ -708,6 +708,7 @@ export function ClientPane({
       body = (
         <div key={customer.publicId} className="flex min-h-full shrink-0 grow flex-col">
           <ClientSummary
+            className="bg-transparent"
             initial={{
               customerId: customer.publicId,
               name: [customer.firstName, customer.lastName].filter(Boolean).join(" "),
@@ -748,7 +749,7 @@ export function ClientPane({
       )
     } else if (!canEdit) {
       body = (
-        <div className="flex min-h-full flex-1 flex-col bg-muted/40">
+        <div className="flex min-h-full flex-1 flex-col">
           <UnmatchedBand conversation={conversation} copy={copy} />
         </div>
       )
@@ -813,7 +814,12 @@ export function ClientPane({
         ) : null}
         <TabsContent
           value="client"
-          className={cn("no-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto")}
+          className={cn(
+            "no-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto",
+            // The grey lives on the scroll area, so it runs to the bottom
+            // however tall the content is.
+            status === "ready" && conversation && "bg-muted/40",
+          )}
         >
           {body ?? <PanePlaceholder copy={copy} />}
         </TabsContent>
