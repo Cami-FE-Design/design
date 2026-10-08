@@ -38,6 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { bookingStatusBadge } from "@/lib/appointments/status"
+import { formatDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
@@ -107,25 +108,6 @@ function augment(b: MockBooking, index: number): Augmented {
     createdAt,
     createdBy: "Hussain Shabbir",
   }
-}
-
-const MONTH_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-]
-
-function formatDateOnly(d: Date) {
-  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
 }
 
 function refOf(b: MockBooking) {
@@ -423,10 +405,10 @@ function AppointmentsListPageInner() {
                         facts and makes every row in the table a different
                         height. */}
                     <TableCell className="whitespace-nowrap text-sm text-foreground">
-                      {formatDateOnly(b.createdAt)}
+                      {formatDate(b.createdAt)}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-sm text-foreground">
-                      {formatDateOnly(b.scheduledAt)}
+                      {formatDate(b.scheduledAt)}
                     </TableCell>
                     {/* Duration column hidden for now */}
                     {/* The branch under the person, not beside them. A booking

@@ -7,22 +7,13 @@ import { CamiMark } from "@/components/brand/cami-mark"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useAuth } from "@/lib/auth-mock"
+import { initialOf, splitName } from "@/lib/format"
 import { HQ_ROLE_LABELS } from "@/lib/roles-mock"
 import { cn } from "@/lib/utils"
 
 type AdminTopbarProps = React.ComponentProps<"div"> & {
   brand?: React.ReactNode
   notificationCount?: number
-}
-
-function initialOf(name?: string) {
-  if (!name) return ""
-  return name.trim().charAt(0).toUpperCase()
-}
-
-function splitName(full: string) {
-  const [first, ...rest] = full.trim().split(/\s+/)
-  return { firstName: first ?? "", lastName: rest.join(" ") }
 }
 
 const iconButtonClass = "size-11 rounded-full text-sidebar-foreground"

@@ -11,7 +11,6 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   type ComboService,
-  formatDuration,
   formatPrice,
   SelectServicesDialog,
 } from "@/components/blocks/catalog/select-services-dialog"
@@ -33,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { formatDurationLong } from "@/lib/format"
 import { useServiceCategories, useServices } from "@/lib/service-catalog/store"
 import {
   APPOINTMENT_COLORS,
@@ -387,7 +387,7 @@ export function ComboForm({
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-foreground">{service.name}</p>
                       <p className="text-sm text-muted-foreground">
-                        {formatDuration(service.duration)}
+                        {formatDurationLong(service.duration)}
                       </p>
                     </div>
                     <div className="shrink-0 text-right text-sm">
@@ -431,7 +431,7 @@ export function ComboForm({
               {services.length > 0 && (
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-muted-foreground">
-                    Total duration: {formatDuration(totalDuration)}
+                    Total duration: {formatDurationLong(totalDuration)}
                   </span>
                   {isDiscounted && (
                     <span className="text-muted-foreground line-through">

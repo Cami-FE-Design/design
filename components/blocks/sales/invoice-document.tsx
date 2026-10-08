@@ -23,6 +23,7 @@
 
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
+import { formatTime } from "@/lib/format"
 import {
   documentTitle,
   formatInvoiceAmount,
@@ -38,14 +39,6 @@ import { cn } from "@/lib/utils"
 
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
 const MONTH = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-
-function formatTime(d: Date) {
-  let h = d.getHours()
-  const m = d.getMinutes()
-  const meridiem = h >= 12 ? "pm" : "am"
-  h = h % 12 || 12
-  return `${h}:${m.toString().padStart(2, "0")}${meridiem}`
-}
 
 /** "16 Aug 2026" — the compact form used in the meta block. */
 function formatDate(d: Date) {

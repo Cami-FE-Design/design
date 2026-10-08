@@ -43,14 +43,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { formatTime } from "@/lib/format"
+import { formatTime, toDayIso } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import {
   formatDayHeading,
   formatMoney,
   fromDayIso,
   SCOPE_STATEMENT,
-  toDayIso,
   txKindLabel,
 } from "@/lib/money/format"
 import { filterActivity, groupByDay, paginateDays } from "@/lib/money/ledger"

@@ -62,26 +62,11 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { formatAed } from "@/lib/format"
+import { formatAed, formatDate, formatLongDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-const MONTH_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-]
 
 const MONTH_FULL = [
   "January",
@@ -98,16 +83,7 @@ const MONTH_FULL = [
   "December",
 ]
 
-const WEEKDAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-
-function formatDate(d: Date) {
-  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
-}
-
 // "Wednesday, 30 Jun 2027" — used by the Extend expiry select.
-function formatLongDate(d: Date) {
-  return `${WEEKDAY_FULL[d.getDay()]}, ${formatDate(d)}`
-}
 
 function addYears(d: Date, years: number) {
   return new Date(d.getFullYear() + years, d.getMonth(), d.getDate())

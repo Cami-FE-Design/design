@@ -5,6 +5,7 @@ import { useState } from "react"
 
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { toDayIso } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type DatePickerProps = {
@@ -24,14 +25,6 @@ function parseDate(value: string): Date | undefined {
   if (!value) return undefined
   const d = new Date(value)
   return Number.isNaN(d.getTime()) ? undefined : d
-}
-
-function toIso(date: Date): string {
-  // Local-date safe: YYYY-MM-DD without timezone shift.
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
 }
 
 function formatDisplay(date: Date): string {
@@ -82,7 +75,7 @@ export function DatePicker({
           mode="single"
           selected={selected}
           onSelect={(d) => {
-            if (d) onChange(toIso(d))
+            if (d) onChange(toDayIso(d))
             else onChange("")
             setOpen(false)
           }}

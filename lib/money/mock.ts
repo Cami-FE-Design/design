@@ -13,6 +13,7 @@
 // rates panel already reads, so the fee a merchant sees on this ledger is the
 // fee their rate card says they pay.
 
+import { addDaysIso } from "@/lib/format"
 import { type CamiPayRate, computeFee } from "@/lib/hq-camipay/store"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import type { CamiPayRail, MerchantRails, MoneyTx, Payout } from "./types"
@@ -192,12 +193,6 @@ function weekdayOf(dayIso: string): number {
   return new Date(`${dayIso}T00:00:00Z`).getUTCDay()
 }
 
-function addDays(dayIso: string, days: number): string {
-  const d = new Date(`${dayIso}T00:00:00Z`)
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
-}
-
 function at(dayIso: string, minutesFrom9am: number): string {
   const d = new Date(`${dayIso}T09:00:00Z`)
   d.setUTCMinutes(d.getUTCMinutes() + minutesFrom9am)
@@ -246,7 +241,7 @@ function build(): { txs: MoneyTx[]; payouts: Payout[] } {
 
       // Terminal Phase 1 trusts the device report, so a small share of recent
       // terminal rows are "reported" rather than gateway-confirmed (SET-C9).
-      const isRecent = day >= addDays(TODAY_ISO, -2)
+      const isRecent = day >= addDaysIso(TODAY_ISO, -2)
       const confirmation =
         rail === "terminal" && isRecent && rand() < 0.35 ? "reported" : "confirmed"
 
@@ -422,7 +417,7 @@ function schedulePayouts(txs: MoneyTx[], nextId: (prefix: string) => string): Pa
       }
 
       const id = nextId("po")
-      const arrivesAt = addDays(day, rail === "online" ? 1 : 1)
+      const arrivesAt = addDaysIso(day, rail === "online" ? 1 : 1)
       const failed = !failureUsed && rail === FAILED_RUN.rail && day >= FAILED_RUN.notBefore
       if (failed) failureUsed = true
 
@@ -458,7 +453,7 @@ function schedulePayouts(txs: MoneyTx[], nextId: (prefix: string) => string): Pa
 
       if (failed) {
         // The retry is its own payout, moving the same money (SET-C6).
-        const retryDay = addDays(day, 1)
+        const retryDay = addDaysIso(day, 1)
         const retryId = nextId("po")
 
         // The money came back. A new row, never an edit of the payout row
@@ -487,7 +482,7 @@ function schedulePayouts(txs: MoneyTx[], nextId: (prefix: string) => string): Pa
           rail,
           amountMinor,
           sentAt: at(retryDay, -180),
-          arrivesAt: `${addDays(retryDay, 1)}T00:00:00.000Z`,
+          arrivesAt: `${addDaysIso(retryDay, 1)}T00:00:00.000Z`,
           status: "paid",
           destinationLast4: DESTINATION_LAST4,
           retryOfPayoutId: id,
@@ -553,7 +548,7 @@ export function periodBounds(key: PeriodKey): {
 
 /** The next run per rail — what the headline's "arriving" clause reads (G1). */
 export function nextPayoutDay(rail: CamiPayRail): string {
-  if (rail === "terminal") return addDays(TODAY_ISO, 1)
+  if (rail === "terminal") return addDaysIso(TODAY_ISO, 1)
   const day = new Date(`${TODAY_ISO}T00:00:00Z`)
   do {
     day.setUTCDate(day.getUTCDate() + 1)

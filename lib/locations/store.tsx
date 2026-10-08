@@ -34,6 +34,7 @@ import { LOCATIONS, locationName, NINE_BRANCH_ESTATE } from "@/lib/locations/moc
 import { BUSINESS_TIMEZONE, normaliseOverride, type Timezone } from "@/lib/locations/timezone"
 import type { Location, LocationScope, LocationStatus } from "@/lib/locations/types"
 import { acceptsWrites } from "@/lib/locations/types"
+import { slugify } from "@/lib/utils"
 
 /**
  * The fallback for a business with no branches yet to inherit from. Weekdays
@@ -189,15 +190,6 @@ export type NewLocationInput = {
   name: string
   city: string
   timezone: string
-}
-
-/** Kebab-case, and the branch's public URL, so a collision is a real conflict. */
-export function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
 }
 
 /**

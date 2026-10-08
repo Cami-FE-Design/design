@@ -42,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { minutesOfDay } from "@/lib/format"
 import { formatTime12h } from "@/lib/locations/hours"
 import {
   dayWindowProblem,
@@ -68,23 +69,21 @@ const TIMES: string[] = Array.from({ length: 48 }, (_, i) => {
   return `${String(h).padStart(2, "0")}:${m}`
 })
 
-function toMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number)
-  return (h ?? 0) * 60 + (m ?? 0)
-}
-
 function minutesToTime(total: number): string {
   const capped = Math.min(23 * 60 + 30, total)
   return `${String(Math.floor(capped / 60)).padStart(2, "0")}:${String(capped % 60).padStart(2, "0")}`
 }
 
 function addMinutes(time: string, minutes: number): string {
-  const total = Math.min(23 * 60 + 30, toMinutes(time) + minutes)
+  const total = Math.min(23 * 60 + 30, minutesOfDay(time) + minutes)
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`
 }
 
 function totalMinutes(windows: ReadonlyArray<ShiftTime>): number {
-  return windows.reduce((sum, w) => sum + Math.max(0, toMinutes(w.end) - toMinutes(w.start)), 0)
+  return windows.reduce(
+    (sum, w) => sum + Math.max(0, minutesOfDay(w.end) - minutesOfDay(w.start)),
+    0,
+  )
 }
 
 export function AddShiftDialog({
@@ -131,7 +130,10 @@ export function AddShiftDialog({
    */
   function opening(): ShiftTime[] {
     if (windows.length > 0) return windows.map((w) => ({ ...w }))
-    const busyUntil = elsewhere.reduce((latest, other) => Math.max(latest, toMinutes(other.end)), 0)
+    const busyUntil = elsewhere.reduce(
+      (latest, other) => Math.max(latest, minutesOfDay(other.end)),
+      0,
+    )
     if (busyUntil === 0) return [{ start: "09:00", end: "17:00" }]
     const start = addMinutes(minutesToTime(busyUntil), 30)
     return [{ start, end: addMinutes(start, 60) }]
@@ -160,7 +162,9 @@ export function AddShiftDialog({
   // owner's to catch, on the grid, where it is named as a pair.
   const clashes = elsewhere.filter((other) =>
     draft.some(
-      (w) => toMinutes(w.start) < toMinutes(other.end) && toMinutes(w.end) > toMinutes(other.start),
+      (w) =>
+        minutesOfDay(w.start) < minutesOfDay(other.end) &&
+        minutesOfDay(w.end) > minutesOfDay(other.start),
     ),
   )
   const firstName = memberName.split(" ")[0] ?? memberName
@@ -172,7 +176,7 @@ export function AddShiftDialog({
         const next = { ...w, ...patch }
         // Moving the start past the end silently produces a negative shift, so
         // the end follows rather than waiting to be reported as an error.
-        if (patch.start && toMinutes(next.end) <= toMinutes(next.start)) {
+        if (patch.start && minutesOfDay(next.end) <= minutesOfDay(next.start)) {
           next.end = addMinutes(next.start, 60)
         }
         return next

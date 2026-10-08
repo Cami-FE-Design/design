@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { minutesOfDay } from "@/lib/format"
 import { formatTime12h, WEEK_DAYS } from "@/lib/locations/hours"
 import { formatHours, type Leave } from "@/lib/team/shifts"
 import { cn } from "@/lib/utils"
@@ -63,11 +64,6 @@ const TIMES: string[] = Array.from({ length: 48 }, (_, i) => {
   const h = Math.floor(i / 2)
   return `${String(h).padStart(2, "0")}:${i % 2 === 0 ? "00" : "30"}`
 })
-
-function toMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number)
-  return (h ?? 0) * 60 + (m ?? 0)
-}
 
 export function AddTimeOffDialog({
   open,
@@ -135,8 +131,8 @@ export function AddTimeOffDialog({
 
   const elsewhere = alsoWorksAt(memberId)
   const firstName = members.find((m) => m.id === memberId)?.name.split(" ")[0] ?? "they"
-  const badWindow = !fullDay && toMinutes(end) <= toMinutes(start)
-  const minutes = fullDay ? 0 : Math.max(0, toMinutes(end) - toMinutes(start))
+  const badWindow = !fullDay && minutesOfDay(end) <= minutesOfDay(start)
+  const minutes = fullDay ? 0 : Math.max(0, minutesOfDay(end) - minutesOfDay(start))
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { SheetTrigger } from "@/components/ui/sheet"
 import { useCurrentUser } from "@/lib/current-user"
 import { useDemoWorkspaces } from "@/lib/demo-business"
+import { initialOf } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type AppMobileTopbarProps = React.ComponentProps<"div"> & {
@@ -29,11 +30,6 @@ type AppMobileTopbarProps = React.ComponentProps<"div"> & {
   notificationCount?: number
   workspaces?: Workspace[]
   workspaceJoinedDate?: string
-}
-
-function initialOf(name?: string) {
-  if (!name) return ""
-  return name.trim().charAt(0).toUpperCase()
 }
 
 const iconButtonClass = "size-11 rounded-full text-sidebar-foreground"

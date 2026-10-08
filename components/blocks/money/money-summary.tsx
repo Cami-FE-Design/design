@@ -41,7 +41,7 @@ import { type DateRange, DateRangePopover } from "@/components/blocks/shared/dat
 import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { formatDate } from "@/lib/format"
+import { formatDate, toDayIso } from "@/lib/format"
 import {
   DEMO_MERCHANT_ID,
   effectiveRateValue,
@@ -55,7 +55,6 @@ import {
   payoutStatusLabel,
   SCOPE_STATEMENT,
   settlementBlockCopy,
-  toDayIso,
 } from "@/lib/money/format"
 import { summarize, summarizeByRail } from "@/lib/money/ledger"
 import {

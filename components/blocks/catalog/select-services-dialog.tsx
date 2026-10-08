@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { formatDurationLong } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 // ─── Types & mock data ──────────────────────────────────────────────────────────
@@ -145,13 +146,6 @@ export const MOCK_SERVICES: ComboService[] = [
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
-export function formatDuration(min: number): string {
-  if (min < 60) return `${min} min`
-  const h = Math.floor(min / 60)
-  const m = min % 60
-  return m === 0 ? `${h} hr` : `${h} hr ${m} min`
-}
-
 /** Money with thousands separators; 2 decimals only when the value isn't whole. */
 export function formatMoney(n: number): string {
   const rounded = Math.round(n * 100) / 100
@@ -266,7 +260,7 @@ export function SelectServicesDialog({
                             {service.name}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {formatDuration(service.duration)}
+                            {formatDurationLong(service.duration)}
                           </p>
                         </div>
                         <span className="shrink-0 text-sm text-muted-foreground">

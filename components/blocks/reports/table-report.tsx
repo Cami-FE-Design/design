@@ -81,7 +81,7 @@ import {
 } from "@/lib/reports/mock"
 import type { ColumnDef, ColumnKind, ReportDef } from "@/lib/reports/types"
 import { findTeamMemberByName } from "@/lib/team/mock"
-import { cn } from "@/lib/utils"
+import { cn, slugify } from "@/lib/utils"
 
 function isNumericKind(kind?: ColumnKind) {
   return kind === "money" || kind === "number" || kind === "percent"
@@ -98,13 +98,6 @@ function statusVariant(value: string) {
   if (v === "no-show" || v === "refunded" || v === "ordered" || v === "partially received")
     return "warning" as const
   return "secondary" as const
-}
-
-function slugify(name: string) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
 }
 
 function formatCell(column: ColumnDef, value: ReportRow[string]) {

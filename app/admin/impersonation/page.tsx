@@ -41,7 +41,6 @@ import {
   eventsToCsv,
   eventsToOwnerSummary,
   filterEvents,
-  formatDateTime,
   formatDuration,
   type ImpersonationEvent,
   type ImpersonationStatus,
@@ -53,6 +52,7 @@ import {
   uniqueBusinesses,
 } from "@/lib/admin-impersonation"
 import { useAuth } from "@/lib/auth-mock"
+import { formatTimestamp } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type StatusFilter = ImpersonationStatus | "all"
@@ -157,7 +157,7 @@ function EventRow({
       <TableCell className="text-sm text-foreground">
         <div className="flex flex-col leading-tight">
           <span>{relativeTime(event.startedAt, nowMs)}</span>
-          <span className="text-xs text-muted-foreground">{formatDateTime(event.startedAt)}</span>
+          <span className="text-xs text-muted-foreground">{formatTimestamp(event.startedAt)}</span>
         </div>
       </TableCell>
       <TableCell className="text-sm tabular-nums text-foreground">{formatDuration(dur)}</TableCell>
@@ -309,12 +309,12 @@ function EventDetailSheet({
                   <CardTitle>Session</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-x-6 gap-y-5">
-                  <StatBlock label="Started" value={formatDateTime(event.startedAt)} />
+                  <StatBlock label="Started" value={formatTimestamp(event.startedAt)} />
                   <StatBlock
                     label={event.endedAt ? "Ended" : "Expires after"}
                     value={
                       event.endedAt
-                        ? formatDateTime(event.endedAt)
+                        ? formatTimestamp(event.endedAt)
                         : `${event.maxDurationSeconds / 60} min from start`
                     }
                   />
@@ -360,7 +360,7 @@ function EventDetailSheet({
                               {relativeTime(p.at, nowMs)}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {formatDateTime(p.at)}
+                              {formatTimestamp(p.at)}
                             </span>
                           </div>
                           <div className="flex flex-col gap-0.5 leading-tight">

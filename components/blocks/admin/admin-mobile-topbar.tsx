@@ -7,19 +7,11 @@ import { CamiMark } from "@/components/brand/cami-mark"
 import { Button } from "@/components/ui/button"
 import { SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/lib/auth-mock"
+import { initialOf, splitName } from "@/lib/format"
 import { HQ_ROLE_LABELS } from "@/lib/roles-mock"
 import { cn } from "@/lib/utils"
 
 type AdminMobileTopbarProps = React.ComponentProps<"div">
-
-function initialOf(name: string) {
-  return name.trim().charAt(0).toUpperCase() || ""
-}
-
-function splitName(full: string) {
-  const [first, ...rest] = full.trim().split(/\s+/)
-  return { firstName: first ?? "", lastName: rest.join(" ") }
-}
 
 export function AdminMobileTopbar({ className, ...props }: AdminMobileTopbarProps) {
   const auth = useAuth()

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { formatDate, formatLongDate, formatTime } from "@/lib/format"
 import { formatMoney } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
@@ -38,40 +39,11 @@ function taxOf(grossMinor: number) {
   return Math.round((grossMinor * 5) / 105)
 }
 
-const WEEKDAY_LONG = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-const MONTH_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-]
-
 // "Friday, 22 May 2026" — matches the sale meta line in the refund header.
-function formatLongDate(d: Date) {
-  return `${WEEKDAY_LONG[d.getDay()]}, ${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
-}
 
 // "4 Jun 2026" — used in the per-item meta line under each refundable item.
-function formatShortDate(d: Date) {
-  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
-}
 
 // "11:55am" — matches the per-item meta line in the figma.
-function formatTime(d: Date) {
-  let h = d.getHours()
-  const m = d.getMinutes()
-  const meridiem = h >= 12 ? "pm" : "am"
-  h = h % 12 || 12
-  return `${h}:${m.toString().padStart(2, "0")}${meridiem}`
-}
 
 const REFUND_REASONS = [
   "Accidental charge",
@@ -375,7 +347,7 @@ export function RefundSaleDialog({ open, onOpenChange, sale }: RefundSaleDialogP
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="font-medium text-foreground">{it.name}</span>
                       <span className="truncate text-sm text-muted-foreground">
-                        {formatTime(it.at)}, {formatShortDate(it.at)} with {it.staff}
+                        {formatTime(it.at)}, {formatDate(it.at)} with {it.staff}
                       </span>
                     </span>
                     <span className="shrink-0 font-medium text-foreground tabular-nums">

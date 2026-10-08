@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest"
 
 import type { Sale } from "@/app/sales/sales-list/page"
-import { dayIso, latestTradingDay, summarizeDay } from "@/lib/sales/daily-summary"
+import { toDayIso } from "@/lib/format"
+import { latestTradingDay, summarizeDay } from "@/lib/sales/daily-summary"
 
 /**
  * The end-of-day view answers which branch (R09, R18, RP-A1).
@@ -158,8 +159,8 @@ describe("the page lands on a day worth reading", () => {
       sale({ locationId: JVC, grossMinor: 100, saleAt: new Date("2026-05-20T10:00:00") }),
       sale({ locationId: JUM, grossMinor: 100, saleAt: new Date("2026-06-02T10:00:00") }),
     ]
-    expect(dayIso(latestTradingDay(log, [JVC])!)).toBe("2026-05-20")
-    expect(dayIso(latestTradingDay(log, [JVC, JUM])!)).toBe("2026-06-02")
+    expect(toDayIso(latestTradingDay(log, [JVC])!)).toBe("2026-05-20")
+    expect(toDayIso(latestTradingDay(log, [JVC, JUM])!)).toBe("2026-06-02")
   })
 
   it("has nothing to land on when the scope has never traded", () => {

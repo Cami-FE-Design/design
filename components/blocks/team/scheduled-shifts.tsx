@@ -83,6 +83,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { addDaysIso } from "@/lib/format"
 import { formatTime12h, WEEK_DAYS } from "@/lib/locations/hours"
 import { useLocations } from "@/lib/locations/store"
 import { acceptsWrites } from "@/lib/locations/types"
@@ -113,12 +114,6 @@ import { cn } from "@/lib/utils"
 export const DEMO_WEEK_START = "2026-09-14"
 const DEMO_TODAY = "2026-09-15"
 
-export function addDays(iso: string, days: number): string {
-  const date = new Date(`${iso}T00:00:00.000Z`)
-  date.setUTCDate(date.getUTCDate() + days)
-  return date.toISOString().slice(0, 10)
-}
-
 function longDate(iso: string): string {
   return new Date(`${iso}T00:00:00.000Z`).toLocaleDateString("en-US", {
     month: "long",
@@ -130,7 +125,7 @@ function longDate(iso: string): string {
 /** "September 14 – 20, 2026", the way the built product writes a week. */
 export function weekLabel(weekStart: string): string {
   const start = new Date(`${weekStart}T00:00:00.000Z`)
-  const end = new Date(`${addDays(weekStart, 6)}T00:00:00.000Z`)
+  const end = new Date(`${addDaysIso(weekStart, 6)}T00:00:00.000Z`)
   const month = (d: Date) => d.toLocaleString("en-GB", { month: "long", timeZone: "UTC" })
   const head =
     start.getUTCMonth() === end.getUTCMonth()
@@ -304,7 +299,7 @@ export function ScheduledShifts({
                 ) : null}
               </th>
               {WEEK_DAYS.map((day, i) => {
-                const date = addDays(weekStart, i)
+                const date = addDaysIso(weekStart, i)
                 const isToday = date === DEMO_TODAY
                 const working = rows.filter((row) => workingMinutes(row.cells[i]!) > 0)
                 const minutes = rows.reduce(
@@ -474,7 +469,7 @@ export function ScheduledShifts({
                     <DayColumn
                       key={day.id}
                       cell={cells[i]!}
-                      today={addDays(weekStart, i) === DEMO_TODAY}
+                      today={addDaysIso(weekStart, i) === DEMO_TODAY}
                       shifts={shifts.filter(
                         (s) =>
                           s.memberId === member.id &&
@@ -621,7 +616,7 @@ function windowsFor(
 /** "Tue, September 15" — the dialog says which day, never just "this day". */
 function dayLabelFor(weekStart: string, day: string): string {
   const index = WEEK_DAYS.findIndex((d) => d.id === day)
-  const date = addDays(weekStart, index < 0 ? 0 : index)
+  const date = addDaysIso(weekStart, index < 0 ? 0 : index)
   return `${WEEK_DAYS[index < 0 ? 0 : index]?.short}, ${longDate(date)}`
 }
 

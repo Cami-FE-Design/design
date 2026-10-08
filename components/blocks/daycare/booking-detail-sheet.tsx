@@ -40,23 +40,14 @@ import { Textarea } from "@/components/ui/textarea"
 import {
   type DaycareSession,
   type DaycareStatus,
-  formatDuration,
   formatTime,
   formatTimeRange,
 } from "@/lib/daycare-mock"
+import { formatDurationLong, formatLongDate } from "@/lib/format"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 const LATE_FEE_MINOR = 2500
-
-function formatSessionDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`)
-  const weekday = d.toLocaleDateString("en-GB", { weekday: "long" })
-  const day = d.getDate()
-  const month = d.toLocaleDateString("en-GB", { month: "short" })
-  const year = d.getFullYear()
-  return `${weekday}, ${day} ${month} ${year}`
-}
 
 // ─── Status pill (shared lifecycle vocabulary) ─────────────────────────────────
 
@@ -228,7 +219,8 @@ function SessionCard({
             {session.serviceName} · {formatMoneyWhole(session.priceMinor)}
           </span>
           <span className="truncate text-xs text-muted-foreground">
-            {formatTime(session.start)} · {session.planLabel ?? formatDuration(session.durationMin)}
+            {formatTime(session.start)} ·{" "}
+            {session.planLabel ?? formatDurationLong(session.durationMin)}
           </span>
           {session.facilityRoom ? (
             <span className="truncate text-xs text-muted-foreground">{session.facilityRoom}</span>
@@ -329,7 +321,7 @@ export function DaycareDetailSheet({ open, onOpenChange, session }: DaycareDetai
       >
         <SheetTitle className="sr-only">Booking detail for {session.petName}</SheetTitle>
         <SheetDescription className="sr-only">
-          {session.serviceName} — {formatDuration(session.durationMin)}
+          {session.serviceName} — {formatDurationLong(session.durationMin)}
         </SheetDescription>
 
         {/* Header */}
@@ -367,7 +359,7 @@ export function DaycareDetailSheet({ open, onOpenChange, session }: DaycareDetai
           <CustomerCard session={session} />
 
           <div className={cn("rounded-xl px-3 py-2 text-sm font-semibold", theme.fill, theme.text)}>
-            {formatSessionDate(session.date)}
+            {formatLongDate(session.date)}
           </div>
 
           <SessionCard session={session} status={status} onStatusChange={setStatus} />
@@ -401,7 +393,7 @@ export function DaycareDetailSheet({ open, onOpenChange, session }: DaycareDetai
             <span className="text-base font-semibold tabular-nums text-foreground">
               {formatMoneyWhole(subtotal)}{" "}
               <span className="text-xs font-normal text-muted-foreground">
-                ({formatDuration(session.durationMin)})
+                ({formatDurationLong(session.durationMin)})
               </span>
             </span>
           </div>

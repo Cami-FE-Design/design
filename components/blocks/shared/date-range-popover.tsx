@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { formatDate } from "@/lib/format"
+import { formatDate, startOfDay, toDayIso } from "@/lib/format"
 
 export type DateRange = { from: Date; to: Date }
 
@@ -48,23 +48,10 @@ const PRESETS: Array<{ key: PresetKey; label: string }> = [
   { key: "year-to-date", label: "Year to date" },
 ]
 
-function startOfDay(d: Date) {
-  const out = new Date(d)
-  out.setHours(0, 0, 0, 0)
-  return out
-}
-
 function addDays(d: Date, days: number) {
   const out = new Date(d)
   out.setDate(out.getDate() + days)
   return out
-}
-
-function toIso(date: Date) {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
 }
 
 function parseIso(value: string): Date | null {
@@ -145,8 +132,8 @@ export function DateRangePopover({ value, onChange, today }: DateRangePopoverPro
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState<DateRange>(value)
   const [preset, setPreset] = useState<PresetKey>(() => inferPreset(value, today))
-  const [fromText, setFromText] = useState(() => toIso(value.from))
-  const [toText, setToText] = useState(() => toIso(value.to))
+  const [fromText, setFromText] = useState(() => toDayIso(value.from))
+  const [toText, setToText] = useState(() => toDayIso(value.to))
 
   // Reset editing state when the popover opens so it starts from the applied
   // range, not the last in-flight edit.
@@ -154,14 +141,14 @@ export function DateRangePopover({ value, onChange, today }: DateRangePopoverPro
     if (!open) return
     setDraft(value)
     setPreset(inferPreset(value, today))
-    setFromText(toIso(value.from))
-    setToText(toIso(value.to))
+    setFromText(toDayIso(value.from))
+    setToText(toDayIso(value.to))
   }, [open, value, today])
 
   function commitDraft(next: DateRange) {
     setDraft(next)
-    setFromText(toIso(next.from))
-    setToText(toIso(next.to))
+    setFromText(toDayIso(next.from))
+    setToText(toDayIso(next.to))
     setPreset(inferPreset(next, today))
   }
 

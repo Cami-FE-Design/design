@@ -31,13 +31,6 @@ export const HAS_PETS = true
 
 // ─── Money ────────────────────────────────────────────────────────────────────
 
-export function formatDuration(durationMin: number): string {
-  if (durationMin < 60) return `${durationMin}min`
-  const h = Math.floor(durationMin / 60)
-  const m = durationMin % 60
-  return m === 0 ? `${h}h` : `${h}h ${m}min`
-}
-
 export type CartTotals = {
   /** Sum of line prices, tax-inclusive (matches collapsed Total). */
   totalMinor: number

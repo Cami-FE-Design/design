@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { initialOf } from "@/lib/format"
 
 type ProfileMenuProps = {
   trigger: React.ReactNode
@@ -23,10 +24,6 @@ type ProfileMenuProps = {
   onHelp?: () => void
   onLanguage?: () => void
   onSignOut?: () => void
-}
-
-function initialOf(name: string) {
-  return name.trim().charAt(0).toUpperCase()
 }
 
 export function ProfileMenu({

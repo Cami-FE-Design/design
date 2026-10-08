@@ -504,16 +504,6 @@ export function formatDate(iso: string): string {
   })
 }
 
-export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-}
-
 export type GlobalAuditEvent = AuditEvent & {
   businessId: string
   businessName: string

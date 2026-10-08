@@ -242,21 +242,6 @@ export function confirmationNote(tx: MoneyTx): string | null {
 /* Dates                                                                      */
 /* -------------------------------------------------------------------------- */
 
-/**
- * `2026-08-24` from a Date, read in LOCAL time.
- *
- * The ledger is keyed by day strings and the date picker hands back Date
- * objects. Going through UTC here would move a range by a day for anyone west
- * of Greenwich, which on a month boundary silently drops a day's takings out of
- * the period.
- */
-export function toDayIso(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
-}
-
 /** The inverse, also local. */
 export function fromDayIso(iso: string): Date {
   const [y, m, d] = iso.split("-").map(Number)

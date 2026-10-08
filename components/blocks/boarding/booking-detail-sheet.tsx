@@ -32,7 +32,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
@@ -48,19 +47,11 @@ import {
   stayNights,
   staySubtotalMinor,
 } from "@/lib/boarding-mock"
+import { formatLongDate } from "@/lib/format"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
 // ─── Date/time formatting ──────────────────────────────────────────────────────
-
-function formatStayDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`)
-  const weekday = d.toLocaleDateString("en-GB", { weekday: "long" })
-  const day = d.getDate()
-  const month = d.toLocaleDateString("en-GB", { month: "short" })
-  const year = d.getFullYear()
-  return `${weekday}, ${day} ${month} ${year}`
-}
 
 function formatCheckStamp(iso: string): string {
   const d = new Date(`${iso}T00:00:00`)
@@ -398,7 +389,7 @@ export function BoardingDetailSheet({ open, onOpenChange, stay }: BoardingDetail
           <CustomerCard stay={stay} />
 
           <div className={cn("rounded-xl px-3 py-2 text-sm font-semibold", theme.fill, theme.text)}>
-            {formatStayDate(stay.checkIn)}
+            {formatLongDate(stay.checkIn)}
           </div>
 
           <StayCard stay={stay} status={status} onStatusChange={setStatus} />

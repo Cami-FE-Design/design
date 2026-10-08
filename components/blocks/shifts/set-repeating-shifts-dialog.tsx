@@ -40,6 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { minutesOfDay } from "@/lib/format"
 import { formatTime12h, WEEK_DAYS } from "@/lib/locations/hours"
 import {
   dayWindowProblem,
@@ -69,18 +70,16 @@ const ENDS = [
   { value: "date", label: "On a date" },
 ] as const
 
-function toMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number)
-  return (h ?? 0) * 60 + (m ?? 0)
-}
-
 function addMinutes(time: string, minutes: number): string {
-  const total = Math.min(23 * 60 + 30, toMinutes(time) + minutes)
+  const total = Math.min(23 * 60 + 30, minutesOfDay(time) + minutes)
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`
 }
 
 function dayMinutes(windows: ReadonlyArray<ShiftTime>): number {
-  return windows.reduce((sum, w) => sum + Math.max(0, toMinutes(w.end) - toMinutes(w.start)), 0)
+  return windows.reduce(
+    (sum, w) => sum + Math.max(0, minutesOfDay(w.end) - minutesOfDay(w.start)),
+    0,
+  )
 }
 
 export type WeekPattern = ReadonlyArray<{ day: string; windows: ShiftTime[] }>
@@ -269,7 +268,7 @@ export function SetRepeatingShiftsDialog({
                                     ? {
                                         start: v,
                                         end:
-                                          toMinutes(w.end) <= toMinutes(v)
+                                          minutesOfDay(w.end) <= minutesOfDay(v)
                                             ? addMinutes(v, 60)
                                             : w.end,
                                       }

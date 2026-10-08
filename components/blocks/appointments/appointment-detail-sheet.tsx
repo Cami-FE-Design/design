@@ -32,7 +32,6 @@ import { useEffect, useState } from "react"
 import {
   clientIdOf,
   EXTRA_TIME_LABEL,
-  formatDuration,
   type MockBooking,
   type MockBookingStatus,
   type MockStaff,
@@ -71,6 +70,7 @@ import {
   BOOKING_STATUS_TONE,
 } from "@/lib/appointments/status"
 import { clientNotesFor } from "@/lib/client-notes"
+import { formatClock, formatDurationCompact, formatWeekdayDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { useNotifications } from "@/lib/notifications/store"
@@ -90,13 +90,6 @@ import { cn } from "@/lib/utils"
 // ─── Helpers (mirror new-appointment-sheet conventions) ───────────────────────
 
 // "10:00" → "10:00AM"
-function formatTime(hhmm: string): string {
-  const [hStr, mStr] = hhmm.split(":")
-  const h = Number(hStr)
-  const period = h >= 12 ? "PM" : "AM"
-  const display = ((h + 11) % 12) + 1
-  return `${display}:${mStr ?? "00"}${period}`
-}
 
 // Booking's local anchor date (matches the listing's anchor on 18 May 2026).
 // Bookings can carry a `dayOffset` (days after the anchor) so surfaces like the
@@ -110,14 +103,6 @@ function isoOfAnchor(dayOffset = 0): string {
   const m = String(date.getMonth() + 1).padStart(2, "0")
   const d = String(date.getDate()).padStart(2, "0")
   return `${y}-${m}-${d}`
-}
-
-function formatHeaderDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`)
-  const weekday = d.toLocaleDateString("en-GB", { weekday: "short" })
-  const day = d.getDate()
-  const month = d.toLocaleDateString("en-GB", { month: "short" })
-  return `${weekday}, ${day} ${month}`
 }
 
 // ─── Status pill: status-keyed hero band styling + dropdown rules ─────────────
@@ -626,8 +611,8 @@ function ServicesSection({ booking, staffName }: { booking: MockBooking; staffNa
                         {/* Only the first item states a clock time: the rest run
                             after it, and stamping each with the booking's start
                             would claim three services began at once. */}
-                        {index === 0 ? `${formatTime(booking.start)} · ` : null}
-                        {formatDuration(item.durationMin)} · {item.staffName ?? staffName}
+                        {index === 0 ? `${formatClock(booking.start)} · ` : null}
+                        {formatDurationCompact(item.durationMin)} · {item.staffName ?? staffName}
                       </span>
                     </div>
                     <span className="flex shrink-0 flex-col items-end leading-tight tabular-nums">
@@ -1039,8 +1024,8 @@ export function AppointmentDetailSheet({
 
   const theme = BOOKING_STATUS_TONE[status]
   const iso = isoOfAnchor(booking.dayOffset)
-  const dateLabel = formatHeaderDate(iso)
-  const timeLabel = formatTime(booking.start)
+  const dateLabel = formatWeekdayDate(iso)
+  const timeLabel = formatClock(booking.start)
   const recurrence = booking.recurrence ?? "doesn't repeat"
   const staffName = staff.find((s) => s.id === booking.staffId)?.name ?? "—"
 

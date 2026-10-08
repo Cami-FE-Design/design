@@ -77,7 +77,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { formatAed } from "@/lib/format"
+import { endOfDay, formatAed, formatDate, formatTime, startOfDay } from "@/lib/format"
 import { type CamiPayRail, type CamiPayRate, railLabel } from "@/lib/hq-camipay/store"
 import { invoiceFromSale, originalFor, receiptNumberFor } from "@/lib/invoice/from-sale"
 import { documentTitle } from "@/lib/invoice/totals"
@@ -108,36 +108,12 @@ const MONTH_SHORT = [
   "Dec",
 ]
 
-function formatDateOnly(d: Date) {
-  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
-}
-
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 // Weekday-led format used in the draft detail dialog header and receipt card
 // ("Tue, Jun 2"), matching the figma. The listing rows use formatDateOnly.
 function formatWeekdayShort(d: Date) {
   return `${WEEKDAY_SHORT[d.getDay()]}, ${MONTH_SHORT[d.getMonth()]} ${d.getDate()}`
-}
-
-function formatTimeOnly(d: Date) {
-  let h = d.getHours()
-  const m = d.getMinutes()
-  const meridiem = h >= 12 ? "pm" : "am"
-  h = h % 12 || 12
-  return `${h}:${m.toString().padStart(2, "0")}${meridiem}`
-}
-
-function startOfDay(d: Date) {
-  const out = new Date(d)
-  out.setHours(0, 0, 0, 0)
-  return out
-}
-
-function endOfDay(d: Date) {
-  const out = new Date(d)
-  out.setHours(23, 59, 59, 999)
-  return out
 }
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
@@ -1110,7 +1086,7 @@ function SalesListPageInner() {
                       </TableCell>
                       {/* A date never wraps — see the appointments table. */}
                       <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                        {formatDateOnly(d.createdAt)}
+                        {formatDate(d.createdAt)}
                       </TableCell>
                       <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground tabular-nums">
                         {formatAed(Math.round(d.tipsMinor / 100))}
@@ -1193,7 +1169,7 @@ function SalesListPageInner() {
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                        {formatDateOnly(s.saleAt)}
+                        {formatDate(s.saleAt)}
                       </TableCell>
                       <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground tabular-nums">
                         {formatAed(Math.round(s.tipsMinor / 100))}
@@ -1599,7 +1575,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
               <div className="flex flex-col gap-0.5">
                 <DialogTitle className="text-[28px] leading-8 font-semibold">Sale</DialogTitle>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                  <span>{formatDateOnly(data.saleAt)}</span>
+                  <span>{formatDate(data.saleAt)}</span>
                   <span aria-hidden>·</span>
                   <span>Pet</span>
                   {isMultiLocation ? (
@@ -1699,9 +1675,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                     <span className="text-lg font-semibold text-foreground">
                       Refund {receiptNumberFor(data)}
                     </span>
-                    <span className="text-sm text-muted-foreground">
-                      {formatDateOnly(data.saleAt)}
-                    </span>
+                    <span className="text-sm text-muted-foreground">{formatDate(data.saleAt)}</span>
                   </div>
 
                   <span className="text-sm text-foreground">Accidental charge</span>
@@ -1738,7 +1712,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                         </span>
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
-                        {formatDateOnly(data.saleAt)} at {formatTimeOnly(data.saleAt)}
+                        {formatDate(data.saleAt)} at {formatTime(data.saleAt)}
                       </span>
                     </div>
                     <span className="shrink-0 font-medium text-foreground tabular-nums">
@@ -1761,9 +1735,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                       ? (originalFor(data)?.number ?? "—")
                       : receiptNumberFor(data)}
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    {formatDateOnly(data.saleAt)}
-                  </span>
+                  <span className="text-sm text-muted-foreground">{formatDate(data.saleAt)}</span>
                 </div>
 
                 {/* The lines, when the sale carries them. A saved sale is a
@@ -1787,7 +1759,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                         <span className="truncate text-xs text-muted-foreground">
                           {giftCard
                             ? `${giftCard.code} · Husain NGI`
-                            : `${formatTimeOnly(data.saleAt)}, ${formatDateOnly(data.saleAt)} · 1h 30min · Hussain S…`}
+                            : `${formatTime(data.saleAt)}, ${formatDate(data.saleAt)} · 1h 30min · Hussain S…`}
                         </span>
                       </div>
                       <span className="shrink-0 font-medium text-foreground tabular-nums">
@@ -1828,7 +1800,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                               />
                             </span>
                             <span className="truncate text-xs text-muted-foreground">
-                              {formatDateOnly(p.at)} at {formatTimeOnly(p.at)}
+                              {formatDate(p.at)} at {formatTime(p.at)}
                               {takenElsewhere(p) ? ` · ${locationName(p.locationId)}` : ""}
                             </span>
                           </div>
@@ -1854,7 +1826,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                       rail={data.camipay.rail}
                       rate={data.camipay.rate}
                       amountMinor={collectedMinor}
-                      capturedOnLabel={formatDateOnly(data.saleAt)}
+                      capturedOnLabel={formatDate(data.saleAt)}
                     />
                   </>
                 ) : null}
@@ -1877,7 +1849,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
               <ol className="flex flex-col">
                 <ActivityRow
                   title={`Sale ${data.id} created`}
-                  timestamp={`Yesterday at ${formatTimeOnly(data.saleAt)}`}
+                  timestamp={`Yesterday at ${formatTime(data.saleAt)}`}
                   body={`Completed by Hussain Shabbir`}
                   trailing={
                     <Avatar
@@ -1894,7 +1866,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                     <ActivityRow
                       key={p.id}
                       title={`${formatAed(Math.round(p.amountMinor / 100))} paid by ${methodLabel(p).toLowerCase()}`}
-                      timestamp={`${formatDateOnly(p.at)} at ${formatTimeOnly(p.at)}`}
+                      timestamp={`${formatDate(p.at)} at ${formatTime(p.at)}`}
                       body={`Payment taken by Hussain Shabbir${
                         takenElsewhere(p) ? ` · at ${locationName(p.locationId)}` : ""
                       }`}
@@ -1919,7 +1891,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                 ) : (
                   <ActivityRow
                     title={`${formatAed(Math.abs(gross))} paid by cash`}
-                    timestamp={`Yesterday at ${formatTimeOnly(data.saleAt)}`}
+                    timestamp={`Yesterday at ${formatTime(data.saleAt)}`}
                     body="Payment taken by Hussain Shabbir"
                     trailing={
                       <span className="inline-flex size-8 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11 ring-2 ring-background">
@@ -2273,7 +2245,7 @@ function DraftDetailDialog({
                 <ol className="flex flex-col">
                   <ActivityRow
                     title={`Draft #${data.id} created`}
-                    timestamp={`${formatWeekdayShort(data.createdAt)} at ${formatTimeOnly(data.createdAt)}`}
+                    timestamp={`${formatWeekdayShort(data.createdAt)} at ${formatTime(data.createdAt)}`}
                     body="Created by Hussain Shabbir"
                     trailing={
                       <Avatar

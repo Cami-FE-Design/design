@@ -24,14 +24,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { toDayIso } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
-import {
-  type DailySummary,
-  dayIso,
-  latestTradingDay,
-  summarizeDay,
-} from "@/lib/sales/daily-summary"
+import { type DailySummary, latestTradingDay, summarizeDay } from "@/lib/sales/daily-summary"
 import { cn } from "@/lib/utils"
 
 /**
@@ -353,11 +349,11 @@ function DailySummaryInner() {
   })
   const [cartOpen, setCartOpen] = useState(false)
 
-  const summary = useMemo(() => summarizeDay(MOCK_SALES, dayIso(date), allowed), [date, allowed])
+  const summary = useMemo(() => summarizeDay(MOCK_SALES, toDayIso(date), allowed), [date, allowed])
   const latest = useMemo(() => latestTradingDay(MOCK_SALES, allowed), [allowed])
   const today = new Date()
   const landedOnLastTradingDay =
-    latest != null && dayIso(date) === dayIso(latest) && dayIso(date) !== dayIso(today)
+    latest != null && toDayIso(date) === toDayIso(latest) && toDayIso(date) !== toDayIso(today)
 
   return (
     <AppShell

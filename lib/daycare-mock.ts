@@ -206,13 +206,6 @@ export function formatTimeRange(start: string, durationMin: number): string {
   return `${formatTime(start)} - ${formatTime(endTime(start, durationMin))}`
 }
 
-export function formatDuration(min: number): string {
-  if (min < 60) return `${min} min`
-  const h = Math.floor(min / 60)
-  const m = min % 60
-  return m === 0 ? `${h} hr` : `${h} hr ${m} min`
-}
-
 export function hourLabels(): { min: number; label: string }[] {
   const out: { min: number; label: string }[] = []
   for (let t = DAY_START_MIN; t <= DAY_END_MIN; t += 60) {

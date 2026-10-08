@@ -47,7 +47,6 @@ import {
 } from "@/components/blocks/team/add-team-member-dialog"
 import { BranchRotaStrip } from "@/components/blocks/team/branch-rota-strip"
 import {
-  addDays,
   DEMO_WEEK_START,
   ScheduledShifts,
   weekLabel,
@@ -60,6 +59,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { addDaysIso } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { SHIFT_SORT_LABELS, type ShiftSortOrder } from "@/lib/team/shifts"
 import { RotaProvider, useRota } from "@/lib/team/shifts-store"
@@ -85,7 +85,7 @@ function ScheduledShiftsScreen() {
 
   // The repo's idiom: an empty scope means "everything granted", not "nothing".
   const inScope = scopedLocations.length > 0 ? scopedLocations : granted
-  const weekStart = addDays(DEMO_WEEK_START, weekOffset * 7)
+  const weekStart = addDaysIso(DEMO_WEEK_START, weekOffset * 7)
 
   // Which branch's week is open. Local, not the global scope: narrowing the
   // whole session because somebody looked at one rota would change the topbar,

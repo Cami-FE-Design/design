@@ -1222,13 +1222,6 @@ export const SERVICE_CATEGORY_ACCENT: Record<MockServiceCategory, string> = {
   welcome: "bg-lime-9",
 }
 
-export function formatDuration(durationMin: number): string {
-  if (durationMin < 60) return `${durationMin}min`
-  const h = Math.floor(durationMin / 60)
-  const m = durationMin % 60
-  return m === 0 ? `${h}h` : `${h}h ${m}min`
-}
-
 // ─── WhatsApp message templates ───────────────────────────────────────────────
 // Businesses store a handful of WhatsApp templates. The appointment Messages
 // section surfaces them as quick-send buttons. Bodies carry {{tokens}} resolved

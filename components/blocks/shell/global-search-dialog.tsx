@@ -4,7 +4,6 @@ import { XIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
 import {
-  formatDuration,
   MOCK_BOOKINGS,
   MOCK_STAFF,
   type MockBooking,
@@ -28,6 +27,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { SearchInput } from "@/components/ui/search-input"
 import { bookingStatusBadge } from "@/lib/appointments/status"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { formatDurationCompact } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
@@ -317,7 +317,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                                   {line.name}
                                   <span className="text-muted-foreground">
                                     {" "}
-                                    · {line.staffName} · {formatDuration(line.durationMin)}
+                                    · {line.staffName} · {formatDurationCompact(line.durationMin)}
                                   </span>
                                 </span>
                                 <span className="font-medium">
@@ -417,7 +417,7 @@ export function GlobalSearchDialog({ open, onOpenChange }: GlobalSearchDialogPro
                                 {b.serviceName}
                                 <span className="text-muted-foreground">
                                   {staff ? ` · ${staff.name}` : ""} ·{" "}
-                                  {formatDuration(b.durationMin)}
+                                  {formatDurationCompact(b.durationMin)}
                                 </span>
                               </span>
                               <span className="font-medium">{formatMoneyWhole(b.priceMinor)}</span>

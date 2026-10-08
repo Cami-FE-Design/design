@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { initialOf } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 export type Workspace = {
@@ -32,10 +33,6 @@ type WorkspaceSwitcherProps = {
   onAccountMenu?: () => void
   onNewWorkspace?: () => void
   onSignOut?: () => void
-}
-
-function initialOf(name: string) {
-  return name.trim().charAt(0).toUpperCase()
 }
 
 type ThumbProps = {

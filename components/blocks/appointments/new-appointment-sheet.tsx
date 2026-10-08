@@ -28,7 +28,6 @@ import { toast } from "sonner"
 
 import {
   type DepositState,
-  formatDuration,
   MOCK_SERVICE_CATALOG,
   MOCK_WHATSAPP_TEMPLATES,
   type MockBookingStatus,
@@ -95,6 +94,7 @@ import {
 } from "@/lib/appointments/status"
 import { openAppointmentsFor } from "@/lib/clients/open-appointments"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { formatClock, formatDurationCompact, formatWeekdayDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
@@ -503,8 +503,8 @@ export function NewAppointmentSheet({
   const { isMultiLocation, locationName } = useLocations()
   const theme = BOOKING_STATUS_TONE[status]
   const statusLabel = BOOKING_STATUS_LABEL[status]
-  const dateLabel = formatHeaderDate(date)
-  const timeLabel = formatTime(startTime)
+  const dateLabel = formatWeekdayDate(date)
+  const timeLabel = formatClock(startTime)
   const totalMinor = pets.reduce(
     (sum, pet) => sum + pet.services.reduce((s, svc) => s + svc.catalog.priceMinor, 0),
     0,
@@ -1645,7 +1645,7 @@ function ServiceRowList({
                   <span className="text-base font-semibold text-foreground">{s.catalog.name}</span>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {formatTime(s.startTime)} · {formatDuration(s.catalog.durationMin)} ·{" "}
+                  {formatClock(s.startTime)} · {formatDurationCompact(s.catalog.durationMin)} ·{" "}
                   {s.staffName ?? "Any team member"}
                 </span>
               </div>
@@ -1983,19 +1983,5 @@ function ClientPicker({
 }
 
 // "2026-05-13" → "Wed, 13 May"
-function formatHeaderDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`)
-  const weekday = d.toLocaleDateString("en-GB", { weekday: "short" })
-  const day = d.getDate()
-  const month = d.toLocaleDateString("en-GB", { month: "short" })
-  return `${weekday}, ${day} ${month}`
-}
 
 // "10:00" → "10:00AM"
-function formatTime(hhmm: string): string {
-  const [hStr, mStr] = hhmm.split(":")
-  const h = Number(hStr)
-  const period = h >= 12 ? "PM" : "AM"
-  const display = ((h + 11) % 12) + 1
-  return `${display}:${mStr ?? "00"}${period}`
-}

@@ -33,14 +33,7 @@
  */
 
 import type { Sale } from "@/app/sales/sales-list/page"
-
-/** A day in the branch's own calendar, as `YYYY-MM-DD`. */
-export function dayIso(date: Date): string {
-  const y = date.getFullYear()
-  const m = `${date.getMonth() + 1}`.padStart(2, "0")
-  const d = `${date.getDate()}`.padStart(2, "0")
-  return `${y}-${m}-${d}`
-}
+import { toDayIso } from "@/lib/format"
 
 export type TransactionRow = {
   label: string
@@ -100,7 +93,7 @@ export function summarizeDay(
   allowed: ReadonlyArray<string>,
 ): DailySummary {
   const allowedSet = new Set(allowed)
-  const rows = sales.filter((s) => allowedSet.has(s.locationId) && dayIso(s.saleAt) === day)
+  const rows = sales.filter((s) => allowedSet.has(s.locationId) && toDayIso(s.saleAt) === day)
 
   const giftCards = rows.filter((s) => s.giftCard && isTaking(s))
   const services = rows.filter((s) => !s.giftCard && isTaking(s))

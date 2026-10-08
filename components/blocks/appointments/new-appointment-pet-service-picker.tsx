@@ -3,11 +3,7 @@
 import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, PlusIcon } from "lucide-react"
 import { useMemo, useState } from "react"
 
-import {
-  formatDuration,
-  type MockServiceCatalogItem,
-  serviceGroupLabel,
-} from "@/app/appointments/mock"
+import { type MockServiceCatalogItem, serviceGroupLabel } from "@/app/appointments/mock"
 import { ServiceAccentRail } from "@/components/blocks/appointments/service-accent-rail"
 import { ComboBadge, comboServicesLabel } from "@/components/blocks/catalog/combo-badge"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
@@ -21,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAppointmentServiceCatalog } from "@/lib/appointments/service-catalog"
+import { formatDurationCompact } from "@/lib/format"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
@@ -268,7 +265,7 @@ function ServiceCheckGroup({
                         {item.isCombo ? <ComboBadge /> : null}
                       </div>
                       <span className="text-sm text-muted-foreground">
-                        {formatDuration(item.durationMin)}
+                        {formatDurationCompact(item.durationMin)}
                         {item.componentNames?.length
                           ? ` · ${comboServicesLabel(item.componentNames.length)}`
                           : ""}

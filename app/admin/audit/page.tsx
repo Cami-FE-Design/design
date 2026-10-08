@@ -31,11 +31,11 @@ import {
   AUDIT_KIND_LABELS,
   type AuditEventKind,
   auditKindBadge,
-  formatDateTime,
   type GlobalAuditEvent,
   getAllAuditEvents,
   relativeTime,
 } from "@/lib/admin-businesses"
+import { formatTimestamp } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type KindFilter = "all" | AuditEventKind
@@ -83,7 +83,7 @@ function AuditRow({ event }: { event: GlobalAuditEvent }) {
       <TableCell className="py-3 text-sm tabular-nums text-muted-foreground">
         <div className="flex flex-col">
           <span className="text-foreground">{relativeTime(event.at)}</span>
-          <span className="text-xs">{formatDateTime(event.at)}</span>
+          <span className="text-xs">{formatTimestamp(event.at)}</span>
         </div>
       </TableCell>
       <TableCell>

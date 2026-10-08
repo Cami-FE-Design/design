@@ -82,7 +82,7 @@ import {
   WEEK_DAYS,
   type WeekSchedule,
 } from "@/lib/locations/hours"
-import { type NewLocationInput, slugify, useLocations } from "@/lib/locations/store"
+import { type NewLocationInput, useLocations } from "@/lib/locations/store"
 import { formatReceiptNumber } from "@/lib/locations/tax-identity"
 import {
   normaliseOverride,
@@ -100,7 +100,7 @@ import {
 import type { Invoicing, Location, LocationAddress } from "@/lib/locations/types"
 import { isPubliclyBookable } from "@/lib/locations/types"
 import { mayChangeBranch } from "@/lib/locations/who-may"
-import { cn } from "@/lib/utils"
+import { cn, slugify } from "@/lib/utils"
 
 /** Radix refuses "" as a value, so inheritance needs a name of its own. */
 const INHERIT = "__business__"
