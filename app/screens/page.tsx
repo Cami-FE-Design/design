@@ -832,7 +832,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0",
         label: "Live inbox · matched chat",
-        note: "Layla's chat: day grouping, each Cami-sent message signed with the staff name. Name and phone sit once, in the thread header. The client pane has the pet and last service. Unread is out of Phase 0, so rows are not bold and carry no count. Type + Ctrl/⌘+Enter sends: Sending → Sent. The shortcut is on the Send button's tooltip.",
+        note: "Layla's chat: day grouping, each Cami-sent message signed with the staff name. Name and phone sit once, in the thread header. The client pane is ClientSummary: Pets first (Coco, with a Behavior pet note under her), then Appointments (upcoming, then the last three, each day with its relative and actual date, staff avatars with names on hover), then Client notes. View profile opens the full client dialog. The panel icon in the chat header hides and shows the pane. Unread is out of Phase 0, so rows are not bold and carry no count. Type + Ctrl/⌘+Enter sends: Sending → Sent. The shortcut is on the Send button's tooltip.",
       },
       {
         path: "/messages/inbox/phase-0?c=omar",
@@ -842,7 +842,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?c=unmatched-saturday",
         label: "Unmatched number",
-        note: "The number stands in for the name. The list avatar is a dashed circle with a person icon, and there is no search icon beside the number. The chat reads normally and the client pane offers only Match and Add.",
+        note: "The number stands in for the name, with the WhatsApp profile name in brackets after it. The list avatar is a dashed circle with a person icon. Free text can be sent before linking. Link client in the chat header, or Match and Add in the client pane, open their flows as dialogs.",
       },
       {
         path: "/messages/inbox/phase-0?c=maryam",
@@ -857,7 +857,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?c=unmatched-closed",
         label: "Window closed · unmatched",
-        note: "Any template with a blank stays blocked until the record can fill it. Reception never types into a blank. 'Thanks, reply here' has no blanks and can go on an unmatched chat. 'Ask for a name' also has no blanks.",
+        note: "Any template with a blank stays blocked until the record can fill it. Reception never types into a blank. 'Thanks, reply here' and 'Ask for a name' have no blanks and can go on an unmatched chat.",
       },
       {
         path: "/messages/inbox/phase-0?c=noura",
@@ -867,17 +867,17 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?c=unmatched-closed",
         label: "Match · same number on two records",
-        note: "Match to client: with the search empty, both records on this number show — pick one. The confirm step says what happens to the number (saved / already there / different: Keep or Replace — Michelle's open call). After Match the thread gains 'Matched to … by Queenie' and every earlier message stays. 'Wrong client? Change the match' on any matched chat re-matches and keeps both lines.",
+        note: "Match to client: with the search empty, both records on this number show — pick one. The confirm step says what happens to the number (saved, already there, or different: Keep or Replace). After Match the thread gains 'Matched to … by Queenie' and every earlier message stays. 'Change linked client' in the ⋯ menu of any matched chat re-matches and keeps both lines.",
       },
       {
         path: "/messages/inbox/phase-0?c=unmatched-fatima",
         label: "Add client · name guessed",
-        note: "Add new client opens a short form over the chat: phone filled, first name the only required field, and 'Fatima' filled from her message, marked as a guess. Save binds the chat and the pane shows the clean new-client state. The welcome pack PDF in the thread is a file sent from the chat.",
+        note: "Add new client opens a short dialog: phone filled and read only, first name the only required field, and 'Fatima' filled from her WhatsApp profile name. The sparkle in the field says it is a guess (hover: 'Guessed from WhatsApp'). Save binds the chat and the pane shows 'No appointments yet'. The welcome pack PDF in the thread is a file sent from the chat.",
       },
       {
         path: "/messages/inbox/phase-0?c=unmatched-saturday",
         label: "Add client · no name known",
-        note: "No name in the message: Save stays off and 'Ask for their name' sends one question and the pane waits. 'Client writes now' under the Design repo chip answers with a name; Add then fills it as a guess. Cami never makes a name up. The photo at the top is an unmatched chat receiving media.",
+        note: "The WhatsApp profile name is an emoji and the message has no name, so first name stays empty and Save stays off until reception types one. Reception can ask in the chat with free text. Cami never makes a name up. The photo at the top is an unmatched chat receiving media.",
       },
       {
         path: "/messages/inbox/phase-0?c=omar",
@@ -887,7 +887,7 @@ const SECTIONS: Section[] = [
       {
         path: "/messages/inbox/phase-0?state=visits-error",
         label: "Client pane · partial and slow",
-        note: "Name and phone are on the thread header. Pet and last service paint with the messages. The last three visits (what, who, when, AED) and team-only notes are a second read. This link fails that read: the name stays, the visits say so with a retry. ?state=visits-slow shows the skeleton rows.",
+        note: "Name and phone are on the thread header. Pets and last service paint with the messages. Pet notes, the appointments (what, who, when, AED) and team-only client notes are a second read. This link fails that read: the name stays, the visits say so with a retry. ?state=visits-slow shows the skeleton rows.",
       },
       {
         path: "/messages/inbox/phase-0?state=read-only",

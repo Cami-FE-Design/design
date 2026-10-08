@@ -3,7 +3,10 @@
 import {
   AlertCircleIcon,
   AlertTriangleIcon,
+  ArrowLeftRightIcon,
   CheckIcon,
+  ChevronDownIcon,
+  CirclePlusIcon,
   ClockIcon,
   DownloadIcon,
   FileTextIcon,
@@ -11,6 +14,9 @@ import {
   Loader2Icon,
   LockIcon,
   MessageCircleIcon,
+  MoreHorizontalIcon,
+  PanelRightCloseIcon,
+  PanelRightOpenIcon,
   PlayIcon,
   RotateCwIcon,
   SmartphoneIcon,
@@ -28,12 +34,24 @@ import {
 import { EmptyState } from "@/components/blocks/empty-state"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 import { Composer } from "./composer"
 import { dayKey, dayLabel, formatBytes, type InboxCopy, type Lang, timeLabel } from "./copy"
-import { ConversationTitle, MEDIA_ICON, mediaLabel, type PaneStatus } from "./shared"
+import {
+  ConversationAvatar,
+  ConversationTitle,
+  MEDIA_ICON,
+  mediaLabel,
+  type PaneStatus,
+} from "./shared"
 
 // ─── Pane 2 — the thread (IX-A1, IX-A2, IX-A5) ────────────────────────────────
 
@@ -46,16 +64,89 @@ const GROUP_GAP_MS = 5 * 60_000
 /** How long the floating day chip stays after scrolling stops. */
 const FLOATING_DAY_MS = 1200
 
-function ThreadHeader({ conversation }: { conversation: InboxConversation }) {
-  // Same shell as the Inbox list header (px-4 py-3, title row min-h-8) so the
+function ThreadHeader({
+  conversation,
+  paneOpen,
+  onTogglePane,
+  onMatch,
+  onAdd,
+  canReply,
+  copy,
+}: {
+  conversation: InboxConversation
+  paneOpen: boolean
+  onTogglePane: () => void
+  onMatch: () => void
+  onAdd: () => void
+  canReply: boolean
+  copy: InboxCopy
+}) {
+  // The conversation's own actions: which client it belongs to. Unmatched gets
+  // one "Link client" menu (match or add); matched gets "Change linked client"
+  // behind ⋯. Read-only never offers either.
+  // Same shell as the Inbox list header (px-4 py-3, title row min-h-9) so the
   // bottom borders line up. One line: the name, or the number when unmatched.
+  const PaneIcon = paneOpen ? PanelRightCloseIcon : PanelRightOpenIcon
   return (
-    <header className="flex min-w-0 items-center border-b border-border px-4 py-3">
-      <h2 className="flex min-h-8 min-w-0 flex-1 items-center">
+    <header className="flex min-w-0 items-center gap-2 border-b border-border px-4 py-3">
+      <h2 className="flex min-h-9 min-w-0 flex-1 items-center gap-2.5">
+        <ConversationAvatar conversation={conversation} size="sm" unmatchedLabel={copy.unmatched} />
         <span className="min-w-0 truncate text-base font-semibold text-foreground">
           <ConversationTitle conversation={conversation} />
         </span>
       </h2>
+      {canReply && !conversation.customer ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button type="button" variant="outline" radius="full" className="shrink-0">
+              {copy.linkClient}
+              <ChevronDownIcon aria-hidden className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-56">
+            <DropdownMenuItem onSelect={onMatch}>
+              <LinkIcon aria-hidden />
+              {copy.matchExisting}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onAdd}>
+              <CirclePlusIcon aria-hidden />
+              {copy.add}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
+      {canReply && conversation.customer ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={copy.chatActions}
+              className="shrink-0 rounded-full text-foreground"
+            >
+              <MoreHorizontalIcon aria-hidden className="size-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="min-w-56">
+            <DropdownMenuItem onSelect={onMatch}>
+              <ArrowLeftRightIcon aria-hidden />
+              {copy.changeLinkedClient}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label={paneOpen ? copy.hideClientPane : copy.showClientPane}
+        aria-pressed={paneOpen}
+        onClick={onTogglePane}
+        className="shrink-0 rounded-full text-foreground"
+      >
+        <PaneIcon aria-hidden className="size-5 rtl:-scale-x-100" />
+      </Button>
     </header>
   )
 }
@@ -154,11 +245,7 @@ function Meta({
     <span
       className={cn(
         "inline-flex items-center gap-1 whitespace-nowrap text-[11px] leading-none",
-        onMedia
-          ? "rounded-full bg-black/45 px-1.5 py-1 text-white"
-          : isOut
-            ? "text-cami-sage-11"
-            : "text-muted-foreground",
+        onMedia ? "rounded-full bg-black/45 px-1.5 py-1 text-white" : "text-muted-foreground",
       )}
     >
       {showName && message.sentByStaffName ? <span>{message.sentByStaffName} ·</span> : null}
@@ -402,11 +489,11 @@ function MessageBubble({
       <div
         className={cn(
           "max-w-[75%] rounded-lg shadow-sm",
-          // Failed uses tomato-3, the same step as the outgoing sage fill.
+          // Failed uses tomato-3, the same step as the outgoing green fill (WhatsApp-like).
           failed
-            ? "bg-tomato-3 text-tomato-12"
+            ? "bg-tomato-3 text-foreground"
             : isOut
-              ? "bg-cami-sage-3 text-cami-sage-12"
+              ? "bg-cami-green-3 text-foreground"
               : "bg-card text-foreground",
           hasMedia ? "p-1" : "px-3 py-1.5",
         )}
@@ -589,7 +676,7 @@ function MessageList({
         onScroll={onScroll}
         role="log"
         aria-label={copy.messageLog}
-        className="relative flex min-h-0 flex-1 flex-col overflow-y-auto bg-sand-2 px-5 pt-2 pb-4"
+        className="no-scrollbar relative flex min-h-0 flex-1 flex-col overflow-y-auto bg-sand-3 px-5 pt-2 pb-4"
       >
         {reachedStart ? (
           messages[0]?.origin === "history_import" ? (
@@ -664,7 +751,7 @@ function ThreadSkeleton() {
         <Skeleton className="h-3.5 w-32" />
         <Skeleton className="h-3 w-24" />
       </div>
-      <div className="flex flex-1 flex-col justify-end gap-3 bg-sand-2 px-5 py-4">
+      <div className="flex flex-1 flex-col justify-end gap-3 bg-sand-3 px-5 py-4">
         {["w-52", "w-64 self-end", "w-40", "w-72 self-end", "w-48"].map((w) => (
           <Skeleton key={w} className={cn("h-10 rounded-lg", w)} />
         ))}
@@ -686,7 +773,15 @@ export function Thread({
   noChats = false,
   copy,
   lang,
+  paneOpen,
+  onTogglePane,
+  onAdd,
 }: {
+  /** Whether the client pane beside the chat is showing. */
+  paneOpen: boolean
+  onTogglePane: () => void
+  /** Opens the add-client form (unmatched chats). */
+  onAdd: () => void
   status: PaneStatus
   conversation: InboxConversation | null
   now: number
@@ -702,12 +797,12 @@ export function Thread({
   copy: InboxCopy
   lang: Lang
 }) {
-  // The thread takes the remaining width, at least 580px. Messages and the
-  // composer share one centered column, max 1000px. The pane itself stays wider.
+  // The thread takes the remaining width and is first to give it back, down to
+  // 400px. Messages and the composer share one centered column, max 1000px.
   return (
     <section
       data-inbox-thread
-      className="flex min-w-[580px] flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
+      className="flex min-w-[400px] flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
     >
       {status === "loading" ? (
         <ThreadSkeleton />
@@ -732,8 +827,16 @@ export function Thread({
         />
       ) : (
         <>
-          <ThreadHeader conversation={conversation} />
-          <div className="flex min-h-0 w-full flex-1 flex-col bg-sand-2">
+          <ThreadHeader
+            conversation={conversation}
+            paneOpen={paneOpen}
+            onTogglePane={onTogglePane}
+            onMatch={onMatch}
+            onAdd={onAdd}
+            canReply={canReply}
+            copy={copy}
+          />
+          <div className="flex min-h-0 w-full flex-1 flex-col bg-sand-3">
             <div
               data-inbox-thread-column
               className="mx-auto flex min-h-0 w-full max-w-[1000px] flex-1 flex-col"
@@ -759,7 +862,7 @@ export function Thread({
                   onMatch={onMatch}
                 />
               ) : (
-                <div className="flex items-start gap-3 border-t border-border bg-sand-2 px-5 py-4 text-sm">
+                <div className="flex items-start gap-3 border-t border-border bg-sand-3 px-5 py-4 text-sm">
                   <LockIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
                   <div className="flex flex-col gap-0.5">
                     <p className="font-medium text-foreground">{copy.readOnlyTitle}</p>

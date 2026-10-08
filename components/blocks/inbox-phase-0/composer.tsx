@@ -192,40 +192,38 @@ function TemplateDraft({
       ? `${names.slice(0, -1).join(", ")}${copy.and}${names.at(-1)}`
       : (names[0] ?? "")
 
+  // The same shell as the open composer, so choosing a template doesn't make
+  // the box jump: a quiet top line, the message where typed text goes, and the
+  // send in the same corner.
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
-      <div className="flex items-center gap-2">
-        <FileTextIcon className="size-4 text-muted-foreground" aria-hidden />
-        <span className="text-xs font-medium text-foreground">
-          {copy.templateLabel(template.name)}
+    <div
+      className={cn(
+        COMPOSER_HEIGHT,
+        "flex flex-col rounded-2xl border border-border bg-card shadow-sm",
+      )}
+    >
+      <div className="flex items-center gap-1.5 ps-3 pe-2 pt-1.5">
+        <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-sand-3 px-2.5 py-1 text-xs text-foreground">
+          <FileTextIcon className="size-3.5 shrink-0" aria-hidden />
+          <span className="truncate">{copy.templateLabel(template.name)}</span>
         </span>
-        <div className="ms-auto flex items-center gap-1">
-          <TemplatePicker
-            conversation={conversation}
-            now={now}
-            copy={copy}
-            onPick={onChange}
-            trigger={
-              <Button type="button" variant="ghost" size="sm" radius="full">
-                {copy.changeTemplate}
-              </Button>
-            }
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            radius="full"
-            aria-label={copy.removeTemplate}
-            onClick={onRemove}
-          >
-            <XIcon className="size-4" aria-hidden />
-          </Button>
-        </div>
+        <Button
+          className="ms-auto"
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          radius="full"
+          aria-label={copy.removeTemplate}
+          onClick={onRemove}
+        >
+          <XIcon className="size-4" aria-hidden />
+        </Button>
       </div>
-      <TemplateBody segments={segments} copy={copy} />
+      <div className="px-4 pt-1.5">
+        <TemplateBody segments={segments} copy={copy} />
+      </div>
       {blanks.length > 0 ? (
-        <div className="flex flex-col gap-2 rounded-xl bg-tomato-2 p-3 text-sm text-foreground">
+        <div className="mx-3 mt-3 flex flex-col gap-2 rounded-xl bg-tomato-2 p-3 text-sm text-foreground">
           <p className="font-medium text-tomato-11">
             {copy.blankBlocked(blankList, uniqueBlanks.length)}
           </p>
@@ -248,11 +246,23 @@ function TemplateDraft({
           ) : null}
         </div>
       ) : null}
-      <div className="flex justify-end">
+      <div className="mt-auto flex items-center gap-2 px-2 pt-3 pb-2">
+        <TemplatePicker
+          conversation={conversation}
+          now={now}
+          copy={copy}
+          onPick={onChange}
+          trigger={
+            <Button type="button" variant="ghost" size="sm" radius="full" className="gap-1.5">
+              <FileTextIcon className="size-4" aria-hidden />
+              {copy.changeTemplate}
+            </Button>
+          }
+        />
         <Button
           type="button"
           radius="full"
-          className="gap-1.5"
+          className="ms-auto gap-1.5"
           disabled={blanks.length > 0}
           onClick={() => onSend(render(segments))}
         >
@@ -349,12 +359,12 @@ function WindowOpenBar({
   return (
     <p
       className={cn(
-        "flex items-center gap-1.5 px-4 pt-2.5 text-xs",
+        "ms-3 mt-2.5 inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-xs",
         closingNow
-          ? "font-medium text-tomato-11"
+          ? "bg-tomato-3 font-medium text-tomato-11"
           : closingSoon
-            ? "font-medium text-cami-yellow-11"
-            : "text-muted-foreground",
+            ? "bg-cami-yellow-3 font-medium text-cami-yellow-11"
+            : "bg-sand-3 text-foreground",
       )}
     >
       <ClockIcon className="size-3.5 shrink-0" aria-hidden />
@@ -490,7 +500,7 @@ export function Composer({
 
   if (open) {
     return (
-      <div className="bg-sand-2 px-4 py-3">
+      <div className="bg-sand-3 px-4 py-3">
         <div
           className={cn(
             COMPOSER_HEIGHT,
@@ -579,7 +589,7 @@ export function Composer({
   // Closed: free typing is not offered (IX-A4 row 4). Anything typed before it
   // closed is kept, never sent and never thrown away (IX-A2 edge case).
   return (
-    <div className="flex flex-col gap-2 bg-sand-2 px-4 py-3">
+    <div className="flex flex-col gap-2 bg-sand-3 px-4 py-3">
       {draft.trim() ? (
         <KeptDraft
           draft={draft}
@@ -612,7 +622,7 @@ export function Composer({
           )}
         >
           <div className="p-3 pb-1">
-            <div className="flex flex-col gap-3 rounded-xl bg-sand-3 p-3">
+            <div className="flex flex-col gap-3 rounded-xl bg-sand-4 p-3">
               <div className="flex items-start gap-3">
                 <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">

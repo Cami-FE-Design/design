@@ -37,14 +37,22 @@ export function ConversationAvatar({
   unmatchedLabel,
 }: {
   conversation: InboxConversation
-  size?: "md" | "lg" | "empty"
+  size?: "sm" | "md" | "lg" | "empty"
   unmatchedLabel?: string
 }) {
   const name = customerName(conversation)
   if (!name) {
     // "empty" is the unmatched pane mark, about 96px. List rows stay "md".
-    const box = size === "empty" ? "size-24" : size === "lg" ? "size-12" : "size-9"
-    const icon = size === "empty" ? "size-10" : size === "lg" ? "size-5" : "size-4"
+    const box =
+      size === "empty" ? "size-24" : size === "lg" ? "size-12" : size === "sm" ? "size-7" : "size-9"
+    const icon =
+      size === "empty"
+        ? "size-10"
+        : size === "lg"
+          ? "size-5"
+          : size === "sm"
+            ? "size-3.5"
+            : "size-4"
     return (
       <span
         className={`inline-flex ${box} shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50 text-muted-foreground`}
@@ -100,4 +108,20 @@ export function guessName(messages: InboxMessage[]): string | null {
     if (found) return found.charAt(0).toUpperCase() + found.slice(1).toLowerCase()
   }
   return null
+}
+
+/** A WhatsApp profile name as a name guess: emoji and symbols dropped, the
+ *  first word as the first name, the rest as the last. Nothing usable (an
+ *  emoji, a dot) gives null, never a made-up name. */
+export function profileNameParts(
+  profileName: string | null,
+): { firstName: string; lastName: string } | null {
+  if (!profileName) return null
+  const clean = profileName
+    .replace(/[^\p{L}\p{M}\s'.-]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim()
+  if (!/\p{L}/u.test(clean)) return null
+  const [first, ...rest] = clean.split(" ")
+  return { firstName: first!, lastName: rest.join(" ") }
 }
