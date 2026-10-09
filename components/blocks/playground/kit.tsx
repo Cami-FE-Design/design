@@ -20,10 +20,6 @@ export type SectionProps = {
 // Section titles double as anchors so a review message can deep-link straight
 // to one section instead of asking the reader to scroll and hunt for it.
 // "Appointments — pickup & pet notes" → #appointments-pickup-pet-notes
-
-// Section titles double as anchors so a review message can deep-link straight
-// to one section instead of asking the reader to scroll and hunt for it.
-// "Appointments — pickup & pet notes" → #appointments-pickup-pet-notes
 export function sectionSlug(title: string): string {
   return title
     .toLowerCase()
