@@ -1,6 +1,7 @@
 import type { Emirate } from "@/lib/business-profile"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import type { BusinessNotificationConfig } from "@/lib/notifications/types"
+import { TEAM_MEMBERS } from "@/lib/team/mock"
 
 export type BusinessState = "onboarding" | "live" | "suspended" | "archived"
 
@@ -50,6 +51,18 @@ export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
   manager: "Manager",
   reception: "Reception",
   staff: "Staff",
+}
+
+/**
+ * Shampooch's team (lib/team/mock.ts) as HQ's Team tab lists it: everyone but
+ * the owner, who has a row of their own. An invite nobody has accepted has no
+ * name yet, so it is listed by email, the way Team settings lists it.
+ */
+function teamAsHqSees(): StaffMember[] {
+  return TEAM_MEMBERS.filter((m) => m.roleId !== "owner").map((m) => ({
+    name: m.name ?? m.email,
+    role: m.roleId === "manager" ? "manager" : m.roleId === "receptionist" ? "reception" : "staff",
+  }))
 }
 
 export type AdminBusiness = {
@@ -140,12 +153,10 @@ export const adminBusinesses: AdminBusiness[] = [
     createdAt: "2026-03-04T09:12:00Z",
     lastActivityAt: "2026-05-03T07:48:00Z",
     weekly: { bookings: 24, invoices: 18, markPaidAed: 6420 },
-    staffCount: 4,
-    staffPreview: [
-      { name: "Sara Park", role: "manager" },
-      { name: "Beth Carter", role: "reception" },
-      { name: "Ahmed N.", role: "staff" },
-    ],
+    // The business's own team settings, so HQ and the owner see the same
+    // people in the same roles. The count includes the owner.
+    staffCount: TEAM_MEMBERS.length,
+    staffPreview: teamAsHqSees(),
     servicesCount: 6,
     servicesPreview: ["Full groom", "Bath & brush", "Nail trim"],
     street: "Al Ghozlan 4, Jumeirah Village Circle",
@@ -198,7 +209,7 @@ export const adminBusinesses: AdminBusiness[] = [
       {
         id: "a4",
         at: "2026-04-28T14:32:00Z",
-        actor: "Sara Park",
+        actor: "Aziz Rahman",
         action: "Added staff member",
         kind: "edit",
       },

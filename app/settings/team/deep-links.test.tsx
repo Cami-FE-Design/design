@@ -50,16 +50,22 @@ function openWith(query: string) {
 
 describe("team settings deep links", () => {
   it("opens the grants dialog on ?access=", async () => {
-    openWith("access=m_aziz")
-    expect(await screen.findByRole("dialog")).toBeInTheDocument()
+    openWith("access=aziz-rahman")
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Aziz Rahman")
   })
 
   it("opens the member editor on ?services=, on the Services section", async () => {
     // Beth works two sites, so the branch dimension is on screen for her — the
     // whole reason the link exists. It stays off for somebody holding one.
-    openWith("services=m_beth")
+    openWith("services=beth-carter")
     expect(await screen.findByRole("dialog")).toBeInTheDocument()
     expect(await screen.findByText(/Same services at every location/)).toBeInTheDocument()
+  })
+
+  // Links sent before team members shared the staff roster's ids.
+  it("still opens links that use a member's old id", async () => {
+    openWith("access=m_aziz")
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Aziz Rahman")
   })
 
   it("opens nothing at all without a parameter", () => {

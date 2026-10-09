@@ -298,7 +298,7 @@ One per rail section:
 | Label | `Rate`, matching the `Gateway` row above it |
 | Value | `1.8%` or `3% + AED 0.75`, tabular nums, or `Not set` in muted when the rail has no rows |
 | Action | `Change`, or `Set rate` when there is no current rate |
-| Provenance | `From 01 May 2026, set by Maz Khan`. Omitted entirely when there is no rate, since the value already reads `Not set` and "No rate set" under it says it twice |
+| Provenance | `From 01 May 2026, set by Ravi Iyer`. Omitted entirely when there is no rate, since the value already reads `Not set` and "No rate set" under it says it twice |
 | Bracket | Line under the provenance when one is set: `AED 0.75 applies under AED 100.00, 3% alone at or above` |
 | Warning | Amber line when the rail is **enabled with no rate**: "This rail is live with no rate, so Cami earns nothing on these payments." |
 
@@ -323,7 +323,7 @@ row per rate row, newest effective date first, both rails interleaved:
 ```
 CamiPay Online, 3% + AED 0.75                        From 01 May 2026
 AED 0.75 applies under AED 100.00, 3% alone at or above
-Set by Maz Khan on 22 Apr 2026
+Set by Ravi Iyer on 22 Apr 2026
 ```
 
 Future rows read `Starts 01 Sep 2026` instead of `From`. History sits at the

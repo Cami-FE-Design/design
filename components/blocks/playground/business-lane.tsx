@@ -403,7 +403,7 @@ function SurfaceStatesDemo() {
   const [status, setStatus] = useState<SurfaceStatus>("loading")
   const [accessOpen, setAccessOpen] = useState(false)
   const retry = () => setStatus("ready")
-  const aziz = TEAM_MEMBERS.find((m) => m.id === "m_aziz") ?? null
+  const aziz = TEAM_MEMBERS.find((m) => m.id === "aziz-rahman") ?? null
   const frame = "w-full max-w-[640px] rounded-2xl border border-border/60 p-4"
 
   return (
@@ -476,7 +476,7 @@ function SurfaceStatesDemo() {
 function TeamAccessDemo() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [members, setMembers] = useState(TEAM_MEMBERS)
-  const shown = members.filter((m) => ["m_owner", "m_aziz", "m_ahmed"].includes(m.id))
+  const shown = members.filter((m) => ["maz-khan", "aziz-rahman", "ahmed-invite"].includes(m.id))
   const { locationName } = useLocations()
 
   return (

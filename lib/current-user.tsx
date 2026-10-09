@@ -11,7 +11,7 @@
 // another team member are rejected up front.
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
-import { TEAM_MEMBERS } from "@/lib/team/mock"
+import { resolveMemberId, TEAM_MEMBERS } from "@/lib/team/mock"
 
 const STORAGE_KEY = "cami-current-user"
 
@@ -53,19 +53,41 @@ export type PendingContact = {
 export const DEFAULT_CURRENT_USER: CurrentUser = {
   // The owner, because that is who reviews this prototype and the one role that
   // is never refused anything. Switch it with `setMemberId` to read a screen as
-  // somebody else.
-  memberId: "m_owner",
-  firstName: "Michelle",
-  lastName: "You",
-  email: "michelle.h.you@gmail.com",
+  // somebody else. Name, email and mobile are his roster row's
+  // (lib/team/mock.ts), so My profile and Team settings show one person.
+  memberId: "maz-khan",
+  firstName: "Maz",
+  lastName: "Khan",
+  email: "maaz@getcami.io",
   phoneCode: "+971",
-  phone: "50 123 7969",
+  phone: "50 963 6445",
   country: "United Arab Emirates",
   birthDay: "14",
   birthMonth: "Apr",
   birthYear: "1992",
-  jobTitle: "Owner",
+  jobTitle: "Manager",
   calendarColor: "indigo",
+}
+
+/**
+ * The profile this file shipped before it was the owner's row: Michelle You,
+ * who is Cami HQ's admin, not anyone at the business. A browser that saved it
+ * unedited gets the owner's profile instead; one somebody edited is theirs and
+ * stays as it is.
+ */
+function isRetiredDefault(saved: Partial<CurrentUser>): boolean {
+  return (
+    saved.firstName === "Michelle" &&
+    saved.lastName === "You" &&
+    saved.email === "michelle.h.you@gmail.com"
+  )
+}
+
+/** A saved profile, brought up to the current ids and defaults. */
+function fromSaved(saved: Partial<CurrentUser>): CurrentUser {
+  if (isRetiredDefault(saved)) return DEFAULT_CURRENT_USER
+  const user = { ...DEFAULT_CURRENT_USER, ...saved }
+  return { ...user, memberId: resolveMemberId(user.memberId) }
 }
 
 /** The signed-in person as the permission rules need them (R04). */
@@ -113,10 +135,11 @@ export function CurrentUserProvider({ children }: { children: React.ReactNode })
       const parsed = JSON.parse(saved)
       // Older saves were the flat user object; current shape is {user, pending}.
       if (parsed.user) {
-        setUser({ ...DEFAULT_CURRENT_USER, ...parsed.user })
-        setPending(parsed.pending ?? {})
+        setUser(fromSaved(parsed.user))
+        // A retired profile's pending change was to Michelle's email, not his.
+        setPending(isRetiredDefault(parsed.user) ? {} : (parsed.pending ?? {}))
       } else {
-        setUser({ ...DEFAULT_CURRENT_USER, ...parsed })
+        setUser(fromSaved(parsed))
       }
     } catch {
       window.localStorage.removeItem(STORAGE_KEY)
@@ -203,7 +226,7 @@ export function useCurrentUser(): CurrentUserValue {
     // Outside a provider the owner is the honest default: a surface rendered in
     // isolation should draw its controls, not hide them behind a role nobody
     // set.
-    actor: { memberId: "m_owner", name: "Maz Khan", roleId: "owner", grants: "all" },
+    actor: { memberId: "maz-khan", name: "Maz Khan", roleId: "owner", grants: "all" },
     setMemberId: () => {},
     pending: {},
     updateUser: () => {},
@@ -237,14 +260,18 @@ export function maskPhone(phoneCode: string, phone: string): string {
 
 // DSG-63 duplicate handling: a change is blocked when the value is already
 // used by someone else on Cami. The team roster stands in for "everyone".
+// The signed-in person is on that roster too, so their own row is skipped:
+// going back to your own email is not taking somebody else's.
 
-export function isEmailTaken(email: string): boolean {
+export function isEmailTaken(email: string, selfMemberId?: string): boolean {
   const normalized = email.trim().toLowerCase()
-  return TEAM_MEMBERS.some((m) => m.email.toLowerCase() === normalized)
+  return TEAM_MEMBERS.some((m) => m.id !== selfMemberId && m.email.toLowerCase() === normalized)
 }
 
-export function isPhoneTaken(code: string, number: string): boolean {
+export function isPhoneTaken(code: string, number: string, selfMemberId?: string): boolean {
   const digits = `${code}${number}`.replace(/\D/g, "")
   if (!digits) return false
-  return TEAM_MEMBERS.some((m) => (m.phone ?? "").replace(/\D/g, "") === digits)
+  return TEAM_MEMBERS.some(
+    (m) => m.id !== selfMemberId && (m.phone ?? "").replace(/\D/g, "") === digits,
+  )
 }

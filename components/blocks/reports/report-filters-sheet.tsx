@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useLocations } from "@/lib/locations/store"
 import type { FilterKey } from "@/lib/reports/types"
+import { TEAM_MEMBERS } from "@/lib/team/mock"
 
 const FILTER_META: Record<FilterKey, { label: string; all: string; options: string[] }> = {
   // Options come from the reader's grant at render — see `FilterField`. The
@@ -21,7 +22,13 @@ const FILTER_META: Record<FilterKey, { label: string; all: string; options: stri
   // filter multi-location needs offered a single wrong answer.
   location: { label: "Location", all: "All locations", options: [] },
   type: { label: "Type", all: "All types", options: ["Service", "Product"] },
-  teamMember: { label: "Team member", all: "All team members", options: ["Aziz", "Sara", "Omar"] },
+  // The business's team (lib/team/mock.ts), the same people the report rows
+  // name. An invite nobody has accepted has no name and no work to report.
+  teamMember: {
+    label: "Team member",
+    all: "All team members",
+    options: TEAM_MEMBERS.flatMap((m) => (m.name ? [m.name] : [])),
+  },
   channel: {
     label: "Channel",
     all: "All channels",

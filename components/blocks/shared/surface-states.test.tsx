@@ -41,7 +41,7 @@ describe("stock by location before it has loaded", () => {
 })
 
 describe("team access before the grant has loaded", () => {
-  const ahmed = TEAM_MEMBERS.find((m) => m.id === "m_ahmed")!
+  const ahmed = TEAM_MEMBERS.find((m) => m.id === "ahmed-invite")!
 
   for (const status of ["loading", "error"] as const) {
     it(`never asks for a location and will not save while ${status}`, () => {

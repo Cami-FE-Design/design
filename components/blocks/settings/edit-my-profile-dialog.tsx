@@ -73,11 +73,11 @@ export function EditMyProfileDialog({ open, onOpenChange }: EditMyProfileDialogP
     const phoneChanged = nextPhone !== user.phone || phoneCode !== user.phoneCode
 
     // DSG-63: block values already used by someone else before starting a change.
-    if (emailChanged && isEmailTaken(nextEmail)) {
+    if (emailChanged && isEmailTaken(nextEmail, user.memberId)) {
       setEmailError("This email is already in use on Cami. Try another one.")
       return
     }
-    if (phoneChanged && nextPhone && isPhoneTaken(phoneCode, nextPhone)) {
+    if (phoneChanged && nextPhone && isPhoneTaken(phoneCode, nextPhone, user.memberId)) {
       setPhoneError("This mobile number is already in use on Cami. Try another one.")
       return
     }

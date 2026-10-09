@@ -209,7 +209,7 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
       rail: "terminal",
       rate: { percent: 1.8, fixedMinor: 0, fixedBelowMinor: null },
       effectiveFrom: "2026-05-01",
-      createdBy: "Maz Khan",
+      createdBy: "Ravi Iyer",
       createdAt: "2026-04-22T11:04:00Z",
     },
     {
@@ -218,7 +218,7 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
       rail: "online",
       rate: { percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 },
       effectiveFrom: "2026-05-01",
-      createdBy: "Maz Khan",
+      createdBy: "Ravi Iyer",
       createdAt: "2026-04-22T11:04:00Z",
     },
     // Pawhaus: flat since onboarding, with a future-dated cut already agreed.

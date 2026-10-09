@@ -59,11 +59,19 @@ export const STAFF: ReadonlyArray<StaffMember> = [
   {
     id: "maz-khan",
     name: "Maz Khan",
-    role: "Owner",
+    // Job title, as the team list shows it. Being the owner is his access
+    // role (lib/team/mock.ts), not a title.
+    role: "Manager",
     businessId: "shampooch",
     locationIds: [],
     bookable: false,
   },
+  // Team settings' people (lib/team/mock.ts): the manager who holds one branch,
+  // a groomer at one, a stylist at two. Their access is set there; where they
+  // work is here, and the two start out the same.
+  shampooch("aziz-rahman", "Aziz Rahman", "Senior Groomer", [JUMEIRAH]),
+  shampooch("sara-park", "Sara Park", "Groomer", [JVC]),
+  shampooch("beth-carter", "Beth Carter", "Stylist", [JVC, JUMEIRAH]),
   shampooch("aya-hassan", "Aya Hassan", "Senior Groomer", [JVC]),
   // Works both Dubai branches on a split day: the person DW2.3 is written for.
   shampooch("lena-petrov", "Lena Petrov", "Groomer", [JVC, JUMEIRAH]),

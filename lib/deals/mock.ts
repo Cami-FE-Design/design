@@ -200,7 +200,7 @@ export const MOCK_DEALS: Deal[] = [
     // Grooming, so it takes nothing off a bottle of conditioner.
     applicability: SERVICES_ONLY,
     limits: { ...DEFAULT_DEAL_LIMITS, oneUsePerClient: true },
-    teamMemberIds: ["m_aziz", "m_sara"],
+    teamMemberIds: ["aziz-rahman", "sara-park"],
     redemptions: 148,
     totalSalesMinor: 128400,
     totalClients: 132,

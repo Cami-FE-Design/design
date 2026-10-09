@@ -154,8 +154,8 @@ describe("inviting a team member", () => {
 })
 
 describe("team access dialog", () => {
-  const ahmed = TEAM_MEMBERS.find((m) => m.id === "m_ahmed")!
-  const aziz = TEAM_MEMBERS.find((m) => m.id === "m_aziz")!
+  const ahmed = TEAM_MEMBERS.find((m) => m.id === "ahmed-invite")!
+  const aziz = TEAM_MEMBERS.find((m) => m.id === "aziz-rahman")!
 
   function openAccess(member: (typeof TEAM_MEMBERS)[number], onSave = vi.fn()) {
     render(
@@ -177,7 +177,7 @@ describe("team access dialog", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: "JVC" }))
     expect(screen.queryByText(REQUIRED)).toBeNull()
     await userEvent.click(screen.getByRole("button", { name: "Confirm" }))
-    expect(onSave).toHaveBeenCalledWith("m_ahmed", "receptionist", ["shampooch-jvc"])
+    expect(onSave).toHaveBeenCalledWith("ahmed-invite", "receptionist", ["shampooch-jvc"])
   })
 
   it("says nothing for a member who works somewhere", () => {

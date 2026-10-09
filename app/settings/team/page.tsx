@@ -34,7 +34,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { type LocationGrants, useLocations } from "@/lib/locations/store"
-import { TEAM_MEMBERS, type TeamMember } from "@/lib/team/mock"
+import { resolveMemberId, TEAM_MEMBERS, type TeamMember } from "@/lib/team/mock"
 import { holdsAllLocations, roleById } from "@/lib/team/roles"
 import { RotaProvider, useRota } from "@/lib/team/shifts-store"
 import { cn } from "@/lib/utils"
@@ -116,7 +116,7 @@ function MemberTableRow({
   onRemove: (id: string) => void
 }) {
   const isPending = member.status === "pending"
-  const isLocked = member.id === "m_owner"
+  const isLocked = member.roleId === "owner"
 
   return (
     <TableRow
@@ -292,9 +292,14 @@ function TeamSettingsContent() {
   // "what she performs at Jumeirah" has to open that dialog, not a roster of
   // five people with no sign of which row carries the thing being reviewed.
   const params = useSearchParams()
-  const memberParam = params?.get("member") ?? null
-  const accessParam = params?.get("access") ?? null
-  const servicesParam = params?.get("services") ?? null
+  // Old `m_*` ids in links already sent still land on the right person.
+  const idParam = (key: string) => {
+    const value = params?.get(key)
+    return value ? resolveMemberId(value) : null
+  }
+  const memberParam = idParam("member")
+  const accessParam = idParam("access")
+  const servicesParam = idParam("services")
   const deepLink = `${memberParam ?? ""}|${accessParam ?? ""}|${servicesParam ?? ""}`
   const [viewMemberId, setViewMemberId] = useState<string | null>(memberParam)
   const [accessMemberId, setAccessMemberId] = useState<string | null>(accessParam)
@@ -560,7 +565,7 @@ function TeamSettingsContent() {
           // Which branches they hold, so "Works at" names locations rather
           // than repeating the business back at the reader (R04).
           member={{ ...viewMember, locationGrants: viewMember.locationGrants }}
-          isLocked={viewMember.id === "m_owner"}
+          isLocked={viewMember.roleId === "owner"}
           onEditProfile={() => handleEditProfile(viewMember.id)}
           onEditRoles={() => handleEditRoles(viewMember.id)}
           onEditServices={() => handleEditServices(viewMember.id)}

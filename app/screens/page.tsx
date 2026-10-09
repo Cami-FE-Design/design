@@ -1212,7 +1212,7 @@ const SECTIONS: Section[] = [
       },
       {
         epic: "Epic 2 · Create branches and control access",
-        path: "/settings/team?access=m_aziz",
+        path: "/settings/team?access=aziz-rahman",
         label: "Branch access grants · SCR-03",
         note: "Role × location, the two axes access resolves on (R04). `?access=<id>` opens the grants dialog on that member — this one lands on Aziz. The roster shows both columns too, so a wrong scope is visible without opening anyone. Role is read-only, role read-only, location grant editable. Maz is Owner (stored as 'all'), Aziz holds only Jumeirah, Ahmed is invited with none — no access, said out loud (R24).",
       },
@@ -1256,7 +1256,7 @@ const SECTIONS: Section[] = [
         epic: "Epic 2 · Create branches and control access",
         path: "/settings/team",
         label: "A team member needs a location · P1.4.7",
-        note: "Add member opens with a location already ticked. Untick it and Add: 'Pick at least one location.' with a toast. The access dialog (?access=m_ahmed) holds the same rule. Owners are exempt.",
+        note: "Add member opens with a location already ticked. Untick it and Add: 'Pick at least one location.' with a toast. The access dialog (?access=ahmed-invite) holds the same rule. Owners are exempt.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
@@ -1326,7 +1326,7 @@ const SECTIONS: Section[] = [
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
-        path: "/settings/team?services=m_beth",
+        path: "/settings/team?services=beth-carter",
         label: "Services per branch · DW2.1 (route)",
         note: "`?services=<id>` opens that member's editor on Services — Beth, who works two sites. One list stays the default, because ticking nine identical lists is the setup cost R02 rules out; turn off 'Same services at every location' and the branches they hold appear with their own counts, seeded from the shared list. Absent for somebody holding one branch.",
       },
@@ -1607,7 +1607,7 @@ const SECTIONS: Section[] = [
       {
         path: "/settings/team",
         label: "Add team member takeover",
-        note: "Click Add. Sidebar nav with 6 sections; Profile is the default and includes name, email, phone, country, birthday, calendar color (Cami palette), and job title. Settings has the permission role select (High/Medium/Low).",
+        note: "Click Add. Sidebar nav with 6 sections; Profile is the default and includes name, email, phone, country, birthday, calendar color (Cami palette), and job title. Settings has the permission role select: Manager, Receptionist, Stylist, Trainee / Staff and Marketing. Owner is not offered, since it is not a role you hand out.",
       },
     ],
   },
