@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { formatAed } from "@/lib/format"
 import { formatMoney } from "@/lib/money/format"
-import { STAFF } from "@/lib/sales/new-sale-mock"
+import { CURRENT_USER, TEAM_MEMBERS } from "@/lib/sales/new-sale-mock"
 
 type CashAmountDialogProps = {
   open: boolean
@@ -46,7 +46,7 @@ function CashBody({
 }) {
   // Prefill with the outstanding amount.
   const [entry, setEntry] = useState((toPayMinor / 100).toString())
-  const [receivedBy, setReceivedBy] = useState(STAFF[1].name)
+  const [receivedBy, setReceivedBy] = useState(CURRENT_USER)
   const [stage, setStage] = useState<"amount" | "member">("amount")
 
   const amountMinor = Math.round((Number.parseFloat(entry) || 0) * 100)
@@ -89,8 +89,7 @@ function CashBody({
 
   // ─── Team-member picker stage ────────────────────────────────────────────
   if (stage === "member") {
-    const members = STAFF.filter((s) => s.id !== "any")
-    const others = members.filter((s) => s.name !== receivedBy)
+    const others = TEAM_MEMBERS.filter((name) => name !== receivedBy)
     return (
       <>
         <div className="flex items-center justify-between gap-3">
@@ -130,12 +129,12 @@ function CashBody({
           <p className="px-2 py-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
             Other team members
           </p>
-          {others.map((s) => (
+          {others.map((name) => (
             <MemberRow
-              key={s.id}
-              name={s.name}
+              key={name}
+              name={name}
               onClick={() => {
-                setReceivedBy(s.name)
+                setReceivedBy(name)
                 setStage("amount")
               }}
             />

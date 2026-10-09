@@ -41,6 +41,7 @@ import { bookingStatusBadge } from "@/lib/appointments/status"
 import { formatDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
+import { CURRENT_USER } from "@/lib/sales/new-sale-mock"
 import { cn } from "@/lib/utils"
 
 // Set high enough that the curated demo subset (10 rows) paints in a single
@@ -106,7 +107,7 @@ function augment(b: MockBooking, index: number): Augmented {
     ...b,
     scheduledAt,
     createdAt,
-    createdBy: "Hussain Shabbir",
+    createdBy: CURRENT_USER,
   }
 }
 

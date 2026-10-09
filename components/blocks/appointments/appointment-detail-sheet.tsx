@@ -84,6 +84,7 @@ import {
 import { usePaymentPolicy } from "@/lib/payment-policy/store"
 import { depositForServices } from "@/lib/payment-policy/types"
 import type { PetNoteEntry } from "@/lib/pet-notes"
+import { CURRENT_USER } from "@/lib/sales/new-sale-mock"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers (mirror new-appointment-sheet conventions) ───────────────────────
@@ -1006,7 +1007,7 @@ export function AppointmentDetailSheet({
       timestamp: "May 22, 2026, 10:33 AM",
       body: (
         <>
-          Checked out by Hussain with{" "}
+          Checked out by {CURRENT_USER} with{" "}
           <button type="button" className="text-cami-violet-11 hover:underline">
             sale receipt 2
           </button>
@@ -1017,7 +1018,7 @@ export function AppointmentDetailSheet({
       id: "appointment-created",
       title: "Appointment created",
       timestamp: "May 22, 2026, 10:32 AM",
-      body: "Booked by Hussain, reference 641E6833",
+      body: `Booked by ${CURRENT_USER}, reference 641E6833`,
     },
   ]
 

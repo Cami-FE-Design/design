@@ -20,7 +20,7 @@ import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { TODAY_ISO } from "@/lib/money/mock"
 import type { CartLine } from "@/lib/sales/cart-types"
-import { STAFF } from "@/lib/sales/new-sale-mock"
+import { staffForSaleAt } from "@/lib/sales/new-sale-mock"
 
 export type LinePatch = {
   priceMinor: number
@@ -77,6 +77,13 @@ export function EditLineDialog({
   const [price, setPrice] = useState((line.priceMinor / 100).toFixed(2))
   const [qty, setQty] = useState(line.qty)
   const [staff, setStaff] = useState(line.staffName ?? "Any")
+  // This branch's people. Whoever is already on the line stays offered even
+  // when they are not one of them (a line carried over from another branch's
+  // appointment), so opening the dialog never silently reassigns it.
+  const branchStaff = staffForSaleAt(locationId)
+  const staffOptions = branchStaff.some((s) => s.name === staff)
+    ? branchStaff
+    : [...branchStaff, { id: `line-${staff}`, name: staff }]
 
   const [dealId, setDealId] = useState(line.dealId ?? NO_DEAL)
 
@@ -259,7 +266,7 @@ export function EditLineDialog({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {STAFF.map((s) => (
+              {staffOptions.map((s) => (
                 <SelectItem key={s.id} value={s.name}>
                   {s.name}
                 </SelectItem>

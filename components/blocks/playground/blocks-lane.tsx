@@ -457,7 +457,7 @@ export function BlocksLane() {
             <TimelineRow isLast>
               <div className="rounded-2xl border border-border/60 bg-card p-4">
                 <span className="font-semibold text-foreground">Gift card purchased</span>
-                <p className="text-xs text-muted-foreground">Yesterday at 3:33pm by Husain NGI</p>
+                <p className="text-xs text-muted-foreground">Yesterday at 3:33pm by Maz Khan</p>
               </div>
             </TimelineRow>
           </ul>

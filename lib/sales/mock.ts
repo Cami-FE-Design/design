@@ -175,9 +175,9 @@ export const MOCK_SALES: Sale[] = [
         originalPriceMinor: 12000,
         customerPackageId: "cp-aaishah-1",
         clientId: "aaishah-vaza",
-        meta: "45min · Husain NGI",
+        meta: "45min · Beth Carter",
       },
-      { name: "Nail trim", priceMinor: 4500, meta: "20min · Husain NGI" },
+      { name: "Nail trim", priceMinor: 4500, meta: "20min · Sara Park" },
     ],
     // A deposit taken at another location the day before, and the balance
     // here. Refunding or voiding the deposit belongs to Jumeirah, so a

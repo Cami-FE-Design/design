@@ -83,6 +83,7 @@ import { documentTitle } from "@/lib/invoice/totals"
 import { useLocations } from "@/lib/locations/store"
 import type { CartLine } from "@/lib/sales/cart-types"
 import { MOCK_SALES, type Sale, type SaleItem } from "@/lib/sales/mock"
+import { CURRENT_USER } from "@/lib/sales/new-sale-mock"
 import {
   demoPaidMinor,
   paymentsElsewhere,
@@ -90,6 +91,7 @@ import {
   type SalePayment,
 } from "@/lib/sales/payments"
 import { SALE_STATUS_CLASS, SALE_STATUS_LABEL } from "@/lib/sales/status"
+import { bookableStaffAt } from "@/lib/team/staff"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -189,6 +191,15 @@ function synthesizeDraft(
 // hardcoded Haircut priced at the draft total. Checkout rebuilds that same line
 // so the resumed cart matches what the operator was just looking at. The real
 // build reads the draft sale's stored lines instead.
+/**
+ * Who performed the mock service lines here: someone who takes bookings at the
+ * sale's branch (lib/team/staff.ts), so the name is always one of that
+ * branch's people. Null where nobody does, and the line then names no one.
+ */
+function performerAt(locationId: string): string | null {
+  return bookableStaffAt(locationId)[0]?.name ?? null
+}
+
 function draftToCartLines(draft: Draft): CartLine[] {
   return [
     {
@@ -197,7 +208,7 @@ function draftToCartLines(draft: Draft): CartLine[] {
       name: "Haircut",
       priceMinor: draft.grossMinor,
       durationMin: 90,
-      staffName: "Hussain Shabbir",
+      staffName: performerAt(draft.locationId) ?? "Any",
       qty: 1,
       sourceId: `draft-${draft.id}`,
     },
@@ -1317,8 +1328,14 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                         </span>
                         <span className="truncate text-xs text-muted-foreground">
                           {giftCard
-                            ? `${giftCard.code} · Husain NGI`
-                            : `${formatTime(data.saleAt)}, ${formatDate(data.saleAt)} · 1h 30min · Hussain S…`}
+                            ? `${giftCard.code} · ${CURRENT_USER}`
+                            : [
+                                `${formatTime(data.saleAt)}, ${formatDate(data.saleAt)}`,
+                                "1h 30min",
+                                performerAt(data.locationId),
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
                         </span>
                       </div>
                       <span className="shrink-0 font-medium text-foreground tabular-nums">
@@ -1409,14 +1426,14 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                 <ActivityRow
                   title={`Sale ${data.id} created`}
                   timestamp={`Yesterday at ${formatTime(data.saleAt)}`}
-                  body={`Completed by Hussain Shabbir`}
+                  body={`Completed by ${CURRENT_USER}`}
                   trailing={
                     <Avatar
                       size="md"
                       className="size-8"
                       fallback="character"
-                      name="Hussain Shabbir"
-                      hashSeed="hussain-shabbir"
+                      name={CURRENT_USER}
+                      hashSeed={CURRENT_USER}
                     />
                   }
                 />
@@ -1426,7 +1443,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                       key={p.id}
                       title={`${formatAed(Math.round(p.amountMinor / 100))} paid by ${methodLabel(p).toLowerCase()}`}
                       timestamp={`${formatDate(p.at)} at ${formatTime(p.at)}`}
-                      body={`Payment taken by Hussain Shabbir${
+                      body={`Payment taken by ${CURRENT_USER}${
                         takenElsewhere(p) ? ` · at ${locationName(p.locationId)}` : ""
                       }`}
                       trailing={
@@ -1451,7 +1468,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   <ActivityRow
                     title={`${formatAed(Math.abs(gross))} paid by cash`}
                     timestamp={`Yesterday at ${formatTime(data.saleAt)}`}
-                    body="Payment taken by Hussain Shabbir"
+                    body={`Payment taken by ${CURRENT_USER}`}
                     trailing={
                       <span className="inline-flex size-8 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11 ring-2 ring-background">
                         <BanknoteIcon className="size-4" />
@@ -1766,7 +1783,7 @@ function DraftDetailDialog({
                       <div className="flex min-w-0 flex-1 flex-col">
                         <span className="font-medium text-foreground">Haircut</span>
                         <span className="truncate text-xs text-muted-foreground">
-                          1h 30min · Hussain Shabbir
+                          {["1h 30min", performerAt(data.locationId)].filter(Boolean).join(" · ")}
                         </span>
                       </div>
                       <span className="shrink-0 font-medium text-foreground tabular-nums">
@@ -1805,13 +1822,13 @@ function DraftDetailDialog({
                   <ActivityRow
                     title={`Draft #${data.id} created`}
                     timestamp={`${formatWeekdayShort(data.createdAt)} at ${formatTime(data.createdAt)}`}
-                    body="Created by Hussain Shabbir"
+                    body={`Created by ${CURRENT_USER}`}
                     trailing={
                       <Avatar
                         size="md"
                         fallback="character"
-                        name="Hussain Shabbir"
-                        hashSeed="hussain-shabbir"
+                        name={CURRENT_USER}
+                        hashSeed={CURRENT_USER}
                       />
                     }
                     isLast

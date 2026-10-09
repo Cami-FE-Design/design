@@ -68,7 +68,7 @@ function MethodIcon({ kind }: { kind: MethodKind }) {
 export type RefundItem = {
   id: string
   name: string
-  /** When the item was sold — drives the "11:55am, 4 Jun 2026 with Yuna" line. */
+  /** When the item was sold — drives the "11:55am, 4 Jun 2026 with Tala Odeh" line. */
   at: Date
   /** Team member who delivered the item. */
   staff: string
@@ -85,7 +85,8 @@ export type RefundPayment = {
   availableMinor: number
 }
 
-// Demo line items — mirrors the figma fixture (Sale #22710). Used when a caller
+// Demo line items — mirrors the figma fixture (Sale #22710), with the roster's
+// people (lib/team/staff.ts) in place of the fixture's names. Used when a caller
 // doesn't pass its own `items`, which is every caller today since the sale list
 // only carries summary numbers.
 const DEMO_ITEMS: RefundItem[] = [
@@ -93,42 +94,42 @@ const DEMO_ITEMS: RefundItem[] = [
     id: "i1",
     name: "Nail Art PER nail",
     at: new Date(2026, 5, 4, 11, 55),
-    staff: "Yuna",
+    staff: "Tala Odeh",
     amountMinor: 2000,
   },
   {
     id: "i2",
     name: "Nail Art PER nail",
     at: new Date(2026, 5, 4, 11, 45),
-    staff: "Yuna",
+    staff: "Tala Odeh",
     amountMinor: 2000,
   },
   {
     id: "i3",
     name: "Cut & Blow Dry",
     at: new Date(2026, 5, 4, 12, 0),
-    staff: "Beth R",
+    staff: "Beth Carter",
     amountMinor: 40500,
   },
   {
     id: "i4",
     name: "Half Head Foils",
     at: new Date(2026, 5, 4, 10, 15),
-    staff: "Beth R",
+    staff: "Beth Carter",
     amountMinor: 67500,
   },
   {
     id: "i5",
     name: "Toner",
     at: new Date(2026, 5, 4, 11, 40),
-    staff: "Beth R",
+    staff: "Beth Carter",
     amountMinor: 18000,
   },
   {
     id: "i6",
     name: "Gel Color",
     at: new Date(2026, 5, 4, 10, 15),
-    staff: "Yuna",
+    staff: "Tala Odeh",
     amountMinor: 19800,
   },
 ]

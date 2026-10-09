@@ -5,6 +5,8 @@
 // case: "Rounding under tax-inclusive math").
 
 import { VAT_RATE } from "@/lib/invoice/totals"
+import { TEAM_MEMBERS as TEAM_ACCESS } from "@/lib/team/mock"
+import { bookableStaff, bookableStaffAt, staffById } from "@/lib/team/staff"
 import type {
   AppointmentItem,
   CartLine,
@@ -48,25 +50,43 @@ export function totals(lines: CartLine[]): CartTotals {
 
 // ─── Staff ──────────────────────────────────────────────────────────────────
 
-/** The signed-in team member — sales default to being attributed to them. */
-export const CURRENT_USER = "Husain NGI"
+// Everyone here is a person on lib/team/staff.ts. This file used to keep its
+// own five first names and a signed-in user, "Husain NGI", who existed nowhere
+// else, so a sale credited people the calendar and the rota had never heard of.
 
+/**
+ * The signed-in team member — sales default to being attributed to them. The
+ * owner, the same person lib/current-user.tsx signs in by default.
+ */
+export const CURRENT_USER: string = staffById("maz-khan")?.name ?? "Maz Khan"
+
+const ANY: Staff = { id: "any", name: "Any" }
+
+/** Who can perform a service line: "Any", then everyone who takes bookings. */
 export const STAFF: Staff[] = [
-  { id: "any", name: "Any" },
-  { id: "maz", name: "Maz" },
-  { id: "lena", name: "Lena" },
-  { id: "priya", name: "Priya" },
-  { id: "sara", name: "Sara" },
+  ANY,
+  ...bookableStaff("shampooch").map((s) => ({ id: s.id, name: s.name })),
 ]
 
 /**
- * Team members a sale can be attributed to. Unlike service lines (which allow
- * "Any"), a gift-card sale is always credited to a specific person — so the
- * current user leads and "Any" is excluded.
+ * Who can perform a service line at the branch the sale is taken at — the same
+ * narrowing the calendar does. With no branch, everyone who takes bookings.
+ */
+export function staffForSaleAt(locationId: string | null): Staff[] {
+  if (!locationId) return STAFF
+  return [ANY, ...bookableStaffAt(locationId).map((s) => ({ id: s.id, name: s.name }))]
+}
+
+/**
+ * Team members a sale can be attributed to, and who can take a payment: the
+ * people who sign in at the till (lib/team/mock.ts). Unlike service lines
+ * (which allow "Any"), a gift-card sale is always credited to a specific
+ * person — so the current user leads and "Any" is excluded. An invite nobody
+ * has accepted has no name and cannot take a sale.
  */
 export const TEAM_MEMBERS: string[] = [
   CURRENT_USER,
-  ...STAFF.filter((s) => s.id !== "any").map((s) => s.name),
+  ...TEAM_ACCESS.flatMap((m) => (m.name && m.name !== CURRENT_USER ? [m.name] : [])),
 ]
 
 // ─── Gift cards ───────────────────────────────────────────────────────────────
@@ -466,14 +486,14 @@ export const APPOINTMENTS: AppointmentItem[] = [
         serviceId: "acrylic-full",
         name: "Acrylic Nails Full Set hand",
         durationMin: 150,
-        staffName: "Lena",
+        staffName: "Lena Petrov",
         priceMinor: 28500,
       },
       {
         serviceId: "nail-art-per",
         name: "Nail Art PER nail",
         durationMin: 10,
-        staffName: "Lena",
+        staffName: "Lena Petrov",
         priceMinor: 2000,
       },
     ],
@@ -494,7 +514,7 @@ export const APPOINTMENTS: AppointmentItem[] = [
         serviceId: "cut-finish",
         name: "Nails & Style Combo - Cut & Finish",
         durationMin: 60,
-        staffName: "Priya",
+        staffName: "Mei Tanaka",
         priceMinor: 15000,
         comboName: "Nails & Style Combo",
         listPriceMinor: 18000,
@@ -504,7 +524,7 @@ export const APPOINTMENTS: AppointmentItem[] = [
         serviceId: "blow-dry",
         name: "Nails & Style Combo - Blow Dry & Style",
         durationMin: 45,
-        staffName: "Priya",
+        staffName: "Mei Tanaka",
         priceMinor: 10000,
         comboName: "Nails & Style Combo",
         listPriceMinor: 12000,
@@ -525,7 +545,7 @@ export const APPOINTMENTS: AppointmentItem[] = [
         serviceId: "biab-ext",
         name: "Biab with Nail Extensions",
         durationMin: 90,
-        staffName: "Sara",
+        staffName: "Sara Park",
         priceMinor: 38500,
       },
     ],

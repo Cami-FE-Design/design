@@ -65,6 +65,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { formatAed, formatDate, formatLongDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import { MOCK_SALES, type Sale } from "@/lib/sales/mock"
+import { CURRENT_USER } from "@/lib/sales/new-sale-mock"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -175,14 +176,14 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
         at: new Date(2026, 4, 20, 14, 10),
         locationId: "shampooch-jumeirah",
         amountAed: 800,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
       {
         id: "u2",
         at: new Date(2026, 5, 2, 11, 30),
         locationId: "shampooch-jvc",
         amountAed: 400,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
     ],
   },
@@ -205,14 +206,14 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
         at: new Date(2026, 3, 10, 12, 0),
         locationId: "shampooch-jvc",
         amountAed: 3000,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
       {
         id: "u2",
         at: new Date(2026, 4, 2, 15, 20),
         locationId: "shampooch-jumeirah",
         amountAed: 2300,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
     ],
   },
@@ -250,14 +251,14 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
         at: new Date(2026, 5, 8, 10, 15),
         locationId: "shampooch-al-reem",
         amountAed: 2500,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
       {
         id: "u2",
         at: new Date(2026, 5, 20, 17, 40),
         locationId: "shampooch-downtown-dubai",
         amountAed: 2000,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
     ],
   },
@@ -827,7 +828,7 @@ function buildActivity(
       id: "claimed",
       title: "Gift card claimed",
       when: "Today at 11:20am",
-      by: "Husain NGI",
+      by: CURRENT_USER,
       kind: "claimed",
       secondary: (
         <span>
@@ -869,7 +870,7 @@ function buildActivity(
     id: "purchased",
     title: "Gift card purchased",
     when: card.paidAt ? formatWhen(card.paidAt) : formatDate(card.issuedAt),
-    by: "Husain NGI",
+    by: CURRENT_USER,
     kind: "purchased",
     secondary: (
       <button
@@ -936,7 +937,7 @@ function GiftCardActivity({ card, onOpenSale }: { card: GiftCardSold; onOpenSale
 
 // Redeem events use the green gift glyph; lifecycle events (purchased/claimed)
 // show the actor's avatar. The actor is always the staff member who performed
-// it ("Husain NGI"), so the avatar colour stays consistent — it is NOT the
+// it (the signed-in user), so the avatar colour stays consistent — it is NOT the
 // owner/purchaser (those names would each hash to a different pastel).
 function ActivityIcon({ event }: { event: ActivityEvent }) {
   if (event.kind === "redeemed" || event.kind === "fully-redeemed") {
@@ -951,8 +952,8 @@ function ActivityIcon({ event }: { event: ActivityEvent }) {
       size="md"
       className="size-8"
       fallback="character"
-      name="Husain NGI"
-      hashSeed="husain-ngi"
+      name={CURRENT_USER}
+      hashSeed={CURRENT_USER}
     />
   )
 }

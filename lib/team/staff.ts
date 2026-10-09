@@ -148,6 +148,11 @@ export function bookableStaff(businessId: BusinessId): StaffMember[] {
   return STAFF.filter((s) => s.businessId === businessId && s.bookable)
 }
 
+/** The people who take appointments at one branch. */
+export function bookableStaffAt(locationId: string): StaffMember[] {
+  return STAFF.filter((s) => s.bookable && s.locationIds.includes(locationId))
+}
+
 /** Look a person up by the ids a feature keeps, in that order. */
 export function staffByIds(ids: ReadonlyArray<string>): StaffMember[] {
   return ids.map((id) => {
