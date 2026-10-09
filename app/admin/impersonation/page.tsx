@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SearchInput } from "@/components/ui/search-input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -123,10 +124,10 @@ function EventRow({
   onSelect,
 }: {
   event: ImpersonationEvent
-  nowMs: number
+  /** Null until the page is on the client — see `ImpersonationLogPage`. */
+  nowMs: number | null
   onSelect: (e: ImpersonationEvent) => void
 }) {
-  const dur = durationSeconds(event, nowMs)
   return (
     <TableRow
       className="cursor-pointer"
@@ -154,12 +155,27 @@ function EventRow({
         </div>
       </TableCell>
       <TableCell className="text-sm text-foreground">
-        <div className="flex flex-col leading-tight">
-          <span>{formatTimeAgo(event.startedAt, { now: nowMs })}</span>
-          <span className="text-xs text-muted-foreground">{formatTimestamp(event.startedAt)}</span>
-        </div>
+        {nowMs === null ? (
+          <div className="flex flex-col gap-1.5">
+            <Skeleton className="h-3.5 w-16" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+        ) : (
+          <div className="flex flex-col leading-tight">
+            <span>{formatTimeAgo(event.startedAt, { now: nowMs })}</span>
+            <span className="text-xs text-muted-foreground">
+              {formatTimestamp(event.startedAt)}
+            </span>
+          </div>
+        )}
       </TableCell>
-      <TableCell className="text-sm tabular-nums text-foreground">{formatDuration(dur)}</TableCell>
+      <TableCell className="text-sm tabular-nums text-foreground">
+        {nowMs === null ? (
+          <Skeleton className="h-3.5 w-12" />
+        ) : (
+          formatDuration(durationSeconds(event, nowMs))
+        )}
+      </TableCell>
       <TableCell>
         <StatusBadge status={event.status} />
       </TableCell>
@@ -186,7 +202,7 @@ function EventsTable({
   onSelect,
 }: {
   events: ImpersonationEvent[]
-  nowMs: number
+  nowMs: number | null
   onSelect: (e: ImpersonationEvent) => void
 }) {
   if (events.length === 0) {
@@ -408,13 +424,19 @@ function EventDetailSheet({
 export default function ImpersonationLogPage() {
   const auth = useAuth()
   const allowed = auth.permissions.has("merchants.impersonate")
-  const [nowMs, setNowMs] = useState(() => Date.now())
+  // Read on the client only. The mock's times are set when its module loads,
+  // which is a different moment on the server and in the browser, so any
+  // time drawn on the server ("19 min ago", the timestamp under it) came out
+  // different in the browser and React threw the server's render away. The
+  // time cells wait one frame instead.
+  const [nowMs, setNowMs] = useState<number | null>(null)
   const [tab, setTab] = useState<StatusFilter>("all")
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<ImpersonationEvent | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
   useEffect(() => {
+    setNowMs(Date.now())
     const id = window.setInterval(() => setNowMs(Date.now()), 30_000)
     return () => window.clearInterval(id)
   }, [])
@@ -496,7 +518,7 @@ export default function ImpersonationLogPage() {
         event={selected}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        nowMs={nowMs}
+        nowMs={nowMs ?? Date.now()}
       />
     </AdminShell>
   )
