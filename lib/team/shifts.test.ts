@@ -34,12 +34,12 @@ describe("crossBranchClashes", () => {
   it("leaves two branches in one day alone when they do not overlap", () => {
     // Lena: JVC mornings, Jumeirah evenings. This is the arrangement DW2.3 is
     // written for, and flagging it would make the feature unusable.
-    const lena = ROSTER_SHIFTS.filter((shift) => shift.memberId === "lena")
+    const lena = ROSTER_SHIFTS.filter((shift) => shift.memberId === "lena-petrov")
     expect(crossBranchClashes(lena)).toEqual([])
   })
 
   it("finds one person rostered at two branches over the same hours (DW2.4)", () => {
-    const sara = ROSTER_SHIFTS.filter((shift) => shift.memberId === "sara")
+    const sara = ROSTER_SHIFTS.filter((shift) => shift.memberId === "tala-odeh")
     const clashes = crossBranchClashes(sara)
     expect(clashes).toHaveLength(1)
     expect([clashes[0]!.a.locationId, clashes[0]!.b.locationId].sort()).toEqual(
@@ -60,7 +60,7 @@ describe("crossBranchClashes", () => {
 
   it("keeps a split shift at one branch out of the clash list", () => {
     // Mariam: JVC 09:00–13:00 then 14:00–18:00, a break the product requires.
-    const mariam = ROSTER_SHIFTS.filter((shift) => shift.memberId === "mariam")
+    const mariam = ROSTER_SHIFTS.filter((shift) => shift.memberId === "priya-nair")
     expect(crossBranchClashes(mariam)).toEqual([])
   })
 
@@ -91,14 +91,14 @@ describe("crossBranchClashes", () => {
 
 describe("shiftsAt and membersAt", () => {
   it("gives a branch its own roster, and a shared person to both", () => {
-    expect(membersAt(ROSTER_MEMBERS, JVC).map((m) => m.id)).toContain("lena")
-    expect(membersAt(ROSTER_MEMBERS, JUMEIRAH).map((m) => m.id)).toContain("lena")
+    expect(membersAt(ROSTER_MEMBERS, JVC).map((m) => m.id)).toContain("lena-petrov")
+    expect(membersAt(ROSTER_MEMBERS, JUMEIRAH).map((m) => m.id)).toContain("lena-petrov")
     // And keeps a single-branch person off the other one.
-    expect(membersAt(ROSTER_MEMBERS, JUMEIRAH).map((m) => m.id)).not.toContain("mariam")
+    expect(membersAt(ROSTER_MEMBERS, JUMEIRAH).map((m) => m.id)).not.toContain("priya-nair")
   })
 
   it("shows the hours actually worked at that branch, not the person's whole day", () => {
-    const atJvc = shiftsAt(ROSTER_SHIFTS, JVC, "lena")
+    const atJvc = shiftsAt(ROSTER_SHIFTS, JVC, "lena-petrov")
     expect(atJvc.every((shift) => shift.locationId === JVC)).toBe(true)
     // Tuesday is the split day: she is here 09:00–13:00 and at Jumeirah until
     // 20:00, and the branch's own row must show the four hours, not the eleven.
@@ -110,14 +110,14 @@ describe("shiftsAt and membersAt", () => {
 
 describe("bookableHours", () => {
   it("is the rostered hours at that branch, in order", () => {
-    const hours = bookableHours(ROSTER_SHIFTS, "omar", JUMEIRAH, "tue")
+    const hours = bookableHours(ROSTER_SHIFTS, "mei-tanaka", JUMEIRAH, "tue")
     expect(hours.map((h) => h.start)).toEqual(["09:00", "16:00"])
   })
 
   it("is empty on a day they do not work there, rather than the branch's hours", () => {
     // Falling back to opening hours is how a groomer gets booked on their day
     // off at a branch they were not rostered to.
-    expect(bookableHours(ROSTER_SHIFTS, "omar", JUMEIRAH, "sun")).toEqual([])
-    expect(bookableHours(ROSTER_SHIFTS, "omar", JVC, "tue")).toEqual([])
+    expect(bookableHours(ROSTER_SHIFTS, "mei-tanaka", JUMEIRAH, "sun")).toEqual([])
+    expect(bookableHours(ROSTER_SHIFTS, "mei-tanaka", JVC, "tue")).toEqual([])
   })
 })

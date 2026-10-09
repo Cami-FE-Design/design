@@ -45,24 +45,24 @@ describe("setDay", () => {
     const { result } = renderHook(() => useRota(), { wrapper })
 
     act(() => {
-      result.current.setDay("lena", JVC, "tue", [{ start: "10:00", end: "12:00" }])
+      result.current.setDay("lena-petrov", JVC, "tue", [{ start: "10:00", end: "12:00" }])
     })
 
-    expect(windowsAt(result.current.shifts, "lena", JVC, "tue")).toEqual(["10:00"])
+    expect(windowsAt(result.current.shifts, "lena-petrov", JVC, "tue")).toEqual(["10:00"])
     // The branch she was not edited at keeps its evening untouched — collapsing
     // the two is how a split-branch day disappears.
-    expect(windowsAt(result.current.shifts, "lena", JUMEIRAH, "tue")).toEqual(["15:00"])
+    expect(windowsAt(result.current.shifts, "lena-petrov", JUMEIRAH, "tue")).toEqual(["15:00"])
   })
 
   it("clears a day when given no windows, without touching the rest of the week", () => {
     const { result } = renderHook(() => useRota(), { wrapper })
 
     act(() => {
-      result.current.setDay("mariam", JVC, "thu", [])
+      result.current.setDay("priya-nair", JVC, "thu", [])
     })
 
-    expect(windowsAt(result.current.shifts, "mariam", JVC, "thu")).toEqual([])
-    expect(windowsAt(result.current.shifts, "mariam", JVC, "wed")).toEqual(["09:00"])
+    expect(windowsAt(result.current.shifts, "priya-nair", JVC, "thu")).toEqual([])
+    expect(windowsAt(result.current.shifts, "priya-nair", JVC, "wed")).toEqual(["09:00"])
   })
 })
 
@@ -71,30 +71,30 @@ describe("clearMemberWeek", () => {
     const { result } = renderHook(() => useRota(), { wrapper })
 
     act(() => {
-      result.current.clearMemberWeek("lena", JVC)
+      result.current.clearMemberWeek("lena-petrov", JVC)
     })
 
     expect(
-      result.current.shifts.filter((s) => s.memberId === "lena" && s.locationId === JVC),
+      result.current.shifts.filter((s) => s.memberId === "lena-petrov" && s.locationId === JVC),
     ).toEqual([])
     // Still rostered where she was not cleared. A label reading "delete all
     // shifts" would have promised otherwise, which is why the menu names the
     // branch.
     expect(
-      result.current.shifts.filter((s) => s.memberId === "lena" && s.locationId === JUMEIRAH)
+      result.current.shifts.filter((s) => s.memberId === "lena-petrov" && s.locationId === JUMEIRAH)
         .length,
     ).toBeGreaterThan(0)
   })
 
   it("never touches another person", () => {
     const { result } = renderHook(() => useRota(), { wrapper })
-    const sara = ROSTER_SHIFTS.filter((s) => s.memberId === "sara").length
+    const sara = ROSTER_SHIFTS.filter((s) => s.memberId === "tala-odeh").length
 
     act(() => {
-      result.current.clearMemberWeek("lena", JVC)
+      result.current.clearMemberWeek("lena-petrov", JVC)
     })
 
-    expect(result.current.shifts.filter((s) => s.memberId === "sara")).toHaveLength(sara)
+    expect(result.current.shifts.filter((s) => s.memberId === "tala-odeh")).toHaveLength(sara)
   })
 })
 
@@ -104,7 +104,7 @@ describe("addLeave", () => {
 
     act(() => {
       result.current.addLeave({
-        memberId: "sara",
+        memberId: "tala-odeh",
         locationId: JVC,
         type: "Annual leave",
         day: "mon",
@@ -114,7 +114,7 @@ describe("addLeave", () => {
       })
     })
 
-    const added = result.current.leaves.filter((l) => l.memberId === "sara" && l.day === "mon")
+    const added = result.current.leaves.filter((l) => l.memberId === "tala-odeh" && l.day === "mon")
     expect(added).toHaveLength(1)
     // Provenance, not scope. The leave reaches every branch Sara works; the
     // field records which one entered it, and that is still worth storing.
@@ -138,14 +138,17 @@ describe("setWeek", () => {
     const { result } = renderHook(() => useRota(), { wrapper })
 
     act(() => {
-      result.current.setWeek("omar", JUMEIRAH, [
+      result.current.setWeek("mei-tanaka", JUMEIRAH, [
         { day: "mon", windows: [{ start: "11:00", end: "19:00" }] },
       ])
     })
 
-    expect(windowsAt(result.current.shifts, "omar", JUMEIRAH, "mon")).toEqual(["11:00"])
+    expect(windowsAt(result.current.shifts, "mei-tanaka", JUMEIRAH, "mon")).toEqual(["11:00"])
     // Tuesday's split shift is not in the pattern and survives it.
-    expect(windowsAt(result.current.shifts, "omar", JUMEIRAH, "tue")).toEqual(["09:00", "16:00"])
+    expect(windowsAt(result.current.shifts, "mei-tanaka", JUMEIRAH, "tue")).toEqual([
+      "09:00",
+      "16:00",
+    ])
   })
 })
 
@@ -154,7 +157,7 @@ describe("reset", () => {
     const { result } = renderHook(() => useRota(), { wrapper })
 
     act(() => {
-      result.current.clearMemberWeek("lena", JVC)
+      result.current.clearMemberWeek("lena-petrov", JVC)
     })
     expect(result.current.edited).toBe(true)
 
@@ -199,7 +202,7 @@ describe("what the time-off form collects", () => {
 
     act(() => {
       result.current.addLeave({
-        memberId: "mariam",
+        memberId: "priya-nair",
         locationId: JVC,
         type: "Training",
         day: "fri",
@@ -212,7 +215,7 @@ describe("what the time-off form collects", () => {
       })
     })
 
-    const added = result.current.leaves.find((l) => l.memberId === "mariam")
+    const added = result.current.leaves.find((l) => l.memberId === "priya-nair")
     // Every control on the form changes something. One that did not would be
     // the dead affordance this screen already had once, in the nav.
     expect(added).toMatchObject({ repeats: true, approved: false, note: "Colour course" })

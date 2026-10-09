@@ -34,15 +34,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import {
-  MOCK_STAFF,
-  MOCK_STAFF_SHIFTS,
-  type MockServiceCatalogItem,
-  type MockStaff,
-} from "@/lib/appointments/mock"
+import { MOCK_STAFF, type MockServiceCatalogItem, type MockStaff } from "@/lib/appointments/mock"
 import { formatDuration } from "@/lib/format"
 import { slotRefusal } from "@/lib/locations/cross-branch-availability"
 import { useLocations } from "@/lib/locations/store"
+import { NINE_BRANCH_SHIFTS } from "@/lib/team/shifts-mock"
 import { cn } from "@/lib/utils"
 
 // Mirrors SelectedService from new-appointment-sheet.tsx but redeclared here
@@ -174,7 +170,7 @@ export function EditServicePanel({
   locationId,
   date,
 }: EditServicePanelProps) {
-  const { isMultiLocation, locationName } = useLocations()
+  const { isMultiLocation, locationName, locations } = useLocations()
   const [staffName, setStaffName] = useState(service.staffName ?? "")
   const [preferred, setPreferred] = useState(false)
   const [changeServiceConfirmOpen, setChangeServiceConfirmOpen] = useState(false)
@@ -238,7 +234,7 @@ export function EditServicePanel({
         full: `${member.name} doesn’t work at ${here}. Pick someone who does.`,
       }
     }
-    const refusal = slotRefusal(MOCK_STAFF_SHIFTS, member.id, locationId, weekDay, {
+    const refusal = slotRefusal(NINE_BRANCH_SHIFTS, member.id, locationId, weekDay, {
       start: startTime,
       durationMin: totalDuration,
     })
@@ -256,7 +252,8 @@ export function EditServicePanel({
   const offeredStaff =
     weekDay && locationId
       ? MOCK_STAFF.filter((s) => s.locationIds.includes(locationId))
-      : MOCK_STAFF
+      : // No branch to narrow by: this business's people, never another's.
+        MOCK_STAFF.filter((s) => s.locationIds.some((id) => locations.some((l) => l.id === id)))
   const busyElsewhere = offeredStaff.flatMap((s) => {
     const refusal = branchRefusal(s)
     return refusal ? [{ member: s, refusal }] : []

@@ -151,38 +151,6 @@ export const RESOURCE_BOOKINGS: ReadonlyArray<ResourceBooking> = [
   },
 ]
 
-// ─── Staff working hours ──────────────────────────────────────────────────────
-
-export type StaffMember = { id: string; name: string; role: string }
-
-export const SCHED_STAFF: ReadonlyArray<StaffMember> = [
-  { id: "lena", name: "Lena Hassan", role: "Senior groomer" },
-  { id: "mariam", name: "Mariam Saleh", role: "Groomer" },
-  { id: "deepa", name: "Deepa Nair", role: "Groomer" },
-  { id: "sara", name: "Sara Okonkwo", role: "Front desk" },
-]
-
-export type DayHours = { on: boolean; open: string; close: string }
-
-export const DEFAULT_STAFF_WEEK: Record<string, DayHours> = {
-  Mon: { on: true, open: "9:00am", close: "6:00pm" },
-  Tue: { on: true, open: "9:00am", close: "6:00pm" },
-  Wed: { on: true, open: "9:00am", close: "6:00pm" },
-  Thu: { on: true, open: "9:00am", close: "6:00pm" },
-  Fri: { on: true, open: "10:00am", close: "4:00pm" },
-  Sat: { on: false, open: "9:00am", close: "6:00pm" },
-  Sun: { on: false, open: "9:00am", close: "6:00pm" },
-}
-
-export const WEEK_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const
-
-export type TimeOff = { id: string; staff: string; reason: string; range: string }
-
-export const TIME_OFF: ReadonlyArray<TimeOff> = [
-  { id: "t1", staff: "Lena Hassan", reason: "Annual leave", range: "12–16 Jul" },
-  { id: "t2", staff: "Deepa Nair", reason: "Sick day", range: "Today" },
-]
-
 // Static map — Tailwind can't JIT dynamically-built class strings, so every
 // utility must appear literally here.
 type ColorClass = { bg: string; border: string; text: string; dot: string }

@@ -10,6 +10,7 @@ import type { PlaceRef } from "@/lib/address"
 import { formatTime12h, type WeekDay, type WeekSchedule } from "@/lib/locations/hours"
 import type { PetNoteEntry } from "@/lib/pet-notes"
 import type { PublicBusiness, PublicService } from "@/lib/public-business"
+import { STAFF } from "@/lib/team/staff"
 
 // ─── Pet-module gate ──────────────────────────────────────────────────────────
 // Pet steps (choose-a-pet) only appear for businesses that manage pets. Derived
@@ -39,24 +40,15 @@ export type BookingStaff = {
   locationIds?: ReadonlyArray<string>
 }
 
-const JVC = "shampooch-jvc"
-const JUMEIRAH = "shampooch-jumeirah"
-const AL_QUOZ = "shampooch-al-quoz"
-
-export const BOOKING_STAFF: ReadonlyArray<BookingStaff> = [
-  { id: "lena", name: "Lena Hassan", role: "Senior groomer", locationIds: [JVC, JUMEIRAH] },
-  { id: "mariam", name: "Mariam Saleh", role: "Groomer", locationIds: [JVC] },
-  { id: "deepa", name: "Deepa Nair", role: "Groomer", locationIds: [JVC] },
-  { id: "aisha", name: "Aisha Rahman", role: "Senior groomer", locationIds: [JUMEIRAH] },
-  { id: "omar", name: "Omar Farooq", role: "Groomer", locationIds: [JUMEIRAH] },
-  { id: "priya", name: "Priya Menon", role: "Bather", locationIds: [JVC] },
-  { id: "yusuf", name: "Yusuf Khan", role: "Groomer", locationIds: [JUMEIRAH] },
-  { id: "sara", name: "Sara Ali", role: "Stylist", locationIds: [JVC, JUMEIRAH] },
-  { id: "diana", name: "Diana Costa", role: "Groomer", locationIds: [AL_QUOZ] },
-  { id: "hana", name: "Hana Tariq", role: "Bather", locationIds: [JUMEIRAH] },
-  { id: "raj", name: "Raj Patel", role: "Senior groomer", locationIds: [AL_QUOZ, JVC] },
-  { id: "nadia", name: "Nadia Karim", role: "Groomer", locationIds: [JVC] },
-]
+/**
+ * Everyone a client can book, from the one staff list (lib/team/staff.ts) —
+ * the same people as the calendar and the rota. `bookingStaffForLocation`
+ * narrows it to a branch, which also keeps one business's people off another's
+ * booking page.
+ */
+export const BOOKING_STAFF: ReadonlyArray<BookingStaff> = STAFF.filter(
+  (person) => person.bookable,
+).map(({ id, name, role, locationIds }) => ({ id, name, role, locationIds }))
 
 /**
  * Who a client can pick at one branch (R15).
@@ -66,11 +58,20 @@ export const BOOKING_STAFF: ReadonlyArray<BookingStaff> = [
  * there. Nobody is filtered out for lacking a grant — absent `locationIds`
  * means every branch, so a single-site business is unaffected.
  */
-export function bookingStaffForLocation(locationId?: string): ReadonlyArray<BookingStaff> {
-  if (!locationId) return BOOKING_STAFF
-  return BOOKING_STAFF.filter(
-    (member) => !member.locationIds || member.locationIds.includes(locationId),
-  )
+export function bookingStaffForLocation(
+  locationId?: string,
+  businessLocationIds?: ReadonlyArray<string>,
+): ReadonlyArray<BookingStaff> {
+  // A page with no single branch to narrow by still belongs to one business:
+  // offer the people who work at its branches, never another business's.
+  const own = businessLocationIds
+    ? BOOKING_STAFF.filter(
+        (member) =>
+          !member.locationIds || member.locationIds.some((id) => businessLocationIds.includes(id)),
+      )
+    : BOOKING_STAFF
+  if (!locationId) return own
+  return own.filter((member) => !member.locationIds || member.locationIds.includes(locationId))
 }
 
 // ─── Days + slots ─────────────────────────────────────────────────────────────

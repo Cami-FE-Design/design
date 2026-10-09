@@ -44,12 +44,6 @@ function CamiPayPanelDemo({
  * a different permission set. Both stores are provided once by the section
  * above, so a block made in one row shows up in the others.
  */
-
-/**
- * One HQ terminals panel, wrapped in its own AuthProvider so each row can show
- * a different permission set. Both stores are provided once by the section
- * above, so a block made in one row shows up in the others.
- */
 function HqTerminalsPanelDemo({
   slug,
   permissions,

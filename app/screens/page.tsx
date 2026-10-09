@@ -273,7 +273,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shampooch-jvc/book",
         label: "Booking flow · one person, two branches (R05, DW2.3, DW2.4)",
-        note: "Pick Lena on the slot step and Today’s grid stops well before the branch shuts at 7pm: she is rostered at JVC until 1pm and due at Jumeirah from 3pm, and a two-hour groom has to be finished by one, Pick Sara and move to Wednesday for the same thing from a clash rather than a gap — she is rostered at both branches from 2pm, which is the overlap Maaz ruled blocked on 15 Sep. A longer service narrows it further, because the appointment has to finish before she is due elsewhere. The branch is never named to the client: the slot is simply gone, the way one another parent already holds is (BG-06). When a chosen person empties the day the list says so by name rather than “nothing free”, which would send the parent to a different day instead of a different groomer. Any team member leaves the grid at the branch’s own hours, and so does anyone the roster does not model — an empty rota is not a closed one.",
+        note: "Pick Lena on the slot step and Today’s grid stops well before the branch shuts at 7pm: she is rostered at JVC until 1pm and due at Jumeirah from 3pm, and a two-hour groom has to be finished by one, Pick Tala and move to Wednesday for the same thing from a clash rather than a gap — she is rostered at both branches from 2pm, which is the overlap Maaz ruled blocked on 15 Sep. A longer service narrows it further, because the appointment has to finish before she is due elsewhere. The branch is never named to the client: the slot is simply gone, the way one another parent already holds is (BG-06). When a chosen person empties the day the list says so by name rather than “nothing free”, which would send the parent to a different day instead of a different groomer. Any team member leaves the grid at the branch’s own hours, and so does anyone the roster does not model — an empty rota is not a closed one.",
       },
       {
         path: "/shampooch-jvc/book",
@@ -1292,7 +1292,7 @@ const SECTIONS: Section[] = [
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/playground#multi-location-somebody-working-at-another-location",
         label: "Somebody working at another location · SCR-10 (playground)",
-        note: "The Edit service panel at JVC in three frames: Lena busy at Jumeirah 2–6pm (refused, with where and until when), Marco who does not work at JVC (a different sentence), and Lena inside her JVC shift (nothing to say).",
+        note: "The Edit service panel at JVC in three frames: Lena busy at Jumeirah 3–8pm (refused, with where and until when), Marco who does not work at JVC (a different sentence), and Lena inside her JVC shift (nothing to say).",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
@@ -1304,7 +1304,7 @@ const SECTIONS: Section[] = [
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/playground#multi-location-scheduled-shifts",
         label: "Scheduled shifts · SCR-10 (playground)",
-        note: "The grid at seeded scale (R05, DW2.3, DW2.4). Lena is JVC mornings and Jumeirah evenings — two branches in one day, no conflict. Sara is rostered at both over the same hours, the one clash DW2.4 names, flagged as a pair. Leave shows at both branches, block time only at its own.",
+        note: "The grid at seeded scale (R05, DW2.3, DW2.4). Lena is JVC mornings and Jumeirah evenings — two branches in one day, no conflict. Tala is rostered at both over the same hours, the one clash DW2.4 names, flagged as a pair. Leave shows at both branches, block time only at its own.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",

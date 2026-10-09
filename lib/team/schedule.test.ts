@@ -20,8 +20,10 @@ const cellFor = (memberId: string, locationId: string, day: string) =>
 describe("dayCell", () => {
   it("takes the shift windows from this branch only", () => {
     // Lena works JVC 09:00–13:00 and Jumeirah 15:00–20:00 on the same Tuesday.
-    expect(cellFor("lena", JVC, "tue").windows).toEqual([{ start: "09:00", end: "13:00" }])
-    expect(cellFor("lena", JUMEIRAH, "tue").windows).toEqual([{ start: "15:00", end: "20:00" }])
+    expect(cellFor("lena-petrov", JVC, "tue").windows).toEqual([{ start: "09:00", end: "13:00" }])
+    expect(cellFor("lena-petrov", JUMEIRAH, "tue").windows).toEqual([
+      { start: "15:00", end: "20:00" },
+    ])
   })
 
   it("carries leave to every branch, because away is away", () => {
@@ -30,8 +32,8 @@ describe("dayCell", () => {
     // branch's *roster change* never affects mine" — and an absence is not a
     // roster change. Scoped to JVC, this leave would leave Jumeirah free to
     // roster and sell her on a day she is away.
-    const jvc = cellFor("lena", JVC, "thu")
-    const jumeirah = cellFor("lena", JUMEIRAH, "thu")
+    const jvc = cellFor("lena-petrov", JVC, "thu")
+    const jumeirah = cellFor("lena-petrov", JUMEIRAH, "thu")
     expect(fullDayLeave(jvc)?.type).toBe("Annual leave")
     expect(jvc.notWorking).toBe(true)
     expect(fullDayLeave(jumeirah)?.type).toBe("Annual leave")
@@ -41,24 +43,29 @@ describe("dayCell", () => {
   it("still takes shifts from this branch alone", () => {
     // The half of DW2.2 that stands: a rota is the branch's. Only the absence
     // crosses, so a leave made person-level must not quietly make shifts one.
-    expect(cellFor("lena", JVC, "tue").windows).toEqual([{ start: "09:00", end: "13:00" }])
-    expect(cellFor("lena", JUMEIRAH, "tue").windows).toEqual([{ start: "15:00", end: "20:00" }])
+    expect(cellFor("lena-petrov", JVC, "tue").windows).toEqual([{ start: "09:00", end: "13:00" }])
+    expect(cellFor("lena-petrov", JUMEIRAH, "tue").windows).toEqual([
+      { start: "15:00", end: "20:00" },
+    ])
   })
 
   it("keeps a block time at its own branch", () => {
     // Sara's lunch is seeded at JVC, and she also works Jumeirah that day.
-    expect(cellFor("sara", JVC, "wed").blocks.map((b) => b.title)).toEqual(["Lunch"])
-    expect(cellFor("sara", JUMEIRAH, "wed").blocks).toEqual([])
+    expect(cellFor("tala-odeh", JVC, "wed").blocks.map((b) => b.title)).toEqual(["Lunch"])
+    expect(cellFor("tala-odeh", JUMEIRAH, "wed").blocks).toEqual([])
   })
 
   it("marks a day with no window here as not working", () => {
-    expect(cellFor("lena", JVC, "wed").notWorking).toBe(true)
-    expect(cellFor("lena", JVC, "tue").notWorking).toBe(false)
+    expect(cellFor("lena-petrov", JVC, "wed").notWorking).toBe(true)
+    expect(cellFor("lena-petrov", JVC, "tue").notWorking).toBe(false)
   })
 
   it("sorts split shifts by time", () => {
     // Omar's Tuesday at Jumeirah is 09:00–12:00 and 16:00–20:00.
-    expect(cellFor("omar", JUMEIRAH, "tue").windows.map((w) => w.start)).toEqual(["09:00", "16:00"])
+    expect(cellFor("mei-tanaka", JUMEIRAH, "tue").windows.map((w) => w.start)).toEqual([
+      "09:00",
+      "16:00",
+    ])
   })
 })
 
@@ -94,17 +101,17 @@ describe("subtractIntervals", () => {
 describe("workingMinutes", () => {
   it("counts the windows at this branch", () => {
     // 09:00–12:00 plus 16:00–20:00, less the seeded 90-minute sick leave.
-    expect(workingMinutes(cellFor("omar", JUMEIRAH, "tue"))).toBe(3 * 60 + 4 * 60 - 90)
+    expect(workingMinutes(cellFor("mei-tanaka", JUMEIRAH, "tue"))).toBe(3 * 60 + 4 * 60 - 90)
   })
 
   it("is zero on a full day of leave, however many windows are rostered", () => {
-    expect(cellFor("lena", JVC, "thu").windows).toHaveLength(1)
-    expect(workingMinutes(cellFor("lena", JVC, "thu"))).toBe(0)
+    expect(cellFor("lena-petrov", JVC, "thu").windows).toHaveLength(1)
+    expect(workingMinutes(cellFor("lena-petrov", JVC, "thu"))).toBe(0)
   })
 
   it("keeps block times in, because they are worked and only unsellable", () => {
     // Sara is at JVC 10:00–16:00 on Wednesday with a half-hour lunch.
-    expect(workingMinutes(cellFor("sara", JVC, "wed"))).toBe(6 * 60)
+    expect(workingMinutes(cellFor("tala-odeh", JVC, "wed"))).toBe(6 * 60)
   })
 })
 
@@ -121,10 +128,12 @@ describe("leave against booking", () => {
   it("refuses at every branch, not only the one that filed the leave", () => {
     const slot = { start: "10:00", durationMin: 60 }
     const onLeave = { reason: "on-leave", leaveType: "Annual leave" }
-    expect(slotRefusal(ROSTER_SHIFTS, "lena", JVC, "thu", slot, ROSTER_LEAVES)).toEqual(onLeave)
+    expect(slotRefusal(ROSTER_SHIFTS, "lena-petrov", JVC, "thu", slot, ROSTER_LEAVES)).toEqual(
+      onLeave,
+    )
     // The branch that did not file it refuses too — otherwise an estate sells
     // somebody who is out of the country, which is the whole point of the rule.
-    expect(slotRefusal(ROSTER_SHIFTS, "lena", JUMEIRAH, "thu", slot, ROSTER_LEAVES)).toEqual(
+    expect(slotRefusal(ROSTER_SHIFTS, "lena-petrov", JUMEIRAH, "thu", slot, ROSTER_LEAVES)).toEqual(
       onLeave,
     )
   })
@@ -134,7 +143,7 @@ describe("leave against booking", () => {
     expect(
       slotRefusal(
         ROSTER_SHIFTS,
-        "omar",
+        "mei-tanaka",
         JUMEIRAH,
         "tue",
         { start: "10:30", durationMin: 30 },
@@ -144,7 +153,7 @@ describe("leave against booking", () => {
     expect(
       slotRefusal(
         ROSTER_SHIFTS,
-        "omar",
+        "mei-tanaka",
         JUMEIRAH,
         "tue",
         { start: "09:00", durationMin: 60 },
@@ -156,7 +165,7 @@ describe("leave against booking", () => {
   it("outranks a rota that still shows a window", () => {
     // Without the leave the Thursday window would offer this slot.
     expect(
-      slotRefusal(ROSTER_SHIFTS, "lena", JVC, "thu", { start: "10:00", durationMin: 60 }),
+      slotRefusal(ROSTER_SHIFTS, "lena-petrov", JVC, "thu", { start: "10:00", durationMin: 60 }),
     ).toBeNull()
   })
 })

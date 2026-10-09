@@ -1229,7 +1229,12 @@ export function BookingFlow({
   // Availability, resolved for this branch. R15 asks for "that Location's
   // offering and availability"; the offering was done and this is the rest.
   const days = bookingDaysForLocation(hours)
-  const staff = bookingStaffForLocation(locationId)
+  // The page's slug is the branch's, not the business's, so the business is
+  // read from its branches.
+  const staff = bookingStaffForLocation(
+    locationId,
+    business.branches.map((branch) => branch.id),
+  )
 
   const [stepIndex, setStepIndex] = useState(0)
   const [done, setDone] = useState(false)

@@ -225,22 +225,6 @@ const PICKUP_DEMO_BOOKING: MockBooking = {
 // membership — the shape the as-built popup shows and ours could not.
 // PRD-143 — the pet-parent picker, opened on the category that carries a combo
 // so the badge and its "2 services" count are on screen without scrolling.
-/**
- * Chain setup, with the resulting estate rendered beside it — the created
- * branches are the acceptance criterion (SU1.2), so hiding them behind a closed
- * dialog would show the form and not the outcome.
- */
-/**
- * SCR-03 against three real roster rows, because the states that matter are
- * per-person: an owner (all, untickable), a manager granted one branch of
- * three, and an invited member granted none.
- */
-/**
- * SCR-09 with the business default under the operator's thumb, because DW3.1 is
- * a claim about what happens *after* a default changes — a static screenshot of
- * the section cannot show it.
- */
-/** Month to date, so the breakdown has a period with real activity in it. */
 
 // Same booking with a pinned address (PRD-144). The pair is the point: one was
 // picked from the map search and gets "Navigate", the other was typed and can
@@ -269,8 +253,6 @@ const MONEY_DEMO_FILTER = {
   fromIso: periodBounds("month-to-date").fromIso,
   toIso: periodBounds("month-to-date").toIso,
 }
-
-/** Shampooch, the seeded chain — two published branches, one suspended. */
 
 /** Shampooch, the seeded chain — two published branches, one suspended. */
 const PICKER_DEMO_BUSINESS = getPublicBusinessBySlug("shampooch")!
@@ -339,15 +321,6 @@ function ServicePricingDemo() {
  * them. Each row wraps it in its own provider, so the grant is the only
  * variable between them.
  */
-
-/**
- * SCR-07 under one reader at a time.
- *
- * The screen only says anything if you can change who is looking: the same
- * client, the same four visits, and a different set of things you may do about
- * them. Each row wraps it in its own provider, so the grant is the only
- * variable between them.
- */
 function ClientVisitsDemo({ cta, isOwner = false }: { cta: string; isOwner?: boolean }) {
   const [open, setOpen] = useState(false)
   return (
@@ -376,14 +349,6 @@ function ClientVisitsDemo({ cta, isOwner = false }: { cta: string; isOwner?: boo
  * grant — which is the point: the control is not one message styled three ways,
  * it says a different thing in each case.
  */
-
-/**
- * G1 and R11, in the three sentences the rule actually has.
- *
- * Each row is its own provider, so the only thing changing between them is the
- * grant — which is the point: the control is not one message styled three ways,
- * it says a different thing in each case.
- */
 function WriteTargetDemo({ action, variant }: { action: string; variant?: "field" | "card" }) {
   const [locationId, setLocationId] = useState<string | null>(null)
   return (
@@ -396,23 +361,6 @@ function WriteTargetDemo({ action, variant }: { action: string; variant?: "field
   )
 }
 
-/**
- * The five branch lists in the state they are in before they are lists. The
- * prototype's data is local, so nothing on a route ever loads or fails — the
- * toggle stands in for the network, and Try again is what puts it back.
- */
-/**
- * Reception's half of SCR-10, three frames of the Edit service panel at JVC on
- * a Tuesday. Lena works JVC mornings and Jumeirah afternoons; Marco works at
- * Jumeirah only and is preselected, the way a seeded line or a changed
- * location would leave him.
- */
-
-/**
- * The five branch lists in the state they are in before they are lists. The
- * prototype's data is local, so nothing on a route ever loads or fails — the
- * toggle stands in for the network, and Try again is what puts it back.
- */
 /**
  * Reception's half of SCR-10, three frames of the Edit service panel at JVC on
  * a Tuesday. Lena works JVC mornings and Jumeirah afternoons; Marco works at
@@ -446,6 +394,11 @@ function TeamMemberAtThisLocationDemo({
   )
 }
 
+/**
+ * The five branch lists in the state they are in before they are lists. The
+ * prototype's data is local, so nothing on a route ever loads or fails — the
+ * toggle stands in for the network, and Try again is what puts it back.
+ */
 function SurfaceStatesDemo() {
   const [status, setStatus] = useState<SurfaceStatus>("loading")
   const [accessOpen, setAccessOpen] = useState(false)
@@ -575,17 +528,6 @@ function TeamAccessDemo() {
  * "Appointments — toolbar and people grid"; this shows what the scope does to
  * the day rather than re-mounting it.
  */
-
-/**
- * The move dialog against one appointment, with the destination checks the
- * dialog cannot compute supplied per branch — there is no per-branch
- * availability model to ask yet, so the demo says so rather than faking one.
- */
-/**
- * The strip over a scoped booking list. The grid itself lives under
- * "Appointments — toolbar and people grid"; this shows what the scope does to
- * the day rather than re-mounting it.
- */
 const PACKAGE_ENTITLEMENT = {
   packageId: "pkg-1",
   serviceId: "bath-small",
@@ -601,8 +543,6 @@ const PACKAGE_MISMATCH_CASES = [
   { label: "Different duration", terms: { offered: true, priceMinor: 6_000, durationMin: 60 } },
   { label: "Not offered here", terms: { offered: false, priceMinor: 0, durationMin: 0 } },
 ]
-
-/** One cart line's worth of the warning, with the staff decision live. */
 
 /** One cart line's worth of the warning, with the staff decision live. */
 function PackageWarningDemo({ terms }: { terms: BranchServiceTerms }) {
@@ -706,13 +646,6 @@ function MoveDemo({
  * branch's own or the business's. "Open now" is pinned so the row is
  * deterministic to review.
  */
-
-/**
- * The three seeded weeks side by side, because per-branch hours cannot be shown
- * one branch at a time — a single week looks the same whether it is the
- * branch's own or the business's. "Open now" is pinned so the row is
- * deterministic to review.
- */
 function BranchHoursDemo() {
   const { locations, businessTimezone } = useLocations()
   const now = new Date("2026-09-08T14:00:00+04:00")
@@ -749,15 +682,6 @@ function BranchHoursDemo() {
     </div>
   )
 }
-
-/**
- * The same week and the same day, resolved for each branch. R15 asks for "that
- * Location's offering **and** availability", and the availability half was one
- * hardcoded week and one roster shown on every branch.
- *
- * Friday is picked because it is where all three differ: JVC 10-6, Jumeirah
- * 10-9, Al Quoz closed.
- */
 
 /**
  * The same week and the same day, resolved for each branch. R15 asks for "that
@@ -849,20 +773,6 @@ function BranchAvailabilityDemo() {
  * An empty list is refused out loud rather than being allowed to look like the
  * chain-wide case.
  */
-
-/**
- * The redemption panel against the four verdicts and the three mismatches, on
- * one cart line each — so the states sit side by side rather than needing a
- * sale built up by hand.
- */
-/**
- * One promotion's reach, said the way the switcher and the team grants say it.
- *
- * The badge is the whole point: "All locations" survives a tenth branch opening
- * and "9 locations" does not, so they are different claims and read differently.
- * An empty list is refused out loud rather than being allowed to look like the
- * chain-wide case.
- */
 function PromotionScopeRow({ scope }: { scope: PromotionScope }) {
   const { granted, locationName } = useLocations()
   const runnable = isRunnable(scope)
@@ -884,15 +794,6 @@ function PromotionScopeRow({ scope }: { scope: PromotionScope }) {
     </div>
   )
 }
-
-/**
- * A cart with the client's sessions already spent on it.
- *
- * The built product's model: no Apply anywhere, a covered line reads 0 with its
- * price struck beneath, and the chip counts down. The branch warning is ours
- * (R08, KC1.5) and hangs off the line it is about — the session is spent either
- * way, and what changes is that reception is told.
- */
 
 /**
  * A cart with the client's sessions already spent on it.
@@ -998,12 +899,6 @@ function ChainSetupDemo() {
  * they are editing, because seven branches needing attention is seven cards and
  * fourteen labelled inputs nobody opened the card to fill in.
  */
-
-/**
- * The editable half of SCR-11: rows read as one line until the operator says
- * they are editing, because seven branches needing attention is seven cards and
- * fourteen labelled inputs nobody opened the card to fill in.
- */
 function BranchStockThresholdsDemo() {
   const [stock, setStock] = useState<BranchStock[]>(() => [...BRANCH_STOCK])
 
@@ -1047,19 +942,7 @@ let comboUidSeq = 0
  * lib/booking.ts now, so naming "svc-8" tied these rows to which service
  * happened to sit where.
  */
-
-/**
- * The seeded combos, by kind rather than by id. The catalog is derived from
- * lib/booking.ts now, so naming "svc-8" tied these rows to which service
- * happened to sit where.
- */
 const SEED_COMBOS = seedServices.filter((service) => service.serviceType === "combo")
-
-/**
- * The four stock states, each on the seeded product that actually holds it, so
- * the numbers on screen come from lib/inventory/mock.ts rather than from props
- * written to make a screenshot look right.
- */
 
 /**
  * The four stock states, each on the seeded product that actually holds it, so
@@ -1073,17 +956,6 @@ const STOCK_DEMO_PRODUCTS = {
   lowAndOut: { id: "p2", name: "Furminator Deshedding Tool", trackStock: true },
   unlimited: { id: "p9", name: "Service consumable", trackStock: false },
 } as const
-
-/**
- * A two-line cart where the package pays for one of them (KC1.5). The covered
- * line keeps its own price — a package is a captured payment, not a discount —
- * and says so with a chip, so "zero" and "already paid for" stay different
- * facts at the counter.
- */
-/**
- * The example GNK's §4 asks about: a Spa category with three services, and a
- * branch with no spa room that has turned all three off.
- */
 
 /**
  * A two-line cart where the package pays for one of them (KC1.5). The covered
@@ -1378,8 +1250,6 @@ function ShareDialogDemo({
 }
 
 /** One Email invoice dialog. `invalid` opens with a blank field to reach the error. */
-
-/** One Email invoice dialog. `invalid` opens with a blank field to reach the error. */
 function EmailDialogDemo({
   label,
   note,
@@ -1408,14 +1278,6 @@ function EmailDialogDemo({
     </div>
   )
 }
-
-/**
- * One invoice state, scaled down so several fit side by side in the showcase.
- *
- * The document is a fixed 210mm wide, so it cannot flex into a showcase row —
- * `scale` shrinks it without touching the layout, which is the point: what you
- * see here is the same geometry that prints, not a responsive variant of it.
- */
 
 /**
  * One invoice state, scaled down so several fit side by side in the showcase.
@@ -1460,8 +1322,6 @@ function AmountInputDemo({ initial }: { initial: AmountValue }) {
 }
 
 /** Opens the checkout Add gift card dialog, seeded to an AED 1,800 preset. */
-
-/** Opens the checkout Add gift card dialog, seeded to an AED 1,800 preset. */
 function GiftCardDialogDemo() {
   const [open, setOpen] = useState(false)
   return (
@@ -1481,12 +1341,6 @@ function GiftCardDialogDemo() {
     </>
   )
 }
-
-/**
- * The pick-a-machine dialog over the four DSG-62 terminal states. `signedIn`
- * off drops the live sessions, so every row carries its blocked reason and the
- * dialog leads with the "nothing signed in" notice.
- */
 
 /**
  * The pick-a-machine dialog over the four DSG-62 terminal states. `signedIn`
@@ -1513,12 +1367,6 @@ function SelectTerminalDialogDemo({ signedIn = true }: { signedIn?: boolean }) {
     </>
   )
 }
-
-/**
- * Opens the send-payment-link dialog with AED 57 owed and a client prefilled.
- * Send only generates the link — in the real flow the cart locks behind it
- * (see the lock screen below).
- */
 
 /**
  * Opens the send-payment-link dialog with AED 57 owed and a client prefilled.
@@ -1552,11 +1400,6 @@ function SelfCheckoutDialogDemo() {
  * Opens the redeem-at-checkout dialog with AED 57 owed. Try QM4KTRZA / ZTP3RG84
  * (active), YYOSNPHO (not active), or any other code (typo error).
  */
-
-/**
- * Opens the redeem-at-checkout dialog with AED 57 owed. Try QM4KTRZA / ZTP3RG84
- * (active), YYOSNPHO (not active), or any other code (typo error).
- */
 function RedeemGiftCardDialogDemo() {
   const [open, setOpen] = useState(false)
   return (
@@ -1573,12 +1416,6 @@ function RedeemGiftCardDialogDemo() {
     </>
   )
 }
-
-/**
- * The account summary at one state. Rendered whole rather than in pieces: the
- * thing worth reviewing is whether the arithmetic reads down the page to the
- * headline, and a row of extracted cards cannot show that.
- */
 
 /**
  * The account summary at one state. Rendered whole rather than in pieces: the
@@ -1620,12 +1457,6 @@ function MoneySummaryDemo({
  * are live here — the payout drill-in is the part worth clicking, since it is
  * the one that has to arrive at the payout figure rather than assert it.
  */
-
-/**
- * The activity feed at one state. Filters, pagination and both detail dialogs
- * are live here — the payout drill-in is the part worth clicking, since it is
- * the one that has to arrive at the payout figure rather than assert it.
- */
 function MoneyActivityDemo({
   rails = { online: true, terminal: true },
   empty = false,
@@ -1648,12 +1479,6 @@ function MoneyActivityDemo({
  * the flow has to end on a screen that says which system refused and that
  * nothing moved.
  */
-
-/**
- * The bank account panel at one state. Open "Change" on the gateway-failed one:
- * the flow has to end on a screen that says which system refused and that
- * nothing moved.
- */
 function BankAccountDemo({ state }: { state: BankAccountDemoState }) {
   return (
     <div className="w-full rounded-2xl border border-border/60 bg-sand-2 p-4">
@@ -1665,8 +1490,6 @@ function BankAccountDemo({ state }: { state: BankAccountDemoState }) {
     </div>
   )
 }
-
-/** The fee statements at one D1 outcome. Expand a closed period to see the working. */
 
 /** The fee statements at one D1 outcome. Expand a closed period to see the working. */
 function MoneyFeesDemo({
@@ -1705,8 +1528,6 @@ function BillingDetailsDemo({ state }: { state: BillingDetailsDemoState }) {
 // ─── Product import demos (DSG-80) ───────────────────────────────────────────
 
 /** Frame + caption shared by the import demos, matching the other wide demos. */
-
-/** Frame + caption shared by the import demos, matching the other wide demos. */
 function ImportFrame({
   label,
   note,
@@ -1741,8 +1562,6 @@ function scenarioPreview(scenario: ImportScenarioId) {
   if (!preview) throw new Error(`scenario ${scenario} has no preview`)
   return preview
 }
-
-/** One grouped-issue block on its own, blocking or advisory. */
 
 /** One grouped-issue block on its own, blocking or advisory. */
 function IssueSummaryDemo({
@@ -1795,8 +1614,6 @@ function OutcomeStripDemo({
 }
 
 /** A single row under the real table header, so the columns line up as shipped. */
-
-/** A single row under the real table header, so the columns line up as shipped. */
 function ReviewRowDemo({
   scenario,
   status,
@@ -1840,8 +1657,6 @@ function ReviewRowDemo({
     </ImportFrame>
   )
 }
-
-/** The whole review step at one case, height-capped because it is a preview. */
 
 /** The whole review step at one case, height-capped because it is a preview. */
 function ReviewStateDemo({
@@ -1892,8 +1707,6 @@ function DoneStateDemo({
 }
 
 /** One client or pet row, picked by the status it is meant to show. */
-
-/** One client or pet row, picked by the status it is meant to show. */
 function ClientRowDemo({
   scenario,
   status,
@@ -1940,8 +1753,6 @@ function ClientRowDemo({
 }
 
 /** A whole client or pet review step, in a frame tall enough to scroll in. */
-
-/** A whole client or pet review step, in a frame tall enough to scroll in. */
 function ClientReviewStateDemo({
   scenario,
   label,
@@ -1965,8 +1776,6 @@ function ClientReviewStateDemo({
     </ImportFrame>
   )
 }
-
-/** The shared outcome step, on a client or pet result. */
 
 /** The shared outcome step, on a client or pet result. */
 function ClientOutcomeDemo({
@@ -2044,19 +1853,6 @@ function GoogleLinkChecks() {
     </div>
   )
 }
-
-/**
- * One customer card at gallery size. Shrunk rather than reflowed: the row exists
- * to compare palettes, and a card that re-laid-out at preview width would be
- * comparing two things at once.
- *
- * `zoom` rather than `transform: scale`, which is the usual trick here (see
- * InvoicePreview). A transform leaves the layout box at full size, so the
- * preview needs a hardcoded height — and any guess is wrong for a card whose
- * height depends on its content: the empty Purr Palace card left a third of its
- * box as bare shell colour. `zoom` shrinks the layout box too, so every preview
- * ends exactly where its card ends.
- */
 
 /**
  * One customer card at gallery size. Shrunk rather than reflowed: the row exists
@@ -2449,7 +2245,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — scheduled shifts"
-        description="SCR-10 (R05, DW2.3, DW2.4). The built product's grid, per branch: members against Mon–Sun, hours per person and per day. A schedule belongs to one location, so somebody assigned to two appears on both with the hours they work there. Lena is JVC mornings and Jumeirah evenings — no conflict. Sara is rostered at both over the same hours, the one clash DW2.4 names. Leave is the person's and shows at both; shifts and block time stay at their own branch. Read-only — the writes are on /team/scheduled-shifts."
+        description="SCR-10 (R05, DW2.3, DW2.4). The built product's grid, per branch: members against Mon–Sun, hours per person and per day. A schedule belongs to one location, so somebody assigned to two appears on both with the hours they work there. Lena is JVC mornings and Jumeirah evenings — no conflict. Tala is rostered at both over the same hours, the one clash DW2.4 names. Leave is the person's and shows at both; shifts and block time stay at their own branch. Read-only — the writes are on /team/scheduled-shifts."
       >
         <Row label="JVC" align="start">
           <div className="w-full">
@@ -2480,7 +2276,7 @@ export function BusinessLane() {
                 fine. Nine is where both get tested — every defect this repo
                 has found in a multi-location surface showed up here first.
 
-                Yara works three branches, Faris crosses an emirate line and
+                Huda works three branches, Faris crosses an emirate line and
                 clashes with himself on Saturday, and Hadi is rostered at a
                 suspended branch, because a rota does not stop when trading
                 does and the hours are still owed. */}

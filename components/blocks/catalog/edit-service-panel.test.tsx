@@ -38,7 +38,7 @@ describe("a team member who cannot be at this branch is refused, with the reason
   it("names the other branch and its hours when they are working there", () => {
     panel("15:00", "Lena Petrov", "shampooch-jvc")
     expect(screen.getByRole("alert").textContent).toBe(
-      "Lena Petrov is at Shampooch Jumeirah 2pm–6pm. Pick another time or team member.",
+      "Lena Petrov is at Shampooch Jumeirah 3pm–8pm. Pick another time or team member.",
     )
     expect(update().disabled).toBe(true)
   })

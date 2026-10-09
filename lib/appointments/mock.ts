@@ -2,6 +2,7 @@ import type { AvatarSpecies } from "@/components/ui/avatar"
 import type { PlaceRef } from "@/lib/address"
 import type { PetNoteEntry } from "@/lib/pet-notes"
 import type { Shift } from "@/lib/team/shifts"
+import { STAFF, type StaffMember } from "@/lib/team/staff"
 
 export type MockBookingStatus =
   | "booked"
@@ -20,24 +21,8 @@ export type MockServiceCategory =
   | "details"
   | "welcome"
 
-export type MockStaff = {
-  id: string
-  name: string
-  role: string
-  photoUrl?: string
-  /**
-   * The branches this person actually works (R05, DW2.3).
-   *
-   * A booking's branch resolves through here rather than being assigned to it,
-   * which is how the real model works and what this seed was missing — the
-   * backfill below used to pick a branch by counting, so every fourth booking
-   * landed at Jumeirah whoever was doing it.
-   *
-   * Two branches means a genuinely split week, not a person in two places: the
-   * branch is picked by the day, the way a rota does it.
-   */
-  locationIds: string[]
-}
+/** A person on the calendar. The record itself lives in lib/team/staff.ts. */
+export type MockStaff = StaffMember
 
 export type MockBooking = {
   id: string
@@ -155,68 +140,12 @@ const SOTA = "sota"
  * Nobody is rostered at Al Quoz or Yas Island: both are suspended, and a
  * suspended branch keeps its history and takes no new bookings (R12, G9).
  */
-export const MOCK_STAFF: MockStaff[] = [
-  { id: "aya-hassan", name: "Aya Hassan", role: "Senior Groomer", locationIds: [JVC] },
-  { id: "lena-petrov", name: "Lena Petrov", role: "Groomer", locationIds: [JVC, JUMEIRAH] },
-  { id: "priya-nair", name: "Priya Nair", role: "Groomer", locationIds: [JVC] },
-  { id: "marco-rossi", name: "Marco Rossi", role: "Senior Groomer", locationIds: [JUMEIRAH] },
-  { id: "joel-batumbya", name: "Joel Batumbya", role: "Junior Groomer", locationIds: [JVC] },
-  { id: "sarah-khoury", name: "Dr. Sarah Khoury", role: "Veterinarian", locationIds: [DOWNTOWN] },
-  { id: "fatima-ali", name: "Fatima Ali", role: "Daycare Lead", locationIds: [MIRDIF] },
-  {
-    id: "hassan-kareem",
-    name: "Hassan Kareem",
-    role: "Boarding Attendant",
-    locationIds: [MIRDIF],
-  },
-  { id: "olivia-park", name: "Olivia Park", role: "Trainer", locationIds: [MARINA] },
-  { id: "diego-santos", name: "Diego Santos", role: "Vet Tech", locationIds: [DOWNTOWN] },
-  { id: "mei-tanaka", name: "Mei Tanaka", role: "Groomer", locationIds: [JUMEIRAH] },
-  // Sharjah, so the estate's third emirate has somebody in it.
-  { id: "noor-jaber", name: "Noor Jaber", role: "Groomer", locationIds: [AL_MAJAZ] },
-  // Al Reem had nobody, which is not a quiet branch — it is a branch that
-  // cannot take a booking at all, because `branchForBooking` resolves a
-  // booking's branch through whoever performs it. It was live in the estate,
-  // named in the switcher, and absent from every calendar.
-  { id: "rana-idris", name: "Rana Idris", role: "Senior Groomer", locationIds: [AL_REEM] },
-  // Abu Dhabi's two branches share a groomer, so the estate has a split week
-  // outside Dubai as well — the case DW2.2 is about (the rota is the branch's,
-  // the absence is the person's).
-  { id: "omar-said", name: "Omar Said", role: "Groomer", locationIds: [AL_REEM, DOWNTOWN] },
-  // The other two businesses. Their people are theirs — a grant never reaches
-  // across a business, so these never appear under Shampooch (R18).
-  { id: "dana-aziz", name: "Dana Aziz", role: "Senior Groomer", locationIds: [PURR_PALACE] },
-  { id: "sami-haddad", name: "Sami Haddad", role: "Groomer", locationIds: [PURR_PALACE] },
-  { id: "lina-farouk", name: "Lina Farouk", role: "Colourist", locationIds: [SOTA] },
-  { id: "yara-nasr", name: "Yara Nasr", role: "Stylist", locationIds: [SOTA] },
-]
-
 /**
- * Lena's split day as shifts, so the booking sheet can refuse the half of it
- * she is at the other branch (DW2.4). JVC mornings, Jumeirah afternoons, every
- * day — together the same 10am–6pm the sheet's own day window gives her, so
- * the two mocks never disagree about whether she is working.
+ * The calendar's columns: everyone who takes appointments, at every business.
+ * The roster itself is lib/team/staff.ts, so the people here are the people
+ * on the rota, the booking page and the till.
  */
-export const MOCK_STAFF_SHIFTS: Shift[] = (
-  ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const
-).flatMap((day) => [
-  {
-    id: `lena-jvc-${day}`,
-    memberId: "lena-petrov",
-    locationId: JVC,
-    day,
-    start: "10:00",
-    end: "14:00",
-  },
-  {
-    id: `lena-jumeirah-${day}`,
-    memberId: "lena-petrov",
-    locationId: JUMEIRAH,
-    day,
-    start: "14:00",
-    end: "18:00",
-  },
-])
+export const MOCK_STAFF: MockStaff[] = STAFF.filter((person) => person.bookable)
 
 /**
  * The branch a booking happened at, resolved through whoever is doing it.

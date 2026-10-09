@@ -1920,12 +1920,14 @@ Building it would be inventing a comms feature, not completing this one.
   so an override made on the operator's sheet lands on the id the client page
   and the booking flow look up. See
   [The operator's side was reading a different business](#the-operators-side-was-reading-a-different-business).
-- **The bookable roster and the team roster are two lists.** `BOOKING_STAFF` is
-  twelve groomers; `lib/team/mock.ts` is five people including an owner and a
-  pending invite. Which team members are bookable is a product question — an
-  owner is on the roster and is not a slot — so they were not collapsed. Branch
-  assignment lives on `BOOKING_STAFF` for now, which means a grant changed in
-  SCR-03 does not change who a client can pick.
+- ~~**The bookable roster and the team roster are two lists.**~~ Half closed —
+  the calendar, the booking flow (`BOOKING_STAFF`) and the rota
+  (`lib/team/shifts-mock.ts`) now read one roster, `lib/team/staff.ts`: the
+  shape D4 found in the dev repo, one roster narrowed by bookable, branch and
+  service. The owner is on it and is not bookable — on the roster, not a slot.
+  Still open: `lib/team/mock.ts` (who can sign in, and what they can access) is
+  keyed separately, so a grant changed in SCR-03 does not yet change who a
+  client can pick.
 - **The session's grant is not the signed-in member's grant.** `LocationsProvider.grants`
   is a demo control, and the roster's per-member grants are separate data.
   Linking them needs a signed-in-member concept this prototype does not have:

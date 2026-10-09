@@ -62,16 +62,6 @@ export function Lane({
  * keep their heading and anchor (so a deep link still lands and scrolls); only
  * the demo inside waits until it is scrolled to.
  */
-
-/**
- * Mounts its children only once they are near the viewport.
- *
- * The page rendered every section eagerly — five full report views, the PDF
- * viewer, sixteen invoice previews, two import frames — which is why one URL
- * shipped 2.7 MB of HTML and took over a second to render. The heavy sections
- * keep their heading and anchor (so a deep link still lands and scrolls); only
- * the demo inside waits until it is scrolled to.
- */
 export function LazyMount({
   minHeight,
   children,
