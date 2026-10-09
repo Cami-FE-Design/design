@@ -223,7 +223,7 @@ export const MOCK_SALES: Sale[] = [
   {
     id: 13,
     locationId: "shampooch-jumeirah",
-    client: "Aya Hassan",
+    client: "Hessa Al Mazrouei",
     status: "refunded",
     saleAt: new Date(2026, 4, 25, 10, 45),
     tipsMinor: 0,
@@ -436,7 +436,7 @@ export const MOCK_SALES: Sale[] = [
   {
     id: 51,
     locationId: "sota",
-    client: "Aisha Rahman",
+    client: "Reem Al Falasi",
     status: "part-paid",
     saleAt: new Date(2026, 4, 25, 10, 40),
     tipsMinor: 0,

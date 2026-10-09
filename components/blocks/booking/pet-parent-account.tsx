@@ -20,10 +20,10 @@ import { cn } from "@/lib/utils"
 type Stage = "request" | "verify" | "home"
 
 const PARENT = {
-  firstName: "Michelle",
-  name: "Michelle You",
+  firstName: "Natalie",
+  name: "Natalie Grant",
   phone: "+971 50 123 4567",
-  email: "michelle@ce-creates.com",
+  email: "natalie.grant@email.com",
   address: "Villa 12, Street 4B, Jumeirah 1, Dubai",
 }
 

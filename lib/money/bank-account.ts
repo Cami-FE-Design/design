@@ -180,7 +180,7 @@ export const DEMO_CHANGE_HISTORY: ReadonlyArray<DestinationChange> = [
   {
     id: "chg_1",
     atIso: "2025-11-18T11:40:00Z",
-    actor: "Maryam Siddiqui",
+    actor: "Maz Khan",
     fromLast4: null,
     toLast4: "4417",
     outcome: "applied",

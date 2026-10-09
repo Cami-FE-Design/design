@@ -60,7 +60,7 @@ export const DEFAULT_CURRENT_USER: CurrentUser = {
   lastName: "Khan",
   email: "maaz@getcami.io",
   phoneCode: "+971",
-  phone: "50 963 6445",
+  phone: "50 412 7730",
   country: "United Arab Emirates",
   birthDay: "14",
   birthMonth: "Apr",

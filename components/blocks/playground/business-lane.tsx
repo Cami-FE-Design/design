@@ -2458,7 +2458,7 @@ export function BusinessLane() {
       >
         <Row label="Owner · holds every branch" align="start">
           <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
-            <ClientVisitsDemo cta="Open as Omar (owner)" isOwner />
+            <ClientVisitsDemo cta="Open as Maz (owner)" isOwner />
           </LocationsProvider>
         </Row>
         <Row label="Reception · holds JVC only" align="start">
@@ -2467,7 +2467,7 @@ export function BusinessLane() {
             initialLocations={NINE_BRANCH_ESTATE}
             initialGrants={["shampooch-jvc"]}
           >
-            <ClientVisitsDemo cta="Open as Layla (JVC reception)" />
+            <ClientVisitsDemo cta="Open as JVC reception" />
           </LocationsProvider>
         </Row>
       </Section>

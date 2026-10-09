@@ -147,7 +147,7 @@ export const MOCK_CLIENTS: MockClient[] = [
   {
     id: "maaz-shaffi",
     name: "Maaz Shaffi",
-    email: "maaz@getcami.io",
+    email: "maaz.shaffi@email.com",
     phone: "+971 50 963 6445",
     pets: [],
     salesAed: 4237,

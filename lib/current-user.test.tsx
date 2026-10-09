@@ -70,6 +70,6 @@ describe("duplicate contact checks", () => {
 
   it("does not count the signed-in member's own row", () => {
     expect(isEmailTaken("maaz@getcami.io", "maz-khan")).toBe(false)
-    expect(isPhoneTaken("+971", "50 963 6445", "maz-khan")).toBe(false)
+    expect(isPhoneTaken("+971", "50 412 7730", "maz-khan")).toBe(false)
   })
 })

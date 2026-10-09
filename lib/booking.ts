@@ -609,9 +609,9 @@ export type ReturningClient = {
 }
 
 export const RETURNING_CLIENT: ReturningClient = {
-  firstName: "Michelle",
-  lastName: "You",
-  email: "michelle@email.com",
+  firstName: "Natalie",
+  lastName: "Grant",
+  email: "natalie.grant@email.com",
   address: "Villa 12, Street 4B, Jumeirah 1, Dubai",
   // Left un-pinned on purpose: the returning demo caller's address is a villa
   // cluster typed by hand, which is the case Navigate has to degrade for.
@@ -752,7 +752,7 @@ export function resolveBooking(business: PublicBusiness, ref: string): BookingDe
     startISO: "2026-07-01T10:00:00",
     staffName: BOOKING_STAFF[0]!.name,
     petName: businessHasPets(business) ? RETURNING_PETS[0]!.name : undefined,
-    customerName: "Michelle You",
+    customerName: `${RETURNING_CLIENT.firstName} ${RETURNING_CLIENT.lastName}`,
     pickupAddress: withPickup ? RETURNING_CLIENT.address : undefined,
     pickupPlace: withPickup ? RETURNING_CLIENT.addressPlace : undefined,
     petNotes: withPickup

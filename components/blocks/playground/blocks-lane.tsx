@@ -687,7 +687,7 @@ export function BlocksLane() {
           open={signatureOpen}
           onOpenChange={setSignatureOpen}
           businessName="Shampooch"
-          defaultFullName="Michelle You"
+          defaultFullName="Natalie Grant"
           onSign={setSignatureResult}
         />
       </Section>

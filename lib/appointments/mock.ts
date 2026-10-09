@@ -754,7 +754,7 @@ const SEEDED_BOOKINGS: Omit<MockBooking, "locationId">[] = [
     status: "checked-in",
     serviceCategory: "grooming",
     serviceName: "Cut and finish",
-    clientName: "Aisha Rahman",
+    clientName: "Reem Al Falasi",
     priceMinor: 26000,
   },
 ]
@@ -904,7 +904,7 @@ const SEEDED_BOOKINGS_WITHOUT_PETS: Omit<MockBooking, "locationId">[] = [
     status: "confirmed",
     serviceCategory: "details",
     serviceName: "Quick Trim",
-    clientName: "Diego Santos",
+    clientName: "Kevin Mendes",
     priceMinor: 8000,
   },
   {

@@ -42,7 +42,7 @@ export const TEAM_MEMBERS: TeamMember[] = [
   {
     ...person("maz-khan"),
     email: "maaz@getcami.io",
-    phone: "+971 50 963 6445",
+    phone: "+971 50 412 7730",
     status: "active",
     initials: "MK",
     roleId: "owner",

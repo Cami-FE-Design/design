@@ -156,11 +156,11 @@ export const DESTINATION_LAST4 = "1001"
 const FROM_ISO = "2026-07-01"
 
 const CLIENTS = [
-  "Aisha Rahman",
+  "Reem Al Falasi",
   "Omar Haddad",
   "Priya Menon",
   "Yusuf Karim",
-  "Lina Farouk",
+  "Sana Qureshi",
   "Daniel Okoro",
   "Fatima Noor",
   "Rohan Verma",

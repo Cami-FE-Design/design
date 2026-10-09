@@ -114,8 +114,8 @@ export const MOCK_SALE: CheckoutSale = {
   whenLabel: "Today, 5:00 PM",
   paidMinor: 0,
   payer: {
-    name: "Michelle You",
-    email: "michelle@ce-creates.com",
+    name: "Natalie Grant",
+    email: "natalie.grant@email.com",
   },
   savedCard: { brand: "mastercard", last4: "3884" },
   lines: [
