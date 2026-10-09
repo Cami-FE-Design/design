@@ -24,6 +24,7 @@
 // All mutations happen in local React state (see store.tsx).
 
 import { SERVICE_CATEGORIES } from "@/lib/booking"
+import { bookableStaff } from "@/lib/team/staff"
 
 import type { Service, ServiceCategory } from "./types"
 
@@ -34,12 +35,16 @@ export type TeamMember = {
   title?: string
 }
 
-/** The roster the catalog screens read. */
-export const seedTeamMembers: TeamMember[] = [
-  { id: "tm-1", name: "Sarah Johnson" },
-  { id: "tm-2", name: "James Carter", title: "Cashier" },
-  { id: "tm-3", name: "Emily Rivera" },
-]
+/**
+ * The roster the catalog screens read: Shampooch's people who take bookings,
+ * from lib/team/staff.ts. This was its own three-name list, and one of them,
+ * Sarah Johnson, is a client elsewhere in the demo.
+ */
+export const seedTeamMembers: TeamMember[] = bookableStaff("shampooch").map((s) => ({
+  id: s.id,
+  name: s.name,
+  title: s.role,
+}))
 
 /** Cycled so the Categories table is legible; the palette is the repo's. */
 const CATEGORY_COLORS = ["purple", "yellow", "green", "pink"]

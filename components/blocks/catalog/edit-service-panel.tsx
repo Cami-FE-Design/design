@@ -149,17 +149,22 @@ const EXTRA_TIME_META: Record<ExtraTimeType, { label: string; description: strin
 
 const EXTRA_TIME_TYPES: ExtraTimeType[] = ["processing", "blocked", "extra-servicing"]
 
-// Mock shift windows — when a staff member isn't in this map they're treated as
-// "not scheduled" for the day. Times use the same HH:mm grid as TIME_OPTIONS.
+// Mock shift windows, keyed by roster id (lib/team/staff.ts) — when a staff
+// member isn't in this map they're treated as "not scheduled" for the day.
+// Times use the same HH:mm grid as TIME_OPTIONS.
 const STAFF_SHIFTS: Record<string, { start: string; end: string }> = {
-  "Aya Hassan": { start: "09:00", end: "17:00" },
-  "Lena Petrov": { start: "10:00", end: "18:00" },
-  "Priya Nair": { start: "08:00", end: "14:00" },
-  "Marco Rossi": { start: "11:00", end: "19:00" },
+  "aya-hassan": { start: "09:00", end: "17:00" },
+  "lena-petrov": { start: "10:00", end: "18:00" },
+  "priya-nair": { start: "08:00", end: "14:00" },
+  "marco-rossi": { start: "11:00", end: "19:00" },
 }
 
 // Mock double-booking set — staff already booked at the selected start time.
-const DOUBLE_BOOKED_STAFF = new Set(["Lena Petrov", "Joel Batumbya"])
+const DOUBLE_BOOKED_STAFF = new Set(["lena-petrov", "joel-batumbya"])
+
+// Mock provider matrix: only a few staff are marked as providing every demo
+// service. Real implementation reads the staff×service matrix.
+const PROVIDERS_BY_DEFAULT = new Set(["aya-hassan", "lena-petrov", "priya-nair", "marco-rossi"])
 
 export function EditServicePanel({
   service,
@@ -209,11 +214,8 @@ export function EditServicePanel({
 
   const catalog = service.catalog
   const staffMember = MOCK_STAFF.find((s) => s.name === staffName)
-  // Mock provider matrix: only a couple of staff are marked as providing
-  // every demo service. Real implementation reads the staff×service matrix.
-  const PROVIDERS_BY_DEFAULT = ["Aya Hassan", "Lena Petrov", "Priya Nair", "Marco Rossi"]
-  function providesService(staffName: string): boolean {
-    return PROVIDERS_BY_DEFAULT.includes(staffName)
+  function providesService(member: MockStaff): boolean {
+    return PROVIDERS_BY_DEFAULT.has(member.id)
   }
   const totalDuration = duration + extraTimes.reduce((sum, segment) => sum + segment.durationMin, 0)
 
@@ -263,13 +265,11 @@ export function EditServicePanel({
   // branch changed after they were picked.
   const staffRefusal = staffMember ? branchRefusal(staffMember) : null
 
-  const suitableStaff = offeredStaff.filter((s) => !busyIds.has(s.id) && providesService(s.name))
-  const notSuitableStaff = offeredStaff.filter(
-    (s) => !busyIds.has(s.id) && !providesService(s.name),
-  )
-  const staffProvidesService = staffMember ? providesService(staffMember.name) : true
-  const staffDoubleBooked = staffMember ? DOUBLE_BOOKED_STAFF.has(staffMember.name) : false
-  const shift = staffMember ? STAFF_SHIFTS[staffMember.name] : null
+  const suitableStaff = offeredStaff.filter((s) => !busyIds.has(s.id) && providesService(s))
+  const notSuitableStaff = offeredStaff.filter((s) => !busyIds.has(s.id) && !providesService(s))
+  const staffProvidesService = staffMember ? providesService(staffMember) : true
+  const staffDoubleBooked = staffMember ? DOUBLE_BOOKED_STAFF.has(staffMember.id) : false
+  const shift = staffMember ? STAFF_SHIFTS[staffMember.id] : null
   const startInShift =
     !staffMember || (!!shift && startTime >= shift.start && startTime < shift.end)
   const staffScheduled = !staffMember || !!shift

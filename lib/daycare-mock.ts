@@ -1,5 +1,6 @@
 import type { AvatarSpecies } from "@/components/ui/avatar"
 import type { PetSize } from "@/lib/boarding-mock"
+import { STAFF, type StaffMember } from "@/lib/team/staff"
 
 // ─── Daycare domain ────────────────────────────────────────────────────────────
 // Same-day pet stays. Priced per session/day, placed on a time axis with staff
@@ -9,14 +10,14 @@ import type { PetSize } from "@/lib/boarding-mock"
 
 export type DaycareStatus = "booked" | "checked-in" | "checked-out" | "cancelled" | "no-show"
 
-export type DaycareStaff = { id: string; name: string }
-
+// Daycare runs at Mirdif, so its columns are the roster's Mirdif people
+// (lib/team/staff.ts): the daycare lead, the boarding attendant and the groomer
+// whose week includes Mirdif. This was its own list, and its first name was
+// Michelle You, who is Cami HQ's admin and a pet parent elsewhere in the demo.
 // `null` staffId → the Unassigned column.
-export const DAYCARE_STAFF: ReadonlyArray<DaycareStaff> = [
-  { id: "u1", name: "Michelle You" },
-  { id: "u2", name: "Aisha K." },
-  { id: "u3", name: "Diego R." },
-]
+export const DAYCARE_STAFF: ReadonlyArray<StaffMember> = STAFF.filter(
+  (s) => s.businessId === "shampooch" && s.locationIds.includes("shampooch-mirdif"),
+)
 
 export type DaycareAddOn = { id: string; label: string; priceMinor: number }
 
@@ -84,7 +85,7 @@ export const DAYCARE_SESSIONS: ReadonlyArray<DaycareSession> = [
     priceMinor: 6000,
     planLabel: "Full Day · Up to 8 hours",
     facilityRoom: "Main House — Play Hall",
-    staffId: "u1",
+    staffId: "fatima-ali",
     date: "2026-07-08",
     start: "09:00",
     durationMin: 480,
@@ -105,7 +106,7 @@ export const DAYCARE_SESSIONS: ReadonlyArray<DaycareSession> = [
     priceMinor: 3500,
     planLabel: "Half Day · Up to 4 hours",
     facilityRoom: "Cattery — Quiet Room",
-    staffId: "u2",
+    staffId: "hassan-kareem",
     date: "2026-07-08",
     start: "10:30",
     durationMin: 240,
@@ -125,7 +126,7 @@ export const DAYCARE_SESSIONS: ReadonlyArray<DaycareSession> = [
     priceMinor: 9000,
     planLabel: "Full Day · Up to 8 hours",
     facilityRoom: "Main House — Play Hall",
-    staffId: "u1",
+    staffId: "fatima-ali",
     date: "2026-07-08",
     start: "13:00",
     durationMin: 300,
@@ -167,7 +168,7 @@ export const DAYCARE_SESSIONS: ReadonlyArray<DaycareSession> = [
     priceMinor: 3500,
     planLabel: "Half Day · Up to 4 hours",
     facilityRoom: "Cattery — Quiet Room",
-    staffId: "u3",
+    staffId: "huda-karam",
     date: "2026-07-08",
     start: "11:00",
     durationMin: 240,
@@ -243,11 +244,6 @@ export function sessionCountByDate(
   const out: Record<string, number> = {}
   for (const s of sessions) out[s.date] = (out[s.date] ?? 0) + 1
   return out
-}
-
-export function staffName(id: string | null): string {
-  if (!id) return "Unassigned"
-  return DAYCARE_STAFF.find((s) => s.id === id)?.name ?? "—"
 }
 
 export const WEEKDAY_LABELS = [

@@ -34,7 +34,6 @@ import {
   monthGrid,
   PX_PER_MIN,
   sessionCountByDate,
-  staffName,
   WEEKDAY_LABELS,
 } from "@/lib/daycare-mock"
 import { cn } from "@/lib/utils"
