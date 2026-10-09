@@ -1,7 +1,6 @@
 import type { AvatarSpecies } from "@/components/ui/avatar"
 import type { PlaceRef } from "@/lib/address"
 import type { PetNoteEntry } from "@/lib/pet-notes"
-import type { Shift } from "@/lib/team/shifts"
 import { STAFF, type StaffMember } from "@/lib/team/staff"
 
 export type MockBookingStatus =
@@ -118,13 +117,6 @@ export type MockBooking = {
 }
 
 const JVC = "shampooch-jvc"
-const JUMEIRAH = "shampooch-jumeirah"
-const DOWNTOWN = "shampooch-downtown-dubai"
-const MIRDIF = "shampooch-mirdif"
-const MARINA = "shampooch-dubai-marina"
-const AL_MAJAZ = "shampooch-al-majaz"
-const AL_REEM = "shampooch-al-reem"
-const PURR_PALACE = "purr-palace"
 const SOTA = "sota"
 
 /**
