@@ -449,6 +449,11 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/appointments",
+        label: "New booking sheet · Walk-in and new client",
+        note: "'Add' → New appointment. The Client section starts as Walk-in (no client profile), which is a booking in its own right, not a missing field. In the picker, Walk-in is always first and is how a picked client is removed; 'New client' is pinned above the list and, once something is typed, reads 'Add “…” as a new client'. It opens the Add client form seeded with that name, and the client it saves becomes this booking's.",
+      },
+      {
+        path: "/appointments",
         label: "New / edit sheet · Quick message",
         note: "Open the create sheet via 'New booking' (or 'Edit existing appointment (demo)'). Select a client to reveal the Quick message dropdown in the client action row — lists the business's WhatsApp templates with a resolved-text preview, plus a Message center link to the inbox. Picking a template opens the send dialog: edit the resolved body → Send → sending → 'Message sent' confirmation.",
       },

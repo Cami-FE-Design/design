@@ -19,7 +19,6 @@ import {
   RotateCwIcon,
   TagIcon,
   Trash2Icon,
-  XIcon,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -35,6 +34,7 @@ import { PickupFields } from "@/components/blocks/appointments/pickup-fields"
 import { ServiceAccentRail } from "@/components/blocks/appointments/service-accent-rail"
 import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
 import { EditServicePanel } from "@/components/blocks/catalog/edit-service-panel"
+import { ClientEditSheet } from "@/components/blocks/clients/client-edit-sheet"
 import { ClientNoteBanner } from "@/components/blocks/clients/client-note-banner"
 import { PetEditSheet } from "@/components/blocks/clients/pet-edit-sheet"
 import { PetNotesFields } from "@/components/blocks/clients/pet-notes-fields"
@@ -959,24 +959,29 @@ export function NewAppointmentSheet({
 
             <div className="flex flex-1 flex-col gap-6 overflow-y-auto bg-sand-2 px-6 py-5">
               {/* Client + quick message render in both modes. Pet attachment is
-                  the only pets-only affordance; it lives in the services section. */}
-              <ClientPicker
-                selected={selectedClient}
-                onSelect={setSelectedClient}
-                onClear={() => setSelectedClient(null)}
-                templates={messageTemplates}
-                onMessage={setMessageTemplate}
-                onCustom={() =>
-                  setMessageTemplate({
-                    id: "custom",
-                    name: "Custom message",
-                    body: "",
-                    statuses: [],
-                    automation: "manual",
-                  })
-                }
-                previewFor={(t) => resolveTemplate(t.body, messageTokens)}
-              />
+                  the only pets-only affordance; it lives in the services section.
+                  Always shown; leaving it empty = walk-in. */}
+              <section data-slot="client-section" className="flex flex-col gap-3">
+                <h2 className="text-lg font-semibold leading-7 text-foreground">Client</h2>
+                <ClientPicker
+                  selected={selectedClient}
+                  onSelect={setSelectedClient}
+                  onClear={() => setSelectedClient(null)}
+                  templates={messageTemplates}
+                  onMessage={setMessageTemplate}
+                  onCustom={() =>
+                    setMessageTemplate({
+                      id: "custom",
+                      name: "Custom message",
+                      body: "",
+                      statuses: [],
+                      automation: "manual",
+                    })
+                  }
+                  previewFor={(t) => resolveTemplate(t.body, messageTokens)}
+                  hasPets={hasPets}
+                />
+              </section>
 
               {/* DZ-209: client notes surface while the booking is being made,
                   not only once it exists — a package balance or "always asks
@@ -1808,6 +1813,7 @@ function ClientPicker({
   onMessage,
   onCustom,
   previewFor,
+  hasPets,
 }: {
   selected: SelectedClient | null
   onSelect: (client: SelectedClient) => void
@@ -1819,9 +1825,19 @@ function ClientPicker({
   onCustom?: () => void
   /** Resolves a template into its preview text (tokens filled from the booking). */
   previewFor?: (template: WhatsAppTemplate) => string
+  /** Shows the Pets section on the "Add client" form. */
+  hasPets?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
+  // "New client" opens the Add client form seeded with whatever was typed in
+  // the search, and the client it saves becomes this booking's client.
+  const [newClientOpen, setNewClientOpen] = useState(false)
+  const [newClientName, setNewClientName] = useState("")
+  const newClientInitial = useMemo(
+    () => (newClientName ? { firstName: newClientName } : undefined),
+    [newClientName],
+  )
   const q = query.trim().toLowerCase()
   const qPhone = normalizePhone(q)
   const filtered = q
@@ -1856,15 +1872,17 @@ function ClientPicker({
               </>
             ) : (
               <>
-                <div
-                  aria-hidden
-                  className="flex size-9 items-center justify-center rounded-full border border-dashed border-border bg-muted/30 text-muted-foreground"
-                >
-                  <PlusIcon className="size-4" />
+                <Avatar
+                  name="W"
+                  fallback="initials"
+                  size="md"
+                  shape="circle"
+                  className="bg-muted text-muted-foreground"
+                />
+                <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                  <span className="truncate text-sm font-semibold text-foreground">Walk-in</span>
+                  <span className="truncate text-xs text-muted-foreground">No client profile</span>
                 </div>
-                <span className="flex-1 truncate text-sm font-medium text-muted-foreground">
-                  Add client
-                </span>
               </>
             )}
             <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -1874,12 +1892,77 @@ function ClientPicker({
           align="start"
           className="w-[var(--radix-popover-trigger-width)] gap-2 p-2 supports-backdrop-filter:backdrop-blur-[8px]"
         >
-          <SearchInput size="lg" onValueChange={setQuery} placeholder="Search by name or phone" />
-          {/* `overscroll-contain`: without it the wheel chains out of this list
-              into the sheet behind, which is inside a dialog that does not
-              scroll — so the list read as frozen the moment the pointer was
-              over it. The scrollbar was there and the wheel did nothing. */}
-          <ul className="max-h-72 overflow-y-auto overscroll-contain">
+          <SearchInput
+            onValueChange={setQuery}
+            placeholder="Search by name or phone"
+            containerClassName="w-full"
+            className="w-full"
+          />
+          {/* Pinned above the scroll list so it's reachable without scrolling
+              past the results (walk-in registration is a time-pressed
+              front-desk flow), and it names whatever has been typed so far. */}
+          <button
+            type="button"
+            onClick={() => {
+              setNewClientName(query.trim())
+              setOpen(false)
+              setQuery("")
+              setNewClientOpen(true)
+            }}
+            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-cami-violet-11 transition-colors hover:bg-muted/50"
+          >
+            <PlusIcon className="size-4 shrink-0" aria-hidden />
+            {query.trim() ? (
+              <span className="truncate">Add “{query.trim()}” as a new client</span>
+            ) : (
+              <span>New client</span>
+            )}
+          </button>
+          <div className="border-b border-border/60" />
+          {/* The popover is portalled outside the sheet, and the sheet's
+              scroll lock swallows wheel/touch events from anything outside it
+              — so the list read as frozen: the scrollbar was there and the
+              wheel did nothing. Stopping propagation keeps the events away
+              from that lock; `overscroll-contain` stops the wheel chaining
+              into the sheet once the list hits an end. Same fix as
+              cami-business's AddAppointmentSheet. */}
+          <ul
+            className="max-h-72 touch-pan-y overflow-y-auto overscroll-contain"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {/* Walk-in is always first, and active while no client is picked —
+                choosing it is how a picked client is removed. */}
+            <li>
+              <button
+                type="button"
+                onClick={() => {
+                  onClear()
+                  setOpen(false)
+                  setQuery("")
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start transition-colors hover:bg-muted/50",
+                  !selected && "bg-muted/40",
+                )}
+              >
+                <Avatar
+                  name="W"
+                  fallback="initials"
+                  size="sm"
+                  shape="circle"
+                  className="bg-muted text-muted-foreground"
+                />
+                <div className="flex min-w-0 flex-1 flex-col leading-tight">
+                  <span className="truncate text-sm font-medium">Walk-in</span>
+                  <span className="truncate text-xs text-muted-foreground">No client profile</span>
+                </div>
+                {!selected ? (
+                  <CheckIcon className="size-4 shrink-0 text-foreground" aria-hidden />
+                ) : null}
+              </button>
+            </li>
+            <li className="mb-1 border-b border-border/60 pb-1" />
             {filtered.length === 0 ? (
               <li className="px-3 py-2 text-sm text-muted-foreground">No clients found.</li>
             ) : (
@@ -1903,35 +1986,23 @@ function ClientPicker({
                 </li>
               ))
             )}
-            <li className="mt-1 border-t border-border/60 pt-1">
-              <button
-                type="button"
-                // TODO: open "Add new client" full-screen takeover
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-cami-violet-11 transition-colors hover:bg-muted/50"
-              >
-                <PlusIcon className="size-4" aria-hidden />
-                New client
-              </button>
-            </li>
-            {selected ? (
-              <li>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClear()
-                    setOpen(false)
-                    setQuery("")
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-start text-destructive transition-colors hover:bg-destructive/10"
-                >
-                  <XIcon className="size-4" aria-hidden />
-                  Remove client
-                </button>
-              </li>
-            ) : null}
           </ul>
         </PopoverContent>
       </Popover>
+      <ClientEditSheet
+        open={newClientOpen}
+        onOpenChange={setNewClientOpen}
+        mode="add"
+        hasPets={hasPets}
+        initial={newClientInitial}
+        onSave={(values) =>
+          onSelect({
+            id: `new-${Date.now()}`,
+            name: `${values.firstName} ${values.lastName}`.trim(),
+            phone: values.phone ? `${values.phoneCode} ${values.phone}` : "",
+          })
+        }
+      />
       {selected && onMessage ? (
         <div className="flex items-center gap-2 pt-1">
           <DropdownMenu>
