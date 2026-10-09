@@ -117,7 +117,6 @@ export type MockBooking = {
 }
 
 const JVC = "shampooch-jvc"
-const SOTA = "sota"
 
 /**
  * Who works where.
