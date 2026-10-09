@@ -42,7 +42,7 @@ export const TOKENS = [
     key: "staff",
     label: "Staff member",
     fallback: "our team",
-    example: "Aisha",
+    example: "Aya",
     description: "Who the appointment is with.",
   },
   {

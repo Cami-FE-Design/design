@@ -160,14 +160,14 @@ export const MOCK_CLIENTS: MockClient[] = [
     giftCardAed: 150,
     membershipTier: "Gold",
     preferences: [
-      { id: "stylist", label: "Preferred staff", value: "Sara" },
+      { id: "stylist", label: "Preferred staff", value: "Yara Nasr" },
       { id: "scalp", label: "Handling note", value: "Sensitive scalp — no heat on the roots" },
     ],
     patchTest: {
       title: "Tint patch test",
       result: "passed",
       testedOn: "2026-08-12",
-      testedBy: "Sara",
+      testedBy: "Yara Nasr",
     },
     allergies: { status: "none-known", items: [] },
     birthday: "Sep 9",
@@ -204,7 +204,7 @@ export const MOCK_CLIENTS: MockClient[] = [
     giftCardAed: 75,
     membershipTier: "Gold",
     preferences: [
-      { id: "groomer", label: "Preferred staff", value: "Sophie" },
+      { id: "groomer", label: "Preferred staff", value: "Priya Nair" },
       { id: "handling", label: "Handling note", value: "Bobo is nervous with clippers" },
       { id: "contact", label: "Contact preference", value: "Ask before any coat change" },
     ],
@@ -269,7 +269,7 @@ export const MOCK_CLIENTS: MockClient[] = [
     country: "United Arab Emirates",
     addresses: [{ id: "home", label: "Home", line: "Al Barsha 2, Villa 14, Dubai, AE" }],
     preferences: [
-      { id: "groomer", label: "Preferred staff", value: "Sophie" },
+      { id: "groomer", label: "Preferred staff", value: "Priya Nair" },
       { id: "dryer", label: "Handling note", value: "Luna hates the dryer — towel finish" },
     ],
     patchTest: { title: "Tint patch test", result: "passed", testedOn: "2026-01-03" },

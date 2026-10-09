@@ -47,7 +47,7 @@ Three vertical panes filling the AppShell content area, full height, no page hea
 **Row** (per conversation): 
 - Avatar (person → character-face per cami avatar rule; hashed pastel bg).
 - Name (semibold) + relative time (right, muted: `30m`, `1m`, `2h`).
-- Preview line — last message, truncated. `@mention` rendered subtly when a teammate is addressed (e.g. "@Sarah Hassan can you take this one?").
+- Preview line — last message, truncated. `@mention` rendered subtly when a teammate is addressed (e.g. "@Sara Park can you take this one?").
 - **Pill row**: funnel/lifecycle pills + SLA timer + assignment. See pill vocab below.
 - **Unread dot**: violet dot, right edge, when unread.
 - Selected row: violet-tinted background (`bg-cami-violet-3`-ish), matches Image 1.
@@ -78,7 +78,7 @@ Message types:
 1. **Inbound bubble** — left-aligned, neutral surface (`bg-card`/gray), client text, timestamp below.
 2. **Outbound bubble** — right-aligned, brand-tinted (reuse the sage WhatsApp bubble from the send dialog), timestamp + delivered ticks.
 3. **Booking-request card** — AI-parsed structured card inside the thread. Header "BOOKING REQUEST" + time, sparkle icon. Body: pet · breed, service, requested date/time. Actions: **Confirm** (primary) / **Reject** (outline). **Confirm → opens the new-appointment sheet (`NewAppointmentSheet`) pre-filled** with the parsed client, pet, service, and requested date/time; on save the card flips to a confirmed state and a system line records it. Reject → card flips to rejected + system line.
-4. **System line** — centered, muted, pill-ish: "Reminder sent: Max · Full Grooming · Tomorrow", "Conversation escalated to Kristine", etc. Non-interactive.
+4. **System line** — centered, muted, pill-ish: "Reminder sent: Max · Full Grooming · Tomorrow", "Conversation escalated to Aziz Rahman", etc. Non-interactive.
 
 ### Composer (sticky bottom)
 - Multiline textarea "Type a message…". `⌘/Ctrl + Enter` to send (hint shown top-right of composer).

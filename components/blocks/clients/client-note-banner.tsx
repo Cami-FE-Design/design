@@ -162,12 +162,12 @@ export function ClientNoteBanner({
 }
 
 /**
- * "Ahsan Khan · 7 Sep, 5:49pm" — author and full timestamp, per note.
+ * "Maz Khan · 7 Sep, 5:49pm" — author and full timestamp, per note.
  *
  * The time is not optional. An earlier pass showed the day only and dropped
  * repeated attribution lines, which read well in the abstract and failed on
  * real data: four notes by one person on one afternoon collapsed into a single
- * "Ahsan Khan · 7 Sep" with nothing to tell them apart. Karen Dougall's demo
+ * "Maz Khan · 7 Sep" with nothing to tell them apart. Karen Dougall's demo
  * notes reproduce exactly that case.
  *
  * The year is kept only when it is not the current one — noise otherwise. Both

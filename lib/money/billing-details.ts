@@ -110,7 +110,7 @@ export const DEMO_BILLING_DETAILS: BillingDetails = {
     country: "United Arab Emirates",
   },
   updatedAtIso: "2026-03-04T09:20:00Z",
-  updatedBy: "Omar Haddad",
+  updatedBy: "Maz Khan",
 }
 
 /** The state that blocks a compliant tax invoice (T1-1, states list). */
@@ -126,5 +126,5 @@ export const DEMO_BILLING_DETAILS_EMPTY: BillingDetails = {
   trn: undefined,
   address: EMPTY_ADDRESS,
   updatedAtIso: "2026-08-20T08:00:00Z",
-  updatedBy: "Omar Haddad",
+  updatedBy: "Maz Khan",
 }

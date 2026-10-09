@@ -68,6 +68,7 @@ import {
   patchTestExpiry,
   patchTestState,
 } from "@/lib/clients/mock"
+import { useCurrentUser } from "@/lib/current-user"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { useLocations } from "@/lib/locations/store"
 import {
@@ -315,6 +316,7 @@ export function ClientDetailDialog({
   initialViewFormId,
   initialPreviewFileId,
 }: ClientDetailDialogProps) {
+  const { actor } = useCurrentUser()
   const [tab, setTab] = useState<TabId>(
     initialTab && PRIMARY_TABS.some((t) => t.id === initialTab) ? initialTab : "overview",
   )
@@ -974,7 +976,7 @@ export function ClientDetailDialog({
               id: `cn-local-${Date.now()}`,
               clientId: client.id ?? "current-client",
               content: value,
-              authorName: "Ahsan Khan",
+              authorName: actor.name,
               createdAt: new Date().toISOString(),
             },
             ...current,
@@ -1593,9 +1595,9 @@ function PetsOverviewCard({
  * comparison view in /playground. There is no second copy to drift.
  */
 /**
- * "Created: 09/15/2026 11:09 am by Ahsan Khan" — the as-built profile line.
+ * "Created: 09/15/2026 11:09 am by Maz Khan" — the as-built profile line.
  *
- * Deliberately not the calendar preview's "Ahsan Khan · 7 Sep, 5:49pm". That
+ * Deliberately not the calendar preview's "Maz Khan · 7 Sep, 5:49pm". That
  * one is short because it sits under a clamped note on a surface read in a
  * second; this is the record, where a full date is what someone asking "when
  * was this written" actually wants. Author is optional — it arrives only when

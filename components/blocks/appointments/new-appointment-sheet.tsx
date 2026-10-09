@@ -342,12 +342,14 @@ function defaultPets(startTime: string): SelectedPet[] {
       uid: "seed-bobo",
       ...MOCK_PET_POOL[0]!,
       services: [
-        { uid: "seed-full-groom", catalog: fullGroom, startTime, staffName: "Sophie" },
+        { uid: "seed-full-groom", catalog: fullGroom, startTime, staffName: "Priya Nair" },
         {
           uid: "seed-wash-blow",
           catalog: washBlow,
           startTime: "11:30",
-          staffName: "Aisha",
+          // Not one of the people the edit panel marks as providing every demo
+          // service, so the warning seeded here is the one the panel computes.
+          staffName: "Beth Carter",
           warnings: ["Team member doesn't provide service"],
         },
       ],

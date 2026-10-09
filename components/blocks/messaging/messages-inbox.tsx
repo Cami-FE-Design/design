@@ -475,7 +475,7 @@ function MessageThread({
   hasPets: boolean
 }) {
   const { client } = conversation
-  const escalateTarget = conversation.escalatedTo ?? "Kristine"
+  const escalateTarget = conversation.escalatedTo ?? "Aziz Rahman"
   return (
     <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       {/* Header */}
@@ -821,13 +821,13 @@ export function MessagesInbox({ hasPets = true }: { hasPets?: boolean }) {
   function handleEscalate() {
     updateSelected((c) => ({
       ...c,
-      escalatedTo: c.escalatedTo ?? "Kristine",
-      assignee: c.assignee ?? "Kristine",
+      escalatedTo: c.escalatedTo ?? "Aziz Rahman",
+      assignee: c.assignee ?? "Aziz Rahman",
       messages: [
         ...c.messages,
         {
           kind: "system",
-          body: `Conversation escalated to ${c.escalatedTo ?? "Kristine"}`,
+          body: `Conversation escalated to ${c.escalatedTo ?? "Aziz Rahman"}`,
           at: "Now",
         },
       ],

@@ -155,7 +155,7 @@ export const DEMO_DESTINATION: PayoutDestination = {
   last4: "1001",
   verification: "verified",
   addedAtIso: "2026-03-04T09:20:00Z",
-  addedBy: "Omar Haddad",
+  addedBy: "Maz Khan",
   receives: ["online", "terminal"],
 }
 
@@ -163,7 +163,7 @@ export const DEMO_CHANGE_HISTORY: ReadonlyArray<DestinationChange> = [
   {
     id: "chg_3",
     atIso: "2026-03-04T09:20:00Z",
-    actor: "Omar Haddad",
+    actor: "Maz Khan",
     fromLast4: "4417",
     toLast4: "1001",
     outcome: "applied",
@@ -171,7 +171,7 @@ export const DEMO_CHANGE_HISTORY: ReadonlyArray<DestinationChange> = [
   {
     id: "chg_2",
     atIso: "2026-03-02T14:05:00Z",
-    actor: "Omar Haddad",
+    actor: "Maz Khan",
     fromLast4: "4417",
     toLast4: "1001",
     outcome: "failed",

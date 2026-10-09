@@ -146,7 +146,7 @@ const MOCK_PET_VISITS: MockPetVisit[] = [
     weekday: "Wednesday",
     time: "2:30pm",
     locationId: "shampooch-jvc",
-    services: [{ name: "Bath & tidy", staff: "Aisha", duration: "45min", price: "AED 130" }],
+    services: [{ name: "Bath & tidy", staff: "Lena Petrov", duration: "45min", price: "AED 130" }],
   },
   {
     id: "v2",
@@ -156,7 +156,7 @@ const MOCK_PET_VISITS: MockPetVisit[] = [
     weekday: "Monday",
     time: "11:00am",
     locationId: "shampooch-jvc",
-    services: [{ name: "Full groom", staff: "Sophie", duration: "1h 30min", price: "AED 220" }],
+    services: [{ name: "Full groom", staff: "Priya Nair", duration: "1h 30min", price: "AED 220" }],
   },
   {
     id: "v3",
@@ -166,7 +166,7 @@ const MOCK_PET_VISITS: MockPetVisit[] = [
     weekday: "Wednesday",
     time: "3:00pm",
     locationId: "shampooch-jvc",
-    services: [{ name: "Nail trim", staff: "Sophie", duration: "15min", price: "AED 40" }],
+    services: [{ name: "Nail trim", staff: "Priya Nair", duration: "15min", price: "AED 40" }],
   },
 ]
 
@@ -195,7 +195,7 @@ const MOCK_PET_NOTES: MockPetNote[] = [
     id: "n1",
     text: "Anxious during baths — use a gentle voice and the lavender shampoo.",
     createdAt: "04/09/2026 11:51 am",
-    author: "Michelle You",
+    author: "Priya Nair",
   },
 ]
 
@@ -562,7 +562,7 @@ export function PetDetailDialog({
 
                     <Subsection title="Preferences">
                       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                        <DetailField label="Preferred staff" value="Sophie" />
+                        <DetailField label="Preferred staff" value="Priya Nair" />
                       </div>
                     </Subsection>
                   </div>

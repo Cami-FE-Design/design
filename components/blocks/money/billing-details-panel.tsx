@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { addressToLine } from "@/lib/address"
+import { useCurrentUser } from "@/lib/current-user"
 import { formatDateTime } from "@/lib/format"
 import {
   type BillingDetails,
@@ -66,7 +67,6 @@ export type BillingDetailsDemoState = "complete" | "no-trn" | "empty"
 const selectTriggerOverride =
   "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
 
-const ACTOR = "Omar Haddad"
 const UPDATED_AT = `${TODAY_ISO}T09:00:00.000Z`
 
 function initialFor(state: BillingDetailsDemoState): BillingDetails {
@@ -84,6 +84,8 @@ export function BillingDetailsPanel({
   breadcrumbRoot: BreadcrumbRoot
   initialState?: BillingDetailsDemoState
 }) {
+  // Whoever is signed in makes the change (lib/current-user.tsx).
+  const { actor: signedIn } = useCurrentUser()
   const [details, setDetails] = useState<BillingDetails>(() => initialFor(initialState))
   const [editing, setEditing] = useState(false)
 
@@ -193,7 +195,9 @@ export function BillingDetailsPanel({
         open={editing}
         onOpenChange={setEditing}
         details={details}
-        onSave={(next) => setDetails({ ...next, updatedBy: ACTOR, updatedAtIso: UPDATED_AT })}
+        onSave={(next) =>
+          setDetails({ ...next, updatedBy: signedIn.name, updatedAtIso: UPDATED_AT })
+        }
       />
     </SettingsPanel>
   )

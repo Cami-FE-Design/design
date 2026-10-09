@@ -18,7 +18,7 @@ const DRAFT = {
   iban: "AE07 0331 2345 6789 0123 456",
 }
 
-const OPTS = { actor: "Omar Haddad", nowIso: "2026-08-24T09:00:00.000Z" }
+const OPTS = { actor: "Maz Khan", nowIso: "2026-08-24T09:00:00.000Z" }
 
 describe("both-or-neither (SET-B3)", () => {
   it("returns a destination when both systems accept", () => {

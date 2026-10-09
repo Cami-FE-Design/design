@@ -37,6 +37,7 @@ import { SettingsCard, SettingsPanel } from "@/components/blocks/settings/settin
 import { NotionBreadcrumb } from "@/components/blocks/shell/notion-breadcrumb"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { useCurrentUser } from "@/lib/current-user"
 import { formatDate, formatDateTime } from "@/lib/format"
 import {
   DEMO_CHANGE_HISTORY,
@@ -71,8 +72,6 @@ const VERIFICATION: Record<
   pending: { label: "Verification in progress", variant: "muted", icon: ClockIcon },
 }
 
-const ACTOR = "Omar Haddad"
-
 /** Fixed clock, like the rest of the money demo data. */
 const CHANGED_AT = `${TODAY_ISO}T09:00:00.000Z`
 
@@ -85,6 +84,8 @@ export function BankAccountPanel({
   breadcrumbRoot: BreadcrumbRoot
   initialState?: BankAccountDemoState | null
 }) {
+  // Whoever is signed in makes the change (lib/current-user.tsx).
+  const { actor: signedIn } = useCurrentUser()
   const demoState = initialState ?? "verified"
 
   const rails: MerchantRails = {
@@ -364,7 +365,7 @@ export function BankAccountPanel({
         open={changeOpen}
         onOpenChange={setChangeOpen}
         current={destination}
-        actor={ACTOR}
+        actor={signedIn.name}
         nowIso={CHANGED_AT}
         simulateGatewayFailure={demoState === "gateway-failed"}
         onApplied={(next) => {
@@ -373,7 +374,7 @@ export function BankAccountPanel({
             {
               id: `chg_${h.length + 1}`,
               atIso: CHANGED_AT,
-              actor: ACTOR,
+              actor: signedIn.name,
               fromLast4: destination.last4,
               toLast4: next.last4,
               outcome: "applied",
@@ -389,7 +390,7 @@ export function BankAccountPanel({
             {
               id: `chg_${h.length + 1}`,
               atIso: CHANGED_AT,
-              actor: ACTOR,
+              actor: signedIn.name,
               fromLast4: destination.last4,
               toLast4: draft.iban.replace(/\s+/g, "").slice(-4),
               outcome: "failed",

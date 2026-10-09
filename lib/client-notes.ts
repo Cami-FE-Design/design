@@ -40,7 +40,7 @@ const CLIENT_NOTES: ClientNote[] = [
     id: "cn-karen-1",
     clientId: "karen-dougall",
     content: "Always asks for Aya. Do not rebook with anyone else without calling her first.",
-    authorName: "Ahsan Khan",
+    authorName: "Maz Khan",
     createdAt: "2026-09-07T17:49:00+04:00",
   },
   {
@@ -48,14 +48,14 @@ const CLIENT_NOTES: ClientNote[] = [
     clientId: "karen-dougall",
     content:
       "Has 3 washes left on the 10-wash package bought in March. Reception keeps charging her full price — check the package balance before taking payment.",
-    authorName: "Ahsan Khan",
+    authorName: "Maz Khan",
     createdAt: "2026-09-07T17:52:00+04:00",
   },
   {
     id: "cn-karen-3",
     clientId: "karen-dougall",
     content: "Prefers WhatsApp over calls. Never picks up the phone.",
-    authorName: "Ahsan Khan",
+    authorName: "Maz Khan",
     createdAt: "2026-09-07T18:03:00+04:00",
   },
   {
@@ -74,22 +74,22 @@ const CLIENT_NOTES: ClientNote[] = [
   {
     id: "cn-aaesha-1",
     clientId: "aaesha-al-ali",
-    content: "Speaks Arabic only. Book with Nadia when possible.",
-    authorName: "Maaz Shaffi",
+    content: "Speaks Arabic only. Book with Tala when possible.",
+    authorName: "Aziz Rahman",
     createdAt: "2026-08-22T13:40:00+04:00",
   },
   {
     id: "cn-luke-1",
     clientId: "luke-tan",
     content: "Card on file declined twice in August. Take payment at drop-off, not at collection.",
-    authorName: "Maaz Shaffi",
+    authorName: "Aziz Rahman",
     createdAt: "2026-08-29T11:10:00+04:00",
   },
   {
     id: "cn-luke-2",
     clientId: "luke-tan",
     content: "Two dogs, only ever brings Rocky. Bailey is with the other groomer.",
-    authorName: "Maaz Shaffi",
+    authorName: "Aziz Rahman",
     createdAt: "2026-08-14T09:30:00+04:00",
   },
   {
