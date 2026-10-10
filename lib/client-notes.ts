@@ -18,6 +18,18 @@
 // timestamp, no severity field. That last absence is load-bearing — see the
 // banner component for why it must not be rendered as a hazard.
 
+import { readClientSummaryHistory } from "@/lib/client-summary/mock"
+
+function fromClientSummary(clientId: string): ClientNote[] {
+  return readClientSummaryHistory(clientId).notes.map((note) => ({
+    id: note.id,
+    clientId,
+    content: note.body,
+    authorName: note.authorName,
+    createdAt: note.at,
+  }))
+}
+
 export type ClientNote = {
   id: string
   clientId: string
@@ -115,7 +127,9 @@ const CLIENT_NOTES: ClientNote[] = [
  */
 export function clientNotesFor(clientId: string | null | undefined): ClientNote[] {
   if (!clientId) return []
-  return CLIENT_NOTES.filter((note) => note.clientId === clientId).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  )
+  const seeded = CLIENT_NOTES.filter((note) => note.clientId === clientId)
+  // Inbox Phase 0's clients keep their notes with their visits, in
+  // lib/client-summary, so the profile shows the notes the inbox pane does.
+  const notes = seeded.length > 0 ? seeded : fromClientSummary(clientId)
+  return notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
 }

@@ -278,7 +278,14 @@ export function resolveProfile(client: ClientDetailClient): OverviewProfile {
     })),
     appointments: activity.appointments,
     sales: activity.sales,
-    salesMinor: (record?.salesAed ?? 0) * 100,
+    // A client with no record here (Inbox Phase 0's, say) still has the sales
+    // its own history lists, so the total is theirs rather than nothing:
+    // everything invoiced except drafts and refunds.
+    salesMinor: record
+      ? (record.salesAed ?? 0) * 100
+      : activity.sales
+          .filter((sale) => sale.status !== "draft" && sale.status !== "refunded")
+          .reduce((sum, sale) => sum + sale.items.reduce((t, item) => t + item.priceMinor, 0), 0),
     packages: record?.packages ?? [],
     loyaltyPoints: record?.loyaltyPoints ?? 0,
     giftCardAed: record?.giftCardAed ?? 0,
@@ -1308,6 +1315,21 @@ function BranchSpreadRow({ locationId, count }: { locationId: string; count: num
   )
 }
 
+/**
+ * A key for rows that can legitimately repeat: the same service twice on one
+ * visit, one per dog. The name, then which repeat of it — so a key follows the
+ * row it names, not its place in the list.
+ */
+function withRepeatKeys<T>(items: ReadonlyArray<T>, label: (item: T) => string) {
+  const seen = new Map<string, number>()
+  return items.map((value) => {
+    const name = label(value)
+    const count = (seen.get(name) ?? 0) + 1
+    seen.set(name, count)
+    return { value, key: count === 1 ? name : `${name}-${count}` }
+  })
+}
+
 function AppointmentCard({
   appt,
   pets,
@@ -1358,9 +1380,9 @@ function AppointmentCard({
         </Badge>
       </div>
       <ul className="flex flex-col gap-2">
-        {appt.services.map((svc) => (
+        {withRepeatKeys(appt.services, (s) => s.name).map(({ value: svc, key }) => (
           <li
-            key={`${appt.id}-${svc.name}`}
+            key={`${appt.id}-${key}`}
             className="flex items-baseline justify-between gap-2 text-sm"
           >
             <span className="min-w-0 flex-1 truncate">
@@ -1432,9 +1454,9 @@ function SaleCard({ sale, showBranch }: { sale: ClientSale; showBranch: boolean 
         </Badge>
       </div>
       <ul className="flex flex-col gap-2">
-        {sale.items.map((item) => (
+        {withRepeatKeys(sale.items, (i) => i.name).map(({ value: item, key }) => (
           <li
-            key={`${sale.id}-${item.name}`}
+            key={`${sale.id}-${key}`}
             className="flex items-baseline justify-between gap-2 text-sm"
           >
             <span className="min-w-0 flex-1 truncate">{item.name}</span>

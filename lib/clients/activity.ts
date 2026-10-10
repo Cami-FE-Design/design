@@ -23,6 +23,9 @@
 //    looked at is if some client actually lands on it.
 
 import type { AvatarSpecies } from "@/components/ui/avatar"
+import { CLIENT_SUMMARY_NOW, readClientSummaryAppointments } from "@/lib/client-summary/mock"
+import { formatDuration } from "@/lib/format"
+import { formatMoneyWhole } from "@/lib/money/format"
 
 // ─── Pets ────────────────────────────────────────────────────────────────────
 
@@ -748,7 +751,79 @@ const ACTIVITY: Record<string, ClientActivity> = {
 
 export function getClientActivity(clientId?: string): ClientActivity {
   if (!clientId) return EMPTY
-  return ACTIVITY[clientId] ?? EMPTY
+  return ACTIVITY[clientId] ?? fromClientSummary(clientId) ?? EMPTY
+}
+
+// ─── Inbox Phase 0's clients ─────────────────────────────────────────────────
+//
+// The inbox's clients ("cus-…") are kept in lib/client-summary, which stands in
+// for the customer module behind its client pane. The pane listed their visits
+// while "View profile" opened the same client with none, so the profile reads
+// the same records: one client, one history.
+
+const DUBAI = "Asia/Dubai"
+const dayMonthFormat = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  timeZone: DUBAI,
+})
+const weekdayFormat = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: DUBAI })
+const timeFormat = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: DUBAI,
+})
+
+/** How long each of the summary's services takes; it records no duration. */
+const SUMMARY_SERVICE_MINUTES: Record<string, number> = {
+  "Bath, blow-dry and sanitary tidy": 60,
+  "De-shedding treatment with conditioning mask": 45,
+  "Full groom with de-shedding treatment and blueberry facial": 120,
+  "Full groom, medium breed, hand scissoring": 90,
+  "Nail trim and paw pad tidy": 20,
+  "Puppy introduction groom, under 6 months": 45,
+}
+
+function fromClientSummary(clientId: string): ClientActivity | null {
+  const all = readClientSummaryAppointments(clientId)
+  if (all.length === 0) return null
+  const newestFirst = [...all].sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+  const when = (at: string) => {
+    const d = new Date(at)
+    return {
+      dayMonth: dayMonthFormat.format(d),
+      weekday: weekdayFormat.format(d),
+      time: timeFormat.format(d).replace(" ", "").toLowerCase(),
+    }
+  }
+  const isPast = (at: string) => Date.parse(at) <= CLIENT_SUMMARY_NOW
+  return {
+    appointments: newestFirst.map((visit) => ({
+      id: visit.id,
+      status: isPast(visit.at) ? "completed" : "confirmed",
+      ...when(visit.at),
+      services: visit.lines.map((l) => ({
+        name: l.service,
+        staff: l.staffName,
+        duration: formatDuration(SUMMARY_SERVICE_MINUTES[l.service] ?? 60),
+        price: formatMoneyWhole(l.amountMinor),
+      })),
+    })),
+    // A completed visit was paid for at the time; an upcoming one has no sale.
+    sales: newestFirst
+      .filter((visit) => isPast(visit.at))
+      .map((visit) => {
+        const { dayMonth, weekday } = when(visit.at)
+        return {
+          id: `sale-${visit.id}`,
+          status: "paid" as const,
+          dayMonth,
+          weekday,
+          items: visit.lines.map((l) => ({ name: l.service, priceMinor: l.amountMinor })),
+        }
+      }),
+  }
 }
 
 /** Species a pet id is recorded as, for callers that only hold the id. */
