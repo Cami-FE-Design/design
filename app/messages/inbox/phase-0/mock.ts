@@ -618,7 +618,7 @@ export function buildDirectory(conversations: InboxConversation[]): DirectoryCli
       lastName: "Haddad",
       phoneE164: "+971507001234",
       email: "rana@example.com",
-      homeLocation: "Shampooch JLT",
+      homeLocation: "Shampooch Jumeirah",
       pets: [{ name: "Nala", species: "cat", breed: "Siamese" }],
       lastService: { name: "Nail trim and paw pad tidy", at: at(15 * DAY) },
     }),

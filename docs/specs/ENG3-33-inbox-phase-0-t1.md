@@ -143,7 +143,7 @@ Template names and wording are placeholders until FND-5b records the approved on
 | 6 Stylists never see unmatched chats | No screen — data rule; no stylist login until S2 |
 | Edge: family phone | `?c=huda` |
 | Edge: archived client | Search "Ahmed" — matchable, shown as Archived |
-| Edge: client at another location | Search "Rana" — "Client at Shampooch JLT", match allowed |
+| Edge: client at another location | Search "Rana" — "Client at Shampooch Jumeirah", match allowed |
 | Edge: number on two records | `?c=unmatched-closed` → Match — both shown, I pick |
 | Also: `IX-C6` "pane offers Match" (P9) | `?c=unmatched-saturday` |
 
