@@ -20,6 +20,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import { formatMoney } from "@/lib/money/format"
+import { readStoredJson, removeStored, writeStoredJson } from "@/lib/storage"
 
 // v2: the rate stopped being a bare percentage and became percent + fixed +
 // an optional ceiling for the fixed part. The old v1 payload cannot be read as
@@ -473,15 +474,9 @@ export type CamiPayValue = CamiPayState & {
 const CamiPayContext = createContext<CamiPayValue | null>(null)
 
 function readStored(): CamiPayState | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as CamiPayState
-    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.rates)) return null
-    return parsed
-  } catch {
-    return null
-  }
+  const parsed = readStoredJson(STORAGE_KEY) as CamiPayState
+  if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.rates)) return null
+  return parsed
 }
 
 export function CamiPayProvider({ children }: { children: React.ReactNode }) {
@@ -496,11 +491,7 @@ export function CamiPayProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<CamiPayValue>(() => {
     function persist(next: CamiPayState) {
       setState(next)
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // ignore
-      }
+      writeStoredJson(STORAGE_KEY, next)
     }
 
     function patchRail(merchantId: string, rail: CamiPayRail, patch: Partial<RailConfig>) {
@@ -536,11 +527,7 @@ export function CamiPayProvider({ children }: { children: React.ReactNode }) {
         }),
       reset: () => {
         setState(DEFAULT_CAMIPAY_STATE)
-        try {
-          window.localStorage.removeItem(STORAGE_KEY)
-        } catch {
-          // ignore
-        }
+        removeStored(STORAGE_KEY)
       },
     }
   }, [state])

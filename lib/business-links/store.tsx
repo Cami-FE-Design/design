@@ -15,6 +15,7 @@
 // agree about it. A fifth static string could not do that.
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { readStored, removeStored, writeStored } from "@/lib/storage"
 
 const STORAGE_KEY = "cami-business-links-v1"
 
@@ -39,7 +40,7 @@ export function BusinessLinksProvider({ children }: { children: React.ReactNode 
 
   useEffect(() => {
     try {
-      const saved = window.localStorage.getItem(STORAGE_KEY)
+      const saved = readStored(STORAGE_KEY)
       if (saved) setLink(saved)
     } catch {
       // Storage unavailable — the session still works, nothing is persisted.
@@ -53,19 +54,15 @@ export function BusinessLinksProvider({ children }: { children: React.ReactNode 
         const trimmed = next.trim()
         setLink(trimmed)
         try {
-          if (trimmed) window.localStorage.setItem(STORAGE_KEY, trimmed)
-          else window.localStorage.removeItem(STORAGE_KEY)
+          if (trimmed) writeStored(STORAGE_KEY, trimmed)
+          else removeStored(STORAGE_KEY)
         } catch {
           // ignore
         }
       },
       reset: () => {
         setLink(DEFAULT_LINK)
-        try {
-          window.localStorage.removeItem(STORAGE_KEY)
-        } catch {
-          // ignore
-        }
+        removeStored(STORAGE_KEY)
       },
     }),
     [googleReviewLink],

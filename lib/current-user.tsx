@@ -11,6 +11,7 @@
 // another team member are rejected up front.
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { readStored, removeStored, writeStoredJson } from "@/lib/storage"
 import { resolveMemberId, TEAM_MEMBERS } from "@/lib/team/mock"
 
 const STORAGE_KEY = "cami-current-user"
@@ -129,7 +130,7 @@ export function CurrentUserProvider({ children }: { children: React.ReactNode })
   const [pending, setPending] = useState<PendingContact>({})
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY)
+    const saved = readStored(STORAGE_KEY)
     if (!saved) return
     try {
       const parsed = JSON.parse(saved)
@@ -142,14 +143,14 @@ export function CurrentUserProvider({ children }: { children: React.ReactNode })
         setUser(fromSaved(parsed))
       }
     } catch {
-      window.localStorage.removeItem(STORAGE_KEY)
+      removeStored(STORAGE_KEY)
     }
   }, [])
 
   const value = useMemo<CurrentUserValue>(() => {
     function persist(nextUser: CurrentUser, nextPending: PendingContact) {
       const stored: Stored = { user: nextUser, pending: nextPending }
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(stored))
+      writeStoredJson(STORAGE_KEY, stored)
     }
     function apply(userPatch: Partial<CurrentUser>, pendingPatch?: Partial<PendingContact>) {
       setUser((currUser) => {
@@ -206,7 +207,7 @@ export function CurrentUserProvider({ children }: { children: React.ReactNode })
       reset: () => {
         setUser(DEFAULT_CURRENT_USER)
         setPending({})
-        window.localStorage.removeItem(STORAGE_KEY)
+        removeStored(STORAGE_KEY)
       },
     }
   }, [user, pending])

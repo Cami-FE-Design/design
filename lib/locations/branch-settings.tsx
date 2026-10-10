@@ -51,6 +51,7 @@ import {
   resolveTipping,
   type TippingSettings,
 } from "@/lib/locations/tipping"
+import { readStoredJson, writeStoredJson } from "@/lib/storage"
 
 const STORAGE_KEY = "cami-branch-settings"
 
@@ -112,19 +113,13 @@ const SEED: Stored = {
 }
 
 function readStored(): Stored | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<Stored>
-    if (!parsed || typeof parsed !== "object") return null
-    return {
-      tax: parsed.tax ?? {},
-      sequences: parsed.sequences ?? {},
-      tipping: parsed.tipping ?? {},
-      deposit: parsed.deposit ?? {},
-    }
-  } catch {
-    return null
+  const parsed = readStoredJson(STORAGE_KEY) as Partial<Stored>
+  if (!parsed || typeof parsed !== "object") return null
+  return {
+    tax: parsed.tax ?? {},
+    sequences: parsed.sequences ?? {},
+    tipping: parsed.tipping ?? {},
+    deposit: parsed.deposit ?? {},
   }
 }
 
@@ -149,7 +144,7 @@ export function BranchSettingsProvider({
     (mutate: (current: Stored) => Stored) => {
       setStored((current) => {
         const next = mutate(current)
-        if (persist) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+        if (persist) writeStoredJson(STORAGE_KEY, next)
         return next
       })
     },

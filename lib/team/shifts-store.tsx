@@ -25,6 +25,7 @@ import {
   useMemo,
   useState,
 } from "react"
+import { readStoredJson, removeStored, writeStoredJson } from "@/lib/storage"
 import type { BlockTime, Leave, RosterMember, Shift, ShiftTime } from "@/lib/team/shifts"
 import {
   NINE_BRANCH_LEAVES,
@@ -41,15 +42,9 @@ type StoredRota = {
 }
 
 function readStored(): StoredRota | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<StoredRota>
-    if (!Array.isArray(parsed?.shifts) || !Array.isArray(parsed?.leaves)) return null
-    return { shifts: parsed.shifts, leaves: parsed.leaves }
-  } catch {
-    return null
-  }
+  const parsed = readStoredJson(STORAGE_KEY) as Partial<StoredRota>
+  if (!Array.isArray(parsed?.shifts) || !Array.isArray(parsed?.leaves)) return null
+  return { shifts: parsed.shifts, leaves: parsed.leaves }
 }
 
 type RotaValue = {
@@ -173,12 +168,7 @@ export function RotaProvider({
   const save = useCallback(
     (next: StoredRota) => {
       if (!persist) return next
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // Storage blocked in a private window: the session still works, it just
-        // does not survive a reload, which is the honest failure.
-      }
+      writeStoredJson(STORAGE_KEY, next)
       return next
     },
     [persist],
@@ -302,7 +292,7 @@ export function RotaProvider({
     setEdited(false)
     if (!persist) return
     try {
-      window.localStorage.removeItem(STORAGE_KEY)
+      removeStored(STORAGE_KEY)
     } catch {}
   }, [initialShifts, initialLeaves, persist])
 

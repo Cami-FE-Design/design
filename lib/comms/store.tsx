@@ -21,6 +21,7 @@ import {
   templateKey,
 } from "@/lib/comms/templates"
 import type { ReminderEvent } from "@/lib/notifications/types"
+import { readStored, removeStored, writeStoredJson } from "@/lib/storage"
 
 const STORAGE_KEY = "cami-comms-templates-v1"
 
@@ -52,7 +53,7 @@ const CommsTemplatesContext = createContext<CommsTemplatesValue | null>(null)
 
 function readSaved(): CommsOverrides | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = readStored(STORAGE_KEY)
     if (!raw) return null
     const saved = JSON.parse(raw) as CommsOverrides
     // Keys are `event:channel` strings whose halves may not exist any more (an
@@ -82,11 +83,7 @@ export function CommsTemplatesProvider({ children }: { children: React.ReactNode
   const value = useMemo<CommsTemplatesValue>(() => {
     const persist = (next: CommsOverrides) => {
       setOverrides(next)
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // Storage full/unavailable — state still updates for the session.
-      }
+      writeStoredJson(STORAGE_KEY, next)
     }
 
     return {
@@ -111,11 +108,7 @@ export function CommsTemplatesProvider({ children }: { children: React.ReactNode
       },
       reset: () => {
         setOverrides({})
-        try {
-          window.localStorage.removeItem(STORAGE_KEY)
-        } catch {
-          // ignore
-        }
+        removeStored(STORAGE_KEY)
       },
     }
   }, [overrides])
