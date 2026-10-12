@@ -12,6 +12,7 @@
 // aggregate as a weighted average by that day's activity — the honest roll-up.
 
 import type { DateRange } from "@/components/blocks/shared/date-range-popover"
+import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import {
   PERFORMANCE_SUMMARY_MEMBERS,
   PERFORMANCE_SUMMARY_SECTIONS,
@@ -33,9 +34,9 @@ export const DEFAULT_METRIC_INDEX = Math.max(
   PERF_OT_METRICS.findIndex((m) => m.label === "Total sales"),
 )
 
-// Cami's demo business is single-location, so the Location dimension is one row
-// today; it scales the day the business adds branches.
-export const PERF_LOCATIONS = ["Pet Loft"]
+// The business's branches. This was ["Pet Loft"], a different merchant, so the
+// Location dimension showed somebody else's business, and only one row of it.
+export const PERF_LOCATIONS = NINE_BRANCH_ESTATE.map((l) => l.name)
 
 export const PERF_DIMENSIONS: PerfDimension[] = ["Team member", "Location"]
 export const PERF_GRANULARITIES: PerfGranularity[] = ["Day", "Week", "Month"]
