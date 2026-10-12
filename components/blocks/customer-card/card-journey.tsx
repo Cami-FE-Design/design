@@ -21,9 +21,9 @@
 //     Seeing them adjacent is the honest way to judge whether the
 //     token-as-credential trade is worth it.
 
-import { MOCK_CLIENTS } from "@/app/clients/mock"
 import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
 import { Avatar } from "@/components/ui/avatar"
+import { MOCK_CLIENTS } from "@/lib/clients/mock"
 import { buildCustomerCard } from "@/lib/customer-card/mock"
 import { getCustomerCardTheme, themeVars } from "@/lib/customer-card/theme"
 import { getPublicBusiness } from "@/lib/public-business"

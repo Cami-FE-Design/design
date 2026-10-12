@@ -273,8 +273,10 @@ export const MOCK_GROUPED: Record<string, Record<string, ReportRow[]>> = {
         pctNewClients: 29,
         pctReturningClients: 71,
       },
+      // Someone who takes bookings. This row was the owner, who books nobody
+      // (lib/team/staff.ts), so his 18 appointments could not have happened.
       {
-        location: "Maz Khan",
+        location: "Aya Hassan",
         appointments: 18,
         services: 21,
         pctRequested: 22,
@@ -1212,8 +1214,12 @@ export type PerfMetricRow = {
 
 export type PerfSection = { label: string; rows: PerfMetricRow[] }
 
-/** Column order for every PerfMetricRow.values array. */
-export const PERFORMANCE_SUMMARY_MEMBERS = ["Maz Khan", "Aziz Rahman", "Sara Park", "Beth Carter"]
+/**
+ * Column order for every PerfMetricRow.values array. People who perform
+ * services: the owner was the first column, credited with 54 services he could
+ * not have done, since he takes no bookings (lib/team/staff.ts).
+ */
+export const PERFORMANCE_SUMMARY_MEMBERS = ["Aya Hassan", "Aziz Rahman", "Sara Park", "Beth Carter"]
 
 export const PERFORMANCE_SUMMARY_SECTIONS: PerfSection[] = [
   {

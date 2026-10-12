@@ -6,7 +6,7 @@
 // the same name and different units is how a figure quietly loses its fils, so
 // the money one is named for what it does and kept next to the model it serves.
 
-import { formatDate } from "@/lib/format"
+import { formatAed, formatDate } from "@/lib/format"
 import type {
   CamiPayRail,
   Custodian,
@@ -32,6 +32,15 @@ export function formatMoney(minor: number): string {
     maximumFractionDigits: 2,
   })}`
   return minor < 0 ? `- ${body}` : body
+}
+
+/**
+ * `AED 1,464` · `- AED 12` — fils rounded to whole AED, for the surfaces whose
+ * design shows no fils (sales lists, appointment prices, client totals). Same
+ * sign rule as formatMoney.
+ */
+export function formatMoneyWhole(minor: number): string {
+  return formatAed(Math.round(minor / 100))
 }
 
 /** Direction, so a row can be read without parsing the sign (T5-2). */
@@ -232,21 +241,6 @@ export function confirmationNote(tx: MoneyTx): string | null {
 /* -------------------------------------------------------------------------- */
 /* Dates                                                                      */
 /* -------------------------------------------------------------------------- */
-
-/**
- * `2026-08-24` from a Date, read in LOCAL time.
- *
- * The ledger is keyed by day strings and the date picker hands back Date
- * objects. Going through UTC here would move a range by a day for anyone west
- * of Greenwich, which on a month boundary silently drops a day's takings out of
- * the period.
- */
-export function toDayIso(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
-}
 
 /** The inverse, also local. */
 export function fromDayIso(iso: string): Date {

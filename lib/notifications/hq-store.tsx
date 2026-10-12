@@ -13,6 +13,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
 import { type NotificationChannel, PLATFORM_DEFAULT_RATES } from "@/lib/notifications/types"
+import { readStored, removeStored, writeStoredJson } from "@/lib/storage"
 
 const STORAGE_KEY = "cami-hq-notification-rates-v1"
 
@@ -29,7 +30,7 @@ const HqNotificationsContext = createContext<HqNotificationsValue | null>(null)
 
 function readSaved(): HqRates | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = readStored(STORAGE_KEY)
     if (!raw) return null
     const saved = JSON.parse(raw) as Partial<HqRates>
     // Per-key merge, so a channel added after a save doesn't come back
@@ -53,22 +54,14 @@ export function HqNotificationsProvider({ children }: { children: React.ReactNod
   const value = useMemo<HqNotificationsValue>(() => {
     const persist = (next: HqRates) => {
       setRates(next)
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // Storage full/unavailable — state still updates for the session.
-      }
+      writeStoredJson(STORAGE_KEY, next)
     }
     return {
       rates,
       setRate: (channel, amount) => persist({ ...rates, [channel]: amount }),
       reset: () => {
         setRates(PLATFORM_DEFAULT_RATES)
-        try {
-          window.localStorage.removeItem(STORAGE_KEY)
-        } catch {
-          // ignore
-        }
+        removeStored(STORAGE_KEY)
       },
     }
   }, [rates])

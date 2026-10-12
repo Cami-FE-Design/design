@@ -9,6 +9,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
 import { findPublicBusinessByName, listPublicBusinesses } from "@/lib/public-business"
+import { readStored, removeStored, writeStored } from "@/lib/storage"
 
 const STORAGE_KEY = "cami-demo-business-name"
 // The business, not one of its branches. Was "Shampooch JVC", which named a
@@ -33,7 +34,7 @@ export function DemoBusinessProvider({ children }: { children: React.ReactNode }
   const [name, setNameState] = useState(DEFAULT_NAME)
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY)
+    const saved = readStored(STORAGE_KEY)
     if (saved) setNameState(saved)
   }, [])
 
@@ -43,11 +44,11 @@ export function DemoBusinessProvider({ children }: { children: React.ReactNode }
       setName: (next) => {
         const trimmed = next.trim() || DEFAULT_NAME
         setNameState(trimmed)
-        window.localStorage.setItem(STORAGE_KEY, trimmed)
+        writeStored(STORAGE_KEY, trimmed)
       },
       reset: () => {
         setNameState(DEFAULT_NAME)
-        window.localStorage.removeItem(STORAGE_KEY)
+        removeStored(STORAGE_KEY)
       },
     }),
     [name],

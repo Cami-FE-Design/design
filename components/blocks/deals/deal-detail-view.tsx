@@ -36,7 +36,7 @@ import { toast } from "sonner"
 import { DealScopePickerDialog } from "@/components/blocks/deals/deal-scope-picker-dialog"
 import { DealWizardDialog } from "@/components/blocks/deals/deal-wizard-dialog"
 import { groupByCity, scopeFromPicked } from "@/components/blocks/deals/deal-wizard-steps"
-import { formatMinor, STATUS_BADGE } from "@/components/blocks/deals/deals-table"
+import { STATUS_BADGE } from "@/components/blocks/deals/deals-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -51,6 +51,7 @@ import {
 import { saveDeal } from "@/lib/deals/store"
 import { isRunnable } from "@/lib/locations/promotion-scope"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoney } from "@/lib/money/format"
 
 const APPLY_ICON = { services: WrenchIcon, products: BoxIcon, packages: TagIcon } as const
 
@@ -63,7 +64,7 @@ function formatDay(iso: string) {
 }
 
 function formatAmount(value: number) {
-  return `AED ${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return formatMoney(Math.round(value * 100))
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
@@ -167,7 +168,7 @@ export function DealDetailView({
         <TabsContent value="overview">
           <div className="flex w-full flex-col gap-6 sm:w-146">
             <div className="grid grid-cols-2 gap-3">
-              <StatCard label="Total sales" value={formatMinor(deal.totalSalesMinor)} />
+              <StatCard label="Total sales" value={formatMoney(deal.totalSalesMinor)} />
               <StatCard label="Promotions applied" value={String(deal.redemptions)} />
               <StatCard label="Total clients" value={String(deal.totalClients)} />
             </div>

@@ -1,3 +1,4 @@
+import { VAT_RATE } from "@/lib/invoice/totals"
 // Customer-facing pay-page snapshot (PRO-396 / PRO-594 payment link landing).
 //
 // The operator finishes a sale in /sales/new-sale and sends a payment link over
@@ -7,10 +8,6 @@
 // Money model inherits PRO-395 exactly: prices are tax-inclusive, stored in fils
 // (minor units), VAT back-calculated. Tip is added on top of the tax-inclusive
 // total. Reuse the money helpers from the operator cart — do not fork them.
-
-import { formatAedDecimal, VAT_RATE } from "@/app/sales/new-sale/mock"
-
-export { formatAedDecimal, VAT_RATE }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,14 +106,16 @@ export const TIP_MOST_COMMON_MINOR = 1000
 
 export const MOCK_SALE: CheckoutSale = {
   id: "sale_2",
-  businessSlug: "sota",
+  // A pet groom, so Shampooch JVC — where /screens opens this page — not Sota,
+  // which is a hair studio.
+  businessSlug: "shampooch-jvc",
   status: "unpaid",
   hasPets: true,
   whenLabel: "Today, 5:00 PM",
   paidMinor: 0,
   payer: {
-    name: "Michelle You",
-    email: "michelle@ce-creates.com",
+    name: "Natalie Grant",
+    email: "natalie.grant@email.com",
   },
   savedCard: { brand: "mastercard", last4: "3884" },
   lines: [
@@ -125,7 +124,7 @@ export const MOCK_SALE: CheckoutSale = {
       kind: "service",
       name: "Full groom & nails - Full groom",
       petName: "Bella",
-      staff: "Lena",
+      staff: "Lena Petrov",
       qty: 1,
       priceMinor: 16_000,
       comboName: "Full groom & nails",
@@ -136,7 +135,7 @@ export const MOCK_SALE: CheckoutSale = {
       kind: "service",
       name: "Full groom & nails - Nail trim",
       petName: "Bella",
-      staff: "Lena",
+      staff: "Lena Petrov",
       qty: 1,
       priceMinor: 3_000,
       comboName: "Full groom & nails",

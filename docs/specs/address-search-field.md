@@ -1,6 +1,6 @@
 # Address search field
 
-The shared address input (`components/blocks/address-search-field.tsx`) used by
+The shared address input (`components/blocks/shared/address-search-field.tsx`) used by
 the billing address, a client's profile address, and the pet address on both the
 staff appointment sheet and the public booking flow.
 

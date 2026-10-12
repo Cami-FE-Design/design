@@ -4,15 +4,16 @@ import { ChevronDownIcon, PlusIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useState } from "react"
 import { toast } from "sonner"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { AppShell } from "@/components/blocks/shell/app-shell"
+import { AddTimeOffDialog } from "@/components/blocks/shifts/add-time-off-dialog"
 import {
   AddTeamMemberDialog,
   type AddTeamMemberValues,
-} from "@/components/blocks/add-team-member-dialog"
-import { AppShell } from "@/components/blocks/app-shell"
-import { AddTimeOffDialog } from "@/components/blocks/shifts/add-time-off-dialog"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
-import { TeamAccessDialog } from "@/components/blocks/team-access-dialog"
-import { TeamMemberDetailDialog } from "@/components/blocks/team-member-detail-dialog"
+} from "@/components/blocks/team/add-team-member-dialog"
+import { TeamAccessDialog } from "@/components/blocks/team/team-access-dialog"
+import { TeamMemberDetailDialog } from "@/components/blocks/team/team-member-detail-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -33,7 +34,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { type LocationGrants, useLocations } from "@/lib/locations/store"
-import { TEAM_MEMBERS, type TeamMember } from "@/lib/team/mock"
+import { resolveMemberId, TEAM_MEMBERS, type TeamMember } from "@/lib/team/mock"
 import { holdsAllLocations, roleById } from "@/lib/team/roles"
 import { RotaProvider, useRota } from "@/lib/team/shifts-store"
 import { cn } from "@/lib/utils"
@@ -115,7 +116,7 @@ function MemberTableRow({
   onRemove: (id: string) => void
 }) {
   const isPending = member.status === "pending"
-  const isLocked = member.id === "m_owner"
+  const isLocked = member.roleId === "owner"
 
   return (
     <TableRow
@@ -291,9 +292,14 @@ function TeamSettingsContent() {
   // "what she performs at Jumeirah" has to open that dialog, not a roster of
   // five people with no sign of which row carries the thing being reviewed.
   const params = useSearchParams()
-  const memberParam = params?.get("member") ?? null
-  const accessParam = params?.get("access") ?? null
-  const servicesParam = params?.get("services") ?? null
+  // Old `m_*` ids in links already sent still land on the right person.
+  const idParam = (key: string) => {
+    const value = params?.get(key)
+    return value ? resolveMemberId(value) : null
+  }
+  const memberParam = idParam("member")
+  const accessParam = idParam("access")
+  const servicesParam = idParam("services")
   const deepLink = `${memberParam ?? ""}|${accessParam ?? ""}|${servicesParam ?? ""}`
   const [viewMemberId, setViewMemberId] = useState<string | null>(memberParam)
   const [accessMemberId, setAccessMemberId] = useState<string | null>(accessParam)
@@ -405,18 +411,16 @@ function TeamSettingsContent() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Team members</h1>
-            <p className="text-sm text-muted-foreground">Manage who has access to {businessName}</p>
-          </div>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          title="Team members"
+          description={<>Manage who has access to {businessName}</>}
+          actions={
             <Button radius="full" onClick={() => setAddOpen(true)}>
               <PlusIcon />
               Add member
             </Button>
-          </div>
-        </div>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">
@@ -561,7 +565,7 @@ function TeamSettingsContent() {
           // Which branches they hold, so "Works at" names locations rather
           // than repeating the business back at the reader (R04).
           member={{ ...viewMember, locationGrants: viewMember.locationGrants }}
-          isLocked={viewMember.id === "m_owner"}
+          isLocked={viewMember.roleId === "owner"}
           onEditProfile={() => handleEditProfile(viewMember.id)}
           onEditRoles={() => handleEditRoles(viewMember.id)}
           onEditServices={() => handleEditServices(viewMember.id)}

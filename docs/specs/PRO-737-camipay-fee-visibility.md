@@ -11,7 +11,7 @@ Status: **UI shipped**, mock data only, no backend.
 
 Implementation:
 
-- `components/blocks/camipay-fee-breakdown.tsx`, the per-sale breakdown
+- `components/blocks/sales/camipay-fee-breakdown.tsx`, the per-sale breakdown
 - `components/blocks/payment-policy/camipay-rates-panel.tsx`, the settings view
 - `app/sales/sales-list/page.tsx`, hosts the breakdown in the sale detail
 - `lib/hq-camipay/store.tsx`, `computeFee` / `explainFee`

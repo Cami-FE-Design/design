@@ -116,7 +116,7 @@ the pairing. `name` is the only merchant-writable field on a terminal.
 Locations are a static two-entry demo list (`Shampooch JVC`, `Shampooch
 Marina`) held in the terminal pairing store. Two, not one, so the row's
 location line is visibly carrying information rather than repeating a constant.
-**Known gap:** this does not read from `components/blocks/location-form.tsx`'s
+**Known gap:** this does not read from `components/blocks/settings/location-form.tsx`'s
 `LOCATIONS`, and does not follow the demo business rename in
 `lib/demo-business.tsx`. Both should collapse into one locations source when
 that source exists.

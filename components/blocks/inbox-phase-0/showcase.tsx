@@ -9,7 +9,7 @@ import {
   type InboxConversation,
 } from "@/app/messages/inbox/phase-0/mock"
 
-import { ClientSummary } from "@/components/blocks/client-summary"
+import { ClientSummary } from "@/components/blocks/clients/client-summary"
 
 import { ClientPane, type PaneMode } from "./client-pane"
 import { Composer } from "./composer"

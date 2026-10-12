@@ -1,3 +1,4 @@
+import { formatAed } from "@/lib/format"
 // Payment policy configuration (Fresha parity — see docs/specs, Linear ticket
 // "Payment Policy Configuration"). Business-level only for v1: the
 // Business-vs-Location scope decision is blocked pending Malen/Maaz, and the
@@ -171,9 +172,7 @@ export const DEFAULT_PAYMENT_POLICY: PaymentPolicy = {
 }
 
 export function formatAmount(amount: AmountValue): string {
-  return amount.mode === "percent"
-    ? `${amount.value}%`
-    : `AED ${amount.value.toLocaleString("en-US")}`
+  return amount.mode === "percent" ? `${amount.value}%` : formatAed(amount.value)
 }
 
 /** Auto-generated client-facing example line, e.g. shown at booking and in Settings. */

@@ -266,7 +266,7 @@ Per-section Edit affordances on Detail (or Pet detail) open the relevant FullScr
 
 | Component | Use |
 |---|---|
-| [`<Table>`](../../components/ui/table.tsx), [`<TableToolbar>`](../../components/blocks/table-toolbar.tsx) | Directory list shell |
+| [`<Table>`](../../components/ui/table.tsx), [`<TableToolbar>`](../../components/blocks/shared/table-toolbar.tsx) | Directory list shell |
 | [`<SearchInput>`](../../components/ui/search-input.tsx) | Pill search |
 | [`<Sheet>`](../../components/ui/sheet.tsx) | Filters drawer + Detail drawer |
 | [`<DropdownMenu>`](../../components/ui/dropdown-menu.tsx) | Sort, Options, Actions |
@@ -274,13 +274,13 @@ Per-section Edit affordances on Detail (or Pet detail) open the relevant FullScr
 | [`<Accordion>`](../../components/ui/accordion.tsx) | Filter sections in drawer |
 | [`<Dialog>`](../../components/ui/dialog.tsx) | Confirmation modals |
 | `<Tabs>`, `<Card>`, `<Badge>`, `<Tooltip>`, `<Separator>`, Sonner toast | As-is |
-| [`<FullScreenEditDialog>`](../../components/blocks/full-screen-edit-dialog.tsx) | Add / Edit / Merge takeovers |
+| [`<FullScreenEditDialog>`](../../components/blocks/shared/full-screen-edit-dialog.tsx) | Add / Edit / Merge takeovers |
 
 ### Extend
 
 | Component | Why |
 |---|---|
-| [`<TableToolbar>`](../../components/blocks/table-toolbar.tsx) | Add a directory variant: search + filters-button left, sort dropdown right |
+| [`<TableToolbar>`](../../components/blocks/shared/table-toolbar.tsx) | Add a directory variant: search + filters-button left, sort dropdown right |
 | [`<DropdownMenu>`](../../components/ui/dropdown-menu.tsx) | Confirm sectioned items support (Export → Excel / CSV) |
 | [`<Sheet>`](../../components/ui/sheet.tsx) | Add **stacking** behavior (drawer-on-drawer for Pet detail) |
 

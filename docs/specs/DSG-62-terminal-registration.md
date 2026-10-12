@@ -283,7 +283,7 @@ behind a row menu, so a reviewer handed a bare URL would never reach them.
 4. **Session expiry** — is 24h fixed, or configurable per merchant?
 5. **Locations source** — `TERMINAL_LOCATIONS` is a static two-entry demo list
    in the pairing store. It does not read from
-   `components/blocks/location-form.tsx`'s `LOCATIONS`, nor follow the demo
+   `components/blocks/settings/location-form.tsx`'s `LOCATIONS`, nor follow the demo
    business rename in `lib/demo-business.tsx`. Should collapse into one
    locations source when that source exists.
 

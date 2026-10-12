@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 
-import { MessagesInboxScreen } from "@/components/blocks/messages-inbox"
+import { MessagesInboxScreen } from "@/components/blocks/messaging/messages-inbox"
 
 export const metadata: Metadata = {
   title: "Inbox · Messages",

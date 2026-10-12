@@ -19,13 +19,13 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
-
-import { AddressSearchField } from "@/components/blocks/address-search-field"
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
-import { ComboLineIcon } from "@/components/blocks/combo-badge"
-import { PetNotesFields } from "@/components/blocks/pet-notes-fields"
-import { PhoneField } from "@/components/blocks/phone-field"
+import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
+import { PetNotesFields } from "@/components/blocks/clients/pet-notes-fields"
+import { AddressSearchField } from "@/components/blocks/shared/address-search-field"
+import { InlineNotice } from "@/components/blocks/shared/inline-notice"
+import { PhoneField } from "@/components/blocks/shared/phone-field"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -70,10 +70,12 @@ import {
   serviceTotals,
   slotGroupsForLocation,
 } from "@/lib/booking"
+import { formatAed } from "@/lib/format"
+import { VAT_RATE, vatOf } from "@/lib/invoice/totals"
 import { slotsForStaff } from "@/lib/locations/cross-branch-availability"
 import type { WeekSchedule } from "@/lib/locations/hours"
 import { type PetNoteEntry, petNoteLabel, petNotesComplete } from "@/lib/pet-notes"
-import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
+import { formatDuration, type PublicBusiness } from "@/lib/public-business"
 import { ROSTER_LEAVES, ROSTER_SHIFTS } from "@/lib/team/shifts-mock"
 import { cn } from "@/lib/utils"
 
@@ -383,10 +385,7 @@ function PickupAndNotesFields({
 
           {pickup.useSavedAddress && savedAddress ? (
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-start gap-2 rounded-xl bg-cami-sage-2 p-3 text-sm text-cami-sage-12">
-                <MapPinIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
-                {savedAddress}
-              </div>
+              <InlineNotice icon={MapPinIcon}> {savedAddress}</InlineNotice>
               {/* Consumer wording for the same fact the staff sheet states: the
                   parent is the only one who can still turn a typed address into
                   a pinned one. Says "us", never "your groomer" — this flow also
@@ -921,8 +920,8 @@ function ConfirmStep({
     services.map((s) => s.id),
     catalog,
   )
-  const subtotal = Math.round(total / 1.05)
-  const vat = total - subtotal
+  const vat = vatOf(total, VAT_RATE)
+  const subtotal = total - vat
 
   return (
     <div className="flex flex-col gap-5">
@@ -961,11 +960,11 @@ function ConfirmStep({
             </div>
             <span className="flex shrink-0 flex-col items-end tabular-nums">
               <span className="text-sm font-medium text-foreground">
-                {formatPriceAed(line.priceAed)}
+                {formatAed(line.priceAed)}
               </span>
               {line.listPriceAed ? (
                 <span className="text-xs text-muted-foreground line-through">
-                  {formatPriceAed(line.listPriceAed)}
+                  {formatAed(line.listPriceAed)}
                 </span>
               ) : null}
             </span>
@@ -995,11 +994,11 @@ function ConfirmStep({
       <div className="flex flex-col gap-1">
         <div className="flex items-baseline justify-between py-1 text-sm">
           <span className="text-muted-foreground">Subtotal</span>
-          <span className="tabular-nums text-muted-foreground">{formatPriceAed(subtotal)}</span>
+          <span className="tabular-nums text-muted-foreground">{formatAed(subtotal)}</span>
         </div>
         <div className="flex items-baseline justify-between py-1 text-sm">
           <span className="text-muted-foreground">VAT (5%)</span>
-          <span className="tabular-nums text-muted-foreground">{formatPriceAed(vat)}</span>
+          <span className="tabular-nums text-muted-foreground">{formatAed(vat)}</span>
         </div>
         <div className="mt-1 flex items-baseline justify-between border-t border-border/60 pt-3">
           <div className="flex flex-col leading-tight">
@@ -1010,7 +1009,7 @@ function ConfirmStep({
             </span>
           </div>
           <span className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">
-            {formatPriceAed(total)}
+            {formatAed(total)}
           </span>
         </div>
       </div>
@@ -1141,11 +1140,11 @@ function DesktopSummary({
                 </div>
                 <span className="flex shrink-0 flex-col items-end tabular-nums">
                   <span className="font-medium text-foreground text-sm">
-                    {formatPriceAed(line.priceAed)}
+                    {formatAed(line.priceAed)}
                   </span>
                   {line.listPriceAed ? (
                     <span className="text-muted-foreground text-xs line-through">
-                      {formatPriceAed(line.listPriceAed)}
+                      {formatAed(line.listPriceAed)}
                     </span>
                   ) : null}
                 </span>
@@ -1169,7 +1168,7 @@ function DesktopSummary({
             </span>
           </div>
           <span className="font-semibold text-foreground text-lg tabular-nums">
-            {formatPriceAed(totals.priceAed)}
+            {formatAed(totals.priceAed)}
           </span>
         </div>
       ) : null}
@@ -1230,7 +1229,12 @@ export function BookingFlow({
   // Availability, resolved for this branch. R15 asks for "that Location's
   // offering and availability"; the offering was done and this is the rest.
   const days = bookingDaysForLocation(hours)
-  const staff = bookingStaffForLocation(locationId)
+  // The page's slug is the branch's, not the business's, so the business is
+  // read from its branches.
+  const staff = bookingStaffForLocation(
+    locationId,
+    business.branches.map((branch) => branch.id),
+  )
 
   const [stepIndex, setStepIndex] = useState(0)
   const [done, setDone] = useState(false)
@@ -1458,7 +1462,7 @@ export function BookingFlow({
               className="flex flex-col items-start leading-tight disabled:opacity-60"
             >
               <span className="font-semibold text-foreground text-lg tabular-nums">
-                {formatPriceAed(totals.priceAed)}
+                {formatAed(totals.priceAed)}
               </span>
               <span className="flex items-center gap-1 text-muted-foreground text-xs">
                 <ShoppingBagIcon className="size-3.5" />
@@ -1529,7 +1533,7 @@ export function BookingFlow({
                     </span>
                   </div>
                   <span className="shrink-0 text-sm font-medium tabular-nums text-foreground">
-                    {formatPriceAed(s.priceAed)}
+                    {formatAed(s.priceAed)}
                   </span>
                 </div>
               ))}
@@ -1537,7 +1541,7 @@ export function BookingFlow({
             <div className="mt-1 flex items-center justify-between border-t border-border/60 pt-3">
               <span className="text-base font-semibold text-foreground">Total</span>
               <span className="text-base font-semibold tabular-nums text-foreground">
-                {formatPriceAed(totals.priceAed)}
+                {formatAed(totals.priceAed)}
               </span>
             </div>
             <Button

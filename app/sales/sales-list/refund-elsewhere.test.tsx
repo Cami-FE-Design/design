@@ -13,8 +13,9 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
 
-import { MOCK_SALES, SaleDetailDialog } from "@/app/sales/sales-list/page"
+import { SaleDetailDialog } from "@/app/sales/sales-list/page"
 import { LocationsProvider } from "@/lib/locations/store"
+import { MOCK_SALES } from "@/lib/sales/mock"
 import { paymentsElsewhere, paymentsFor } from "@/lib/sales/payments"
 
 // Sale 18 is a JVC sale whose deposit was taken at Jumeirah. Refunding or

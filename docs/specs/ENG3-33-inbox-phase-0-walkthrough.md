@@ -163,7 +163,7 @@ the coverage table and the contract proposal.
 **F3 · Archived, and another location** [IX-C3 edge cases]
 <http://localhost:3000/messages/inbox/phase-0?c=unmatched-fatima>
 1. **Match to client** → `Ahmed` — shown as Archived, still matchable.
-2. Search `Rana` — "Client at Shampooch JLT", still matchable.
+2. Search `Rana` — "Client at Shampooch Jumeirah", still matchable.
 
 **F4 · Wrong client? Re-match** [IX-C3 row 4]
 <http://localhost:3000/messages/inbox/phase-0>

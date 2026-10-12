@@ -18,6 +18,7 @@
 // overflow, multi-page, overtender) are Cami-side states with no reference
 // document — every Cami state except Completed is unsampled (§0.5).
 
+import { VAT_RATE } from "./totals"
 import type { InvoiceDocument, InvoiceIssuer, InvoiceLine, InvoiceRecipient } from "./types"
 
 // ─── Issuers ──────────────────────────────────────────────────────────────────
@@ -145,7 +146,7 @@ const COMPLETED: InvoiceDocument = {
     },
   ],
   tipMinor: 0,
-  vatRate: 0.05,
+  vatRate: VAT_RATE,
   footerNote: FOOTER_NOTE,
 }
 
@@ -172,7 +173,7 @@ const PART_PAID: InvoiceDocument = {
   cartDiscount: { label: "Cart discount", amountMinor: 47500 },
   tenders: [{ id: "t1", method: "Card", amountMinor: 135000, at: new Date(2026, 6, 19, 14, 12) }],
   tipMinor: 0,
-  vatRate: 0.05,
+  vatRate: VAT_RATE,
   footerNote: FOOTER_NOTE,
 }
 
@@ -204,7 +205,7 @@ const UNPAID: InvoiceDocument = {
   cartDiscount: { label: "20% off · Promotion (Discount)", amountMinor: 5000 },
   tenders: [],
   tipMinor: 0,
-  vatRate: 0.05,
+  vatRate: VAT_RATE,
   footerNote: FOOTER_NOTE,
 }
 
@@ -249,7 +250,7 @@ const CREDIT_NOTE: InvoiceDocument = {
     },
   ],
   tipMinor: 0,
-  vatRate: 0.05,
+  vatRate: VAT_RATE,
   footerNote: FOOTER_NOTE,
 }
 
@@ -283,7 +284,7 @@ const VOIDED: InvoiceDocument = {
   ],
   tenders: [{ id: "t1", method: "Card", amountMinor: 125000, at: new Date(2026, 7, 13, 12, 37) }],
   tipMinor: 0,
-  vatRate: 0.05,
+  vatRate: VAT_RATE,
   footerNote: FOOTER_NOTE,
 }
 
@@ -368,7 +369,7 @@ const ZERO_VALUE: InvoiceDocument = {
   ],
   tenders: [],
   tipMinor: 0,
-  vatRate: 0.05,
+  vatRate: VAT_RATE,
   footerNote: FOOTER_NOTE,
 }
 
@@ -437,7 +438,7 @@ const ZERO_VALUE_WITH_TIP: InvoiceDocument = {
   // design and live Cami diverge — see the spec's open question.
   tenders: [{ id: "t1", method: "Cash", amountMinor: 500, at: new Date(2026, 7, 20, 19, 53) }],
   tipMinor: 500,
-  vatRate: 0.05,
+  vatRate: VAT_RATE,
   footerNote: FOOTER_NOTE,
 }
 
@@ -507,7 +508,7 @@ const MULTI_PAGE: InvoiceDocument = (() => {
     lines,
     tenders: [{ id: "t1", method: "Card", amountMinor: total, at: new Date(2026, 7, 19, 17, 30) }],
     tipMinor: 0,
-    vatRate: 0.05,
+    vatRate: VAT_RATE,
     footerNote: FOOTER_NOTE,
   }
 })()

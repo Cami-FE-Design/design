@@ -35,10 +35,9 @@
 import { ArrowUpRightIcon, BuildingIcon } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-
-import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
-import { LocationStatusBadge } from "@/components/blocks/location-status-badge"
 import { MoneyByLocationView } from "@/components/blocks/money/money-by-location"
+import { LocationStatusBadge } from "@/components/blocks/settings/location-status-badge"
+import { DesignRepoBar } from "@/components/blocks/shell/design-repo-bar"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import type { AdminBusiness } from "@/lib/admin-businesses"

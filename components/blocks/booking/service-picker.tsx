@@ -3,7 +3,7 @@
 import { CheckIcon, ListIcon, PlusIcon } from "lucide-react"
 import { useState } from "react"
 
-import { ComboBadge, comboServicesLabel } from "@/components/blocks/combo-badge"
+import { ComboBadge, comboServicesLabel } from "@/components/blocks/catalog/combo-badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { type CatalogService, SERVICE_CATEGORIES, type ServiceCategory } from "@/lib/booking"
-import { formatDuration, formatPriceAed } from "@/lib/public-business"
+import { formatAed } from "@/lib/format"
+import { formatDuration } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
 
 // Fresha-style service selection that scales past 30 services: category tabs
@@ -53,7 +54,7 @@ function ServiceCard({
       </div>
       <div className="mt-3 flex items-center justify-between gap-3">
         <span className="font-medium text-foreground text-sm tabular-nums">
-          {formatPriceAed(service.priceAed)}
+          {formatAed(service.priceAed)}
         </span>
         <button
           type="button"

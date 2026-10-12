@@ -16,14 +16,21 @@ import {
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useState } from "react"
-import { AppShell } from "@/components/blocks/app-shell"
-import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { ProductDetailDialog } from "@/components/blocks/product-detail-dialog"
-import { MOCK_PRODUCTS, type Product, ProductsTable } from "@/components/blocks/products-table"
-import { SelectBrandDialog } from "@/components/blocks/select-brand-dialog"
-import { SelectCategoryDialog } from "@/components/blocks/select-category-dialog"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+import {
+  SelectBrandDialog,
+  SelectCategoryDialog,
+} from "@/components/blocks/products/product-attribute-dialogs"
+import { ProductDetailDialog } from "@/components/blocks/products/product-detail-dialog"
+import {
+  MOCK_PRODUCTS,
+  type Product,
+  ProductsTable,
+} from "@/components/blocks/products/products-table"
+import { ConfirmDialog } from "@/components/blocks/shared/confirm-dialog"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -239,54 +246,51 @@ function ProductsIndex() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl leading-8 font-medium text-foreground">Products</h1>
-            <p className="text-sm text-muted-foreground">
-              Manage your product catalog and inventory
-            </p>
-          </div>
+        <PageHeader
+          title="Products"
+          description="Manage your product catalog and inventory"
+          actions={
+            <>
+              {/* Options dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" radius="full" size="sm">
+                    Options
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onSelect={() => setBrandDialogOpen(true)}>
+                    <PencilIcon className="size-4" />
+                    Manage my brands
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setCategoryDialogOpen(true)}>
+                    <TagIcon className="size-4" />
+                    Manage my categories
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/products/import">
+                      <ImportIcon className="size-4" />
+                      Import products
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <UploadIcon className="size-4" />
+                    Export products
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          <div className="flex items-center gap-2">
-            {/* Options dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full" size="sm">
-                  Options
-                  <ChevronDownIcon className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem onSelect={() => setBrandDialogOpen(true)}>
-                  <PencilIcon className="size-4" />
-                  Manage my brands
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setCategoryDialogOpen(true)}>
-                  <TagIcon className="size-4" />
-                  Manage my categories
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/products/import">
-                    <ImportIcon className="size-4" />
-                    Import products
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <UploadIcon className="size-4" />
-                  Export products
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Add product */}
-            <Button asChild radius="full">
-              <Link href="/products/new">
-                <PlusIcon className="size-4" />
-                Add product
-              </Link>
-            </Button>
-          </div>
-        </div>
+              {/* Add product */}
+              <Button asChild radius="full">
+                <Link href="/products/new">
+                  <PlusIcon className="size-4" />
+                  Add product
+                </Link>
+              </Button>
+            </>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

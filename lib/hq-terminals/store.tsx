@@ -23,6 +23,7 @@
 // default outside a provider so isolated surfaces (playground) still render.
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { readStoredJson, removeStored, writeStoredJson } from "@/lib/storage"
 
 const STORAGE_KEY = "cami-hq-terminals-v2"
 
@@ -366,15 +367,9 @@ export type HqTerminalsValue = HqTerminalsState & {
 const HqTerminalsContext = createContext<HqTerminalsValue | null>(null)
 
 function readStored(): HqTerminalsState | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as HqTerminalsState
-    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.terminals)) return null
-    return parsed
-  } catch {
-    return null
-  }
+  const parsed = readStoredJson(STORAGE_KEY) as HqTerminalsState
+  if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.terminals)) return null
+  return parsed
 }
 
 export function HqTerminalsProvider({ children }: { children: React.ReactNode }) {
@@ -390,11 +385,7 @@ export function HqTerminalsProvider({ children }: { children: React.ReactNode })
   const value = useMemo<HqTerminalsValue>(() => {
     function persist(next: HqTerminalsState) {
       setState(next)
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // ignore
-      }
+      writeStoredJson(STORAGE_KEY, next)
     }
 
     function patch(terminalId: string, patchTerminal: Partial<HqTerminal>) {
@@ -453,11 +444,7 @@ export function HqTerminalsProvider({ children }: { children: React.ReactNode })
       },
       reset: () => {
         setState(DEFAULT_HQ_TERMINALS_STATE)
-        try {
-          window.localStorage.removeItem(STORAGE_KEY)
-        } catch {
-          // ignore
-        }
+        removeStored(STORAGE_KEY)
       },
     }
   }, [state])

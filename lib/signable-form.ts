@@ -47,9 +47,9 @@ const BASE: Omit<SignableForm, "token" | "state"> = {
   formName: "Grooming consent form",
   businessName: "Shampooch",
   businessLogoUrl: LOGO,
-  recipientName: "Michelle You",
-  recipientEmail: "michelle.you@email.com",
-  recipientEmailMasked: "mi•••••@email.com",
+  recipientName: "Natalie Grant",
+  recipientEmail: "natalie.grant@email.com",
+  recipientEmailMasked: "na•••••@email.com",
   documentTitle: "Pet grooming consent & liability waiver",
   statements: GROOMING_STATEMENTS,
 }

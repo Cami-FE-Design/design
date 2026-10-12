@@ -9,10 +9,9 @@ import {
   UsersIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
-
-import { AppShell } from "@/components/blocks/app-shell"
+import { NewAppointmentSheet } from "@/components/blocks/appointments/new-appointment-sheet"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
-import { NewAppointmentSheet } from "@/components/blocks/new-appointment-sheet"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -35,7 +34,6 @@ import {
   monthGrid,
   PX_PER_MIN,
   sessionCountByDate,
-  staffName,
   WEEKDAY_LABELS,
 } from "@/lib/daycare-mock"
 import { cn } from "@/lib/utils"

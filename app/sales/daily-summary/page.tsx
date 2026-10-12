@@ -3,10 +3,10 @@
 import { ChevronDownIcon, FileSpreadsheetIcon, FileTextIcon, PlusIcon } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
-import { CartFlow } from "@/app/sales/new-sale/cart-flow"
-import { MOCK_SALES } from "@/app/sales/sales-list/page"
-import { AppShell } from "@/components/blocks/app-shell"
-import { DateSelector } from "@/components/blocks/date-selector"
+import { CartFlow } from "@/components/blocks/sales/new-sale/cart-flow"
+import { DateSelector } from "@/components/blocks/shared/date-selector"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -23,13 +23,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { toDayIso } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
-import {
-  type DailySummary,
-  dayIso,
-  latestTradingDay,
-  summarizeDay,
-} from "@/lib/sales/daily-summary"
+import { formatMoneyWhole } from "@/lib/money/format"
+import { type DailySummary, latestTradingDay, summarizeDay } from "@/lib/sales/daily-summary"
+import { MOCK_SALES } from "@/lib/sales/mock"
 import { cn } from "@/lib/utils"
 
 /**
@@ -50,14 +48,6 @@ const VISIBLE_LOCATIONS = 3
 // read one merged number, which is exactly the failure the PRD's first user
 // story names: "the roll-up shows a per-location breakdown side by side, not a
 // merged total. A single number destroys the job."
-
-function money(minor: number) {
-  const aed = Math.round(minor / 100)
-  if (aed < 0) return `- ${CURRENCY} ${Math.abs(aed).toLocaleString()}`
-  return `${CURRENCY} ${aed.toLocaleString()}`
-}
-
-const CURRENCY = "AED"
 
 // ─── Cards ────────────────────────────────────────────────────────────────────
 
@@ -108,7 +98,7 @@ function TransactionSummary({ summary }: { summary: DailySummary }) {
                   row.grossMinor < 0 ? "text-tomato-11" : "text-foreground",
                 )}
               >
-                {money(row.grossMinor)}
+                {formatMoneyWhole(row.grossMinor)}
               </TableCell>
             </TableRow>
           ))}
@@ -121,7 +111,7 @@ function TransactionSummary({ summary }: { summary: DailySummary }) {
               {summary.transactionTotal.refundQty}
             </TableCell>
             <TableCell className="text-right text-sm font-semibold tabular-nums">
-              {money(summary.transactionTotal.grossMinor)}
+              {formatMoneyWhole(summary.transactionTotal.grossMinor)}
             </TableCell>
           </TableRow>
           {/* Below the total and outside it. Confirmed against the built
@@ -144,7 +134,7 @@ function TransactionSummary({ summary }: { summary: DailySummary }) {
               {summary.giftCardsSold.refundQty}
             </TableCell>
             <TableCell className="text-right text-muted-foreground text-sm tabular-nums">
-              {money(summary.giftCardsSold.grossMinor)}
+              {formatMoneyWhole(summary.giftCardsSold.grossMinor)}
             </TableCell>
           </TableRow>
         </TableBody>
@@ -176,7 +166,7 @@ function CashMovementSummary({ summary }: { summary: DailySummary }) {
                   row.emphasis ? "font-semibold text-foreground" : "text-foreground",
                 )}
               >
-                {money(row.collectedMinor)}
+                {formatMoneyWhole(row.collectedMinor)}
               </TableCell>
               <TableCell
                 className={cn(
@@ -185,7 +175,7 @@ function CashMovementSummary({ summary }: { summary: DailySummary }) {
                   row.emphasis && "font-semibold",
                 )}
               >
-                {money(row.refundedMinor)}
+                {formatMoneyWhole(row.refundedMinor)}
               </TableCell>
             </TableRow>
           ))}
@@ -265,7 +255,7 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
                   {row.refundQty}
                 </TableCell>
                 <TableCell className="text-right text-foreground text-sm tabular-nums">
-                  {money(row.tipsMinor)}
+                  {formatMoneyWhole(row.tipsMinor)}
                 </TableCell>
                 <TableCell
                   className={cn(
@@ -273,7 +263,7 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
                     row.grossMinor < 0 ? "text-tomato-11" : "text-foreground",
                   )}
                 >
-                  {money(row.grossMinor)}
+                  {formatMoneyWhole(row.grossMinor)}
                 </TableCell>
               </TableRow>
             ))}
@@ -302,7 +292,7 @@ function ByLocationSummary({ summary }: { summary: DailySummary }) {
       <div className="flex items-center justify-between gap-3 border-border/60 border-t bg-muted/30 px-5 py-3">
         <span className="font-semibold text-foreground text-sm">Business total</span>
         <span className="font-semibold text-foreground text-sm tabular-nums">
-          {money(summary.rollUpMinor)}
+          {formatMoneyWhole(summary.rollUpMinor)}
         </span>
       </div>
 
@@ -359,53 +349,50 @@ function DailySummaryInner() {
   })
   const [cartOpen, setCartOpen] = useState(false)
 
-  const summary = useMemo(() => summarizeDay(MOCK_SALES, dayIso(date), allowed), [date, allowed])
+  const summary = useMemo(() => summarizeDay(MOCK_SALES, toDayIso(date), allowed), [date, allowed])
   const latest = useMemo(() => latestTradingDay(MOCK_SALES, allowed), [allowed])
   const today = new Date()
   const landedOnLastTradingDay =
-    latest != null && dayIso(date) === dayIso(latest) && dayIso(date) !== dayIso(today)
+    latest != null && toDayIso(date) === toDayIso(latest) && toDayIso(date) !== toDayIso(today)
 
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl leading-8 font-medium text-foreground">Daily sales</h1>
-            <p className="text-sm text-muted-foreground">
-              View, filter and export the transactions and cash movement for the day.
-            </p>
-          </div>
+        <PageHeader
+          title="Daily sales"
+          description="View, filter and export the transactions and cash movement for the day."
+          actions={
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" radius="full" size="sm">
+                    Export
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-40">
+                  <DropdownMenuItem>
+                    <FileTextIcon className="size-4" />
+                    PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileTextIcon className="size-4" />
+                    CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileSpreadsheetIcon className="size-4" />
+                    Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full" size="sm">
-                  Export
-                  <ChevronDownIcon className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem>
-                  <FileTextIcon className="size-4" />
-                  PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileTextIcon className="size-4" />
-                  CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileSpreadsheetIcon className="size-4" />
-                  Excel
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button radius="full" onClick={() => setCartOpen(true)}>
-              <PlusIcon className="size-4" />
-              Add new
-            </Button>
-          </div>
-        </div>
+              <Button radius="full" onClick={() => setCartOpen(true)}>
+                <PlusIcon className="size-4" />
+                Add new
+              </Button>
+            </>
+          }
+        />
       }
     >
       {/* The date picker stays put and the report scrolls under it — the same

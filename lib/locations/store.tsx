@@ -34,6 +34,8 @@ import { LOCATIONS, locationName, NINE_BRANCH_ESTATE } from "@/lib/locations/moc
 import { BUSINESS_TIMEZONE, normaliseOverride, type Timezone } from "@/lib/locations/timezone"
 import type { Location, LocationScope, LocationStatus } from "@/lib/locations/types"
 import { acceptsWrites } from "@/lib/locations/types"
+import { readStored, writeStored, writeStoredJson } from "@/lib/storage"
+import { slugify } from "@/lib/utils"
 
 /**
  * The fallback for a business with no branches yet to inherit from. Weekdays
@@ -191,15 +193,6 @@ export type NewLocationInput = {
   timezone: string
 }
 
-/** Kebab-case, and the branch's public URL, so a collision is a real conflict. */
-export function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-}
-
 /**
  * The demo business is a chain HQ has already switched on.
  *
@@ -244,7 +237,7 @@ function labelFor(granted: Location[], scoped: Location[], scope: LocationScope)
 
 function readStoredScope(): LocationScope | null {
   try {
-    const raw = window.localStorage.getItem(SCOPE_KEY)
+    const raw = readStored(SCOPE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as LocationScope
     if (parsed?.kind === "all") return parsed
@@ -271,7 +264,7 @@ const NO_EDITS: StoredEdits = { overrides: {}, created: [] }
 
 function readStoredEdits(): StoredEdits {
   try {
-    const raw = window.localStorage.getItem(EDITS_KEY)
+    const raw = readStored(EDITS_KEY)
     if (!raw) return NO_EDITS
     const parsed = JSON.parse(raw) as Partial<StoredEdits>
     return {
@@ -306,7 +299,7 @@ function scopeWithin(estate: ReadonlyArray<Location>, scope: LocationScope): Loc
 
 function readStoredGrants(): LocationGrants | null {
   try {
-    const raw = window.localStorage.getItem(GRANTS_KEY)
+    const raw = readStored(GRANTS_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as LocationGrants
     if (parsed === "all") return parsed
@@ -388,7 +381,7 @@ export function LocationsProvider({
       // it has to be asked for, never arrived at by a business switch.
       if (kept === "all" || kept.length > 0) setGrantsState(kept)
     }
-    const savedZone = window.localStorage.getItem(BUSINESS_TIMEZONE_KEY)
+    const savedZone = readStored(BUSINESS_TIMEZONE_KEY)
     if (savedZone) setBusinessTimezoneState(savedZone)
     const savedScope = readStoredScope()
     if (savedScope) {
@@ -406,7 +399,7 @@ export function LocationsProvider({
   const writeEdits = useCallback(
     (mutate: (edits: StoredEdits) => StoredEdits) => {
       if (!persist) return
-      window.localStorage.setItem(EDITS_KEY, JSON.stringify(mutate(readStoredEdits())))
+      writeStoredJson(EDITS_KEY, mutate(readStoredEdits()))
     },
     [persist],
   )
@@ -515,7 +508,7 @@ export function LocationsProvider({
   const setGrants = useCallback(
     (next: LocationGrants) => {
       setGrantsState(next)
-      if (persist) window.localStorage.setItem(GRANTS_KEY, JSON.stringify(next))
+      if (persist) writeStoredJson(GRANTS_KEY, next)
     },
     [persist],
   )
@@ -523,7 +516,7 @@ export function LocationsProvider({
   const setBusinessTimezone = useCallback(
     (zone: Timezone) => {
       setBusinessTimezoneState(zone)
-      if (persist) window.localStorage.setItem(BUSINESS_TIMEZONE_KEY, zone)
+      if (persist) writeStored(BUSINESS_TIMEZONE_KEY, zone)
     },
     [persist],
   )
@@ -531,7 +524,7 @@ export function LocationsProvider({
   const setScope = useCallback(
     (next: LocationScope) => {
       setScopeState(next)
-      if (persist) window.localStorage.setItem(SCOPE_KEY, JSON.stringify(next))
+      if (persist) writeStoredJson(SCOPE_KEY, next)
     },
     [persist],
   )

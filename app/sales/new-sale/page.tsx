@@ -1,5 +1,5 @@
 import { Suspense } from "react"
-import { CartFlow } from "./cart-flow"
+import { CartFlow } from "@/components/blocks/sales/new-sale/cart-flow"
 
 // PRO-395 — "Add to cart" point-of-sale flow. Full-screen takeover (no app
 // shell), deep-linked from /screens and the sales list "New sale" action.

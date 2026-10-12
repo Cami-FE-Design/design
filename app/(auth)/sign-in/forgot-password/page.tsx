@@ -2,8 +2,8 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { AuthCard } from "@/components/blocks/auth-card"
-import { AuthLayout } from "@/components/blocks/auth-layout"
+import { AuthCard } from "@/components/blocks/auth/auth-card"
+import { AuthLayout } from "@/components/blocks/auth/auth-layout"
 import { Button } from "@/components/ui/button"
 
 const firstName = "Maz"

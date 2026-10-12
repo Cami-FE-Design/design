@@ -7,8 +7,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { AuthCard } from "@/components/blocks/auth-card"
-import { HqAuthLayout } from "@/components/blocks/hq-auth-layout"
+import { AuthCard } from "@/components/blocks/auth/auth-card"
+import { HqAuthLayout } from "@/components/blocks/auth/hq-auth-layout"
 import { Button } from "@/components/ui/button"
 import {
   Form,

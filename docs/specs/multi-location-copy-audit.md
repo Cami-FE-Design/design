@@ -67,7 +67,7 @@ foundations doc instead. Most already are.
 
 ## Settings
 
-`LF` = `components/blocks/location-form.tsx`
+`LF` = `components/blocks/settings/location-form.tsx`
 
 | Where | Now | Verdict | Proposed |
 | --- | --- | --- | --- |
@@ -113,7 +113,7 @@ the Edit team member subtitle, the business time zone helper, the role descripti
 
 ## Appointments and team
 
-`WTL` = `components/blocks/write-target-location.tsx`, shared with sales, stock and products.
+`WTL` = `components/blocks/settings/write-target-location.tsx`, shared with sales, stock and products.
 
 | Where | Now | Verdict | Proposed |
 | --- | --- | --- | --- |

@@ -10,9 +10,9 @@ import {
   SALON_TIME_ZONE,
   searchDirectory,
 } from "@/app/messages/inbox/phase-0/mock"
-import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
-import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
-import { ClientSummary } from "@/components/blocks/client-summary"
+import { ClientDetailDialog } from "@/components/blocks/clients/client-detail-dialog"
+import { ClientEditSheet } from "@/components/blocks/clients/client-edit-sheet"
+import { ClientSummary } from "@/components/blocks/clients/client-summary"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"

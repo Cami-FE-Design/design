@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
-import { AccessDeniedCard } from "@/components/blocks/access-denied-card"
+import { AccessDeniedCard } from "@/components/blocks/admin/access-denied-card"
 
 function AccessDeniedInner() {
   const router = useRouter()

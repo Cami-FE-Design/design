@@ -20,8 +20,8 @@
 // shows up here with no sync step, which is the point of demoing them together.
 
 import { CreditCardIcon, InfoIcon, LinkIcon, type LucideIcon } from "lucide-react"
-import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
-import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { SettingsPanel } from "@/components/blocks/settings/settings-panel"
+import { NotionBreadcrumb } from "@/components/blocks/shell/notion-breadcrumb"
 import { Badge } from "@/components/ui/badge"
 import { useDemoBusiness } from "@/lib/demo-business"
 import {

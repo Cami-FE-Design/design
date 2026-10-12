@@ -1,6 +1,6 @@
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react"
 
-import { AppShell } from "@/components/blocks/app-shell"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Button } from "@/components/ui/button"
 import {
   colorClasses,

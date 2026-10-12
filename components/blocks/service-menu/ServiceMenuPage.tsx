@@ -24,7 +24,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
-import { EmptyState } from "@/components/blocks/empty-state"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import {
   Button,
   DropdownMenu,

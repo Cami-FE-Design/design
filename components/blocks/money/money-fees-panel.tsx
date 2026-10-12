@@ -10,9 +10,9 @@
 // Same view, same derivation, whichever way in they came.
 
 import { MoneyFeesView } from "@/components/blocks/money/money-fees"
-import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
-import type { BreadcrumbRoot } from "@/components/blocks/sales-settings"
-import { SettingsPanel } from "@/components/blocks/settings-panel"
+import type { BreadcrumbRoot } from "@/components/blocks/settings/sales-settings"
+import { SettingsPanel } from "@/components/blocks/settings/settings-panel"
+import { NotionBreadcrumb } from "@/components/blocks/shell/notion-breadcrumb"
 import { CamiPayProvider } from "@/lib/hq-camipay/store"
 import type { TerminalFeeModel } from "@/lib/money/fees"
 import { MONEY_TXS } from "@/lib/money/mock"

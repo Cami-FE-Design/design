@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import { Manrope } from "next/font/google"
-import { BusinessLocationsProvider } from "@/components/blocks/business-locations-provider"
+import { BusinessLocationsProvider } from "@/components/blocks/shell/business-locations-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"

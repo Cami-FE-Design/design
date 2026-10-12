@@ -6,6 +6,7 @@
 // tests) still render. No backend — mutations are local and survive reload.
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { readStored, removeStored, writeStoredJson } from "@/lib/storage"
 import { DEFAULT_PAYMENT_POLICY, type PaymentPolicy, type ServiceOverride } from "./types"
 
 // v2: bumped so stale demo data from the pre-release toggle (which persisted
@@ -29,7 +30,7 @@ const PaymentPolicyContext = createContext<PaymentPolicyValue | null>(null)
 
 function readSaved(): PaymentPolicy | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = readStored(STORAGE_KEY)
     if (!raw) return null
     // Merge over defaults so newly added fields get sane values after a deploy.
     return { ...DEFAULT_PAYMENT_POLICY, ...(JSON.parse(raw) as Partial<PaymentPolicy>) }
@@ -51,11 +52,7 @@ export function PaymentPolicyProvider({ children }: { children: React.ReactNode 
   const value = useMemo<PaymentPolicyValue>(() => {
     const persist = (next: PaymentPolicy) => {
       setPolicyState(next)
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // Storage full/unavailable — state still updates for the session.
-      }
+      writeStoredJson(STORAGE_KEY, next)
     }
 
     return {
@@ -76,11 +73,7 @@ export function PaymentPolicyProvider({ children }: { children: React.ReactNode 
       },
       reset: () => {
         setPolicyState(DEFAULT_PAYMENT_POLICY)
-        try {
-          window.localStorage.removeItem(STORAGE_KEY)
-        } catch {
-          // ignore
-        }
+        removeStored(STORAGE_KEY)
       },
     }
   }, [policy])

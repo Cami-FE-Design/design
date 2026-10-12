@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { AppShell } from "@/components/blocks/app-shell"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 
 export const metadata: Metadata = {
   title: "Shell demo",

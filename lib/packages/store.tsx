@@ -26,6 +26,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import type { Package } from "@/lib/packages/catalog"
 import { PACKAGES } from "@/lib/packages/mock"
+import { readStoredJson, removeStored, writeStoredJson } from "@/lib/storage"
 
 const STORAGE_KEY = "cami.packages.v1"
 
@@ -44,14 +45,8 @@ type PackagesValue = {
 const PackagesContext = createContext<PackagesValue | null>(null)
 
 function readStored(): Package[] | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Package[]
-    return Array.isArray(parsed) ? parsed : null
-  } catch {
-    return null
-  }
+  const parsed = readStoredJson(STORAGE_KEY) as Package[]
+  return Array.isArray(parsed) ? parsed : null
 }
 
 function today(): string {
@@ -91,7 +86,7 @@ export function PackagesProvider({
     (mutate: (current: Package[]) => Package[]) => {
       setPackages((current) => {
         const next = mutate(current)
-        if (persist) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+        if (persist) writeStoredJson(STORAGE_KEY, next)
         return next
       })
       setDirty(true)
@@ -121,7 +116,7 @@ export function PackagesProvider({
       },
       remove: (id) => write((current) => current.filter((p) => p.id !== id)),
       reset: () => {
-        if (persist) window.localStorage.removeItem(STORAGE_KEY)
+        if (persist) removeStored(STORAGE_KEY)
         setPackages(PACKAGES)
         setDirty(false)
       },

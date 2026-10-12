@@ -1,0 +1,658 @@
+"use client"
+
+import {
+  ArrowLeftIcon,
+  CalendarClockIcon,
+  ClipboardCheckIcon,
+  CreditCardIcon,
+  GiftIcon,
+  type LucideIcon,
+  PackageIcon,
+  PlusIcon,
+  SearchXIcon,
+} from "lucide-react"
+import { useMemo, useState } from "react"
+import { ComboBadge, comboServicesLabel } from "@/components/blocks/catalog/combo-badge"
+import { SessionsRemainingChip } from "@/components/blocks/sales/sessions-remaining-chip"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { Button } from "@/components/ui/button"
+import { SearchInput } from "@/components/ui/search-input"
+import { formatDuration } from "@/lib/format"
+import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
+import type { ServiceCoverage } from "@/lib/packages/allocate"
+import type {
+  AppointmentItem,
+  GiftCardDraft,
+  PickerView,
+  ProductItem,
+  ServiceItem,
+} from "@/lib/sales/cart-types"
+import {
+  APPOINTMENTS,
+  GIFT_CARD_PRESETS_MINOR,
+  PRODUCTS,
+  SERVICE_CATEGORIES,
+  SERVICES,
+} from "@/lib/sales/new-sale-mock"
+import { useBranchOfferingNote } from "@/lib/service-catalog/use-branch-offering-note"
+import { cn } from "@/lib/utils"
+import { AppointmentSubject } from "./appointment-subject"
+import { GiftCardDialog, newGiftCardDraft } from "./gift-card-dialog"
+
+type ItemPickerProps = {
+  /**
+   * The services on offer. The cart passes its own list — this demo catalog
+   * plus any combo created on the service menu — so a combo built a minute ago
+   * is sellable; `SERVICES` is the fallback for standalone mounts.
+   */
+  services?: ServiceItem[]
+  /**
+   * Catalog id → a session still free to pay for it.
+   *
+   * Built from the allocation's live capacities, so a package the cart has
+   * already spent is absent rather than showing the count it started with —
+   * which is the difference between "you can still use this" and "you could
+   * have".
+   */
+  availableCoverage?: ReadonlyMap<string, ServiceCoverage>
+  onAddService: (service: ServiceItem) => void
+  onAddProduct: (product: ProductItem) => void
+  onAddAppointment: (appt: AppointmentItem) => void
+  onAddGiftCard: (draft: GiftCardDraft) => void
+  /** Appointment ids already in the cart — shown as "Added", not re-addable. */
+  addedApptIds: Set<string>
+  /** The branch this sale is landing on, once it has been named (R11). */
+  locationId?: string | null
+}
+
+const ROOT_TILES: {
+  view: PickerView | null
+  label: string
+  icon: LucideIcon
+  disabled?: boolean
+}[] = [
+  { view: "appointments", label: "Appointments", icon: CalendarClockIcon },
+  { view: "services", label: "Services", icon: ClipboardCheckIcon },
+  { view: "products", label: "Products", icon: PackageIcon },
+  { view: null, label: "Memberships", icon: CreditCardIcon, disabled: true },
+  { view: "gift-cards", label: "Gift cards", icon: GiftIcon },
+]
+
+export function ItemPicker({
+  services = SERVICES,
+  locationId,
+  availableCoverage,
+  onAddService,
+  onAddProduct,
+  onAddAppointment,
+  onAddGiftCard,
+  addedApptIds,
+}: ItemPickerProps) {
+  const [view, setView] = useState<PickerView>("root")
+  const [rootQuery, setRootQuery] = useState("")
+
+  const searching = view === "root" && rootQuery.trim().length > 0
+
+  if (view === "services") {
+    return (
+      <ServicesView
+        services={services}
+        onBack={() => setView("root")}
+        onAdd={onAddService}
+        locationId={locationId}
+        availableCoverage={availableCoverage}
+      />
+    )
+  }
+  if (view === "products") {
+    return <ProductsView onBack={() => setView("root")} onAdd={onAddProduct} />
+  }
+  if (view === "gift-cards") {
+    return <GiftCardsView onBack={() => setView("root")} onAdd={onAddGiftCard} />
+  }
+  if (view === "appointments") {
+    return (
+      <AppointmentsView
+        onBack={() => setView("root")}
+        // Snapshotting an appointment returns to the cart home (one appointment per cart).
+        onAdd={(appt) => {
+          onAddAppointment(appt)
+          setView("root")
+        }}
+        addedApptIds={addedApptIds}
+      />
+    )
+  }
+
+  // Root: global search + category tiles (or aggregated search results).
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="font-heading text-2xl font-semibold leading-8 text-foreground">
+          Add to cart
+        </h1>
+      </div>
+
+      <SearchInput
+        size="lg"
+        placeholder="Search"
+        onValueChange={setRootQuery}
+        aria-label="Search services and products"
+      />
+
+      {searching ? (
+        <GlobalSearchResults
+          query={rootQuery.trim()}
+          catalog={services}
+          onAddService={onAddService}
+          onAddProduct={onAddProduct}
+        />
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {ROOT_TILES.map((tile) => (
+            <CategoryTile
+              key={tile.label}
+              icon={tile.icon}
+              label={tile.label}
+              disabled={tile.disabled}
+              onClick={tile.view ? () => setView(tile.view as PickerView) : undefined}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Root category tile ───────────────────────────────────────────────────────
+
+function CategoryTile({
+  icon: Icon,
+  label,
+  disabled,
+  onClick,
+}: {
+  icon: LucideIcon
+  label: string
+  disabled?: boolean
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={cn(
+        "flex flex-col gap-6 rounded-2xl border border-border bg-card p-4 text-left transition-colors",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/40",
+      )}
+    >
+      <Icon className="size-5 stroke-[1.5] text-foreground" />
+      <span className="text-base font-medium text-foreground">{label}</span>
+    </button>
+  )
+}
+
+// ─── Drilldown header ─────────────────────────────────────────────────────────
+
+function DrilldownHeader({ onBack }: { onBack: () => void }) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      radius="full"
+      className="w-fit gap-1.5"
+      onClick={onBack}
+    >
+      <ArrowLeftIcon className="size-4" />
+      Back
+    </Button>
+  )
+}
+
+// ─── Services drilldown ───────────────────────────────────────────────────────
+
+function ServicesView({
+  services,
+  onBack,
+  onAdd,
+  locationId,
+  availableCoverage,
+}: {
+  services: ServiceItem[]
+  onBack: () => void
+  onAdd: (service: ServiceItem) => void
+  locationId?: string | null
+  availableCoverage?: ReadonlyMap<string, ServiceCoverage>
+}) {
+  const [query, setQuery] = useState("")
+  const filtered = useMemo(() => filterServices(query, services), [query, services])
+  const offeringNote = useBranchOfferingNote(locationId)
+
+  return (
+    <div className="flex flex-col gap-5">
+      <DrilldownHeader onBack={onBack} />
+      <SearchInput size="lg" placeholder="Search services" onValueChange={setQuery} autoFocus />
+      {filtered.length === 0 ? (
+        <NoResults query={query} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {filtered.map((service) => (
+            <ServiceRow
+              key={service.id}
+              service={service}
+              onAdd={() => onAdd(service)}
+              note={offeringNote(service.id)}
+              coverage={availableCoverage?.get(service.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ServiceRow({
+  service,
+  onAdd,
+  note,
+  coverage,
+}: {
+  service: ServiceItem
+  onAdd: () => void
+  /** Set when this branch does not run the service — said, never hidden. */
+  note?: string | null
+  /**
+   * A session still free to pay for this one.
+   *
+   * The built product's picker carries the same chip, and it is what turns the
+   * coverage from something the operator discovers after adding a line into
+   * something they can see before. The count is what is LEFT to spend —
+   * `availableCoveredMap` is built from the allocation's live capacities, so a
+   * package the cart has already emptied is simply absent here.
+   */
+  coverage?: ServiceCoverage
+}) {
+  const accent =
+    SERVICE_CATEGORIES.find((c) => c.id === service.categoryId)?.accent ?? "bg-cami-violet-9"
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      className="flex cursor-pointer items-center justify-between gap-3 overflow-hidden rounded-2xl border border-border bg-card pr-4 text-left transition-colors hover:bg-muted/40"
+    >
+      <div className="flex min-w-0 items-stretch gap-3">
+        <span className={cn("w-1 shrink-0 self-stretch", accent)} />
+        <div className="flex min-w-0 flex-col py-3">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-sm font-medium text-foreground">{service.name}</span>
+            {service.isCombo ? <ComboBadge size="sm" /> : null}
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {formatDuration(service.durationMin)}
+            {service.componentNames?.length
+              ? ` · ${comboServicesLabel(service.componentNames.length)}`
+              : ""}
+          </span>
+          {/* Still pickable. Reception is the person who can say "not here,
+              but Jumeirah does it", and a disabled row invites a second try
+              rather than answering it (KC1.5). */}
+          {note ? <span className="mt-1 text-xs text-cami-yellow-11">{note}</span> : null}
+          {coverage ? (
+            <SessionsRemainingChip
+              colour={coverage.colour}
+              sessionsRemaining={coverage.sessionsRemaining}
+              sessionsTotal={coverage.sessionsTotal}
+            />
+          ) : null}
+        </div>
+      </div>
+      <span className="shrink-0 text-sm font-medium text-foreground">
+        {formatMoneyWhole(service.priceMinor)}
+      </span>
+    </button>
+  )
+}
+
+// ─── Products drilldown ───────────────────────────────────────────────────────
+
+function ProductsView({
+  onBack,
+  onAdd,
+}: {
+  onBack: () => void
+  onAdd: (product: ProductItem) => void
+}) {
+  const [query, setQuery] = useState("")
+  const filtered = useMemo(() => filterProducts(query), [query])
+
+  return (
+    <div className="flex flex-col gap-5">
+      <DrilldownHeader onBack={onBack} />
+      <SearchInput size="lg" placeholder="Search products" onValueChange={setQuery} autoFocus />
+      {filtered.length === 0 ? (
+        <NoResults query={query} />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {filtered.map((product) => (
+            <ProductRow key={product.id} product={product} onAdd={() => onAdd(product)} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ProductRow({ product, onAdd }: { product: ProductItem; onAdd: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/40"
+    >
+      <div className="flex min-w-0 flex-col">
+        <span className="truncate text-sm font-medium text-foreground">{product.name}</span>
+        {product.size ? (
+          <span className="text-xs text-muted-foreground">{product.size}</span>
+        ) : null}
+      </div>
+      <span className="shrink-0 text-sm font-medium text-foreground">
+        {formatMoneyWhole(product.priceMinor)}
+      </span>
+    </button>
+  )
+}
+
+// ─── Gift cards drilldown ─────────────────────────────────────────────────────
+
+function GiftCardsView({
+  onBack,
+  onAdd,
+}: {
+  onBack: () => void
+  onAdd: (draft: GiftCardDraft) => void
+}) {
+  // The draft being configured in the dialog; null when the dialog is closed.
+  const [draft, setDraft] = useState<GiftCardDraft | null>(null)
+
+  return (
+    <div className="flex flex-col gap-5">
+      <DrilldownHeader onBack={onBack} />
+      <h1 className="font-heading text-2xl font-semibold leading-8 text-foreground">Gift cards</h1>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {GIFT_CARD_PRESETS_MINOR.map((valueMinor) => (
+          <GiftCardTile
+            key={valueMinor}
+            title="Gift card"
+            subtitle={formatMoneyWhole(valueMinor)}
+            onClick={() => setDraft(newGiftCardDraft(valueMinor))}
+          />
+        ))}
+        <GiftCardTile
+          title="Gift card"
+          subtitle="Custom amount"
+          custom
+          onClick={() => setDraft(newGiftCardDraft(0))}
+        />
+      </div>
+
+      {draft ? (
+        <GiftCardDialog
+          mode="add"
+          initial={draft}
+          open
+          onOpenChange={(next) => {
+            if (!next) setDraft(null)
+          }}
+          onApply={onAdd}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function GiftCardTile({
+  title,
+  subtitle,
+  custom,
+  onClick,
+}: {
+  title: string
+  subtitle: string
+  custom?: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex cursor-pointer items-stretch gap-4 overflow-hidden rounded-2xl border border-border bg-card text-left transition-colors hover:bg-muted/40"
+    >
+      <span className="flex w-16 shrink-0 items-center justify-center self-stretch bg-muted/50 text-cami-violet-9">
+        {custom ? (
+          <PlusIcon className="size-6 stroke-[1.5]" />
+        ) : (
+          <GiftIcon className="size-6 stroke-[1.5]" />
+        )}
+      </span>
+      <span className="flex min-w-0 flex-col justify-center py-4">
+        <span className="text-base font-medium text-foreground">{title}</span>
+        <span className="text-sm text-muted-foreground">{subtitle}</span>
+      </span>
+    </button>
+  )
+}
+
+// ─── Appointments drilldown ───────────────────────────────────────────────────
+
+function AppointmentsView({
+  onBack,
+  onAdd,
+  addedApptIds,
+}: {
+  onBack: () => void
+  onAdd: (appt: AppointmentItem) => void
+  addedApptIds: Set<string>
+}) {
+  const [query, setQuery] = useState("")
+  const { granted } = useLocations()
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    // Bounded by the estate before anything else (R18). This listed every
+    // seeded appointment whatever business you were signed into, so a Purr
+    // Palace sale offered Shampooch's bookings — by name, on screen.
+    const mine = APPOINTMENTS.filter(
+      (a) => !a.locationId || granted.some((l) => l.id === a.locationId),
+    )
+    const matched = q ? mine.filter((a) => a.clientName.toLowerCase().includes(q)) : mine
+    // Chronological by start time, earliest first.
+    return [...matched].sort((a, b) => startMinutes(a.start) - startMinutes(b.start))
+  }, [query, granted])
+
+  return (
+    <div className="flex flex-col gap-5">
+      <DrilldownHeader onBack={onBack} />
+      <SearchInput size="lg" placeholder="Search appointments" onValueChange={setQuery} autoFocus />
+      {filtered.length === 0 ? (
+        <NoResults query={query} />
+      ) : (
+        <div className="flex flex-col gap-3">
+          {filtered.map((appt) => (
+            <AppointmentCard
+              key={appt.id}
+              appt={appt}
+              added={addedApptIds.has(appt.id)}
+              onAdd={() => onAdd(appt)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AppointmentCard({
+  appt,
+  added,
+  onAdd,
+}: {
+  appt: AppointmentItem
+  added: boolean
+  onAdd: () => void
+}) {
+  const { locationName, isMultiLocation } = useLocations()
+  return (
+    <button
+      type="button"
+      onClick={onAdd}
+      disabled={added}
+      className={cn(
+        "flex flex-col gap-3 rounded-2xl border border-border/60 bg-card p-4 text-left transition-colors",
+        added
+          ? "cursor-not-allowed opacity-70 ring-1 ring-cami-violet-7"
+          : "cursor-pointer hover:bg-muted/40",
+      )}
+    >
+      {/* Header — time · location, subject row, and status badge */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-2">
+          <div className="flex min-w-0 items-center text-sm">
+            <span className="font-semibold text-foreground">{appt.start}</span>
+            {/* Resolved from the estate, so a branch renamed in Settings is
+                renamed here too — and a single-branch business shows no branch
+                at all, because there is nothing to tell apart (DW1.2). */}
+            {appt.locationId && isMultiLocation ? (
+              <span className="truncate text-muted-foreground">
+                {" "}
+                · {locationName(appt.locationId)}
+              </span>
+            ) : null}
+          </div>
+          <AppointmentSubject appt={appt} />
+        </div>
+        {added ? <AddedBadge /> : <StatusBadge label={appt.status} />}
+      </div>
+
+      {/* Service lines — name · staff · duration, price right */}
+      <div className="flex flex-col gap-2">
+        {appt.lines.map((line) => (
+          <div key={line.serviceId} className="flex items-start justify-between gap-3 text-sm">
+            <span className="min-w-0 truncate">
+              <span className="text-foreground">{line.name}</span>
+              <span className="text-muted-foreground">
+                {" "}
+                · {line.staffName} · {formatDuration(line.durationMin)}
+              </span>
+            </span>
+            <span className="shrink-0 font-medium text-foreground tabular-nums">
+              {formatMoneyWhole(line.priceMinor)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </button>
+  )
+}
+
+function StatusBadge({ label }: { label?: string }) {
+  if (!label) return null
+  return (
+    <span className="shrink-0 rounded-lg bg-blue-4 px-1.5 py-0.5 font-medium text-[11px] text-blue-12">
+      {label}
+    </span>
+  )
+}
+
+function AddedBadge() {
+  return (
+    <span className="shrink-0 rounded-lg bg-cami-violet-3 px-1.5 py-0.5 font-medium text-[11px] text-cami-violet-11">
+      Added
+    </span>
+  )
+}
+
+// ─── Global search results (aggregate services + products) ────────────────────
+
+function GlobalSearchResults({
+  query,
+  catalog,
+  onAddService,
+  onAddProduct,
+}: {
+  query: string
+  catalog: ServiceItem[]
+  onAddService: (service: ServiceItem) => void
+  onAddProduct: (product: ProductItem) => void
+}) {
+  const services = useMemo(() => filterServices(query, catalog), [query, catalog])
+  const products = useMemo(() => filterProducts(query), [query])
+
+  if (services.length === 0 && products.length === 0) {
+    return <NoResults query={query} />
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      {services.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <GroupHeader label="Services" count={services.length} />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {services.map((service) => (
+              <ServiceRow key={service.id} service={service} onAdd={() => onAddService(service)} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+      {products.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <GroupHeader label="Products" count={products.length} />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {products.map((product) => (
+              <ProductRow key={product.id} product={product} onAdd={() => onAddProduct(product)} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+    </div>
+  )
+}
+
+function GroupHeader({ label, count }: { label: string; count: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-sm font-semibold text-foreground">{label}</span>
+      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-muted px-1.5 text-xs text-muted-foreground">
+        {count}
+      </span>
+    </div>
+  )
+}
+
+function NoResults({ query }: { query: string }) {
+  return <EmptyState icon={SearchXIcon} title={`No results for “${query}”`} />
+}
+
+// ─── Filters ──────────────────────────────────────────────────────────────────
+
+/** Parse a "9:00am" / "2:00pm" label into minutes-since-midnight for sorting. */
+function startMinutes(start: string): number {
+  const m = start.match(/(\d+):(\d+)\s*(am|pm)/i)
+  if (!m) return 0
+  let hour = Number(m[1]) % 12
+  if (m[3].toLowerCase() === "pm") hour += 12
+  return hour * 60 + Number(m[2])
+}
+
+function filterServices(query: string, services: ServiceItem[] = SERVICES): ServiceItem[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return services
+  return services.filter((s) => s.name.toLowerCase().includes(q))
+}
+
+function filterProducts(query: string): ProductItem[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return PRODUCTS
+  return PRODUCTS.filter((p) => p.name.toLowerCase().includes(q))
+}

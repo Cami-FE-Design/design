@@ -14,9 +14,10 @@
 import { BellIcon, InfoIcon } from "lucide-react"
 import Link from "next/link"
 import { useMemo, useState } from "react"
-import { AdminShell } from "@/components/blocks/admin-shell"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { AdminShell } from "@/components/blocks/admin/admin-shell"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import {
@@ -35,6 +36,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { type AdminBusiness, adminBusinesses } from "@/lib/admin-businesses"
+import { formatMoney } from "@/lib/money/format"
 import { type HqRates, useHqRates } from "@/lib/notifications/hq-store"
 import {
   amountDue,
@@ -67,10 +69,7 @@ const PERIOD = periodShape(0).labelLong
 type ChannelFilter = "all" | NotificationChannel
 
 function formatAed(amount: number): string {
-  return `AED ${amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
+  return formatMoney(Math.round(amount * 100))
 }
 
 function BillingRow({ business, globalRates }: { business: AdminBusiness; globalRates: HqRates }) {
@@ -167,17 +166,15 @@ export default function BillingPage() {
   return (
     <AdminShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Billing</h1>
-            <p className="text-sm text-muted-foreground">
-              Notification consumption per partner. {PERIOD}.
-            </p>
-          </div>
-          <Button variant="outline" radius="full" disabled>
-            Export period
-          </Button>
-        </div>
+        <PageHeader
+          title="Billing"
+          description={<>Notification consumption per partner. {PERIOD}.</>}
+          actions={
+            <Button variant="outline" radius="full" disabled>
+              Export period
+            </Button>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

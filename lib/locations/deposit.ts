@@ -1,3 +1,4 @@
+import { formatAed } from "@/lib/format"
 /**
  * A branch's own deposit percentage (DW3.5, R06, INV-13).
  *
@@ -73,9 +74,7 @@ const REFUND_LABEL: Record<DepositSettings["refundRule"], string> = {
 /** One line an owner can read without opening the branch. */
 export function describeDeposit(settings: DepositSettings): string {
   const floor =
-    settings.minBookingAed > 0
-      ? ` on bookings over AED ${settings.minBookingAed.toLocaleString("en-US")}`
-      : ""
+    settings.minBookingAed > 0 ? ` on bookings over ${formatAed(settings.minBookingAed)}` : ""
   return `${settings.percent}%${floor} · ${REFUND_LABEL[settings.refundRule]}`
 }
 

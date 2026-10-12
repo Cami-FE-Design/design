@@ -143,7 +143,7 @@ Template names and wording are placeholders until FND-5b records the approved on
 | 6 Stylists never see unmatched chats | No screen — data rule; no stylist login until S2 |
 | Edge: family phone | `?c=huda` |
 | Edge: archived client | Search "Ahmed" — matchable, shown as Archived |
-| Edge: client at another location | Search "Rana" — "Client at Shampooch JLT", match allowed |
+| Edge: client at another location | Search "Rana" — "Client at Shampooch Jumeirah", match allowed |
 | Edge: number on two records | `?c=unmatched-closed` → Match — both shown, I pick |
 | Also: `IX-C6` "pane offers Match" (P9) | `?c=unmatched-saturday` |
 
@@ -290,7 +290,7 @@ Match, Add (they change the record). Read without reply: `?state=read-only`.
 Display only; data through the customer module's hooks; the inbox passes the thread
 read's client fields as initial data.
 
-Built as `components/blocks/client-summary.tsx`, a new component, not the client dialog
+Built as `components/blocks/clients/client-summary.tsx`, a new component, not the client dialog
 (P13). It owns its strings and imports nothing from the inbox; its sample reads are
 `lib/client-summary/mock.ts`.
 

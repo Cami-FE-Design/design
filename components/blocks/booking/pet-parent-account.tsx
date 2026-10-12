@@ -3,7 +3,7 @@
 import { CalendarIcon, ChevronRightIcon, PawPrintIcon } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
+import { PublicTopGradient } from "@/components/blocks/public/public-top-gradient"
 import { CamiWordmark } from "@/components/brand/cami-wordmark"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -20,10 +20,10 @@ import { cn } from "@/lib/utils"
 type Stage = "request" | "verify" | "home"
 
 const PARENT = {
-  firstName: "Michelle",
-  name: "Michelle You",
+  firstName: "Natalie",
+  name: "Natalie Grant",
   phone: "+971 50 123 4567",
-  email: "michelle@ce-creates.com",
+  email: "natalie.grant@email.com",
   address: "Villa 12, Street 4B, Jumeirah 1, Dubai",
 }
 

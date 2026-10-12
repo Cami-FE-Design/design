@@ -31,11 +31,12 @@ import {
   ScrollTextIcon,
 } from "lucide-react"
 import { useState } from "react"
-import { AddressSearchField } from "@/components/blocks/address-search-field"
-import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
-import { type BreadcrumbRoot, FullScreenTakeover } from "@/components/blocks/sales-settings"
-import { SettingsPanel } from "@/components/blocks/settings-panel"
-import { SettingsRow } from "@/components/blocks/settings-row"
+import type { BreadcrumbRoot } from "@/components/blocks/settings/sales-settings"
+import { SettingsCard, SettingsPanel } from "@/components/blocks/settings/settings-panel"
+import { SettingsRow } from "@/components/blocks/settings/settings-row"
+import { AddressSearchField } from "@/components/blocks/shared/address-search-field"
+import { FullScreenTakeover } from "@/components/blocks/shared/full-screen-edit-dialog"
+import { NotionBreadcrumb } from "@/components/blocks/shell/notion-breadcrumb"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -46,6 +47,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { addressToLine } from "@/lib/address"
+import { useCurrentUser } from "@/lib/current-user"
 import { formatDateTime } from "@/lib/format"
 import {
   type BillingDetails,
@@ -65,7 +67,6 @@ export type BillingDetailsDemoState = "complete" | "no-trn" | "empty"
 const selectTriggerOverride =
   "data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium"
 
-const ACTOR = "Omar Haddad"
 const UPDATED_AT = `${TODAY_ISO}T09:00:00.000Z`
 
 function initialFor(state: BillingDetailsDemoState): BillingDetails {
@@ -83,6 +84,8 @@ export function BillingDetailsPanel({
   breadcrumbRoot: BreadcrumbRoot
   initialState?: BillingDetailsDemoState
 }) {
+  // Whoever is signed in makes the change (lib/current-user.tsx).
+  const { actor: signedIn } = useCurrentUser()
   const [details, setDetails] = useState<BillingDetails>(() => initialFor(initialState))
   const [editing, setEditing] = useState(false)
 
@@ -133,7 +136,7 @@ export function BillingDetailsPanel({
           </div>
         ) : null}
 
-        <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
+        <SettingsCard>
           <header className="flex items-start justify-between gap-2">
             <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
               Company details
@@ -185,14 +188,16 @@ export function BillingDetailsPanel({
           <p className="text-sm leading-5 text-muted-foreground">
             Last changed by {details.updatedBy} · {formatDateTime(details.updatedAtIso)}
           </p>
-        </section>
+        </SettingsCard>
       </div>
 
       <BillingDetailsEditDialog
         open={editing}
         onOpenChange={setEditing}
         details={details}
-        onSave={(next) => setDetails({ ...next, updatedBy: ACTOR, updatedAtIso: UPDATED_AT })}
+        onSave={(next) =>
+          setDetails({ ...next, updatedBy: signedIn.name, updatedAtIso: UPDATED_AT })
+        }
       />
     </SettingsPanel>
   )

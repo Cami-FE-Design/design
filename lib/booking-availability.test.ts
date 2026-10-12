@@ -14,7 +14,8 @@ import {
   WEEK_DAYS,
   type WeekSchedule,
 } from "@/lib/locations/hours"
-import { locationHours } from "@/lib/locations/mock"
+import { locationHours, NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
+import { getPublicBusiness, getPublicBusinessBySlug } from "@/lib/public-business"
 
 const dayOf = (weekDay: string) => BOOKING_DAYS.find((d) => d.weekDay === weekDay)!
 
@@ -107,15 +108,15 @@ describe("slotGroupsForLocation", () => {
 describe("bookingStaffForLocation", () => {
   it("offers only the people who work at that branch", () => {
     const jvc = bookingStaffForLocation("shampooch-jvc").map((s) => s.id)
-    expect(jvc).toContain("mariam")
-    // Al Quoz only.
-    expect(jvc).not.toContain("diana")
+    expect(jvc).toContain("priya-nair")
+    // Jumeirah only.
+    expect(jvc).not.toContain("marco-rossi")
     expect(jvc.length).toBeLessThan(BOOKING_STAFF.length)
   })
 
   it("keeps someone who covers two branches on both", () => {
     for (const branch of ["shampooch-jvc", "shampooch-jumeirah"]) {
-      expect(bookingStaffForLocation(branch).map((s) => s.id)).toContain("lena")
+      expect(bookingStaffForLocation(branch).map((s) => s.id)).toContain("lena-petrov")
     }
   })
 
@@ -124,9 +125,34 @@ describe("bookingStaffForLocation", () => {
   })
 
   it("leaves no live branch without anyone to book", () => {
-    for (const branch of ["shampooch-jvc", "shampooch-jumeirah", "shampooch-al-quoz"]) {
+    const live = NINE_BRANCH_ESTATE.filter((l) => l.status === "live").map((l) => l.id)
+    for (const branch of live) {
       expect(bookingStaffForLocation(branch).length).toBeGreaterThan(0)
     }
+  })
+
+  it("never offers one business's people on another's page", () => {
+    const purr = bookingStaffForLocation(undefined, ["purr-palace"]).map((s) => s.id)
+    expect(purr).toEqual(["dana-aziz", "sami-haddad"])
+    const shampoochBranches = NINE_BRANCH_ESTATE.map((l) => l.id)
+    const shampooch = bookingStaffForLocation(undefined, shampoochBranches).map((s) => s.id)
+    expect(shampooch).toContain("aya-hassan")
+    expect(shampooch).not.toContain("dana-aziz")
+    expect(shampooch).not.toContain("yara-nasr")
+  })
+
+  it("reads the business from the page's branches, not its slug", () => {
+    // The public page hands BookingFlow a business whose slug is the branch's
+    // own ("shampooch-jvc"), so the slug cannot say which business it is.
+    const chain = getPublicBusinessBySlug("shampooch")!
+    const page = getPublicBusiness(chain.branches[0]!.slug)!
+    expect(page.slug).not.toBe("shampooch")
+    const offered = bookingStaffForLocation(
+      undefined,
+      page.branches.map((b) => b.id),
+    )
+    expect(offered.length).toBeGreaterThan(0)
+    expect(offered.map((s) => s.id)).not.toContain("dana-aziz")
   })
 })
 

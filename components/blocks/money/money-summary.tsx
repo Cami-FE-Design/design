@@ -35,13 +35,13 @@ import {
 } from "lucide-react"
 import { useMemo } from "react"
 import { toast } from "sonner"
-import { type DateRange, DateRangePopover } from "@/components/blocks/date-range-popover"
-import { EmptyState } from "@/components/blocks/empty-state"
 import { MoneyByLocationView } from "@/components/blocks/money/money-by-location"
 import { RailBadge } from "@/components/blocks/money/rail-badge"
+import { type DateRange, DateRangePopover } from "@/components/blocks/shared/date-range-popover"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { formatDate } from "@/lib/format"
+import { formatDate, toDayIso } from "@/lib/format"
 import {
   DEMO_MERCHANT_ID,
   effectiveRateValue,
@@ -55,7 +55,6 @@ import {
   payoutStatusLabel,
   SCOPE_STATEMENT,
   settlementBlockCopy,
-  toDayIso,
 } from "@/lib/money/format"
 import { summarize, summarizeByRail } from "@/lib/money/ledger"
 import {

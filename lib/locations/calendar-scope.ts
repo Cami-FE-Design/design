@@ -1,4 +1,4 @@
-import type { MockBooking } from "@/app/appointments/mock"
+import type { MockBooking } from "@/lib/appointments/mock"
 
 /**
  * The calendar, read through the active location scope (R07, R03, SCR-05).

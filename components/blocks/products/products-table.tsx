@@ -1,0 +1,336 @@
+"use client"
+
+import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, PackageIcon } from "lucide-react"
+import { useState } from "react"
+import { ProductImagePlaceholder } from "@/components/blocks/products/product-image-placeholder"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { formatAed } from "@/lib/format"
+import { needsAttention, stockForProduct, stockLevel } from "@/lib/inventory/branch-stock"
+import { useBranchStock } from "@/lib/inventory/store"
+import { useLocations } from "@/lib/locations/store"
+import { cn } from "@/lib/utils"
+
+export type Product = {
+  id: string
+  name: string
+  barcode?: string
+  brand: string
+  category: string
+  sku: string
+  supplier?: string
+  supplyPrice: number
+  retailPrice: number
+  status: "active" | "archived"
+  /**
+   * Whether this product is counted at all (R16). False is **Unlimited**, not
+   * zero — a shampoo bottle that is counted and a consumable that never is are
+   * different things, and showing the second as "0 in stock" reads as an
+   * outage. The name and the behaviour are the built product's
+   * (`cami-business`, `Product.trackStock`), which already ships this column.
+   *
+   * The balance itself is not here: it resolves per location, and the business
+   * quantity is derived from those and never stored (R16). See
+   * lib/inventory/branch-stock.ts.
+   */
+  trackStock: boolean
+  /** Seed strings for placeholder tiles in the detail dialog. Empty/undefined hides the photos card. */
+  photos?: string[]
+}
+
+/**
+ * SCR-11 · The quantity a row shows, resolved for the branches in scope
+ * (R16, R18, DW4.1, DW4.2).
+ *
+ * A sum is correct and, on its own, insufficient. Two branches holding 18 and
+ * -2 add up to a healthy-looking 16, and the -2 is the row that needs a stock
+ * take. So the cell carries the derived total **and** says when a branch inside
+ * it needs attention — the number stays the answer to "how many do we have",
+ * and the marker stops it being the answer to "is anything wrong".
+ *
+ * Scope-aware because R18 is: a manager granted one branch sees their own
+ * shelf, which is DW4.1's whole point, and it is labelled as theirs rather
+ * than dressed up as a business total.
+ */
+function QuantityCell({ product }: { product: Product }) {
+  const { scopedLocations, granted, isMultiLocation } = useLocations()
+  const { stock } = useBranchStock()
+  const inScope = (scopedLocations.length > 0 ? scopedLocations : granted).map((l) => l.id)
+
+  if (!product.trackStock) {
+    return <span className="text-sm text-muted-foreground">Unlimited</span>
+  }
+
+  const rows = stockForProduct(stock, product.id, inScope)
+  const total = rows.reduce((sum, row) => sum + row.quantity, 0)
+  const attention = needsAttention(rows)
+  const worst = attention[0] ? stockLevel(attention[0]) : "ok"
+
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span
+        className={cn(
+          "text-sm",
+          worst === "negative" || worst === "out" ? "text-destructive" : "text-foreground",
+        )}
+      >
+        {total} in stock
+      </span>
+      {attention.length > 0 && isMultiLocation ? (
+        <span className="text-xs text-muted-foreground">
+          {attention.length === 1
+            ? `1 location needs attention`
+            : `${attention.length} locations need attention`}
+        </span>
+      ) : null}
+    </span>
+  )
+}
+
+export const MOCK_PRODUCTS: Product[] = [
+  {
+    id: "p1",
+    name: "Wahl Professional Shampoo",
+    barcode: "WHL-SH-001A",
+    brand: "Wahl",
+    category: "Shampoos",
+    sku: "WHL-001",
+    supplier: "Pet Supplies Plus",
+    supplyPrice: 450,
+    retailPrice: 750,
+    status: "active",
+    trackStock: true,
+    photos: ["a", "b", "c", "d", "e"],
+  },
+  {
+    id: "p2",
+    name: "Furminator Deshedding Tool",
+    brand: "Furminator",
+    category: "Tools & Equipment",
+    sku: "FRM-002",
+    supplier: "Chewy Wholesale",
+    supplyPrice: 1200,
+    retailPrice: 1800,
+    status: "active",
+    trackStock: true,
+    photos: ["a", "b"],
+  },
+  {
+    id: "p3",
+    name: "Burt's Bees Hypoallergenic Shampoo",
+    barcode: "BB-HYPO",
+    brand: "Burt's Bees",
+    category: "Shampoos",
+    sku: "BB-003",
+    supplier: "Pet Supplies Plus",
+    supplyPrice: 320,
+    retailPrice: 550,
+    status: "active",
+    trackStock: true,
+  },
+  {
+    id: "p4",
+    name: "Andis Excel Pro-Animal Clipper",
+    brand: "Andis",
+    category: "Tools & Equipment",
+    sku: "AND-004",
+    supplyPrice: 3500,
+    retailPrice: 5200,
+    status: "archived",
+    trackStock: true,
+    photos: ["a", "b", "c"],
+  },
+  {
+    id: "p5",
+    name: "TropiClean Perfect Fur Shampoo",
+    brand: "TropiClean",
+    category: "Shampoos",
+    sku: "TC-005",
+    supplier: "Chewy Wholesale",
+    supplyPrice: 280,
+    retailPrice: 450,
+    status: "archived",
+    trackStock: false,
+    photos: ["a"],
+  },
+]
+
+type SortField = "name" | "retailPrice"
+type SortDir = "asc" | "desc"
+
+function SortIcon({
+  field,
+  sortField,
+  sortDir,
+}: {
+  field: SortField
+  sortField: SortField | null
+  sortDir: SortDir
+}) {
+  if (sortField !== field) return <ArrowUpDownIcon className="size-3.5 text-muted-foreground/50" />
+  return sortDir === "asc" ? (
+    <ArrowUpIcon className="size-3.5 text-foreground" />
+  ) : (
+    <ArrowDownIcon className="size-3.5 text-foreground" />
+  )
+}
+
+type ProductsTableProps = {
+  products: Product[]
+  onRowClick: (productId: string) => void
+  /**
+   * When provided, a checkbox column is rendered (select-all in the header,
+   * one per row). Omit to render the table without selection.
+   */
+  selectedIds?: Set<string>
+  onToggleSelect?: (id: string, next: boolean) => void
+  /** Toggle every currently-visible row. `ids` are the rows shown in this table. */
+  onToggleSelectAll?: (ids: string[], next: boolean) => void
+}
+
+export function ProductsTable({
+  products,
+  onRowClick,
+  selectedIds,
+  onToggleSelect,
+  onToggleSelectAll,
+}: ProductsTableProps) {
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortDir, setSortDir] = useState<SortDir>("asc")
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    } else {
+      setSortField(field)
+      setSortDir("asc")
+    }
+  }
+
+  const sorted = sortField
+    ? [...products].sort((a, b) => {
+        const mul = sortDir === "asc" ? 1 : -1
+        if (sortField === "name") return mul * a.name.localeCompare(b.name)
+        return mul * (a.retailPrice - b.retailPrice)
+      })
+    : products
+
+  // Selection is enabled only when the page passes a `selectedIds` set.
+  const selectable = selectedIds !== undefined
+  const visibleIds = sorted.map((p) => p.id)
+  const selectedVisible = visibleIds.filter((id) => selectedIds?.has(id)).length
+  const allChecked: boolean | "indeterminate" =
+    selectedVisible === 0 ? false : selectedVisible === visibleIds.length ? true : "indeterminate"
+
+  if (sorted.length === 0) {
+    return (
+      <EmptyState
+        variant="card"
+        icon={PackageIcon}
+        title="No products match"
+        description="Try a different search."
+      />
+    )
+  }
+
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="sticky left-0 z-20! bg-background shadow-[1px_0_0_0_var(--border)] md:static md:bg-transparent md:shadow-none">
+            <div className="flex items-center gap-3">
+              {selectable ? (
+                <Checkbox
+                  checked={allChecked}
+                  onCheckedChange={(c) => onToggleSelectAll?.(visibleIds, c === true)}
+                  aria-label="Select all products"
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={() => toggleSort("name")}
+                className="flex items-center gap-1.5 font-medium hover:text-foreground"
+              >
+                Product
+                <SortIcon field="name" sortField={sortField} sortDir={sortDir} />
+              </button>
+            </div>
+          </TableHead>
+          <TableHead className="min-w-36">Category</TableHead>
+          <TableHead className="min-w-40">Supplier</TableHead>
+          {/* Between Supplier and Retail price, which is where the shipped
+              Products list puts it. */}
+          <TableHead className="min-w-32">Quantity</TableHead>
+          <TableHead className="min-w-32">
+            <button
+              type="button"
+              onClick={() => toggleSort("retailPrice")}
+              className="flex items-center gap-1.5 font-medium hover:text-foreground"
+            >
+              Retail price
+              <SortIcon field="retailPrice" sortField={sortField} sortDir={sortDir} />
+            </button>
+          </TableHead>
+          <TableHead className="min-w-24">Status</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {sorted.map((product) => (
+          <TableRow
+            key={product.id}
+            className="group cursor-pointer"
+            onClick={() => onRowClick(product.id)}
+          >
+            <TableCell className="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] transition-colors group-hover:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))] md:static md:bg-transparent md:shadow-none md:group-hover:bg-transparent">
+              <div className="flex items-center gap-3">
+                {selectable ? (
+                  <Checkbox
+                    checked={selectedIds?.has(product.id) ?? false}
+                    // Stop the click bubbling to the row (which opens the detail
+                    // dialog) so the checkbox only toggles selection.
+                    onClick={(e) => e.stopPropagation()}
+                    onCheckedChange={(c) => onToggleSelect?.(product.id, c === true)}
+                    aria-label={`Select ${product.name}`}
+                  />
+                ) : null}
+                <ProductImagePlaceholder seed={product.id} className="size-21.5" />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium text-foreground">{product.name}</span>
+                  {product.barcode && (
+                    <span className="font-mono text-xs text-muted-foreground">
+                      Barcode: {product.barcode}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </TableCell>
+            <TableCell className="text-sm text-muted-foreground">{product.category}</TableCell>
+            <TableCell className="text-sm text-muted-foreground">
+              {product.supplier ?? "–"}
+            </TableCell>
+            <TableCell className="whitespace-nowrap">
+              <QuantityCell product={product} />
+            </TableCell>
+            <TableCell className="text-sm whitespace-nowrap text-foreground">
+              {formatAed(product.retailPrice)}
+            </TableCell>
+            <TableCell>
+              <Badge variant={product.status === "active" ? "default" : "secondary"}>
+                {product.status === "active" ? "Active" : "Archived"}
+              </Badge>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  )
+}

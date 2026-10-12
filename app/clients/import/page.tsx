@@ -2,9 +2,9 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense } from "react"
-import { AppShell } from "@/components/blocks/app-shell"
-import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
 import { ClientPetFlow } from "@/components/blocks/imports/clients/client-pet-flow"
+import { AppShell } from "@/components/blocks/shell/app-shell"
+import { DesignRepoBar } from "@/components/blocks/shell/design-repo-bar"
 import { SegmentedToggle } from "@/components/ui/segmented-toggle"
 import {
   Select,

@@ -10,20 +10,15 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useRef, useState } from "react"
-import {
-  MOCK_BOOKINGS,
-  MOCK_STAFF,
-  type MockBooking,
-  type MockBookingStatus,
-} from "@/app/appointments/mock"
-import { AppShell } from "@/components/blocks/app-shell"
-import { AppointmentDetailSheet } from "@/components/blocks/appointment-detail-sheet"
+import { AppointmentDetailSheet } from "@/components/blocks/appointments/appointment-detail-sheet"
 import {
   type ClientDetailClient,
   ClientDetailDialog,
-} from "@/components/blocks/client-detail-dialog"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+} from "@/components/blocks/clients/client-detail-dialog"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -41,7 +36,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { MOCK_BOOKINGS, MOCK_STAFF, type MockBooking } from "@/lib/appointments/mock"
+import { bookingStatusBadge } from "@/lib/appointments/status"
+import { formatDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
+import { formatMoneyWhole } from "@/lib/money/format"
+import { CURRENT_USER } from "@/lib/sales/new-sale-mock"
 import { cn } from "@/lib/utils"
 
 // Set high enough that the curated demo subset (10 rows) paints in a single
@@ -107,31 +107,8 @@ function augment(b: MockBooking, index: number): Augmented {
     ...b,
     scheduledAt,
     createdAt,
-    createdBy: "Hussain Shabbir",
+    createdBy: CURRENT_USER,
   }
-}
-
-const MONTH_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-]
-
-function formatDateOnly(d: Date) {
-  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
-}
-
-function formatPrice(minor: number) {
-  return `AED ${Math.round(minor / 100).toLocaleString()}`
 }
 
 function refOf(b: MockBooking) {
@@ -155,19 +132,6 @@ function clientIdOf(name: string) {
 }
 
 // ─── Status meta ──────────────────────────────────────────────────────────────
-
-// Mirrors the NewAppointmentSheet / AppointmentDetailSheet hero-band palette
-// (pale step-5/6 fills with dark text) so the same status reads identically
-// in this row badge and in the open detail sheet's hero band.
-const STATUS_META: Record<MockBookingStatus, { label: string; className: string }> = {
-  booked: { label: "Booked", className: "bg-blue-5 text-blue-12" },
-  confirmed: { label: "Confirmed", className: "bg-lime-5 text-lime-12" },
-  "checked-in": { label: "Arrived", className: "bg-lime-3 text-lime-12" },
-  "ready-for-pickup": { label: "Started", className: "bg-lime-9 text-lime-12" },
-  completed: { label: "Completed", className: "bg-cami-gray-6 text-cami-gray-12" },
-  cancelled: { label: "Canceled", className: "bg-olive-5 text-olive-12" },
-  "no-show": { label: "No-show", className: "bg-tomato-8 text-tomato-12" },
-}
 
 // ─── Sort ─────────────────────────────────────────────────────────────────────
 
@@ -289,37 +253,34 @@ function AppointmentsListPageInner() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl leading-8 font-medium text-foreground">Appointments</h1>
-            <p className="text-sm text-muted-foreground">
-              View, filter and export appointments booked by your clients.
-            </p>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" radius="full" size="sm">
-                Export
-                <ChevronDownIcon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem>
-                <FileTextIcon className="size-4" />
-                PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileTextIcon className="size-4" />
-                CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileSpreadsheetIcon className="size-4" />
-                Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <PageHeader
+          title="Appointments"
+          description="View, filter and export appointments booked by your clients."
+          actions={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" radius="full" size="sm">
+                  Export
+                  <ChevronDownIcon className="size-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem>
+                  <FileTextIcon className="size-4" />
+                  PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <FileTextIcon className="size-4" />
+                  CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <FileSpreadsheetIcon className="size-4" />
+                  Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4">
@@ -401,7 +362,7 @@ function AppointmentsListPageInner() {
             </TableHeader>
             <TableBody>
               {shown.map((b) => {
-                const status = STATUS_META[b.status]
+                const status = bookingStatusBadge(b.status)
                 return (
                   <TableRow key={b.id}>
                     <TableCell className="sticky left-0 z-10 bg-background font-mono text-sm shadow-[1px_0_0_0_var(--border)] transition-colors [tr:hover_&]:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))]">
@@ -445,10 +406,10 @@ function AppointmentsListPageInner() {
                         facts and makes every row in the table a different
                         height. */}
                     <TableCell className="whitespace-nowrap text-sm text-foreground">
-                      {formatDateOnly(b.createdAt)}
+                      {formatDate(b.createdAt)}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-sm text-foreground">
-                      {formatDateOnly(b.scheduledAt)}
+                      {formatDate(b.scheduledAt)}
                     </TableCell>
                     {/* Duration column hidden for now */}
                     {/* The branch under the person, not beside them. A booking
@@ -472,7 +433,7 @@ function AppointmentsListPageInner() {
                         currency and a number rather than one amount, and it
                         makes the row taller than the ones around it. */}
                     <TableCell className="text-sm whitespace-nowrap text-foreground tabular-nums">
-                      {formatPrice(b.priceMinor)}
+                      {formatMoneyWhole(b.priceMinor)}
                     </TableCell>
                     <TableCell>
                       <Badge

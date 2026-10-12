@@ -1,0 +1,1568 @@
+"use client"
+
+import {
+  CheckIcon,
+  ChevronRightIcon,
+  ChevronsRightIcon,
+  CirclePlusIcon,
+  InfoIcon,
+  XIcon,
+} from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { ExpiredPackageWarning } from "@/components/blocks/sales/expired-package-warning"
+import {
+  PackageBranchWarning,
+  type PackageDecision,
+} from "@/components/blocks/sales/package-branch-warning"
+import { WriteTargetLocation } from "@/components/blocks/settings/write-target-location"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { locationName } from "@/lib/locations/mock"
+import { useLocations } from "@/lib/locations/store"
+import { formatMoney } from "@/lib/money/format"
+import {
+  type AllocatedSession,
+  aggregateSessionCoverage,
+  allocatePackageSessions,
+  expiredWithSessionsLeft,
+} from "@/lib/packages/allocate"
+import { packagesFor } from "@/lib/packages/customer-packages"
+import type {
+  AppointmentItem,
+  CartLine,
+  CatalogClient,
+  ClientAttachment,
+  GiftCardDraft,
+  ProductItem,
+  ServiceItem,
+} from "@/lib/sales/cart-types"
+import {
+  CLIENT_REQUIRED,
+  CLIENTS,
+  comboCartLines,
+  createdComboToServiceItem,
+  dealDiscounts,
+  dealDiscountTotalMinor,
+  SERVICES,
+  totals,
+} from "@/lib/sales/new-sale-mock"
+import { useCreatedCombos } from "@/lib/service-catalog/created-combos"
+import { findOffering, resolveOffering } from "@/lib/service-catalog/offerings"
+import { useLocationOfferings } from "@/lib/service-catalog/offerings-store"
+import { checkPackageAtBranch } from "@/lib/service-catalog/package-branch-check"
+import { machinesForSale, merchantMachines } from "@/lib/terminals/at-checkout"
+import { refusalMessage, refuseCharge } from "@/lib/terminals/charge-at-branch"
+import {
+  DEMO_SESSIONS,
+  DEMO_TERMINALS,
+  type Terminal,
+  type TerminalSession,
+  TYPICAL_SESSIONS,
+  TYPICAL_TERMINALS,
+  useTerminals,
+} from "@/lib/terminals/store"
+import { cn } from "@/lib/utils"
+import { CardAmountDialog } from "./card-amount-dialog"
+import { CartDiscountDialog } from "./cart-discount-dialog"
+import { CartContent, CartFooter, CheckoutFooter, type Payment } from "./cart-summary"
+import { CashAmountDialog } from "./cash-amount-dialog"
+import { ClientPanel } from "./client-panel"
+import { ClientSummaryCard } from "./client-summary-card"
+import { CustomTipDialog } from "./custom-tip-dialog"
+import { EditLineDialog, type LinePatch } from "./edit-line-dialog"
+import { GiftCardDialog, newGiftCardDraft } from "./gift-card-dialog"
+import { ItemPicker } from "./item-picker"
+import { type ActivePaymentLink, PaymentLinkLockScreen } from "./payment-link-lock"
+import { PaymentView } from "./payment-view"
+import { RedeemGiftCardDialog } from "./redeem-gift-card-dialog"
+import { SaleNoteDialog } from "./sale-note-dialog"
+import { SelectPaymentModal } from "./select-payment-modal"
+import {
+  canTakeSale,
+  SelectTerminalDialog,
+  blockedReason as terminalBlockedReason,
+} from "./select-terminal-dialog"
+import { type PaymentLinkDetails, SelfCheckoutDialog } from "./self-checkout-dialog"
+import { SplitPaymentView } from "./split-payment-view"
+import { type ActiveTerminalCharge, TerminalLockScreen } from "./terminal-lock"
+import { TipView, tipForPreset } from "./tip-view"
+
+// Monotonic line ids — duplicates of the same source stack as separate lines.
+let lineSeq = 0
+function nextUid(prefix: string): string {
+  lineSeq += 1
+  return `${prefix}-${lineSeq}`
+}
+
+let paymentSeq = 0
+
+/** Draft references are short uppercase hex, matching the Sales list (#31A06EA3). */
+function newDraftRef(): string {
+  return Math.floor(Math.random() * 0xffffffff)
+    .toString(16)
+    .toUpperCase()
+    .padStart(8, "0")
+}
+
+// Demo seed for the checkout deep-links (?step=tip|payment and ?dialog=redeem on
+// the route page): one priced service + a sample client, so the Tip / Payment
+// steps and the redeem-gift-card flow have a real balance to act on.
+function seedCheckoutLines(): CartLine[] {
+  const svc = SERVICES.find((s) => s.priceMinor > 0) ?? SERVICES[0]
+  return [
+    {
+      uid: nextUid("svc"),
+      kind: "service",
+      name: svc.name,
+      priceMinor: svc.priceMinor,
+      durationMin: svc.durationMin,
+      staffName: "Any",
+      qty: 1,
+      sourceId: svc.id,
+      categoryId: svc.categoryId,
+    },
+  ]
+}
+
+/**
+ * Fixed terminal setups behind ?terminals=, so a review link is the same on
+ * every machine: `none` hides the POS Terminal tile, `idle` keeps it (the
+ * machines exist, nobody has signed in yet), `one` and `two` put the machines
+ * in the grid as their own tiles, `many` is past the tile cap and falls back
+ * to one tile plus the picker. Anything else — including no param — falls
+ * through to the store.
+ */
+function terminalScenario(
+  key: string | null,
+): { terminals: Terminal[]; sessions: TerminalSession[] } | null {
+  if (key === "none") return { terminals: [], sessions: [] }
+  // Registered but nobody signed in — the state a merchant is in every morning
+  // before the first PIN goes into a machine. The tile stays: hiding it would
+  // make the option vanish overnight and come back at lunch, so the picker
+  // explains instead.
+  if (key === "idle") return { terminals: TYPICAL_TERMINALS, sessions: [] }
+  /**
+   * The machine that was moved after it was chosen (GNK §15).
+   *
+   * §15 says the merchant links a machine to a branch **and can move it to
+   * another**, so a sale can be holding one that was right when it was picked.
+   * The scoped picker cannot produce that — it only ever offers this branch's
+   * machines — which left the refusal correct, tested, and impossible to reach
+   * by clicking. This is the state the guard exists for, pinned so it can be
+   * read on the screen it protects rather than only in a test.
+   */
+  if (key === "moved") {
+    const machine = { ...TYPICAL_TERMINALS[0]!, locationId: "shampooch-jumeirah" }
+    return {
+      terminals: [machine],
+      sessions: TYPICAL_SESSIONS.filter((s) => s.terminalId === machine.id).map((s) => ({ ...s })),
+    }
+  }
+  if (key === "one")
+    return {
+      terminals: [TYPICAL_TERMINALS[0]],
+      sessions: TYPICAL_SESSIONS.filter((s) => s.terminalId === TYPICAL_TERMINALS[0].id),
+    }
+  // Past MAX_TERMINAL_TILES, so the grid stops naming machines and the picker
+  // takes over — six of them, two signed out, which is what the picker's
+  // ordering and its scroll are for.
+  if (key === "many") {
+    const extra = Array.from({ length: 4 }, (_, i) => ({
+      ...TYPICAL_TERMINALS[0],
+      id: `TRM-DEMO-${i + 1}`,
+      name: ["Reception iPad", "Grooming Room 2", "Boarding Desk", "Mobile Van"][i],
+      locationId: i === 3 ? "field-team" : TYPICAL_TERMINALS[0].locationId,
+    }))
+    const all = [...TYPICAL_TERMINALS, ...extra]
+    return {
+      terminals: all,
+      // Everything signed in except the last two, so the list has both kinds.
+      sessions: all.slice(0, all.length - 2).map((t, i) => ({
+        ...TYPICAL_SESSIONS[0],
+        id: `SES-DEMO-${i}`,
+        terminalId: t.id,
+      })),
+    }
+  }
+  if (key === "two")
+    return {
+      terminals: TYPICAL_TERMINALS,
+      sessions: [
+        ...TYPICAL_SESSIONS,
+        // The typical demo set only signs anyone into the first terminal, so
+        // the second machine needs a session of its own to be pickable.
+        {
+          ...TYPICAL_SESSIONS[0],
+          id: "SES-DEMO-2",
+          terminalId: TYPICAL_TERMINALS[1].id,
+          device: "iPad (9th gen)",
+          app: "Cami POS 1.4.0 · iPadOS 17",
+          ip: "196.20.14.11",
+        },
+      ],
+    }
+  return null
+}
+
+const STEPS = ["cart", "tip", "payment"] as const
+type Step = (typeof STEPS)[number]
+const STEP_LABEL: Record<Step, string> = { cart: "Cart", tip: "Tip", payment: "Payment" }
+
+type CartFlowProps = {
+  /** Controlled open state. Omit to run standalone (route page) — opens itself. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Pre-seed the cart — e.g. launching checkout from an appointment's services. */
+  initialLines?: CartLine[]
+  /** Pre-attach a client / walk-in for the seeded sale. */
+  initialAttachment?: ClientAttachment
+  /** Step to open on. Defaults to "cart"; appointment checkout opens at "tip". */
+  initialStep?: Step
+}
+
+// useSearchParams() bails out of static prerendering unless it runs inside a
+// Suspense boundary; CartFlow is rendered on several statically-rendered pages
+// (new-sale, daily-summary, sales-list, appointments), so the boundary lives
+// here in the wrapper rather than at every call site.
+export function CartFlow(props: CartFlowProps = {}) {
+  return (
+    <Suspense fallback={null}>
+      <CartFlowInner {...props} />
+    </Suspense>
+  )
+}
+
+function CartFlowInner({
+  open: openProp,
+  onOpenChange,
+  initialLines,
+  initialAttachment,
+  initialStep,
+}: CartFlowProps = {}) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const controlled = openProp !== undefined
+  const [internalOpen, setInternalOpen] = useState(true)
+  const open = controlled ? openProp : internalOpen
+
+  // Deep-link intent — only honored on the standalone route page (uncontrolled).
+  // ?dialog=gift-card opens the Add-gift-card dialog over an empty cart;
+  // ?dialog=redeem and ?step=tip|payment seed a demo cart so the checkout
+  // surfaces have a real balance to act on.
+  const deepDialog = controlled ? null : searchParams.get("dialog")
+  const deepStep = controlled ? null : searchParams.get("step")
+  // ?terminals=none|one|two pins the terminal setup for review, so a link shows
+  // the same thing on every machine regardless of what the reviewer has
+  // registered in Payment settings. Without it the checkout reads the store.
+  const deepTerminals = controlled ? null : searchParams.get("terminals")
+  const seedCheckout =
+    deepDialog === "redeem" ||
+    deepDialog === "payment-link" ||
+    deepDialog === "terminal" ||
+    deepTerminals !== null ||
+    deepStep === "tip" ||
+    deepStep === "payment"
+
+  // Where this sale lands (R11). Null until named — there is no default, ever.
+  const [saleLocationId, setSaleLocationId] = useState<string | null>(null)
+  /** How staff settled a branch mismatch, per line. Recorded on the sale (EC-4). */
+  const [packageDecisions, setPackageDecisions] = useState<Record<string, PackageDecision>>({})
+  /** Expired-package notices waved away — a fact about the client, not a decision. */
+  const [dismissedExpired, setDismissedExpired] = useState<string[]>([])
+
+  const { offerings } = useLocationOfferings()
+  const [attachment, setAttachment] = useState<ClientAttachment>(
+    initialAttachment ?? (seedCheckout ? { type: "client", client: CLIENTS[1] } : { type: "none" }),
+  )
+  // The picker's list: this demo catalog plus any combo created on the service
+  // menu, so a combo an operator just built can actually be sold.
+  const createdCombos = useCreatedCombos()
+  const serviceCatalog = useMemo(
+    () => [...SERVICES, ...createdCombos.map(createdComboToServiceItem)],
+    [createdCombos],
+  )
+
+  const [lines, setLines] = useState<CartLine[]>(
+    initialLines ?? (seedCheckout ? seedCheckoutLines() : []),
+  )
+  const [draftModalOpen, setDraftModalOpen] = useState(false)
+  const [clientSearching, setClientSearching] = useState(false)
+  const [editingUid, setEditingUid] = useState<string | null>(null)
+  const [step, setStep] = useState<Step>(
+    initialStep ??
+      (deepStep === "payment" ||
+      deepTerminals !== null ||
+      deepDialog === "redeem" ||
+      deepDialog === "payment-link" ||
+      deepDialog === "terminal"
+        ? "payment"
+        : deepStep === "tip"
+          ? "tip"
+          : "cart"),
+  )
+  const [tipId, setTipId] = useState("0")
+  const [customTipMinor, setCustomTipMinor] = useState(0)
+  const [paymentMode, setPaymentMode] = useState<"select" | "split">("select")
+  const [customTipOpen, setCustomTipOpen] = useState(false)
+  const [cartDiscountOpen, setCartDiscountOpen] = useState(false)
+  const [discountMinor, setDiscountMinor] = useState(0)
+  const [saleNoteOpen, setSaleNoteOpen] = useState(false)
+  const [saleNote, setSaleNote] = useState("")
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [cashDialogOpen, setCashDialogOpen] = useState(false)
+  const [cardDialogOpen, setCardDialogOpen] = useState(false)
+  const [methodPickerOpen, setMethodPickerOpen] = useState(false)
+  // Inline client picker on the Tip / Payment summary card.
+  const [clientEditing, setClientEditing] = useState(false)
+  // Confirmation screen shown after Pay now.
+  const [confirmed, setConfirmed] = useState(false)
+  // "Unpaid sale" guard shown when finishing a gift-card sale without full payment.
+  const [unpaidConfirmOpen, setUnpaidConfirmOpen] = useState(false)
+  // Redeem-an-existing-gift-card-to-pay dialog (Gift card payment method).
+  const [redeemOpen, setRedeemOpen] = useState(deepDialog === "redeem")
+  // Send-the-client-a-checkout-link dialog (Payment link payment method).
+  const [selfCheckoutOpen, setSelfCheckoutOpen] = useState(deepDialog === "payment-link")
+  // A live payment link locks the cart until it is paid or cancelled (PRO-909).
+  const [paymentLink, setPaymentLink] = useState<ActivePaymentLink | null>(null)
+  // A sale routed to the card machine locks the cart the same way a live link
+  // does — see ./terminal-lock.tsx.
+  const [terminalCharge, setTerminalCharge] = useState<ActiveTerminalCharge | null>(null)
+  // Which machine to send it to, asked only when there is a choice to make.
+  const [terminalPickerOpen, setTerminalPickerOpen] = useState(false)
+  // Held on the payment screen rather than thrown as a toast — see
+  // PaymentView's `refusal`.
+  const [chargeRefusal, setChargeRefusal] = useState<string | null>(null)
+  // Add-a-gift-card-to-cart dialog. Normally opened from the item picker; also
+  // deep-linkable via ?dialog=gift-card on the route page.
+  const [giftCardAddOpen, setGiftCardAddOpen] = useState(deepDialog === "gift-card")
+
+  // Registered terminals come from the same store Payment settings writes to
+  // (DSG-62), so a device registered there is the device offered here. The
+  // store starts empty — a merchant's real first-run state — which would leave
+  // checkout with no terminal to demo, so an unconfigured store falls back to
+  // the two-terminal demo set rather than hiding the flow from review.
+  const { isMultiLocation, granted } = useLocations()
+  const terminalStore = useTerminals()
+  // Counted the way Payment settings lists them: machines at a location this
+  // person holds, and machines with no location. One from another business is
+  // invisible in settings — counting it here made the store look configured,
+  // skipped the demo set, and left every location with no machine.
+  const ownTerminals = merchantMachines(
+    terminalStore.terminals,
+    granted.map((l) => l.id),
+  )
+  const scenario = terminalScenario(deepTerminals)
+  // The unconfigured fallback spans the estate for a chain and stays the
+  // two-machine set for a single site. TYPICAL_TERMINALS is deliberately two
+  // registers at ONE branch, so once the list is scoped below it would leave
+  // every other branch with no card machine at all — which is the rule working
+  // correctly and a demo that looks broken.
+  const fallbackTerminals = isMultiLocation ? DEMO_TERMINALS : TYPICAL_TERMINALS
+  const fallbackSessions = isMultiLocation ? DEMO_SESSIONS : TYPICAL_SESSIONS
+  const registeredTerminals =
+    scenario?.terminals ?? (ownTerminals.length ? ownTerminals : fallbackTerminals)
+  const terminalSessions =
+    scenario?.sessions ?? (ownTerminals.length ? terminalStore.sessions : fallbackSessions)
+
+  /**
+   * Only this branch's machines (GNK §15, GP1.4).
+   *
+   * A card payment is recorded against the branch the machine belongs to, so
+   * offering every register in the estate is a way to book Jumeirah's money at
+   * JVC — silently, and correctly by its own rules. The sale has already named
+   * its branch (R11), so there is always an answer to filter by.
+   *
+   * A branch with no machine of its own shows none rather than a sister
+   * branch's: "there is no card machine here" is the true answer, and the other
+   * tender tiles are still on screen.
+   */
+  const terminals = useMemo(
+    () =>
+      // `?terminals=moved` stands for a machine already attached to this sale
+      // and moved to another branch since, so it is NOT filtered out — that is
+      // the whole case. Everything else is scoped.
+      // A chain never offers a machine with no location; a single site does.
+      machinesForSale(registeredTerminals, saleLocationId, isMultiLocation, {
+        keepPlaced: deepTerminals === "moved",
+      }),
+    [registeredTerminals, isMultiLocation, saleLocationId, deepTerminals],
+  )
+
+  // Mirrors the real build's one backend boolean: no registered hardware, no
+  // tile. Sign-in state is not part of it — a merchant whose device is simply
+  // signed out still has a terminal, and the picker is where they learn that.
+  const terminalAvailable = terminals.length > 0
+  // Every machine at this branch, each carrying why it can't be used if it
+  // can't. The grid lists them one by one instead of a generic tile, so the
+  // receptionist taps the register in front of them once (Michelle, DSG
+  // review) — and a signed-out one still holds its place, greyed.
+  const machines = terminals.map((t) => ({
+    id: t.id,
+    name: t.name,
+    blockedReason: terminalBlockedReason(t, terminalSessions),
+  }))
+
+  const hasClient = attachment.type !== "none"
+
+  /**
+   * Which lines a session pays for, and what the branch has to say about it.
+   *
+   * The allocation is the built product's (`lib/packages/allocate`): it spends
+   * the client's remaining sessions across the cart in order, one per line,
+   * with no Apply button anywhere — a covered line simply reads 0 with its
+   * price struck beneath and a chip saying what is left. Removing a line
+   * re-runs it, so a line that missed out inherits the freed session.
+   */
+  const heldPackages = packagesFor(attachment.type === "client" ? attachment.client.id : undefined)
+  const serviceLines = useMemo(() => lines.filter((l) => l.kind === "service"), [lines])
+  /**
+   * Which package funded each line last time round.
+   *
+   * Held in a ref rather than state: it is a hint for the next allocation, not
+   * something that renders, and putting it in state would re-run the very
+   * allocation that writes it. Without it, removing an unrelated line can move
+   * a line onto a different package — the client sees a different colour and
+   * count against a service nobody touched.
+   */
+  const fundedByRef = useRef<Map<string, string>>(new Map())
+  const allocation = useMemo(() => {
+    const { byUid, availableCoveredMap } = allocatePackageSessions(
+      serviceLines.map((l) => ({
+        uid: l.uid,
+        catalogId: l.sourceId,
+        preferPackageId: fundedByRef.current.get(l.uid),
+      })),
+      heldPackages,
+    )
+    // The chip reads the client's whole balance rather than the one package
+    // that funded this line — otherwise a client holding two reads a count off
+    // a package they were not asking about, and one holding an unlimited
+    // package reads a finite number beside it.
+    const byUidAggregate = new Map<string, AllocatedSession>()
+    for (const [uid, session] of byUid) {
+      const aggregate = aggregateSessionCoverage(session, heldPackages)
+      byUidAggregate.set(uid, {
+        ...session,
+        sessionsRemaining: aggregate?.sessionsRemaining ?? session.sessionsRemaining,
+        sessionsTotal: aggregate?.sessionsTotal ?? session.sessionsTotal,
+      })
+    }
+    fundedByRef.current = new Map([...byUid].map(([uid, s]) => [uid, s.customerPackageId]))
+    return { coverage: byUidAggregate, availableCoveredMap }
+  }, [serviceLines, heldPackages])
+  const coverage = allocation.coverage
+
+  /**
+   * Packages that ran out of time with sessions still on them, and that would
+   * have paid for something in THIS cart.
+   *
+   * The allocation drops them silently — correctly, since they fund nothing —
+   * and silence is the wrong answer at the moment the client is charged in full
+   * for the very thing the package used to cover. Anywhere else it is noise:
+   * fired on the client alone, a shampoo sale carries a notice about a blow-dry
+   * package, and an operator learns to dismiss it without reading.
+   */
+  const expiredPackages = useMemo(
+    () =>
+      expiredWithSessionsLeft(
+        heldPackages,
+        serviceLines.map((l) => l.sourceId),
+      ).filter((p) => !dismissedExpired.includes(p.id)),
+    [heldPackages, serviceLines, dismissedExpired],
+  )
+
+  /**
+   * The branch half, which the built product has no room for (R08, KC1.5).
+   *
+   * A package was sold at one branch on that branch's terms. Redeemed at
+   * another, the service may be priced differently, run to a different length,
+   * or not be offered at all — and the rule is to warn and still complete, so
+   * this never touches the allocation above. The session is spent either way;
+   * what changes is that reception is told, and their decision is recorded.
+   */
+  const branchMismatches = useMemo(() => {
+    if (!saleLocationId) return new Map<string, ReturnType<typeof checkPackageAtBranch>>()
+    const out = new Map<string, ReturnType<typeof checkPackageAtBranch>>()
+    for (const line of serviceLines) {
+      const session = coverage.get(line.uid)
+      if (!session) continue
+      const pkg = heldPackages.find((p) => p.id === session.customerPackageId)
+      const sold = pkg?.soldTerms[line.sourceId]
+      if (!pkg || !sold) continue
+      const offering = findOffering(line.sourceId, saleLocationId, offerings)
+      const resolved = resolveOffering(
+        { priceType: "Fixed", price: sold.priceMinor / 100, duration: sold.durationMin },
+        offering,
+      )
+      const mismatch = checkPackageAtBranch(
+        {
+          packageId: pkg.packageId,
+          serviceId: line.sourceId,
+          soldAtLocationId: pkg.soldAtLocationId,
+          soldPriceMinor: sold.priceMinor,
+          soldDurationMin: sold.durationMin,
+          remainingSessions: pkg.sessionsRemaining ?? 1,
+        },
+        {
+          offered: resolved.enabled,
+          priceMinor: Math.round(resolved.price * 100),
+          durationMin: resolved.duration,
+        },
+      )
+      if (mismatch.kind !== "match") out.set(line.uid, mismatch)
+    }
+    return out
+  }, [serviceLines, coverage, heldPackages, saleLocationId, offerings])
+
+  /**
+   * Apply the allocation to the lines themselves.
+   *
+   * The built cart writes `priceMinor: 0` onto a covered line and parks the
+   * real figure in `originalPriceMinor`, and its footer knows nothing about
+   * packages as a result — every total is just a sum of the lines. The first
+   * cut here kept the line gross and subtracted the coverage inside each
+   * footer, which meant two footers had to remember, and the Cart step's one
+   * did not: the line read AED 0 and To pay asked for the full price two
+   * inches below it.
+   *
+   * The allocation keys off uid and sourceId, neither of which this touches,
+   * so there is no loop — and the guard below keeps object identity when a
+   * recompute lands on the same values.
+   */
+  useEffect(() => {
+    setLines((current) => {
+      let changed = false
+      const next = current.map((line) => {
+        if (line.kind !== "service") return line
+        const covered = coverage.has(line.uid)
+        if (covered) {
+          if (line.priceMinor === 0 && line.originalPriceMinor != null) return line
+          changed = true
+          return {
+            ...line,
+            priceMinor: 0,
+            originalPriceMinor: line.originalPriceMinor ?? line.priceMinor,
+          }
+        }
+        if (line.originalPriceMinor == null) return line
+        changed = true
+        const { originalPriceMinor, ...rest } = line
+        return { ...rest, priceMinor: originalPriceMinor }
+      })
+      return changed ? next : current
+    })
+  }, [coverage])
+
+  const hasGiftCard = lines.some((l) => l.kind === "gift-card")
+  const editingLine = lines.find((l) => l.uid === editingUid) ?? null
+
+  // Base = cart total less any cart discount; tip and checkout totals build on it.
+  /**
+   * What the deals on the lines take off, in fils.
+   *
+   * Summed from the lines, because a deal attaches to a line — the way the
+   * built product does it. The first attempt held it as one cart-level figure
+   * applied from a panel under the cart, which offered a percentage of nothing
+   * while the cart was still empty.
+   */
+  const dealDiscountMinor = dealDiscountTotalMinor(lines)
+  // A covered line is already 0 in `lines`, so nothing here has to know that
+  // packages exist — which is exactly how the built cart's totals work.
+  const baseMinor = Math.max(0, totals(lines).totalMinor - discountMinor - dealDiscountMinor)
+  const tipMinor = tipId === "custom" ? customTipMinor : tipForPreset(tipId)
+  const toPayMinor = baseMinor + tipMinor
+  const paidMinor = payments.reduce((sum, p) => sum + p.amountMinor, 0)
+  const leftToPayMinor = Math.max(0, toPayMinor - paidMinor)
+  const fullyPaid = toPayMinor > 0 && paidMinor >= toPayMinor
+  const payerName = attachment.type === "client" ? attachment.client.name : "Walk-In"
+  const firstName = payerName.split(" ")[0]
+  const stepIndex = STEPS.indexOf(step)
+
+  // Clear the sale back to a fresh empty cart.
+  function resetCart() {
+    setLines([])
+    setAttachment({ type: "none" })
+    setStep("cart")
+    setTipId("0")
+    setCustomTipMinor(0)
+    setPaymentMode("select")
+    setDiscountMinor(0)
+    setSaleNote("")
+    setPayments([])
+    setClientEditing(false)
+    setConfirmed(false)
+    setPaymentLink(null)
+    setTerminalCharge(null)
+  }
+
+  // `to` forces a navigation even when the cart is controlled — used when the
+  // sale has somewhere specific to hand off to, e.g. its draft record.
+  function leave(to?: string) {
+    resetCart()
+    if (controlled) {
+      onOpenChange?.(false)
+    } else {
+      setInternalOpen(false)
+    }
+    if (to) router.push(to)
+    else if (!controlled) router.push("/sales/sales-list")
+  }
+
+  // ?dialog=terminal lands directly on the locked screen — the seeded cart is
+  // already priced, so the routed amount is the balance it opens with.
+  //
+  // Waits for the terminals store, which hydrates from localStorage in its own
+  // effect: firing on mount would name whichever device the pre-hydration
+  // fallback held, and the deep link would disagree with Payment settings for
+  // the rest of the session. Once-only, so cancelling doesn't re-lock.
+  const [deepTerminalDone, setDeepTerminalDone] = useState(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once the store resolves
+  useEffect(() => {
+    if (deepDialog !== "terminal" || deepTerminalDone) return
+    // Same source the real flow uses, so the deep link can't name a device the
+    // merchant doesn't have — a signed-in one if there is one, else the first
+    // registered.
+    const target = terminals.find((t) => canTakeSale(t, terminalSessions)) ?? terminals[0]
+    if (!target) return
+    setDeepTerminalDone(true)
+    setTerminalCharge({
+      amountMinor: totals(seedCheckoutLines()).totalMinor,
+      terminalName: target.name,
+      terminalLocation: locationName(target.locationId),
+      sentAt: Date.now(),
+    })
+  }, [terminals, terminalSessions, deepTerminalDone])
+
+  // Auto-close the drawer a moment after the confirmation shows.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-run when `confirmed` flips
+  useEffect(() => {
+    if (!confirmed) return
+    const t = setTimeout(() => leave(), 2200)
+    return () => clearTimeout(t)
+  }, [confirmed])
+
+  // ─── Cart mutations ──────────────────────────────────────────────────────
+
+  function addService(service: ServiceItem, staffName = "Any") {
+    // A combo enters the cart as its component services, never as one line.
+    const added: CartLine[] = service.isCombo
+      ? comboCartLines(service, serviceCatalog, nextUid, staffName)
+      : [
+          {
+            uid: nextUid("svc"),
+            kind: "service",
+            name: service.name,
+            priceMinor: service.priceMinor,
+            durationMin: service.durationMin,
+            staffName,
+            qty: 1,
+            sourceId: service.id,
+            categoryId: service.categoryId,
+          },
+        ]
+    setLines((prev) => [...prev, ...added])
+  }
+
+  function addProduct(product: ProductItem) {
+    setLines((prev) => {
+      // Products stack quantity rather than adding a second line.
+      const existing = prev.find((l) => l.kind === "product" && l.sourceId === product.id)
+      if (existing) {
+        return prev.map((l) => (l.uid === existing.uid ? { ...l, qty: l.qty + 1 } : l))
+      }
+      return [
+        ...prev,
+        {
+          uid: nextUid("prd"),
+          kind: "product",
+          name: product.size ? `${product.name} ${product.size}` : product.name,
+          priceMinor: product.priceMinor,
+          qty: 1,
+          sourceId: product.id,
+        },
+      ]
+    })
+  }
+
+  // An appointment can only sit in the cart once — no double-paying.
+  const addedApptIds = new Set(lines.map((l) => l.apptId).filter(Boolean) as string[])
+
+  function snapshotAppointment(appt: AppointmentItem) {
+    setLines((prev) => {
+      if (prev.some((l) => l.apptId === appt.id)) return prev
+      return [
+        ...prev,
+        ...appt.lines.map((line) => ({
+          uid: nextUid("svc"),
+          kind: "service" as const,
+          name: line.name,
+          priceMinor: line.priceMinor,
+          durationMin: line.durationMin,
+          staffName: line.staffName,
+          qty: 1,
+          sourceId: line.serviceId,
+          // A combo booked on the appointment keeps its marker and its saving
+          // when the sale is built from it (PRD-143).
+          comboName: line.comboName,
+          listPriceMinor: line.listPriceMinor,
+          categoryId: SERVICES.find((s) => s.id === line.serviceId)?.categoryId,
+          warnings: line.warnings,
+          apptId: appt.id,
+        })),
+      ]
+    })
+  }
+
+  // Resolve the full client record (with phone/email) for an appointment.
+  function clientForAppt(appt: AppointmentItem): CatalogClient {
+    return (
+      CLIENTS.find((c) => c.id === appt.clientId) ?? { id: appt.clientId, name: appt.clientName }
+    )
+  }
+
+  function addAppointment(appt: AppointmentItem) {
+    if (addedApptIds.has(appt.id)) return
+    // One sale can pay for several clients' appointments. The first appointment
+    // sets the payer if none is attached; later ones just merge their services
+    // in (each line is labelled with its own client/pet in the cart).
+    if (attachment.type === "none") {
+      setAttachment({ type: "client", client: clientForAppt(appt) })
+    }
+    snapshotAppointment(appt)
+  }
+
+  function addGiftCard(draft: GiftCardDraft) {
+    setLines((prev) => [
+      ...prev,
+      {
+        uid: nextUid("gc"),
+        kind: "gift-card",
+        name: "Gift card",
+        priceMinor: draft.priceMinor,
+        staffName: draft.staffName,
+        qty: 1,
+        sourceId: "gift-card",
+        giftCard: draft,
+      },
+    ])
+  }
+
+  function applyGiftCardEdit(uid: string, draft: GiftCardDraft) {
+    setLines((prev) =>
+      prev.map((l) =>
+        l.uid === uid
+          ? { ...l, priceMinor: draft.priceMinor, staffName: draft.staffName, giftCard: draft }
+          : l,
+      ),
+    )
+  }
+
+  function removeLine(uid: string) {
+    setLines((prev) => {
+      // Removing one component of a combo removes the combo: its price is the
+      // bundle's, so a leftover component would be charged at a bundle rate.
+      const groupId = prev.find((l) => l.uid === uid)?.comboGroupId
+      return prev.filter((l) => (groupId ? l.comboGroupId !== groupId : l.uid !== uid))
+    })
+  }
+
+  function setQty(uid: string, qty: number) {
+    setLines((prev) => prev.map((l) => (l.uid === uid ? { ...l, qty: Math.max(1, qty) } : l)))
+  }
+
+  function applyLineEdit(uid: string, patch: LinePatch) {
+    setLines((prev) =>
+      prev.map((l) =>
+        l.uid === uid
+          ? {
+              ...l,
+              priceMinor: patch.priceMinor,
+              qty: Math.max(1, patch.qty),
+              staffName: patch.staffName,
+              dealId: patch.dealId,
+              dealName: patch.dealName,
+              dealDiscountMinor: patch.dealDiscountMinor,
+            }
+          : l,
+      ),
+    )
+  }
+
+  // ─── Payment ─────────────────────────────────────────────────────────────
+
+  // Pick a method from the payment grid or the split-flow picker.
+  function selectPayment(method: string) {
+    if (method === "cash") setCashDialogOpen(true)
+    else if (method === "card") setCardDialogOpen(true)
+    else if (method === "split") setPaymentMode("split")
+    // Redeem an existing gift card to pay. The tile is disabled when the cart
+    // is itself selling a gift card (can't pay for a gift card with one).
+    else if (method === "gift-card") setRedeemOpen(true)
+    // Text the client a secure link; they pay on their own phone (PRO-396).
+    else if (method === "link") setSelfCheckoutOpen(true)
+    // A machine picked straight off the grid — nothing left to ask for.
+    else if (method.startsWith("terminal:")) {
+      const target = terminals.find((t) => t.id === method.slice("terminal:".length))
+      if (target) routeToTerminal(target)
+    }
+    // The generic tile: no machine is signed in, or there are too many to list.
+    else if (method === "terminal") sendToTerminal()
+  }
+
+  function addPayment(method: Payment["method"], amountMinor: number, receivedBy?: string) {
+    setPayments((prev) => {
+      // Entries for the same method sum into a single line.
+      const existing = prev.find((p) => p.method === method)
+      if (existing) {
+        return prev.map((p) =>
+          p.id === existing.id ? { ...p, amountMinor: p.amountMinor + amountMinor } : p,
+        )
+      }
+      paymentSeq += 1
+      return [...prev, { id: paymentSeq, method, amountMinor, receivedBy }]
+    })
+  }
+
+  function removePayment(id: number) {
+    setPayments((prev) => prev.filter((p) => p.id !== id))
+  }
+
+  // ─── Payment link (PRO-909) ──────────────────────────────────────────────
+
+  // Generating a link creates a draft sale on the backend and locks this cart:
+  // the amount and the method are frozen so the two cannot drift apart. The
+  // draft's reference is minted here so cancelling can hand back to it; the
+  // real build takes the ref off the created draft sale instead.
+  function sendPaymentLink(details: PaymentLinkDetails) {
+    setPaymentLink({ ...details, sentAt: Date.now(), draftRef: newDraftRef() })
+  }
+
+  // Cancelling invalidates the link only — the draft sale survives it. So we
+  // close the cart and hand the operator to that draft rather than resuming the
+  // locked state; Checkout on the draft picks the journey back up at Tip.
+  function cancelPaymentLink() {
+    if (!paymentLink) return
+    const params = new URLSearchParams({
+      tab: "drafts",
+      draft: paymentLink.draftRef,
+      // Mock plumbing — the draft only exists in this cart's memory, so the
+      // list needs enough to render it. Real build looks it up by ref.
+      draftTotal: String(paymentLink.amountMinor),
+      draftClient: payerName,
+    })
+    leave(`/sales/sales-list?${params}`)
+  }
+
+  function settlePaymentLink() {
+    if (!paymentLink) return
+    addPayment("link", paymentLink.amountMinor)
+    setPaymentLink(null)
+    setConfirmed(true)
+  }
+
+  // ─── POS Terminal ────────────────────────────────────────────────────────
+
+  // Routing a sale to the card machine locks the cart for the same reason a
+  // live payment link does: the machine is about to charge a figure, and the
+  // cart must not move underneath it. The terminal settles the whole remaining
+  // balance, so there is no amount to collect here — the tile is the action.
+  // Only reached from the generic tile, which the grid shows when it can't name
+  // the machines itself: none signed in, or more than it can list.
+  function sendToTerminal() {
+    setTerminalPickerOpen(true)
+  }
+
+  function routeToTerminal(terminal: Terminal) {
+    /**
+     * The refusal GNK's §15 asks for, behind the scoped grid rather than
+     * instead of it.
+     *
+     * The grid already offers only this branch's machines, so the operator
+     * cannot pick a wrong one. What it cannot cover is the machine moving
+     * afterwards: §15 says the merchant links a machine to a branch and can
+     * move it to another, and a draft sale reopened after that move is holding
+     * one that was the right machine when it was chosen.
+     *
+     * Moving an APPOINTMENT is not one of these cases — the move sets the
+     * booking's branch to the destination, so its sale is taken there and the
+     * destination's machines are the ones offered. Only the deposit stays
+     * credited at the source (R17).
+     *
+     * A card payment is recorded against the machine's branch, so sending it
+     * anyway books the money somewhere the sale never was, and nothing on
+     * either screen looks wrong afterwards.
+     */
+    const refusal = refuseCharge(terminal, saleLocationId, isMultiLocation)
+    if (refusal) {
+      setTerminalPickerOpen(false)
+      setChargeRefusal(refusalMessage(refusal, locationName))
+      return
+    }
+    setChargeRefusal(null)
+    setTerminalCharge({
+      amountMinor: leftToPayMinor,
+      terminalName: terminal.name,
+      terminalLocation: locationName(terminal.locationId),
+      sentAt: Date.now(),
+    })
+  }
+
+  // Unlike a cancelled link — which leaves a draft sale behind to hand off to —
+  // the operator is standing at the counter with the client in front of them.
+  // So this returns them to the payment grid with the cart intact, ready to
+  // take cash or another card, rather than closing the drawer.
+  function cancelTerminalCharge() {
+    setTerminalCharge(null)
+  }
+
+  function settleTerminalCharge() {
+    if (!terminalCharge) return
+    addPayment("terminal", terminalCharge.amountMinor)
+    setTerminalCharge(null)
+    setConfirmed(true)
+  }
+
+  // ─── Exit / draft ────────────────────────────────────────────────────────
+
+  function requestClose() {
+    if (lines.length > 0) {
+      setDraftModalOpen(true)
+      return
+    }
+    leave()
+  }
+
+  // Two things a sale cannot proceed without: somebody to bill, and a branch to
+  // bill them at.
+  //
+  // Each is said beside the control that answers it, not in the footer. Printed
+  // under the totals they sat inside the money — an operator reading for a
+  // figure met an error about neither, whose control was at the other end of
+  // the cart. It is the same rule the branch picker already follows when it
+  // explains a paused branch: the answer belongs where the question is.
+  //
+  // So both can now show at once, where the footer could only ever name the
+  // first. That is the honest state — two things are missing — and it is what
+  // stops an operator fixing one and being told about the other afterwards.
+  const needsLocation = saleLocationId === null
+  const needsClient = CLIENT_REQUIRED && !hasClient
+  // Still computed for the footer, which uses it to keep Continue shut. The
+  // footer no longer prints it.
+  const blockedReason = needsLocation
+    ? "Choose a location to continue"
+    : needsClient
+      ? "Attach a client to continue"
+      : undefined
+
+  // A locked sale — link out, or routed to the card machine — has no dismissal.
+  // Escape and the overlay are the last two ways the "Discard draft sale?"
+  // prompt could still reach a sale that has already been paid, which is one of
+  // the three defects this pattern exists to close. Cancel is the only exit.
+  const locked = Boolean(paymentLink || terminalCharge)
+
+  return (
+    <Sheet open={open} onOpenChange={(next) => !next && !locked && requestClose()}>
+      <SheetContent
+        side="right"
+        showCloseButton={false}
+        className="flex w-[calc(100vw-16px)] max-w-[960px] flex-col gap-0 overflow-hidden p-0 data-[side=right]:max-w-[960px] sm:max-w-[960px]"
+      >
+        <SheetTitle className="sr-only">Add to cart</SheetTitle>
+        <SheetDescription className="sr-only">
+          Build a cart of appointments, services and products for a client.
+        </SheetDescription>
+
+        {confirmed ? (
+          <ConfirmationScreen
+            paidMinor={paidMinor}
+            changeMinor={Math.max(0, paidMinor - toPayMinor)}
+          />
+        ) : paymentLink ? (
+          // Cart is locked while a link is live — no step nav, no editing.
+          <PaymentLinkLockScreen
+            link={paymentLink}
+            onCancelLink={cancelPaymentLink}
+            onMarkPaid={settlePaymentLink}
+          />
+        ) : terminalCharge ? (
+          // Same lock, card-present. The drawer is the one place to be while
+          // the machine has the sale, and where the settlement lands.
+          <TerminalLockScreen
+            charge={terminalCharge}
+            firstName={firstName}
+            onCancel={cancelTerminalCharge}
+            onMarkPaid={settleTerminalCharge}
+          />
+        ) : (
+          <>
+            {/* Shared top bar — breadcrumb left, close right, spans both panes */}
+            <header className="flex min-h-12 shrink-0 items-center justify-between gap-3 border-border/60 border-b py-2 pr-1.5 pl-6">
+              <nav aria-label="Checkout steps" className="flex items-center gap-1.5 text-sm">
+                {STEPS.map((s, i) => (
+                  <span key={s} className="flex items-center gap-1.5">
+                    {i > 0 ? (
+                      <ChevronRightIcon className="size-4 text-muted-foreground/60" aria-hidden />
+                    ) : null}
+                    <button
+                      type="button"
+                      // Visited steps are clickable to go back; future steps are not.
+                      disabled={i > stepIndex}
+                      onClick={() => setStep(s)}
+                      className={cn(
+                        i === stepIndex ? "font-medium text-foreground" : "text-muted-foreground",
+                        i < stepIndex && "hover:text-foreground",
+                        i > stepIndex && "cursor-default",
+                      )}
+                      aria-current={i === stepIndex ? "step" : undefined}
+                    >
+                      {STEP_LABEL[s]}
+                    </button>
+                  </span>
+                ))}
+              </nav>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Close"
+                onClick={requestClose}
+              >
+                <ChevronsRightIcon />
+              </Button>
+            </header>
+
+            <div className="flex min-h-0 w-full flex-1">
+              {/* Left pane — step content */}
+              <div className="flex min-w-0 flex-1 flex-col border-border/60 border-r bg-background">
+                <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+                  {step === "cart" ? (
+                    <ItemPicker
+                      services={serviceCatalog}
+                      availableCoverage={allocation.availableCoveredMap}
+                      onAddService={(s) => addService(s)}
+                      onAddProduct={addProduct}
+                      onAddAppointment={addAppointment}
+                      onAddGiftCard={addGiftCard}
+                      addedApptIds={addedApptIds}
+                      locationId={saleLocationId}
+                    />
+                  ) : step === "tip" ? (
+                    <TipView
+                      firstName={firstName}
+                      selectedId={tipId}
+                      onSelect={setTipId}
+                      onOpenCustom={() => setCustomTipOpen(true)}
+                    />
+                  ) : paymentMode === "split" ? (
+                    <SplitPaymentView
+                      payments={payments}
+                      onBack={() => setPaymentMode("select")}
+                      onAddMethod={() => setMethodPickerOpen(true)}
+                      onRemovePayment={removePayment}
+                    />
+                  ) : (
+                    <PaymentView
+                      onSelect={selectPayment}
+                      hasGiftCard={hasGiftCard}
+                      terminalAvailable={terminalAvailable}
+                      refusal={chargeRefusal}
+                      machines={machines}
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Right pane — cart / checkout summary */}
+              <div className="flex w-[440px] shrink-0 flex-col bg-sand-2">
+                <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-5 py-5">
+                  {step === "cart" ? (
+                    <>
+                      <ClientPanel
+                        attachment={attachment}
+                        onAttachClient={(client: CatalogClient) =>
+                          setAttachment({ type: "client", client })
+                        }
+                        onWalkIn={() => setAttachment({ type: "walk-in" })}
+                        // Real quick-create flow is a sibling ticket; attach a placeholder
+                        // so the selected-client state is demonstrable.
+                        onAddNew={() =>
+                          setAttachment({
+                            type: "client",
+                            client: { id: "new-client", name: "New client" },
+                          })
+                        }
+                        onClear={() => setAttachment({ type: "none" })}
+                        onSearchingChange={setClientSearching}
+                      />
+                      {/* Beside the panel that answers it. Not while the client
+                          search is open — the operator is already doing the
+                          thing it would be asking for. */}
+                      {needsClient && !clientSearching ? (
+                        <p className="text-xs leading-5 text-destructive">
+                          Attach a client to continue
+                        </p>
+                      ) : null}
+                      {/* A sale is an operational write, so it names one branch
+                          (R11) — and G6 hangs off it: the receipt sequence is
+                          that branch's, prefixed, and its tax identity is what
+                          the receipt freezes at sale. Until this, one issuer was
+                          hardcoded for every sale, which made per-branch tax
+                          identity a thing an owner could configure and no
+                          receipt could ever carry. Renders nothing for a
+                          single-branch business (DW1.2).
+
+                          After the client, before the cart — the same order as
+                          the appointment sheet, because the constraint is the
+                          same one: the item picker reads its offerings against
+                          this branch, and the client does not depend on it at
+                          all. It sat first, above a client this file's own
+                          blocked-reason comment already calls "the thing an
+                          operator is already reaching for".
+
+                          Card variant: the client above it and every cart line
+                          below are white bordered cards, and a grey borderless
+                          field between them read as something left over from
+                          another screen. */}
+                      {/* Out of the way while the client search is open. The
+                          branch belongs to the sale and the search belongs to
+                          the client — two unrelated controls stacked under one
+                          set of results, and neither is the thing being
+                          answered. It comes back the moment a client is
+                          picked, which is before anything can be sold anyway. */}
+                      {clientSearching ? null : (
+                        <WriteTargetLocation
+                          value={saleLocationId}
+                          onChange={setSaleLocationId}
+                          action="This sale"
+                          variant="card"
+                          requiredNote="Choose a location to continue"
+                          // Due once there is something to sell. An empty cart
+                          // with no branch is not a mistake yet — it is a sale
+                          // nobody has started.
+                          requiredDue={lines.length > 0}
+                        />
+                      )}
+                      {/* Above the lines, because it is about the client rather
+                          than about any line — and there IS no covered line to
+                          hang it on, which is the whole point. */}
+                      {clientSearching || expiredPackages.length === 0
+                        ? null
+                        : expiredPackages.map((pkg) => (
+                            <ExpiredPackageWarning
+                              key={pkg.id}
+                              pkg={pkg}
+                              onDismiss={() => setDismissedExpired((c) => [...c, pkg.id])}
+                            />
+                          ))}
+                      {clientSearching ? null : (
+                        <CartContent
+                          lines={lines}
+                          hasClient={hasClient}
+                          onRemove={removeLine}
+                          onSetQty={setQty}
+                          onEditLine={setEditingUid}
+                          coverage={coverage}
+                          // SCR-13, on the line the session paid for rather than
+                          // in a panel of its own: the fact is about this
+                          // service at this branch, and it warns and still
+                          // completes (KC1.5).
+                          renderLineNotice={(line) => {
+                            const mismatch = branchMismatches.get(line.uid)
+                            if (!mismatch) return null
+                            const session = coverage.get(line.uid)
+                            const pkg = heldPackages.find(
+                              (p) => p.id === session?.customerPackageId,
+                            )
+                            if (!pkg) return null
+                            return (
+                              <PackageBranchWarning
+                                className="mx-3 mb-1"
+                                mismatch={mismatch}
+                                soldAtLocationId={pkg.soldAtLocationId}
+                                serviceName={line.name}
+                                decision={packageDecisions[line.uid] ?? null}
+                                onDecide={(decision) =>
+                                  setPackageDecisions((c) => ({ ...c, [line.uid]: decision }))
+                                }
+                              />
+                            )
+                          }}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {clientEditing ? (
+                        // Inline client picker — stays on the current step.
+                        <ClientPanel
+                          attachment={attachment}
+                          initialSearching
+                          onAttachClient={(client: CatalogClient) => {
+                            setAttachment({ type: "client", client })
+                            setClientEditing(false)
+                          }}
+                          onWalkIn={() => {
+                            setAttachment({ type: "walk-in" })
+                            setClientEditing(false)
+                          }}
+                          onAddNew={() => {
+                            setAttachment({
+                              type: "client",
+                              client: { id: "new-client", name: "New client" },
+                            })
+                            setClientEditing(false)
+                          }}
+                          onClear={() => setAttachment({ type: "none" })}
+                        />
+                      ) : (
+                        <ClientSummaryCard
+                          attachment={attachment}
+                          onRemove={() => setAttachment({ type: "none" })}
+                          onChangeClient={() => {
+                            setAttachment({ type: "none" })
+                            setClientEditing(true)
+                          }}
+                        />
+                      )}
+                      <CartContent
+                        lines={lines}
+                        hasClient={hasClient}
+                        onRemove={removeLine}
+                        onSetQty={setQty}
+                        onEditLine={setEditingUid}
+                        readOnly
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        radius="full"
+                        className="w-fit gap-2"
+                        onClick={() => setStep("cart")}
+                      >
+                        <CirclePlusIcon className="size-4" />
+                        Add
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {step === "cart" ? (
+                  clientSearching ? null : (
+                    <CartFooter
+                      lines={lines}
+                      discountMinor={discountMinor}
+                      blockedReason={blockedReason}
+                      onContinue={() => setStep("tip")}
+                      onAddTip={() => setStep("tip")}
+                      onAddCartDiscount={() => setCartDiscountOpen(true)}
+                      onAddSaleNote={() => setSaleNoteOpen(true)}
+                      onSaveDraft={() => setDraftModalOpen(true)}
+                      onCancelSale={() => leave()}
+                    />
+                  )
+                ) : (
+                  <CheckoutFooter
+                    baseMinor={baseMinor}
+                    tipMinor={tipMinor}
+                    payments={step === "payment" ? payments : []}
+                    onRemovePayment={removePayment}
+                    // `baseMinor` arrives already reduced by both of these, so
+                    // without them this footer just showed a smaller number
+                    // than the lines above it.
+                    deductions={[
+                      ...dealDiscounts(lines).map((d) => ({
+                        key: d.uid,
+                        label: d.label,
+                        amountMinor: d.amountMinor,
+                      })),
+                      ...(discountMinor > 0
+                        ? [{ key: "cart", label: "Cart discount", amountMinor: discountMinor }]
+                        : []),
+                    ]}
+                    ctaLabel={
+                      step === "tip"
+                        ? "Continue to payment"
+                        : fullyPaid
+                          ? "Pay now"
+                          : payments.length > 0
+                            ? "Save part-paid"
+                            : "Save unpaid"
+                    }
+                    onCta={
+                      step === "tip"
+                        ? () => setStep("payment")
+                        : fullyPaid
+                          ? () => setConfirmed(true)
+                          : // A gift card stays inactive until the sale is fully paid —
+                            // confirm before saving it unpaid / part-paid.
+                            hasGiftCard
+                            ? () => setUnpaidConfirmOpen(true)
+                            : () => leave()
+                    }
+                    onAddTip={() => setStep("tip")}
+                    onAddCartDiscount={() => setCartDiscountOpen(true)}
+                    onAddSaleNote={() => setSaleNoteOpen(true)}
+                    onSaveDraft={() => setDraftModalOpen(true)}
+                    onCancelSale={() => leave()}
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </SheetContent>
+
+      {/* Draft persistence modal — shown on close attempt with items in the cart */}
+      <Dialog open={draftModalOpen} onOpenChange={setDraftModalOpen}>
+        <DialogContent className="flex flex-col gap-4 sm:max-w-md">
+          <DialogClose asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              radius="full"
+              aria-label="Close"
+              className="absolute top-4 right-4 text-muted-foreground"
+            >
+              <XIcon className="size-5" />
+            </Button>
+          </DialogClose>
+          <DialogTitle className="font-heading font-semibold text-2xl">
+            Discard draft sale?
+          </DialogTitle>
+          <p className="text-base text-muted-foreground leading-6">
+            Your cart won’t be saved. To keep your changes, save this sale as a draft
+          </p>
+          <div className="flex items-center gap-3 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              radius="full"
+              className="flex-1"
+              onClick={() => {
+                // Saving to Drafts is handled by a sibling ticket; close the flow.
+                setDraftModalOpen(false)
+                leave()
+              }}
+            >
+              Save as draft
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="lg"
+              radius="full"
+              className="flex-1"
+              onClick={() => {
+                setDraftModalOpen(false)
+                leave()
+              }}
+            >
+              Discard
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unpaid-sale guard — gift cards stay inactive until the sale is fully paid */}
+      <Dialog open={unpaidConfirmOpen} onOpenChange={setUnpaidConfirmOpen}>
+        <DialogContent className="flex flex-col gap-4 sm:max-w-md">
+          <DialogClose asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              radius="full"
+              aria-label="Close"
+              className="absolute top-4 right-4 text-muted-foreground"
+            >
+              <XIcon className="size-5" />
+            </Button>
+          </DialogClose>
+          <DialogTitle className="font-heading font-semibold text-2xl">Unpaid sale</DialogTitle>
+          <div className="flex items-start gap-3 rounded-2xl bg-cami-yellow-3 px-4 py-3 text-cami-yellow-11">
+            <InfoIcon className="mt-0.5 size-5 shrink-0" />
+            <p className="text-sm leading-5">
+              Gift cards in this sale will be inactive until full payment is added.
+            </p>
+          </div>
+          <p className="text-base text-foreground leading-6">
+            Do you want to continue without payment?
+          </p>
+          <div className="flex items-center gap-3 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              radius="full"
+              className="flex-1"
+              onClick={() => setUnpaidConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              radius="full"
+              className="flex-1"
+              onClick={() => {
+                setUnpaidConfirmOpen(false)
+                leave()
+              }}
+            >
+              Continue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {editingLine && editingLine.kind === "gift-card" && editingLine.giftCard ? (
+        <GiftCardDialog
+          key={editingLine.uid}
+          mode="edit"
+          initial={editingLine.giftCard}
+          open
+          onOpenChange={(next) => {
+            if (!next) setEditingUid(null)
+          }}
+          onApply={(draft) => applyGiftCardEdit(editingLine.uid, draft)}
+          onDelete={step === "cart" ? () => removeLine(editingLine.uid) : undefined}
+        />
+      ) : editingLine ? (
+        <EditLineDialog
+          key={editingLine.uid}
+          line={editingLine}
+          open
+          onOpenChange={(next) => {
+            if (!next) setEditingUid(null)
+          }}
+          onApply={applyLineEdit}
+          onDelete={step === "cart" ? removeLine : undefined}
+          locationId={saleLocationId}
+          // A deal's minimum spend is about the cart, not the line it hangs
+          // off — AED 150 minimum on a AED 20 nail trim inside a AED 400 cart
+          // is met, and checking the line alone would refuse it.
+          cartTotalMinor={totals(lines).totalMinor}
+          // A walk-in has no history, which is not the same as none.
+          clientRedemptions={attachment.type === "client" ? 0 : null}
+        />
+      ) : null}
+
+      {customTipOpen ? (
+        <CustomTipDialog
+          open
+          baseMinor={baseMinor}
+          onOpenChange={setCustomTipOpen}
+          onApply={(minor) => {
+            setTipId("custom")
+            setCustomTipMinor(minor)
+          }}
+        />
+      ) : null}
+
+      {cartDiscountOpen ? (
+        <CartDiscountDialog
+          open
+          baseMinor={totals(lines).totalMinor}
+          onOpenChange={setCartDiscountOpen}
+          onApply={setDiscountMinor}
+        />
+      ) : null}
+
+      {cashDialogOpen ? (
+        <CashAmountDialog
+          open
+          toPayMinor={leftToPayMinor}
+          onOpenChange={setCashDialogOpen}
+          onApply={(amount, receivedBy) => addPayment("cash", amount, receivedBy)}
+        />
+      ) : null}
+
+      {cardDialogOpen ? (
+        <CardAmountDialog
+          open
+          toPayMinor={leftToPayMinor}
+          onOpenChange={setCardDialogOpen}
+          onApply={(amount) => addPayment("card", amount)}
+        />
+      ) : null}
+
+      <SelectPaymentModal
+        open={methodPickerOpen}
+        onOpenChange={setMethodPickerOpen}
+        onSelect={selectPayment}
+      />
+
+      <RedeemGiftCardDialog
+        open={redeemOpen}
+        onOpenChange={setRedeemOpen}
+        leftToPayMinor={leftToPayMinor}
+        onApply={(amount) => addPayment("gift-card", amount)}
+      />
+
+      {selfCheckoutOpen ? (
+        <SelfCheckoutDialog
+          open
+          onOpenChange={setSelfCheckoutOpen}
+          toPayMinor={leftToPayMinor}
+          defaultName={attachment.type === "client" ? attachment.client.name : undefined}
+          defaultPhone={attachment.type === "client" ? attachment.client.phone : undefined}
+          onSend={sendPaymentLink}
+        />
+      ) : null}
+
+      {/* Remounted per open so the pre-selection is recomputed — which machine
+          is signed in can change between two sends. */}
+      {terminalPickerOpen ? (
+        <SelectTerminalDialog
+          open
+          onOpenChange={setTerminalPickerOpen}
+          terminals={terminals}
+          sessions={terminalSessions}
+          amountMinor={leftToPayMinor}
+          onSend={routeToTerminal}
+        />
+      ) : null}
+
+      {giftCardAddOpen ? (
+        <GiftCardDialog
+          mode="add"
+          initial={newGiftCardDraft(10000)}
+          open
+          onOpenChange={(next) => !next && setGiftCardAddOpen(false)}
+          onApply={addGiftCard}
+        />
+      ) : null}
+
+      {saleNoteOpen ? (
+        <SaleNoteDialog open note={saleNote} onOpenChange={setSaleNoteOpen} onSave={setSaleNote} />
+      ) : null}
+    </Sheet>
+  )
+}
+
+function ConfirmationScreen({
+  paidMinor,
+  changeMinor,
+}: {
+  paidMinor: number
+  changeMinor: number
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-12 text-center">
+      <span className="flex size-20 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11">
+        <CheckIcon className="size-10" strokeWidth={2.5} />
+      </span>
+      <div className="flex flex-col gap-1">
+        <h1 className="font-heading font-semibold text-2xl text-foreground">Payment complete</h1>
+        <p className="text-muted-foreground">{formatMoney(paidMinor)} paid</p>
+        {changeMinor > 0 ? (
+          <p className="font-medium text-foreground">Change · {formatMoney(changeMinor)}</p>
+        ) : null}
+      </div>
+    </div>
+  )
+}

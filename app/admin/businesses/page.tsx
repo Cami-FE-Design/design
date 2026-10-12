@@ -12,12 +12,13 @@ import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { AdminShell } from "@/components/blocks/admin-shell"
-import { BusinessDetailDialog } from "@/components/blocks/business-detail-dialog"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { NewBusinessSheet } from "@/components/blocks/new-business-sheet"
-import { StateDropdown } from "@/components/blocks/state-dropdown"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { AdminShell } from "@/components/blocks/admin/admin-shell"
+import { BusinessDetailDialog } from "@/components/blocks/admin/business-detail-dialog"
+import { NewBusinessSheet } from "@/components/blocks/admin/new-business-sheet"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { StateDropdown } from "@/components/blocks/shared/state-dropdown"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import {
@@ -33,12 +34,11 @@ import {
   type AdminBusiness,
   adminBusinesses,
   type BusinessState,
-  formatAed,
   formatDate,
-  relativeTime,
   stateLabel,
 } from "@/lib/admin-businesses"
 import { useAuth } from "@/lib/auth-mock"
+import { formatAed, formatTimeAgo } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type StateFilter = "all" | BusinessState
@@ -185,7 +185,9 @@ function WeeklyCell({ weekly }: { weekly: AdminBusiness["weekly"] }) {
   }
   return (
     <div className="flex flex-col text-sm tabular-nums">
-      <span className="font-medium text-foreground">AED {formatAed(weekly.markPaidAed)}</span>
+      <span className="font-medium text-foreground">
+        {formatAed(Math.round(weekly.markPaidAed))}
+      </span>
       <span className="text-muted-foreground">
         {weekly.bookings} {weekly.bookings === 1 ? "booking" : "bookings"}, {weekly.invoices}{" "}
         {weekly.invoices === 1 ? "invoice" : "invoices"}
@@ -257,7 +259,7 @@ function BusinessRow({
         {formatDate(business.createdAt)}
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {relativeTime(business.lastActivityAt)}
+        {formatTimeAgo(business.lastActivityAt)}
       </TableCell>
     </TableRow>
   )
@@ -467,18 +469,20 @@ function BusinessesIndex() {
   return (
     <AdminShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Partners</h1>
-            <p className="text-sm text-muted-foreground">
+        <PageHeader
+          title="Partners"
+          description={
+            <>
               {counts.all} {counts.all === 1 ? "partner" : "partners"} on Cami
-            </p>
-          </div>
-          <Button radius="full" onClick={() => setNewBusinessOpen(true)}>
-            <PlusIcon />
-            New Partner
-          </Button>
-        </div>
+            </>
+          }
+          actions={
+            <Button radius="full" onClick={() => setNewBusinessOpen(true)}>
+              <PlusIcon />
+              New Partner
+            </Button>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

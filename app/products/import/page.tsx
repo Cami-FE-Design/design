@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { Suspense } from "react"
-import { AppShell } from "@/components/blocks/app-shell"
 import { ProductImportCompareShell } from "@/components/blocks/imports/import-compare-shell"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 
 export const metadata: Metadata = {
   title: "Import products",

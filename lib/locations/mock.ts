@@ -42,7 +42,7 @@ const AL_QUOZ_HOURS: WeekSchedule = {
 /**
  * The business's locations — the single source every surface reads.
  *
- * Before this file there were three: `LOCATIONS` in components/blocks/location-form.tsx,
+ * Before this file there were three: `LOCATIONS` in components/blocks/settings/location-form.tsx,
  * `TERMINAL_LOCATIONS` in lib/terminals/store.tsx (whose own comment asked for
  * this collapse), and a pair of fabricated rows in the topbar's workspace
  * switcher. Three sources meant a location could be "Downtown Clinic" on the

@@ -24,6 +24,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 import type { BranchStock } from "@/lib/inventory/branch-stock"
 import { BRANCH_STOCK } from "@/lib/inventory/mock"
+import { readStoredJson, writeStoredJson } from "@/lib/storage"
 
 const STORAGE_KEY = "cami-branch-stock"
 
@@ -48,14 +49,8 @@ type BranchStockValue = {
 const BranchStockContext = createContext<BranchStockValue | null>(null)
 
 function readStored(): BranchStock[] | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as BranchStock[]
-    return Array.isArray(parsed) ? parsed : null
-  } catch {
-    return null
-  }
+  const parsed = readStoredJson(STORAGE_KEY) as BranchStock[]
+  return Array.isArray(parsed) ? parsed : null
 }
 
 /** Find the row, or make one — a branch with no row has none of this product. */
@@ -95,7 +90,7 @@ export function BranchStockProvider({
     (mutate: (rows: BranchStock[]) => BranchStock[]) => {
       setStock((current) => {
         const next = mutate(current)
-        if (persist) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+        if (persist) writeStoredJson(STORAGE_KEY, next)
         return next
       })
     },

@@ -110,6 +110,11 @@ export const SEED_ROLES: Role[] = [
  */
 export const ROLES: Role[] = SEED_ROLES
 
+/** roleCode → display name, for the topbar role badge. Derived so it can't drift from the seed. */
+export const HQ_ROLE_LABELS: Record<string, string> = Object.fromEntries(
+  SEED_ROLES.map((role) => [role.roleCode, role.name]),
+)
+
 export const PERMISSION_MODULES = [
   "Partners",
   "Billing",

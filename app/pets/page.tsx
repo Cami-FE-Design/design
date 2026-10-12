@@ -14,14 +14,14 @@ import {
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo, useState } from "react"
-
-import { AppShell } from "@/components/blocks/app-shell"
-import { ClientDetailDialog } from "@/components/blocks/client-detail-dialog"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
-import { PetDetailDialog } from "@/components/blocks/pet-detail-dialog"
-import { PetEditSheet } from "@/components/blocks/pet-edit-sheet"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { ClientDetailDialog } from "@/components/blocks/clients/client-detail-dialog"
+import { PetDetailDialog } from "@/components/blocks/clients/pet-detail-dialog"
+import { PetEditSheet } from "@/components/blocks/clients/pet-edit-sheet"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { LinkedEntityChip } from "@/components/blocks/shared/linked-entity-chip"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -39,8 +39,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { formatDate, formatTimeAgo } from "@/lib/format"
+import { MOCK_PETS, type MockPet, PETS_TODAY } from "@/lib/pets/mock"
 import { cn } from "@/lib/utils"
-import { formatDate, formatRelative, MOCK_PETS, type MockPet } from "./mock"
 
 type SortKey = "name" | "lastVisit" | "totalVisits" | "createdAt"
 type SortDir = "asc" | "desc"
@@ -163,7 +164,7 @@ function PetRow({ pet, onOpen }: { pet: MockPet; onOpen: () => void }) {
         <OwnersCell owners={pet.owners} seed={familySeed} />
       </TableCell>
       <TableCell className="text-sm text-foreground tabular-nums">
-        {formatRelative(pet.lastVisitDate)}
+        {formatTimeAgo(pet.lastVisitDate, { precision: "day", now: PETS_TODAY })}
       </TableCell>
       <TableCell className="text-sm text-foreground tabular-nums">{pet.totalVisits}</TableCell>
       <TableCell className="text-sm text-muted-foreground tabular-nums">
@@ -277,43 +278,43 @@ function PetsIndex() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Pets</h1>
-            <p className="text-sm text-muted-foreground">
+        <PageHeader
+          title="Pets"
+          description={
+            <>
               {MOCK_PETS.length} {MOCK_PETS.length === 1 ? "pet" : "pets"}
-            </p>
-          </div>
-          {/* Actions group. Without the wrapper, justify-between strands Options
-              in the middle of the header instead of beside Add pet. */}
-          <div className="flex items-center gap-2">
-            {/* Same Options menu as clients and products (DSG-84). */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full">
-                  Options
-                  <ChevronDownIcon className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem asChild>
-                  <Link href="/clients/import?entity=pets">
-                    <ImportIcon className="size-4" />
-                    Import pets
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <UploadIcon className="size-4" />
-                  Export pets
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button radius="full" onClick={() => setAddOpen(true)}>
-              <PlusIcon />
-              Add pet
-            </Button>
-          </div>
-        </div>
+            </>
+          }
+          actions={
+            <>
+              {/* Same Options menu as clients and products (DSG-84). */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" radius="full">
+                    Options
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem asChild>
+                    <Link href="/clients/import?entity=pets">
+                      <ImportIcon className="size-4" />
+                      Import pets
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <UploadIcon className="size-4" />
+                    Export pets
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button radius="full" onClick={() => setAddOpen(true)}>
+                <PlusIcon />
+                Add pet
+              </Button>
+            </>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

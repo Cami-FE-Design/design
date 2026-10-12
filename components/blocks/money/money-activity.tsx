@@ -29,10 +29,10 @@ import {
   RotateCcwIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
-import { type DateRange, DateRangePopover } from "@/components/blocks/date-range-popover"
-import { EmptyState } from "@/components/blocks/empty-state"
 import { PayoutDetailDialog } from "@/components/blocks/money/payout-detail-dialog"
 import { TransactionDetailDialog } from "@/components/blocks/money/transaction-detail-dialog"
+import { type DateRange, DateRangePopover } from "@/components/blocks/shared/date-range-popover"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -43,14 +43,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
-import { formatTime } from "@/lib/format"
+import { formatTime, toDayIso } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
 import {
   formatDayHeading,
   formatMoney,
   fromDayIso,
   SCOPE_STATEMENT,
-  toDayIso,
   txKindLabel,
 } from "@/lib/money/format"
 import { filterActivity, groupByDay, paginateDays } from "@/lib/money/ledger"

@@ -3,7 +3,6 @@
 import {
   ArrowUpDownIcon,
   BanknoteIcon,
-  CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   CreditCardIcon,
@@ -26,27 +25,31 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react"
-import { CartFlow } from "@/app/sales/new-sale/cart-flow"
-import type { CartLine } from "@/app/sales/new-sale/types"
-import { AppShell } from "@/components/blocks/app-shell"
-import { CamiPayFeeBreakdown } from "@/components/blocks/camipay-fee-breakdown"
 import {
   type ClientDetailClient,
   ClientDetailDialog,
-} from "@/components/blocks/client-detail-dialog"
-import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
-import { EmailInvoiceDialog } from "@/components/blocks/email-invoice-dialog"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { RefundSaleDialog } from "@/components/blocks/refund-sale-dialog"
-import { ShareGiftCardDialog } from "@/components/blocks/share-gift-card-dialog"
-import { ShareInvoiceDialog } from "@/components/blocks/share-invoice-dialog"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
-import { TimelineRow } from "@/components/blocks/timeline-row"
-import { VoidSaleDialog } from "@/components/blocks/void-sale-dialog"
+} from "@/components/blocks/clients/client-detail-dialog"
+import { CamiPayFeeBreakdown } from "@/components/blocks/sales/camipay-fee-breakdown"
+import { EmailInvoiceDialog } from "@/components/blocks/sales/email-invoice-dialog"
+import { CartFlow } from "@/components/blocks/sales/new-sale/cart-flow"
+import { RefundSaleDialog } from "@/components/blocks/sales/refund-sale-dialog"
+import { ShareGiftCardDialog } from "@/components/blocks/sales/share-gift-card-dialog"
+import { ShareInvoiceDialog } from "@/components/blocks/sales/share-invoice-dialog"
+import { VoidSaleDialog } from "@/components/blocks/sales/void-sale-dialog"
+import { ConfirmDialog } from "@/components/blocks/shared/confirm-dialog"
+import {
+  type DateRange,
+  DateRangePopover,
+  rangeForPreset,
+} from "@/components/blocks/shared/date-range-popover"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { TimelineRow } from "@/components/blocks/shared/timeline-row"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import {
   Dialog,
   DialogClose,
@@ -63,16 +66,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { SearchInput } from "@/components/ui/search-input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -82,28 +76,25 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { type CamiPayRail, type CamiPayRate, railLabel } from "@/lib/hq-camipay/store"
+import { endOfDay, formatAed, formatDate, formatTime, startOfDay } from "@/lib/format"
+import { type CamiPayRail, railLabel } from "@/lib/hq-camipay/store"
 import { invoiceFromSale, originalFor, receiptNumberFor } from "@/lib/invoice/from-sale"
 import { documentTitle } from "@/lib/invoice/totals"
 import { useLocations } from "@/lib/locations/store"
+import type { CartLine } from "@/lib/sales/cart-types"
+import { MOCK_SALES, type Sale, type SaleItem } from "@/lib/sales/mock"
+import { CURRENT_USER } from "@/lib/sales/new-sale-mock"
 import {
   demoPaidMinor,
   paymentsElsewhere,
   paymentsFor,
   type SalePayment,
 } from "@/lib/sales/payments"
+import { SALE_STATUS_CLASS, SALE_STATUS_LABEL } from "@/lib/sales/status"
+import { bookableStaffAt } from "@/lib/team/staff"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const CURRENCY = "AED"
-
-function money(amount: number) {
-  if (amount < 0) {
-    return `- ${CURRENCY} ${Math.abs(amount).toLocaleString()}`
-  }
-  return `${CURRENCY} ${amount.toLocaleString()}`
-}
 
 const MONTH_SHORT = [
   "Jan",
@@ -120,738 +111,12 @@ const MONTH_SHORT = [
   "Dec",
 ]
 
-function formatDateOnly(d: Date) {
-  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
-}
-
 const WEEKDAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 // Weekday-led format used in the draft detail dialog header and receipt card
 // ("Tue, Jun 2"), matching the figma. The listing rows use formatDateOnly.
 function formatWeekdayShort(d: Date) {
   return `${WEEKDAY_SHORT[d.getDay()]}, ${MONTH_SHORT[d.getMonth()]} ${d.getDate()}`
-}
-
-function formatTimeOnly(d: Date) {
-  let h = d.getHours()
-  const m = d.getMinutes()
-  const meridiem = h >= 12 ? "pm" : "am"
-  h = h % 12 || 12
-  return `${h}:${m.toString().padStart(2, "0")}${meridiem}`
-}
-
-function startOfDay(d: Date) {
-  const out = new Date(d)
-  out.setHours(0, 0, 0, 0)
-  return out
-}
-
-function endOfDay(d: Date) {
-  const out = new Date(d)
-  out.setHours(23, 59, 59, 999)
-  return out
-}
-
-function addDays(d: Date, days: number) {
-  const out = new Date(d)
-  out.setDate(out.getDate() + days)
-  return out
-}
-
-function toIso(date: Date) {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
-}
-
-function parseIso(value: string): Date | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
-  const [y, m, d] = value.split("-").map(Number)
-  const out = new Date(y, m - 1, d)
-  return Number.isNaN(out.getTime()) ? null : out
-}
-
-// ─── Date range presets ───────────────────────────────────────────────────────
-
-type PresetKey =
-  | "today"
-  | "yesterday"
-  | "last-7"
-  | "last-30"
-  | "last-90"
-  | "last-month"
-  | "week-to-date"
-  | "month-to-date"
-  | "quarter-to-date"
-  | "year-to-date"
-  | "custom"
-
-const PRESETS: Array<{ key: PresetKey; label: string }> = [
-  { key: "today", label: "Today" },
-  { key: "yesterday", label: "Yesterday" },
-  { key: "last-7", label: "Last 7 days" },
-  { key: "last-30", label: "Last 30 days" },
-  { key: "last-90", label: "Last 90 days" },
-  { key: "last-month", label: "Last month" },
-  { key: "week-to-date", label: "Week to date" },
-  { key: "month-to-date", label: "Month to date" },
-  { key: "quarter-to-date", label: "Quarter to date" },
-  { key: "year-to-date", label: "Year to date" },
-]
-
-type DateRange = { from: Date; to: Date }
-
-function rangeForPreset(key: PresetKey, today: Date): DateRange {
-  const t = startOfDay(today)
-  switch (key) {
-    case "today":
-      return { from: t, to: t }
-    case "yesterday": {
-      const y = addDays(t, -1)
-      return { from: y, to: y }
-    }
-    case "last-7":
-      return { from: addDays(t, -6), to: t }
-    case "last-30":
-      return { from: addDays(t, -29), to: t }
-    case "last-90":
-      return { from: addDays(t, -89), to: t }
-    case "last-month": {
-      const from = new Date(t.getFullYear(), t.getMonth() - 1, 1)
-      const to = new Date(t.getFullYear(), t.getMonth(), 0)
-      return { from, to }
-    }
-    case "week-to-date": {
-      // Week starts Monday — matches the calendar in the figma.
-      const dow = (t.getDay() + 6) % 7
-      return { from: addDays(t, -dow), to: t }
-    }
-    case "month-to-date":
-      return { from: new Date(t.getFullYear(), t.getMonth(), 1), to: t }
-    case "quarter-to-date": {
-      const qStart = Math.floor(t.getMonth() / 3) * 3
-      return { from: new Date(t.getFullYear(), qStart, 1), to: t }
-    }
-    case "year-to-date":
-      return { from: new Date(t.getFullYear(), 0, 1), to: t }
-    case "custom":
-      return { from: t, to: t }
-  }
-}
-
-function sameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  )
-}
-
-function inferPreset(range: DateRange, today: Date): PresetKey {
-  for (const p of PRESETS) {
-    const candidate = rangeForPreset(p.key, today)
-    if (sameDay(candidate.from, range.from) && sameDay(candidate.to, range.to)) {
-      return p.key
-    }
-  }
-  return "custom"
-}
-
-// ─── Date range popover ───────────────────────────────────────────────────────
-
-type DateRangePopoverProps = {
-  value: DateRange
-  onChange: (next: DateRange) => void
-  today: Date
-}
-
-function DateRangePopover({ value, onChange, today }: DateRangePopoverProps) {
-  const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState<DateRange>(value)
-  const [preset, setPreset] = useState<PresetKey>(() => inferPreset(value, today))
-  const [fromText, setFromText] = useState(() => toIso(value.from))
-  const [toText, setToText] = useState(() => toIso(value.to))
-
-  // Sync the editing state when the popover opens, so reopening starts from the
-  // currently-applied range rather than the last in-flight edit.
-  useEffect(() => {
-    if (!open) return
-    setDraft(value)
-    setPreset(inferPreset(value, today))
-    setFromText(toIso(value.from))
-    setToText(toIso(value.to))
-  }, [open, value, today])
-
-  function commitDraft(next: DateRange) {
-    setDraft(next)
-    setFromText(toIso(next.from))
-    setToText(toIso(next.to))
-    setPreset(inferPreset(next, today))
-  }
-
-  function handlePreset(key: PresetKey) {
-    setPreset(key)
-    if (key === "custom") return
-    commitDraft(rangeForPreset(key, today))
-  }
-
-  function apply() {
-    onChange(draft)
-    setOpen(false)
-  }
-
-  const label = useMemo(() => {
-    const matched = PRESETS.find((p) => p.key === inferPreset(value, today))
-    if (matched) return matched.label
-    return `${formatDateOnly(value.from)} – ${formatDateOnly(value.to)}`
-  }, [value, today])
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" radius="full" size="sm" className="gap-1.5">
-          {label}
-          <CalendarIcon className="size-3.5" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-foreground">Date range</span>
-            <Select value={preset} onValueChange={(v) => handlePreset(v as PresetKey)}>
-              <SelectTrigger className="data-[size=default]:h-12 w-full rounded-2xl bg-input px-4 font-medium">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PRESETS.map((p) => (
-                  <SelectItem key={p.key} value={p.key}>
-                    {p.label}
-                  </SelectItem>
-                ))}
-                <SelectItem value="custom">Custom range</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-foreground">Starting</span>
-              <Input
-                value={fromText}
-                onChange={(e) => {
-                  const next = e.target.value
-                  setFromText(next)
-                  const parsed = parseIso(next)
-                  if (parsed) {
-                    setDraft((d) => ({ from: parsed, to: parsed > d.to ? parsed : d.to }))
-                    setPreset("custom")
-                  }
-                }}
-                aria-label="Starting date"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium text-foreground">Ending</span>
-              <Input
-                value={toText}
-                onChange={(e) => {
-                  const next = e.target.value
-                  setToText(next)
-                  const parsed = parseIso(next)
-                  if (parsed) {
-                    setDraft((d) => ({ from: parsed < d.from ? parsed : d.from, to: parsed }))
-                    setPreset("custom")
-                  }
-                }}
-                aria-label="Ending date"
-              />
-            </div>
-          </div>
-
-          <Calendar
-            mode="range"
-            numberOfMonths={2}
-            selected={{ from: draft.from, to: draft.to }}
-            onSelect={(r) => {
-              if (!r?.from) return
-              const from = startOfDay(r.from)
-              const to = startOfDay(r.to ?? r.from)
-              commitDraft({ from, to })
-            }}
-            defaultMonth={draft.from}
-            weekStartsOn={1}
-          />
-
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="ghost" radius="full" size="sm" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button radius="full" size="sm" onClick={apply}>
-              Apply
-            </Button>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
-}
-
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
-type SaleStatus = "completed" | "part-paid" | "unpaid" | "refunded" | "voided"
-
-/** Gift-card purchase reference — present on sales that sold a gift card. */
-export type SaleGiftCard = {
-  /** Gift card id on /sales/gift-cards-sold, for the "View gift card" link. */
-  cardId: string
-  code: string
-  /** Display status label, e.g. "Active". */
-  status: string
-  valueAed: number
-}
-
-/**
- * A payment taken over CamiPay, with the rate that was live when it was
- * captured copied onto it. The snapshot is the point: settlement and this
- * screen read the stored rate, never the Partner's current rate card, so a
- * renegotiation cannot restate a sale that already happened (PRO-737, INV-01).
- */
-export type SaleCamiPay = {
-  rail: CamiPayRail
-  rate: CamiPayRate
-}
-
-/**
- * One line on a saved sale.
- *
- * Only what the detail has to print back. A covered line keeps the shape the
- * cart gave it — charged 0, with what it was worth in `originalPriceMinor` —
- * plus the id of the package that paid, because that is the whole record of
- * WHICH ledger was debited. Re-deriving it later would spend today's sessions
- * against a sale that settled months ago.
- */
-export type SaleItem = {
-  name: string
-  /** What was charged, in fils. Zero on a line a package session paid for. */
-  priceMinor: number
-  /** What it was worth before the session paid for it. */
-  originalPriceMinor?: number
-  /** The client's package the session came out of. */
-  customerPackageId?: string
-  /** The client whose packages this line's coverage is read against. */
-  clientId?: string
-  meta?: string
-}
-
-export type Sale = {
-  id: number
-  client: string
-  status: SaleStatus
-  /**
-   * The branch that took the money (R11, G1).
-   *
-   * Not optional. A sale is the clearest operational write there is, and G6
-   * hangs off it: the receipt sequence is per branch and prefixed, and the tax
-   * identity is frozen onto the receipt at sale. A sale without a branch can
-   * have neither, so leaving it absent would put the two facts a receipt
-   * legally needs beyond reach.
-   */
-  locationId: string
-  saleAt: Date
-  tipsMinor: number
-  grossMinor: number
-  /**
-   * The lines, when this sale has more to say than one figure.
-   *
-   * Absent on most of the seed, which is a list of totals — the detail falls
-   * back to the single row it always drew. Present where the lines carry
-   * something the total cannot: a package session, most of all.
-   */
-  items?: SaleItem[]
-  /** Set when this sale is a gift-card purchase (drives the gift-card item UI). */
-  giftCard?: SaleGiftCard
-  /** Set when the payment went over CamiPay. Absent means cash. */
-  camipay?: SaleCamiPay
-  /**
-   * The payments, each with the location that collected it.
-   *
-   * Absent on most of the seed, which derives one payment from the status at
-   * the sale's own location. Present where a payment was taken somewhere else.
-   */
-  payments?: SalePayment[]
-}
-
-// Rate snapshots for the mock sales, copied from Shampooch JVC's rate card in
-// `DEFAULT_CAMIPAY_STATE` as it stood on each sale's date. Written out rather
-// than resolved at render time, because that is exactly what a real capture
-// does: it stores the rate, it does not look it up later.
-//
-// Both are the rates effective 01 May 2026, which is before every sale below.
-// The online one carries the AED 100 bracket, so the sales split across it:
-// anything under keeps the AED 0.75, the AED 10,500 gift-card sale does not.
-const RATE_TERMINAL: CamiPayRate = { percent: 1.8, fixedMinor: 0, fixedBelowMinor: null }
-const RATE_ONLINE: CamiPayRate = { percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 }
-
-// Demo today is 2026-05-25. Trimmed to 10 rows: five "today" rows (one per
-// status) guarantee every state is visible the moment the page opens, plus
-// five older rows anchored on 22–24 May so the Last-7/30/90 ranges also fill
-// out. The kept ids (1, 2, 3, 6, 7, 12–16) are exactly the ones deep-linked
-// from /screens and the appointments "View sale" (?sale=2), so no existing
-// link breaks.
-export const MOCK_SALES: Sale[] = [
-  // 25 May — today. One per status so the default Today view shows every state.
-  // A refund and the sale it reverses, as a pair — production emits both as their
-  // own rows with adjacent numbers (live Sale 241 → Refund 242, DSG-72 §0.6), and
-  // the original stays `completed`. Kept adjacent and same-amount on purpose: a
-  // credit note has to cite a real invoice, and before this pair existed the only
-  // refunded rows sat next to a voided and a part-paid sale.
-  {
-    id: 20,
-    locationId: "shampooch-jvc",
-    client: "Yamen Haddad",
-    status: "refunded",
-    saleAt: new Date(2026, 4, 25, 17, 20),
-    tipsMinor: 0,
-    grossMinor: -190000,
-  },
-  {
-    id: 19,
-    locationId: "shampooch-jvc",
-    client: "Yamen Haddad",
-    status: "completed",
-    saleAt: new Date(2026, 4, 25, 17, 5),
-    tipsMinor: 0,
-    grossMinor: 190000,
-  },
-  // Package redemption with a tip: nothing to pay for the service, but the client
-  // tipped anyway. Mirrors live Cami Sale 387 (DSG-72 §0.6), where the tip is
-  // folded into Total unlabelled and lands exactly where VAT would. Gross 0 with
-  // a non-zero tip is the shape that breaks a single-Total receipt.
-  {
-    id: 17,
-    locationId: "shampooch-jvc",
-    client: "Haroon Zafar",
-    status: "completed",
-    saleAt: new Date(2026, 4, 25, 16, 10),
-    tipsMinor: 500,
-    grossMinor: 0,
-  },
-  {
-    id: 16,
-    locationId: "shampooch-jumeirah",
-    client: "Tom Cassidy",
-    status: "completed",
-    saleAt: new Date(2026, 4, 25, 14, 30),
-    tipsMinor: 1000,
-    grossMinor: 5400,
-    camipay: { rail: "terminal", rate: RATE_TERMINAL },
-  },
-  /**
-   * A sale a package session paid for, kept so the detail has to read one back.
-   *
-   * The till writes the coverage onto the line and moves on; this is the other
-   * end of it — months later, somebody opens the sale and has to be told why a
-   * blow dry was charged at nothing. Without the package id on the line there
-   * is no answer, only a zero.
-   */
-  {
-    id: 18,
-    locationId: "shampooch-jvc",
-    client: "Aaishah Vaza",
-    status: "completed",
-    saleAt: new Date(2026, 4, 24, 11, 15),
-    tipsMinor: 0,
-    grossMinor: 4500,
-    items: [
-      {
-        name: "Blow Dry & Style",
-        priceMinor: 0,
-        originalPriceMinor: 12000,
-        customerPackageId: "cp-aaishah-1",
-        clientId: "aaishah-vaza",
-        meta: "45min · Husain NGI",
-      },
-      { name: "Nail trim", priceMinor: 4500, meta: "20min · Husain NGI" },
-    ],
-    // A deposit taken at another location the day before, and the balance
-    // here. Refunding or voiding the deposit belongs to Jumeirah, so a
-    // viewer who holds JVC alone is not offered either for it.
-    payments: [
-      {
-        id: "p1",
-        kind: "card",
-        amountMinor: 2000,
-        at: new Date(2026, 4, 23, 18, 40),
-        locationId: "shampooch-jumeirah",
-      },
-      {
-        id: "p2",
-        kind: "cash",
-        amountMinor: 2500,
-        at: new Date(2026, 4, 24, 11, 15),
-        locationId: "shampooch-jvc",
-      },
-    ],
-  },
-  {
-    id: 15,
-    locationId: "shampooch-jvc",
-    client: "Karen Dougall",
-    status: "part-paid",
-    saleAt: new Date(2026, 4, 25, 12, 5),
-    tipsMinor: 0,
-    grossMinor: 3800,
-    // Under the AED 100 bracket, so the fixed AED 0.75 applies. Part-paid too,
-    // which proves the fee follows what was captured, not the sale total.
-    camipay: { rail: "online", rate: RATE_ONLINE },
-  },
-  {
-    id: 14,
-    locationId: "shampooch-jvc",
-    client: "Millie Cassidy",
-    status: "unpaid",
-    saleAt: new Date(2026, 4, 25, 11, 20),
-    tipsMinor: 0,
-    grossMinor: 2100,
-  },
-  {
-    id: 13,
-    locationId: "shampooch-jumeirah",
-    client: "Aya Hassan",
-    status: "refunded",
-    saleAt: new Date(2026, 4, 25, 10, 45),
-    tipsMinor: 0,
-    grossMinor: -1800,
-  },
-  {
-    id: 12,
-    locationId: "shampooch-jvc",
-    client: "Charmaine Hayes",
-    status: "voided",
-    saleAt: new Date(2026, 4, 25, 9, 50),
-    tipsMinor: 0,
-    grossMinor: 4200,
-  },
-  // Older rows — preserved so /screens?sale=N deep-links don't break.
-  {
-    id: 7,
-    locationId: "shampooch-jumeirah",
-    client: "Jane Doe",
-    status: "completed",
-    saleAt: new Date(2026, 4, 24, 10, 15),
-    tipsMinor: 0,
-    grossMinor: 2500,
-    camipay: { rail: "terminal", rate: RATE_TERMINAL },
-  },
-  {
-    id: 6,
-    locationId: "shampooch-jumeirah",
-    client: "Jane Doe",
-    status: "part-paid",
-    saleAt: new Date(2026, 4, 24, 10, 15),
-    tipsMinor: 0,
-    grossMinor: 2500,
-  },
-  {
-    id: 3,
-    locationId: "shampooch-jvc",
-    client: "John Doe",
-    status: "refunded",
-    saleAt: new Date(2026, 4, 22, 10, 45),
-    tipsMinor: 0,
-    grossMinor: -900,
-  },
-  {
-    id: 2,
-    locationId: "shampooch-jvc",
-    client: "John Doe",
-    status: "part-paid",
-    saleAt: new Date(2026, 4, 22, 10, 33),
-    tipsMinor: 0,
-    grossMinor: 2500,
-  },
-  {
-    id: 1,
-    locationId: "shampooch-jvc",
-    client: "John Doe",
-    status: "voided",
-    saleAt: new Date(2026, 4, 22, 10, 2),
-    tipsMinor: 0,
-    grossMinor: 2500,
-  },
-  // Gift-card-purchase sales (ids 20–24). These back the rows on
-  // /sales/gift-cards-sold — each gift card references one of these by id, so
-  // the gift card's "View sale" opens the matching sale and they appear here in
-  // the listing too (single source of truth, no duplicated sale data).
-  {
-    id: 24,
-    locationId: "shampooch-al-reem",
-    client: "Aamena Fatta",
-    status: "completed",
-    saleAt: new Date(2026, 5, 1, 15, 33),
-    tipsMinor: 0,
-    grossMinor: 1050000,
-    giftCard: { cardId: "gc-5", code: "ZTP3RG84", status: "Active", valueAed: 10500 },
-    // Above the AED 100 bracket, so the AED 0.75 is dropped and the fee is the
-    // percentage alone. Paired with sale 15, which sits under it. Reached from
-    // /sales/gift-cards-sold via "View sale".
-    camipay: { rail: "online", rate: RATE_ONLINE },
-  },
-  {
-    id: 23,
-    locationId: "shampooch-al-quoz",
-    client: "Luke Williams",
-    status: "completed",
-    saleAt: new Date(2025, 1, 20, 12, 10),
-    tipsMinor: 0,
-    grossMinor: 700000,
-    giftCard: { cardId: "gc-4", code: "HK7VWQ1M", status: "Expired", valueAed: 7000 },
-  },
-  {
-    id: 22,
-    locationId: "shampooch-jumeirah",
-    client: "Tom Cassidy",
-    status: "completed",
-    saleAt: new Date(2026, 3, 3, 16, 45),
-    tipsMinor: 0,
-    grossMinor: 530000,
-    giftCard: { cardId: "gc-3", code: "BX9PLND2", status: "Redeemed", valueAed: 5300 },
-  },
-  {
-    id: 21,
-    locationId: "shampooch-jumeirah",
-    client: "Millie Cassidy",
-    status: "completed",
-    saleAt: new Date(2026, 4, 12, 9, 5),
-    tipsMinor: 0,
-    grossMinor: 350000,
-    giftCard: { cardId: "gc-2", code: "QM4KTRZA", status: "Active", valueAed: 3500 },
-  },
-  {
-    // Was a second id 20 — the refunded Yamen Haddad sale already held it, so
-    // `?sale=20` and every `find` by id reached whichever came first and this
-    // row could not be opened at all.
-    id: 25,
-    locationId: "shampooch-downtown-dubai",
-    client: "Walk-In",
-    status: "unpaid",
-    saleAt: new Date(2026, 5, 29, 11, 20),
-    tipsMinor: 0,
-    grossMinor: 180000,
-    giftCard: { cardId: "gc-1", code: "YYOSNPHO", status: "Unpaid", valueAed: 1800 },
-  },
-
-  // ── The rest of the estate, and the other businesses ───────────────────────
-  //
-  // Six branches had no sales at all, so every screen that bounds by branch
-  // showed an empty table the moment the operator narrowed to one of them —
-  // indistinguishable from a broken filter. Same for Purr Palace and Sota:
-  // signing into either left the whole money side blank.
-  //
-  // Dated the same day as the rows above, so the default "Today" range holds
-  // them. Each still belongs to exactly one branch (R11), and every surface
-  // bounds by the reader's grant before it reads (R18) — so a Purr Palace
-  // merchant sees Purr Palace's and nothing else.
-  {
-    id: 30,
-    locationId: "shampooch-dubai-marina",
-    client: "Layla Nasser",
-    status: "completed",
-    saleAt: new Date(2026, 4, 25, 15, 40),
-    tipsMinor: 1500,
-    grossMinor: 32000,
-  },
-  {
-    id: 31,
-    locationId: "shampooch-al-majaz",
-    client: "Hind Al Suwaidi",
-    status: "completed",
-    saleAt: new Date(2026, 4, 25, 12, 15),
-    tipsMinor: 0,
-    grossMinor: 19000,
-  },
-  {
-    id: 32,
-    locationId: "shampooch-mirdif",
-    client: "Rashid Al Blooshi",
-    status: "part-paid",
-    saleAt: new Date(2026, 4, 25, 10, 5),
-    tipsMinor: 0,
-    grossMinor: 15000,
-  },
-  {
-    id: 33,
-    locationId: "shampooch-al-reem",
-    client: "Maryam Al Hosani",
-    status: "unpaid",
-    saleAt: new Date(2026, 4, 25, 9, 30),
-    tipsMinor: 0,
-    grossMinor: 24000,
-  },
-  {
-    id: 34,
-    locationId: "shampooch-downtown-dubai",
-    client: "Walk-In",
-    status: "completed",
-    saleAt: new Date(2026, 4, 25, 13, 50),
-    tipsMinor: 500,
-    grossMinor: 26000,
-  },
-  {
-    // Purr Palace — one site, so one branch and its slug is the business's.
-    id: 40,
-    locationId: "purr-palace",
-    client: "Dana Khalil",
-    status: "completed",
-    saleAt: new Date(2026, 4, 25, 16, 10),
-    tipsMinor: 1000,
-    grossMinor: 21000,
-  },
-  {
-    id: 41,
-    locationId: "purr-palace",
-    client: "Omar Sultan",
-    status: "unpaid",
-    saleAt: new Date(2026, 4, 25, 11, 45),
-    tipsMinor: 0,
-    grossMinor: 9000,
-  },
-  {
-    // Sota — the non-pet business, which is what makes it a useful check on
-    // anything that assumes a pet is on the sale.
-    id: 50,
-    locationId: "sota",
-    client: "Maaz Shaffi",
-    status: "completed",
-    saleAt: new Date(2026, 4, 25, 14, 20),
-    tipsMinor: 2000,
-    grossMinor: 38000,
-  },
-  {
-    id: 51,
-    locationId: "sota",
-    client: "Aisha Rahman",
-    status: "part-paid",
-    saleAt: new Date(2026, 4, 25, 10, 40),
-    tipsMinor: 0,
-    grossMinor: 52000,
-  },
-]
-
-// Mirrors the SALE_BADGE_CLASS in client-detail-dialog (step-5 + step-12) so
-// the same sale status reads identically in the listing row, the detail
-// dialog header pill, and the Sales tab badges in the client modal. Hue map:
-// completed = lime (paid), part-paid = gold, unpaid = cami-yellow, refunded
-// = olive, voided = tomato. Voided uses step-8/-12 to match the destructive
-// No-show badge weight in the appointments list — both are terminal "bad"
-// states and read with the same visual emphasis.
-const STATUS_META: Record<SaleStatus, { label: string; className: string }> = {
-  completed: { label: "Completed", className: "bg-lime-5 text-lime-12" },
-  "part-paid": { label: "Part Paid", className: "bg-gold-5 text-gold-12" },
-  unpaid: { label: "Unpaid", className: "bg-cami-yellow-3 text-cami-yellow-11" },
-  refunded: { label: "Refunded", className: "bg-olive-5 text-olive-12" },
-  voided: { label: "Voided", className: "bg-tomato-8 text-tomato-12" },
 }
 
 // ─── Draft mock data ──────────────────────────────────────────────────────────
@@ -926,6 +191,15 @@ function synthesizeDraft(
 // hardcoded Haircut priced at the draft total. Checkout rebuilds that same line
 // so the resumed cart matches what the operator was just looking at. The real
 // build reads the draft sale's stored lines instead.
+/**
+ * Who performed the mock service lines here: someone who takes bookings at the
+ * sale's branch (lib/team/staff.ts), so the name is always one of that
+ * branch's people. Null where nobody does, and the line then names no one.
+ */
+function performerAt(locationId: string): string | null {
+  return bookableStaffAt(locationId)[0]?.name ?? null
+}
+
 function draftToCartLines(draft: Draft): CartLine[] {
   return [
     {
@@ -934,7 +208,7 @@ function draftToCartLines(draft: Draft): CartLine[] {
       name: "Haircut",
       priceMinor: draft.grossMinor,
       durationMin: 90,
-      staffName: "Hussain Shabbir",
+      staffName: performerAt(draft.locationId) ?? "Any",
       qty: 1,
       sourceId: `draft-${draft.id}`,
     },
@@ -1001,27 +275,16 @@ function SaleLineRow({ item }: { item: SaleItem }) {
       </div>
       <div className="flex shrink-0 flex-col items-end">
         <span className="font-medium text-foreground tabular-nums">
-          {money(Math.round(item.priceMinor / 100))}
+          {formatAed(Math.round(item.priceMinor / 100))}
         </span>
         {item.originalPriceMinor != null ? (
           <span className="text-muted-foreground text-xs tabular-nums line-through">
-            {money(Math.round(item.originalPriceMinor / 100))}
+            {formatAed(Math.round(item.originalPriceMinor / 100))}
           </span>
         ) : null}
       </div>
     </li>
   )
-}
-
-// Status pill used at the top of the centered sale-detail dialog header.
-// Same palette as the listing row badge for visual continuity between the
-// row and the open detail dialog.
-const STATUS_DIALOG_PILL: Record<SaleStatus, string> = {
-  completed: "bg-lime-5 text-lime-12",
-  "part-paid": "bg-gold-5 text-gold-12",
-  unpaid: "bg-cami-yellow-3 text-cami-yellow-11",
-  refunded: "bg-olive-5 text-olive-12",
-  voided: "bg-tomato-8 text-tomato-12",
 }
 
 // ─── Sort ─────────────────────────────────────────────────────────────────────
@@ -1245,42 +508,41 @@ function SalesListPageInner() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl leading-8 font-medium text-foreground">Sales</h1>
-            <p className="text-sm text-muted-foreground">Manage your sales history and invoices</p>
-          </div>
+        <PageHeader
+          title="Sales"
+          description="Manage your sales history and invoices"
+          actions={
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" radius="full" size="sm">
+                    Options
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem>
+                    <FileTextIcon className="size-4" />
+                    Export PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileTextIcon className="size-4" />
+                    Export CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <FileSpreadsheetIcon className="size-4" />
+                    Export Excel
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full" size="sm">
-                  Options
-                  <ChevronDownIcon className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44">
-                <DropdownMenuItem>
-                  <FileTextIcon className="size-4" />
-                  Export PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileTextIcon className="size-4" />
-                  Export CSV
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <FileSpreadsheetIcon className="size-4" />
-                  Export Excel
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <Button radius="full" onClick={() => setCartOpen(true)}>
-              <PlusIcon className="size-4" />
-              Add new
-            </Button>
-          </div>
-        </div>
+              <Button radius="full" onClick={() => setCartOpen(true)}>
+                <PlusIcon className="size-4" />
+                Add new
+              </Button>
+            </>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col">
@@ -1394,13 +656,13 @@ function SalesListPageInner() {
                       </TableCell>
                       {/* A date never wraps — see the appointments table. */}
                       <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                        {formatDateOnly(d.createdAt)}
+                        {formatDate(d.createdAt)}
                       </TableCell>
                       <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground tabular-nums">
-                        {money(Math.round(d.tipsMinor / 100))}
+                        {formatAed(Math.round(d.tipsMinor / 100))}
                       </TableCell>
                       <TableCell className="text-right text-sm whitespace-nowrap text-foreground tabular-nums">
-                        {money(Math.round(d.grossMinor / 100))}
+                        {formatAed(Math.round(d.grossMinor / 100))}
                       </TableCell>
                     </TableRow>
                   )
@@ -1425,7 +687,10 @@ function SalesListPageInner() {
               </TableHeader>
               <TableBody>
                 {sorted.map((s) => {
-                  const status = STATUS_META[s.status]
+                  const status = {
+                    label: SALE_STATUS_LABEL[s.status],
+                    className: SALE_STATUS_CLASS[s.status],
+                  }
                   return (
                     <TableRow key={s.id}>
                       <TableCell className="sticky left-0 z-10 bg-background shadow-[1px_0_0_0_var(--border)] transition-colors [tr:hover_&]:bg-[color-mix(in_oklch,var(--muted)_40%,var(--background))]">
@@ -1474,10 +739,10 @@ function SalesListPageInner() {
                         </Badge>
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                        {formatDateOnly(s.saleAt)}
+                        {formatDate(s.saleAt)}
                       </TableCell>
                       <TableCell className="text-right text-sm whitespace-nowrap text-muted-foreground tabular-nums">
-                        {money(Math.round(s.tipsMinor / 100))}
+                        {formatAed(Math.round(s.tipsMinor / 100))}
                       </TableCell>
                       <TableCell
                         className={cn(
@@ -1485,7 +750,7 @@ function SalesListPageInner() {
                           s.grossMinor < 0 ? "text-tomato-11" : "text-foreground",
                         )}
                       >
-                        {money(Math.round(s.grossMinor / 100))}
+                        {formatAed(Math.round(s.grossMinor / 100))}
                       </TableCell>
                     </TableRow>
                   )
@@ -1639,8 +904,11 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
   if (!data) return null
 
   const giftCard = data.giftCard
-  const status = STATUS_META[data.status]
-  const pill = STATUS_DIALOG_PILL[data.status]
+  const status = {
+    label: SALE_STATUS_LABEL[data.status],
+    className: SALE_STATUS_CLASS[data.status],
+  }
+  const pill = SALE_STATUS_CLASS[data.status]
   const gross = Math.round(data.grossMinor / 100)
 
   // Demo payment numbers — derived from status so the receipt body reads right
@@ -1877,7 +1145,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
               <div className="flex flex-col gap-0.5">
                 <DialogTitle className="text-[28px] leading-8 font-semibold">Sale</DialogTitle>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-                  <span>{formatDateOnly(data.saleAt)}</span>
+                  <span>{formatDate(data.saleAt)}</span>
                   <span aria-hidden>·</span>
                   <span>Pet</span>
                   {isMultiLocation ? (
@@ -1924,7 +1192,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <div className="flex flex-col gap-0.5">
                       <span className="font-semibold text-foreground">
-                        {money(giftCard.valueAed)} - Gift Card
+                        {formatAed(giftCard.valueAed)} - Gift Card
                       </span>
                       <span className="text-sm text-muted-foreground">
                         {giftCard.code} <span aria-hidden>•</span>{" "}
@@ -1977,9 +1245,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                     <span className="text-lg font-semibold text-foreground">
                       Refund {receiptNumberFor(data)}
                     </span>
-                    <span className="text-sm text-muted-foreground">
-                      {formatDateOnly(data.saleAt)}
-                    </span>
+                    <span className="text-sm text-muted-foreground">{formatDate(data.saleAt)}</span>
                   </div>
 
                   <span className="text-sm text-foreground">Accidental charge</span>
@@ -1988,7 +1254,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
 
                   <div className="flex items-baseline justify-between gap-2 text-sm font-medium text-foreground">
                     <span>Refund Amount</span>
-                    <span className="tabular-nums">- {money(totalAbs)}</span>
+                    <span className="tabular-nums">- {formatAed(totalAbs)}</span>
                   </div>
 
                   <div className="h-px bg-border/60" />
@@ -1996,11 +1262,11 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   <div className="flex flex-col gap-1.5 text-sm">
                     <div className="flex items-baseline justify-between gap-2 text-muted-foreground">
                       <span>Subtotal</span>
-                      <span className="tabular-nums">- {money(totalAbs)}</span>
+                      <span className="tabular-nums">- {formatAed(totalAbs)}</span>
                     </div>
                     <div className="flex items-baseline justify-between gap-2 font-semibold text-foreground">
                       <span>Total</span>
-                      <span className="tabular-nums">- {money(totalAbs)}</span>
+                      <span className="tabular-nums">- {formatAed(totalAbs)}</span>
                     </div>
                   </div>
 
@@ -2016,11 +1282,11 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                         </span>
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
-                        {formatDateOnly(data.saleAt)} at {formatTimeOnly(data.saleAt)}
+                        {formatDate(data.saleAt)} at {formatTime(data.saleAt)}
                       </span>
                     </div>
                     <span className="shrink-0 font-medium text-foreground tabular-nums">
-                      - {money(totalAbs)}
+                      - {formatAed(totalAbs)}
                     </span>
                   </div>
                 </div>
@@ -2039,9 +1305,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                       ? (originalFor(data)?.number ?? "—")
                       : receiptNumberFor(data)}
                   </span>
-                  <span className="text-sm text-muted-foreground">
-                    {formatDateOnly(data.saleAt)}
-                  </span>
+                  <span className="text-sm text-muted-foreground">{formatDate(data.saleAt)}</span>
                 </div>
 
                 {/* The lines, when the sale carries them. A saved sale is a
@@ -2060,16 +1324,22 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                     <li className="flex items-baseline justify-between gap-3 text-sm">
                       <div className="flex min-w-0 flex-1 flex-col">
                         <span className="font-medium text-foreground">
-                          {giftCard ? `${money(giftCard.valueAed)} - Gift Card` : "Haircut"}
+                          {giftCard ? `${formatAed(giftCard.valueAed)} - Gift Card` : "Haircut"}
                         </span>
                         <span className="truncate text-xs text-muted-foreground">
                           {giftCard
-                            ? `${giftCard.code} · Husain NGI`
-                            : `${formatTimeOnly(data.saleAt)}, ${formatDateOnly(data.saleAt)} · 1h 30min · Hussain S…`}
+                            ? `${giftCard.code} · ${CURRENT_USER}`
+                            : [
+                                `${formatTime(data.saleAt)}, ${formatDate(data.saleAt)}`,
+                                "1h 30min",
+                                performerAt(data.locationId),
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
                         </span>
                       </div>
                       <span className="shrink-0 font-medium text-foreground tabular-nums">
-                        {money(totalAbs)}
+                        {formatAed(totalAbs)}
                       </span>
                     </li>
                   </ul>
@@ -2080,11 +1350,11 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                 <div className="flex flex-col gap-1.5 text-sm">
                   <div className="flex items-baseline justify-between gap-2 text-muted-foreground">
                     <span>Subtotal</span>
-                    <span className="tabular-nums">{money(totalAbs)}</span>
+                    <span className="tabular-nums">{formatAed(totalAbs)}</span>
                   </div>
                   <div className="flex items-baseline justify-between gap-2 font-semibold text-foreground">
                     <span>Total</span>
-                    <span className="tabular-nums">{money(totalAbs)}</span>
+                    <span className="tabular-nums">{formatAed(totalAbs)}</span>
                   </div>
                 </div>
 
@@ -2106,12 +1376,12 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                               />
                             </span>
                             <span className="truncate text-xs text-muted-foreground">
-                              {formatDateOnly(p.at)} at {formatTimeOnly(p.at)}
+                              {formatDate(p.at)} at {formatTime(p.at)}
                               {takenElsewhere(p) ? ` · ${locationName(p.locationId)}` : ""}
                             </span>
                           </div>
                           <span className="shrink-0 font-medium text-foreground tabular-nums">
-                            {money(Math.round(p.amountMinor / 100))}
+                            {formatAed(Math.round(p.amountMinor / 100))}
                           </span>
                         </div>
                       </div>
@@ -2132,7 +1402,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                       rail={data.camipay.rail}
                       rate={data.camipay.rate}
                       amountMinor={collectedMinor}
-                      capturedOnLabel={formatDateOnly(data.saleAt)}
+                      capturedOnLabel={formatDate(data.saleAt)}
                     />
                   </>
                 ) : null}
@@ -2143,7 +1413,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                     <div className="h-px bg-border/60" />
                     <div className="flex items-baseline justify-between gap-2 text-sm font-semibold text-foreground">
                       <span>{balance > 0 ? "Balance" : "Change"}</span>
-                      <span className="tabular-nums">{money(Math.abs(balance))}</span>
+                      <span className="tabular-nums">{formatAed(Math.abs(balance))}</span>
                     </div>
                   </>
                 ) : null}
@@ -2155,15 +1425,15 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
               <ol className="flex flex-col">
                 <ActivityRow
                   title={`Sale ${data.id} created`}
-                  timestamp={`Yesterday at ${formatTimeOnly(data.saleAt)}`}
-                  body={`Completed by Hussain Shabbir`}
+                  timestamp={`Yesterday at ${formatTime(data.saleAt)}`}
+                  body={`Completed by ${CURRENT_USER}`}
                   trailing={
                     <Avatar
                       size="md"
                       className="size-8"
                       fallback="character"
-                      name="Hussain Shabbir"
-                      hashSeed="hussain-shabbir"
+                      name={CURRENT_USER}
+                      hashSeed={CURRENT_USER}
                     />
                   }
                 />
@@ -2171,9 +1441,9 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   data.payments.map((p, index, all) => (
                     <ActivityRow
                       key={p.id}
-                      title={`${money(Math.round(p.amountMinor / 100))} paid by ${methodLabel(p).toLowerCase()}`}
-                      timestamp={`${formatDateOnly(p.at)} at ${formatTimeOnly(p.at)}`}
-                      body={`Payment taken by Hussain Shabbir${
+                      title={`${formatAed(Math.round(p.amountMinor / 100))} paid by ${methodLabel(p).toLowerCase()}`}
+                      timestamp={`${formatDate(p.at)} at ${formatTime(p.at)}`}
+                      body={`Payment taken by ${CURRENT_USER}${
                         takenElsewhere(p) ? ` · at ${locationName(p.locationId)}` : ""
                       }`}
                       trailing={
@@ -2196,9 +1466,9 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                   ))
                 ) : (
                   <ActivityRow
-                    title={`${money(Math.abs(gross))} paid by cash`}
-                    timestamp={`Yesterday at ${formatTimeOnly(data.saleAt)}`}
-                    body="Payment taken by Hussain Shabbir"
+                    title={`${formatAed(Math.abs(gross))} paid by cash`}
+                    timestamp={`Yesterday at ${formatTime(data.saleAt)}`}
+                    body={`Payment taken by ${CURRENT_USER}`}
                     trailing={
                       <span className="inline-flex size-8 items-center justify-center rounded-full bg-cami-green-3 text-cami-green-11 ring-2 ring-background">
                         <BanknoteIcon className="size-4" />
@@ -2409,7 +1679,7 @@ function DraftDetailDialog({
                   <span
                     className={cn(
                       "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium",
-                      STATUS_DIALOG_PILL.unpaid,
+                      SALE_STATUS_CLASS.unpaid,
                     )}
                   >
                     Unpaid
@@ -2513,11 +1783,11 @@ function DraftDetailDialog({
                       <div className="flex min-w-0 flex-1 flex-col">
                         <span className="font-medium text-foreground">Haircut</span>
                         <span className="truncate text-xs text-muted-foreground">
-                          1h 30min · Hussain Shabbir
+                          {["1h 30min", performerAt(data.locationId)].filter(Boolean).join(" · ")}
                         </span>
                       </div>
                       <span className="shrink-0 font-medium text-foreground tabular-nums">
-                        {money(total)}
+                        {formatAed(total)}
                       </span>
                     </li>
                   </ul>
@@ -2527,11 +1797,11 @@ function DraftDetailDialog({
                   <div className="flex flex-col gap-1.5 text-sm">
                     <div className="flex items-baseline justify-between gap-2 text-muted-foreground">
                       <span>Subtotal</span>
-                      <span className="tabular-nums">{money(total)}</span>
+                      <span className="tabular-nums">{formatAed(total)}</span>
                     </div>
                     <div className="flex items-baseline justify-between gap-2 font-semibold text-foreground">
                       <span>Total</span>
-                      <span className="tabular-nums">{money(total)}</span>
+                      <span className="tabular-nums">{formatAed(total)}</span>
                     </div>
                   </div>
 
@@ -2539,7 +1809,7 @@ function DraftDetailDialog({
 
                   <div className="flex items-baseline justify-between gap-2 text-sm font-semibold text-foreground">
                     <span>Balance</span>
-                    <span className="tabular-nums">{money(balance)}</span>
+                    <span className="tabular-nums">{formatAed(balance)}</span>
                   </div>
                 </div>
               </TabsContent>
@@ -2551,14 +1821,14 @@ function DraftDetailDialog({
                 <ol className="flex flex-col">
                   <ActivityRow
                     title={`Draft #${data.id} created`}
-                    timestamp={`${formatWeekdayShort(data.createdAt)} at ${formatTimeOnly(data.createdAt)}`}
-                    body="Created by Hussain Shabbir"
+                    timestamp={`${formatWeekdayShort(data.createdAt)} at ${formatTime(data.createdAt)}`}
+                    body={`Created by ${CURRENT_USER}`}
                     trailing={
                       <Avatar
                         size="md"
                         fallback="character"
-                        name="Hussain Shabbir"
-                        hashSeed="hussain-shabbir"
+                        name={CURRENT_USER}
+                        hashSeed={CURRENT_USER}
                       />
                     }
                     isLast

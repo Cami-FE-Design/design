@@ -22,7 +22,7 @@ import {
 } from "@dnd-kit/sortable"
 import { ChevronDownIcon } from "lucide-react"
 import { useMemo, useState } from "react"
-import { ComboBadge } from "@/components/blocks/combo-badge"
+import { ComboBadge } from "@/components/blocks/catalog/combo-badge"
 import {
   Button,
   DropdownMenu,

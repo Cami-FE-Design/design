@@ -6,7 +6,7 @@
 // still owing money.
 
 import { describe, expect, it } from "vitest"
-import { MOCK_SALES } from "@/app/sales/sales-list/page"
+import { MOCK_SALES } from "@/lib/sales/mock"
 import { invoiceFromSale } from "./from-sale"
 import { documentTitle, formatInvoiceAmount, invoiceTotals } from "./totals"
 

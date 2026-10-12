@@ -11,10 +11,11 @@ import {
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { AccessDeniedCard } from "@/components/blocks/access-denied-card"
-import { AdminShell } from "@/components/blocks/admin-shell"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { AccessDeniedCard } from "@/components/blocks/admin/access-denied-card"
+import { AdminShell } from "@/components/blocks/admin/admin-shell"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,6 +27,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SearchInput } from "@/components/ui/search-input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table,
   TableBody,
@@ -40,18 +42,17 @@ import {
   eventsToCsv,
   eventsToOwnerSummary,
   filterEvents,
-  formatDateTime,
   formatDuration,
   type ImpersonationEvent,
   type ImpersonationStatus,
   impersonationEvents,
   PII_FIELD_LABELS,
-  relativeTime,
   statusBadgeClass,
   statusLabel,
   uniqueBusinesses,
 } from "@/lib/admin-impersonation"
 import { useAuth } from "@/lib/auth-mock"
+import { formatTimeAgo, formatTimestamp } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type StatusFilter = ImpersonationStatus | "all"
@@ -123,10 +124,10 @@ function EventRow({
   onSelect,
 }: {
   event: ImpersonationEvent
-  nowMs: number
+  /** Null until the page is on the client — see `ImpersonationLogPage`. */
+  nowMs: number | null
   onSelect: (e: ImpersonationEvent) => void
 }) {
-  const dur = durationSeconds(event, nowMs)
   return (
     <TableRow
       className="cursor-pointer"
@@ -154,12 +155,27 @@ function EventRow({
         </div>
       </TableCell>
       <TableCell className="text-sm text-foreground">
-        <div className="flex flex-col leading-tight">
-          <span>{relativeTime(event.startedAt, nowMs)}</span>
-          <span className="text-xs text-muted-foreground">{formatDateTime(event.startedAt)}</span>
-        </div>
+        {nowMs === null ? (
+          <div className="flex flex-col gap-1.5">
+            <Skeleton className="h-3.5 w-16" />
+            <Skeleton className="h-3 w-28" />
+          </div>
+        ) : (
+          <div className="flex flex-col leading-tight">
+            <span>{formatTimeAgo(event.startedAt, { now: nowMs })}</span>
+            <span className="text-xs text-muted-foreground">
+              {formatTimestamp(event.startedAt)}
+            </span>
+          </div>
+        )}
       </TableCell>
-      <TableCell className="text-sm tabular-nums text-foreground">{formatDuration(dur)}</TableCell>
+      <TableCell className="text-sm tabular-nums text-foreground">
+        {nowMs === null ? (
+          <Skeleton className="h-3.5 w-12" />
+        ) : (
+          formatDuration(durationSeconds(event, nowMs))
+        )}
+      </TableCell>
       <TableCell>
         <StatusBadge status={event.status} />
       </TableCell>
@@ -186,7 +202,7 @@ function EventsTable({
   onSelect,
 }: {
   events: ImpersonationEvent[]
-  nowMs: number
+  nowMs: number | null
   onSelect: (e: ImpersonationEvent) => void
 }) {
   if (events.length === 0) {
@@ -308,12 +324,12 @@ function EventDetailSheet({
                   <CardTitle>Session</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-x-6 gap-y-5">
-                  <StatBlock label="Started" value={formatDateTime(event.startedAt)} />
+                  <StatBlock label="Started" value={formatTimestamp(event.startedAt)} />
                   <StatBlock
                     label={event.endedAt ? "Ended" : "Expires after"}
                     value={
                       event.endedAt
-                        ? formatDateTime(event.endedAt)
+                        ? formatTimestamp(event.endedAt)
                         : `${event.maxDurationSeconds / 60} min from start`
                     }
                   />
@@ -356,10 +372,10 @@ function EventDetailSheet({
                         >
                           <div className="flex flex-col leading-tight">
                             <span className="text-sm text-foreground">
-                              {relativeTime(p.at, nowMs)}
+                              {formatTimeAgo(p.at, { now: nowMs })}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {formatDateTime(p.at)}
+                              {formatTimestamp(p.at)}
                             </span>
                           </div>
                           <div className="flex flex-col gap-0.5 leading-tight">
@@ -408,13 +424,19 @@ function EventDetailSheet({
 export default function ImpersonationLogPage() {
   const auth = useAuth()
   const allowed = auth.permissions.has("merchants.impersonate")
-  const [nowMs, setNowMs] = useState(() => Date.now())
+  // Read on the client only. The mock's times are set when its module loads,
+  // which is a different moment on the server and in the browser, so any
+  // time drawn on the server ("19 min ago", the timestamp under it) came out
+  // different in the browser and React threw the server's render away. The
+  // time cells wait one frame instead.
+  const [nowMs, setNowMs] = useState<number | null>(null)
   const [tab, setTab] = useState<StatusFilter>("all")
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<ImpersonationEvent | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
 
   useEffect(() => {
+    setNowMs(Date.now())
     const id = window.setInterval(() => setNowMs(Date.now()), 30_000)
     return () => window.clearInterval(id)
   }, [])
@@ -451,18 +473,11 @@ export default function ImpersonationLogPage() {
   return (
     <AdminShell
       header={
-        <div className="flex w-full max-w-6xl flex-col gap-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-medium leading-8 text-foreground">Impersonation log</h1>
-              <p className="text-sm text-muted-foreground">
-                Every Cami HQ session opened on a Pet Business account, and every sensitive field
-                revealed inside that session.
-              </p>
-            </div>
-            <ExportMenu events={visible} />
-          </div>
-        </div>
+        <PageHeader
+          title="Impersonation log"
+          description="Every Cami HQ session opened on a Pet Business account, and every sensitive field revealed inside that session."
+          actions={<ExportMenu events={visible} />}
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">
@@ -503,7 +518,7 @@ export default function ImpersonationLogPage() {
         event={selected}
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        nowMs={nowMs}
+        nowMs={nowMs ?? Date.now()}
       />
     </AdminShell>
   )

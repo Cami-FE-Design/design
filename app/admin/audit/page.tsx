@@ -4,9 +4,10 @@ import { ShieldAlertIcon } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo } from "react"
-import { AdminShell } from "@/components/blocks/admin-shell"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { AdminShell } from "@/components/blocks/admin/admin-shell"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
@@ -30,11 +31,10 @@ import {
   AUDIT_KIND_LABELS,
   type AuditEventKind,
   auditKindBadge,
-  formatDateTime,
   type GlobalAuditEvent,
   getAllAuditEvents,
-  relativeTime,
 } from "@/lib/admin-businesses"
+import { formatTimeAgo, formatTimestamp } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type KindFilter = "all" | AuditEventKind
@@ -81,8 +81,8 @@ function AuditRow({ event }: { event: GlobalAuditEvent }) {
     <TableRow>
       <TableCell className="py-3 text-sm tabular-nums text-muted-foreground">
         <div className="flex flex-col">
-          <span className="text-foreground">{relativeTime(event.at)}</span>
-          <span className="text-xs">{formatDateTime(event.at)}</span>
+          <span className="text-foreground">{formatTimeAgo(event.at)}</span>
+          <span className="text-xs">{formatTimestamp(event.at)}</span>
         </div>
       </TableCell>
       <TableCell>
@@ -221,14 +221,10 @@ function AuditLog() {
   return (
     <AdminShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Audit log</h1>
-            <p className="text-sm text-muted-foreground">
-              Every action by Cami HQ and Partner owners. Retained for 12 months.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          title="Audit log"
+          description="Every action by Cami HQ and Partner owners. Retained for 12 months."
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

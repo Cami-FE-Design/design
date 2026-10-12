@@ -9,9 +9,11 @@
 ## Workflow
 
 1. Branch from `main`.
-2. Make the change.
-3. Run `pnpm check` (Biome), `pnpm typecheck`, `pnpm test`, and `pnpm build` locally.
-4. Open a PR. CI runs the same checks.
+2. Before writing a new component, formatter or status map, check whether it exists: search `/playground`, then `components/blocks/shared/` and the table in [DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md#before-you-build-something-new).
+3. Make the change. A new block goes in its domain folder under `components/blocks/`, or `shared/` if more than one domain uses it.
+4. Add or update its section in the right lane file under `components/blocks/playground/`, and add any new route to `app/screens/page.tsx` with a one-line note. These two pages are how the team finds new work.
+5. Run `pnpm check` (Biome), `pnpm typecheck`, `pnpm test`, and `pnpm build` locally.
+6. Open a PR. CI runs the same checks.
 
 The pre-commit hook runs `biome check --write` on staged files, so formatting fixes apply automatically. If a type error or test failure blocks a commit, fix the issue rather than bypassing the hook.
 

@@ -29,6 +29,7 @@ import {
   venueForBusinessName,
 } from "@/lib/customer-card/theme"
 import { brandingSlugFor } from "@/lib/public-business"
+import { readStored, removeStored, writeStoredJson } from "@/lib/storage"
 
 const STORAGE_KEY = "cami-customer-card-themes"
 
@@ -47,7 +48,7 @@ export function CustomerCardThemeProvider({ children }: { children: React.ReactN
   const [saved, setSaved] = useState<ThemeMap>({})
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = readStored(STORAGE_KEY)
     if (!raw) return
     try {
       const parsed = JSON.parse(raw)
@@ -62,14 +63,14 @@ export function CustomerCardThemeProvider({ children }: { children: React.ReactN
     const key = brandingSlugFor(slug)
     setSaved((current) => {
       const next = { ...current, [key]: themeId }
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      writeStoredJson(STORAGE_KEY, next)
       return next
     })
   }, [])
 
   const reset = useCallback(() => {
     setSaved({})
-    window.localStorage.removeItem(STORAGE_KEY)
+    removeStored(STORAGE_KEY)
   }, [])
 
   const value = useMemo<CardThemeValue>(

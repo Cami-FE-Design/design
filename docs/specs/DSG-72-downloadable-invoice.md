@@ -16,7 +16,7 @@
 | **What** | One A4 invoice document, rendered identically by PDF download, email attachment, and the unique invoice link |
 | **Why** | Cami's downloadable is not FTA-presentable. Titled `Sale 22`, no address, no TRN, and **no VAT row at all**. Raised by Pet Loft (Aziz) |
 | **Gap** | Cami is behind Fresha on this surface, and SOTA is switching off Fresha. The benchmark is not aspirational, it is what the Tier 2 anchor already receives today |
-| **Where** | `components/blocks/invoice-document.tsx` (shared), demo route `/sales/invoice-document` with query-param state switcher |
+| **Where** | `components/blocks/sales/invoice-document.tsx` (shared), demo route `/sales/invoice-document` with query-param state switcher |
 | **Not here** | Settings screen for TRN/address, invoice numbering, document type gating logic, QR payload generation (all PRD-9). Arabic and bilingual, deferred |
 | **Also fixes** | [EC-39](../../cami%20design%20with%20dotzero/PMOS/context/knowledge/05-edge-case-catalog.md) — a single "total" field on a receipt or export produces a wrong VAT return. This document is the surface that fix lands on |
 

@@ -29,6 +29,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 
 import { LOCATION_OFFERINGS, type LocationOffering } from "@/lib/service-catalog/offerings"
+import { readStoredJson, writeStoredJson } from "@/lib/storage"
 
 /**
  * Bumped when the seed gains rules a stored array would hide. What is saved
@@ -54,14 +55,8 @@ type OfferingsValue = {
 const OfferingsContext = createContext<OfferingsValue | null>(null)
 
 function readStored(): LocationOffering[] | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? (parsed as LocationOffering[]) : null
-  } catch {
-    return null
-  }
+  const parsed = readStoredJson(STORAGE_KEY)
+  return Array.isArray(parsed) ? (parsed as LocationOffering[]) : null
 }
 
 export function LocationOfferingsProvider({ children }: { children: React.ReactNode }) {
@@ -77,7 +72,7 @@ export function LocationOfferingsProvider({ children }: { children: React.ReactN
     setOfferings((prev) => {
       const others = prev.filter((o) => o.serviceId !== serviceId)
       const merged = [...others, ...next]
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+      writeStoredJson(STORAGE_KEY, merged)
       return merged
     })
   }, [])

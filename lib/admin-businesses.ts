@@ -1,6 +1,7 @@
 import type { Emirate } from "@/lib/business-profile"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import type { BusinessNotificationConfig } from "@/lib/notifications/types"
+import { TEAM_MEMBERS } from "@/lib/team/mock"
 
 export type BusinessState = "onboarding" | "live" | "suspended" | "archived"
 
@@ -50,6 +51,18 @@ export const STAFF_ROLE_LABELS: Record<StaffRole, string> = {
   manager: "Manager",
   reception: "Reception",
   staff: "Staff",
+}
+
+/**
+ * Shampooch's team (lib/team/mock.ts) as HQ's Team tab lists it: everyone but
+ * the owner, who has a row of their own. An invite nobody has accepted has no
+ * name yet, so it is listed by email, the way Team settings lists it.
+ */
+function teamAsHqSees(): StaffMember[] {
+  return TEAM_MEMBERS.filter((m) => m.roleId !== "owner").map((m) => ({
+    name: m.name ?? m.email,
+    role: m.roleId === "manager" ? "manager" : m.roleId === "receptionist" ? "reception" : "staff",
+  }))
 }
 
 export type AdminBusiness = {
@@ -140,12 +153,10 @@ export const adminBusinesses: AdminBusiness[] = [
     createdAt: "2026-03-04T09:12:00Z",
     lastActivityAt: "2026-05-03T07:48:00Z",
     weekly: { bookings: 24, invoices: 18, markPaidAed: 6420 },
-    staffCount: 4,
-    staffPreview: [
-      { name: "Sara Park", role: "manager" },
-      { name: "Beth Carter", role: "reception" },
-      { name: "Ahmed N.", role: "staff" },
-    ],
+    // The business's own team settings, so HQ and the owner see the same
+    // people in the same roles. The count includes the owner.
+    staffCount: TEAM_MEMBERS.length,
+    staffPreview: teamAsHqSees(),
     servicesCount: 6,
     servicesPreview: ["Full groom", "Bath & brush", "Nail trim"],
     street: "Al Ghozlan 4, Jumeirah Village Circle",
@@ -198,7 +209,7 @@ export const adminBusinesses: AdminBusiness[] = [
       {
         id: "a4",
         at: "2026-04-28T14:32:00Z",
-        actor: "Sara Park",
+        actor: "Aziz Rahman",
         action: "Added staff member",
         kind: "edit",
       },
@@ -478,44 +489,12 @@ export function stateBadge(state: BusinessState) {
   return { className: stateBadgeStyles[state], label: stateLabels[state] }
 }
 
-export function relativeTime(iso: string | null): string {
-  if (!iso) return "Never"
-  const then = new Date(iso).getTime()
-  const now = Date.now()
-  const diff = now - then
-  const minutes = Math.round(diff / 60000)
-  if (minutes < 1) return "Just now"
-  if (minutes < 60) return `${minutes} min ago`
-  const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours} hr ago`
-  const days = Math.round(hours / 24)
-  if (days < 30) return `${days} d ago`
-  const months = Math.round(days / 30)
-  if (months < 12) return `${months} mo ago`
-  const years = Math.round(months / 12)
-  return `${years} yr ago`
-}
-
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   })
-}
-
-export function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-}
-
-export function formatAed(value: number): string {
-  return new Intl.NumberFormat("en-AE", { maximumFractionDigits: 0 }).format(value)
 }
 
 export type GlobalAuditEvent = AuditEvent & {

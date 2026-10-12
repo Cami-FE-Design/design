@@ -14,6 +14,7 @@
 // (playground, tests) still render.
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { readStored, removeStored, writeStoredJson } from "@/lib/storage"
 
 const STORAGE_KEY = "cami-terminals-v5"
 
@@ -334,7 +335,7 @@ const TerminalsContext = createContext<TerminalsValue | null>(null)
 
 function readSaved(): TerminalsState | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = readStored(STORAGE_KEY)
     if (!raw) return null
     const saved = JSON.parse(raw) as Partial<TerminalsState>
     // Shallow spread — a saved array replaces the default wholesale, including
@@ -382,11 +383,7 @@ export function TerminalsProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<TerminalsValue>(() => {
     const persist = (next: TerminalsState) => {
       setState(next)
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // Storage full/unavailable — state still updates for the session.
-      }
+      writeStoredJson(STORAGE_KEY, next)
     }
 
     /** Live sessions on one device become signed-out. Used by regenerate and remove. */
@@ -484,11 +481,7 @@ export function TerminalsProvider({ children }: { children: React.ReactNode }) {
         }),
       reset: () => {
         setState(DEFAULT_TERMINALS_STATE)
-        try {
-          window.localStorage.removeItem(STORAGE_KEY)
-        } catch {
-          // ignore
-        }
+        removeStored(STORAGE_KEY)
       },
     }
   }, [state])

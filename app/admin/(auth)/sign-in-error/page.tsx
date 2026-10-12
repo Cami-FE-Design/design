@@ -4,8 +4,8 @@ import { AlertTriangleIcon, LockIcon, type LucideIcon, ShieldOffIcon } from "luc
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
-import { AuthCard } from "@/components/blocks/auth-card"
-import { HqAuthLayout } from "@/components/blocks/hq-auth-layout"
+import { AuthCard } from "@/components/blocks/auth/auth-card"
+import { HqAuthLayout } from "@/components/blocks/auth/hq-auth-layout"
 import { Button } from "@/components/ui/button"
 
 type Reason = "not_allowlisted" | "locked" | "generic"

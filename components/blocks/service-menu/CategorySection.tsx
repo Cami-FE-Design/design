@@ -3,7 +3,7 @@
 import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { ChevronDownIcon, CirclePlusIcon, ScissorsIcon } from "lucide-react"
-import { EmptyState } from "@/components/blocks/empty-state"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
 import {
   Button,
   DropdownMenu,

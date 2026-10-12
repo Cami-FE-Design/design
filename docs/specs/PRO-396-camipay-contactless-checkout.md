@@ -86,7 +86,7 @@ Customer-facing, lives under the public `/[slug]` tree, not `/app/sales`.
 | `components/blocks/checkout/mock.ts` | Customer-facing sale snapshot mock + reused money/VAT helpers. |
 
 Reuse, don't fork: `formatAedDecimal`, `totals()`, tip preset system, character/initials avatar
-rules. If a helper lives in `app/sales/new-sale/mock.ts`, lift shared bits to a neutral module rather
+rules. If a helper lives in `lib/sales/new-sale-mock.ts`, lift shared bits to a neutral module rather
 than copy.
 
 ## Terminology (per `project_cami_terminology`)

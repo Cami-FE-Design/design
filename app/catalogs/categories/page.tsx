@@ -2,8 +2,8 @@
 
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
-import { AppShell } from "@/components/blocks/app-shell"
 import { CategoriesPage } from "@/components/blocks/service-menu/CategoriesPage"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 
 function CategoriesRouteInner() {
   // ?add=1 deep-links straight into the add-category dialog.

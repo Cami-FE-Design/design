@@ -24,6 +24,7 @@ import {
   type ReminderEvent,
   type SenderIdStatus,
 } from "@/lib/notifications/types"
+import { readStored, removeStored, writeStoredJson } from "@/lib/storage"
 
 // Bumped to v2: the demo log's appointmentId values changed (apt-N → real
 // booking ids), so a v1 blob restored a log that matched no appointment and the
@@ -58,7 +59,7 @@ const NotificationsContext = createContext<NotificationsValue | null>(null)
 
 function readSaved(): NotificationsState | null {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
+    const raw = readStored(STORAGE_KEY)
     if (!raw) return null
     const saved = JSON.parse(raw) as Partial<NotificationsState>
     // Shallow spread — a saved object replaces the default wholesale, including
@@ -101,11 +102,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const value = useMemo<NotificationsValue>(() => {
     const persist = (next: NotificationsState) => {
       setState(next)
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // Storage full/unavailable — state still updates for the session.
-      }
+      writeStoredJson(STORAGE_KEY, next)
     }
 
     return {
@@ -139,11 +136,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         }),
       reset: () => {
         setState(DEFAULT_NOTIFICATIONS_STATE)
-        try {
-          window.localStorage.removeItem(STORAGE_KEY)
-        } catch {
-          // ignore
-        }
+        removeStored(STORAGE_KEY)
       },
     }
   }, [state])

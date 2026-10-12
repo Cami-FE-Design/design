@@ -16,13 +16,14 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { MOCK_SALES, type Sale, SaleDetailDialog } from "@/app/sales/sales-list/page"
-import { AppShell } from "@/components/blocks/app-shell"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { GiftCardVisual } from "@/components/blocks/gift-card-visual"
-import { ShareGiftCardDialog } from "@/components/blocks/share-gift-card-dialog"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
-import { TimelineRow } from "@/components/blocks/timeline-row"
+import { SaleDetailDialog } from "@/app/sales/sales-list/page"
+import { GiftCardVisual } from "@/components/blocks/sales/gift-card-visual"
+import { ShareGiftCardDialog } from "@/components/blocks/sales/share-gift-card-dialog"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { TimelineRow } from "@/components/blocks/shared/timeline-row"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -61,31 +62,13 @@ import {
 } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { formatAed, formatDate, formatLongDate } from "@/lib/format"
 import { useLocations } from "@/lib/locations/store"
+import { MOCK_SALES, type Sale } from "@/lib/sales/mock"
+import { CURRENT_USER } from "@/lib/sales/new-sale-mock"
 import { cn } from "@/lib/utils"
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-const CURRENCY = "AED"
-
-function money(amount: number) {
-  return `${CURRENCY} ${amount.toLocaleString("en-US")}`
-}
-
-const MONTH_SHORT = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-]
 
 const MONTH_FULL = [
   "January",
@@ -102,16 +85,7 @@ const MONTH_FULL = [
   "December",
 ]
 
-const WEEKDAY_FULL = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
-
-function formatDate(d: Date) {
-  return `${d.getDate()} ${MONTH_SHORT[d.getMonth()]} ${d.getFullYear()}`
-}
-
 // "Wednesday, 30 Jun 2027" — used by the Extend expiry select.
-function formatLongDate(d: Date) {
-  return `${WEEKDAY_FULL[d.getDay()]}, ${formatDate(d)}`
-}
 
 function addYears(d: Date, years: number) {
   return new Date(d.getFullYear() + years, d.getMonth(), d.getDate())
@@ -202,14 +176,14 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
         at: new Date(2026, 4, 20, 14, 10),
         locationId: "shampooch-jumeirah",
         amountAed: 800,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
       {
         id: "u2",
         at: new Date(2026, 5, 2, 11, 30),
         locationId: "shampooch-jvc",
         amountAed: 400,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
     ],
   },
@@ -232,14 +206,14 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
         at: new Date(2026, 3, 10, 12, 0),
         locationId: "shampooch-jvc",
         amountAed: 3000,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
       {
         id: "u2",
         at: new Date(2026, 4, 2, 15, 20),
         locationId: "shampooch-jumeirah",
         amountAed: 2300,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
     ],
   },
@@ -277,14 +251,14 @@ const MOCK_GIFT_CARDS: GiftCardSold[] = [
         at: new Date(2026, 5, 8, 10, 15),
         locationId: "shampooch-al-reem",
         amountAed: 2500,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
       {
         id: "u2",
         at: new Date(2026, 5, 20, 17, 40),
         locationId: "shampooch-downtown-dubai",
         amountAed: 2000,
-        by: "Husain NGI",
+        by: CURRENT_USER,
       },
     ],
   },
@@ -331,43 +305,40 @@ function GiftCardsSoldPageInner() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Gift cards sold</h1>
-            <p className="text-sm text-muted-foreground">
-              View, filter and export gift cards purchased by your clients.
-            </p>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" radius="full" size="sm" className="gap-1.5">
-                Options
-                <ChevronDownIcon className="size-3.5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem>
-                <SettingsIcon className="size-4" />
-                Gift cards settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Export</DropdownMenuLabel>
-              <DropdownMenuItem>
-                <FileTextIcon className="size-4" />
-                PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileTextIcon className="size-4" />
-                CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <FileSpreadsheetIcon className="size-4" />
-                Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <PageHeader
+          title="Gift cards sold"
+          description="View, filter and export gift cards purchased by your clients."
+          actions={
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" radius="full" size="sm" className="gap-1.5">
+                  Options
+                  <ChevronDownIcon className="size-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem>
+                  <SettingsIcon className="size-4" />
+                  Gift cards settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Export</DropdownMenuLabel>
+                <DropdownMenuItem>
+                  <FileTextIcon className="size-4" />
+                  PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <FileTextIcon className="size-4" />
+                  CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <FileSpreadsheetIcon className="size-4" />
+                  Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4">
@@ -446,12 +417,12 @@ function GiftCardsSoldPageInner() {
                     </TableCell>
                     <TableCell>{c.purchaser}</TableCell>
                     <TableCell className="text-muted-foreground">{c.owner}</TableCell>
-                    <TableCell className="text-right">{money(c.totalAed)}</TableCell>
+                    <TableCell className="text-right">{formatAed(c.totalAed)}</TableCell>
                     <TableCell className="text-right text-muted-foreground">
-                      {money(c.redeemedAed)}
+                      {formatAed(c.redeemedAed)}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      {money(c.totalAed - c.redeemedAed)}
+                      {formatAed(c.totalAed - c.redeemedAed)}
                     </TableCell>
                   </TableRow>
                 )
@@ -727,7 +698,7 @@ function buildGiftCardPrintHtml(
     ${sender ? `<p>From ${sender}</p>` : ""}
     <div class="gift">${giftSvg}</div>
     <div class="value">
-      <div class="amount">${money(card.totalAed)}</div>
+      <div class="amount">${formatAed(card.totalAed)}</div>
       <div class="biz">Cami</div>
       <div class="meta">
         <div><div class="label">Code:</div>${escapeHtml(card.code)}</div>
@@ -857,7 +828,7 @@ function buildActivity(
       id: "claimed",
       title: "Gift card claimed",
       when: "Today at 11:20am",
-      by: "Husain NGI",
+      by: CURRENT_USER,
       kind: "claimed",
       secondary: (
         <span>
@@ -871,7 +842,7 @@ function buildActivity(
   // location is named on each redemption, since a card can be used anywhere.
   let balance = card.totalAed
   const redemptions: ActivityEvent[] = card.ledger.map((entry) => {
-    const redeemed = [`${money(entry.amountAed)} redeemed`, where(entry.locationId)]
+    const redeemed = [`${formatAed(entry.amountAed)} redeemed`, where(entry.locationId)]
       .filter(Boolean)
       .join(" · ")
     balance -= entry.amountAed
@@ -890,7 +861,7 @@ function buildActivity(
           when: formatWhen(entry.at),
           by: entry.by,
           kind: "redeemed",
-          secondary: `Remaining balance ${money(balance)}`,
+          secondary: `Remaining balance ${formatAed(balance)}`,
         }
   })
   events.push(...redemptions.reverse())
@@ -899,7 +870,7 @@ function buildActivity(
     id: "purchased",
     title: "Gift card purchased",
     when: card.paidAt ? formatWhen(card.paidAt) : formatDate(card.issuedAt),
-    by: "Husain NGI",
+    by: CURRENT_USER,
     kind: "purchased",
     secondary: (
       <button
@@ -926,7 +897,7 @@ function GiftCardActivity({ card, onOpenSale }: { card: GiftCardSold; onOpenSale
     <div className="flex flex-col gap-6">
       <GiftCardVisual
         className="mx-auto"
-        amount={money(remaining)}
+        amount={formatAed(remaining)}
         code={card.code}
         expires={formatDate(card.expiresAt)}
         copyableCode
@@ -966,7 +937,7 @@ function GiftCardActivity({ card, onOpenSale }: { card: GiftCardSold; onOpenSale
 
 // Redeem events use the green gift glyph; lifecycle events (purchased/claimed)
 // show the actor's avatar. The actor is always the staff member who performed
-// it ("Husain NGI"), so the avatar colour stays consistent — it is NOT the
+// it (the signed-in user), so the avatar colour stays consistent — it is NOT the
 // owner/purchaser (those names would each hash to a different pastel).
 function ActivityIcon({ event }: { event: ActivityEvent }) {
   if (event.kind === "redeemed" || event.kind === "fully-redeemed") {
@@ -981,8 +952,8 @@ function ActivityIcon({ event }: { event: ActivityEvent }) {
       size="md"
       className="size-8"
       fallback="character"
-      name="Husain NGI"
-      hashSeed="husain-ngi"
+      name={CURRENT_USER}
+      hashSeed={CURRENT_USER}
     />
   )
 }
@@ -995,9 +966,9 @@ function GiftCardDetails({ card, onOpenSale }: { card: GiftCardSold; onOpenSale:
       <div className="flex flex-col divide-y divide-border/60 px-4 py-4">
         <DetailSection title="Balance">
           <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-            <DetailField label="Original amount" value={money(card.totalAed)} />
-            <DetailField label="Redeemed" value={money(card.redeemedAed)} />
-            <DetailField label="Remaining" value={money(card.totalAed - card.redeemedAed)} />
+            <DetailField label="Original amount" value={formatAed(card.totalAed)} />
+            <DetailField label="Redeemed" value={formatAed(card.redeemedAed)} />
+            <DetailField label="Remaining" value={formatAed(card.totalAed - card.redeemedAed)} />
             {/* Where it was sold, not where it may be spent. A gift card travels
                 across the estate — the spec's own line is that gift cards and
                 memberships do and a package does not — but the *sale* belongs to

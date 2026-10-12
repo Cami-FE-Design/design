@@ -16,12 +16,13 @@ import { MonitorSmartphoneIcon, MoreHorizontalIcon } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { AdminShell } from "@/components/blocks/admin-shell"
-import { BusinessDetailDialog } from "@/components/blocks/business-detail-dialog"
-import { ConfirmDialog } from "@/components/blocks/confirm-dialog"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { TERMINAL_STATUS_TILE, TerminalStatus } from "@/components/blocks/hq-terminal-status"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
+import { AdminShell } from "@/components/blocks/admin/admin-shell"
+import { BusinessDetailDialog } from "@/components/blocks/admin/business-detail-dialog"
+import { TERMINAL_STATUS_TILE, TerminalStatus } from "@/components/blocks/admin/hq-terminal-status"
+import { ConfirmDialog } from "@/components/blocks/shared/confirm-dialog"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -454,15 +455,15 @@ function TerminalFleet() {
   return (
     <AdminShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Terminals</h1>
-            <p className="text-sm text-muted-foreground">
+        <PageHeader
+          title="Terminals"
+          description={
+            <>
               {counts.all} units · {counts["with-partners"]} out with Partners ·{" "}
               {counts["in-stock"]} in stock
-            </p>
-          </div>
-        </div>
+            </>
+          }
+        />
       }
     >
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-4 overflow-y-auto">

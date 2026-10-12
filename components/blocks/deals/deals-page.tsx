@@ -21,8 +21,12 @@ import { useMemo, useState } from "react"
 import { DealDetailView } from "@/components/blocks/deals/deal-detail-view"
 import { DealWizardDialog } from "@/components/blocks/deals/deal-wizard-dialog"
 import { DealsTable } from "@/components/blocks/deals/deals-table"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { CardListSkeleton, LoadError, type SurfaceStatus } from "@/components/blocks/surface-states"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import {
+  CardListSkeleton,
+  LoadError,
+  type SurfaceStatus,
+} from "@/components/blocks/shared/surface-states"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,

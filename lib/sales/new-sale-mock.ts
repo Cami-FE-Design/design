@@ -1,0 +1,557 @@
+// Mock catalog + money helpers for the "Add to cart" flow (PRO-395).
+//
+// Prices are tax-inclusive and stored in fils (minor units). The breakdown is
+// back-calculated so Subtotal + Tax always equals Total exactly (ticket edge
+// case: "Rounding under tax-inclusive math").
+
+import { VAT_RATE } from "@/lib/invoice/totals"
+import { TEAM_MEMBERS as TEAM_ACCESS } from "@/lib/team/mock"
+import { bookableStaff, bookableStaffAt, staffById } from "@/lib/team/staff"
+import type {
+  AppointmentItem,
+  CartLine,
+  CatalogClient,
+  ProductCategory,
+  ProductItem,
+  ServiceCategory,
+  ServiceItem,
+  Staff,
+} from "./cart-types"
+
+// ─── Venue config (read from venue settings in production, not hard-coded) ────
+
+export const CURRENCY = "AED"
+/** Block the CTA when no client is attached. Per-venue toggle. */
+export const CLIENT_REQUIRED = false
+/**
+ * Whether this partner manages pets. Drives the appointment-card subject row:
+ * with-pets shows the pet (avatar + breed · weight), without-pets shows the
+ * client (avatar + phone). See [[project_cami_business_types]].
+ */
+export const HAS_PETS = true
+
+// ─── Money ────────────────────────────────────────────────────────────────────
+
+export type CartTotals = {
+  /** Sum of line prices, tax-inclusive (matches collapsed Total). */
+  totalMinor: number
+  /** Back-calculated ex-VAT subtotal. */
+  subtotalMinor: number
+  /** Back-calculated VAT, = total − subtotal (rounding-safe). */
+  taxMinor: number
+}
+
+/** Back-calculate the VAT breakdown from tax-inclusive line totals. */
+export function totals(lines: CartLine[]): CartTotals {
+  const totalMinor = lines.reduce((sum, l) => sum + l.priceMinor * l.qty, 0)
+  const subtotalMinor = Math.round(totalMinor / (1 + VAT_RATE))
+  return { totalMinor, subtotalMinor, taxMinor: totalMinor - subtotalMinor }
+}
+
+// ─── Staff ──────────────────────────────────────────────────────────────────
+
+// Everyone here is a person on lib/team/staff.ts. This file used to keep its
+// own five first names and a signed-in user, "Husain NGI", who existed nowhere
+// else, so a sale credited people the calendar and the rota had never heard of.
+
+/**
+ * The signed-in team member — sales default to being attributed to them. The
+ * owner, the same person lib/current-user.tsx signs in by default.
+ */
+export const CURRENT_USER: string = staffById("maz-khan")?.name ?? "Maz Khan"
+
+const ANY: Staff = { id: "any", name: "Any" }
+
+/** Who can perform a service line: "Any", then everyone who takes bookings. */
+export const STAFF: Staff[] = [
+  ANY,
+  ...bookableStaff("shampooch").map((s) => ({ id: s.id, name: s.name })),
+]
+
+/**
+ * Who can perform a service line at the branch the sale is taken at — the same
+ * narrowing the calendar does. With no branch, everyone who takes bookings.
+ */
+export function staffForSaleAt(locationId: string | null): Staff[] {
+  if (!locationId) return STAFF
+  return [ANY, ...bookableStaffAt(locationId).map((s) => ({ id: s.id, name: s.name }))]
+}
+
+/**
+ * Team members a sale can be attributed to, and who can take a payment: the
+ * people who sign in at the till (lib/team/mock.ts). Unlike service lines
+ * (which allow "Any"), a gift-card sale is always credited to a specific
+ * person — so the current user leads and "Any" is excluded. An invite nobody
+ * has accepted has no name and cannot take a sale.
+ */
+export const TEAM_MEMBERS: string[] = [
+  CURRENT_USER,
+  ...TEAM_ACCESS.flatMap((m) => (m.name && m.name !== CURRENT_USER ? [m.name] : [])),
+]
+
+// ─── Gift cards ───────────────────────────────────────────────────────────────
+//
+// Preset face values + default expiration come from Sales → Gift cards settings
+// in production; mirrored here so the checkout picker matches that config.
+
+export const GIFT_CARD_PRESETS_MINOR = [180000, 350000, 530000, 700000, 1050000]
+
+export const GIFT_CARD_EXPIRATION_OPTIONS = [
+  "14 days",
+  "1 month",
+  "2 months",
+  "3 months",
+  "4 months",
+  "6 months",
+  "1 year",
+  "2 years",
+  "3 years",
+  "5 years",
+  "Never",
+]
+
+export const GIFT_CARD_DEFAULT_EXPIRATION = "1 year"
+
+/**
+ * Gift cards that can be redeemed at checkout. Mirrors the fixtures on
+ * /sales/gift-cards-sold so the redeem flow demos consistently:
+ *  - active with balance  → redeemable
+ *  - inactive (unpaid / expired / fully redeemed) → "not active" error
+ *  - any other code       → "typo" error
+ */
+export type RedeemableGiftCard = {
+  code: string
+  active: boolean
+  /** Remaining balance in fils. */
+  balanceMinor: number
+  /** Preformatted expiry label shown on the card visual, e.g. "12 May 2027". */
+  expires: string
+}
+
+export const REDEEMABLE_GIFT_CARDS: RedeemableGiftCard[] = [
+  { code: "YYOSNPHO", active: false, balanceMinor: 180000, expires: "29 Jun 2027" }, // unpaid
+  { code: "QM4KTRZA", active: true, balanceMinor: 230000, expires: "12 May 2027" }, // 2,300 left
+  { code: "BX9PLND2", active: false, balanceMinor: 0, expires: "3 Apr 2027" }, // fully redeemed
+  { code: "HK7VWQ1M", active: false, balanceMinor: 0, expires: "20 Feb 2026" }, // expired
+  { code: "ZTP3RG84", active: true, balanceMinor: 600000, expires: "1 Jun 2027" }, // 6,000 left
+]
+
+/** Look up a gift card by code (case-insensitive, trimmed). */
+export function findRedeemableGiftCard(code: string): RedeemableGiftCard | undefined {
+  const normalized = code.trim().toUpperCase()
+  return REDEEMABLE_GIFT_CARDS.find((c) => c.code === normalized)
+}
+
+// ─── Clients ──────────────────────────────────────────────────────────────────
+
+export const CLIENTS: CatalogClient[] = [
+  { id: "maaz-test", name: "Maaz Test", phone: "+971 50 963 6445" },
+  {
+    id: "aaishah-vaza",
+    name: "Aaishah Vaza",
+    phone: "+44 7938 894210",
+    email: "aaishahpatel2000@mail.com",
+  },
+  {
+    id: "abbey-mcdermaid",
+    name: "Abbey Mcdermaid",
+    phone: "+971 50 447 6804",
+    email: "abbeyxmcx@yahoo.co.uk",
+  },
+  { id: "abbey-mitchell", name: "Abbey Mitchell", phone: "+971 58 598 4293" },
+  {
+    id: "abbie-connelly",
+    name: "Abbie Connelly",
+    phone: "+44 7757 337517",
+    email: "abbieconnelly@msn.com",
+    photoUrl: "https://i.pravatar.cc/120?img=47",
+  },
+  { id: "abby-moses", name: "Abby Moses", phone: "+971 58 564 9303" },
+  { id: "abrar-mohammed", name: "Abrar Mohammed", phone: "+966 55 043 7944" },
+  {
+    id: "adriana-martino",
+    name: "Adriana Martino",
+    phone: "+971 50 113 2280",
+    email: "adrianamartino1998@gmail.com",
+    tags: ["High spender"],
+  },
+  { id: "bilal-haddad", name: "Bilal Haddad", phone: "+971 52 901 7733" },
+  { id: "carla-mendez", name: "Carla Mendez", phone: "+971 55 220 8841" },
+]
+
+// ─── Service catalog ──────────────────────────────────────────────────────────
+
+export const SERVICE_CATEGORIES: ServiceCategory[] = [
+  { id: "nails", label: "Nails", accent: "bg-cami-violet-9" },
+  { id: "staff", label: "Staff Services", accent: "bg-gold-9" },
+  { id: "massage", label: "Massage", accent: "bg-cami-sage-9" },
+  { id: "hair", label: "Hair", accent: "bg-cami-pink-9" },
+]
+
+export const SERVICES: ServiceItem[] = [
+  { id: "staff-nails", categoryId: "staff", name: "Staff Nails", durationMin: 60, priceMinor: 0 },
+  {
+    id: "biab-ext",
+    categoryId: "nails",
+    name: "Biab with Nail Extensions",
+    durationMin: 90,
+    priceMinor: 38500,
+  },
+  {
+    id: "acrylic-infill",
+    categoryId: "nails",
+    name: "Acrylic Nail infill for hands/toes",
+    durationMin: 90,
+    priceMinor: 25000,
+  },
+  {
+    id: "acrylic-full",
+    categoryId: "nails",
+    name: "Acrylic Nails Full Set hand",
+    durationMin: 150,
+    priceMinor: 28500,
+  },
+  {
+    id: "ext-repair",
+    categoryId: "nails",
+    name: "Nail Extension Repair",
+    durationMin: 45,
+    priceMinor: 3000,
+  },
+  {
+    id: "nail-art-per",
+    categoryId: "nails",
+    name: "Nail Art PER nail",
+    durationMin: 10,
+    priceMinor: 2000,
+  },
+  {
+    id: "swedish-massage",
+    categoryId: "massage",
+    name: "Swedish Massage 60min",
+    durationMin: 60,
+    priceMinor: 22000,
+  },
+  {
+    id: "deep-tissue",
+    categoryId: "massage",
+    name: "Deep Tissue Massage",
+    durationMin: 90,
+    priceMinor: 32000,
+  },
+  {
+    id: "blow-dry",
+    categoryId: "hair",
+    name: "Blow Dry & Style",
+    durationMin: 45,
+    priceMinor: 12000,
+  },
+  {
+    id: "cut-finish",
+    categoryId: "hair",
+    name: "Cut & Finish",
+    durationMin: 60,
+    priceMinor: 18000,
+  },
+  // ── Combos ─────────────────────────────────────────────────────────────
+  // Sold as one entry, priced under the sum of their parts; the cart holds
+  // them as their component lines with the difference shown as a discount.
+  {
+    id: "nails-and-style-combo",
+    categoryId: "nails",
+    name: "Nails & Style Combo",
+    durationMin: 135,
+    priceMinor: 42000,
+    isCombo: true,
+    componentNames: ["Biab with Nail Extensions", "Blow Dry & Style"],
+  },
+  {
+    id: "massage-duo-combo",
+    categoryId: "massage",
+    name: "Massage Duo Combo",
+    durationMin: 150,
+    priceMinor: 45000,
+    isCombo: true,
+    componentNames: ["Swedish Massage 60min", "Deep Tissue Massage"],
+  },
+]
+
+/**
+ * Split a combo into the cart lines it is sold as (PRD-143).
+ *
+ * The cart never holds a combo as one line — the same rule the appointment
+ * sheet follows. The combo's price is split across its components in
+ * proportion to what they cost alone (remainder on the last line, so the lines
+ * always sum to the combo's price), and each keeps its list price so the row
+ * can strike it through and the footer can name the difference.
+ */
+export function comboCartLines(
+  combo: ServiceItem,
+  catalog: ServiceItem[],
+  uid: (prefix: string) => string,
+  staffName = "Any",
+): CartLine[] {
+  const names = combo.componentNames ?? []
+  if (names.length === 0) return []
+
+  const groupId = `combo-${combo.id}-${Date.now()}`
+  const components = names.map((name) => {
+    const match = catalog.find((s) => !s.isCombo && s.name === name)
+    return {
+      name,
+      sourceId: match?.id ?? `${combo.id}-${name}`,
+      categoryId: match?.categoryId ?? combo.categoryId,
+      durationMin: match?.durationMin ?? Math.round(combo.durationMin / names.length),
+      listMinor: match?.priceMinor ?? Math.round(combo.priceMinor / names.length),
+    }
+  })
+
+  const listTotal = components.reduce((sum, c) => sum + c.listMinor, 0)
+  let allocated = 0
+
+  return components.map((component, i) => {
+    const share =
+      i === components.length - 1
+        ? combo.priceMinor - allocated
+        : listTotal > 0
+          ? Math.round((combo.priceMinor * component.listMinor) / listTotal)
+          : Math.round(combo.priceMinor / components.length)
+    allocated += share
+
+    return {
+      uid: uid("svc"),
+      kind: "service" as const,
+      name: `${combo.name} - ${component.name}`,
+      priceMinor: share,
+      durationMin: component.durationMin,
+      staffName,
+      qty: 1,
+      sourceId: component.sourceId,
+      categoryId: component.categoryId,
+      comboGroupId: groupId,
+      comboName: combo.name,
+      listPriceMinor: component.listMinor,
+    }
+  })
+}
+
+/** Per-line bundle discounts, in cart order — one footer row each. */
+export function bundleDiscounts(lines: CartLine[]): Array<{ uid: string; amountMinor: number }> {
+  return lines
+    .filter((l) => l.listPriceMinor && l.listPriceMinor > l.priceMinor)
+    .map((l) => ({ uid: l.uid, amountMinor: (l.listPriceMinor ?? 0) - l.priceMinor }))
+}
+
+/** Cart total before any bundle discount — what the parts cost alone. */
+export function grossTotalMinor(lines: CartLine[]): number {
+  return lines.reduce((sum, l) => sum + (l.listPriceMinor ?? l.priceMinor) * l.qty, 0)
+}
+
+/**
+ * What the deals on these lines take off, one row each (DW3.4).
+ *
+ * Deliberately the same shape as `bundleDiscounts` above, because the footer
+ * has to print them the same way: a named row saying what came off, then a
+ * To pay the reader can arrive at themselves.
+ *
+ * It did not exist, and the money went missing because of it. A deal chosen on
+ * a line was subtracted from the cart's base in `cart-flow.tsx` and named
+ * nowhere — the Cart step's total did not move at all, and stepping on to Tip
+ * showed a figure lower than the lines above it with nothing accounting for the
+ * difference. An operator cannot check a total they cannot reconstruct, and a
+ * client asking "why is this less" gets no answer from the screen.
+ */
+export function dealDiscounts(
+  lines: CartLine[],
+): Array<{ uid: string; label: string; amountMinor: number }> {
+  return lines
+    .filter((l) => (l.dealDiscountMinor ?? 0) > 0)
+    .map((l) => ({
+      uid: l.uid,
+      // Falls back to the line's own name for a sale saved before the deal was
+      // named on it — better a row that says which line than a bare figure.
+      label: l.dealName ?? `Deal on ${l.name}`,
+      amountMinor: l.dealDiscountMinor ?? 0,
+    }))
+}
+
+/** Σ of the above, for the footers that only need the one number. */
+export function dealDiscountTotalMinor(lines: CartLine[]): number {
+  return lines.reduce((sum, l) => sum + (l.dealDiscountMinor ?? 0), 0)
+}
+
+/**
+ * Map a combo created on the service menu into a POS catalog entry (PRD-143).
+ *
+ * Its merchant category has no equivalent in this demo catalog's four, so the
+ * accent falls back to the first — the category only tints the row's rail
+ * here, and the alternative is inventing a category the rest of the picker
+ * would have to explain.
+ */
+export function createdComboToServiceItem(combo: {
+  id: string
+  name: string
+  price: number
+  duration: number
+  components?: Array<{ name: string }>
+}): ServiceItem {
+  return {
+    id: combo.id,
+    categoryId: SERVICE_CATEGORIES[0].id,
+    name: combo.name,
+    durationMin: combo.duration,
+    priceMinor: Math.round(combo.price * 100),
+    isCombo: true,
+    componentNames: (combo.components ?? []).map((c) => c.name),
+  }
+}
+
+export function serviceCountLabel(categoryId: string): number {
+  return SERVICES.filter((s) => s.categoryId === categoryId).length
+}
+
+// ─── Product catalog ──────────────────────────────────────────────────────────
+
+export const PRODUCT_CATEGORIES: ProductCategory[] = [
+  { id: "hair", label: "Hair Products", count: "99+" },
+  { id: "skincare", label: "Skincare", count: "89" },
+  { id: "nails", label: "Nail Care", count: "24" },
+  { id: "tools", label: "Tools & Equipment", count: "12" },
+]
+
+export const PRODUCTS: ProductItem[] = [
+  {
+    id: "abc-cleanser",
+    categoryId: "hair",
+    name: "ABC Bare Cleanser Shampoo",
+    size: "300ml",
+    priceMinor: 13000,
+  },
+  {
+    id: "abc-conditioner",
+    categoryId: "hair",
+    name: "ABC Bare Conditioner",
+    size: "300ml",
+    priceMinor: 13500,
+  },
+  {
+    id: "argan-oil",
+    categoryId: "hair",
+    name: "Argan Repair Oil",
+    size: "50ml",
+    priceMinor: 9000,
+  },
+  {
+    id: "vitc-serum",
+    categoryId: "skincare",
+    name: "Vitamin C Brightening Serum",
+    size: "30ml",
+    priceMinor: 21000,
+  },
+  {
+    id: "spf-fluid",
+    categoryId: "skincare",
+    name: "Daily SPF 50 Fluid",
+    size: "50ml",
+    priceMinor: 16000,
+  },
+  {
+    id: "cuticle-oil",
+    categoryId: "nails",
+    name: "Nourishing Cuticle Oil",
+    size: "15ml",
+    priceMinor: 4500,
+  },
+  { id: "nail-file", categoryId: "tools", name: "Professional Nail File", priceMinor: 1500 },
+]
+
+export function productCountLabel(categoryId: string): number {
+  return PRODUCTS.filter((p) => p.categoryId === categoryId).length
+}
+
+// ─── Appointments (Upcoming today) ────────────────────────────────────────────
+
+export const APPOINTMENTS: AppointmentItem[] = [
+  {
+    id: "appt-1",
+    clientId: "adriana-martino",
+    clientName: "Adriana Martino",
+    start: "9:00am",
+    end: "11:00am",
+    locationId: "shampooch-jvc",
+    status: "Booked",
+    pet: { name: "Bobo", breed: "French Bulldog", weight: "10 lbs", species: "dog" },
+    lines: [
+      {
+        serviceId: "acrylic-full",
+        name: "Acrylic Nails Full Set hand",
+        durationMin: 150,
+        staffName: "Lena Petrov",
+        priceMinor: 28500,
+      },
+      {
+        serviceId: "nail-art-per",
+        name: "Nail Art PER nail",
+        durationMin: 10,
+        staffName: "Lena Petrov",
+        priceMinor: 2000,
+      },
+    ],
+  },
+  {
+    id: "appt-2",
+    clientId: "bilal-haddad",
+    clientName: "Bilal Haddad",
+    start: "11:30am",
+    end: "1:15pm",
+    locationId: "shampooch-jumeirah",
+    status: "Booked",
+    pet: { name: "Rex", breed: "Beagle", weight: "22 lbs", species: "dog" },
+    // Booked as a combo, so the appointment carries a line per component and
+    // the sale built from it keeps both the marker and the saving (PRD-143).
+    lines: [
+      {
+        serviceId: "cut-finish",
+        name: "Nails & Style Combo - Cut & Finish",
+        durationMin: 60,
+        staffName: "Mei Tanaka",
+        priceMinor: 15000,
+        comboName: "Nails & Style Combo",
+        listPriceMinor: 18000,
+        warnings: ["Team member doesn't provide this service"],
+      },
+      {
+        serviceId: "blow-dry",
+        name: "Nails & Style Combo - Blow Dry & Style",
+        durationMin: 45,
+        staffName: "Mei Tanaka",
+        priceMinor: 10000,
+        comboName: "Nails & Style Combo",
+        listPriceMinor: 12000,
+      },
+    ],
+  },
+  {
+    id: "appt-3",
+    clientId: "carla-mendez",
+    clientName: "Carla Mendez",
+    start: "2:00pm",
+    end: "3:30pm",
+    locationId: "shampooch-jvc",
+    status: "Booked",
+    pet: { name: "Milo", breed: "Persian Cat", weight: "9 lbs", species: "cat" },
+    lines: [
+      {
+        serviceId: "biab-ext",
+        name: "Biab with Nail Extensions",
+        durationMin: 90,
+        staffName: "Sara Park",
+        priceMinor: 38500,
+      },
+    ],
+  },
+]
+
+export function appointmentTotalMinor(appt: AppointmentItem): number {
+  return appt.lines.reduce((sum, l) => sum + l.priceMinor, 0)
+}

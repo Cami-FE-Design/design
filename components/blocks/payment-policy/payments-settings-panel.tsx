@@ -24,17 +24,18 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { NotionBreadcrumb } from "@/components/blocks/notion-breadcrumb"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
 import { CamiPayRatesPanel } from "@/components/blocks/payment-policy/camipay-rates-panel"
-import { FullScreenTakeover, PaymentMethodsPanel } from "@/components/blocks/sales-settings"
-import { SettingsPanel } from "@/components/blocks/settings-panel"
+import { PaymentMethodsPanel } from "@/components/blocks/settings/sales-settings"
+import { SettingsCard, SettingsPanel } from "@/components/blocks/settings/settings-panel"
 import {
   type TerminalsDemoDialog,
   type TerminalsDemoState,
   TerminalsPanel,
-} from "@/components/blocks/terminals-panel"
+} from "@/components/blocks/settings/terminals-panel"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { FullScreenTakeover } from "@/components/blocks/shared/full-screen-edit-dialog"
+import { NotionBreadcrumb } from "@/components/blocks/shell/notion-breadcrumb"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -50,6 +51,7 @@ import {
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useDemoBusiness } from "@/lib/demo-business"
+import { formatAed } from "@/lib/format"
 import { CamiPayProvider } from "@/lib/hq-camipay/store"
 import {
   BRANCH_DEPOSIT,
@@ -389,7 +391,7 @@ function PaymentPolicySubScreen({
       }
     >
       {hasPolicy ? (
-        <section className="flex w-full flex-col gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
+        <SettingsCard>
           <header className="flex items-start justify-between gap-2">
             <div className="flex flex-col gap-1">
               <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
@@ -416,8 +418,7 @@ function PaymentPolicySubScreen({
               {policy.limitByValue ? (
                 <>
                   {" "}
-                  on appointments over{" "}
-                  <strong>AED {policy.minValueAed.toLocaleString("en-US")}</strong>
+                  on appointments over <strong>{formatAed(policy.minValueAed)}</strong>
                 </>
               ) : null}
             </SummaryLine>
@@ -471,11 +472,11 @@ function PaymentPolicySubScreen({
               </Button>
             </div>
           </div>
-        </section>
+        </SettingsCard>
       ) : (
         // No policy configured — inactive empty state, mirroring the Gift cards
         // pattern in sales-settings. Set up opens the editor takeover.
-        <section className="flex w-full flex-col rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
+        <SettingsCard className="gap-0">
           <EmptyState
             icon={HandCoinsIcon}
             title="No payment policy"
@@ -491,12 +492,12 @@ function PaymentPolicySubScreen({
               </Button>
             }
           />
-        </section>
+        </SettingsCard>
       )}
 
       {/* Prepay only makes sense once a policy exists — hidden in the empty state. */}
       {hasPolicy ? (
-        <section className="flex w-full items-start justify-between gap-6 rounded-2xl border border-border/60 p-5 sm:w-fit sm:min-w-146 sm:max-w-146">
+        <SettingsCard className="flex-row items-start justify-between">
           <div className="flex flex-col gap-1">
             <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
               Allow clients the option to prepay in full before their appointment
@@ -511,7 +512,7 @@ function PaymentPolicySubScreen({
             onCheckedChange={(checked) => updatePolicy({ prepayEnabled: checked })}
             aria-label="Allow clients to prepay in full"
           />
-        </section>
+        </SettingsCard>
       ) : null}
 
       {/* Prototype demo toggle — previews the opposite state for this session
@@ -1259,7 +1260,7 @@ function ServiceCustomizationsTakeover({ onClose }: { onClose: () => void }) {
                       </div>
                     </div>
                     <span className="ps-7 text-sm text-foreground lg:ps-0">
-                      AED {service.price.toLocaleString("en-US")}
+                      {formatAed(service.price)}
                     </span>
                     <div className="ps-7 lg:ps-0">
                       <DepositCell

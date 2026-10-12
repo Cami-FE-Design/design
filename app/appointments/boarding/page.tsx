@@ -9,9 +9,9 @@ import {
   PlusIcon,
 } from "lucide-react"
 import { useMemo, useState } from "react"
-import { AppShell } from "@/components/blocks/app-shell"
 import { BoardingDetailSheet } from "@/components/blocks/boarding/booking-detail-sheet"
 import { NewBoardingSheet } from "@/components/blocks/boarding/new-boarding-sheet"
+import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {

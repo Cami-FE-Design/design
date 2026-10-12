@@ -86,7 +86,7 @@ is doing:
 "Not set up", "Locked" and "Active" are the merchant's own words from DSG-62 —
 HQ and the merchant looking at one device should read the same status. The three
 fleet states above them are ours alone. The vocabulary lives once, in
-`components/blocks/hq-terminal-status.tsx`, so the card and the fleet table
+`components/blocks/admin/hq-terminal-status.tsx`, so the card and the fleet table
 cannot drift.
 
 ## Surfaces

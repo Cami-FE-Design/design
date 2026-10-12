@@ -278,10 +278,12 @@ export type LeaderboardRow = {
   served: string
 }
 
+// The business's own people (lib/team/staff.ts), led by the three the other
+// reports already name. This was a cast of its own that no other screen knew.
 export const TEAM_LEADERBOARD: LeaderboardRow[] = [
   {
-    initials: "AL",
-    name: "Aisha Al Marri",
+    initials: "AR",
+    name: "Aziz Rahman",
     sales: "AED 2,860",
     salesDelta: 14,
     occupancy: "81%",
@@ -291,8 +293,8 @@ export const TEAM_LEADERBOARD: LeaderboardRow[] = [
     served: "34",
   },
   {
-    initials: "RK",
-    name: "Ravi Kumar",
+    initials: "SP",
+    name: "Sara Park",
     sales: "AED 2,140",
     salesDelta: 6,
     occupancy: "74%",
@@ -302,8 +304,8 @@ export const TEAM_LEADERBOARD: LeaderboardRow[] = [
     served: "27",
   },
   {
-    initials: "SM",
-    name: "Sara Mostafa",
+    initials: "BC",
+    name: "Beth Carter",
     sales: "AED 1,780",
     salesDelta: 11,
     occupancy: "69%",
@@ -313,8 +315,8 @@ export const TEAM_LEADERBOARD: LeaderboardRow[] = [
     served: "24",
   },
   {
-    initials: "JD",
-    name: "Jomar Dela Cruz",
+    initials: "AH",
+    name: "Aya Hassan",
     sales: "AED 1,410",
     salesDelta: -3,
     occupancy: "62%",
@@ -324,8 +326,8 @@ export const TEAM_LEADERBOARD: LeaderboardRow[] = [
     served: "19",
   },
   {
-    initials: "HN",
-    name: "Hana Noor",
+    initials: "LP",
+    name: "Lena Petrov",
     sales: "AED 880",
     salesDelta: 9,
     occupancy: "58%",
@@ -351,7 +353,7 @@ export const STAFF_PERFORMANCE: SimpleTable = {
   ],
   rows: [
     {
-      name: "Aisha Al Marri",
+      name: "Aziz Rahman",
       svc: "AED 2,772",
       prod: "AED 88",
       net: "AED 2,860",
@@ -362,7 +364,7 @@ export const STAFF_PERFORMANCE: SimpleTable = {
       retc: "25",
     },
     {
-      name: "Ravi Kumar",
+      name: "Sara Park",
       svc: "AED 2,077",
       prod: "AED 63",
       net: "AED 2,140",
@@ -373,7 +375,7 @@ export const STAFF_PERFORMANCE: SimpleTable = {
       retc: "19",
     },
     {
-      name: "Sara Mostafa",
+      name: "Beth Carter",
       svc: "AED 1,729",
       prod: "AED 51",
       net: "AED 1,780",
@@ -384,7 +386,7 @@ export const STAFF_PERFORMANCE: SimpleTable = {
       retc: "17",
     },
     {
-      name: "Jomar Dela Cruz",
+      name: "Aya Hassan",
       svc: "AED 1,371",
       prod: "AED 39",
       net: "AED 1,410",

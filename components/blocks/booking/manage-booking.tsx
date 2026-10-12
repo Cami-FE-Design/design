@@ -11,10 +11,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-
+import { AppleIcon, GoogleIcon } from "@/components/blocks/auth/social-icons"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
-import { PublicTopGradient } from "@/components/blocks/public-top-gradient"
-import { AppleIcon, GoogleIcon } from "@/components/blocks/social-icons"
+import { PublicTopGradient } from "@/components/blocks/public/public-top-gradient"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,8 +24,9 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { mapsSearchHref } from "@/lib/address"
 import { BOOKING_DAYS, type BookingDetail, type BookingStatus, calendarLinks } from "@/lib/booking"
+import { formatAed } from "@/lib/format"
 import { petNoteLabel } from "@/lib/pet-notes"
-import { formatDuration, formatPriceAed, type PublicBusiness } from "@/lib/public-business"
+import { formatDuration, type PublicBusiness } from "@/lib/public-business"
 import { cn } from "@/lib/utils"
 
 // Self-service management surface reached from the confirmation (magic-link in
@@ -232,7 +232,7 @@ export function ManageBooking({
               ))}
               <DetailRow
                 label="Total"
-                value={<span className="tabular-nums">{formatPriceAed(booking.priceAed)}</span>}
+                value={<span className="tabular-nums">{formatAed(booking.priceAed)}</span>}
               />
             </div>
 

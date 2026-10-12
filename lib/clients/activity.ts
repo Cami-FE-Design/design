@@ -12,7 +12,7 @@
 // Two decisions worth reading.
 //
 // 1. Pets are NOT redefined here. Every client already carries their pets
-//    (id, name, species) on their record in app/clients/mock.ts; PET_DETAILS
+//    (id, name, species) on their record in lib/clients/mock.ts; PET_DETAILS
 //    adds only what a record has no room for — breed, weight, coat. A second
 //    list of pets is exactly the drift this file is fixing, so there isn't one.
 //
@@ -23,6 +23,9 @@
 //    looked at is if some client actually lands on it.
 
 import type { AvatarSpecies } from "@/components/ui/avatar"
+import { CLIENT_SUMMARY_NOW, readClientSummaryAppointments } from "@/lib/client-summary/mock"
+import { formatDuration } from "@/lib/format"
+import { formatMoneyWhole } from "@/lib/money/format"
 
 // ─── Pets ────────────────────────────────────────────────────────────────────
 
@@ -108,7 +111,7 @@ export const APPT_STATUS_LABEL: Record<ClientApptStatus, string> = {
   arrived: "Arrived",
   started: "Started",
   completed: "Completed",
-  canceled: "Canceled",
+  canceled: "Cancelled",
   "no-show": "No-show",
 }
 
@@ -186,8 +189,8 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Thursday",
         time: "2:00pm",
         services: [
-          { name: "Hair Colour", staff: "Sara", duration: "1h 30min", price: "AED 380" },
-          { name: "Blowout", staff: "Sara", duration: "45min", price: "AED 150" },
+          { name: "Hair Colour", staff: "Yara Nasr", duration: "1h 30min", price: "AED 380" },
+          { name: "Blowout", staff: "Yara Nasr", duration: "45min", price: "AED 150" },
         ],
       },
       {
@@ -197,7 +200,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Wednesday",
         time: "11:00am",
         services: [
-          { name: "Cut and finish", staff: "Sara", duration: "1h 15min", price: "AED 260" },
+          { name: "Cut and finish", staff: "Yara Nasr", duration: "1h 15min", price: "AED 260" },
         ],
       },
       {
@@ -206,7 +209,9 @@ const ACTIVITY: Record<string, ClientActivity> = {
         dayMonth: "Jul 2",
         weekday: "Wednesday",
         time: "10:00am",
-        services: [{ name: "Balayage", staff: "Lina", duration: "3h 30min", price: "AED 890" }],
+        services: [
+          { name: "Balayage", staff: "Lina Farouk", duration: "3h 30min", price: "AED 890" },
+        ],
       },
     ],
     sales: [
@@ -243,8 +248,8 @@ const ACTIVITY: Record<string, ClientActivity> = {
         time: "10:00am",
         petId: "bobo",
         services: [
-          { name: "Full groom", staff: "Sophie", duration: "1h 30min", price: "AED 220" },
-          { name: "Nail trim", staff: "Sophie", duration: "15min", price: "AED 40" },
+          { name: "Full groom", staff: "Priya Nair", duration: "1h 30min", price: "AED 220" },
+          { name: "Nail trim", staff: "Priya Nair", duration: "15min", price: "AED 40" },
         ],
       },
       {
@@ -255,7 +260,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Monday",
         time: "12:00pm",
         petId: "kiwi",
-        services: [{ name: "Wing clip", staff: "Aisha", duration: "30min", price: "AED 90" }],
+        services: [{ name: "Wing clip", staff: "Lena Petrov", duration: "30min", price: "AED 90" }],
       },
       {
         id: "mc-3",
@@ -265,7 +270,9 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Wednesday",
         time: "2:30pm",
         petId: "mochi",
-        services: [{ name: "Bath & tidy", staff: "Aisha", duration: "45min", price: "AED 130" }],
+        services: [
+          { name: "Bath & tidy", staff: "Lena Petrov", duration: "45min", price: "AED 130" },
+        ],
       },
       {
         id: "mc-4",
@@ -275,7 +282,9 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Monday",
         time: "9:00am",
         petId: "bobo",
-        services: [{ name: "Full groom", staff: "Sophie", duration: "1h 30min", price: "AED 220" }],
+        services: [
+          { name: "Full groom", staff: "Priya Nair", duration: "1h 30min", price: "AED 220" },
+        ],
       },
       // Two more branches, because "visits elsewhere" is the whole of SCR-07
       // and a three-branch history in a nine-branch estate barely tests it.
@@ -289,7 +298,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Saturday",
         time: "11:15am",
         petId: "mochi",
-        services: [{ name: "Blow dry", staff: "Diego", duration: "45min", price: "AED 150" }],
+        services: [{ name: "Blow dry", staff: "Omar Said", duration: "45min", price: "AED 150" }],
       },
       {
         id: "mc-6",
@@ -299,7 +308,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Friday",
         time: "4:00pm",
         petId: "bobo",
-        services: [{ name: "Nail trim", staff: "Rana", duration: "15min", price: "AED 45" }],
+        services: [{ name: "Nail trim", staff: "Rana Idris", duration: "15min", price: "AED 45" }],
       },
     ],
     sales: [
@@ -363,7 +372,9 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Sunday",
         time: "11:30am",
         petId: "biscuit",
-        services: [{ name: "Puppy first groom", staff: "Aya", duration: "1h", price: "AED 180" }],
+        services: [
+          { name: "Puppy first groom", staff: "Aya Hassan", duration: "1h", price: "AED 180" },
+        ],
       },
     ],
     sales: [],
@@ -381,7 +392,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         time: "4:00pm",
         petId: "luna",
         services: [
-          { name: "Cat grooming", staff: "Aisha", duration: "1h 15min", price: "AED 200" },
+          { name: "Cat grooming", staff: "Lena Petrov", duration: "1h 15min", price: "AED 200" },
         ],
       },
       {
@@ -391,7 +402,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Sunday",
         time: "10:30am",
         petId: "bobo",
-        services: [{ name: "Bath & brush", staff: "Sophie", duration: "1h", price: "AED 120" }],
+        services: [{ name: "Bath & brush", staff: "Priya Nair", duration: "1h", price: "AED 120" }],
       },
     ],
     sales: [
@@ -423,7 +434,9 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Saturday",
         time: "1:00pm",
         petId: "pepper",
-        services: [{ name: "Small pet tidy", staff: "Aya", duration: "40min", price: "AED 140" }],
+        services: [
+          { name: "Small pet tidy", staff: "Aya Hassan", duration: "40min", price: "AED 140" },
+        ],
       },
       {
         id: "gk-2",
@@ -432,7 +445,9 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Saturday",
         time: "1:00pm",
         petId: "pepper",
-        services: [{ name: "Small pet tidy", staff: "Aya", duration: "40min", price: "AED 140" }],
+        services: [
+          { name: "Small pet tidy", staff: "Aya Hassan", duration: "40min", price: "AED 140" },
+        ],
       },
     ],
     sales: [
@@ -458,7 +473,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         time: "3:00pm",
         petId: "tofu",
         services: [
-          { name: "Cat grooming", staff: "Aisha", duration: "1h 15min", price: "AED 200" },
+          { name: "Cat grooming", staff: "Lena Petrov", duration: "1h 15min", price: "AED 200" },
         ],
       },
       {
@@ -469,7 +484,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         time: "3:00pm",
         petId: "muffin",
         services: [
-          { name: "Cat grooming", staff: "Aisha", duration: "1h 15min", price: "AED 200" },
+          { name: "Cat grooming", staff: "Lena Petrov", duration: "1h 15min", price: "AED 200" },
         ],
       },
       {
@@ -479,7 +494,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Friday",
         time: "11:00am",
         petId: "tofu",
-        services: [{ name: "Nail trim", staff: "Aya", duration: "15min", price: "AED 40" }],
+        services: [{ name: "Nail trim", staff: "Aya Hassan", duration: "15min", price: "AED 40" }],
       },
     ],
     sales: [
@@ -511,8 +526,8 @@ const ACTIVITY: Record<string, ClientActivity> = {
         time: "9:30am",
         petId: "ralph",
         services: [
-          { name: "Full groom", staff: "Sophie", duration: "2h", price: "AED 320" },
-          { name: "De-shed treatment", staff: "Sophie", duration: "30min", price: "AED 90" },
+          { name: "Full groom", staff: "Priya Nair", duration: "2h", price: "AED 320" },
+          { name: "De-shed treatment", staff: "Priya Nair", duration: "30min", price: "AED 90" },
         ],
       },
       {
@@ -522,7 +537,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Wednesday",
         time: "9:30am",
         petId: "ralph",
-        services: [{ name: "Full groom", staff: "Sophie", duration: "2h", price: "AED 320" }],
+        services: [{ name: "Full groom", staff: "Priya Nair", duration: "2h", price: "AED 320" }],
       },
     ],
     sales: [
@@ -567,7 +582,12 @@ const ACTIVITY: Record<string, ClientActivity> = {
         time: "8:00am",
         petId: "rocky",
         services: [
-          { name: "Bath & brush, large", staff: "Sophie", duration: "1h 30min", price: "AED 180" },
+          {
+            name: "Bath & brush, large",
+            staff: "Priya Nair",
+            duration: "1h 30min",
+            price: "AED 180",
+          },
         ],
       },
       {
@@ -578,7 +598,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         time: "2:00pm",
         petId: "ginger",
         services: [
-          { name: "Cat grooming", staff: "Aisha", duration: "1h 15min", price: "AED 200" },
+          { name: "Cat grooming", staff: "Lena Petrov", duration: "1h 15min", price: "AED 200" },
         ],
       },
     ],
@@ -614,7 +634,7 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Tuesday",
         time: "9:00am",
         petId: "duke",
-        services: [{ name: "Full groom", staff: "Sophie", duration: "2h", price: "AED 340" }],
+        services: [{ name: "Full groom", staff: "Priya Nair", duration: "2h", price: "AED 340" }],
       },
       {
         id: "fr-2",
@@ -624,8 +644,8 @@ const ACTIVITY: Record<string, ClientActivity> = {
         time: "9:00am",
         petId: "duke",
         services: [
-          { name: "Full groom", staff: "Sophie", duration: "2h", price: "AED 340" },
-          { name: "Ear clean", staff: "Sophie", duration: "15min", price: "AED 30" },
+          { name: "Full groom", staff: "Priya Nair", duration: "2h", price: "AED 340" },
+          { name: "Ear clean", staff: "Priya Nair", duration: "15min", price: "AED 30" },
         ],
       },
     ],
@@ -654,7 +674,9 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Saturday",
         time: "2:00pm",
         petId: "olive",
-        services: [{ name: "Small pet tidy", staff: "Aya", duration: "40min", price: "AED 140" }],
+        services: [
+          { name: "Small pet tidy", staff: "Aya Hassan", duration: "40min", price: "AED 140" },
+        ],
       },
     ],
     sales: [
@@ -678,7 +700,9 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Saturday",
         time: "12:00pm",
         petId: "willow",
-        services: [{ name: "Full groom", staff: "Aya", duration: "1h 45min", price: "AED 280" }],
+        services: [
+          { name: "Full groom", staff: "Aya Hassan", duration: "1h 45min", price: "AED 280" },
+        ],
       },
       {
         id: "kdg-2",
@@ -687,7 +711,9 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Saturday",
         time: "12:00pm",
         petId: "willow",
-        services: [{ name: "Full groom", staff: "Aya", duration: "1h 45min", price: "AED 280" }],
+        services: [
+          { name: "Full groom", staff: "Aya Hassan", duration: "1h 45min", price: "AED 280" },
+        ],
       },
       {
         id: "kdg-3",
@@ -696,7 +722,9 @@ const ACTIVITY: Record<string, ClientActivity> = {
         weekday: "Saturday",
         time: "12:00pm",
         petId: "pickle",
-        services: [{ name: "Sphynx bath", staff: "Aisha", duration: "45min", price: "AED 160" }],
+        services: [
+          { name: "Sphynx bath", staff: "Lena Petrov", duration: "45min", price: "AED 160" },
+        ],
       },
     ],
     sales: [
@@ -723,7 +751,79 @@ const ACTIVITY: Record<string, ClientActivity> = {
 
 export function getClientActivity(clientId?: string): ClientActivity {
   if (!clientId) return EMPTY
-  return ACTIVITY[clientId] ?? EMPTY
+  return ACTIVITY[clientId] ?? fromClientSummary(clientId) ?? EMPTY
+}
+
+// ─── Inbox Phase 0's clients ─────────────────────────────────────────────────
+//
+// The inbox's clients ("cus-…") are kept in lib/client-summary, which stands in
+// for the customer module behind its client pane. The pane listed their visits
+// while "View profile" opened the same client with none, so the profile reads
+// the same records: one client, one history.
+
+const DUBAI = "Asia/Dubai"
+const dayMonthFormat = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  timeZone: DUBAI,
+})
+const weekdayFormat = new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: DUBAI })
+const timeFormat = new Intl.DateTimeFormat("en-US", {
+  hour: "numeric",
+  minute: "2-digit",
+  hour12: true,
+  timeZone: DUBAI,
+})
+
+/** How long each of the summary's services takes; it records no duration. */
+const SUMMARY_SERVICE_MINUTES: Record<string, number> = {
+  "Bath, blow-dry and sanitary tidy": 60,
+  "De-shedding treatment with conditioning mask": 45,
+  "Full groom with de-shedding treatment and blueberry facial": 120,
+  "Full groom, medium breed, hand scissoring": 90,
+  "Nail trim and paw pad tidy": 20,
+  "Puppy introduction groom, under 6 months": 45,
+}
+
+function fromClientSummary(clientId: string): ClientActivity | null {
+  const all = readClientSummaryAppointments(clientId)
+  if (all.length === 0) return null
+  const newestFirst = [...all].sort((a, b) => Date.parse(b.at) - Date.parse(a.at))
+  const when = (at: string) => {
+    const d = new Date(at)
+    return {
+      dayMonth: dayMonthFormat.format(d),
+      weekday: weekdayFormat.format(d),
+      time: timeFormat.format(d).replace(" ", "").toLowerCase(),
+    }
+  }
+  const isPast = (at: string) => Date.parse(at) <= CLIENT_SUMMARY_NOW
+  return {
+    appointments: newestFirst.map((visit) => ({
+      id: visit.id,
+      status: isPast(visit.at) ? "completed" : "confirmed",
+      ...when(visit.at),
+      services: visit.lines.map((l) => ({
+        name: l.service,
+        staff: l.staffName,
+        duration: formatDuration(SUMMARY_SERVICE_MINUTES[l.service] ?? 60),
+        price: formatMoneyWhole(l.amountMinor),
+      })),
+    })),
+    // A completed visit was paid for at the time; an upcoming one has no sale.
+    sales: newestFirst
+      .filter((visit) => isPast(visit.at))
+      .map((visit) => {
+        const { dayMonth, weekday } = when(visit.at)
+        return {
+          id: `sale-${visit.id}`,
+          status: "paid" as const,
+          dayMonth,
+          weekday,
+          items: visit.lines.map((l) => ({ name: l.service, priceMinor: l.amountMinor })),
+        }
+      }),
+  }
 }
 
 /** Species a pet id is recorded as, for callers that only hold the id. */

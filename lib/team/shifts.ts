@@ -1,3 +1,4 @@
+import { minutesOfDay } from "@/lib/format"
 /**
  * Rosters, per branch, and the one conflict that spans them (R05, E07, DW2.3,
  * DW2.4).
@@ -89,14 +90,9 @@ export type RosterMember = {
   locationIds: ReadonlyArray<string>
 }
 
-function toMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number)
-  return (h ?? 0) * 60 + (m ?? 0)
-}
-
 /** Whether two ranges share any minute. Touching ends do not overlap. */
 export function rangesOverlap(a: ShiftTime, b: ShiftTime): boolean {
-  return toMinutes(a.start) < toMinutes(b.end) && toMinutes(b.start) < toMinutes(a.end)
+  return minutesOfDay(a.start) < minutesOfDay(b.end) && minutesOfDay(b.start) < minutesOfDay(a.end)
 }
 
 /**
@@ -180,7 +176,7 @@ export function bookableHours(
         shift.memberId === memberId && shift.locationId === locationId && shift.day === day,
     )
     .map(({ start, end }) => ({ start, end }))
-    .sort((a, b) => toMinutes(a.start) - toMinutes(b.start))
+    .sort((a, b) => minutesOfDay(a.start) - minutesOfDay(b.start))
 }
 
 // ─── The day cell ─────────────────────────────────────────────────────────────
@@ -289,7 +285,7 @@ export function dayCell(
   const windows = shifts
     .filter((s) => s.memberId === memberId && s.locationId === locationId && s.day === day)
     .map(({ start, end }) => ({ start, end }))
-    .sort((a, b) => toMinutes(a.start) - toMinutes(b.start))
+    .sort((a, b) => minutesOfDay(a.start) - minutesOfDay(b.start))
 
   // Deliberately not filtered by branch: somebody away is away, so their leave
   // shows on every branch's grid where they are rostered. A manager who cannot
@@ -297,7 +293,7 @@ export function dayCell(
   const onLeave = leaves.filter((l) => l.memberId === memberId && l.day === day)
   const onBlock = blocks
     .filter((b) => b.memberId === memberId && b.locationId === locationId && b.day === day)
-    .sort((a, b) => toMinutes(a.start) - toMinutes(b.start))
+    .sort((a, b) => minutesOfDay(a.start) - minutesOfDay(b.start))
 
   return {
     windows,
@@ -324,14 +320,14 @@ export function subtractIntervals(
   intervals: ReadonlyArray<ShiftTime>,
 ): ShiftTime[] {
   let pieces: ShiftTime[] = [window]
-  const ordered = [...intervals].sort((a, b) => toMinutes(a.start) - toMinutes(b.start))
+  const ordered = [...intervals].sort((a, b) => minutesOfDay(a.start) - minutesOfDay(b.start))
 
   for (const cut of ordered) {
-    const cutFrom = toMinutes(cut.start)
-    const cutTo = toMinutes(cut.end)
+    const cutFrom = minutesOfDay(cut.start)
+    const cutTo = minutesOfDay(cut.end)
     pieces = pieces.flatMap((piece) => {
-      const from = toMinutes(piece.start)
-      const to = toMinutes(piece.end)
+      const from = minutesOfDay(piece.start)
+      const to = minutesOfDay(piece.end)
       if (to <= cutFrom || from >= cutTo) return [piece]
       const kept: ShiftTime[] = []
       if (from < cutFrom) kept.push({ start: piece.start, end: cut.start })
@@ -356,11 +352,11 @@ export function workingMinutes(cell: DayCell): number {
   if (cell.leaves.some((l) => l.fullDay)) return 0
 
   const worked = cell.windows.reduce(
-    (total, w) => total + Math.max(0, toMinutes(w.end) - toMinutes(w.start)),
+    (total, w) => total + Math.max(0, minutesOfDay(w.end) - minutesOfDay(w.start)),
     0,
   )
   const off = cell.leaves.reduce(
-    (total, l) => total + Math.max(0, toMinutes(l.end) - toMinutes(l.start)),
+    (total, l) => total + Math.max(0, minutesOfDay(l.end) - minutesOfDay(l.start)),
     0,
   )
   return Math.max(0, worked - off)
@@ -488,7 +484,7 @@ export function dayWindowProblem(
   leaveWindows: ReadonlyArray<ShiftTime> = [],
 ): RotaProblem | null {
   const overlaps = (a: ShiftTime, b: ShiftTime) =>
-    toMinutes(a.start) < toMinutes(b.end) && toMinutes(a.end) > toMinutes(b.start)
+    minutesOfDay(a.start) < minutesOfDay(b.end) && minutesOfDay(a.end) > minutesOfDay(b.start)
 
   for (let i = 0; i < windows.length; i++) {
     for (let j = i + 1; j < windows.length; j++) {
@@ -504,11 +500,14 @@ export function dayWindowProblem(
     }
   }
 
-  if (windows.some((w) => toMinutes(w.end) <= toMinutes(w.start))) return "too-short"
+  if (windows.some((w) => minutesOfDay(w.end) <= minutesOfDay(w.start))) return "too-short"
 
-  const ordered = [...windows].sort((a, b) => toMinutes(a.start) - toMinutes(b.start))
+  const ordered = [...windows].sort((a, b) => minutesOfDay(a.start) - minutesOfDay(b.start))
   for (let i = 0; i < ordered.length - 1; i++) {
-    if (toMinutes(ordered[i + 1]!.start) - toMinutes(ordered[i]!.end) < MIN_SHIFT_GAP_MINUTES) {
+    if (
+      minutesOfDay(ordered[i + 1]!.start) - minutesOfDay(ordered[i]!.end) <
+      MIN_SHIFT_GAP_MINUTES
+    ) {
       return "gap"
     }
   }

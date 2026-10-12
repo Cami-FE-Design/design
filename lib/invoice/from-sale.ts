@@ -10,7 +10,8 @@
 // one sale. Real sales arrive with their own lines and payment records, and this
 // file is the seam where that swap happens.
 
-import { MOCK_SALES, type Sale } from "@/app/sales/sales-list/page"
+import { formatAed } from "@/lib/format"
+import { VAT_RATE } from "@/lib/invoice/totals"
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import {
   businessTaxIdentityFor,
@@ -18,6 +19,7 @@ import {
   LOCATION_TAX_OVERRIDES,
   resolveTaxIdentity,
 } from "@/lib/locations/tax-identity"
+import { MOCK_SALES, type Sale } from "@/lib/sales/mock"
 import type { SalePayment } from "@/lib/sales/payments"
 import type {
   InvoiceDocument,
@@ -168,7 +170,7 @@ function linesFor(sale: Sale, grossMinor: number): InvoiceLine[] {
     return [
       {
         id: "l1",
-        description: `AED ${sale.giftCard.valueAed.toLocaleString("en-US")} - Gift Card`,
+        description: `${formatAed(sale.giftCard.valueAed)} - Gift Card`,
         subLabel: `Code: ${sale.giftCard.code}`,
         qty: 1,
         unitGrossMinor: grossMinor,
@@ -320,7 +322,7 @@ export function invoiceFromSale(sale: Sale): InvoiceDocument {
     // Real tip data off the sale row. Sale 16 carries one, which is what makes
     // the EC-39 split visible on a real record rather than only a fixture.
     tipMinor: sale.tipsMinor,
-    vatRate: 0.05,
+    vatRate: VAT_RATE,
     footerNote: FOOTER_NOTE,
   }
 }

@@ -49,13 +49,8 @@
  */
 
 import type { SlotGroup } from "@/lib/booking"
+import { minutesOfDay } from "@/lib/format"
 import type { Leave, Shift } from "@/lib/team/shifts"
-
-/** Minutes from midnight. Times are `HH:MM` in the branch's own timezone. */
-function toMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number)
-  return (h ?? 0) * 60 + (m ?? 0)
-}
 
 export type SlotRefusal =
   | {
@@ -107,7 +102,7 @@ export function slotRefusal(
   slot: { start: string; durationMin: number },
   leaves: ReadonlyArray<Leave> = [],
 ): SlotRefusal | null {
-  const from = toMinutes(slot.start)
+  const from = minutesOfDay(slot.start)
   const to = from + slot.durationMin
 
   // Leave is checked before any shift, and at every branch — not only the one
@@ -125,7 +120,8 @@ export function slotRefusal(
   for (const leave of leaves) {
     if (leave.memberId !== memberId) continue
     if (leave.day !== day) continue
-    if (!leave.fullDay && (from >= toMinutes(leave.end) || toMinutes(leave.start) >= to)) continue
+    if (!leave.fullDay && (from >= minutesOfDay(leave.end) || minutesOfDay(leave.start) >= to))
+      continue
     return { reason: "on-leave", leaveType: leave.type }
   }
 
@@ -140,8 +136,8 @@ export function slotRefusal(
     if (shift.memberId !== memberId) continue
     if (shift.day !== day) continue
 
-    const shiftFrom = toMinutes(shift.start)
-    const shiftTo = toMinutes(shift.end)
+    const shiftFrom = minutesOfDay(shift.start)
+    const shiftTo = minutesOfDay(shift.end)
 
     if (shift.locationId === locationId) {
       // The whole slot has to fit inside the shift. Half of it inside means the

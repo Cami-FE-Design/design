@@ -55,7 +55,7 @@ export function templateKey(event: ReminderEvent, channel: CommsChannel): string
 // ── Defaults ─────────────────────────────────────────────────────────────────
 //
 // WhatsApp copy for booking-confirmed, reminder-24h and cancelled is lifted
-// verbatim from MOCK_WHATSAPP_TEMPLATES (app/appointments/mock.ts), which came
+// verbatim from MOCK_WHATSAPP_TEMPLATES (lib/appointments/mock.ts), which came
 // from Aziz's Pet Loft template sheet via ENG-58. It is real merchant-authored
 // copy in the product's voice — rewriting it here would replace something a
 // design partner actually wrote with something invented.

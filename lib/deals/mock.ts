@@ -18,6 +18,7 @@
  *   `locationIds: []` would read as chain-wide and R24 says is nobody at all.
  */
 
+import { formatAed } from "@/lib/format"
 import type { PromotionScope } from "@/lib/locations/promotion-scope"
 
 /**
@@ -199,7 +200,7 @@ export const MOCK_DEALS: Deal[] = [
     // Grooming, so it takes nothing off a bottle of conditioner.
     applicability: SERVICES_ONLY,
     limits: { ...DEFAULT_DEAL_LIMITS, oneUsePerClient: true },
-    teamMemberIds: ["m_aziz", "m_sara"],
+    teamMemberIds: ["aziz-rahman", "sara-park"],
     redemptions: 148,
     totalSalesMinor: 128400,
     totalClients: 132,
@@ -346,7 +347,7 @@ export const DEAL_STATUS_LABEL: Record<DealStatus, string> = {
 export function formatDiscountValue(deal: Pick<Deal, "discountKind" | "discountValue">): string {
   return deal.discountKind === "percentage"
     ? `${deal.discountValue}%`
-    : `AED ${deal.discountValue.toLocaleString("en-US")}`
+    : formatAed(deal.discountValue)
 }
 
 function scopeLabel(scope: DealResourceScope, singular: string, plural: string): string {

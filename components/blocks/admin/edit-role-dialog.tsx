@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { FullScreenEditDialog } from "@/components/blocks/full-screen-edit-dialog"
-import { RolePermissionsEditor } from "@/components/blocks/role-permissions-editor"
+import { RolePermissionsEditor } from "@/components/blocks/admin/role-permissions-editor"
+import { FullScreenEditDialog } from "@/components/blocks/shared/full-screen-edit-dialog"
 import { useAdminRoles } from "@/lib/admin-roles-store"
 import { useAuth } from "@/lib/auth-mock"
 import type { Role } from "@/lib/roles-mock"

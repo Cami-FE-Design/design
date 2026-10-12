@@ -19,6 +19,8 @@
 // tests) still render.
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { formatMoney } from "@/lib/money/format"
+import { readStoredJson, removeStored, writeStoredJson } from "@/lib/storage"
 
 // v2: the rate stopped being a bare percentage and became percent + fixed +
 // an optional ceiling for the fixed part. The old v1 payload cannot be read as
@@ -208,7 +210,7 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
       rail: "terminal",
       rate: { percent: 1.8, fixedMinor: 0, fixedBelowMinor: null },
       effectiveFrom: "2026-05-01",
-      createdBy: "Maz Khan",
+      createdBy: "Ravi Iyer",
       createdAt: "2026-04-22T11:04:00Z",
     },
     {
@@ -217,7 +219,7 @@ export const DEFAULT_CAMIPAY_STATE: CamiPayState = {
       rail: "online",
       rate: { percent: 3, fixedMinor: 75, fixedBelowMinor: 10000 },
       effectiveFrom: "2026-05-01",
-      createdBy: "Maz Khan",
+      createdBy: "Ravi Iyer",
       createdAt: "2026-04-22T11:04:00Z",
     },
     // Pawhaus: flat since onboarding, with a future-dated cut already agreed.
@@ -376,15 +378,6 @@ export function scheduledRates(
 /* Rate formatting and fee maths                                              */
 /* -------------------------------------------------------------------------- */
 
-/** `7500` becomes `AED 75.00`. Always two decimals, money never trims. */
-export function formatAed(minor: number): string {
-  const sign = minor < 0 ? "-" : ""
-  return `${sign}AED ${(Math.abs(minor) / 100).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`
-}
-
 export function formatPercent(percent: number): string {
   // Trailing zero reads as precision that isn't there: 2%, not 2.00%.
   return `${Number(percent.toFixed(2))}%`
@@ -399,8 +392,8 @@ export function formatPercent(percent: number): string {
 export function formatRate(rate: CamiPayRate): string {
   if (isZeroRate(rate)) return "No fee"
   if (rate.fixedMinor === 0) return formatPercent(rate.percent)
-  if (rate.percent === 0) return `${formatAed(rate.fixedMinor)} per transaction`
-  return `${formatPercent(rate.percent)} + ${formatAed(rate.fixedMinor)}`
+  if (rate.percent === 0) return `${formatMoney(rate.fixedMinor)} per transaction`
+  return `${formatPercent(rate.percent)} + ${formatMoney(rate.fixedMinor)}`
 }
 
 /**
@@ -410,7 +403,7 @@ export function formatRate(rate: CamiPayRate): string {
  */
 export function formatRateBracket(rate: CamiPayRate): string | null {
   if (rate.fixedMinor === 0 || rate.fixedBelowMinor === null) return null
-  return `${formatAed(rate.fixedMinor)} applies under ${formatAed(rate.fixedBelowMinor)}, ${formatPercent(rate.percent)} alone at or above`
+  return `${formatMoney(rate.fixedMinor)} applies under ${formatMoney(rate.fixedBelowMinor)}, ${formatPercent(rate.percent)} alone at or above`
 }
 
 export type FeeBreakdown = {
@@ -452,9 +445,9 @@ export function computeFee(rate: CamiPayRate, amountMinor: number): FeeBreakdown
  */
 export function explainFee(rate: CamiPayRate, amountMinor: number): string {
   const { fixedApplied } = computeFee(rate, amountMinor)
-  const pct = `${formatPercent(rate.percent)} of ${formatAed(Math.abs(amountMinor))}`
+  const pct = `${formatPercent(rate.percent)} of ${formatMoney(Math.abs(amountMinor))}`
   if (!fixedApplied) return pct
-  return `${pct} + ${formatAed(rate.fixedMinor)}`
+  return `${pct} + ${formatMoney(rate.fixedMinor)}`
 }
 
 /* -------------------------------------------------------------------------- */
@@ -481,15 +474,9 @@ export type CamiPayValue = CamiPayState & {
 const CamiPayContext = createContext<CamiPayValue | null>(null)
 
 function readStored(): CamiPayState | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as CamiPayState
-    if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.rates)) return null
-    return parsed
-  } catch {
-    return null
-  }
+  const parsed = readStoredJson(STORAGE_KEY) as CamiPayState
+  if (!parsed || typeof parsed !== "object" || !Array.isArray(parsed.rates)) return null
+  return parsed
 }
 
 export function CamiPayProvider({ children }: { children: React.ReactNode }) {
@@ -504,11 +491,7 @@ export function CamiPayProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<CamiPayValue>(() => {
     function persist(next: CamiPayState) {
       setState(next)
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
-      } catch {
-        // ignore
-      }
+      writeStoredJson(STORAGE_KEY, next)
     }
 
     function patchRail(merchantId: string, rail: CamiPayRail, patch: Partial<RailConfig>) {
@@ -544,11 +527,7 @@ export function CamiPayProvider({ children }: { children: React.ReactNode }) {
         }),
       reset: () => {
         setState(DEFAULT_CAMIPAY_STATE)
-        try {
-          window.localStorage.removeItem(STORAGE_KEY)
-        } catch {
-          // ignore
-        }
+        removeStored(STORAGE_KEY)
       },
     }
   }, [state])

@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
-import { GoogleReviewLinkField } from "@/components/blocks/google-review-link-field"
-import { SetupCard, SetupLayout } from "@/components/blocks/setup-shell"
+import { SetupCard, SetupLayout } from "@/components/blocks/auth/setup-shell"
+import { GoogleReviewLinkField } from "@/components/blocks/settings/google-review-link-field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {

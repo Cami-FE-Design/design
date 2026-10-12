@@ -6,6 +6,8 @@ import type { PetNoteEntry } from "@/lib/pet-notes"
 
 /** Same reference day as the seeded demos, so relative dates read the same. */
 const REF = Date.UTC(2026, 8, 24, 10, 30)
+/** The instant "upcoming" and "past" are split at. */
+export const CLIENT_SUMMARY_NOW = REF
 const DAY = 24 * 60 * 60 * 1000
 const daysFrom = (n: number) => new Date(REF + n * DAY).toISOString()
 
@@ -148,6 +150,14 @@ const PET_NOTES: Record<string, Record<string, PetNoteEntry[]>> = {
       { category: "handling", detail: "Needs a muzzle for nail trims." },
     ],
   },
+}
+
+/**
+ * Every appointment on file for a client, upcoming and past. The full profile
+ * lists all of them; the summary above shows the next ones and the last three.
+ */
+export function readClientSummaryAppointments(customerId: string): SummaryVisit[] {
+  return APPOINTMENTS[customerId] ?? []
 }
 
 export function readClientSummaryHistory(customerId: string, now = REF): ClientSummaryHistory {

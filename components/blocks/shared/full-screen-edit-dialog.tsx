@@ -1,0 +1,312 @@
+"use client"
+
+import { XIcon } from "lucide-react"
+import { Dialog as DialogPrimitive } from "radix-ui"
+import type * as React from "react"
+import { useContext, useEffect, useRef, useState } from "react"
+import { Button } from "@/components/ui/button"
+import { DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { AuthContext } from "@/lib/auth-mock"
+import { cn } from "@/lib/utils"
+
+const COPY = {
+  en: { close: "Close", save: "Save" },
+  ar: { close: "إغلاق", save: "حفظ" },
+}
+
+/**
+ * Override the Dialog primitive's centered modal sizing so it fills the
+ * viewport. Mirrors `fullScreenDialogClass` in cami-design's
+ * `business-profile-form.tsx`. The `!` suffix wins over the primitive's
+ * `sm:max-w-md` defaults.
+ *
+ * `bg-background!` forces a solid surface — the primitive's default
+ * `bg-white-a11` is translucent, which is fine for a small centered dialog but
+ * lets content bleed through when a takeover is stacked over another dialog
+ * (e.g. Refund opened on top of the sale detail). A full-screen takeover should
+ * always read as an opaque page.
+ */
+const fullScreenDialogClass =
+  "fixed! inset-0! top-0! left-0! h-dvh! w-screen! max-h-none! max-w-none! sm:max-w-none! translate-x-0! translate-y-0! rounded-none! flex-col bg-background! p-0"
+
+type FullScreenEditDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  /** Page title — also rendered (small, fading in) inside the sticky header on scroll. */
+  title: string
+  /** Subtitle below the big title. A node so callers can add a "Learn more" link, etc. */
+  subtitle?: React.ReactNode
+  /** Screen-reader description. Defaults to the subtitle, then the title. */
+  ariaDescription?: string
+  /** Optional Save handler. Omit to render only the Close button. */
+  onSave?: () => void
+  saveDisabled?: boolean
+  /** Save button label. A node so callers can add a trailing icon (e.g. "Continue →"). */
+  saveLabel?: React.ReactNode
+  closeLabel?: string
+  /** Optional destructive action (e.g. Edit screens). Renders a red Delete button in the header. */
+  onDelete?: () => void
+  deleteLabel?: string
+  /**
+   * Max-width Tailwind utility for the centered content column. Header inner
+   * + body inner share this width so action buttons align with body content.
+   * Defaults to `max-w-3xl`.
+   */
+  contentClassName?: string
+  children: React.ReactNode
+}
+
+/**
+ * Dialog version of the full-screen takeover. Use when the takeover should
+ * stack on top of an existing dialog (e.g. an edit flow opened from the
+ * Settings dialog) rather than being a deep-linked route. Sticky header with a
+ * scroll-fading title, pill Close+Save buttons and a big page title on wide
+ * screens; a sticky full-width Save at the bottom on narrow ones.
+ */
+export function FullScreenEditDialog({
+  open,
+  onOpenChange,
+  title,
+  subtitle,
+  ariaDescription,
+  onSave,
+  saveDisabled,
+  saveLabel,
+  closeLabel,
+  onDelete,
+  deleteLabel,
+  contentClassName,
+  children,
+}: FullScreenEditDialogProps) {
+  // Read locale from AuthContext directly so the dialog is usable outside
+  // <AuthProvider> (e.g. /settings/team, where there's no admin auth scope).
+  const auth = useContext(AuthContext)
+  const t = COPY[auth?.locale ?? "en"]
+
+  return (
+    <TakeoverFrame
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      ariaDescription={ariaDescription ?? subtitle ?? title}
+      subtitle={subtitle}
+      widthClass={contentClassName ?? "max-w-3xl"}
+      titleAs="h1"
+      actions={
+        <>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-lg"
+            radius="full"
+            aria-label={closeLabel ?? t.close}
+            onClick={() => onOpenChange(false)}
+            className="lg:hidden"
+          >
+            <XIcon className="size-5" />
+          </Button>
+          {onDelete ? (
+            <Button type="button" variant="destructive" size="lg" radius="full" onClick={onDelete}>
+              {deleteLabel ?? "Delete"}
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            radius="full"
+            onClick={() => onOpenChange(false)}
+            className="hidden lg:inline-flex"
+          >
+            {closeLabel ?? t.close}
+          </Button>
+          {onSave ? (
+            <Button
+              type="button"
+              size="lg"
+              radius="full"
+              disabled={saveDisabled}
+              onClick={onSave}
+              className="hidden lg:inline-flex"
+            >
+              {saveLabel ?? t.save}
+            </Button>
+          ) : null}
+        </>
+      }
+      // Save for narrow screens. The header's Close and Save are both
+      // `hidden lg:inline-flex`, which left every caller passing `onSave` -
+      // chain setup, team access, roles, packages, combos - with no way to
+      // commit below `lg`: the only control there was the X, which discards.
+      // A dialog with no `onSave` renders nothing here and is unchanged.
+      footer={
+        onSave ? (
+          <Button
+            type="button"
+            size="lg"
+            radius="full"
+            className="w-full"
+            disabled={saveDisabled}
+            onClick={onSave}
+          >
+            {saveLabel ?? t.save}
+          </Button>
+        ) : null
+      }
+    >
+      {children}
+    </TakeoverFrame>
+  )
+}
+
+/**
+ * Full-screen takeover with caller-supplied header actions (Close / Save /
+ * Options …), for editors whose buttons are not a plain Close + Save. Always
+ * open while mounted; `onClose` fires on Escape and on the overlay. `wide`
+ * widens the content column for table-shaped editors.
+ */
+export function FullScreenTakeover({
+  title,
+  ariaDescription,
+  subtitle,
+  actions,
+  onClose,
+  wide,
+  contentClassName,
+  children,
+}: {
+  title: string
+  ariaDescription: string
+  subtitle?: string
+  actions: React.ReactNode
+  onClose: () => void
+  /** Shorthand for the widest column, used by the per-service table. */
+  wide?: boolean
+  /** Explicit width for the centred column, e.g. `max-w-4xl`. Wins over `wide`. */
+  contentClassName?: string
+  children: React.ReactNode
+}) {
+  return (
+    <TakeoverFrame
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={title}
+      ariaDescription={ariaDescription}
+      subtitle={subtitle}
+      widthClass={contentClassName ?? (wide ? "max-w-6xl" : "max-w-2xl")}
+      titleAs="h2"
+      actions={actions}
+    >
+      {children}
+    </TakeoverFrame>
+  )
+}
+
+/**
+ * The chrome both takeovers share: an opaque full-viewport dialog, a sticky
+ * header whose small title fades in once the big title scrolls out of view,
+ * and a centred column that the header's buttons line up with.
+ */
+function TakeoverFrame({
+  open,
+  onOpenChange,
+  title,
+  ariaDescription,
+  subtitle,
+  widthClass,
+  titleAs: Title,
+  actions,
+  footer,
+  children,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  title: string
+  ariaDescription: React.ReactNode
+  subtitle?: React.ReactNode
+  widthClass: string
+  titleAs: "h1" | "h2"
+  actions: React.ReactNode
+  footer?: React.ReactNode
+  children: React.ReactNode
+}) {
+  const scrollRef = useRef<HTMLDivElement | null>(null)
+  const titleRef = useRef<HTMLHeadingElement | null>(null)
+  const [showHeaderTitle, setShowHeaderTitle] = useState(false)
+
+  // Re-attach the scroll listener every time the dialog opens — refs to the
+  // DOM nodes only exist while the dialog is mounted.
+  useEffect(() => {
+    if (!open) {
+      setShowHeaderTitle(false)
+      return
+    }
+    let cleanup: (() => void) | undefined
+    const setup = () => {
+      const el = scrollRef.current
+      const header = titleRef.current
+      if (!el || !header) {
+        const id = window.requestAnimationFrame(setup)
+        cleanup = () => window.cancelAnimationFrame(id)
+        return
+      }
+      const update = () => {
+        const titleRect = header.getBoundingClientRect()
+        const containerRect = el.getBoundingClientRect()
+        setShowHeaderTitle(titleRect.bottom < containerRect.top)
+      }
+      update()
+      el.addEventListener("scroll", update, { passive: true })
+      cleanup = () => el.removeEventListener("scroll", update)
+    }
+    setup()
+    return () => cleanup?.()
+  }, [open])
+
+  return (
+    <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
+      <DialogContent className={fullScreenDialogClass}>
+        <DialogTitle className="sr-only">{title}</DialogTitle>
+        <DialogDescription className="sr-only">{ariaDescription}</DialogDescription>
+
+        <header className="sticky top-0 z-10 border-b border-border/40 bg-background px-6 py-3 lg:px-10">
+          <div className={cn("mx-auto flex items-center justify-between gap-3", widthClass)}>
+            <span
+              className={cn(
+                "min-w-0 truncate font-heading text-base font-semibold leading-6 text-foreground transition-opacity duration-200",
+                showHeaderTitle ? "opacity-100" : "opacity-0",
+              )}
+              aria-hidden={!showHeaderTitle}
+            >
+              {title}
+            </span>
+            <div className="ms-auto flex items-center gap-2">{actions}</div>
+          </div>
+        </header>
+
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-12 lg:px-10">
+          <div className={cn("mx-auto flex w-full flex-col gap-10", widthClass)}>
+            <div className="flex flex-col gap-3">
+              <Title
+                ref={titleRef}
+                className="font-heading text-2xl font-semibold leading-tight text-foreground lg:text-4xl"
+              >
+                {title}
+              </Title>
+              {subtitle ? (
+                <p className="max-w-2xl text-base leading-6 text-muted-foreground">{subtitle}</p>
+              ) : null}
+            </div>
+            {children}
+          </div>
+        </div>
+
+        {footer ? (
+          <footer className="border-border/40 border-t bg-background px-4 py-3 lg:hidden">
+            {footer}
+          </footer>
+        ) : null}
+      </DialogContent>
+    </DialogPrimitive.Root>
+  )
+}

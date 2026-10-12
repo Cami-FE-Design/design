@@ -14,15 +14,15 @@ import {
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useCallback, useMemo, useState } from "react"
-
-import { AppShell } from "@/components/blocks/app-shell"
-import { ClientDetailDialog, type TabId } from "@/components/blocks/client-detail-dialog"
-import { ClientEditSheet } from "@/components/blocks/client-edit-sheet"
-import { DesignRepoBar } from "@/components/blocks/design-repo-bar"
-import { EmptyState } from "@/components/blocks/empty-state"
-import { LinkedEntityChip } from "@/components/blocks/linked-entity-chip"
-import { TableToolbar } from "@/components/blocks/table-toolbar"
-import { TAG_COLOR_CLASS, TAG_LIBRARY } from "@/components/blocks/tag-library"
+import { ClientDetailDialog, type TabId } from "@/components/blocks/clients/client-detail-dialog"
+import { ClientEditSheet } from "@/components/blocks/clients/client-edit-sheet"
+import { TAG_COLOR_CLASS, TAG_LIBRARY } from "@/components/blocks/clients/tag-library"
+import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { LinkedEntityChip } from "@/components/blocks/shared/linked-entity-chip"
+import { PageHeader } from "@/components/blocks/shared/page-header"
+import { TableToolbar } from "@/components/blocks/shared/table-toolbar"
+import { AppShell } from "@/components/blocks/shell/app-shell"
+import { DesignRepoBar } from "@/components/blocks/shell/design-repo-bar"
 import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -43,8 +43,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { MOCK_CLIENTS, type MockClient } from "@/lib/clients/mock"
+import { formatAed, formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { formatAed, formatDate, MOCK_CLIENTS, type MockClient } from "./mock"
 
 type SortKey = "name" | "sales" | "createdAt"
 type SortDir = "asc" | "desc"
@@ -348,47 +349,49 @@ function ClientsIndex() {
   return (
     <AppShell
       header={
-        <div className="flex w-full max-w-6xl items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Clients</h1>
-            {/* Counts what is on screen. It counted the whole directory
-                before, so a filtered list read "16 clients" above one row —
-                and the one number that tells you a filter is doing anything
-                was the one number that ignored it. */}
-            <p className="text-sm text-muted-foreground">
+        // The description counts what is on screen. It counted the whole
+        // directory before, so a filtered list read "16 clients" above one
+        // row — and the one number that tells you a filter is doing anything
+        // was the one number that ignored it.
+        <PageHeader
+          title="Clients"
+          description={
+            <>
               {visible.length} {visible.length === 1 ? "client" : "clients"}
               {visible.length !== MOCK_CLIENTS.length ? ` of ${MOCK_CLIENTS.length}` : ""}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Import and export sit behind one Options menu, the same pattern
+            </>
+          }
+          actions={
+            <>
+              {/* Import and export sit behind one Options menu, the same pattern
                 the products list uses (DSG-84). */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" radius="full">
-                  Options
-                  <ChevronDownIcon className="size-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem asChild>
-                  <Link href="/clients/import">
-                    <ImportIcon className="size-4" />
-                    Import clients
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <UploadIcon className="size-4" />
-                  Export clients
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button radius="full" onClick={() => setAddOpen(true)}>
-              <PlusIcon />
-              Add client
-            </Button>
-          </div>
-        </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" radius="full">
+                    Options
+                    <ChevronDownIcon className="size-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem asChild>
+                    <Link href="/clients/import">
+                      <ImportIcon className="size-4" />
+                      Import clients
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <UploadIcon className="size-4" />
+                    Export clients
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button radius="full" onClick={() => setAddOpen(true)}>
+                <PlusIcon />
+                Add client
+              </Button>
+            </>
+          }
+        />
       }
     >
       {/* AppShell locks the viewport (h-screen overflow-clip) so the sidebar and

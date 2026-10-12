@@ -3,9 +3,9 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { AuthCard } from "@/components/blocks/auth-card"
-import { AuthLayout } from "@/components/blocks/auth-layout"
-import { AppleIcon, FacebookIcon, GoogleIcon } from "@/components/blocks/social-icons"
+import { AuthCard } from "@/components/blocks/auth/auth-card"
+import { AuthLayout } from "@/components/blocks/auth/auth-layout"
+import { AppleIcon, FacebookIcon, GoogleIcon } from "@/components/blocks/auth/social-icons"
 import { Button } from "@/components/ui/button"
 import {
   Form,

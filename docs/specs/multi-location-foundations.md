@@ -145,7 +145,7 @@ Treat it as older than the PRD: see [Where the blueprint is stale](#where-the-bl
 
 | Rule | Where |
 | --- | --- |
-| R03 · scope is one branch, a subset, or all granted, and filters survive a change | `lib/locations/store.tsx`, `components/blocks/location-switcher.tsx` |
+| R03 · scope is one branch, a subset, or all granted, and filters survive a change | `lib/locations/store.tsx`, `components/blocks/shell/location-switcher.tsx` |
 | R04 · capability and location scope are independent axes | `grants` in the store, separate from any role |
 | R11 · no operational write resolves a default location | `requiresTargetLocation` / `activeLocation` |
 | R24 · no grant means no access, and never means all | `hasNoAccess`, and the switcher's locked state |
@@ -1115,7 +1115,7 @@ And four the review prompted:
 
 | Was | Held | Now |
 | --- | --- | --- |
-| `LOCATIONS` in `components/blocks/location-form.tsx` | one rich branch, module const, no store | moved to `lib/locations/mock.ts`, types to `lib/locations/types.ts` |
+| `LOCATIONS` in `components/blocks/settings/location-form.tsx` | one rich branch, module const, no store | moved to `lib/locations/mock.ts`, types to `lib/locations/types.ts` |
 | `TERMINAL_LOCATIONS` in `lib/terminals/store.tsx` | "Downtown Clinic", "Field team" — names that existed nowhere else | deleted; seeded terminals remapped onto real branch ids |
 | the topbar's second workspace row | `` `${businessName} · Jumeirah` `` — a branch dressed as a workspace | deleted; branches live in `LocationSwitcher`, on their own axis |
 | `const LOCATION = BUSINESS_NAME` in `lib/money/mock.ts` | every transaction attributed to the *business* | points at a branch; see [Known gaps](#known-gaps) |
@@ -1920,22 +1920,23 @@ Building it would be inventing a comms feature, not completing this one.
   so an override made on the operator's sheet lands on the id the client page
   and the booking flow look up. See
   [The operator's side was reading a different business](#the-operators-side-was-reading-a-different-business).
-- **The bookable roster and the team roster are two lists.** `BOOKING_STAFF` is
-  twelve groomers; `lib/team/mock.ts` is five people including an owner and a
-  pending invite. Which team members are bookable is a product question — an
-  owner is on the roster and is not a slot — so they were not collapsed. Branch
-  assignment lives on `BOOKING_STAFF` for now, which means a grant changed in
-  SCR-03 does not change who a client can pick.
-- **The session's grant is not the signed-in member's grant.** `LocationsProvider.grants`
-  is a demo control, and the roster's per-member grants are separate data.
-  Linking them needs a signed-in-member concept this prototype does not have:
-  `lib/current-user.tsx` holds a profile (Michelle You) that matches no roster
-  row, so there is nothing honest to join on. Until it exists, SU2.3 —
-  revoking a branch narrows every surface immediately — can be reasoned about
-  but not demonstrated end to end.
-- **`permission: "High" | "Medium" | "Low"`** is still on the roster type
-  because the reporting module and the older team surfaces read it. New
-  surfaces should read `roleId` and `locationGrants`.
+- ~~**The bookable roster and the team roster are two lists.**~~ Half closed —
+  the calendar, the booking flow (`BOOKING_STAFF`) and the rota
+  (`lib/team/shifts-mock.ts`) now read one roster, `lib/team/staff.ts`: the
+  shape D4 found in the dev repo, one roster narrowed by bookable, branch and
+  service. The owner is on it and is not bookable — on the roster, not a slot.
+  Team settings (`lib/team/mock.ts`, who can sign in and what they can access)
+  is now keyed by the same ids, and takes each person's name and title from the
+  roster. Still open: where someone works (`locationIds`) and what they are
+  granted (`locationGrants`) start out the same but are two fields, so a grant
+  changed in SCR-03 does not yet change who a client can pick.
+- **The session's grant is the signed-in member's only when switched to.**
+  `lib/current-user.tsx` now points at a roster row — the owner, Maz Khan — and
+  the dashed "sign in as somebody else" strip sets the member and the
+  `LocationsProvider` grant together, which is how SU2.3 is demonstrated. The
+  provider still keeps its own copy of the grant, and Team settings edits are
+  page state, so a grant revoked there does not reach the session until the
+  strip is used again.
 
 - **Nothing schedules against a branch's timezone yet.** Hours and timezone are
   per branch and read everywhere they are displayed, but availability and date

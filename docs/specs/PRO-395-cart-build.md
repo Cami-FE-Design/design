@@ -17,12 +17,12 @@ Route: `/sales/new-sale` (no app shell, deep-linked from `/screens`).
 | File | Role |
 | --- | --- |
 | `app/sales/new-sale/page.tsx` | Route entry → `<CartFlow />`. |
-| `app/sales/new-sale/cart-flow.tsx` | Orchestrator: state, two-pane layout, breadcrumb, draft modal, appointment-replace confirm. |
-| `app/sales/new-sale/item-picker.tsx` | Left pane: global search, category tiles, Appointments / Services / Products drilldowns, aggregated search results. |
-| `app/sales/new-sale/client-panel.tsx` | Right pane top: attach states (none / searching / selected / walk-in). |
-| `app/sales/new-sale/cart-summary.tsx` | Cart line list (+ empty state) and expandable VAT footer. |
-| `app/sales/new-sale/mock.ts` | Catalog mock + money / VAT helpers + venue config consts. |
-| `app/sales/new-sale/types.ts` | Domain + cart types. |
+| `components/blocks/sales/new-sale/cart-flow.tsx` | Orchestrator: state, two-pane layout, breadcrumb, draft modal, appointment-replace confirm. |
+| `components/blocks/sales/new-sale/item-picker.tsx` | Left pane: global search, category tiles, Appointments / Services / Products drilldowns, aggregated search results. |
+| `components/blocks/sales/new-sale/client-panel.tsx` | Right pane top: attach states (none / searching / selected / walk-in). |
+| `components/blocks/sales/new-sale/cart-summary.tsx` | Cart line list (+ empty state) and expandable VAT footer. |
+| `lib/sales/new-sale-mock.ts` | Catalog mock + money / VAT helpers + venue config consts. |
+| `lib/sales/cart-types.ts` | Domain + cart types. |
 
 ## Money / tax model
 
