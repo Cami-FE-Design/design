@@ -118,6 +118,52 @@ export function Section({ title, description, lazy, children }: SectionProps) {
   )
 }
 
+/**
+ * One demo, several states, and chips to switch between them. A section that
+ * drew the same full surface once per state ran to fifteen screens of scroll;
+ * every state is still one click away, and only the chosen one is mounted.
+ */
+export function StatePicker({
+  label = "State",
+  states,
+}: {
+  label?: string
+  states: ReadonlyArray<{ label: string; note?: string; content: React.ReactNode }>
+}) {
+  const [active, setActive] = useState(states[0]?.label ?? "")
+  const current = states.find((s) => s.label === active) ?? states[0]
+  if (!current) return null
+  return (
+    <div className="flex flex-col gap-4 py-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </span>
+        {states.map((s) => (
+          <button
+            key={s.label}
+            type="button"
+            aria-pressed={s.label === current.label}
+            onClick={() => setActive(s.label)}
+            className={cn(
+              "rounded-full border px-3 py-1 text-xs transition-colors",
+              s.label === current.label
+                ? "border-foreground/30 bg-background font-medium text-foreground"
+                : "border-border/60 text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      {current.note ? <p className="text-sm text-muted-foreground">{current.note}</p> : null}
+      <div key={current.label} className="min-w-0">
+        {current.content}
+      </div>
+    </div>
+  )
+}
+
 export function Row({
   label,
   align = "center",

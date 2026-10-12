@@ -17,7 +17,8 @@ export default function PlaygroundPage() {
           <h1 className="text-2xl font-medium text-foreground">Cami playground</h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
             Every installed primitive in its non-interactive states. Hover, focus, and keyboard
-            states are live on the real components below, interact to see them.
+            states are live on the real components below, interact to see them. The full description
+            behind each section is in docs/playground-detail.md.
           </p>
         </div>
         <ThemeToggle />

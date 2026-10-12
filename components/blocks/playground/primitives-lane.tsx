@@ -161,7 +161,7 @@ export function PrimitivesLane() {
       </Section>
       <Section
         title="Avatar"
-        description="Person, pet, and business avatars. Photo wins when present; otherwise renders a deterministic fallback (initials, character face, or species icon) on a hashed pastel background."
+        description="Person, pet and business avatars: photo first, otherwise initials, face or species icon on a pastel background."
       >
         <Row label="Size">
           <Avatar size="xs" name="Sarah Johnson" />
@@ -363,7 +363,7 @@ export function PrimitivesLane() {
       </Section>
       <Section
         title="Segmented toggle"
-        description="Pill toggle with sliding active capsule. Neutral default + primary tone (cami-violet pill on dark track) for switch-style on/off."
+        description="Pill toggle with a sliding capsule in neutral default and a primary violet tone for on/off switches."
       >
         <Row label="Neutral">
           <SegmentedToggle

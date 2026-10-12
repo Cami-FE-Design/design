@@ -66,7 +66,7 @@ export function DetailViewsLane() {
     >
       <Section
         title="Client detail dialog"
-        description="Centered Dialog modelled on <BusinessDetailDialog>, ~630px, sticky header with Book now + Actions, underline tabs with a 'More' overflow for Documents and Settings. Overview leads with identity chips over a lifetime strip, then Visits (Next above Last, one-tap Rebook), Wallet, Preferences, Pets, Notes. Every field is the client's own, so open several from /clients rather than judging it on one."
+        description="Centered client dialog with Book now, Actions and tabs. Overview leads with identity chips over a lifetime strip."
       >
         <Row label="Pets">
           <SegmentedToggle
@@ -100,7 +100,7 @@ export function DetailViewsLane() {
       </Section>
       <Section
         title="Pet detail dialog"
-        description="Same shell as Client detail. Stacks over the client dialog when opened from inside it. Tabs: Overview · Family · Visit history · Pet details · Documents. Multi-owner aware — chip row in the header. Actions menu has Edit pet details + Delete pet."
+        description="Pet detail dialog on the Client detail shell, with five tabs, owner chips and Edit/Delete actions."
       >
         <Row label="Open">
           <Button onClick={() => setPetDetailOpen(true)}>Open pet detail</Button>
@@ -118,7 +118,7 @@ export function DetailViewsLane() {
       </Section>
       <Section
         title="Team member detail dialog"
-        description="The Client / Pet detail shell for a team member. Sticky header (avatar, permission access, email, phone, Edit, Actions) over two tabs: Overview (KPIs, Works at, Services, Notes) and Details (profile, role, addresses, emergency contacts). Owner rows lock profile and role edits; a pending invite shows an empty Overview. Add uses the full-screen takeover instead."
+        description="Team member dialog with sticky header and Overview and Details tabs, including locked owner rows and a pending invite."
       >
         <Row label="Status">
           <SegmentedToggle
@@ -160,7 +160,7 @@ export function DetailViewsLane() {
       <Section
         lazy
         title="Boarding & daycare booking drawers"
-        description="Right-side Sheet drawers on the <AppointmentDetailSheet> model. Boarding is night-based (rate/night, check-in/out, Subtotal by nights); daycare is duration-based ('Full Day · Up to 8 hours', Subtotal by minutes). Both share the collapsible customer card, pet card, editable status pill, add-on chips + Add menu, late-checkout toggle, notes and a sticky Check Out."
+        description="Boarding (night-based) and daycare (duration-based) booking drawers sharing customer, pet, status, add-ons and Check Out."
       >
         <Row label="Boarding">
           <div className="flex gap-2">
@@ -191,7 +191,7 @@ export function DetailViewsLane() {
       </Section>
       <Section
         title="My profile (settings panel)"
-        description="Personal info for the signed-in user, scoped to DSG-63's 'view and edit contact details': one Contact card with legal name and masked mobile/email behind a single Edit takeover. A new mobile goes through a 6-digit OTP, a new email through a 'Check your inbox' dialog with a 30s resend — the link click itself is the faint demo control bottom-right. Pending changes show as a badge on the affected row."
+        description="Contact card with masked mobile and email behind one Edit, OTP for a new mobile, inbox check for email, pending badges."
       >
         <div className="max-w-2xl rounded-2xl border border-border/60 bg-muted/20 p-6">
           <MyProfilePanel />
@@ -199,7 +199,7 @@ export function DetailViewsLane() {
       </Section>
       <Section
         title="Add / Edit takeovers"
-        description="<FullScreenEditDialog> + sectioned sidenav. Quick-create rule: only the first name (client) or name + species (pet) are required. Edit mode pre-populates fields and deep-links to the relevant section."
+        description="Full-screen add and edit with a sectioned sidenav. Only first name, or name and species for a pet, is required."
       >
         <Row label="Add client">
           <Button onClick={() => setClientEditOpen(true)}>Open Add client</Button>
@@ -213,7 +213,7 @@ export function DetailViewsLane() {
       <Section
         lazy
         title="Global search takeover"
-        description="Full-screen search from the topbar magnifier or Cmd/Ctrl+K, reusing <FullScreenEditDialog>. Searches clients by name, mobile, email or pet, and bookings by client name or reference (try 'B-77342'). An empty query shows upcoming appointments and recently added clients. A result opens its detail dialog or sheet, stacked over the takeover."
+        description="Full-screen search over clients and bookings (try 'B-77342'), with upcoming and recent items when empty."
       >
         <Row label="Open">
           <Button onClick={() => setGlobalSearchOpen(true)}>Open global search</Button>

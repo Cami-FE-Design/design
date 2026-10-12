@@ -135,17 +135,17 @@ const REPORT_HINTS: Record<string, string> = {
     "Client insights is merged into Client list (a filtered view), not a separate report.",
   "client-list": "Carries the richer per-client columns + a Pet Name column (PRO-703 §4).",
   "performance-dashboard":
-    "REVAMPED (DSG-79) — 21 widget cards across Sales & revenue and Appointments & CRM, in Maaz's draft order. Hero KPI strip jumps to any widget — five metrics whose cards sit far down the page; Total sales is not among them, since its card is the very next thing you see. One sticky control bar (date range / filters / Customise) inside the shared report frame; Back to top appears in it after 600px. Customise toggles any widget off and previews the dashboard as Owner / Manager / Staff, which is how the per-report access levels are shown instead of a chip on every card. Add ?state=loading, ?state=empty or ?state=sparse to see the per-shape skeletons and the empty states. New chart primitives: donut (stacked + wide), funnel, ranked bars, capacity heatmap — see /playground for them in isolation.",
+    "21 widget cards with a hero KPI strip, sticky controls and Customise by role, add ?state=loading, empty or sparse.",
   "performance-summary":
-    "Metric × team-member matrix — section subtotals + Total column, header row + first column sticky on both axes, metric labels drill to source reports.",
+    "Metric by team-member matrix with subtotals, Total column, sticky header and first column, and drill-through labels.",
   "performance-over-time":
-    "Entity × time-period matrix — live pills (dimension / metric / granularity / range) recompute a recharts bar chart + a sticky-first-column table; % metrics roll up as weighted averages. Feature-flagged.",
+    "Entity by time-period matrix: pills recompute a bar chart and a sticky-first-column table.",
 }
 const REPORT_SCREENS: Screen[] = [
   {
     path: "/reports",
     label: "Reporting index",
-    note: "Category tabs (All + Dashboards/Sales/Finance/Appointments/Team/Clients/Inventory), search by name/description, report cards with category icon + Premium badge + favourite star. Every report below opens from here.",
+    note: "Report cards by category tab with search, Premium badge and favourite star, the entry point to every report.",
   },
   ...REPORTS.map((report) => ({
     path: `/reports/${report.id}`,
@@ -167,7 +167,7 @@ const SECTIONS: Section[] = [
     lane: "public",
     title: "Pet parent, public business page (PRO-96)",
     description:
-      "E2-3 Cami-hosted public booking landing at cami.app/[slug]. Two-column on desktop with sticky booking card, single column on mobile. 404 returned for unknown slugs and not-yet-live businesses.",
+      "Public booking page at cami.app/[slug]: sticky booking card on desktop, single column on mobile, 404 for unknown slugs.",
     screens: [
       {
         path: "/shampooch-jvc",
@@ -182,12 +182,12 @@ const SECTIONS: Section[] = [
       {
         path: "/sota",
         label: "Live business · hair salon, no pets",
-        note: "The venue the Client Card brief is written against — its card can be held next to page 4 of the PDF and read line for line. The only non-pet business in the mocks, so it is also the one to open when checking that nothing assumes a pet is on the booking. To run the operator app as Sota rather than Shampooch, pick it from the workspace menu top-left: Branding then edits Sota's palette and the message previews wear it. One seam to know about — the client directory is shared, so switching venue does not change who is in the Clients list.",
+        note: "Sota, the only non-pet venue: check nothing assumes a pet, and switch to it from the workspace menu top-left.",
       },
       {
         path: "/no-such-business",
         label: "404, slug not found",
-        note: "An unknown slug, and a business that exists but is not live yet, both land here — the public site never confirms that a name is taken.",
+        note: "Unknown slugs and businesses not live yet both land here, so the public site never confirms a name is taken.",
       },
       {
         path: "/draft-business",
@@ -200,17 +200,17 @@ const SECTIONS: Section[] = [
     lane: "public",
     title: "Customer card, the record a customer opens (Client Card brief)",
     description:
-      "The client record faced at the customer instead of at reception: wallet (gift card / package / membership), loyalty balance with the distance to the next reward, next appointment, and staff-maintained preferences labelled as such. Everything reception-only — no-shows, lifetime sales, source, internal notes — is excluded in the type (lib/customer-card/mock.ts) rather than merely left off the page, so it cannot leak onto this face later. Theming is the constrained v1: a venue picks one of five palettes and typography stays Cami's in all of them. Not indexed, same as /pay/[token].",
+      "Customer-facing client record: wallet, loyalty balance, next appointment and staff preferences, in one of five palettes.",
     screens: [
       {
         path: "/sota/card",
         label: "Sota, the customer face of the same record",
-        note: "Compare against page 4 of the brief, and against /clients?client=maaz-shaffi, which is the same row seen by reception. The layout and data match; the wordmark does not — the brief's is a serif, this is Cami's Manrope, and that is settled rather than pending. Merchant fonts were ruled out on what they cost to run at scale, not on how Sota's mockup looks: every extra typeface is a licence, a load and a rendering difference, once per merchant forever. A venue's identity therefore rides on palette alone; every venue gets the same type at the same tracking.",
+        note: "Customer face of the client record, matching the brief's layout and data but set in Cami's Manrope, not a serif.",
       },
       {
         path: "/sota/card?theme=ink",
         label: "Same card, different palette",
-        note: "The strip under the card is the menu a merchant picks from — five palettes, one typeface. The venue's own photo sits behind the card, blurred past reading and scrimmed in the palette's own shell colour, so a client recognises their salon before they read a word and the merchant's colour still decides the mood. Worth walking all five to see how far colour alone carries a brand, since colour is the whole of what varies.",
+        note: "Walk the five palettes in the strip under the card to see how far colour alone carries a venue's brand.",
       },
       {
         path: "/shampooch-jvc/card",
@@ -220,32 +220,32 @@ const SECTIONS: Section[] = [
       {
         path: "/purr-palace/card",
         label: "Empty wallet, nothing booked",
-        note: "What most customers see on a first visit — a client with no packages, no points and nothing booked. It is the screen that teaches the difference between the two kinds of nothing. Wallet and Upcoming stay as outlines, because 'you have none yet' is the true reading of an empty wallet at a venue that sells packages. Loyalty is gone entirely, because Purr Palace runs no loyalty programme — that section is absent rather than empty, and absent correctly reads as 'this venue doesn't show you that'. Open /sota/card beside it: same component, a venue that does run one.",
+        note: "A first-visit client with nothing: Wallet and Upcoming as outlines, Loyalty absent since Purr Palace runs no programme.",
       },
       {
         path: "/sota/card/demo",
         label: "The door in from a message",
-        note: "Where the {{cardLink}} token in every confirmation, reminder and thank-you lands. Settled: the token in the link IS the credential, so Continue confirms who is about to open rather than verifying it — one tap from WhatsApp, no code. The cost is that a forwarded confirmation forwards the link, which is why the card is read-only (nothing on it spends or edits) and why this screen says the link is personal. Any future edit or redeem control on the card breaks that and needs its own step-up.",
+        note: "Where the {{cardLink}} in every message lands: one tap confirms who is opening, and the screen says the link is personal.",
       },
       {
         path: "/playground#client-card-the-two-faces",
         label: "The two faces, side by side",
-        note: "The brief's own page 4, and the reason it is a test rather than a drawing: both halves are rendered from one client row, so a field that only one side should see has to be excluded somewhere visible rather than simply left off a mockup. Reception's half carries no-shows, lifetime sales, source and tags; the customer's carries none of them. Preferences are the single row on both, because they are the one thing staff write and the customer reads.",
+        note: "Reception's and the customer's views of one client row side by side, with preferences the only shared row.",
       },
       {
         path: "/playground#client-card-message-to-card",
         label: "The flow, trigger to card",
-        note: "Four screens that each work do not prove the journey does, so the trigger, the WhatsApp message, the branded door and the card sit in one row. Worth reading left to right once: the venue's palette has to be on the message, or the branded page is the first branded thing the customer meets, one tap too late.",
+        note: "Trigger, WhatsApp message, branded page and card in one row, read left to right to check the palette carries through.",
       },
       {
         path: "/playground#customer-card-per-venue-theming",
         label: "The same card in all five palettes",
-        note: "The whole menu a merchant picks from, so the brand delta can be judged across the set rather than from one mockup. Five palettes and one typeface: type never varies, because every extra face is a licence, a load and a rendering difference per venue, forever. What is being judged here is whether colour alone carries a venue — that is the open question the pilot answers (PRD-176 D1), not a gap left to close.",
+        note: "All five palettes side by side in one typeface, to judge whether colour alone carries a venue.",
       },
       {
         path: "/sota/card/demo-expired",
         label: "The same door, link expired",
-        note: "The other half of the token-as-credential bargain: the link stops working, so a forwarded confirmation is not a permanent key. Any token the venue did not issue lands here too — a made-up one is answered exactly like a dead one, so nobody can tell from the screen which guesses were close. A branded screen rather than a 404 — the person holding a stale link is a customer who tapped what their salon sent them. It names no balance, appointment or preference, because nobody holding a stale link has been verified.",
+        note: "Expired or made-up links land on this branded screen, which shows no balance, appointment or preference.",
       },
     ],
   },
@@ -253,17 +253,17 @@ const SECTIONS: Section[] = [
     lane: "public",
     title: "Pet parent, booking flow (E3-4 / E3-6)",
     description:
-      "Public pet-parent booking on cami.app/[slug]/book, opened from the business page 'Book now'. Categorized multi-select services (scales past 30 via tabs + a Categories dropdown on the list-icon), staff/day/time picker, phone-first identify (mobile → OTP → resolve caller: returning client pre-fills details + surfaces a saved-pet picker, new client gets an empty form with phone locked; pet-module feature-flagged, no separate step), confirm, and a 'You're booked' terminal. Responsive: mobile single column with a Price breakdown sheet; desktop two-pane with a sticky summary cart. See docs/specs/PRO-80.",
+      "Public booking from 'Book now': categorized services, staff and time, phone-first OTP, confirm and 'You're booked'.",
     screens: [
       {
         path: "/shampooch-jvc/book",
         label: "Booking flow · services → time → identity → confirm",
-        note: "Multi-select service cards by category (list-icon opens a Categories dropdown), slot picker (12-staff horizontal rail with prev/next arrows + edge fade, circle day picker, available-times list, 5-min hold). Identity step is phone-first: enter mobile in the shared <PhoneField> (dial-code select + number, matching dev) → auto-verifying 6-digit OTP (code starting '0' fails) → resolve; once verified the same field renders locked. Demo: mobile ending in an EVEN digit is a returning client (pre-filled name/email, phone disabled, saved-pet dropdown Bella/Miso + 'Add a new pet'); ODD digit is new (empty form, phone pre-filled & disabled, inline pet capture). Confirm with summed total, then 'You're booked' with a reference.",
+        note: "Book services, pick a slot, verify by phone OTP and confirm, with even-digit mobiles as returning clients and odd as new.",
       },
       {
         path: "/shampooch-jvc/book",
         label: "Booking flow · pet address + pet notes",
-        note: "Optional Address on the registration form, plus a 'Pet Address' tick that reveals the address block ('Use my saved address' pre-ticked). Both fields are the map search, so a picked building sends a pin — the Review step says so when it is only typed. 'Anything we should know?' is six tappable categories, each opening a required specifics field, and sits outside the address tick. Use an EVEN-ending mobile for the returning client with an address on file. See docs/specs/PRO-80-public-booking-existing-customer.md.",
+        note: "Optional address with a Pet Address tick using map search, plus six pet-note categories that each need specifics.",
       },
       {
         path: "/purr-palace/book",
@@ -273,27 +273,27 @@ const SECTIONS: Section[] = [
       {
         path: "/shampooch-jvc/book",
         label: "Booking flow · one person, two branches (R05, DW2.3, DW2.4)",
-        note: "Pick Lena on the slot step and Today’s grid stops well before the branch shuts at 7pm: she is rostered at JVC until 1pm and due at Jumeirah from 3pm, and a two-hour groom has to be finished by one, Pick Tala and move to Wednesday for the same thing from a clash rather than a gap — she is rostered at both branches from 2pm, which is the overlap Maaz ruled blocked on 15 Sep. A longer service narrows it further, because the appointment has to finish before she is due elsewhere. The branch is never named to the client: the slot is simply gone, the way one another parent already holds is (BG-06). When a chosen person empties the day the list says so by name rather than “nothing free”, which would send the parent to a different day instead of a different groomer. Any team member leaves the grid at the branch’s own hours, and so does anyone the roster does not model — an empty rota is not a closed one.",
+        note: "Pick Lena or Tala on the slot step to see slots disappear when they are due at the other branch, which is never named.",
       },
       {
         path: "/shampooch-jvc/book",
         label: "Booking flow · Combo services",
-        note: "PRD-143 — Grooming carries 'Full groom & nails' and Spa add-ons carries 'Spa pamper duo', each a single card badged Combo with a bundled-services count. Picking one books the services it bundles: the sticky summary and the Review step list them as 'Combo - Service' rows led by the layers glyph, each showing its share of the combo price with what it would cost alone struck through. The footer counts the components (2 services) but keeps the combo's own duration and total, so a parent sees the bundle's slot and price, not the sum of the parts. 'Spa pamper duo' is set to run in parallel, which is why its slot is the longer add-on rather than both added up.",
+        note: "Pick 'Full groom & nails' or 'Spa pamper duo' to see Combo rows in the summary and Review, with the combo's duration and total.",
       },
       {
         path: "/shampooch-jvc/booking/CAMI-4821",
         label: "Manage booking (E3-5)",
-        note: "View detail (status starts as 'Booked', violet; ref suffix -confirmed → green, -cancelled → sand) → Add to calendar dropdown (Google Calendar / Apple · Outlook .ics) → reschedule (re-enters the slot picker) or cancel (guarded destructive) → updated / cancelled terminals.",
+        note: "Booking detail with Add to calendar, then reschedule or cancel, ending on the updated or cancelled screens.",
       },
       {
         path: "/shampooch-jvc/booking/CAMI-4821-pickup",
         label: "Manage booking · pickup variant",
-        note: "The '-pickup' ref suffix (same convention as -confirmed / -cancelled) renders the collection variant: Pickup and Notes rows join Service / When / Duration / With / Pet, so the parent can check the collection address without calling the salon.",
+        note: "Pickup variant of manage booking, adding Pickup and Notes rows so the parent can check the collection address.",
       },
       {
         path: "/account",
         label: "Pet-parent account (E3-6)",
-        note: "Passwordless: mobile → OTP verify → home (upcoming booking, pets, profile). New numbers auto-create an account. Profile now carries an Address row — the same address the booking form captures and pickup reuses.",
+        note: "Passwordless mobile and OTP sign-in to a home with upcoming booking, pets and a profile that now has an Address row.",
       },
       {
         path: "/emails/booking-confirmation",
@@ -303,7 +303,7 @@ const SECTIONS: Section[] = [
       {
         path: "/emails/booking-confirmation?pickup=1",
         label: "Confirmation email · pickup variant",
-        note: "Same template with ?pickup=1. Adds a Notes row, and the 'Where' row becomes 'Pet Address' — when we travel to the pet the salon address isn't where the parent needs to be, so printing it would be the wrong thing.",
+        note: "Pickup variant of the confirmation email: adds a Notes row and swaps 'Where' for 'Pet Address'.",
       },
     ],
   },
@@ -311,12 +311,12 @@ const SECTIONS: Section[] = [
     lane: "public",
     title: "CamiPay, payment link landing (PRO-594)",
     description:
-      "Customer-facing pay page at cami.app/[slug]/pay/[token]. Opens from a WhatsApp/email payment link or counter QR, no login. De-compartmentalized single column (Luma) with qlub tip + payment-method patterns: flat money ledger, hero total, fixed tip presets, method radio list + one contextual CTA.",
+      "Customer pay page opened from a payment link or QR with no login: ledger, hero total, tip presets and payment methods.",
     screens: [
       {
         path: "/shampooch-jvc/pay/demo-token",
         label: "Unpaid · full flow",
-        note: "Bill (pet-aware lines) → fixed tip presets (No tip / 5 / 10 / 15, 'Most common' on 10, live readout) → flat ledger + hero total → payment method radio (Apple Pay / saved card) → single contextual CTA. Membership upsell as inline ledger link. PRD-143: the demo bill is a combo, so the payer sees the same lines the operator does — 'Combo - Service' led by the layers glyph, each with what it would cost alone struck through.",
+        note: "Full pay flow: pet-aware bill, tip presets, ledger and total, Apple Pay or saved card, and combo lines struck through.",
       },
       {
         path: "/shampooch-jvc/pay/demo-paid",
@@ -334,12 +334,12 @@ const SECTIONS: Section[] = [
     lane: "public",
     title: "Consent form signing (public)",
     description:
-      "Recipient-facing consent-form signing at cami.app/sign/[token] (e.g. a pet grooming consent + liability waiver). Opens from an emailed link, no login. OTP verify → a full-height split matching the operator's 'View form' screen (the only scroll surface is the PDF itself; no close/dismiss control): the document as a real in-app PDF on the left with a floating zoom + page-nav toolbar, and the signing form on the right as a card (Full Legal Name, Email, Type/Draw signature, an agree-to-terms toggle, Sign Agreement) — no modal. Each token suffix (-signed / -completed) seeds one state so every screen is reachable from a URL.",
+      "Public consent-form signing from an emailed link: OTP verify, then the PDF beside a sign form, with signed and completed states.",
     screens: [
       {
         path: "/sign/consent",
         label: "Awaiting · full flow",
-        note: "OTP verify (any 6 digits not starting with 0 pass; a leading 0 fails + shakes) → signing screen: PDF left (zoom −/+ and Prev/Next page toolbar, the only scroll surface), signing card right. Fill name + email, Type (scripted preview) or Draw (canvas + Clear) a signature, flip the agree toggle → Sign Agreement enables → completed thank-you. No close/dismiss control — the recipient just fills and signs.",
+        note: "OTP verify, then sign beside the PDF: fill name and email, type or draw a signature, agree, and Sign Agreement.",
       },
       {
         path: "/sign/consent-signed",
@@ -349,7 +349,7 @@ const SECTIONS: Section[] = [
       {
         path: "/sign/consent-completed",
         label: "Completed · terminal",
-        note: "Post-signing thank-you: success message confirming the signed form was sent back to the business. No document or signing UI.",
+        note: "Thank-you screen after signing, confirming the signed form went back to the business.",
       },
     ],
   },
@@ -365,7 +365,7 @@ const SECTIONS: Section[] = [
       {
         path: "/sign-in/reset-password?token=demo",
         label: "Set a new password",
-        note: "Reached from the reset link in the email. Token drives the state — ?token=expired shows the dead-link message instead of the form.",
+        note: "Reset-password form from the email link, and ?token=expired shows the dead-link message instead.",
       },
       {
         path: "/sign-in/accept-invite?token=demo",
@@ -383,26 +383,26 @@ const SECTIONS: Section[] = [
     lane: "onboarding",
     title: "Pet Business, first-time setup wizard (PRO-97)",
     description:
-      "E2-4 Owner first-time setup. 5-step flow with a separate Go-live page. Welcome step removed, `/setup` lands the Owner directly on About. Services, Staff, and Preview steps are deferred until those features ship.",
+      "Owner first-time setup: /setup opens on About, runs five steps, then a separate Go-live page.",
     screens: [
       { path: "/setup", label: "Wizard entry (redirects to About)" },
       {
         path: "/setup/about",
         label: "Step 1 · About your business",
-        note: "Now also asks for the Google review link (PRD-168). A field here rather than a step of its own: reviews are the biggest acquisition channel a salon has, but a merchant mid-signup rarely has that URL to hand, so a dedicated step buys a high skip rate on a page everyone must pass through. Optional, never blocks Continue — the empty-state notice in the template editor is what actually gets it filled in.",
+        note: "Step 1 now asks for an optional Google review link that never blocks Continue.",
       },
       { path: "/setup/type", label: "Step 2 · Business type" },
       {
         path: "/setup/location",
         label: "Step 3 · Location",
-        note: "The search box is now the shared AddressSearchField (docs/specs/address-search-field.md) rather than a decorative input with a ‘Demo: select sample address’ link behind it. Type ‘jum’, ‘bay’ or ‘quoz’ for suggestions; manual entry is the first row of the dropdown rather than the reward for a failed search, and a picked place carries its pin (PRD-144). Picking one fills the Business location grid below — address, district, city, state — which stays and stays editable, because a places result is a starting point and the trade licence is what has to match. Apt and postcode survive a pick rather than being wiped, since a UAE map result rarely carries either. Map slot stays a placeholder until the map dependency lands.",
+        note: "Shared address search field: type 'jum', 'bay' or 'quoz', pick a place, and the editable location grid fills in.",
       },
       { path: "/setup/invoicing", label: "Step 4 · Invoicing" },
       { path: "/setup/hours", label: "Step 5 · Business hours" },
       {
         path: "/setup/done",
         label: "Go-live · Your business is set up",
-        note: "Minimal terminal beat (violet check + heading). Booking URL handoff + calendar CTA come back in once the calendar home + public page hooks are in.",
+        note: "Minimal go-live screen with a violet check and heading once setup is done.",
       },
     ],
   },
@@ -410,52 +410,52 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Business app, appointments (PRO-68)",
     description:
-      "E4 Appointment management. Slice 2 of 5 (foundations spec → people grid → today agenda + popover → create-sheet → daycare/boarding). Front-desk scheduling on the People grid: 11 staff columns × time rows, booking blocks color-coded by service category, current-time line, header date controls.",
+      "Front-desk People grid: 11 staff columns by time, bookings coloured by service category, current-time line, date controls.",
     screens: [
       {
         path: "/appointments/resources",
         label: "Resource calendar · Day",
-        note: "Bays, rooms and vans as columns instead of staff — the same day grid read by where the work happens rather than who does it. Rows are the resources from lib/scheduling-mock (Grooming Bay 1/2, Bath station, Van), each with its own capacity and the services it can take; blocks are tinted per resource. Prev/next day in the header.",
+        note: "Day grid with bays, rooms and vans as columns instead of staff, each block tinted per resource.",
       },
       {
         path: "/appointments",
         label: "Toolbar + sheets",
-        note: "Header toolbar (date, Day/Week, filters, New booking) over a demo body. The calendar grid is not mounted here — the booking blocks and their hover card live in /playground under 'Appointments — toolbar and people grid', where clicking a block opens the detail sheet. A booked combo reads as one line per component service, glyph + 'Combo - Service' with the pre-discount price struck through: see Luke Tan / Rocky (b-004). See docs/specs/PRO-68-appointment-foundations.md.",
+        note: "Header toolbar with date, Day/Week, filters and New booking over a demo body, without the calendar grid.",
       },
       {
         path: "/appointments",
         label: "New booking sheet · Pet Address + Pet notes",
-        note: "'New booking' → the Pet Address and Pet notes sections. Ticking Pet Address reuses the client's saved address (Karen Dougall and Maaz Test You have one; Aaliyah Hazari doesn't, which forces the manual input), and the field is the map search — pick 'Al Ghozlan' or 'Bay Square' and the line beneath says 'Pinned on the map'. Selecting a client with notes reveals the Client notes card (Karen has four). Pet notes use the same six categories as the public flow. The calendar grid is not on this route — the blocks and popover live in /playground. See docs/specs/PRO-68-appointment-foundations.md and PRD-167-appointment-notes.md.",
+        note: "Open New booking to try Pet Address with saved or map-picked addresses, Client notes, and the six Pet notes categories.",
       },
       {
         path: "/playground#client-notes-staff-alert",
         label: "Client notes / Staff Alert (playground)",
-        note: "DZ-209, under 'Client notes (Staff Alert)'. Four states: the 2-of-4 preview with per-note attribution (Karen Dougall), a single unattributed note (Tom Cassidy), the compact popover rendering, and a client with none — which renders nothing rather than an empty card. The hover cards under 'Appointments — pickup & pet notes' show the one-card model, and the note marker on booking blocks is under 'Appointments — toolbar and people grid'. See docs/specs/PRD-167-appointment-notes.md.",
+        note: "Client notes Staff Alert in four states: attributed preview, single unattributed note, compact popover and no notes.",
       },
       {
         path: "/playground#navigate-to-address",
         label: "Navigate to address (playground)",
-        note: "PRD-144, under 'Navigate to address' and 'Appointments — pickup & pet notes'. The pickup field states are live: pick a map suggestion and the note flips to 'Pinned', edit the text and it flips back. Two popover/detail pairs sit below them — one booking with a pinned address (Navigate) and one typed (Search in Maps) — which is the only place both read-only renderings can be compared side by side.",
+        note: "Pickup field flips between Pinned and typed, with pinned (Navigate) and typed (Search in Maps) bookings side by side.",
       },
       {
         path: "/appointments",
         label: "New booking sheet · Combo services",
-        note: "'New booking' → Add service. Two combos sit among the single services ('Groom & Go Bundle' under Grooming, 'Wash & Nails Combo' under Details), badged with a layers icon and a bundled-services count. Picking one expands it into its component services — back-to-back from the combo's start, the combo price split across them with each standalone price struck through, and removing any row removes the combo. Combos created at /catalogs/service-menu are bridged in here too. See docs/specs/catalogs-service-menu-combo.md.",
+        note: "Add service in New booking: pick a combo and it expands into back-to-back services with the price split across them.",
       },
       {
         path: "/appointments",
         label: "New / edit sheet · the branch it books at",
-        note: "R11: an appointment is a write, so it names one branch. 'New booking' asks for it — after the client, before the services, because the service picker reads its offerings against the branch and the client does not depend on it; paused branches are listed and badged rather than hidden, and picking one says why it cannot hold the booking instead of leaving Save mysteriously shut. 'Edit existing appointment (demo)' states it instead of asking: an existing booking already belongs somewhere and moving it is SCR-06. The same line, in the same order, as the detail sheet at /sales/appointments-list?ref=b-014 — and the tile's hover card carries it too, in /playground under 'Appointments — pickup & pet notes'. BuildingIcon throughout, never the pin: the pin is the pet's address. All of it absent for a single-branch business (DW1.2).",
+        note: "New booking asks for the branch after the client and before services, with paused branches listed and badged.",
       },
       {
         path: "/appointments",
         label: "New booking sheet · Walk-in and new client",
-        note: "'Add' → New appointment. The Client section starts as Walk-in (no client profile), which is a booking in its own right, not a missing field. In the picker, Walk-in is always first and is how a picked client is removed; 'New client' is pinned above the list and, once something is typed, reads 'Add “…” as a new client'. It opens the Add client form seeded with that name, and the client it saves becomes this booking's.",
+        note: "Add an appointment: the client starts as Walk-in, and 'New client' in the picker opens Add client seeded with the name.",
       },
       {
         path: "/appointments",
         label: "New / edit sheet · Quick message",
-        note: "Open the create sheet via 'New booking' (or 'Edit existing appointment (demo)'). Select a client to reveal the Quick message dropdown in the client action row — lists the business's WhatsApp templates with a resolved-text preview, plus a Message center link to the inbox. Picking a template opens the send dialog: edit the resolved body → Send → sending → 'Message sent' confirmation.",
+        note: "Open New booking, select a client and use Quick message to pick a WhatsApp template, edit it and send.",
       },
     ],
   },
@@ -463,27 +463,27 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Business app, Boarding & Daycare",
     description:
-      "Pet-boarding (overnight, priced per night) and daycare (same-day, priced per session) calendars for with-pets partners, modeled on the Cuddles reference but built on the cami design system and the appointment-sheet drawer conventions. Boarding = rooms × days timeline with night-spanning bars; daycare = staff columns × hourly time (Day) plus per-day counts (Month). Both share a Booking Detail drawer (status lifecycle, add-ons, late-checkout fee, notes, Check Out).",
+      "Boarding rooms-by-days timeline and daycare staff-by-hour calendars, sharing one Booking Detail drawer.",
     screens: [
       {
         path: "/appointments/boarding",
         label: "Boarding calendar · Week",
-        note: "Rooms grouped by facility (Main House, Cattery) + an Unassigned row; stay bars span their nights (pet avatar · name · 🌙 N Nights), tinted by room, dimmed when checked-out. Today column highlighted. Toolbar: Boarding service pill, status filter, facility filter, Day/Week/Month, + Add. Click a bar → Booking Detail drawer.",
+        note: "Week of rooms by facility with stay bars across their nights. Click a bar to open the Booking Detail drawer.",
       },
       {
         path: "/appointments/boarding",
         label: "Boarding · Booking Detail + create",
-        note: "Click any stay for the drawer: customer card (collapsible contacts + message), pet card (breed/size), stay block (rate/night, facility–room, editable status pill, check-in/out, nights, add-on chips, Add menu = Primary Service/Add-on/Product/Custom Item), Late check out fee toggle, notes, sticky Subtotal + Check Out. '+ Add' opens the New boarding stay sheet (mirrors the add-appointment shell: pet parent → pet & stay dates/room → add-ons → notes → Book stay).",
+        note: "Click a stay for the booking detail drawer, or + Add for the New boarding stay sheet.",
       },
       {
         path: "/appointments/daycare",
         label: "Daycare calendar · Day",
-        note: "Staff columns (Unassigned + staff) × hourly axis; session blocks positioned by time (pet · client · service · time range), status-tinted with colored rail. Toolbar: Daycare pill, status filter, staff multi-select, view dropdown, + Add (opens the standard add-appointment sheet, since daycare is time-based). Click a block → duration-based Booking Detail drawer (plan label 'Full Day · Up to 8 hours', Subtotal '(N min)').",
+        note: "Daycare day view with staff columns and time-placed session blocks, click one for the duration-based Booking Detail drawer.",
       },
       {
         path: "/appointments/daycare",
         label: "Daycare calendar · Month",
-        note: "Switch the view dropdown to Month: Sunday-first grid, today highlighted, in-month days show a big 'N Appointments' count. Week currently reuses the Day grid.",
+        note: "Switch the view to Month for a Sunday-first grid with today highlighted and an appointment count per day.",
       },
     ],
   },
@@ -491,7 +491,7 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Business app, clients directory (PRO-85)",
     description:
-      "E2-7 Pet Parent & Pet Directory. Operator-facing clients list with search, sort, and a detail dialog. Mode toggle switches between with-pets (Pets column visible) and without-pets businesses.",
+      "Operator clients list with search, sort and a detail dialog, plus a with-pets / without-pets mode toggle.",
     screens: [
       { path: "/clients", label: "Clients directory (with pets)" },
       {
@@ -508,32 +508,32 @@ const SECTIONS: Section[] = [
       {
         path: "/clients?client=millie-cassidy",
         label: "Client detail · Overview, the full record",
-        note: "The rebuilt Overview (Client Card brief, task 1). One block carries identity chips over the lifetime strip; then client notes, Visits with Next above Last and a one-tap Rebook, Packages & loyalty, pets as chips. Notes sit second because reception opens a profile to recall something before speaking, and they are the same notes the calendar previews — Add note opens the same dialog the appointment sheet uses. Three packages, so the card's collapse is visible. Address chip opens Google Maps. Every field here is this client's own — open the rows below before judging any of it, because the whole point is that no two read alike.",
+        note: "Millie Cassidy's full Overview: identity chips, lifetime strip, notes, Visits with Rebook, packages and pets.",
       },
       {
         path: "/clients?client=karen-dougall",
         label: "Client detail · four client notes",
-        note: "The case that sets the budget on Overview. Karen has four notes, one of them three lines, so the card shows two and sends the rest to Documents — uncapped it pushes Rebook off the first screen, and rebooking is the most repeated thing reception does. Open Documents on the same client for the archive, where every note renders whole.",
+        note: "Karen's four notes: the Overview card shows two and sends the rest to Documents so Rebook stays in view.",
       },
       {
         path: "/clients?client=kirsty-dingomal",
         label: "Client detail · booked, never yet seen",
-        note: "Confirmed for Sunday, no history: Visits leads with the booking and the Last row says so, which is when Rebook has nothing to repeat. No address, no tags, AED 0, no packages — four empty states in one screen, and the case a new client actually lands on.",
+        note: "A client booked but never seen: Visits leads with the booking, and address, tags, spend and packages show empty states.",
       },
       {
         path: "/clients?client=grace-kent",
         label: "Client detail · lapsed, nothing booked",
-        note: "The mirror of the row above: a history and an empty Next. Rebook is the only thing on the card worth pressing, which is why Next sits above Last rather than under it.",
+        note: "Lapsed client with history and an empty Next, so Rebook is the one action on the card worth pressing.",
       },
       {
         path: "/clients?client=tom-cassidy&tab=documents",
         label: "Client detail · allergies and patch tests",
-        note: "Forms and files come first on this tab now — they are what gets opened before an appointment, where a patch test is read only when something depends on it. Both of these are records, not preferences, so neither is typed into the customer-visible summary — \"On file\" written by hand is a claim with nothing behind it. A patch test carries two independent things: how it went (pending / passed / failed) and whether it is still current, which is derived from the tested date and never stored. Tom's passed in January and has lapsed on its own; Maaz's is valid until February; Kirsty's is pending. Millie has an allergy, Maaz has \"No known allergies\" — a recorded answer, not an empty list, and the difference matters at the chair. The add forms are deliberately not designed: see the ticket's D2.",
+        note: "Forms and files first, then patch tests and allergies: Tom's test lapsed, Maaz's valid, Kirsty's pending, Millie has an allergy.",
       },
       {
         path: "/clients?client=amy",
         label: "Client detail · repeat no-shows",
-        note: "Two no-shows and a refund. The tomato count in the header and the No-shows cell in the strip both open the same list; a refunded sale sits on the Sales tab.",
+        note: "Two no-shows and a refund: the header count and the No-shows cell open the same list.",
       },
       {
         path: "/clients?client=luke",
@@ -548,12 +548,12 @@ const SECTIONS: Section[] = [
       {
         path: "/clients?add=1",
         label: "Add client takeover",
-        note: "Full-screen sectioned takeover. Quick-create: only First name required, everything else optional. Pets section appears only in with-pets mode.",
+        note: "Full-screen add client takeover where only First name is required, with a Pets section in with-pets mode.",
       },
       {
         path: "/clients?client=millie-cassidy",
         label: "Add pet takeover (stacked)",
-        note: "Open the Pets tab on the client detail and click Add pet. The pet takeover stacks over the client dialog with the current client pre-populated as an owner.",
+        note: "Click Add pet on the Pets tab to stack the pet takeover over the client dialog with this client as owner.",
       },
       {
         path: "/clients?client=millie-cassidy",
@@ -563,22 +563,22 @@ const SECTIONS: Section[] = [
       {
         path: "/clients?client=kirsty-dingomal&tab=documents",
         label: "Client detail · Documents tab",
-        note: "Deep-links straight into the Documents tab: the consent forms + files list. Each signed/pending form has a 'View form' action.",
+        note: "Client detail opened on the Documents tab: consent forms and files, each form with a View form action.",
       },
       {
         path: "/clients?client=kirsty-dingomal&form=seed-form-1",
         label: "View form · full-screen (signed)",
-        note: "Opens the full-screen consent viewer directly (Documents tab, signed 'Client consent'): PDF left, signature panel right, single Close pill — the operator mirror of the public /sign/consent-signed screen.",
+        note: "Full-screen signed consent viewer for Kirsty: PDF left, signature panel right, single Close pill.",
       },
       {
         path: "/clients?client=kirsty-dingomal&file=profile-file-1",
         label: "File preview · full-screen (PDF)",
-        note: "Opens a Files-row 'Preview file' directly on the profile's personal file: the same full-screen shell as View form (sticky header, Download + Close) but single-column — just the in-app PDF, no signature panel. A demo PDF is generated so the seeded file renders.",
+        note: "Full-screen preview of a profile's personal PDF file, with Download and Close and no signature panel.",
       },
       {
         path: "/pets",
         label: "Pets directory",
-        note: "Operator-facing pet list, parallel to /clients but for pets. Multi-owner aware: owners render as family-colored chips. Only relevant in with-pets businesses.",
+        note: "Operator pet list parallel to /clients, with owners as family-colored chips for multi-owner pets.",
       },
       {
         path: "/pets?pet=bobo",
@@ -596,62 +596,62 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Pet Business, catalogs — Service menu, Categories & Packages (PRO-catalog)",
     description:
-      "Service catalog prototype ported from the developer app, backed by local mock state (no API, no permissions). Adding a category/service on one screen is reflected on the other — both share one in-memory store via the catalogs provider at the root layout, which is also what lets a combo created here turn up in the appointment and POS pickers. Prices render in AED.",
+      "Service menu, categories and packages on one shared mock store, so changes on one screen show on the others.",
     screens: [
       {
         path: "/catalogs/service-menu",
         label: "Service menu",
-        note: "Category sidebar + grouped service list. Drag service rows to reorder within a category or move them between categories. 'Add' menu creates a single service (full-screen takeover), a category (dialog), or a combo (own page). 'Order' / Options → 'Set menu order' opens the reorder sheet. Search filters by service name. Per-card and per-category kebabs offer Edit / Archive / Delete. All mutations update local state live. PRD-143: combos share this list with single services, so their rows now carry a tinted 'Combo' badge (layers icon) plus a count of the services they bundle — see 'Colour & Cut Combo' under Color treatments and 'Wash, Treat & Style' under Hair & styling; the same badge marks them in the Set-menu-order sheet.",
+        note: "Service menu with category sidebar: drag to reorder, Add a service, category or combo, and Combo badges on combo rows.",
       },
       {
         path: "/catalogs/service-menu/combos/groom-and-nails-combo/edit",
         label: "Edit combo",
-        note: "PRD-143 — a combo card's kebab → Edit lands here, not in the single-service takeover, which had no field for components, schedule type or combo pricing. Opens the builder on the saved combo: name, category, description, its bundled services resolved back out of the catalog, Booked in sequence/parallel, and the price type it was saved with (service pricing / custom / percentage / free) with the percentage or retail price filled in. Save writes back to the same combo. This link opens the seeded 'Colour & Cut Combo'; a combo you create yourself edits from its own row.",
+        note: "A combo's kebab Edit opens the builder on 'Colour & Cut Combo' with services, schedule type and price type filled in.",
       },
       {
         path: "/catalogs/service-menu/combos/new",
         label: "New combo",
-        note: "The combo builder reached from 'Add' → Combo: name/category/description, a Select-services dialog for the bundled services, sequence vs parallel scheduling, and the four price types (service pricing, custom, percentage discount, free) with a live total. Save now commits: the Category select and the Select-services dialog both read the real catalog (so a combo lands in a category that exists and bundles services that exist), and Save stores it as a service with serviceType 'combo' and drops you back on the Service menu with its Combo-badged row in place. Name, category and at least one service are required — Save toasts the missing one rather than failing silently. Duration follows the schedule type (sequence sums the components, parallel takes the longest). Online booking and Portfolio images are still presentational.",
+        note: "Combo builder: pick services, sequence or parallel, four price types, and Save adds a Combo-badged row to the menu.",
       },
       {
         path: "/catalogs/service-menu?new=1",
         label: "New service takeover",
-        note: "Deep-links straight into the add-service full-screen takeover (?new=1). Team members, pricing (Fixed/From/Free in AED), duration, variants (Add variant dialog), and extra-time settings. Save adds the service to the list. (Editing an existing service opens the same takeover from a service card's kebab → Edit.)",
+        note: "Deep link into the add-service takeover: team members, AED pricing, duration, variants and extra time.",
       },
       {
         path: "/catalogs/categories",
         label: "Categories",
-        note: "Sortable table of merchant categories (Name / Color / Description / Total services). Add category dialog, row kebab with Edit (detail dialog) / Archive / Delete (with confirm). Service counts stay in sync with the Service menu screen. Load-more pagination at 10 rows.",
+        note: "Sortable categories table with add, edit, archive and delete, service counts in sync with the Service menu.",
       },
       {
         path: "/catalogs/packages",
         label: "Packages",
-        note: "Rebuilt 22 Sep on the as-built's model. A package now carries what it covers, how it is paid for and where it sells: Grooming Club is recurring and reads 'AED 180 / monthly' with no expiry to print, Spa Day is unlimited, Puppy Starter covers three services. Search matches a service as well as a name, because 'which package has the groom in it' is the question. A row opens the detail; Add and Edit both save now, and Options carries a reset once you have changed something.",
+        note: "Packages showing what each covers, how it is paid and where it sells, with search by service and working Add and Edit.",
       },
       {
         path: "/catalogs/packages",
         label: "A package's sales, bounded by the grant",
-        note: "Open Bath & Brush 5+1 → Sales. Real rows now, not a permanent empty state: who bought it, which branch sold it (under the client, not in a column — six columns do not fit this dialog), sessions left, when it expires, and the status. Active / Exhausted / Cancelled are the as-built's own three and are not degrees of one thing: exhausted did its job, cancelled was taken back, so grey and red rather than a shared 'inactive'. An expiry in the past turns and says Expired underneath — which is how a row reads Active and Expired at once, because time and sessions run out separately. Bounded before it is counted (R18) — narrow the switcher to Jumeirah and the JVC sales go, with a line saying how many were withheld rather than leaving a manager to think the chain sold one. Abrar's row is the case worth reading: two sessions left and expired anyway, which is a different sentence to say to a client than 'you have none left'.",
+        note: "Open Bath & Brush 5+1 then Sales: buyer, branch, sessions left, expiry and Active, Exhausted or Cancelled status.",
       },
       {
         path: "/catalogs/packages/new",
         label: "Create package",
-        note: "Four-section takeover (Basic info · Customisation · Online sales · Terms & Conditions) on the same <FullScreenEditDialog> + sidenav shell as the service and combo builders. Basic info carries the Select-services dialog — combos are deliberately absent, because a package counts sessions against individual services and a combo already prices its own bundle. Pick Recurring and the expiry fields give way to a frequency and a length, so a saved package cannot contradict itself. Save commits and lands on the new row; a package with no name or no service says which is missing rather than greying Save out in silence.",
+        note: "Four-section package takeover: services only (no combos), Recurring swaps expiry for frequency, Save names what is missing.",
       },
       {
         path: "/catalogs/packages/grooming-club/edit",
         label: "Edit package",
-        note: "Every field starts from the saved package, not just its name — this one opens Grooming Club, which is recurring, so the form lands on a frequency and a length rather than an expiry. Save writes it and Delete removes it.",
+        note: "Edit Grooming Club with every field loaded from the saved package, landing on frequency and length since it recurs.",
       },
       {
         path: "/catalogs/packages/nail-trim-10/edit?s=online",
         label: "Online sales, and the branch axis packages do not have",
-        note: "Two switches, and that is the whole section. A per-branch list of locations sat here until 23 Sep and came out: no requirement asks for it — R08 is the only branch axis packages have and it is about REDEMPTION, not where they sell. It was an inference from R06's per-branch pricing, on a tab the as-built has not opened. The package belongs to the business; what is per branch is which branch sold a given one and which branch spends a session, both on the Sales tab and at the till.",
+        note: "Package online sales section is just two switches, with no per-branch list because the package belongs to the business.",
       },
       {
         path: "/catalogs/categories?add=1",
         label: "Add category dialog",
-        note: "Deep-links straight into the add-category dialog (?add=1). Name, color swatch, and description; Save adds the category to the table and the Service menu sidebar.",
+        note: "Add category dialog opened directly: name, color swatch and description, saved to the table and Service menu sidebar.",
       },
     ],
   },
@@ -659,12 +659,12 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Pet Business, products (PRO-product)",
     description:
-      "Product catalog prototype. Listing page with empty/populated toggle, full-screen add-product takeover with brand, category, and supplier pickers, The bulk import has its own group below.",
+      "Product listing with empty/populated toggle and the full-screen add-product takeover with brand, category, supplier pickers.",
     screens: [
       {
         path: "/products",
         label: "Products listing, populated",
-        note: "Table with 5 mock products, tabs (All/Active/Archived), search. Click the small toggle at the bottom-right to switch to empty state.",
+        note: "Products table with All, Active and Archived tabs and search. The bottom-right toggle switches to the empty state.",
       },
       {
         path: "/products",
@@ -674,17 +674,17 @@ const SECTIONS: Section[] = [
       {
         path: "/products?product=p1",
         label: "Product detail dialog",
-        note: "Opens the detail dialog over the listing via ?product=<id>. Tabs: Product details, Stock orders, Sales, Stock history. More-actions menu has Add stock, Remove stock, Edit, Delete. Try p1–p5.",
+        note: "Product detail dialog with four tabs and Add stock, Remove stock, Edit and Delete actions (try p1 to p5).",
       },
       {
         path: "/products/new",
         label: "Add product, full-screen takeover",
-        note: "Basic info (brand/category pickers), Pricing (retail sales + commission toggles), Inventory (SKU list, supplier picker, stock tracking). X closes back to /products.",
+        note: "Full-screen Add product takeover with Basic info, Pricing and Inventory sections, X closes back to products.",
       },
       {
         path: "/products/p1/edit",
         label: "Edit product, full-screen takeover",
-        note: "Same layout as /products/new, pre-populated from a MOCK_PRODUCTS row. Try p1–p5 for different products; unknown ids render a 'Product not found' fallback.",
+        note: "Edit product takeover pre-filled from mock data: try p1 to p5, and an unknown id shows 'Product not found'.",
       },
     ],
   },
@@ -692,127 +692,127 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Pet Business, sales (PRO-sales)",
     description:
-      "Sales reporting hub. Daily Summary is the first page; sibling pages (Appointments, Invoices, Payments) are reached from the Sales group in the app sidebar.",
+      "Sales reporting hub: Daily Summary first, with Appointments, Invoices and Payments reached from the sidebar Sales group.",
     screens: [
       {
         path: "/sales/new-sale",
         label: "New sale · Combo in the cart",
-        note: "PRD-143 — Services in the item picker carries two combos ('Nails & Style Combo', 'Massage Duo Combo'), badged with the layers icon and a bundled-services count. Adding one drops its component services into the cart as separate lines — each named 'Combo - Service', led by the glyph, with its standalone price struck through under the charged share — and the footer reads 'Total amount (excl. discounts)' with a 'Bundle discount' row per line, then To pay. The combo's price is split across the components in proportion to what they cost alone, so the lines always sum to the combo's price; removing any one line removes the whole combo. Combos created at /catalogs/service-menu → Add → Combo show up in this picker too. Appointments → Bilal Haddad / Rex is booked as a combo, so snapshotting it into the cart keeps the component lines, the glyph and the saving rather than flattening them.",
+        note: "Add a combo from the picker and its services land as separate struck-through cart lines with a Bundle discount row.",
       },
       {
         path: "/sales/new-sale",
         label: "New sale · Add to cart (PRO-395)",
-        note: "The POS drawer: item picker left (search + Appointments / Services / Products / Gift cards), cart right, with client attach, staff per line, duplicate lines, and a pinned Continue-to-payment CTA over an expandable VAT breakdown. Gift cards sell from the preset grid and can be redeemed at checkout (try QM4KTRZA for an active card, YYOSNPHO for an inactive one). Snapshotting an appointment attaches its client. Closing with items prompts Save as draft / Discard. See docs/specs/PRO-395-cart-build.md.",
+        note: "POS drawer with item picker and cart, client attach, staff per line and gift card redeem (try QM4KTRZA).",
       },
       {
         path: "/sales/new-sale?dialog=gift-card",
         label: "New sale · Add gift card dialog",
-        note: "Deep-links straight into the Add gift card dialog over an empty cart (value, price, disabled discounts, expiration, custom code, This-is-a-gift, confirmation email, team member). Apply drops the line into the cart.",
+        note: "Deep link to the Add gift card dialog over an empty cart, Apply drops the gift card line into the cart.",
       },
       {
         path: "/sales/new-sale?step=tip",
         label: "New sale · Tip step",
-        note: "Seeds a demo cart (one service + a client) and opens on the Tip step — tip presets + custom-tip dialog. Back through the breadcrumb returns to Cart.",
+        note: "New sale opened on the Tip step with a demo cart: tip presets and a custom-tip dialog.",
       },
       {
         path: "/sales/new-sale?step=payment",
         label: "New sale · Payment step",
-        note: "Seeds a demo cart and opens on the Payment step — method grid, Split, and the cash/card amount dialogs. Footer back-calculates tax-inclusive Subtotal/Tax.",
+        note: "Opens a demo cart on the Payment step: method grid, Split, cash and card amount dialogs, tax-inclusive footer.",
       },
       {
         path: "/sales/new-sale?dialog=payment-link",
         label: "New sale · Payment link (self checkout, PRO-909)",
-        note: "Seeds a demo cart on the Payment step with the Send-payment-link dialog open. Operator confirms client name + mobile (prefilled from the attached client), reads the 3-step 'How it works', sends. Sending creates a draft sale and locks the cart: the drawer body is replaced by the Payment-link-sent screen showing recipient, amount and a 12-hour expiry. No progress beats — the operator can't act on them. Cancel payment link invalidates the link (never edits it), closes the cart, and hands off to the draft sale it created — Checkout there resumes at the Tip step; Mark as paid settles to the Payment complete screen. The client's half of this is /[slug]/pay/[token].",
+        note: "Send a payment link from the cart, see the locked Payment-link-sent screen, then cancel the link or mark it paid.",
       },
       {
         path: "/sales/new-sale?terminals=one",
         label: "New sale · POS Terminal — one machine",
-        note: "Payment step with exactly one signed-in card machine, which appears in the grid under its own name rather than as a generic POS Terminal tile. Tapping it sends the sale straight there and the drawer locks: no step nav, no Save unpaid, no second tap for the backend to refuse. Collect another way is the only exit; its confirm warns about a card that already went through and returns to the payment methods with the cart intact. Mark as paid stands in for the terminal's settlement callback and lands on the usual Payment complete screen.",
+        note: "Payment step with one card machine shown by name: tapping it sends the sale there and locks the drawer.",
       },
       {
         path: "/sales/new-sale?terminals=two",
         label: "New sale · POS Terminal — two machines",
-        note: "Two machines, so the grid carries both by name under a Card terminals heading — the register in front of the receptionist is one tap, not a tile plus a picker (Michelle's note on the review). The heading is there because a tile reading 'Front Desk Register' next to 'Cash' says nothing about what it is, and 'Card' already means keying a card in by hand. Up to three REGISTERED machines get tiles — counted on registration, never on who is signed in, or a four-machine business would see named tiles in the morning and one generic tile by noon. Past three, see ?terminals=many.",
+        note: "Two registered card terminals show as named tiles under a Card terminals heading in the payment grid.",
       },
       {
         path: "/sales/new-sale?terminals=idle",
         label: "New sale · POS Terminal — registered, nobody signed in",
-        note: "The state a merchant is in every morning: the card machines are registered, but nobody has typed a PIN into one yet. Their tiles hold their places, greyed, each carrying its reason — 'Nobody signed in', or 'Locked · 12 min' after failed PINs on the device. A signed-out register that quietly vanished from the grid would read as broken hardware; greyed with a reason reads as a sign-in that hasn't happened. The tiles stay — hiding it would make the option vanish overnight and reappear at lunch, and the receptionist would read that as the feature breaking. Tapping it opens the picker with every row blocked and its reason on it, led by a notice saying nothing is signed in. Depends on what the backend's terminal-status boolean means: registered hardware (this design) or a live session (tile would be hidden instead).",
+        note: "Registered card machines with nobody signed in stay as greyed tiles with a reason, and the picker shows every row blocked.",
       },
       {
         path: "/sales/new-sale?terminals=many",
         label: "New sale · POS Terminal — past the tile cap",
-        note: "Six registered machines, four of them signed in. Past three the grid stops naming them: a row of merchant-typed device names ('Till 2', 'Boarding Desk') where Cash and Card sit reads as an inventory of hardware rather than a list of ways to pay, so one POS Terminal tile opens the Send-to-terminal picker instead. In the picker the usable machines sort to the top and the list scrolls inside the dialog, so the Send button stays put however many machines a business runs.",
+        note: "Six terminals collapse into one POS Terminal tile that opens the Send-to-terminal picker, usable machines on top.",
       },
       {
         path: "/sales/new-sale?dialog=terminal",
         label: "New sale · POS Terminal (card present)",
-        note: "Opens straight onto the locked screen a sale sits in once it is routed to the card machine: no step nav, no Save unpaid, and Mark as paid stands in for the terminal callback. Collect another way is the only exit and keeps the cart. The tile itself is on /sales/new-sale?step=payment, which opens the Send-to-terminal picker — only a signed-in machine can be chosen, and the other DSG-62 states carry their reason on the row. See docs/specs/terminal-checkout-locked-cart.md.",
+        note: "The locked cart while a sale waits on the card machine: Mark as paid or Collect another way are the only exits.",
       },
       {
         path: "/sales/new-sale?dialog=redeem",
         label: "New sale · Redeem gift card at checkout",
-        note: "Seeds a demo (non-gift-card) cart on the Payment step with the Redeem gift card dialog open: find by code (QM4KTRZA / ZTP3RG84 = active with balance, YYOSNPHO = not active, anything else = typo error), then apply the balance as a Gift card payment line.",
+        note: "Payment step with the Redeem gift card dialog open: try QM4KTRZA, YYOSNPHO or a typo, then apply the balance.",
       },
       {
         path: "/sales/daily-summary",
         label: "Daily Summary",
-        note: "Date stepper at the top (prev/Today/next + calendar popover), then side-by-side Transaction summary and Cash movement summary tables matching the figma values. Negative amounts render in tomato-11.",
+        note: "Date stepper over side-by-side Transaction and Cash movement summary tables, negative amounts in tomato-11.",
       },
       {
         path: "/sales/appointments-list",
         label: "Appointments list",
-        note: "Tabular view of a curated 10-row booking subset covering all seven statuses (anchored on 18 May 2026 to match the figma). Toolbar: search by ref/client, Month-to-date pill, Filters pill, sort dropdown (Created/Scheduled/Duration · asc/desc). Status badges: Booked (blue), Confirmed (violet), No-show (tomato), Completed (green), etc. Footer count.",
+        note: "Appointments table covering all seven statuses, with search, date and filter pills, sort options and coloured status badges.",
       },
       {
         path: "/sales/appointments-list?ref=b-002&view=activity",
         label: "Appointment detail sheet",
-        note: "Opens the right-side sheet over the listing via ?ref=<id>. Try b-001…b-024 for different states (b-002 is ready-for-pickup, b-003 confirmed, etc.). Status-colored header band (blue=booked, gray=completed, tomato=no-show), Services list, sale total with inline-expand breakdown, Quick actions popover. Status pill behavior: terminal statuses (completed/cancelled) are static, no-show only offers Undo, others get the full dropdown — pill + band update live. The header band also names the branch, beside the time: it is one of the two facts an operator reads first, and it carries full contrast against the band's muted 70% because bold alone at 12px, third in a comma list after 'doesn't repeat', was there and could not be found.",
+        note: "Appointment sheet via ?ref=b-001 to b-024: status-coloured header band with branch, services, total and live status pill.",
       },
       {
         path: "/sales/appointments-list?ref=b-002",
         label: "Detail sheet · Pet Address + Pet notes",
-        note: "Open from the Ref # link, not the row. b-002 shows the Pickup card (typed address → 'Search in Maps') and Pet notes; b-004 has both plus a pinned address that routes to coordinates, three services by two groomers with extra-time pills and a membership line, a Payment policy card, a Client notes card, and the appointment note as the closing section. b-001 is the empty case. Sale total sums the service rows, not the booking's headline price. See docs/specs/PRD-167-appointment-notes.md.",
+        note: "Open from the Ref # link to see the Pickup card and Pet notes. Try b-004 for the full sheet and b-001 for empty.",
       },
       {
         path: "/sales/sales-list",
         label: "Sales list (invoices)",
-        note: "Tabbed (Sales / Drafts) listing of invoices, header layout matches /products (title, Options + Add sale, tabs with counts, search + date-range + filter + sort in one row). Status badges: Completed (green), Part Paid (gold), Unpaid (gray), Refunded (gray), Voided (tomato). Demo today is 2026-05-25 — five 'today' rows guarantee one of every status is visible by default; switch the range to Last 7 days to see the full 10-row fixture.",
+        note: "Sales and Drafts invoice tabs with one of every status today, and all 10 rows under Last 7 days.",
       },
       {
         path: "/sales/sales-list?tab=drafts",
         label: "Sales list · Drafts tab",
-        note: "Switch to the Drafts tab (or click the count) for the unsubmitted-sales listing: Draft # (hex ref), Client, Draft badge (gray), Created, Tips, Gross total. Drafts ignore the date-range pill — they always show in full — and search matches the draft ID or client. Search placeholder switches to 'Search by Draft ID'.",
+        note: "Drafts tab lists unsubmitted sales by Draft ID and client, always in full regardless of the date range.",
       },
       {
         path: "/sales/sales-list?draft=31A06EA3",
         label: "Draft detail dialog",
-        note: "Same centered dialog shell as the sale detail, opened via ?draft=<ref>. Always-Unpaid header (cami-yellow pill, matching the listing) with a Checkout primary action that resumes the sale — it closes the dialog and reopens the cart on the Tip step with the draft's line and client already loaded; the kebab has a single destructive 'Cancel draft' that opens a 'Cancel draft sale?' confirm dialog (Go back / Confirm). Walk-In drafts show a violet walk-in card instead of the clickable client row; receipt body is Subtotal / Total / Balance (full total owed). Try 31A06EA3 (Walk-In) or 7F2B19C4 (named client).",
+        note: "Draft sale dialog with Checkout to resume on the Tip step and Cancel draft in the kebab, try 31A06EA3 or 7F2B19C4.",
       },
       {
         path: "/sales/sales-list?sale=7",
         label: "Sale detail dialog",
-        note: "The centered dialog over the listing, ?sale=<id>. Status drives the header action and the Quick-actions kebab; the receipt body shows Subtotal/Total, payments, and Balance or Change; a refunded sale adds a Refund card above the original. Share invoice opens the share modal (its link is fetched, so ready / loading / error — see the playground), Email a one-field modal, Print and Download open the document. Try 7 (completed), 6 (part-paid), 3 (refunded), 1 (voided), 16 (the only row with a tip). See docs/specs/DSG-72-downloadable-invoice.md.",
+        note: "Sale dialog via ?sale=: try 7 completed, 6 part-paid, 3 refunded, 1 voided and 16 with a tip, plus Share and Email.",
       },
       {
         path: "/invoice/17",
         label: "Invoice link (customer view)",
-        note: "DSG-72. The invoice link as the client gets it — no sign-in, no AppShell, a thin action bar over the same document the PDF renders. Path shape matches production, so the link in the Share invoice modal is real. Try 17 (package redemption with a tip), 16 (tip), 13 (credit note), 24 (gift card, no VAT row), 999 (not found). Resize narrow: this is the only surface that reflows, and it still emits true A4 on Ctrl+P. See docs/specs/DSG-72-downloadable-invoice.md §9.",
+        note: "The invoice as the client gets it, no sign-in. Try 17, 16, 13, 24 and 999, and resize narrow to see it reflow.",
       },
       {
         path: "/sales/invoice-document",
         label: "Invoice document (A4 downloadable)",
-        note: "DSG-72. One document, three surfaces — switch with the tabs (PDF download / Invoice link / Email attachment); only the chrome changes. ?sale=<id> reads a real sale (16 has a tip, 17 a package redemption at AED 0.00, 15 part-paid, 14 unpaid, 13 a credit note, 12 voided, 24 a gift card with no VAT row). ?state=<id> covers what a sale row cannot express — no-TRN, tax-full, logo, long name, 30-line pagination, overtender, multi-page. Print to check A4. See docs/specs/DSG-72-downloadable-invoice.md.",
+        note: "One A4 invoice across PDF, link and email tabs, with ?sale= and ?state= to load each case.",
       },
       {
         path: "/sales/gift-cards-sold",
         label: "Gift cards sold",
-        note: "Listing of gift cards purchased by clients (Sales sidebar group). Columns: Gift card code (sticky, clickable), Issue date, Expiry date, Status, Sale #, Purchaser, Owner, Total, Redeemed, Remaining. Status badges: Unpaid (cami-yellow), Active (lime), Redeemed (olive), Expired (gray). Toolbar: search by code/purchaser/owner + Filters. Header Options dropdown: Gift cards settings + Export (PDF/CSV/Excel). Amounts in AED.",
+        note: "Gift cards sold table with code, dates, status badges, purchaser, owner and AED amounts, plus search, filters and export.",
       },
       {
         path: "/sales/gift-cards-sold?card=gc-1",
         label: "Gift card detail",
-        note: "Centered modal (same shell as the sale detail dialog) opened via ?card=<id> (gc-1…gc-5): muted header with status pill + close, 'Gift card' title + issue date/code, underline Details / Activity tabs. Details: Original amount, Redeemed, Remaining, Code (copy), Sale #, Purchaser, Owner, Expires, Issue date. Activity: the gradient gift-card visual (current balance) above a month-grouped event timeline (purchased / redeemed / fully redeemed / claimed) with icons + status indicators. Sale # (table + Details) and 'View sale' (Activity) open the real SaleDetailDialog in place, stacked over this screen.",
+        note: "Gift card modal with Details and Activity tabs, balance visual, event timeline and Sale # links that open the sale.",
       },
     ],
   },
@@ -820,12 +820,12 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Business app, Messages — Inbox",
     description:
-      "WhatsApp conversations inbox (WhatsApp-only in v0). Three panes: conversation list (funnel / SLA-window / routing pills, unread dots, search), thread (date separators, inbound/outbound bubbles, AI-parsed booking-request card, system lines, composer), and a client panel (funnel status, lifetime activity, pets with care notes, tags, internal notes). AI / automation surfaces (AI draft reply, Auto-confirm, Escalate, SLA timers) are visual stubs.",
+      "Three-pane WhatsApp inbox (list, thread, client panel) with AI and automation surfaces as visual stubs.",
     screens: [
       {
         path: "/messages/inbox",
         label: "Inbox · conversation selected",
-        note: "Sarah Mansour's thread is selected by default — shows date groups (Fri Jun 19 → Today), a pending booking-request card (Confirm opens the new-appointment sheet; Reject marks rejected), and a reminder system line. Type + Send appends an outbound bubble. Templates fills the composer from the WhatsApp template set; AI draft reply fills a canned suggestion. Toggle the right client panel with Details. Funnel status (client panel) updates the list + header pills; remove tags inline.",
+        note: "Sarah Mansour's thread: confirm or reject a booking request, send a message, try Templates or AI draft, toggle Details.",
       },
     ],
   },
@@ -833,82 +833,82 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Inbox CRM, Phase 0 — T1 prototype (ENG3-33)",
     description:
-      "The Phase 0 WhatsApp inbox, scoped to the story rows in cami-docs-v1 inbox-crm-phase-0 (IX-A1/A2/A4/A5/A6, IX-C3/C4/C6) and nothing beyond them. Three panes at 1280 and up. From 1024 to 1279 the client pane opens as a sheet over the chat; below 1024 (tablet portrait) one pane shows at a time. The dashed 'Design repo' chip floats over the top right and does not take a row. It opens the switches: page state, what the next send does, English/Arabic (RTL), pets on/off and a 1280/1366 width frame. Every switch is in the URL, so each frame is a link.",
+      "Phase 0 WhatsApp inbox in three panes, with a Design repo chip for state, language, pets and width switches.",
     screens: [
       {
         path: "/messages/inbox/phase-0",
         label: "Live inbox · matched chat",
-        note: "Layla's chat: day grouping, each Cami-sent message signed with the staff name. Name and phone sit once, in the thread header. The client pane is ClientSummary: Pets first (Coco, with a Behavior pet note under her), then Upcoming, then Last visits (the last three; each day with its relative and actual date, staff avatars with names on hover), then Client notes. View profile opens the full client dialog. The panel icon in the chat header hides and shows the pane (tooltip: Show client, Hide client). Unread is out of Phase 0, so rows are not bold and carry no count. Type + Ctrl/⌘+Enter sends: Sending → Sent. The shortcut is on the Send button's tooltip.",
+        note: "Layla's matched chat with staff-signed messages, the ClientSummary pane, pane toggle, and Ctrl/⌘+Enter to send.",
       },
       {
         path: "/messages/inbox/phase-0?c=omar",
         label: "Six months of history",
-        note: "Scroll up: older pages load 40 at a time (keyset) and keep your place, the day header stays pinned, imported messages carry no staff name, old media shows as on the phone only, and a phone-app reply reads 'Answered on phone'.",
+        note: "Scroll up through six months of history: older pages load 40 at a time and the day header stays pinned.",
       },
       {
         path: "/messages/inbox/phase-0?c=unmatched-saturday",
         label: "Unmatched number",
-        note: "The number stands in for the name. The list avatar is a dashed circle with a person icon. Free text can be sent before linking. Link client in the chat header, or Match and Add in the client pane, open their flows as dialogs.",
+        note: "An unmatched number: dashed avatar, free text before linking, and Link client, Match and Add opening as dialogs.",
       },
       {
         path: "/messages/inbox/phase-0?c=maryam",
         label: "Window closes while typing",
-        note: "The countdown is one line above the composer. It stays quiet until under 2 hours, then turns amber, and red in the last 10 minutes. It closes about 2 minutes after load. Type something first: when it closes, the text is kept (copy or discard) and the composer becomes one sand row: a lock, the reason, and Choose a template. 'Client writes now' under the Design repo chip reopens it for 24 h with the text still there.",
+        note: "The composer countdown turns amber then red and closes about 2 minutes in. Type first to see the text kept.",
       },
       {
         path: "/messages/inbox/phase-0?c=sara",
         label: "Window closed · templates",
-        note: "Free typing is off, with the reason. Choose a template: the name and booking fill from the record (violet); Booking details on a client with no booking shows the blank in red and blocks the send, naming it. A sent template is labelled as one in the thread.",
+        note: "Closed window: free typing off, templates fill from the record, and a missing booking blocks the send in red.",
       },
       {
         path: "/messages/inbox/phase-0?c=unmatched-closed",
         label: "Window closed · unmatched",
-        note: "Any template with a blank stays blocked until the record can fill it. Reception never types into a blank. 'Thanks, reply here' and 'Ask for a name' have no blanks and can go on an unmatched chat.",
+        note: "Unmatched closed-window chat where templates with blanks stay blocked and only blank-free templates can go.",
       },
       {
         path: "/messages/inbox/phase-0?c=noura",
         label: "Send failed · retry",
-        note: "A failed message says why and offers Retry, which resends the same message onto the same bubble. Switch 'Next send' under the Design repo chip to make a retry fail again (count shows), fail late (flips to failed ~6 s after Sent), or come back as WhatsApp's window-closed (the composer closes, and free text can no longer be retried).",
+        note: "A failed send explains why and offers Retry, and 'Next send' lets you force another failure, a late failure or a closed window.",
       },
       {
         path: "/messages/inbox/phase-0?c=unmatched-closed",
         label: "Match · same number on two records",
-        note: "Match to client: with the search empty, both records on this number show. Pick one: the number is already on their record, so picking them is the match, with no confirm step. A client with a different number gets a confirm step: On record and This chat, and 'Update their number to the one from this chat', unchecked by default. After Match the thread gains 'Matched to … by Queenie' and every earlier message stays. 'Change linked client' in the ⋯ menu of any matched chat re-matches and keeps both lines.",
+        note: "Match a number shared by two records, see the confirm step for a different number, then the 'Matched to … by Queenie' line.",
       },
       {
         path: "/messages/inbox/phase-0?c=unmatched-fatima",
         label: "Add client",
-        note: "Add new client opens a short dialog: phone filled and read only, first name the only required field. Nothing is prefilled: reception types the name. Save binds the chat and the pane shows 'No appointments yet'. The welcome pack PDF in the thread is a file sent from the chat.",
+        note: "Add new client from an unmatched chat: phone locked, first name only, and Save binds the chat.",
       },
       {
         path: "/messages/inbox/phase-0?c=unmatched-saturday",
         label: "Unmatched · free text",
-        note: "Reception can reply before linking, and ask for a name in the chat if they need one. Save in Add stays off until a first name is typed. Cami never makes a name up. The photo at the top is an unmatched chat receiving media.",
+        note: "Reply to an unmatched chat before linking, and see Save in Add stay off until a first name is typed.",
       },
       {
         path: "/messages/inbox/phase-0?c=omar",
         label: "Media · photo, video, phone only",
-        note: "The client's photo and video open full size. Scroll up for old media shown as on the phone only (older than 2 weeks at connect), never a broken tile. The paperclip in the composer attaches from this computer; a type WhatsApp rejects (try a .zip) is blocked with the reason.",
+        note: "Client photo and video open full size, old media shows as phone only, and blocked attachment types say why (try .zip).",
       },
       {
         path: "/messages/inbox/phase-0?state=visits-error",
         label: "Client pane · partial and slow",
-        note: "Name and phone are on the thread header. Pets and last service paint with the messages. Pet notes, Upcoming and Last visits (what, who, when, AED) and team-only client notes are a second read. This link fails that read: the name stays, the visits say so with a retry. ?state=visits-slow shows the skeleton rows.",
+        note: "Client pane where the second read fails: name stays, visits show an error with retry, ?state=visits-slow shows skeletons.",
       },
       {
         path: "/messages/inbox/phase-0?state=read-only",
         label: "Permission · read only",
-        note: "inbox:read without inbox:reply: chats read normally, the composer is replaced by the reason, and Match, Add and Retry are not offered. ?state=no-access and ?state=feature-off are the page-level versions.",
+        note: "Read-only hides Match, Add and Retry and replaces the composer with the reason (also ?state=no-access and ?state=feature-off).",
       },
       {
         path: "/messages/inbox/phase-0?lang=ar&width=1280",
         label: "Arabic, RTL, at 1280",
-        note: "The whole inbox mirrored with real Arabic copy; phone numbers stay left-to-right. The dashed outline is the 1280 frame minus the collapsed sidebar.",
+        note: "The whole inbox mirrored in Arabic at 1280, with phone numbers kept left-to-right.",
       },
       {
         path: "/messages/inbox/phase-0?c=huda",
         label: "Tablet and small laptop",
-        note: "Narrow the window. From 1024 to 1279 the list and chat stay; Show client opens the pane as a sheet over the chat, and tapping the dimmed chat or × closes it. Below 1024 (tablet portrait) the list fills the screen; tapping a chat opens it full width with a back arrow.",
+        note: "Narrow the window to see the client pane become a sheet below 1280 and one pane at a time below 1024.",
       },
       {
         path: "/messages/inbox/phase-0?state=list-loading",
@@ -921,7 +921,7 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Bulk import — products, clients and pets (DSG-80 / DSG-84)",
     description:
-      "One wizard on three entities, grouped here because production serves all three from a single component set — so a change to one screen is a change to all three. One block per entity, each in step order: upload, review, outcome. Every link lands on the step it names. The reference cases are the two reported in #ui: Aya's 100-row product and client files, and Maaz's 873-row pet file. The dashed bar on each screen switches case, and on products also switches to the version that ships today. Spec: docs/specs/DSG-80-product-import.md",
+      "One shared import wizard for products, clients and pets, each shown step by step: upload, review, outcome.",
     screens: [
       {
         path: "/products/import",
@@ -931,7 +931,7 @@ const SECTIONS: Section[] = [
       {
         path: "/products/import?at=review",
         label: "Products — review step (the ticket)",
-        note: "Aya's case. Opens on the 17 blocked rows, grouped under one named cause with how to fix it, instead of 83 identical green badges. Everything (100) is one click away.",
+        note: "Aya's import opens on the 17 blocked rows grouped under one named cause with the fix, all 100 rows one click away.",
       },
       {
         path: "/products/import?at=done",
@@ -961,17 +961,17 @@ const SECTIONS: Section[] = [
       {
         path: "/clients/import?at=review",
         label: "Clients — review step",
-        note: "Aya's client file: 100 rows, 79 ready. Opens on the 21 that need her — 18 missing a last name, 1 duplicate phone, 2 name matches.",
+        note: "Aya's 100-row client file opens on the 21 rows that need her: missing last names, a duplicate phone, name matches.",
       },
       {
         path: "/clients/import?at=done",
         label: "Clients — outcome step (last step)",
-        note: "The same panel as the products outcome. The ledger adds up to the file: 79 added + 2 left to answer + 19 left behind = 100.",
+        note: "Clients import outcome: the ledger adds up to the file, 79 added, 2 left to answer, 19 left behind.",
       },
       {
         path: "/clients/import?case=many-name-matches&at=review",
         label: "Clients — name matching at volume",
-        note: "16 of 24 rows matched an existing customer on first name alone. Both sides labelled — your file against what is already in Cami — plus the third answer the API cannot accept yet, drawn disabled.",
+        note: "16 of 24 rows matched on first name alone, with your file against Cami and a disabled third answer.",
       },
       {
         path: "/clients/import?case=client-no-pets&at=review",
@@ -986,17 +986,17 @@ const SECTIONS: Section[] = [
       {
         path: "/clients/import?case=maaz-pets&at=review",
         label: "Pets — review step",
-        note: "Maaz's case: 873 rows, 45 blocked, 60 pets with no owner details. Eleven counts as one ledger, a row carrying pet and owner, eight lists created in the account.",
+        note: "Maaz's 873-row pet file at review: 45 rows blocked and 60 pets with no owner details.",
       },
       {
         path: "/clients/import?case=pets-no-owner&at=review",
         label: "Pets — no contact details in the file",
-        note: "120 rows with a pet and an owner's name and nothing else. Since the September backend hotfix every one of them imports the pet on its own and creates no client — look at the 'Pet only' badge and at the commit button, which counts pets rather than owners.",
+        note: "Pets with only an owner's name import as pets alone: check the 'Pet only' badge and the commit button counting pets.",
       },
       {
         path: "/clients/import?case=pets-no-owner&at=done",
         label: "Pets — outcome, none with an owner",
-        note: "'120 pets added' with zero owners under it. The standalone pets keep their own ledger line instead of being folded into the added count.",
+        note: "'120 pets added' with zero owners, the standalone pets keeping their own ledger line.",
       },
       {
         path: "/clients/import?case=maaz-pets&at=done",
@@ -1009,54 +1009,54 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Reporting and analytics (DSG-43 / PRO-703)",
     description:
-      "Config-driven reporting module — all 23 reports render from lib/reports/registry.ts through shared view templates (Table / Detailed Table / Dashboard + Performance-summary matrix). Every report is listed below (generated from the registry, so nothing goes stale). Adapted to Cami (AED, CamiPay/NeoPay/Cash, Pet Name in Client reports). Commission reports are out of scope (PRO-703 §7); Client insights is merged into Client list. The Performance dashboard is the DSG-79 revamp — start there.",
+      "All 23 reports from one registry through shared view templates. Start with the Performance dashboard.",
     screens: REPORT_SCREENS,
   },
   {
     lane: "business",
     title: "Merchant money surfaces (DSG-73)",
     description:
-      "Hosted on /shell-demo because none of these have a route: the money drawer lives in the topbar and the billing panels inside the settings dialog, so the links open them over the bare app shell rather than over an unrelated page. Where the merchant's money is, when it lands, and what Cami charged. Split custody is the whole design: terminal money is held and paid by NeoPay, online money by Cami — one merchant, two payouts, two senders, two schedules. The benchmark's defect is a headline and its own breakdown disagreeing 9.3x because payouts were missing from the arithmetic; here every figure is derived from one ledger, so the breakdown cannot drift from the headline. Spec: docs/specs/DSG-73-merchant-money-surfaces.md.",
+      "Money drawer and billing panels over the bare shell, splitting NeoPay terminal payouts from Cami online payouts.",
     screens: [
       {
         path: "/shell-demo?money=drawer",
         label: "Topbar money drawer · the entry point",
-        note: "Says which branches it is counting and is bounded by the grant, like every other money surface — it was the one that summed the whole ledger regardless. The money icon sits in the topbar on every screen, so it has no route of its own — these links open it over the bare shell. It is the only way in, because a routed Money section was an orphan nothing linked to. One card per sender (Cami / NeoPay) with what each holds and when it lands, the last three days of activity, then a way into the full screens. Reads the same derivation as the account summary, so the drawer and the page cannot disagree — which is exactly what they do in the reference product.",
+        note: "Topbar money drawer over the bare shell: one card per sender, last three days of activity, and links to the full screens.",
       },
       {
         path: "/shell-demo?money=summary",
         label: "Account summary (DSG-77) · two rails",
-        note: "Carries the per-branch breakdown (SCR-15) — Activity has had a branch filter since DSG-78, while this side summed the estate into one figure and offered no way down. Absent for a single-site business. The recommended D6 layout. Cami-held money is the headline (the only timing Cami controls), NeoPay's sits beside it at lower weight. Follow the breakdown down: money in → what Cami charged → adjustments → already paid to your bank → still held. The running totals between blocks are the point — the arithmetic is visible, not asserted.",
+        note: "Per-branch account summary, with running totals from money in through Cami charges and adjustments to paid out and held.",
       },
       {
         path: "/shell-demo?money=summary&variant=blended",
         label: "Account summary · blended (the other D6 option)",
-        note: "One figure for everything held, custodian split stated underneath. Take both to design review — this one is easier to glance at and closer to recreating the two-balance defect from the other direction.",
+        note: "The blended D6 option: one figure for everything held, custodian split underneath, to compare at design review.",
       },
       {
         path: "/shell-demo?money=summary&state=paused",
         label: "Payouts paused, destination unverified",
-        note: "SET-B4. The banner has to say the money will NOT fall back to the old account, because that is every merchant's reasonable assumption.",
+        note: "Paused payouts banner that says the money will not fall back to the old account.",
       },
       {
         path: "/shell-demo?money=summary&state=pending",
         label: "Verification pending",
-        note: "Between unverified and healthy. Payouts are still paused, but the copy carries no fault — nothing is wrong and nothing is being asked of the merchant, so the tone drops from warning to plain information.",
+        note: "Verification pending: payouts still paused, with plain informational copy instead of a warning.",
       },
       {
         path: "/shell-demo?money=summary&state=below-minimum",
         label: "Below minimum, rolls forward",
-        note: "SET-X9. Skipped is not failed — no alarm colour, no error wording. A merchant who reads this as a problem calls support about money that is fine.",
+        note: "A payout below minimum that rolls forward, shown as skipped with no alarm colour or error wording.",
       },
       {
         path: "/shell-demo?money=summary&state=not-ready",
         label: "Not settle-ready",
-        note: "Nothing has ever gone out, so the held figure is large and none of it is moving. Payouts line reads zero and the banner explains why.",
+        note: "Not settle-ready: a large held figure, zero payouts and a banner explaining why.",
       },
       {
         path: "/shell-demo?money=summary&rails=terminal-only",
         label: "Terminal-only merchant",
-        note: "SET-X7. One custodian, so the rail split collapses and there is no Cami-controlled schedule to show. Complete screen, not a degraded one.",
+        note: "Terminal-only merchant with one custodian, so no rail split and no Cami schedule, shown as a complete screen.",
       },
       {
         path: "/shell-demo?money=summary&rails=online-only",
@@ -1081,7 +1081,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?money=activity&rails=terminal-only",
         label: "Payout detail · the one that did not arrive",
-        note: "Filter to Payouts and open the 12 Aug row. It keeps its reason permanently, the money came back as its own row, and the retry is a separate payout carrying the same transactions. Contents are summed on screen so the drill-in arrives at the payout figure instead of asserting it.",
+        note: "Filter to Payouts and open 12 Aug: the payout keeps its reason, the money returns, and the retry is a new payout.",
       },
       {
         path: "/shell-demo?money=activity&loading=1",
@@ -1091,42 +1091,42 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?money=activity&state=no-activity",
         label: "Activity · empty vs filtered-to-zero",
-        note: "Two different empties. This one is a new merchant; filter the healthy feed to a type it has none of and the copy says there IS money here, just none matching your filters.",
+        note: "New-merchant empty activity feed, compared with a healthy feed filtered down to zero.",
       },
       {
         path: "/shell-demo?settings=billing&bp=fees",
         label: "Invoices and fees (DSG-76)",
-        note: "Settings › Billing › Invoices and fees — a panel, not a page, so the merchant is never thrown out of the dialog they opened. Period headings newest first, two documents each, and the current month pending with the date it arrives — the reference shape, which works. What differs is the content: no subscription line (their statement is 58% plan charges), the rate stated ON the screen rather than buried in a download, and every fee expandable down to the sale that caused it with the working shown.",
+        note: "Invoices and fees panel in Billing settings: period headings, pending current month, and fees that expand to the sale.",
       },
       {
         path: "/shell-demo?settings=billing&bp=fees",
         label: "Cami tax invoice · open any closed period",
-        note: "Download PDF on a closed period opens Cami's own tax invoice, rendered through the DSG-72 document rather than a second renderer. Cami is the supplier here and the merchant the customer, so it carries Cami's TRN, the merchant's, and the VAT they can reclaim. The recipient block comes from Billing details — get the legal name wrong there and this document is wrong.",
+        note: "Download PDF on a closed period to see Cami's tax invoice with both TRNs and the VAT the merchant can reclaim.",
       },
       {
         path: "/shell-demo?settings=billing&bp=fees&d1=invoice",
         label: "Invoices and fees · the other D1 outcome",
-        note: "D1 is open. Here Cami invoices for card machine fees rather than NeoPay deducting them, so the tax invoice is payable and the explanatory card changes. Same derivation, one card's difference — take both to the D1 call.",
+        note: "The other D1 outcome: Cami invoices card machine fees instead of NeoPay deducting them, so the tax invoice is payable.",
       },
       {
         path: "/shell-demo?settings=billing&bp=bank",
         label: "Bank account (DSG-75) · verified",
-        note: "Settings → Billing → Bank account. Masked to last 4, a verification state, and the fact the reference product leaves out entirely: two senders pay into this one account on two schedules, and only Cami's is Cami's to change. Change history is permanent and keeps failed attempts.",
+        note: "Bank account in Billing: masked to last 4, verification state, two senders on two schedules, permanent change history.",
       },
       {
         path: "/shell-demo?settings=billing&bp=bank&bd=gateway-failed",
         label: "Bank account · gateway write failed",
-        note: "The state the whole screen exists for (SET-B3, QA SET-X1). Hit Change, fill anything in, confirm — the flow reports that NeoPay refused, that NOTHING was changed, and names the account still in force. A half-applied change would send half the merchant's money to a closed account and fail days later where support cannot see it.",
+        note: "Change the bank account and confirm to see NeoPay refuse, nothing change, and the current account named.",
       },
       {
         path: "/shell-demo?settings=billing&bp=bank&bd=unverified",
         label: "Bank account · unverified, payouts paused",
-        note: "SET-B4. Payouts pause and — the part every merchant assumes wrongly — they do NOT fall back to the previous account. The copy says so outright.",
+        note: "Unverified bank account pauses payouts, and the copy says outright they do not fall back to the previous account.",
       },
       {
         path: "/shell-demo?settings=billing&bp=bank&bd=read-only",
         label: "Bank account · no permission to change",
-        note: "SET-B9. Gated by its own permission, separate from rails and rates: reading the rate card does not entitle you to move the money. No disabled Change button — the account is simply read-only, with a line saying who to ask.",
+        note: "Bank account as read-only for someone without permission, with no disabled Change button and a line saying who to ask.",
       },
       {
         path: "/shell-demo?settings=billing&bp=bank&bd=online-only",
@@ -1136,22 +1136,22 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=billing&bp=bank&bd=terminal-only",
         label: "Bank account · terminal-only merchant",
-        note: "SET-X7. One custodian, so there is one schedule and it is NeoPay's — read-only in the strong sense, no greyed control implying a permission that could be granted.",
+        note: "Terminal-only merchant's bank account: one read-only NeoPay schedule, with no greyed control.",
       },
       {
         path: "/shell-demo?settings=billing&bp=details",
         label: "Billing details (DSG-74) · complete",
-        note: "The legal identity every document Cami stamps is stamped with — today those values are a hardcoded constant in lib/invoice/from-sale.ts. Edit opens the standard takeover, which states the thing merchants get wrong: changes apply forward only, and an invoice already sent keeps what it was issued with.",
+        note: "Billing details that stamp every document. Edit says changes apply forward and sent invoices keep their values.",
       },
       {
         path: "/shell-demo?settings=billing&bp=details&bl=no-trn",
         label: "Billing details · no TRN",
-        note: "The state with a real consequence: without a TRN what the client receives is an ordinary invoice with no tax wording anywhere. Worded as a fact rather than an error — plenty of businesses are simply not VAT-registered.",
+        note: "Billing details with no TRN, stating as a fact that clients get an ordinary invoice with no tax wording.",
       },
       {
         path: "/shell-demo?settings=billing&bp=details&bl=empty",
         label: "Billing details · nothing filled in yet",
-        note: "T1-1. Every field still renders; missing ones collapse into an Add pill rather than a blank row, so nothing is silently absent.",
+        note: "Empty billing details where every field still renders and missing ones collapse into an Add pill.",
       },
     ],
   },
@@ -1159,22 +1159,22 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "CamiPay fee visibility, Partner side (PRO-737)",
     description:
-      "The other half of the rate card: what the Partner sees. A fee breakdown on every CamiPay sale, and a read-only view of their own rates. Cami's fee only, never the gateway's processing cost, and the rate is the one snapshotted at capture rather than whatever the card says today.",
+      "The Partner's side of CamiPay fees: a fee breakdown on every sale and a read-only view of their own rates.",
     screens: [
       {
         path: "/sales/sales-list",
         label: "Sale detail, fee breakdown",
-        note: "Open sale 16 (Terminal, 1.8%, no fixed) and sale 15 (Online, 3% + AED 0.75, part-paid so the fee follows what was captured, not the total). Sale amount → Cami fee → Net to you, with the calculation under the fee.",
+        note: "Open sale 16 (Terminal) and sale 15 (Online, part-paid) for Sale amount, Cami fee and Net to you with the calculation.",
       },
       {
         path: "/sales/gift-cards-sold?card=gc-5",
         label: "Sale detail, above the bracket",
-        note: "View sale on this AED 10,500 gift card. Same 3% + AED 0.75 rate as sale 15, but above the AED 100 ceiling, so the fixed part drops and the fee is the percentage alone.",
+        note: "AED 10,500 gift card sale above the AED 100 ceiling, so the fee is the 3% alone with no fixed part.",
       },
       {
         path: "/sales/sales-list?settings=payments&pp=camipay",
         label: "Partner settings, CamiPay rates",
-        note: "Settings → Payments → CamiPay rates. Read-only with no disabled controls, no gateway named, no processing fee. Reads the same store HQ writes to, so change a rate in HQ and it appears here.",
+        note: "Read-only CamiPay rates in Partner settings, reading the same store HQ writes to.",
       },
     ],
   },
@@ -1182,68 +1182,68 @@ const SECTIONS: Section[] = [
     lane: "business",
     title: "Multi-location · Phase 1 — Daily branch operations",
     description:
-      "Delivered in five phases and thirteen epics (the ML-PH projects in Linear). Each phase is its own group and link; the FE ticket behind each epic is in docs/specs/multi-location-phases.md. Phase 1 runs branches while every existing merchant workflow keeps working.",
+      "Phase 1 of multi-location: running daily branch operations while every existing merchant workflow keeps working.",
     alias: "multi-location-prd-43-pro-71",
     screens: [
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/playground#multi-location-branch-switcher",
         label: "Branch switcher · SCR-04 (playground)",
-        note: "Five scopes side by side: all branches, one, a subset, a single-branch business (renders nothing — DW1.2) and a staff member granted none (locked, because empty is never 'all' — R24). Also live in the topbar on every route. Hover a location for Only, which leaves just that one in view.",
+        note: "Branch switcher in five scopes: all, one, a subset, single-branch (renders nothing) and none granted (locked).",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/shell-demo?settings=locations",
         label: "Locations, the estate (settings)",
-        note: "SCR-01 and SCR-12 — where a branch is created and configured. Three seeded: JVC and Jumeirah live, Al Quoz suspended. Open a branch for basic info, address, invoicing and its own Hours; Manage holds suspend / reactivate / archive. Every tab saves and survives a reload.",
+        note: "Three branches, JVC and Jumeirah live and Al Quoz suspended, each with info, address, invoicing, Hours and Manage.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/shell-demo?settings=locations",
         label: "Signed in as, and what it hides",
-        note: "Bottom of the Locations panel, in the dashed design-repo strip: sign in as somebody else, which no product screen offers. Pick Aziz, who holds Jumeirah only: the estate narrows from nine locations to his one, the location switcher goes (one location has nothing to switch), and Add locations, the Manage tab and the Invoicing cards' Edit are absent — a role decides what is on the screen, as in the built product. Pick ahmed@getcami.io, invited and granted nothing: no locations, said out loud rather than shown as an empty list (R24). Pick Maz Khan and it all comes back. Switching the person switches what they hold as well as what they may press, which is SU2.3 shown rather than argued.",
+        note: "Sign in as Aziz, ahmed@getcami.io or Maz Khan in the Locations panel strip to see how access changes the screen.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/playground#multi-location-per-branch-hours",
         label: "Per-branch hours · SCR-01 (playground)",
-        note: "R01 + R19, three seeded weeks side by side. JVC closes Sunday, Jumeirah trades seven days, Al Quoz shuts 1pm–4pm — the split day is why a day holds shifts rather than one open/close. Edit the hours in settings and the branch page follows.",
+        note: "Three branches' weekly hours side by side, including Al Quoz's split day, following any edit in settings.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/shell-demo?settings=business-details",
         label: "Business time zone · SCR-01, R19",
-        note: "R19's first half — the default every branch without a zone of its own follows. Business details → Edit → Time zone. Change it and the inheriting branches' Hours tabs follow; Riyadh keeps its own, and the field counts how many will not move. A branch added on the business's zone is stored as inheriting, not as a copy of today's value.",
+        note: "Edit the business time zone in Business details and watch inheriting branches follow while Riyadh keeps its own.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/settings/team?access=aziz-rahman",
         label: "Branch access grants · SCR-03",
-        note: "Role × location, the two axes access resolves on (R04). `?access=<id>` opens the grants dialog on that member — this one lands on Aziz. The roster shows both columns too, so a wrong scope is visible without opening anyone. Role is read-only, role read-only, location grant editable. Maz is Owner (stored as 'all'), Aziz holds only Jumeirah, Ahmed is invited with none — no access, said out loud (R24).",
+        note: "Grants dialog opened on Aziz: role is read-only, location grants are editable, and the roster shows both columns.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/playground#multi-location-branch-access-grants",
         label: "Branch access grants · SCR-03 (playground)",
-        note: "The same dialog against three roster rows, isolated. Four of the five location permission codes are marked Proposed — the product ships one venues:read that bundles viewing a branch with changing it (blueprint §03).",
+        note: "Branch access dialog against three roster rows, with four of five location permission codes marked Proposed.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/playground#multi-location-who-may-change-what-about-a-branch",
         label: "Who may change what (playground)",
-        note: "Roles across, actions down. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number; a manager changes service settings and only where they hold a branch; reception and a groomer cannot at all. This table is the rule reference. On the real screens a refused action is absent, the way the built product gates by permission — see 'Signed in as' below.",
+        note: "Roles across, actions down: the rule table for who may change what about a branch.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/playground#multi-location-loading-and-error",
         label: "Loading and error · PRD-169 Done-means (playground)",
-        note: "Locations, Deals, WhatsApp numbers, Stock and Team access in the two states a route never reaches on local data — one toggle drives all five, Try again puts them back. Error never shows a partial list (G7): stock drops its total. Team access will not Confirm and never says 'No location granted' before the grant has loaded (R24).",
+        note: "Loading and error states for five multi-location lists from one toggle, with Try again to restore them.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/clients",
         label: "No location access, full page · P1.4.6",
-        note: "Sign in as ahmed@getcami.io from the dashed strip under Settings › Locations: every operational page shows the no-access state instead of its content. Sign back in as Maz Khan from the same strip.",
+        note: "Sign in as ahmed@getcami.io from the Settings › Locations strip to see the no-access state on every operational page.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
@@ -1261,109 +1261,109 @@ const SECTIONS: Section[] = [
         epic: "Epic 2 · Create branches and control access",
         path: "/settings/team",
         label: "A team member needs a location · P1.4.7",
-        note: "Add member opens with a location already ticked. Untick it and Add: 'Pick at least one location.' with a toast. The access dialog (?access=ahmed-invite) holds the same rule. Owners are exempt.",
+        note: "Untick the location in Add member to get 'Pick at least one location.' and a toast, the same rule as the access dialog.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/shell-demo?settings=locations&loc=shampooch-jvc&lt=invoicing",
         label: "Branch tax identity · SCR-12",
-        note: "Opens JVC's Invoicing tab directly — `?loc=<id>&lt=<tab>` on the Locations panel. Every inheritable row says whose value it is (R23). JVC overrides only its receipt prefix; Jumeirah is a separate registered company with its own TRN. Receipt numbers print with the prefix, which is what stops two branches colliding at 21857 (R25), and the forward-only warning is load-bearing (INV-12). Tipping is whole-block — Al Quoz is the seeded custom case.",
+        note: "JVC's Invoicing tab: each inheritable row names its source, JVC overrides its receipt prefix, Jumeirah has its own TRN.",
       },
       {
         epic: "Epic 2 · Create branches and control access",
         path: "/playground#multi-location-branch-lifecycle",
         label: "Branch state badge · SCR-01 (playground)",
-        note: "The four lifecycle states in one row (R01, R12). Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find.",
+        note: "The four branch lifecycle states in one row. Live shows no badge on purpose.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/appointments",
         label: "Booking names a branch · G1 (route)",
-        note: "New appointment → Location sits first, because the write resolves to it and the service list is read against it. Nothing renders for a single-branch business (DW1.2).",
+        note: "New appointment puts Location first, and shows nothing for a single-branch business.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/playground#multi-location-a-write-names-one-branch",
         label: "A write names one branch · G1, R11 (playground)",
-        note: "Every operational write lands on exactly one branch, with no default. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A paused branch is absent rather than offered and refused (R12). Live on the appointment sheet, where the service picker reads against the branch (DW3.3).",
+        note: "How a write states its branch for one, several or no branches in scope, with paused branches left out.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/appointments",
         label: "Somebody working at another branch · SCR-10 (route)",
-        note: "Topbar on Shampooch JVC → New appointment → hover a service → Edit → Team member. Only JVC's people are offered (DW2.3); set the start between 2pm and 6pm and Lena Petrov moves to “Busy at another location” with where and until when. Picked anyway, the panel refuses and Update stays off (DW2.4 blocks, never warns). The client's flow drops the same slot and names nothing (BG-06).",
+        note: "With Shampooch JVC selected, set a start between 2pm and 6pm and Lena Petrov shows as busy at another location and is blocked.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/playground#multi-location-somebody-working-at-another-location",
         label: "Somebody working at another location · SCR-10 (playground)",
-        note: "The Edit service panel at JVC in three frames: Lena busy at Jumeirah 3–8pm (refused, with where and until when), Marco who does not work at JVC (a different sentence), and Lena inside her JVC shift (nothing to say).",
+        note: "Edit service at JVC in three frames: Lena busy at Jumeirah, Marco not working at JVC, and Lena inside her JVC shift.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/team/scheduled-shifts",
         label: "Scheduled shifts · SCR-10 (route)",
-        note: "What Team › Scheduled Shifts now points at. One grid per branch picked from a local strip, not one merged week that would silently drop a branch. Writable, and the writes carry the rules: a shift belongs to its branch, time off follows the person across all of them, a suspended branch keeps its week and refuses every write (R12). Bounded by grants, hidden for a single-branch business. Nine branches on /playground.",
+        note: "One shift grid per branch picked from a strip. A suspended branch keeps its week but refuses every write.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/playground#multi-location-scheduled-shifts",
         label: "Scheduled shifts · SCR-10 (playground)",
-        note: "The grid at seeded scale (R05, DW2.3, DW2.4). Lena is JVC mornings and Jumeirah evenings — two branches in one day, no conflict. Tala is rostered at both over the same hours, the one clash DW2.4 names, flagged as a pair. Leave shows at both branches, block time only at its own.",
+        note: "Shift grid where Lena works two branches in a day and Tala's same-hours clash at both is flagged as a pair.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/playground#multi-location-per-branch-availability",
         label: "Per-branch availability · SCR-08 (playground)",
-        note: "R15 — day chips and slots derive from the branch's own hours, so a closed day reads Closed rather than Fully booked and Al Quoz's 1–4pm gap is absent rather than filtered. Staff filter by the branches they work at. Friday differs at all three.",
+        note: "Day chips and slots built from each branch's own hours, so closed days read Closed and staff filter by branch.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/shampooch",
         label: "Public branch picker · SCR-08",
-        note: "A chain's public page asks where before showing anything branch-shaped (R15, GB3.1). Compare /shampooch-jvc and /shampooch-jumeirah, whose menu is its own — bath at AED 75, no daycare. /shampooch-al-quoz 404s because it is suspended. /purr-palace is the single-site case and renders no picker.",
+        note: "Chain public page that asks for a branch first, compare /shampooch-jvc, /shampooch-jumeirah and single-site /purr-palace.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/playground#multi-location-public-branch-picker",
         label: "Public branch picker · SCR-08 (playground)",
-        note: "The picker in isolation, 'Open now' pinned to a Tuesday 11am. Entry order was left to design (PRD §16): location first, because price and availability are per branch and a service-first list would show a price that is wrong until a branch is chosen.",
+        note: "Public branch picker in isolation, location first, with 'Open now' pinned to a Tuesday 11am.",
       },
       {
         epic: "Epic 3 · Schedule staff and book the right branch",
         path: "/settings/team?services=beth-carter",
         label: "Services per branch · DW2.1 (route)",
-        note: "`?services=<id>` opens that member's editor on Services — Beth, who works two sites. One list stays the default, because ticking nine identical lists is the setup cost R02 rules out; turn off 'Same services at every location' and the branches they hold appear with their own counts, seeded from the shared list. Absent for somebody holding one branch.",
+        note: "Beth's Services editor: turn off 'Same services at every location' to see per-branch lists and counts.",
       },
       {
         epic: "Epic 4 · Complete branch checkout",
         path: "/sales/new-sale",
         label: "Packages at the till · SCR-13 (route)",
-        note: "Pick Aaishah Vaza and add Blow dry: the session applies on its own, the line reads 0 with its real price struck, and the chip counts what is left. The count is the client's WHOLE balance, not the one package that paid — Abbie Connelly holds two, one unlimited, so hers reads Unlimited. Abbey McDermaid has one session: add two blow dries and the second pays in full. The service picker carries the same chip before you add anything, built from what is still free to spend rather than what the cart started with. Abrar Mohammed is the quiet case made loud — two sessions left on a package that expired in January. Pick him and add Blow dry: the line charges in full, and a notice says why, because 'you have none left' is the wrong sentence for somebody holding two. It fires against the CART, not the client — add a product instead and nothing appears, since a notice nobody needed is one an operator learns to dismiss unread. The branch warning is ours (KC1.5): on the line, both figures, never blocks — and all three of its cases are reachable here, by moving the Location card after picking the client. Abbey McDermaid + Blow Dry & Style at Shampooch Jumeirah is the price case (sold 120 at JVC, 145 here). The same pair at Shampooch Dubai Marina is the duration case — same money, 60 min against the 45 it was sold as. Abbie Connelly + Deep Tissue Massage at Shampooch Mirdif is 'not offered here', which there is no massage room for.",
+        note: "Pick a client and add Blow dry to see package sessions apply, expired-package notices and branch price warnings.",
       },
       {
         epic: "Epic 4 · Complete branch checkout",
         path: "/playground#multi-location-packages-at-the-till",
         label: "Packages at the till · SCR-13 (playground)",
-        note: "Rebuilt 22 Sep against the as-built: the product applies a client's packages itself, so there is no Apply button. Sessions are spent across the cart one per line, a covered line reads 0 with its real price struck beneath, and the chip counts down. Six rows — same branch, priced differently, not offered here, one session two lines want, two packages with one unlimited, and an expired one that is out of time rather than out of sessions.",
+        note: "Packages applied automatically at the till across six cases, with covered lines at 0 and the session chip counting down.",
       },
       {
         epic: "Epic 4 · Complete branch checkout",
         path: "/sales/new-sale?terminals=moved",
         label: "A charge that would land at the wrong branch",
-        note: "The picker only ever offers this branch's machines, so the refusal behind it could not be reached by clicking — correct, tested, and invisible. `?terminals=moved` pins the case §15 names: a machine linked to Jumeirah after this sale was drafted. Add a service, leave Location alone and tap Front Desk Register: refused, because a card payment books at the MACHINE's branch and the sale belongs nowhere. Set Location to JVC and it is refused differently — both branches named, and a way out. Set it to Jumeirah and it goes through. On the screen rather than in a toast: nothing moves until the operator answers it.",
+        note: "Add a service and tap Front Desk Register to see a charge refused when the machine is linked to another branch.",
       },
       {
         epic: "Epic 4 · Complete branch checkout",
         path: "/playground#multi-location-per-branch-stock",
         label: "Per-branch stock · SCR-11 (playground)",
-        note: "R16 — quantity and reorder points per branch, the business total derived and never stored (DW4.2). Rows first, sum after: 18 and -2 add up to a healthy-looking 16. Empty and negative stay apart. Also in the Products Quantity column, healthy branches folded and the rest capped at five worst-first.",
+        note: "Per-branch quantity and reorder points with a derived total, where 18 and -2 sum to a healthy-looking 16.",
       },
       {
         epic: "Epic 4 · Complete branch checkout",
         path: "/sales/sales-list?sale=18",
         label: "Sale detail, where each payment was taken · P1.8.2",
-        note: "The sale's location sits in the header. A payment taken at another location names it — the AED 20 card deposit at Jumeirah. Someone who does not hold that location gets no Refund on it and no Void.",
+        note: "Sale 18 names its location in the header and the AED 20 card deposit taken at Jumeirah.",
       },
       {
         epic: "Epic 4 · Complete branch checkout",
@@ -1387,25 +1387,25 @@ const SECTIONS: Section[] = [
         epic: "Epic 4 · Complete branch checkout",
         path: "/shell-demo?settings=payments&pp=terminal&tp=full",
         label: "Card machines by location · P1.8.3.1",
-        note: "A machine with no location reads 'No location' and offers Set location; a placed machine's ⋯ offers Change location. A chain's checkout never offers a machine with no location; a single-location business's still does.",
+        note: "Card machines by location, with Set location for unplaced machines and Change location for placed ones.",
       },
       {
         epic: "Epic 5 · Preserve existing workflows for the pilot",
         path: "/playground#multi-location-branch-whatsapp-numbers",
         label: "Branch WhatsApp numbers · SCR-14 (playground)",
-        note: "R21, R22, KC2.2, KC2.4 — connected, stuck on the OTP, and no number at all, which says so in words because nothing reroutes to a sister branch. Contrast SMS, where an unapproved sender ID falls back to CAMI. Also at /shell-demo?settings=whatsapp-numbers.",
+        note: "Branch WhatsApp numbers connected, stuck on the OTP, or missing, with no rerouting to a sister branch.",
       },
       {
         epic: "Epic 5 · Preserve existing workflows for the pilot",
         path: "/shell-demo?settings=comms-templates&ct=whatsapp",
         label: "Which number a reminder leaves from · KC3.1",
-        note: "The template is the business's, one wording edited once; the number is the branch's, and a reply goes wherever the send came from. The screen now says so, and names the branches whose clients get no WhatsApp reminder until a number is connected — never rerouted through a sister branch (KC2.2).",
+        note: "WhatsApp templates name which branch number a reminder leaves from and which branches get none until one is connected.",
       },
       {
         epic: "Epic 6 · Migrate and activate the pilot",
         path: "/admin/businesses?business=shampooch&section=locations",
         label: "CamiHQ chain view and multi-location switch · SCR-16",
-        note: "Shampooch → Locations. The multi-location switch sits at the top, off by default, and turns on only once the data check passes; a failed check lists every finding — the dashed strip shows it failing. It shows for every partner, single-location ones too (Velvet Paw). Below it, a chain's estate and money.",
+        note: "Shampooch Locations: the multi-location switch, off until the data check passes and listing failures, then estate and money.",
       },
     ],
   },
@@ -1419,49 +1419,49 @@ const SECTIONS: Section[] = [
         epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/catalogs/service-menu?service=bath-small&ss=locations",
         label: "Per-branch service pricing · SCR-09",
-        note: "`?service=<id>&ss=locations` opens a service's editor on its Locations section — this one is the small bath, which Jumeirah prices at 145 against the business's 120. One definition configured per branch (R06): a switch to offer it here at all (DW3.3), plus price and duration showing the inherited value and whose it is. Typing creates the override, Reset returns that field to inheriting (DW3.2). Saves with the service.",
+        note: "Small bath's Locations section: Jumeirah prices it at 145 against 120. Type to override, Reset to inherit.",
       },
       {
         epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/playground#multi-location-per-branch-service-pricing",
         label: "Per-branch service pricing · SCR-09 (playground)",
-        note: "The same section with the business default under your thumb — raise it and the inheriting branches follow while the overridden price does not (DW3.1). Seeded as the story's example: Jumeirah at AED 75, Al Quoz not offering it. lib/service-catalog/offerings.test.ts.",
+        note: "Raise the business default price and see inheriting branches follow while Jumeirah's AED 75 override holds.",
       },
       {
         epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/catalogs/service-menu",
         label: "A category a branch has emptied",
-        note: "One category list for the business; a branch sees only what it has switched on inside it. Switch the header's location to Shampooch Mirdif: 'Bath & coat' loses Medicated bath, and 'Spa add-ons' empties entirely — the heading stays with 'Not offered at Shampooch Mirdif', because reception is the person who can say 'not here, but Jumeirah does it'. Sidebar counts follow the branch. The client's own page hides the category instead (/shampooch-mirdif), there being nothing a client can do with it. lib/service-catalog/categories-at-branch.test.ts.",
+        note: "Switch the location to Shampooch Mirdif to see 'Spa add-ons' emptied but kept with a 'Not offered' note.",
       },
       {
         epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/playground#multi-location-a-category-a-branch-has-emptied",
         label: "A category a branch has emptied (playground)",
-        note: "Answered by Maaz on 20 Sep, and it is what is built: “internally the staff can still view the category with no services (shown empty). For online bookings, the Category is hidden.” A category can hold nothing at a branch — three spa services, no spa room here — and the proposal is that the answer depends on who is reading: hidden for the client, who can do nothing with it and reads a heading over nothing as a dead end; shown for reception, who is the person able to say 'not here, but Jumeirah does it'. Same split `locationsOffering` already makes for one service, and the same reading as KC1.5. Add-ons is the control in both frames. Live at /catalogs/service-menu with the branch set to Mirdif, and on /shampooch-mirdif.",
+        note: "A category with no services at a branch: hidden from online booking, shown empty to staff.",
       },
       {
         epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/shell-demo?settings=payments&pp=policy",
         label: "Deposit per branch · DW3.5",
-        note: "The deposit policy was the business's only — a branch with a no-show problem, or one doing week-long boarding stays, can now take its own. Same inherit/override rule as the catalogue: raise the default and every inheriting branch moves. Al Quoz is the seeded exception, and the card names which branches differ.",
+        note: "Per-branch deposit policy that inherits the default unless overridden, with Al Quoz as the seeded exception.",
       },
       {
         epic: "Epic 7 · Customize branch services and fiscal settings",
         path: "/playground#multi-location-package-mismatch-at-checkout",
         label: "Package mismatch · SCR-13 (playground)",
-        note: "KC1.5, corrected 2026-09-03: warn, never block. Four cases — same terms (nothing renders), priced differently, different duration, not offered here. Both figures shown so reception can decide in front of the client, and the choice recorded on the sale. The warning itself; the cart it sits in is under 'Packages at the till'.",
+        note: "Package mismatch warning in four cases. It warns and never blocks, showing both figures for reception.",
       },
       {
         epic: "Epic 8 · Branch lifecycle and booking refinements",
         path: "/playground#multi-location-the-duplicate-caught-before-booking",
         label: "Duplicate caught before booking · CL-A1 / RC-B1 (playground)",
-        note: "The story's Done-when. SCR-07 answers it only if reception opens the client record, so the estate-wide visit now arrives unprompted under the client picker. Unbounded by the grant on purpose — the duplicate worth catching is at a branch you cannot see (R13). States, never blocks. Also at /appointments → New appointment → Millie Cassidy.",
+        note: "An estate-wide visit appears under the client picker to catch a duplicate before booking, without blocking.",
       },
       {
         epic: "Epic 8 · Branch lifecycle and booking refinements",
         path: "/playground#multi-location-client-visits-at-another-branch",
         label: "Client visits at another branch · SCR-07 (playground)",
-        note: "What a branch reads of a client's visits elsewhere (R13, R18), drawn wide — the grant gates what you can do, not what you can read. Open as the owner, then as JVC reception: the rows stay legible and only the buttons go. Al Quoz is paused, so it takes writes from nobody. Overview gains 'Visits by branch'.",
+        note: "A client's visits at other branches, open as owner then as JVC reception to see rows stay and only buttons go.",
       },
     ],
   },
@@ -1475,13 +1475,13 @@ const SECTIONS: Section[] = [
         epic: "Epic 9 · Coordinate calendars and move appointments",
         path: "/playground#multi-location-all-branches-calendar",
         label: "All-branches calendar · SCR-05 (playground)",
-        note: "R07's view half as a filter, not columns — a day grid is already staff × time, so a third axis turns 11 columns into 99. Click a branch to narrow, again for all; the counts are why it is a strip. With more than one branch in view a booking asks for one first (R11).",
+        note: "All-branches calendar as a branch filter strip with counts: click to narrow, click again for all.",
       },
       {
         epic: "Epic 9 · Coordinate calendars and move appointments",
         path: "/playground#multi-location-cross-branch-move",
         label: "Cross-branch move · SCR-06 (playground)",
-        note: "R07 + R17. Destinations bounded by grants. The allowed case keeps the deposit credited where it was taken while the work moves — both branches on the sale. Third frame: an unresolvable payment is rejected whole rather than losing the money's trail (GB1.3). lib/locations/cross-branch-move.test.ts.",
+        note: "Cross-branch move frames: destinations bounded by grants, deposit kept where taken, unresolvable payment rejected whole.",
       },
     ],
   },
@@ -1494,13 +1494,13 @@ const SECTIONS: Section[] = [
         epic: "Epic 11 · Understand and reconcile chain performance",
         path: "/sales/daily-summary",
         label: "End of day, per branch · RP-A1 (route)",
-        note: "The PRD's first user story: an EOD view per branch and a business total in one place. Every figure derives from the sales log, bounded by the grant before it sums (G7, R18), and a granted branch that took nothing is named rather than dropped. Lands on this scope's last trading day. Absent for a single-branch business.",
+        note: "End-of-day view per branch plus a business total. A branch that took nothing is named, not dropped.",
       },
       {
         epic: "Epic 11 · Understand and reconcile chain performance",
         path: "/playground#multi-location-money-by-branch",
         label: "Money by branch · SCR-15 (playground)",
-        note: "KH1.1's side-by-side, never merged — the question is which branch had a bad day. The total sits after the rows, labelled as their sum. Second frame is a manager granted only Jumeirah (KH1.3). Payouts are business-level in this market, with a footnote saying so. lib/money/by-location.test.ts.",
+        note: "Branch money side by side with the total after the rows, plus a frame for a Jumeirah-only manager.",
       },
     ],
   },
@@ -1513,13 +1513,13 @@ const SECTIONS: Section[] = [
         epic: "Epic 12 · Onboard larger chains",
         path: "/playground#multi-location-chain-setup",
         label: "Chain setup · SCR-02 (playground)",
-        note: "N branches in one pass (R02, SU1.2). All or none — one bad row creates nothing. Duplicate names collide on the link. A created branch is live — the built product creates a venue trading, and an owner who is not ready suspends it rather than there being a fourth state. Isolated from the app's own estate.",
+        note: "Create N branches in one all-or-none pass, where one bad row creates nothing and duplicate names collide.",
       },
       {
         epic: "Epic 12 · Onboard larger chains",
         path: "/playground#multi-location-nine-branches-d5",
         label: "Nine branches · D5 (playground)",
-        note: "The designs at the scale the PRD assumes, where most rows say nothing and the one that matters is below the fold. Collapsed is the default (D5); Show all is the nine cards it replaces. Under four quiet branches nothing collapses.",
+        note: "Nine branches, collapsed by default with Show all for the full cards, and nothing collapses under four quiet branches.",
       },
     ],
   },
@@ -1531,17 +1531,17 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=deals",
         label: "Deals, and where each one runs · DW3.4",
-        note: "Settings → Marketing → Deals, where the dev repo mounts its promotions module — same card list, Options menu, sort and Add deal. Each row adds where the deal runs: 'All locations' is a named set a branch opened mid-January joins; '3 locations' is today's three. 'Spring refresh' has none, reads Inactive and refuses Activate, because R24 holds that an empty scope never means all. Narrow the switcher to Mirdif and the Abu Dhabi deal goes (R18).",
+        note: "Deals list with where each runs: 'All locations', '3 locations', and 'Spring refresh' Inactive because it has no scope.",
       },
       {
         path: "/shell-demo?settings=deals&deal=abu-dhabi-launch",
         label: "One deal, in full · DW3.4",
-        note: "The built drill-down: breadcrumb, Overview / Details / Availability. On Availability the Locations row names the branches, and Edit opens the location picker — in the dev repo it can only print 'All locations' and says editing is coming soon. Try &deal=unscoped-draft for the deal that reaches nobody.",
+        note: "One deal's drill-down with Overview, Details and Availability. Edit on Locations opens the picker.",
       },
       {
         path: "/shell-demo?settings=deals",
         label: "Creating a deal · DW3.4",
-        note: "Add deal → the built full-viewport wizard, details → limits, with a Locations step after them. Select all by an owner stores the named set, not today's nine; a manager's Select all is their own branches. An empty list disables Create.",
+        note: "Add deal opens the wizard with a Locations step, and an empty location list disables Create.",
       },
     ],
   },
@@ -1549,12 +1549,12 @@ const SECTIONS: Section[] = [
     lane: "settings",
     title: "Pet Business, settings (PRO-95)",
     description:
-      "E2-2 Pet Business profile lives inside the AppShell settings dialog. Trigger via Settings in the sidebar, or jump straight to a category with `?settings=<id>`.",
+      "Pet Business profile settings inside the AppShell dialog, opened from the sidebar or with ?settings=<id>.",
     screens: [
       {
         path: "/shell-demo?settings=profile",
         label: "Settings dialog, My profile",
-        note: "DSG-63 — personal info for the signed-in user: one Contact card (Legal name, masked mobile and email) with a single Edit takeover. The name saves directly and updates the topbar live; a new mobile needs a 6-digit OTP (any six digits work); a new email waits for its confirmation link, which the faint bottom-right 'Demo: open confirmation link' control simulates. Pending changes show as a neutral badge on the row, open Verify / Resend (30s cooldown) / Cancel, and survive reload. Also reachable from the topbar avatar menu.",
+        note: "My profile with one Contact card: edit name, mobile with OTP or email with a confirmation link, and see pending badges.",
       },
       {
         path: "/shell-demo?settings=business-details",
@@ -1564,7 +1564,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=locations",
         label: "Locations, list",
-        note: "Options dropdown on each row (Change photo / Suspend / See public booking page). Click the card body to drill into the per-location detail (inner-page nav, not a modal) with five tabs: General (Basic info, Business type) / Hours / Location (Map, Business location) / Invoicing (Details with sameAsLocation toggle, Tax defaults, Receipt sequencing, Tipping) / Manage (Suspend, Delete). Each card opens its own full-screen edit takeover.",
+        note: "Locations list with a row Options menu and card drill-in to five tabs: General, Hours, Location, Invoicing, Manage.",
       },
       {
         path: "/shell-demo?settings=language",
@@ -1574,12 +1574,12 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=sales",
         label: "Sales, landing",
-        note: "Sales category. Gift cards card (Payment methods moved to the Payments section); click to drill into the sub-screen (Back + breadcrumb returns). Takeovers deep-linked below via ?sub / ?gc.",
+        note: "Sales settings landing with the Gift cards card. Click to drill in, Back or breadcrumb returns.",
       },
       {
         path: "/shell-demo?settings=sales&sub=gift-cards",
         label: "Gift cards, populated",
-        note: "Active program — Availability and values summary card with Edit. Options → Gift cards sold. A bottom-right demo toggle previews the empty state.",
+        note: "Active gift card program with its summary card and Edit, plus a demo toggle for the empty state.",
       },
       {
         path: "/shell-demo?settings=sales&sub=gift-cards&gc=empty",
@@ -1589,12 +1589,12 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=sales&sub=gift-cards&gc=setup",
         label: "Gift cards · settings takeover",
-        note: "Full-screen Gift card settings: enable toggle, preset AED values (add/delete), default expiration select. No delete — a program can only be edited or toggled off.",
+        note: "Full-screen Gift card settings with an enable toggle, preset AED values and default expiration, but no delete.",
       },
       {
         path: "/shell-demo?settings=forms",
         label: "Form templates library",
-        note: "Forms category. Business-level library of reusable form templates — the only documents the consent-form send picker offers. Profile uploads stay personal and no longer sync here. Follows the Sales settings pattern: rows in one bordered card that scrolls internally, neutral bordered icon boxes, an 'Action ▾' dropdown per row (Preview / Rename / Download / Delete), and a secondary 'Upload file' pill below. Empty state + PDF-only upload.",
+        note: "Form templates library: rows with an Action menu, an Upload file pill, empty state and PDF-only upload.",
       },
     ],
   },
@@ -1602,17 +1602,17 @@ const SECTIONS: Section[] = [
     lane: "settings",
     title: "Pet Business, team",
     description:
-      "Team-member roster lives at /settings/team. Add opens a full-screen takeover with a sidebar nav (Personal: Profile, Addresses, Emergency contacts; Workspace: Services, Locations, Settings). First name, last name, and email are required to add.",
+      "Team roster where Add opens a full-screen takeover: profile, addresses, emergency contacts, services, locations, settings.",
     screens: [
       {
         path: "/settings/team",
         label: "Team members, list",
-        note: "Active and Pending tabs, Action dropdown per row (Edit Roles & Permissions, Edit Services, Edit Schedule, Resend invitation for pending, Remove). Click Add to open the takeover.",
+        note: "Active and Pending tabs with a per-row Action dropdown. Click Add to open the takeover.",
       },
       {
         path: "/settings/team",
         label: "Add team member takeover",
-        note: "Click Add. Sidebar nav with 6 sections; Profile is the default and includes name, email, phone, country, birthday, calendar color (Cami palette), and job title. Settings has the permission role select: Manager, Receptionist, Stylist, Trainee / Staff and Marketing. Owner is not offered, since it is not a role you hand out.",
+        note: "Click Add for the team member takeover: six sections, Profile details and the permission role select.",
       },
     ],
   },
@@ -1620,32 +1620,32 @@ const SECTIONS: Section[] = [
     lane: "settings",
     title: "Pet Business, payment policy (DSG-51)",
     description:
-      "Deposit / no-show policy inside the Settings dialog (Payments). Business level only — Location scope pending Malen/Maaz. Persists to localStorage; the configured policy drives the Payment policy card in the appointment sheet. 'Capture card details' policy type is v1 out-of-scope; client-groups scope limiter is disabled pending the client-groups model. Deep-link takeovers with ?pp=edit|services|terms.",
+      "Business-level deposit and no-show policy in Settings › Payments, which drives the appointment sheet's Payment policy card.",
     screens: [
       {
         path: "/shell-demo?settings=payments",
         label: "Payments, landing",
-        note: "Payments category (own top-level section). Two cards: Payment policy and Payment methods (moved here from Sales); click to drill into each sub-screen (Back + breadcrumb returns).",
+        note: "Payments landing with Payment policy and Payment methods cards, click either to drill in.",
       },
       {
         path: "/shell-demo?settings=payments&pp=policy",
         label: "Payment policy, summary",
-        note: "Summary card (applies-to, deposit %, custom-service count, refund status) with green checks, auto-generated example policy, terms preview, and the prepay-in-full toggle.",
+        note: "Payment policy summary card with green checks, example policy, terms preview and the prepay-in-full toggle.",
       },
       {
         path: "/shell-demo?settings=payments&pp=methods",
         label: "Payment methods, list",
-        note: "Locked Cash row + custom methods. Header has Add and Options (Change order, hidden when only Cash); non-Cash rows have an Actions menu (Edit / Delete / Move up / Move down). Add/Edit/Order takeovers deep-link via &pm=add|edit|order.",
+        note: "Locked Cash row plus custom methods, with Add, Change order and a per-row Actions menu.",
       },
       {
         path: "/shell-demo?settings=payments&pp=edit",
         label: "Payment policy editor takeover",
-        note: "Full-screen Close/Save takeover: policy type (No policy / Require deposit), percent-or-AED deposit amount, Refundable until, reschedule window (30min–72h or 'cannot reschedule'), late-cancellation fee + auto-cancel checkboxes, and Advanced options (customize per service, client groups [coming soon], min appointment value).",
+        note: "Full-screen payment policy editor: deposit, refund and reschedule windows, cancellation fee and advanced options.",
       },
       {
         path: "/shell-demo?settings=payments&pp=services",
         label: "Customize by service takeover",
-        note: "Search + category pill tabs over the service catalog; per-row Default vs Custom deposit and no-show fee with inline percent/AED inputs; row + category checkboxes with a bulk 'Set custom deposit' bar. Save returns to the policy editor.",
+        note: "Per-service deposit and no-show fees with default or custom values, search, category tabs and a bulk set bar.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terms",
@@ -1658,37 +1658,37 @@ const SECTIONS: Section[] = [
     lane: "settings",
     title: "Pet Business, terminals (DSG-62)",
     description:
-      "Add card machines, issue their credentials, and manage sign-in sessions — Payments > Terminals. Replaces the merchant-level shared-PIN model (spec: docs/specs/DSG-62-terminal-registration.md, which supersedes DSG-62-terminal-management.md). Each terminal is added with a name and a required location, and comes back with two credentials doing different jobs: a pairing code typed into the hardware once and never changed, and a 6-digit sign-in PIN typed at every sign-in, readable from the row any time, regenerated on demand. Per-device rather than merchant-wide, so regenerating a PIN or a failed-attempt lockout hits that terminal alone. Nothing is capped — as many terminals as there is hardware for, as many concurrent sessions as staff open. Opens empty by default, which is where a real merchant starts. Deep-link states with &tp=typical|full|empty, and the dialogs with &td=add|credentials|sessions (which open on the first terminal in view).",
+      "Payments > Terminals: add card machines with a location, get a pairing code and sign-in PIN, and manage sessions per device.",
     screens: [
       {
         path: "/shell-demo?settings=payments&pp=terminal",
         label: "Terminals, empty (default)",
-        note: "No terminals yet, with the only Add terminal button in the empty state (the header one is suppressed while the list is empty). Walk the whole arc from here: add → get the code and PIN → 'Demo: pair a device' stands in for typing the code into the hardware → 'Demo: sign in on a terminal' stands in for staff entering the PIN → the row goes Not paired → No sessions → Active.",
+        note: "Empty terminals list: walk add, code and PIN, demo pair and demo sign-in as the row goes Not paired, No sessions, Active.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&td=add",
         label: "Terminals, add a terminal",
-        note: "Name and a required location — a card machine physically sits somewhere, and the location is what tells two identical tablets apart. The pairing code is generated on submit rather than shown on the form: it isn't something the merchant provides or reviews, it's half of the credential. Lands straight on the credentials dialog.",
+        note: "Add a terminal with a name and required location. Submit generates the pairing code and opens the credentials dialog.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=typical",
         label: "Terminals, typical (2 devices)",
-        note: "What a real merchant has. List rows rather than a data table: name at full weight, then code · location · last seen on one muted line, so status is the only thing competing with the name. The device tile carries the status tint. Row ⋯ gives Show code & PIN, Rename terminal, Change location (split apart because 'Edit' didn't say what it edits), N devices signed in, Regenerate PIN, and Remove terminal.",
+        note: "Two terminals as list rows with status tint on the device tile and a row menu of terminal actions.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=full",
         label: "Terminals, all statuses",
-        note: "Four rows covering the status precedence, first match wins: Locked · 12 min (failed PIN entries, scoped to that device — under the old shared-PIN model this blocked every terminal at every location), Not paired (code issued, device never connected), Active (live sessions), No sessions (paired, nobody signed in). The middle two are states the source mockup had no room for.",
+        note: "Four terminal rows showing status precedence: Locked, Not paired, Active and No sessions.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=typical&td=credentials",
         label: "Terminals, credentials dialog",
-        note: "Show code & PIN on any row. Both credentials on one screen because that is how a device gets set up, but labelled apart because their lifecycles differ: the pairing code is typed into the hardware once and never changes, the PIN is typed at every sign-in and can be regenerated. PIN masked with Show/Copy; Regenerate PIN is a link underneath rather than a fourth icon, since Show and Copy read the value while regenerate replaces it. Same dialog after adding ('Set up X'), from the row ('Code & PIN for X'), and after regenerating ('New PIN for X', pre-revealed, and it says the code hasn't changed).",
+        note: "Code & PIN dialog: pairing code and sign-in PIN labelled apart, PIN masked with Show/Copy and a Regenerate PIN link.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=typical&td=sessions",
         label: "Terminals, sessions dialog",
-        note: "'N devices signed in' on a row. A modal per terminal rather than a second listing — at typical volumes a sessions table was mostly dead rows. Each card shows device model, app build, IP, signed in and expires, with Revoke per session; live ones first. A session belongs to hardware, not a person: the PIN is shared by whoever works that counter, so there is no name to show and IP plus device model is how an unexpected sign-in gets recognised. Footer names the blunt instrument — regenerating the PIN revokes everything at once, for a lost device.",
+        note: "Per-terminal sessions dialog: device model, app build, IP, sign-in and expiry with Revoke, live sessions first.",
       },
     ],
   },
@@ -1696,67 +1696,67 @@ const SECTIONS: Section[] = [
     lane: "settings",
     title: "Pet Business, notifications and templates",
     description:
-      "Two panels, one story: Notifications decides whether a message sends, Communication templates (DSG-83, the last four links) decides what it says. Sender ID, reminder channels and per-message usage — Business Settings > Notifications, spec in docs/specs/notifications-sender-id-and-rates.md. The Sender ID is one state machine, not three timelines: not-submitted → submitted → approved | rejected, with CAMI as the fallback in three of the four states. Merchant intent and the Cami HQ channel grant stay separate fields, so an ungranted channel locks its column rather than hiding it. Walk the states with the two faint demo controls bottom-right — both stand in for decisions taken in Cami HQ.",
+      "Notifications decide if a message sends, templates decide what it says. Walk Sender ID states with the bottom-right controls.",
     screens: [
       {
         path: "/shell-demo?settings=notifications",
         label: "Notifications, settings",
-        note: "Three cards. Sender ID carries the registered value, with the 'Customers currently see CAMI' line only when the two differ and Edit disabled while a registration is pending. Reminders is 6 events × 3 channels with the per-message rate under each channel and event labels linking into their template editor; below sm it stacks into per-event blocks rather than scrolling sideways. Usage this month leads with a share-of-cost meter and a month-end estimate. Three faint demo controls bottom-right walk the Sender ID states and the WhatsApp grant.",
+        note: "Three cards: Sender ID, a 6-event by 3-channel Reminders matrix and Usage this month, with demo state controls.",
       },
       {
         path: "/shell-demo?settings=notifications&nt=sender",
         label: "Notifications, Sender ID dialog",
-        note: "A compact dialog, not a FullScreenTakeover — same call as the terminal rename dialog. Validates on submit rather than per keystroke: 3–11 alphanumeric, and CAMI itself is reserved because it is already the fallback. Saving lands on 'submitted', never 'approved' — registration is an HQ decision. 'Use CAMI instead' is the route back for a merchant who registered the wrong name.",
+        note: "Compact Sender ID dialog that validates on submit, reserves CAMI, and saves to 'submitted', never 'approved'.",
       },
       {
         path: "/shell-demo?settings=notifications&nr=hidden",
         label: "Notifications, prices withheld",
-        note: "The same panel with MERCHANT_SEES_RATES off — an open commercial question made reviewable instead of described. Counts and failures stay; the per-message rate, per-channel cost and per-send cost go, since 412 sends for AED 8.24 is the rate one division away. The period total stays, because it is what they owe and the invoice reveals it anyway. Default is rates-visible; one constant in lib/notifications/types.ts flips it.",
+        note: "Notifications with rates hidden: counts, failures and the period total stay, per-message and per-channel costs go.",
       },
       {
         path: "/shell-demo?settings=notifications&nt=log",
         label: "Notifications, log",
-        note: "The business-wide answer to 'did today's reminders actually go out?', which the per-appointment timeline cannot give. Grouped by day with a per-day count; channel and status filters over every send (recipient, time, body, cost); failure reasons inline, with two in the demo data — a landline that cannot take SMS and a hard-bounced mailbox.",
+        note: "Business-wide send log grouped by day, with channel and status filters and two failure reasons inline.",
       },
       {
         path: "/sales/appointments-list?ref=b-002&view=activity",
         label: "Notification events in appointment activity",
-        note: "Opens the detail sheet on Tom Cassidy / Luna straight onto the activity panel (&view=activity, or the ⋮ in the sheet footer). Sends are events in the existing timeline — channel icon on the dot, status pill, recipient in the meta line — and a failed send is the only event that tints. Swap the ?ref= for b-003 (queued 2h reminder), b-004 (failed SMS) or b-005 (hard bounce), keeping &view=activity.",
+        note: "Tom Cassidy / Luna's activity panel with sends as timeline events. Swap ref to b-003, b-004 or b-005 for other statuses.",
       },
       {
         path: "/shell-demo?settings=comms-templates",
         label: "Communication templates, list",
-        note: "DSG-83 — the Notifications panel decides whether an event sends, this one decides its wording, so there is deliberately no send toggle here. Per-channel tabs over one card of 6 rows, keyed on the same event list the Reminders matrix uses. The preview carries the venue's own mark: a brand row above the subject and a signed-off footer on email, the business profile above the bubble on WhatsApp. Four of the six carry a {{cardLink}} line, line-scoped like the review link — rename the demo business to a name no venue has and the line leaves the message rather than arriving with nothing after it. SMS is out of the ticket's scope. See docs/specs/DSG-83-communication-templates.md.",
+        note: "Per-channel template list for six events, with previews carrying the venue's own brand.",
       },
       {
         path: "/shell-demo?settings=branding",
         label: "Branding",
-        note: "Where a merchant picks the palette their clients see, instead of it being assigned by hand in code. Filed under Workspace beside Business details rather than Messaging, because the palette themes the customer card as well as the messages. Five themes, a live card as the preview, and nothing else — type is Cami's for every venue and imagery is out, so the panel is small on purpose. The palette belongs to the business, not the branch: set it once and all nine Shampooch branches carry it.",
+        note: "Branding panel where a merchant picks one of five palettes with a live card preview, set once for every branch.",
       },
       {
         path: "/shell-demo?settings=comms-templates&ce=booking-confirmed:email",
         label: "Communication templates, email editor",
-        note: "Opens straight into one editor (&ce=<event>:<channel>). Form left, sticky live preview right, stacking below lg. Subject and body are plain text with clickable {{placeholder}} chips, and a chip already used in the body tints. Type a nonsense token like {{discount}} — it sends as written rather than being blanked. Save is disabled until something changes; 'Reset to default' appears only once a template is customised.",
+        note: "Email template editor with live preview and {{placeholder}} chips, try {{discount}} to see an unknown token sent as written.",
       },
       {
         path: "/shell-demo?settings=comms-templates&ce=reminder-24h:whatsapp",
         label: "Communication templates, WhatsApp editor",
-        note: "The same editor with no subject field — modelled as null rather than an empty string, so 'this channel has no subject' and 'the merchant cleared it' stay distinguishable. The preview is the customer's view: a light incoming bubble, because WhatsApp only paints green on the outgoing side. Carries the Meta-approval notice, since edited WhatsApp copy starts a new template approval and takes days to go live. Default copy is lifted verbatim from the existing template set (ENG-58).",
+        note: "WhatsApp template editor with no subject field, a light incoming-bubble preview and the Meta-approval notice.",
       },
       {
         path: "/shell-demo?settings=business-details",
         label: "Google review link, the setting",
-        note: "PRD-168. Fifth row under External links, and the one of the five the product actually reads — whether it is set decides whether a line of the Thank You message exists. Paste into the field to walk all four states: g.page/r/CShampoochJVC/review is clean; a maps/place URL warns and still saves, because a listing link beats an empty field; g.page/shampooch-jvc is the near-miss, right host and no /review; facebook.com/shampooch is refused. PILOT-30 is why the near-miss warns — the merchant's previous tool lost ~50 reviews that way. See docs/specs/PRD-168-google-business-profile.md.",
+        note: "Google review link field: paste the four example URLs to see the clean, warning, near-miss and refused states.",
       },
       {
         path: "/shell-demo?settings=comms-templates&ce=thank-you:email",
         label: "Thank You template — the missing-link state",
-        note: "The merged completed-appointment message (invoice + review + rebook), which production sends as one email and this repo used to model as two events. With no review link set, the editor warns and the preview drops the review line entirely — compare it with the body on the left, which still has it. The fix for DZ-263, where '⭐ Rate your experience:' printed with nothing after it. Set a link under Business details and the line reappears.",
+        note: "Thank You email with no review link set: the editor warns and the preview drops the review line.",
       },
       {
         path: "/shell-demo?settings=notifications",
         label: "Reminders matrix → template links",
-        note: "Each event label is a link into that event's editor, underlined on hover only — underlining all six turned the table into a list of links when the switches are what the card is for. The links target the email template, the one channel always granted, so they can never land on a channel this merchant does not have. Also the way to review the partly-off state: switch some events on for WhatsApp here, then open Communication templates — the remaining rows carry an 'Off' badge, stay editable, and the header counts them.",
+        note: "Reminder event labels link to their email template editor, and partly-off WhatsApp events show 'Off' badges there.",
       },
     ],
   },
@@ -1775,7 +1775,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/sign-in/forgot-password?email=you%40getcami.com",
         label: "Forgot password",
-        note: "Email carried over from the sign-in step so it is not retyped. Submitting always reports 'sent', whether or not the address is an HQ account.",
+        note: "Forgot password with the email carried over, and it always reports 'sent' whether or not it is an HQ account.",
       },
       {
         path: "/admin/sign-in/reset-password?token=demo",
@@ -1820,7 +1820,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin",
         label: "HQ shell (placeholder)",
-        note: "What /admin renders today: the HQ shell with its sidebar and topbar around a placeholder body. HQ's real landing is the Partners roster below — listed so the route is not mistaken for a missing dashboard.",
+        note: "HQ shell with sidebar and topbar around a placeholder body, the real landing being the Partners roster.",
       },
       { path: "/admin/businesses", label: "Partners roster" },
       {
@@ -1836,7 +1836,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/businesses?business=shampooch",
         label: "Detail modal, Live state",
-        note: "Dark green Access row, Manage tab with Sign in / Suspend / Archive. General › Profile also carries the Google review link (PRD-168) — this Partner has one, so compare it with any other in the roster, where it reads ‘Not set’ and that merchant’s Thank You goes out with no review ask. Edit opens the same listing-vs-review validation the merchant gets, in the same tinted notice: ops backfill these in bulk out of WhatsApp messages, so they are the ones most likely to paste a Maps URL.",
+        note: "Shampooch in Live state with Manage actions, plus the Google review link on General › Profile with Edit validation.",
       },
       {
         path: "/admin/businesses?business=velvet-paw",
@@ -1865,17 +1865,17 @@ const SECTIONS: Section[] = [
     lane: "hq",
     title: "Cami HQ, CamiPay settlement config (PRO-737)",
     description:
-      "R1 HQ billing spine. Settings tab on the Partner detail modal: CamiPay rail flags, a gateway per rail, and an append-only rate card. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off. Open a Partner below, then the Settings tab. Rate changes are forward-only, they never re-price captured payments.",
+      "HQ Settings tab on a Partner: CamiPay rail flags, a gateway per rail and a forward-only rate card.",
     screens: [
       {
         path: "/admin/businesses?business=shampooch",
         label: "Settings tab, live Partner",
-        note: "Both rails on NeoPay, terminal cut from 2% to 1.8% and online to 3% + AED 0.75 under AED 100, both on 01 May. Show rate history to see the append-only rows, then Change to append another; the dialog previews the fee on either side of the bracket before you save.",
+        note: "Shampooch's settlement settings: view rate history, then Change to append a rate with a fee preview before saving.",
       },
       {
         path: "/admin/businesses?business=pawhaus",
         label: "Settings tab, scheduled rate",
-        note: "Terminal on TapPay, online on NeoPay (rails are not coupled to one provider). A 1.9% terminal rate is already scheduled for 01 Sep, badged Scheduled until it takes effect. Online carries a 3.25% + AED 1.00 under AED 100 bracket.",
+        note: "Terminal on TapPay and online on NeoPay, a 1.9% terminal rate badged Scheduled for 01 Sep and an under AED 100 bracket.",
       },
       {
         path: "/admin/businesses?business=velvet-paw",
@@ -1885,7 +1885,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/businesses?business=doggos",
         label: "Settings tab, live rail earning nothing",
-        note: "Suspended Partner still holds its commercial terms. The online rail is live with no rate row, so it reads Not set and warns that Cami earns nothing on those payments. A missing rate is zero, not an error, which is why it is called out rather than blocked.",
+        note: "Suspended Partner whose live online rail has no rate, so it reads Not set and warns Cami earns nothing.",
       },
       {
         path: "/admin/businesses?business=furry-tales",
@@ -1898,22 +1898,22 @@ const SECTIONS: Section[] = [
     lane: "hq",
     title: "Cami HQ, terminal fleet (DSG-82)",
     description:
-      "Cami buys the card machines and leases them out, so a terminal is an asset HQ assigns, not a device a merchant registered. Two surfaces over one fleet: this listing, which answers the question support starts from (a ticket names a serial, nobody knows whose it is), and a card on the Partner detail modal for the forward question. HQ never sees a terminal PIN, and cannot rename a unit or set its location — those describe the merchant's counter, not our asset.",
+      "HQ's view of leased card machines: a fleet listing by serial and a card on the Partner detail modal.",
     screens: [
       {
         path: "/admin/terminals",
         label: "Fleet listing",
-        note: "Every unit Cami owns: out with Partners, in stock, returned, faulty. Serial leads each row because that is what is printed on the box; the Partner column carries the CM-#### code and the since-date. Clicking a Partner pops their detail dialog over the fleet at ?partner=<slug> rather than navigating away, so the tab and search survive. The row menu offers only what the unit's state allows.",
+        note: "Every terminal unit Cami owns, by serial, with Partner details opening in a dialog over the fleet.",
       },
       {
         path: "/admin/terminals?q=NP5-2419-8830",
         label: "Reverse lookup, the reason this screen exists",
-        note: "Lands with the serial off a support ticket already in the box, resolved to the Shampooch partner. Tab and search live in the URL, so a filtered fleet view is a link you can send. Search also matches pairing code, model, location, Partner name and Partner code — try CM-5107.",
+        note: "Terminal fleet search landing on a serial resolved to Shampooch, also matches pairing code and Partner code (try CM-5107).",
       },
       {
         path: "/admin/terminals?tab=in-stock",
         label: "Stock, assignable to any Partner",
-        note: "Two units on the shelf. Assign from here picks a Partner for a known unit; the Partner card picks a unit for a known Partner. Same write, opposite starting point.",
+        note: "Two units in stock, each assignable to a Partner from here, the reverse of picking a unit from the Partner card.",
       },
       {
         path: "/admin/terminals?tab=returned",
@@ -1923,17 +1923,17 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/terminals?tab=faulty",
         label: "Faulty, kept as a record",
-        note: "Written-off unit, never offered for assignment again and not deleted — leased hardware written off is a thing finance asks about later.",
+        note: "Faulty tab: written-off units kept as a record, never offered for assignment and never deleted.",
       },
       {
         path: "/admin/businesses?business=shampooch&section=settings",
         label: "Partner card, three units assigned",
-        note: "Active (2 signed in), No sessions, and Not set up — shipped and signed for, nobody has switched it on. Assign picks a unit from stock; the fleet listing picks a Partner for a unit. Same write, opposite starting point.",
+        note: "Partner card with three units: Active, No sessions and Not set up. Assign picks a unit from stock.",
       },
       {
         path: "/admin/businesses?business=pawhaus&section=settings",
         label: "Partner card, one blocked by HQ",
-        note: "The blocked row keeps who blocked it and when, and offers Allow terminal. Return to Cami is the destructive item, not Block: a block is undone from the same menu, a return ends the assignment and clears the pairing.",
+        note: "A terminal blocked by HQ, showing who blocked it and when, with Allow terminal and Return to Cami.",
       },
       {
         path: "/admin/businesses?business=velvet-paw&section=settings",
@@ -1943,12 +1943,12 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/businesses?business=furry-tales&section=settings",
         label: "Partner card, access off and archived",
-        note: "Terminal access reads off at the top of the card, so the unit in their hands cannot take payments whatever its row says. Archived on top of that, so every control is disabled. The access switch writes the same flag as CamiPay Terminal above — one flag, two views.",
+        note: "Partner card with terminal access off and archived, so every control is disabled.",
       },
       {
         path: "/admin/businesses?q=CM-4821",
         label: "Roster, searched by Partner code",
-        note: "Lands with CM-4821 in the search box, resolved to the Shampooch partner — a support thread quoting the code is one paste from the Partner. The code reads inline under each business name next to the slug, and the copy chip sits in the detail modal header. Immutable by design: the slug already exists for the identifier that can change.",
+        note: "Roster search for CM-4821 resolves to the Shampooch partner, with the code shown under each business name.",
       },
     ],
   },
@@ -1956,37 +1956,37 @@ const SECTIONS: Section[] = [
     lane: "hq",
     title: "Cami HQ, notification control plane",
     description:
-      "The HQ half of the notification spec (docs/specs/notifications-sender-id-and-rates.md): per-partner channel grants, Sender ID approval, rate overrides, and the consumption view an invoice is computed from. A partner carries no notification config until HQ touches it — absent means it inherits every platform default. Five demo partners cover the states: Shampooch approved on global rates, Pawhaus overridden, Velvet Paw onboarding, Doggos rejected, Furry Tales untouched.",
+      "HQ notification controls: channel grants, Sender ID approval, rate overrides and consumption, across five demo partners.",
     screens: [
       {
         path: "/admin/billing",
         label: "Billing, notification consumption",
-        note: "The route the Billing menu item was already pointing at and never had. Per-partner sends × the rate that applies, per-channel totals above and the amount due this period. An override is labelled on the cell, 'Off' means the channel is not granted and '0' means granted but unused. Amounts use the rate stamped on each send, so changing a rate never rewrites a closed period. Messaging only — CamiPay fees are a separate ledger.",
+        note: "Per-partner notification sends times rate, per-channel totals and the amount due this period. Messaging only.",
       },
       {
         path: "/admin/businesses?business=shampooch&section=notifications",
         label: "Partner record → Notifications tab",
-        note: "Opens on the Notifications tab (&section=notifications). Three sections in the order someone debugging a partner asks about them. Channels are master switches — turning one off locks that column in the merchant's own settings without clearing what they had. Sender ID shows the registered name, the Approve / Reject decision, and what customers see only when it differs. A blank rate genuinely means inherited, with the global number as the placeholder; clearing the field returns the partner to inheriting. Every change writes to the Activity tab, one entry per edit on blur.",
+        note: "Partner Notifications tab: channel switches, Sender ID approval and per-partner rate overrides, logged to Activity.",
       },
       {
         path: "/admin/businesses?business=pawhaus&section=notifications",
         label: "Partner record → pending Sender ID + rate override",
-        note: "The only partner with a decision outstanding: PAWHAUS is pending, so Approve / Reject appear, and Reject requires a reason because that reason renders verbatim in the merchant's own settings. Also the override case — SMS at AED 0.14 against a global AED 0.12, labelled as one. WhatsApp is granted here, which is what unlocks that column in their portal.",
+        note: "PAWHAUS with a pending Sender ID to Approve or Reject with a reason, plus an SMS rate override at AED 0.14.",
       },
       {
         path: "/admin/businesses?business=doggos&section=notifications",
         label: "Partner record → rejected Sender ID, SMS off",
-        note: "The scenario the spec names: the Sender ID was rejected, so HQ turned SMS off rather than let messages go out under the wrong brand. The reason shows in a tinted block and the merchant sees the same sentence. This partner is also suspended, so the tab reads alongside the suspension banner.",
+        note: "Rejected Sender ID with SMS turned off by HQ, the reason in a tinted block beside the suspension banner.",
       },
       {
         path: "/admin/businesses?settings=notification-rates",
         label: "HQ settings → Notification rates",
-        note: "The platform defaults every partner inherits, per channel. Decimal rates are typeable — the field holds what you type, so '0.' and '0.0' survive as intermediate states while letters, signs and a second point are refused. Above AED 1.00 a warning names the channel and the likely cause, but never blocks; 0.24 stays quiet, being a legitimate doubled SMS segment. Edits confirm on blur. SMS is the one row with a description, because its rate is per 160-character segment (PRO-989).",
+        note: "Platform default notification rates per channel: typeable decimals, a non-blocking warning above AED 1.00, SMS per segment.",
       },
       {
         path: "/admin/businesses?new=1",
         label: "New Partner → Sender ID at onboarding",
-        note: "Opens the create sheet (?new=1). SMS Sender ID is required with a CAMI default, so leaving it is an explicit choice and entering one starts the registration clock at account creation rather than whenever someone opens settings. Not prefilled from the business name — request it from the merchant rather than infer it. Same validator as the merchant-side field.",
+        note: "New Partner sheet with a required SMS Sender ID that defaults to CAMI.",
       },
     ],
   },
@@ -1994,12 +1994,12 @@ const SECTIONS: Section[] = [
     lane: "hq",
     title: "Cami HQ, roles & permissions (PRO-138)",
     description:
-      "E1-6.2 HQ-side role catalog. Lives inside the Settings dialog at ?settings=roles, no standalone routes. Edit and Add open as full-screen dialogs on top.",
+      "HQ role catalog inside the Settings dialog, with Edit and Add as full-screen dialogs.",
     screens: [
       {
         path: "/admin/access-denied",
         label: "Access denied",
-        note: "Where a permission check lands someone whose role does not carry the scope — the wall HQ routes to rather than rendering a half-empty page.",
+        note: "The access-denied wall HQ routes to when a role lacks the scope, instead of a half-empty page.",
       },
       {
         path: "/admin/businesses?settings=roles",
@@ -2022,17 +2022,17 @@ const SECTIONS: Section[] = [
     lane: "hq",
     title: "Cami HQ, Impersonation (PRO-155)",
     description:
-      "E6-2.1 single pane of glass for ops impersonation: standalone events log, scoped session banner, PII reveal flow on the Partner portal.",
+      "Ops impersonation: events log, scoped session banner and the PII reveal flow on the Partner portal.",
     screens: [
       {
         path: "/admin/impersonation",
         label: "Impersonation log",
-        note: "Filterable table with detail sheet, CSV export, and per-Partner owner-summary clipboard copy. Complements the audit-log filter at /admin/audit?kind=impersonation.",
+        note: "Filterable impersonation log with detail sheet, CSV export and per-Partner owner-summary copy.",
       },
       {
         path: "/admin/portal-impersonation-demo",
         label: "Partner portal under impersonation",
-        note: "4px yellow viewport frame, bottom-anchored banner pill, mock invoice with reason-gated PII reveal. Click the minimize chip to collapse the banner.",
+        note: "Partner portal with the yellow impersonation frame, banner pill and reason-gated PII reveal. Minimize collapses the banner.",
       },
       {
         path: "/playground#impersonation-banner",
@@ -2049,13 +2049,13 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo",
         label: "Business app shell",
-        note: "The workspace menu top-left is where you change venue: Shampooch, Purr Palace and Sota Hair Studio are the three live ones. Branches are not in this menu — they are the LocationSwitcher beside it (SCR-04), because two ways into the same branch is how the two end up disagreeing. Picking one rebrands the whole demo and swaps the estate with it — the LocationSwitcher offers that venue's branches, not the last one's, and the scope resets because the branch you were looking at does not exist here. Branding edits that venue's palette and the message previews wear it. The building icon beside it only renames — a prospect's name matches no venue, which is the case where the default palette is correct rather than broken. Known seam: the client directory is shared, so switching venue does not change who is in /clients.",
+        note: "Switch venue from the workspace menu to rebrand the demo and swap its branches in the LocationSwitcher.",
       },
       { path: "/playground", label: "Component states" },
       {
         path: "/appointments",
         label: "Global search takeover",
-        note: "Click the topbar magnifier (or Cmd/Ctrl+K) on any shell page. Full-screen search over clients + bookings; try 'B-77342' for a booking ref. Rows open the client dialog / appointment sheet on top. Also demoed in the playground.",
+        note: "Open global search from the topbar magnifier or Cmd/Ctrl+K and try 'B-77342' to find a booking.",
       },
     ],
   },
@@ -2102,7 +2102,8 @@ export default function ScreensPage() {
           <h1 className="text-2xl font-medium text-foreground">Screens</h1>
           <p className="mt-1 max-w-xl text-sm text-muted-foreground">
             Every screen currently routed on this branch, grouped by who uses it. {TOTAL} total.
-            Click a row to open the live page in a new tab.
+            Click a row to open the live page in a new tab. The full walkthrough behind each note is
+            in docs/screens-detail.md.
           </p>
         </div>
         <ThemeToggle />

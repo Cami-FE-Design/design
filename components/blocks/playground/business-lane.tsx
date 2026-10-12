@@ -54,7 +54,7 @@ import { MoneyByLocationView } from "@/components/blocks/money/money-by-location
 import { MoneyFeesView } from "@/components/blocks/money/money-fees"
 import { MoneySummaryView } from "@/components/blocks/money/money-summary"
 import { AmountInput } from "@/components/blocks/payment-policy/amount-input"
-import { Lane, LazyMount, Row, Section } from "@/components/blocks/playground/kit"
+import { Lane, LazyMount, Row, Section, StatePicker } from "@/components/blocks/playground/kit"
 import {
   SelectBrandDialog,
   SelectCategoryDialog,
@@ -1944,14 +1944,14 @@ export function BusinessLane() {
     >
       <Section
         title="Inbox Phase 0 — list, composer, client pane"
-        description="ENG3-33 / T1 — the WhatsApp inbox pieces in the states they can be in: an unmatched number (the number is the title, never a made-up name, dashed person avatar), failed rows, the chat list loading/empty/error, the composer with the window open (one countdown line, colored under 2 hours), closing soon and closed (one sand row, templates only), and the client pane as ClientSummary (Pets with pet notes first, then Upcoming, Last visits and Client notes; new-client and failed-read states) or, unmatched, Match and Add only. Unread is out of Phase 0. The full flows, send, retry, templates, media, match, add, are on /messages/inbox/phase-0; docs/specs/ENG3-33-inbox-phase-0-walkthrough.md walks each one."
+        description="WhatsApp inbox pieces in each state: unmatched number, failed rows, list states, composer window states and client pane."
         lazy
       >
         <InboxPhase0Showcase />
       </Section>
       <Section
         title="Multi-location — a deal, and where it runs"
-        description="DW3.4 — the row states Settings → Marketing → Deals can be in, side by side. 'All locations' is a NAMED set that a branch opened next month joins; '3 locations' is today's three and is not. The last was saved with nothing chosen: the dev repo's mapper reads that same empty shape as ALL, while R24 says an empty scope never resolves to all. A deal that reaches nobody can never read Active — an owner believes the badge."
+        description="Deal rows by location scope: All locations, 3 locations, and an empty scope that never reads Active."
       >
         {MOCK_DEALS.slice(0, 4).map((deal) => (
           <Row
@@ -1983,7 +1983,7 @@ export function BusinessLane() {
 
       <Section
         title="Multi-location — branch switcher"
-        description="SCR-04. The control every other multi-location surface is read through: which branch am I acting on? Scope spans one branch, a named subset, or all granted branches (R03), and never resets the filters or date range a user already set (DW1.1). Each frame below is its own scope, so the states sit side by side."
+        description="Branch switcher scoped to one branch, a subset or all granted branches, each scope side by side."
       >
         <Row label="Owner, all branches">
           <LocationsProvider persist={false} initialScope={{ kind: "all" }}>
@@ -2034,7 +2034,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — branch lifecycle"
-        description="SCR-01's state half (R01, R12). Four states, each named for its consequence: suspended hides the booking page and stops the calendar, archived takes no writes ever again. Live renders nothing on purpose — badging every healthy branch makes the two that need attention harder to find. The full panel, with Suspend / Reactivate / Archive, is at /shell-demo?settings=locations."
+        description="Branch lifecycle states: suspended and archived named by consequence, live renders nothing on purpose."
       >
         <Row label="Status badge">
           {(["live", "suspended", "archived"] as const).map((status) => (
@@ -2050,7 +2050,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — per-branch hours"
-        description="SCR-01's hours half (R01, R19). Each branch keeps its own week and timezone: JVC closes Sunday, Jumeirah trades seven days, Al Quoz shuts over the middle of the day — which is why a day holds shifts rather than one open and one close. Pinned to a Tuesday afternoon, Al Quoz reads Closed now and its public card says 'opens 4pm'. Editable in settings, and the edit reaches /shampooch-jvc."
+        description="Per-branch weeks and timezones: JVC closed Sunday, Jumeirah seven days, Al Quoz with a midday break reading Closed now."
       >
         <Row label="The seeded estate" align="start">
           <LocationsProvider persist={false}>
@@ -2060,7 +2060,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — per-branch availability"
-        description="R15's other half. Day chips come from the branch's hours, so a day it does not open reads Closed rather than Fully booked — different facts, and showing one as the other sends a client back to a day that will never have a slot. Slots are the hours at half-hour steps, so Al Quoz's midday gap is absent rather than filtered. Staff filter by the branches they work at. Friday below, because all three differ there."
+        description="Per-branch booking days and slots: a closed day reads Closed, not Fully booked. Friday shows all three branches differ."
       >
         <Row label="The seeded estate" align="start">
           <LocationsProvider persist={false}>
@@ -2070,7 +2070,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — where a promotion runs"
-        description="DW3.4 (R04, R24). A chain-wide January offer and a quiet branch discounting a Tuesday are both real and must not be the same object. The scope is a named case or a list, never an empty list standing in for 'everywhere' — which is what the dev repo's mapper does, turning allVenues into locationIds: []. One shape, two opposite readings: that is how an offer meant for one branch runs at nine. Rules in lib/locations/promotion-scope.ts."
+        description="How a promotion's scope is a named case or a list, never an empty list meaning everywhere."
       >
         <Row label="Across the chain">
           <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
@@ -2100,7 +2100,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — the duplicate caught before booking"
-        description="CL-A1 / RC-B1, R13. The story ends 'duplicate caught BEFORE booking', and only its readable half had shipped — SCR-07 answers the question if reception thinks to ask it, and somebody mid-booking does not. So it arrives unprompted under the client picker. Unbounded by the grant, because the duplicate worth catching is the one at a branch you cannot see. States, never blocks: two appointments in a day is routinely correct."
+        description="Unprompted duplicate-booking notice under the client picker, including other branches, that informs but never blocks."
       >
         <Row label="Already booked at another branch" align="start">
           <div className="w-full max-w-md">
@@ -2132,7 +2132,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — who may change what about a branch"
-        description="Who may change what, as one table, because six surfaces ask the same four questions and six inline answers drift — the one that drifts quietly is the one that lets somebody through. Only the owner creates or suspends a branch, sets who holds which, edits tax details, or assigns a WhatsApp number. A manager changes service settings, and only at the branches they hold; reception and a groomer cannot at all. This table is the rule reference. On the real screens a refused action is absent rather than greyed with a reason, the way the built product gates by permission — the dashed 'sign in as somebody else' strip at the bottom of the Locations panel switches who is reading."
+        description="One table of who may change what about a branch, across owner, manager, reception and groomer."
       >
         <Row label="The table" align="start">
           <div className="w-full max-w-3xl">
@@ -2142,7 +2142,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — a category a branch has emptied"
-        description="One category list belongs to the whole business and a branch cannot re-file a service into another one — all that varies is which services it has turned on, so a category can hold nothing at a branch: three spa services, and no spa room here. The answer depends on who is reading. A CLIENT can do nothing with a category this branch does not run, and a heading over nothing is a dead end that invites them to leave — so it is hidden. RECEPTION is the person who can say 'not here, but Jumeirah does it', and hiding it leaves them to find that out by telephone — so it stays, with the absence said out loud. That is the split `locationsOffering` already makes for a single service, and the same reading as KC1.5: tell the operator, do not burden the client. Add-ons is the control in both frames: partly on, so the two have to agree about it."
+        description="A category a branch has emptied: hidden from clients, kept for reception with the absence stated, Add-ons as the control."
       >
         <Row label="What a client sees" align="start">
           <div className="w-full max-w-md">
@@ -2165,7 +2165,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — packages at the till"
-        description="SCR-13 (R08, KC1.5, R11), rebuilt 22 Sep against the as-built. The product applies a client's packages ITSELF — `allocatePackageSessions` spends the remaining sessions across the cart, one per line, in order — so there is no Apply button and never was. A covered line reads 0 with its real price struck beneath it, which the built sheet calls a display device rather than a price anyone typed, and the chip counts down as each line spends its own session. Ours is the branch half the contract has no room for: a package sold at one branch, redeemed at another that prices the service differently, warns and still completes. The warning sits on the line it is about and the decision is recorded, so an owner reading a discount can see why."
+        description="Packages applied automatically at the till, with a warning when redeemed at a branch that prices the service differently."
       >
         <Row label="Sold and redeemed at the same branch" align="start">
           <div className="w-full max-w-md">
@@ -2245,7 +2245,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — scheduled shifts"
-        description="SCR-10 (R05, DW2.3, DW2.4). The built product's grid, per branch: members against Mon–Sun, hours per person and per day. A schedule belongs to one location, so somebody assigned to two appears on both with the hours they work there. Lena is JVC mornings and Jumeirah evenings — no conflict. Tala is rostered at both over the same hours, the one clash DW2.4 names. Leave is the person's and shows at both; shifts and block time stay at their own branch. Read-only — the writes are on /team/scheduled-shifts."
+        description="Read-only per-branch shift grid where Lena works two branches and Tala's same-hours clash is flagged."
       >
         <Row label="JVC" align="start">
           <div className="w-full">
@@ -2305,7 +2305,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — per-branch stock"
-        description="SCR-11 (R16, R18, DW4.1–DW4.2). Quantity and reorder configuration resolve per location and the business quantity is derived, never stored — which is what makes 'I never reconcile it by hand' true by construction. Rows first, total after: 18 at one branch and -2 at another add up to a healthy-looking 16. Empty and negative stay apart — zero is a reorder, below zero is a stock take. Healthy branches fold and the rest cap at five worst-first. Thresholds summarise until you press Edit reorder points."
+        description="Per-branch stock rows before a derived total, with empty and negative kept apart and reorder points behind Edit."
       >
         <Row label="Two branches disagree" align="start">
           <div className="w-full max-w-[560px]">
@@ -2349,7 +2349,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — nine branches (D5)"
-        description="The designs at the scale the PRD assumes. Three branches is the demo; nine is where the layouts fail, the same way every time — most rows say nothing and the one that matters is below the fold. Both states are drawn so the call can be made by looking: collapsed folds the inheriting branches into one line that names them, expanded is the nine cards. Under four quiet branches nothing collapses. The switcher and the money roll-up are here at nine too."
+        description="Nine branches collapsed and expanded side by side, plus the switcher and money roll-up at that scale."
       >
         <Row label="Per-branch pricing · collapsed" align="start">
           <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
@@ -2378,7 +2378,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — chain setup"
-        description="SCR-02 (R02, SU1.2). N branches in one pass, because growth must not be a second onboarding. All or none — submit with one bad row and nothing is created, since a partial create leaves the owner unable to tell which of nine landed. Try two rows with the same name for the link collision, or 'Shampooch JVC' for a taken slug. Isolated, so creating here does not touch the app's own estate."
+        description="Create N branches in one all-or-none pass: try duplicate names or 'Shampooch JVC' for the link and slug errors."
       >
         <Row label="Add locations" align="start">
           <LocationsProvider persist={false}>
@@ -2388,7 +2388,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — branch access grants"
-        description="SCR-03 (R04, R24). Two independent axes: role capability is what, the location grant is where, and neither widens the other. The owner's list is untickable — an owner holds every branch including ones added later, stored as 'all' rather than today's ids. Ahmed's empty grant is said out loud: no access, never 'every branch'. Four of the five location permission codes are marked Proposed."
+        description="Role says what, location grant says where. The owner holds every branch and Ahmed's empty grant reads as no access."
       >
         <Row label="Open a member" align="start">
           <LocationsProvider persist={false}>
@@ -2398,7 +2398,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — a write names one branch"
-        description="G1 and R11. Every operational write lands on exactly one branch, with no default — the PRD's release criterion takes that fallback out of the repo. Three sentences, not one styled three ways: one branch in scope is resolved and stated, several is a required choice, none says no write is possible (R24). A suspended branch is listed and badged rather than hidden (R12). Live on the appointment sheet, where Save waits for the branch and the service picker reads against it (DW3.3)."
+        description="Branch line for writes: resolved for one branch, a required choice for several, no write for none."
       >
         {/* Nine held, one picked in the topbar switcher. Holding a single
             location would render nothing at all — that is DW1.2, not this. */}
@@ -2454,7 +2454,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — client visits at another branch"
-        description="SCR-07 (R13, R18, G1). Millie: four visits and three sales across three branches. The read is never narrowed — one business, one owner, one P&L. The grant narrows what you may DO: as the owner every visit carries its actions, as JVC reception the Jumeirah visit still reads in full, price included, with its buttons replaced by the reason. Al Quoz is suspended, so it takes writes from nobody. Overview gains 'Visits by branch'."
+        description="Millie's visits across three branches, read in full by everyone, with actions only where the grant allows."
       >
         <Row label="Owner · holds every branch" align="start">
           <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
@@ -2473,7 +2473,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — per-branch service pricing"
-        description="SCR-09 (R06, DW3.1–DW3.3). One service defined once, configured per branch. Type over a price to override that field; the marker under it says whose value it is, and Reset returns only that field to inheriting. Then press 'Raise the business default' — the inherited branches follow, the overridden field does not. That divergence is the requirement."
+        description="Override a branch price, reset one field, then raise the business default and watch only inherited fields follow."
       >
         <Row label="Locations section" align="start">
           <LocationsProvider persist={false}>
@@ -2483,7 +2483,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — public branch picker"
-        description="SCR-08 (R15, GB3.1). A chain's public page asks where before it shows anything branch-shaped, because it has N addresses, hours and menus rather than one. The branch's own link skips it (GB3.2), and neither path guesses. Only published branches are listed — the suspended one is absent rather than greyed out. 'Open now' is pinned to a Tuesday 11am so the row is deterministic."
+        description="Public branch picker listing only published branches, the suspended one absent, 'Open now' pinned to Tuesday 11am."
       >
         <Row label="Chain page" align="start">
           <div className="w-full max-w-[560px]">
@@ -2497,7 +2497,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — branch WhatsApp numbers"
-        description="SCR-14 (R21, R22, KC2.2, KC2.4). Inbound resolves from the number it arrived on and never falls back, so per branch the number is what decides whose message it is. Three states: JVC connected, Jumeirah stuck on the OTP (the step that needs a person standing in that branch), Al Quoz with no number at all, which says so in words. Contrast SMS, where an unapproved sender ID falls back to CAMI — a generic sender still reaches the right person, a wrong WhatsApp number reaches the wrong branch."
+        description="Per-branch WhatsApp numbers in three states: JVC connected, Jumeirah stuck on the OTP, Al Quoz with no number."
       >
         <Row label="Numbers panel" align="start">
           <div className="w-full max-w-[640px]">
@@ -2509,7 +2509,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — no location access"
-        description="P1.4.6. A person holding no location sees this in place of every operational page. Sign in as ahmed@getcami.io from the dashed strip under Settings › Locations to see it live."
+        description="The page shown to someone with no location access, live via ahmed@getcami.io."
       >
         <Row label="No location at all" align="start">
           <div className="w-full max-w-[560px]">
@@ -2519,7 +2519,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — somebody working at another location"
-        description="SCR-10, reception's side (DW2.3, DW2.4). The Team member list is this location's people only. Somebody rostered here but working at another location over the slot moves to 'Busy at another location' with where and until when, and is refused — blocked, never warned. Somebody not at this location is not offered at all; already on the line, they get a different sentence. The client's flow drops the same slot and names nothing (BG-06). Open the Team member list in the first frame."
+        description="Team member list for this location, where staff busy at another location show where and until when and are blocked."
         lazy
       >
         <Row label="Busy at another location" align="start">
@@ -2534,7 +2534,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — loading and error"
-        description="PRD-169's Done-means: every screen drawn empty, loading and error. Empty is each surface's own sentence because the facts differ — no branches granted (R24) is not no deals. Loading keeps the rows' shape so nothing jumps. Error says what failed and that nothing changed, and never shows a partial list: six branches that should be nine reads as a smaller business (G7), so stock drops its total rather than summing what arrived. Team access also refuses Confirm and never claims 'No location granted' before the grant has loaded."
+        description="Empty, loading and error states for each multi-location surface, and errors never show a partial list."
         lazy
       >
         <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
@@ -2543,7 +2543,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — money by branch"
-        description="SCR-15 (R09, R18, KH1.1–KH1.3). Side by side, never merged: an owner asking how the day went is asking which branch had a bad one. The total sits after the rows and is labelled as their sum. The second frame is the same component for a manager granted only Jumeirah — one row, roll-up equal to it, their real number rather than an error (KH1.3). The bound is a grant, not a filter, so the wider result is never fetched."
+        description="Money per branch side by side with the total after the rows, plus a Jumeirah-only manager seeing one row."
       >
         <Row label="Owner · all branches" align="start">
           <div className="w-full max-w-[560px]">
@@ -2575,7 +2575,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — cross-branch move"
-        description="SCR-06 (R07, R17, GB1.1–GB1.3). The one operation that touches both branches at once, and every way it fails is a way money or access fails. Destinations are bounded by grants. Pick Jumeirah for the allowed case — the deposit stays credited where it was taken while the work moves, because R17 records both and rewrites neither. Al Quoz is suspended and refused (R12). The third frame's payment cannot be resolved, so the move is rejected whole (GB1.3)."
+        description="Moving a booking across branches: Jumeirah allowed, Al Quoz suspended and refused, an unresolved payment rejected whole."
       >
         <Row label="Deposit taken" align="start">
           <LocationsProvider persist={false}>
@@ -2595,7 +2595,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — all-branches calendar"
-        description="SCR-05 (R07, R11). The filter half of 'per-branch columns or filter', and a filter on purpose: a day grid is already staff × time, so a third axis turns 11 columns into 99. Click a branch to narrow the day to it, click it again to go back. The counts are why it is a strip and not a dropdown — an owner opening the calendar across branches is asking which branch is busy. With more than one in view, a new booking needs one chosen first."
+        description="All-branches calendar filter strip with per-branch counts, where clicking a branch narrows the day."
       >
         <Row label="Branch strip + day" align="start">
           <div className="w-full">
@@ -2607,7 +2607,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Multi-location — package mismatch at checkout"
-        description="SCR-13 (R08, KC1.5), corrected 2026-09-03 off Chaps & Co's real Fresha account — the earlier design had it backwards. Gift cards and memberships travel across branches; a package is sold against one specific priced service and does not. Warn, never block: operators already work around a block by hand, so blocking does not prevent the outcome, it makes reception do it slowly in front of the client. Both figures are shown, and the choice is recorded on the sale."
+        description="A package used at a different branch at checkout warns but never blocks, shows both prices and records the choice."
       >
         {PACKAGE_MISMATCH_CASES.map((demo) => (
           <Row key={demo.label} label={demo.label} align="start">
@@ -2621,7 +2621,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Appointments — booking block"
-        description="Booking card rendered on the People grid. Color carries service category, fill saturation and border style overlay status. All content elements (time, price, name, service, icons) render at every size; truncation handles the squeeze."
+        description="Booking block for the People grid: colour for category, fill and border for status, all content at every size."
       >
         <Row label="Sizes (15/30/60/180 min)">
           {[15, 30, 60, 180].map((min) => (
@@ -2777,7 +2777,7 @@ export function BusinessLane() {
       <Section
         lazy
         title="Appointments — toolbar and people grid"
-        description="Calendar toolbar (Today, date, view mode, filters, new) above an 11-column staff × time grid. Right-side filters are placeholders pending tighter Figma reference."
+        description="Calendar toolbar (Today, date, view mode, filters, new) above an 11-column staff by time grid."
       >
         <Row label="Toolbar">
           <div className="w-full max-w-5xl rounded-2xl border border-border/60 bg-card">
@@ -2796,7 +2796,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Appointments — pickup & pet notes"
-        description="Pet-address capture on the staff sheet (<PickupFields>) and its read-only rendering on the calendar card. The field is the same map search as billing, so a picked place stores a pin and the line beneath says whether this one has it. Pet notes sit outside the tick — allergies and handling matter on every appointment. The card below is the ONE hover card: identity once, every service with its performer and price, the note rows, and the branch, because staff do not settle it — Lena Petrov works JVC and Jumeirah both."
+        description="Pickup address fields on the staff sheet, pet notes, and the one hover card with services, notes and branch."
       >
         <PickupFieldsStates />
         <Row label="Hover card — pinned address (Navigate)">
@@ -2824,7 +2824,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Client notes (Staff Alert)"
-        description="DZ-209 — three note kinds share these surfaces and telling them apart is the point: client notes travel with the person, the appointment note is the occasion, pet notes travel with the animal. The card is a PREVIEW, not the archive, and the bound is on the content (two notes at two lines) so nothing is cut mid-glyph. Deliberately not an amber warning slab — ClientNote carries no severity, and that treatment marked every written-about client as a hazard."
+        description="Client, appointment and pet notes told apart, with the client card as a two-note preview."
       >
         <Row label="Full (detail sheet) — heading outside, marker leading">
           <section className="flex w-full max-w-md flex-col gap-3">
@@ -2862,7 +2862,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Pet notes — structured categories"
-        description="Replaces the single free-text box, which gets skipped or filled with prose nobody can filter on. Multi-select chips keep it fast for the parent and give groomers comparable data; the specifics field is required once a chip is on, because a selected chip with nothing typed is no better than the blank box it replaced. 'Other' is a genuine fallback, not the default catch-all. Same component on the public flow and the staff sheet."
+        description="Multi-select pet note chips, each needing specifics, shared by the public booking flow and the staff sheet."
       >
         <Row label="Empty">
           <PetNotesFieldsDemo initial={[]} idPrefix="pg-notes-empty" />
@@ -2890,7 +2890,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Navigate to address"
-        description="The driver's half of PRD-144, wherever a pet address is shown read-only. Opens Google Maps in directions mode rather than search mode: on a phone that hands off to the native app with the trip already loaded. A picked address routes to its stored coordinates; a typed one falls back to a text query and says 'Search in Maps' instead of 'Navigate', because a query that lands on the wrong side of a villa cluster should not look like a promise."
+        description="Navigate button opening Google Maps directions, or 'Search in Maps' for a typed address."
       >
         <Row label="Pinned — routes to coordinates">
           <NavigateToAddress
@@ -2912,13 +2912,13 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Product pickers — brand, category, supplier"
-        description="One dialog, three configs. Search a list, pick one, or add a new one in a second dialog and have it picked. Suppliers show no product count and ask for a short description when added."
+        description="One picker dialog in three configs: search, pick, or add a new brand, category or supplier in a second dialog."
       >
         <ProductPickersDemo />
       </Section>
       <Section
         title="Service menu — cards & sidebar"
-        description="Presentational building blocks for the catalog screens. Full interactive screens (drag-reorder, add/edit, archive) live at /catalogs/service-menu and /catalogs/categories. Prices render in AED. Combos come back from the same endpoint as single services, so the card marks them with a tinted Combo badge (layers icon) plus a count of the services they bundle — PRD-143."
+        description="Catalog cards and sidebar with AED prices. Combos carry a tinted Combo badge and a bundled-services count."
       >
         <Row label="Service card, default">
           <div className="w-full max-w-xl">
@@ -3005,7 +3005,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Combos across surfaces"
-        description="PRD-143 — a combo is a bundle sold as one catalog entry. While it is being CHOSEN the row carries a Combo badge and a bundled-services count; once PICKED it becomes its component services, each named 'Combo - Service' with the standalone price struck through. The cart footer states the saving as a Bundle discount rather than subtracting it twice. docs/specs/catalogs-service-menu-combo.md."
+        description="Combos while chosen (badge and count) and once picked (component services with struck prices)."
       >
         <Row label="Appointment service picker (clipped to 520px)" align="start">
           <div className="h-130 w-full max-w-md overflow-hidden rounded-2xl border border-border/60">
@@ -3045,7 +3045,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="New sale — Gift cards in checkout"
-        description="Selling a gift card from the POS drawer (/sales/new-sale → Gift cards). The Add/Edit gift card dialog sets value, price, expiration, an optional custom code, the is-a-gift + confirmation-email toggles, and the attributed team member. On the payment step a notice blocks paying for a gift card with another gift card; the Gift card method otherwise opens a redeem-by-code dialog."
+        description="Selling a gift card from the POS: the Add/Edit dialog, the block on paying with a gift card, and redeem by code."
       >
         <Row label="Add gift card dialog">
           <GiftCardDialogDemo />
@@ -3062,7 +3062,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="New sale — Payment link (self checkout)"
-        description="The operator half of CamiPay (PRO-396, reworked in PRO-909). 'Payment link' texts the client a link they pay on their own phone. Sending it creates a draft sale and locks the cart — amount and method frozen so the link and the sale cannot drift apart — so the drawer body becomes the lock screen rather than narrating progress the operator cannot act on. Links live 12 hours. Cancel invalidates the link and hands off to the draft it created; Mark as paid is the manual settle path."
+        description="Payment link lock screen: cart frozen while the 12-hour link is live, with Cancel and Mark as paid."
       >
         <Row label="Payment step — method grid">
           <div className="w-full max-w-xl">
@@ -3091,7 +3091,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="New sale — POS Terminal (card present)"
-        description="The card-present adoption of PRO-909's locked cart: once a sale is sent to a machine the drawer body is replaced, so the operator cannot re-charge it or discard a sale that already took the money. Mark as paid stands in for the terminal callback; Collect another way is the only exit and keeps the cart. Only a signed-in machine can be picked, and every other state carries its reason."
+        description="A sale sent to a terminal locks the drawer: Mark as paid stands in for the callback, Collect another way is the only exit."
       >
         <Row label="Payment step — two machines, one tile each">
           <div className="w-full max-w-xl">
@@ -3156,7 +3156,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Payment policy — deposit & no-show config"
-        description="Payment policy (DSG-51) inside the Settings dialog (?settings=payments). Summary panel → policy editor takeover, with the customise-by-service table and the client-facing terms editor. The configured policy drives the appointment sheet's Payment policy card — deposit from the percent/fixed default plus per-service overrides, hidden entirely when no policy is set. Shown here: the shared percent/AED input and the generated example line."
+        description="The shared percent/AED deposit input and the generated example line from the payment policy editor."
       >
         <Row label="Amount input — percent mode (deposit default)">
           <AmountInputDemo initial={{ mode: "percent", value: 25 }} />
@@ -3185,7 +3185,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Terminals (DSG-62)"
-        description="Per-device terminals: each unit registers with its own code and PIN, and a session is time-boxed. The superseded model shared one merchant PIN, so removing a terminal signed out every location. Rows lead with the device name, carry the session state, and the menu offers only what that state allows. The faint demo controls walk one unit through Not paired → No sessions → Active."
+        description="Per-device terminal rows with session state, and demo controls for Not paired, No sessions and Active."
       >
         <Row label="Empty (nothing added yet)">
           <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
@@ -3216,7 +3216,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Notifications settings"
-        description="Three cards: Sender ID (with 'Customers currently see CAMI' only when the two differ, and Edit disabled while a registration is pending), Reminders (6 events × 3 channels with per-message rates, event labels linking into their template editor), and Usage this month (share-of-cost meter and a month-end estimate off a period aggregate rather than the paginated log). Three faint demo controls walk the Sender ID states and the WhatsApp grant."
+        description="Three cards: Sender ID, a Reminders matrix of 6 events by 3 channels, and Usage this month with a month-end estimate."
       >
         <Row label="Live (Settings + Log tabs)">
           <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
@@ -3231,7 +3231,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Communication templates"
-        description="DSG-83 — Notifications decides whether an event sends, this decides its wording, so there is no send toggle here. Per-channel tabs over one card of 6 rows, keyed on the same event list the Reminders matrix uses. The editor is form left, sticky preview right, with clickable {{placeholder}} chips; an unknown token sends as written, because a typo has to be visible here and not in a customer's inbox. {{cardLink}} is line-scoped like the review link, so a venue without a card drops the whole line."
+        description="Per-channel template list and editor with live preview and {{placeholder}} chips, and no send toggle."
       >
         <Row label="Live (Email + WhatsApp tabs)">
           <div className="w-full rounded-2xl border border-border/60 bg-card p-6">
@@ -3246,7 +3246,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Google review link (PRD-168)"
-        description="PRD-168. A Google Business Profile URL and a Google review URL are different things: the first drops the customer on the listing to hunt for 'Write a review', the second opens the review box. PILOT-30 exists because the previous tool got that wrong and the merchant lost ~50 reviews without noticing. So a listing URL saves with a warning rather than being rejected, and anything non-Google is refused. With nothing set, the review line drops out of the Thank You message (DZ-263)."
+        description="Google review URL field: a listing URL saves with a warning, non-Google is refused, empty drops the Thank You review line."
       >
         <Row label="Field — live (writes the shared setting)">
           <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-6">
@@ -3259,64 +3259,62 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Money — account summary (DSG-77)"
-        description="Split custody made legible: terminal money is held and paid by NeoPay, online money by Cami. Every figure is derived from one ledger (lib/money), so the breakdown arrives at the headline instead of asserting it — the defect the benchmark shows at 9.3x. D6 is undecided, so both layouts are here."
+        description="Account summary split into terminal money paid by NeoPay and online money by Cami. Both layouts shown as D6 is undecided."
       >
-        <Row label="Two rails">
-          <MoneySummaryDemo variant="two-rail" />
-        </Row>
-        <Row label="Blended">
-          <MoneySummaryDemo variant="blended" />
-        </Row>
-        <Row label="Payouts paused">
-          <MoneySummaryDemo variant="two-rail" block="destination-unverified" />
-        </Row>
-        <Row label="Below minimum">
-          <MoneySummaryDemo variant="two-rail" block="below-minimum" />
-        </Row>
-        <Row label="Terminal only">
-          <MoneySummaryDemo variant="two-rail" rails={{ online: false, terminal: true }} />
-        </Row>
-        <Row label="Zero activity">
-          <MoneySummaryDemo variant="two-rail" empty />
-        </Row>
+        <StatePicker
+          states={[
+            { label: "Two rails", content: <MoneySummaryDemo variant="two-rail" /> },
+            { label: "Blended", content: <MoneySummaryDemo variant="blended" /> },
+            {
+              label: "Payouts paused",
+              content: <MoneySummaryDemo variant="two-rail" block="destination-unverified" />,
+            },
+            {
+              label: "Below minimum",
+              content: <MoneySummaryDemo variant="two-rail" block="below-minimum" />,
+            },
+            {
+              label: "Terminal only",
+              content: (
+                <MoneySummaryDemo variant="two-rail" rails={{ online: false, terminal: true }} />
+              ),
+            },
+            { label: "Zero activity", content: <MoneySummaryDemo variant="two-rail" empty /> },
+          ]}
+        />
       </Section>
       <Section
         title="Money — activity and detail (DSG-78)"
-        description="The itemised feed under the number. Day groups carry a NET subtotal rather than takings, so a heavy fee day cannot read as a good one. Rows carry direction in the icon and colour before the sign. Open any row for the detail panel; open a payout row to drill into what it carried and watch the contents sum to the payout figure."
+        description="Itemised money feed with net day subtotals, row detail, and payout rows that sum to the payout."
       >
-        <Row label="Both rails">
-          <MoneyActivityDemo />
-        </Row>
-        <Row label="Terminal only">
-          <MoneyActivityDemo rails={{ online: false, terminal: true }} />
-        </Row>
-        <Row label="Empty">
-          <MoneyActivityDemo empty />
-        </Row>
+        <StatePicker
+          states={[
+            { label: "Both rails", content: <MoneyActivityDemo /> },
+            {
+              label: "Terminal only",
+              content: <MoneyActivityDemo rails={{ online: false, terminal: true }} />,
+            },
+            { label: "Empty", content: <MoneyActivityDemo empty /> },
+          ]}
+        />
       </Section>
       <Section
         title="Money — bank account (DSG-75)"
-        description="The one control that can redirect every dirham the business takes, so changing it is a multi-step flow and never an inline edit. The reference version is a masked account and an Edit button; this adds a verification state, both senders shown against the single account they pay into, and a change log that keeps failed attempts. The state worth clicking is the gateway failure — it must leave the old account untouched and say so."
+        description="Bank account change as a multi-step flow with verification and a change log, try the gateway failure state."
       >
-        <Row label="Verified">
-          <BankAccountDemo state="verified" />
-        </Row>
-        <Row label="Unverified">
-          <BankAccountDemo state="unverified" />
-        </Row>
-        <Row label="Gateway failed">
-          <BankAccountDemo state="gateway-failed" />
-        </Row>
-        <Row label="Read-only">
-          <BankAccountDemo state="read-only" />
-        </Row>
-        <Row label="Terminal only">
-          <BankAccountDemo state="terminal-only" />
-        </Row>
+        <StatePicker
+          states={[
+            { label: "Verified", content: <BankAccountDemo state="verified" /> },
+            { label: "Unverified", content: <BankAccountDemo state="unverified" /> },
+            { label: "Gateway failed", content: <BankAccountDemo state="gateway-failed" /> },
+            { label: "Read-only", content: <BankAccountDemo state="read-only" /> },
+            { label: "Terminal only", content: <BankAccountDemo state="terminal-only" /> },
+          ]}
+        />
       </Section>
       <Section
         title="Money — invoices and fees (DSG-76)"
-        description="What Cami charged, per period, with the current month pending. Cami's statement is a different document from the benchmark's: no subscription line (the OS is free), the rate stated on screen rather than only inside a download, and every fee expandable to the sale that caused it. Each line renders the rate snapshotted at capture, so a past statement never re-rates after a renegotiation."
+        description="Cami's per-period fee statements with the current month pending and each fee expandable to its sale."
       >
         <Row label="NeoPay deducts">
           <MoneyFeesDemo terminalModel="gateway-deducts" />
@@ -3333,7 +3331,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Money — billing details (DSG-74)"
-        description="Four values, held once, printed on every tax invoice the merchant sends and every invoice Cami sends them. Missing fields collapse into an Add pill rather than a blank row, and the no-TRN state names its consequence: ordinary invoices with no tax wording. Edit says changes apply forward only, and takes the registered address through the address search field rather than a free-text box."
+        description="Billing details card: missing fields as Add pills, the no-TRN consequence, and a forward-only Edit with address search."
       >
         <Row label="Complete">
           <BillingDetailsDemo state="complete" />
@@ -3347,7 +3345,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="CamiPay fee breakdown — Partner side"
-        description="PRO-737. What the Partner sees on their own sale detail (/sales/sales-list, open a sale paid by CamiPay): Sale amount → Cami fee → Net, with the calculation spelled out under the fee so the number is never a black box. The gateway's processing fee is deliberately absent — the Partner pays Cami's fee and nothing else. The rate is snapshotted at capture, so a later change never restates it."
+        description="Partner sale detail fee: Sale amount, Cami fee and Net, with the calculation spelled out under the fee."
       >
         <Row label="Percentage only">
           <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-5">
@@ -3393,7 +3391,7 @@ export function BusinessLane() {
       <Section
         lazy
         title="Invoice document — A4 downloadable"
-        description="DSG-72. One component renders the PDF download, the email attachment and the unique invoice link, so field order is identical across the three by construction. Paper, not app chrome: white-with-dark-ink in dark mode and no badge chips — payment state is carried by the Balance, and only Refunded and Voided get a line of prose. Previews scale to 34%; open /sales/invoice-document?state=<id> for full size."
+        description="One invoice component for PDF, email and link, as white paper with no badge chips, previewed at 34%."
       >
         <Row label="Status — carried by the numbers, no chips">
           <InvoicePreview id="completed" note="Split tender, per-tender timestamps, Balance 0.00" />
@@ -3464,7 +3462,7 @@ export function BusinessLane() {
       <Section
         lazy
         title="Invoice document — share & email actions"
-        description="DSG-72. The two modals behind the sale detail dialog's actions, matched to the shipped implementation in cami-business rather than to a screenshot. Neither navigates away from the sale — that is the shape every production action on this dialog shares. Share invoice hands out the unique invoice link, which renders the same document as the PDF and the email attachment."
+        description="Share invoice and email invoice modals from the sale detail dialog, neither leaving the sale."
       >
         <Row label="Share invoice — the link is fetched, so it has three states">
           <ShareDialogDemo
@@ -3503,7 +3501,7 @@ export function BusinessLane() {
       <Section
         lazy
         title="Product import — review states (DSG-80)"
-        description="The redesigned bulk-import review. Aya's migration from the Slack thread is the reference case: 100 rows, 83 added, 17 blocked for a missing SKU. The complaint was that those 17 shared one cause and the shipped UI made you expand each row to find it — so causes are grouped and stated once, and the last column says what happens in words rather than counting errors. Compare with what ships today via the compare bar."
+        description="Bulk-import review with causes grouped once, using Aya's 100-row case, compare with today's UI via the compare bar."
       >
         <Row label="Grouped causes" align="start">
           <IssueSummaryDemo
@@ -3572,56 +3570,102 @@ export function BusinessLane() {
           />
         </Row>
 
-        <Row label="Whole review step" align="start">
-          <ReviewStateDemo
-            scenario="aya-migration"
-            label="The reported case"
-            note="83 ready, 17 blocked. Clicking a cause filters the table to those rows."
-          />
-          <ReviewStateDemo
-            scenario="mixed"
-            label="Every status at once"
-            note="Plus an unrecognised tax rate. The filter appears because several statuses are present."
-          />
-          <ReviewStateDemo
-            scenario="all-rejected"
-            label="Nothing importable"
-            note="No disabled primary button and no filter — one way out instead."
-          />
-          <ReviewStateDemo
-            scenario="up-to-date"
-            label="Already up to date"
-            note="Confirm is gone; the headline is the answer."
-          />
-          <ReviewStateDemo
-            scenario="placeholder-skus"
-            label="After PRD-63"
-            note="All 100 import; the advisory names the 17 generated SKUs."
-          />
-        </Row>
+        <StatePicker
+          label="Whole review step"
+          states={[
+            {
+              label: "The reported case",
+              content: (
+                <ReviewStateDemo
+                  scenario="aya-migration"
+                  label="The reported case"
+                  note="83 ready, 17 blocked. Clicking a cause filters the table to those rows."
+                />
+              ),
+            },
+            {
+              label: "Every status at once",
+              content: (
+                <ReviewStateDemo
+                  scenario="mixed"
+                  label="Every status at once"
+                  note="Plus an unrecognised tax rate. The filter appears because several statuses are present."
+                />
+              ),
+            },
+            {
+              label: "Nothing importable",
+              content: (
+                <ReviewStateDemo
+                  scenario="all-rejected"
+                  label="Nothing importable"
+                  note="No disabled primary button and no filter — one way out instead."
+                />
+              ),
+            },
+            {
+              label: "Already up to date",
+              content: (
+                <ReviewStateDemo
+                  scenario="up-to-date"
+                  label="Already up to date"
+                  note="Confirm is gone; the headline is the answer."
+                />
+              ),
+            },
+            {
+              label: "After PRD-63",
+              content: (
+                <ReviewStateDemo
+                  scenario="placeholder-skus"
+                  label="After PRD-63"
+                  note="All 100 import; the advisory names the 17 generated SKUs."
+                />
+              ),
+            },
+          ]}
+        />
 
-        <Row label="Done step" align="start">
-          <DoneStateDemo
-            scenario="mixed"
-            label="With rows left behind"
-            note="Offers the failed-row download, not just a count."
-          />
-          <DoneStateDemo
-            scenario="placeholder-skus"
-            label="After PRD-63"
-            note="'17 products need a real SKU', linking to them. This is what makes PRD-63 safe to ship."
-          />
-          <DoneStateDemo
-            scenario="duplicate-barcodes"
-            label="Clean import"
-            note="Follow-up blocks appear only when there is something to chase."
-          />
-        </Row>
+        <StatePicker
+          label="Done step"
+          states={[
+            {
+              label: "With rows left behind",
+              content: (
+                <DoneStateDemo
+                  scenario="mixed"
+                  label="With rows left behind"
+                  note="Offers the failed-row download, not just a count."
+                />
+              ),
+            },
+            {
+              label: "After PRD-63",
+              content: (
+                <DoneStateDemo
+                  scenario="placeholder-skus"
+                  label="After PRD-63"
+                  note="'17 products need a real SKU', linking to them. This is what makes PRD-63 safe to ship."
+                />
+              ),
+            },
+            {
+              label: "Clean import",
+              content: (
+                <DoneStateDemo
+                  scenario="duplicate-barcodes"
+                  label="Clean import"
+                  note="Follow-up blocks appear only when there is something to chase."
+                />
+              ),
+            },
+          ]}
+        />
       </Section>
       <Section
         lazy
         title="Clients and pets import — review states (DSG-84)"
-        description="The same wizard on the other two entities. Production serves all three from one component set, so these are the product import's parts with different counts. What is genuinely specific: name matching — a row matched on first name alone, which products have no equivalent of — and a pet row, which carries an owner and a pet with separate outcomes. The reference cases are Aya's 100-row client file and Maaz's 873-row pet file. Compare at /clients/import."
+        description="Import review states for clients and pets, including first-name-only matches and pet rows with owner and pet outcomes."
       >
         <Row label="Row anatomy" align="start">
           <ClientRowDemo
@@ -3656,56 +3700,102 @@ export function BusinessLane() {
           />
         </Row>
 
-        <Row label="Whole review step" align="start">
-          <ClientReviewStateDemo
-            scenario="aya-clients"
-            label="Aya's client import"
-            note="Opens on the 21 rows that need her — 18 missing a last name, 1 duplicate phone, 2 name matches — not on 79 identical green badges."
-          />
-          <ClientReviewStateDemo
-            scenario="maaz-pets"
-            label="Maaz's pet import"
-            note="Eleven counts and eight lists created. Owner counts are named, so '826 pets will be added' cannot be read as the owner total."
-          />
-          <ClientReviewStateDemo
-            scenario="pets-no-owner"
-            label="No contact details anywhere"
-            note="120 rows, every pet standalone, not one client created. The commit button counts pets on a pet import for this file: counting owners read 'nothing to import' over an import of 120 pets."
-          />
-          <ClientReviewStateDemo
-            scenario="many-name-matches"
-            label="Mostly name matches"
-            note="16 of 24 rows matched on first name alone — the volume the reported file would produce in a populated account."
-          />
-          <ClientReviewStateDemo
-            scenario="client-no-pets"
-            label="Pet feature off"
-            note="The same file on an account without pets. Nothing pet-related may appear anywhere on this screen."
-          />
-        </Row>
+        <StatePicker
+          label="Whole review step"
+          states={[
+            {
+              label: "Aya's client import",
+              content: (
+                <ClientReviewStateDemo
+                  scenario="aya-clients"
+                  label="Aya's client import"
+                  note="Opens on the 21 rows that need her — 18 missing a last name, 1 duplicate phone, 2 name matches — not on 79 identical green badges."
+                />
+              ),
+            },
+            {
+              label: "Maaz's pet import",
+              content: (
+                <ClientReviewStateDemo
+                  scenario="maaz-pets"
+                  label="Maaz's pet import"
+                  note="Eleven counts and eight lists created. Owner counts are named, so '826 pets will be added' cannot be read as the owner total."
+                />
+              ),
+            },
+            {
+              label: "No contact details anywhere",
+              content: (
+                <ClientReviewStateDemo
+                  scenario="pets-no-owner"
+                  label="No contact details anywhere"
+                  note="120 rows, every pet standalone, not one client created. The commit button counts pets on a pet import for this file: counting owners read 'nothing to import' over an import of 120 pets."
+                />
+              ),
+            },
+            {
+              label: "Mostly name matches",
+              content: (
+                <ClientReviewStateDemo
+                  scenario="many-name-matches"
+                  label="Mostly name matches"
+                  note="16 of 24 rows matched on first name alone — the volume the reported file would produce in a populated account."
+                />
+              ),
+            },
+            {
+              label: "Pet feature off",
+              content: (
+                <ClientReviewStateDemo
+                  scenario="client-no-pets"
+                  label="Pet feature off"
+                  note="The same file on an account without pets. Nothing pet-related may appear anywhere on this screen."
+                />
+              ),
+            },
+          ]}
+        />
 
-        <Row label="Done step" align="start">
-          <ClientOutcomeDemo
-            scenario="aya-clients"
-            label="Clients, with rows left behind"
-            note="The ledger has to add up to the file: 79 added + 2 left for you to answer + 19 left behind = 100."
-          />
-          <ClientOutcomeDemo
-            scenario="maaz-pets"
-            label="Pets"
-            note="The same panel as the product Done step — the two were separate implementations and drifted apart within a day."
-          />
-          <ClientOutcomeDemo
-            scenario="pets-no-owner"
-            label="Pets, none with an owner"
-            note="'120 pets added' with 0 owners under it — the ledger keeps the standalone pets on their own line rather than folding them into the added count."
-          />
-        </Row>
+        <StatePicker
+          label="Done step"
+          states={[
+            {
+              label: "Clients, with rows left behind",
+              content: (
+                <ClientOutcomeDemo
+                  scenario="aya-clients"
+                  label="Clients, with rows left behind"
+                  note="The ledger has to add up to the file: 79 added + 2 left for you to answer + 19 left behind = 100."
+                />
+              ),
+            },
+            {
+              label: "Pets",
+              content: (
+                <ClientOutcomeDemo
+                  scenario="maaz-pets"
+                  label="Pets"
+                  note="The same panel as the product Done step — the two were separate implementations and drifted apart within a day."
+                />
+              ),
+            },
+            {
+              label: "Pets, none with an owner",
+              content: (
+                <ClientOutcomeDemo
+                  scenario="pets-no-owner"
+                  label="Pets, none with an owner"
+                  note="'120 pets added' with 0 owners under it — the ledger keeps the standalone pets on their own line rather than folding them into the added count."
+                />
+              ),
+            },
+          ]}
+        />
       </Section>
       <Section
         lazy
         title="Performance dashboard — chart primitives"
-        description="The four marks the Performance dashboard (DSG-79) is built from, plus the categorical palette they share. Colours come from the --chart-cat-* tokens; both the light and dark sets pass the dataviz validator, so check this section in both themes."
+        description="The four chart marks and shared categorical palette for the Performance dashboard. Check it in both themes."
       >
         <Row label="Categorical palette" align="start">
           <div className="flex flex-wrap gap-3">
@@ -3792,73 +3882,80 @@ export function BusinessLane() {
       <Section
         lazy
         title="Reporting module (DSG-43 / PRO-703)"
-        description="The shared view templates that render every report from lib/reports/registry.ts. Config-driven — columns, group-by, filters and date control come from each report's definition. All amounts AED."
+        description="Shared view templates that render every report from its config, with all amounts in AED."
       >
-        {reportPaymentsSummary ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Table View — Payments summary (Total row, Cami payment methods)
-            </p>
-            <TableReport report={reportPaymentsSummary} />
-          </div>
-        ) : null}
-        {reportDiscountSummary ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Table View — Discount summary (group-by re-slices the rows: name / type / category;
-              opens most used first)
-            </p>
-            <TableReport report={reportDiscountSummary} />
-          </div>
-        ) : null}
-        {reportAppointmentsSummary ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Table View — Appointments summary (pick Team member or Service: rows overlap, the
-              Total row keeps the distinct count and a note says why)
-            </p>
-            <TableReport report={reportAppointmentsSummary} />
-          </div>
-        ) : null}
-        {reportFinanceSummary ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Detailed Table View — Finance summary (section-grouped metric × period matrix)
-            </p>
-            <DetailedTableReport report={reportFinanceSummary} />
-          </div>
-        ) : null}
-        {reportPerformanceDashboard ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Dashboard View — Performance dashboard (6 Cami metrics + comparison chart +
-              drill-downs)
-            </p>
-            <DashboardReport report={reportPerformanceDashboard} />
-          </div>
-        ) : null}
-        {reportPerformanceSummary ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Matrix View — Performance summary (metric × team-member, section subtotals, Total
-              column)
-            </p>
-            <DashboardReport report={reportPerformanceSummary} />
-          </div>
-        ) : null}
-        {reportPerformanceOverTime ? (
-          <div className="py-3">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Over-time Matrix — Performance over time (live pills recompute a recharts bar chart +
-              entity × time-period table)
-            </p>
-            <DashboardReport report={reportPerformanceOverTime} />
-          </div>
-        ) : null}
+        <StatePicker
+          label="Report"
+          states={[
+            ...(reportPaymentsSummary
+              ? [
+                  {
+                    label: "Payments summary",
+                    note: "Table View: Total row, Cami payment methods",
+                    content: <TableReport report={reportPaymentsSummary} />,
+                  },
+                ]
+              : []),
+            ...(reportDiscountSummary
+              ? [
+                  {
+                    label: "Discount summary",
+                    note: "Table View: group-by re-slices the rows: name / type / category; opens most used first",
+                    content: <TableReport report={reportDiscountSummary} />,
+                  },
+                ]
+              : []),
+            ...(reportAppointmentsSummary
+              ? [
+                  {
+                    label: "Appointments summary",
+                    note: "Table View: pick Team member or Service: rows overlap, the Total row keeps the distinct count and a note says why",
+                    content: <TableReport report={reportAppointmentsSummary} />,
+                  },
+                ]
+              : []),
+            ...(reportFinanceSummary
+              ? [
+                  {
+                    label: "Finance summary",
+                    note: "Detailed Table View: section-grouped metric × period matrix",
+                    content: <DetailedTableReport report={reportFinanceSummary} />,
+                  },
+                ]
+              : []),
+            ...(reportPerformanceDashboard
+              ? [
+                  {
+                    label: "Performance dashboard",
+                    note: "Dashboard View: 6 Cami metrics + comparison chart + drill-downs",
+                    content: <DashboardReport report={reportPerformanceDashboard} />,
+                  },
+                ]
+              : []),
+            ...(reportPerformanceSummary
+              ? [
+                  {
+                    label: "Performance summary",
+                    note: "Matrix View: metric × team-member, section subtotals, Total column",
+                    content: <DashboardReport report={reportPerformanceSummary} />,
+                  },
+                ]
+              : []),
+            ...(reportPerformanceOverTime
+              ? [
+                  {
+                    label: "Performance over time",
+                    note: "Over-time Matrix: live pills recompute a recharts bar chart + entity × time-period table",
+                    content: <DashboardReport report={reportPerformanceOverTime} />,
+                  },
+                ]
+              : []),
+          ]}
+        />
       </Section>
       <Section
         title="Customer card — per-venue theming"
-        description="Task 2 + 3 of the Client Card brief, drawn from the same client row the operator dialog renders — one record, two faces. Wallet, loyalty, next appointment, staff-maintained preferences, and one path back to booking. Reception-only fields are excluded where the view is built, so they cannot leak by a careless prop spread. Theming is five palettes and Cami's Manrope throughout. The empty card teaches the two kinds of nothing: an outlined wallet with none yet, against a loyalty section absent because that venue runs no programme. Live at /sota/card."
+        description="Customer card in five venue palettes, with wallet, loyalty, next appointment, preferences and the empty card."
         lazy
       >
         <Row label="Themes">
@@ -3889,7 +3986,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Client card — the two faces"
-        description="The brief's own side-by-side, runnable. Both halves come from one client row (Maaz Shaffi) through the same resolver: identity, wallet, last/next appointment and preferences appear on both, and nothing about the layout, type or colour crosses between them. That is the test for whether the record is venue-agnostic before Tech commits to a schema, and the asymmetries it caught are why preferences exist on the operator side at all."
+        description="Operator and client faces of one client row (Maaz Shaffi) side by side through the same resolver."
         lazy
       >
         <Row label="One record" align="start">
@@ -3900,7 +3997,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Client card — message to card"
-        description="The brief's page 6, runnable: trigger → message → branded login → their card. Four working screens is not the same as a journey that works. The venue's mark now appears in panel 2 and carries through unbroken — before, the message was a grey notification from nobody and the branded page was the first branded thing a customer met, one tap too late. Panel 3 tells the customer the link is personal; panel 4 is everything that link exposes."
+        description="Trigger, message, branded login and card in four panels, with the venue's mark carried from the message onward."
         lazy
       >
         <Row label="End to end" align="start">

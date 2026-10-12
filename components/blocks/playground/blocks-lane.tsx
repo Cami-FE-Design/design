@@ -138,7 +138,7 @@ export function BlocksLane() {
     >
       <Section
         title="Empty state"
-        description="Centered placeholder for sections with no data. variant='plain' (default) is the borderless, muted in-section treatment. variant='card' wraps the same light line-icon and muted title in a dashed self-framed card — the full-page listing look used by the sales / clients / pets / products / appointments tables when a search or filter returns nothing."
+        description="Placeholder for empty sections, in the plain default and the dashed card used by listing pages."
       >
         <div className="grid max-w-3xl gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-border/60 bg-card">
@@ -161,7 +161,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Recency badge"
-        description="Recency indicator next to client / pet names. Common labels: 'New' (≤14d since first visit), relative time like '4 weeks' (between), '90+ days' (>90d since last visit)."
+        description="Recency badge next to client and pet names: 'New', relative time like '4 weeks', or '90+ days'."
       >
         <Row label="Labels">
           <RecencyBadge>New</RecencyBadge>
@@ -185,7 +185,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Avatar stack"
-        description="Stacked avatars with overlap + an overflow indicator. Hover any avatar to see the name; the +N chip lists the rest. Used for family / staff / contributor lists where vertical space is tight."
+        description="Overlapping avatars with a +N overflow chip, hover any avatar for the name."
       >
         <Row label="Few (2)">
           <AvatarStack
@@ -292,7 +292,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Note callout"
-        description="Notion-style note pill. Lightbulb on a soft sand background. Used inside edit dialogs to flag side-effects ('Once saved...')."
+        description="Notion-style note pill with a lightbulb on sand, used in edit dialogs to flag side-effects."
       >
         <Row label="Default">
           <div className="flex w-full max-w-xl items-start gap-3 rounded-2xl bg-sand-3 px-4 py-3">
@@ -306,7 +306,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Page header"
-        description="The title row of a listing page, passed to AppShell or AdminShell as header. Title, one line of description (a count, or what the page is for) and an actions group kept together on the right."
+        description="Listing page title row: title, one line of description and the actions group on the right."
       >
         <Row label="With actions" align="start">
           <PageHeader
@@ -343,7 +343,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Inline notice"
-        description="A tinted box with an icon and one short message, for settings panels, dialogs and card footnotes. No accent border. Anything with a title or buttons is built in place."
+        description="Tinted box with an icon and one short message, with no accent border."
       >
         <Row label="Warning" align="start">
           <div className="w-full max-w-xl">
@@ -377,7 +377,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Pickable card grid"
-        description="Multi-select cards with icon, label, and a check indicator. Used for picking business types in the Edit business type dialog."
+        description="Multi-select cards with icon, label and check, used to pick business types in the Edit business type dialog."
       >
         <Row label="Default">
           <div className="grid w-full max-w-xl grid-cols-2 gap-3 sm:grid-cols-3">
@@ -417,7 +417,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Timeline row"
-        description="Vertical timeline used by Appointments / Visit history. Date / leading slot on the left, thin connector with a small dot, card on the right. Layout inspired by Luma's event list."
+        description="Vertical timeline rows: date on the left, dot connector, card on the right, as used in Appointments and Visit history."
       >
         <div className="max-w-lg">
           <ul className="flex flex-col">
@@ -523,7 +523,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Settings card"
-        description="The card every settings panel is built from: one 146 (584px) footprint from sm up, so a column of cards shares one edge. className sets the inner gap or a row layout, never the width."
+        description="The w-146 (584px) card every settings panel is built from, so a column of cards shares one edge."
       >
         <Row label="Default" align="start">
           <SettingsCard>
@@ -544,7 +544,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Settings row"
-        description="Icon + label/value stack used inside settings summary cards. When the value is null the row collapses into a subtle 'Add {label}' pill."
+        description="Icon with label and value for settings cards. A null value collapses into an 'Add {label}' pill."
       >
         <Row label="Filled">
           <div className="flex w-full max-w-md flex-col gap-5">
@@ -584,7 +584,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Sectioned sheet shell"
-        description="Two-column layout for sectioned add/edit takeovers (FullScreenEditDialog). Vertical sidenav left, scrollable content right. Optional leading slot above the nav for cases where you want identity context (e.g. Edit). Detail surfaces use a different pattern — see the next section."
+        description="Two-column shell for add/edit takeovers: vertical sidenav left, scrollable content right."
       >
         <Row label="Leading slot">
           <SegmentedToggle
@@ -657,7 +657,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Address search field"
-        description="Search first, structured fields second — picking a place fills the grid, which stays editable because the trade licence is what has to match, not the places result. Manual entry is the first row of the dropdown, not a fallback reached by failing. A picked place stores its placeId and coordinates; edit the text afterwards and the line under the field drops them (PRD-144)."
+        description="Address search that fills an editable grid, with manual entry as the first row and pin data cleared if text is edited."
       >
         <Row label="Empty — search only">
           <AddressSearchFieldDemo />
@@ -668,7 +668,7 @@ export function BlocksLane() {
       </Section>
       <Section
         title="Add a signature dialog"
-        description="Standalone signature-capture modal: full name + Title, a Type / Draw segmented toggle — Type renders the scripted preview + Signature ID, Draw is a pointer canvas pad with Clear. Sign is disabled until valid. The public signer flow (/sign) now captures the signature inline in its split layout rather than in this modal; kept here for reuse elsewhere."
+        description="Signature modal with full name and Title, Type and Draw modes, and Sign disabled until valid."
       >
         <Row label="Open">
           <Button onClick={() => setSignatureOpen(true)}>Add a signature</Button>
@@ -694,7 +694,7 @@ export function BlocksLane() {
       <Section
         lazy
         title="PDF viewer"
-        description="<PdfViewer> renders PDFs on a canvas (react-pdf / pdf.js) inside our own themed scrolling container — no native viewer chrome. Pages fit the container width; a floating dark toolbar carries zoom (50–250%) and page navigation, tracked as you scroll. Client-only. Used by /sign, the operator 'View form' layout and Files → Preview."
+        description="Canvas PDF viewer with a floating dark toolbar for zoom (50–250%) and page navigation, used by /sign and View form."
       >
         <Row label="Document">
           <div className="w-full max-w-xl">

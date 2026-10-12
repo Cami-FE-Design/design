@@ -94,7 +94,7 @@ export function HqLane() {
     <Lane id="hq" label="Cami HQ" blurb="Our own control plane over Partners.">
       <Section
         title="Cami HQ — CamiPay settlement config"
-        description="PRO-737. The Settings tab of the HQ Partner detail dialog: one card, one section per rail — whether it is on, where it routes, and what Cami charges. A rate is a percentage plus a fixed per-transaction amount, optionally with a ceiling above which the fixed part drops off. Rates are append-only, so the only write is Change, which adds a row with an effective-from date. A live rail with no rate row earns Cami nothing and says so."
+        description="Per-rail CamiPay settings card in HQ: on or off, routing, and append-only rates added with Change."
       >
         <CamiPayProvider>
           <Row label="Live Partner, full edit rights">
@@ -116,7 +116,7 @@ export function HqLane() {
       </Section>
       <Section
         title="Cami HQ — terminal fleet, Partner card"
-        description="DSG-82 — Cami owns the machines and leases them, so a terminal is an asset HQ assigns, not a device a merchant registered. Rows lead with the serial, which is what is printed on the box and quoted in a ticket. Return to Cami is the destructive item, not Block, because a block is undone from the same menu. The access switch writes the same rails.terminal.enabled flag as CamiPay Terminal."
+        description="Partner card terminal rows led by serial, with Return to Cami as the destructive action and an access switch."
       >
         <HqTerminalsProvider>
           <CamiPayProvider>
@@ -146,7 +146,7 @@ export function HqLane() {
       </Section>
       <Section
         title="Terminal status — one vocabulary, two surfaces"
-        description="DSG-82. The fleet table and the Partner card both read components/blocks/admin/hq-terminal-status.tsx, so they cannot drift. The first three are fleet states only HQ sees; Not set up, Locked, Active and No sessions are the merchant's own words from DSG-62. Order is first-match-wins: where the unit physically is, then whether HQ stopped it, then what the device is doing."
+        description="One terminal status vocabulary shared by the HQ fleet table and Partner card: three HQ-only states plus the merchant's."
       >
         {(
           [
@@ -167,7 +167,7 @@ export function HqLane() {
       </Section>
       <Section
         title="Partner code — CM-####"
-        description="DSG-82. The identifier a human says out loud. `id` is internal and never rendered, the slug is public and changeable, and this one is issued at creation and immutable — which is why there is no edit affordance anywhere. Chip variant on the detail header and the Terminals card, click to copy; inline variant in dense listing rows, where a button per row would be twelve buttons nobody asked for."
+        description="Immutable CM-#### Partner code: the chip variant copies on click, the inline variant suits dense rows."
       >
         <Row label="Chip — click to copy">
           <MerchantCode code="CM-4821" />
@@ -180,7 +180,7 @@ export function HqLane() {
       </Section>
       <Section
         title="Notifications, Cami HQ control plane"
-        description="The HQ half of the same store the merchant panel reads: Sender ID registrations to approve or reject, per-Partner channel grants, and rate overrides against the global rate card. Four Partners cover the states — Shampooch approved with a negotiated override, Pawhaus pending, Doggos rejected with SMS off, Furry Tales with no config at all."
+        description="HQ Sender ID approvals, channel grants and rate overrides across four Partners in different states."
       >
         <Row label="Approved Sender ID, global rates (Shampooch)">
           <div className="w-full max-w-2xl">
@@ -205,7 +205,7 @@ export function HqLane() {
       </Section>
       <Section
         title="Impersonation banner"
-        description="Bottom-anchored pill on the Partner portal during a Cami HQ impersonation session. Yellow active state, tomato expiring/expired states, plus a collapsed toggle that doubles as a re-open affordance."
+        description="Impersonation pill on the Partner portal in yellow active, tomato expiring and expired, and collapsed states."
       >
         <Row label="Active">
           <div className="flex w-full max-w-2xl justify-center rounded-md bg-cami-yellow-9 p-3">
