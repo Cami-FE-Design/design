@@ -148,6 +148,37 @@ Pick Lena on the slot step and Today’s grid stops well before the branch shuts
 
 PRD-143 — Grooming carries 'Full groom & nails' and Spa add-ons carries 'Spa pamper duo', each a single card badged Combo with a bundled-services count. Picking one books the services it bundles: the sticky summary and the Review step list them as 'Combo - Service' rows led by the layers glyph, each showing its share of the combo price with what it would cost alone struck through. The footer counts the components (2 services) but keeps the combo's own duration and total, so a parent sees the bundle's slot and price, not the sum of the parts. 'Spa pamper duo' is set to run in parallel, which is why its slot is the longer add-on rather than both added up.
 
+### Booking flow · promo code (DZ-352)
+
+`/shampooch-jvc/book`
+
+The online half of DZ-200 (§5.4B). The code field sits on the Review step, after phone verification, because a one-use-per-client code can only be checked once we know who the client is. Codes are checked against the booking as it stands on every render, so going back and changing services re-checks the applied code rather than keeping a discount that no longer fits.
+
+Codes that apply:
+
+- **WELCOME15** — 15% off every service. Use an ODD-ending mobile (new client). Each discounted line gets a green caption, the totals get a Promo code row, VAT is worked out on the discounted total, and the Total shows the full price struck through. The desktop summary and "You're booked" carry it too.
+- **SPA20** — Spa and nail add-ons only. Book Full groom + Teeth brushing and it reads "applies to 1 of 2 services".
+- **GROOM50** — AED 50 off grooming, with a AED 300 minimum counted on grooming lines only (D5). Full groom alone is AED 40 short, and adding a nail trim does not help. Full groom + Breed-standard cut applies, with the AED 50 shared across both lines.
+- **NAILFREE** — 100% off a nail trim. Booked alone, the total is AED 0 and the pay-at-salon note changes to "Nothing to pay".
+
+Codes that are refused, one per reason:
+
+- **TEACH10** — a staff-only promotion. Typed online it is simply not found, so the error never reveals a discount the business keeps for the till.
+- **JULY10** — expired, with the date.
+- **FRIEND25** — switched off by the owner.
+- **ALQUOZ30** — a real code at the wrong branch, named as such.
+- **FIRST50** — the total cap is reached.
+- **WELCOME15** with an EVEN-ending mobile — that returning client has used it before.
+- **WELCOME15** on a combo only — combos are never discounted, since they are already bundle-priced.
+
+Apply WELCOME15, go back and swap the groom for 'Full groom & nails': the code stays named with "no longer applies" and the reason, and the total is back at full price. Purr Palace and Sota show no field at all: none of the seeded promotions are theirs.
+
+### Deal · redeemable on your booking page (DZ-352)
+
+`/shell-demo?settings=deals&deal=welcome-online`
+
+DZ-200 D10. On the Details tab, the Online booking row reads "Clients can enter the code" or "Team only". Edit opens the wizard. The "Redeemable on your booking page" switch sits above the discount code because it decides whether the code is needed: off, the code is optional; on, Continue stays disabled until a 3–20 character code is entered. The finish screen's "Redeem at" line names both surfaces. Duplicating a deal turns the switch off, because the copy has no code.
+
 ### Manage booking (E3-5)
 
 `/shampooch-jvc/booking/CAMI-4821`
@@ -159,6 +190,12 @@ View detail (status starts as 'Booked', violet; ref suffix -confirmed → green,
 `/shampooch-jvc/booking/CAMI-4821-pickup`
 
 The '-pickup' ref suffix (same convention as -confirmed / -cancelled) renders the collection variant: Pickup and Notes rows join Service / When / Duration / With / Pet, so the parent can check the collection address without calling the salon.
+
+### Manage booking · promo code (DZ-352)
+
+`/shampooch-jvc/booking/CAMI-3208-promo`
+
+The '-promo' ref suffix renders a booking made with WELCOME15. A Promo code row sits above Total, and Total shows the AED 221 the client was quoted on the review step, with the full AED 260 struck through underneath. The code is kept on the booking rather than re-checked, so a code that has since expired or been switched off does not change a booking already made with it. This is also the booking that makes WELCOME15 refuse this returning client on her next one. The same suffix on a branch that runs no promotions (Purr Palace, Sota) shows a plain total. This is a fixed demo booking, reached by its URL. Manage booking does not remember the booking just made, so "Manage booking" on the "You're booked" screen opens the plain one whatever code was used.
 
 ### Pet-parent account (E3-6)
 

@@ -122,6 +122,13 @@ export type Deal = {
   discountCode: string
   /** Whether the till may offer it at all (`enableAtPointOfSale`). */
   enableAtPointOfSale: boolean
+  /**
+   * Whether a client may enter `discountCode` on the public booking page
+   * (DZ-200 D10, `booking_redeemable`). Off by default: most of what a salon
+   * calls a discount — teachers, Emirates staff — is a label the team applies
+   * at checkout, not a code to hand out. On makes the code required.
+   */
+  bookingRedeemable: boolean
   status: DealStatus
   /** ISO date. Required — a deal with no start has nothing to show in the list. */
   startDate: string
@@ -192,6 +199,7 @@ export const MOCK_DEALS: Deal[] = [
     discountValue: 20,
     discountCode: "",
     enableAtPointOfSale: true,
+    bookingRedeemable: false,
     status: "active",
     startDate: "2026-08-01",
     endDate: "2026-09-30",
@@ -215,6 +223,7 @@ export const MOCK_DEALS: Deal[] = [
     discountValue: 30,
     discountCode: "",
     enableAtPointOfSale: true,
+    bookingRedeemable: false,
     status: "active",
     startDate: "2026-08-04",
     endDate: "2026-10-27",
@@ -240,6 +249,9 @@ export const MOCK_DEALS: Deal[] = [
     discountValue: 25,
     discountCode: "FRIEND25",
     enableAtPointOfSale: true,
+    // Handed out by the referring client, so it is entered online — which is
+    // also how an online client meets "this code isn't active right now".
+    bookingRedeemable: true,
     status: "inactive",
     startDate: "2026-07-01",
     endDate: "2026-12-31",
@@ -262,6 +274,7 @@ export const MOCK_DEALS: Deal[] = [
     discountValue: 50,
     discountCode: "",
     enableAtPointOfSale: true,
+    bookingRedeemable: false,
     status: "active",
     startDate: "2026-10-01",
     endDate: null,
@@ -291,6 +304,7 @@ export const MOCK_DEALS: Deal[] = [
     discountValue: 15,
     discountCode: "",
     enableAtPointOfSale: true,
+    bookingRedeemable: false,
     status: "active",
     startDate: "2026-08-10",
     endDate: null,
@@ -322,6 +336,7 @@ export const MOCK_DEALS: Deal[] = [
     // Switched off at the till while it ran — the offer was a free add-on the
     // team applied by hand, not something a client could ask for.
     enableAtPointOfSale: false,
+    bookingRedeemable: false,
     status: "archived",
     startDate: "2026-04-05",
     endDate: "2026-04-12",
@@ -333,6 +348,207 @@ export const MOCK_DEALS: Deal[] = [
     totalSalesMinor: 276000,
     totalClients: 241,
     createdAt: "2026-03-28T10:05:00Z",
+  },
+  // ─── Codes a client can enter on the booking page (DZ-352) ──────────────────
+  // One per answer the code field can give, so every state on /shampooch-jvc/book
+  // is reachable by typing a code. Service ids are the booking catalogue's.
+  {
+    // Applies. One use per client, and the demo's returning client (a mobile
+    // ending in an even digit) has had it — the "already used" case.
+    id: "welcome-online",
+    type: "promotion",
+    name: "Welcome offer",
+    description: "",
+    discountKind: "percentage",
+    discountValue: 15,
+    discountCode: "WELCOME15",
+    enableAtPointOfSale: true,
+    bookingRedeemable: true,
+    status: "active",
+    startDate: "2026-08-01",
+    endDate: null,
+    scope: { kind: "estate" },
+    applicability: SERVICES_ONLY,
+    limits: { ...DEFAULT_DEAL_LIMITS, oneUsePerClient: true },
+    teamMemberIds: [],
+    redemptions: 37,
+    totalSalesMinor: 902000,
+    totalClients: 37,
+    createdAt: "2026-07-28T10:00:00Z",
+  },
+  {
+    // Minimum spend, counted on the grooming lines only (D5): a full groom
+    // alone is AED 40 short, and adding a nail trim does not close the gap.
+    id: "groom-50",
+    type: "promotion",
+    name: "AED 50 off grooming",
+    description: "",
+    discountKind: "fixed",
+    discountValue: 50,
+    discountCode: "GROOM50",
+    enableAtPointOfSale: true,
+    bookingRedeemable: true,
+    status: "active",
+    startDate: "2026-08-15",
+    endDate: "2026-09-30",
+    scope: { kind: "estate" },
+    applicability: {
+      ...SERVICES_ONLY,
+      services: { mode: "selected", ids: ["full-groom", "puppy-groom", "breed-cut", "deshed"] },
+    },
+    limits: { ...DEFAULT_DEAL_LIMITS, minimumPurchaseEnabled: true, minimumPurchaseAmount: 300 },
+    teamMemberIds: [],
+    redemptions: 12,
+    totalSalesMinor: 390000,
+    totalClients: 12,
+    createdAt: "2026-08-14T09:30:00Z",
+  },
+  {
+    // Narrow scope: comes off the add-ons and leaves the groom alone, which is
+    // the "applies to 1 of 2 services" case.
+    id: "spa-20",
+    type: "promotion",
+    name: "Spa add-ons 20% off",
+    description: "",
+    discountKind: "percentage",
+    discountValue: 20,
+    discountCode: "SPA20",
+    enableAtPointOfSale: true,
+    bookingRedeemable: true,
+    status: "active",
+    startDate: "2026-08-01",
+    endDate: null,
+    scope: { kind: "estate" },
+    applicability: {
+      ...SERVICES_ONLY,
+      services: {
+        mode: "selected",
+        ids: ["nail-trim", "nail-grind", "paw-balm", "teeth", "facial", "cologne", "gland"],
+      },
+    },
+    limits: DEFAULT_DEAL_LIMITS,
+    teamMemberIds: [],
+    redemptions: 64,
+    totalSalesMinor: 352000,
+    totalClients: 58,
+    createdAt: "2026-07-30T12:00:00Z",
+  },
+  {
+    // 100% off one service — booked alone, the total is AED 0 (DZ-200 §6.5).
+    id: "free-nail-trim",
+    type: "promotion",
+    name: "Free nail trim",
+    description: "",
+    discountKind: "percentage",
+    discountValue: 100,
+    discountCode: "NAILFREE",
+    enableAtPointOfSale: true,
+    bookingRedeemable: true,
+    status: "active",
+    startDate: "2026-08-01",
+    endDate: "2026-09-30",
+    scope: { kind: "estate" },
+    applicability: { ...SERVICES_ONLY, services: { mode: "selected", ids: ["nail-trim"] } },
+    limits: { ...DEFAULT_DEAL_LIMITS, oneUsePerClient: true },
+    teamMemberIds: [],
+    redemptions: 21,
+    totalSalesMinor: 0,
+    totalClients: 21,
+    createdAt: "2026-07-31T08:00:00Z",
+  },
+  {
+    // Another branch's code. Entered at JVC it is refused by name, not as
+    // "not found" — the client has the right code at the wrong branch.
+    id: "al-quoz-online",
+    type: "promotion",
+    name: "Al Quoz weekday",
+    description: "",
+    discountKind: "fixed",
+    discountValue: 30,
+    discountCode: "ALQUOZ30",
+    enableAtPointOfSale: true,
+    bookingRedeemable: true,
+    status: "active",
+    startDate: "2026-08-01",
+    endDate: null,
+    scope: { kind: "branches", locationIds: ["shampooch-al-quoz"] },
+    applicability: SERVICES_ONLY,
+    limits: DEFAULT_DEAL_LIMITS,
+    teamMemberIds: [],
+    redemptions: 9,
+    totalSalesMinor: 162000,
+    totalClients: 9,
+    createdAt: "2026-07-29T15:00:00Z",
+  },
+  {
+    // Ended. Its dates are past, so it reads expired rather than inactive.
+    id: "july-treat",
+    type: "promotion",
+    name: "July treat",
+    description: "",
+    discountKind: "percentage",
+    discountValue: 10,
+    discountCode: "JULY10",
+    enableAtPointOfSale: true,
+    bookingRedeemable: true,
+    status: "active",
+    startDate: "2026-07-01",
+    endDate: "2026-07-31",
+    scope: { kind: "estate" },
+    applicability: SERVICES_ONLY,
+    limits: DEFAULT_DEAL_LIMITS,
+    teamMemberIds: [],
+    redemptions: 88,
+    totalSalesMinor: 1540000,
+    totalClients: 80,
+    createdAt: "2026-06-25T10:00:00Z",
+  },
+  {
+    // Total cap reached.
+    id: "first-50",
+    type: "promotion",
+    name: "First 50 bookings",
+    description: "",
+    discountKind: "percentage",
+    discountValue: 25,
+    discountCode: "FIRST50",
+    enableAtPointOfSale: true,
+    bookingRedeemable: true,
+    status: "active",
+    startDate: "2026-08-01",
+    endDate: null,
+    scope: { kind: "estate" },
+    applicability: SERVICES_ONLY,
+    limits: { ...DEFAULT_DEAL_LIMITS, totalUsesEnabled: true, totalUses: 50 },
+    teamMemberIds: [],
+    redemptions: 50,
+    totalSalesMinor: 1100000,
+    totalClients: 50,
+    createdAt: "2026-07-31T18:00:00Z",
+  },
+  {
+    // Staff-only (D10). It has a code for the till, but typed online it is
+    // simply not found — a staff discount is not advertised by its error.
+    id: "teachers",
+    type: "promotion",
+    name: "Teachers",
+    description: "",
+    discountKind: "percentage",
+    discountValue: 10,
+    discountCode: "TEACH10",
+    enableAtPointOfSale: true,
+    bookingRedeemable: false,
+    status: "active",
+    startDate: "2026-08-01",
+    endDate: null,
+    scope: { kind: "estate" },
+    applicability: SERVICES_ONLY,
+    limits: DEFAULT_DEAL_LIMITS,
+    teamMemberIds: [],
+    redemptions: 26,
+    totalSalesMinor: 610000,
+    totalClients: 24,
+    createdAt: "2026-07-20T09:00:00Z",
   },
 ]
 

@@ -12,6 +12,7 @@ import {
 import Link from "next/link"
 import { useState } from "react"
 import { AppleIcon, GoogleIcon } from "@/components/blocks/auth/social-icons"
+import { formatPromoMoney } from "@/components/blocks/booking/promo-code-field"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
 import { PublicTopGradient } from "@/components/blocks/public/public-top-gradient"
 import { Avatar } from "@/components/ui/avatar"
@@ -230,9 +231,33 @@ export function ManageBooking({
                   value={note.detail}
                 />
               ))}
+              {/* The code the booking was made with, so the total here is the
+                  one the client was quoted at booking (DZ-352). */}
+              {booking.promo ? (
+                <DetailRow
+                  label="Promo code"
+                  value={
+                    <span className="flex items-baseline gap-1.5 tabular-nums text-cami-green-11">
+                      {booking.promo.code}
+                      <span>- {formatPromoMoney(booking.promo.discountMinor)}</span>
+                    </span>
+                  }
+                />
+              ) : null}
               <DetailRow
                 label="Total"
-                value={<span className="tabular-nums">{formatAed(booking.priceAed)}</span>}
+                value={
+                  booking.promo ? (
+                    <span className="flex flex-col items-end tabular-nums leading-tight">
+                      {formatPromoMoney(booking.priceAed * 100 - booking.promo.discountMinor)}
+                      <span className="text-xs font-normal text-muted-foreground line-through">
+                        {formatAed(booking.priceAed)}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="tabular-nums">{formatAed(booking.priceAed)}</span>
+                  )
+                }
               />
             </div>
 
