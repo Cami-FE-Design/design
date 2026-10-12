@@ -113,7 +113,11 @@ export function Section({ title, description, lazy, children }: SectionProps) {
         </h2>
         {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       </div>
-      {lazy ? <LazyMount minHeight={420}>{children}</LazyMount> : children}
+      {/* On a phone a demo wider than the screen scrolls inside the section
+          instead of widening the page. */}
+      <div className="min-w-0 max-sm:overflow-x-auto">
+        {lazy ? <LazyMount minHeight={420}>{children}</LazyMount> : children}
+      </div>
     </section>
   )
 }
@@ -180,7 +184,9 @@ export function Row({
       // minmax(0, 1fr): a demo wider than the column (the 11-staff people
       // grid) scrolls inside its own frame instead of widening the page.
       className={cn(
-        "grid grid-cols-[140px_minmax(0,1fr)] gap-6 py-3",
+        // The label sits above the demo on a phone, where 140px of it would
+        // leave the demo almost nothing.
+        "grid grid-cols-1 gap-2 py-3 sm:grid-cols-[140px_minmax(0,1fr)] sm:gap-6",
         top ? "items-start" : "items-center",
       )}
     >
@@ -193,7 +199,10 @@ export function Row({
         {label}
       </span>
       <div
-        className={cn("flex min-w-0 flex-wrap gap-4", top ? "items-start" : "items-center gap-3")}
+        className={cn(
+          "flex min-w-0 flex-wrap gap-4 max-sm:overflow-x-auto",
+          top ? "items-start" : "items-center gap-3",
+        )}
       >
         {children}
       </div>

@@ -53,7 +53,10 @@ export function CapacityHeatmap({
                         // Hover darkens the cell; it used to draw a dark outline, which on a
                         // pastel cell read as a focus ring rather than a hover. The outline
                         // is still there for keyboard focus, where a hard edge is the point.
-                        "flex h-7 items-center justify-center rounded text-xs tabular-nums transition-[filter,outline] outline-2 outline-offset-1 outline-transparent hover:brightness-95 focus-visible:outline-ring",
+                        // `relative` holds the sr-only label inside the cell. Without
+                        // it the label is positioned against the page and pokes past
+                        // the scroll frame, widening the page on a phone.
+                        "relative flex h-7 items-center justify-center rounded text-xs tabular-nums transition-[filter,outline] outline-2 outline-offset-1 outline-transparent hover:brightness-95 focus-visible:outline-ring",
                         step >= HEAT_INK_FLIPS_AT ? "text-sand-1" : "text-sand-12",
                       )}
                       style={{ background: HEAT_RAMP[step] }}

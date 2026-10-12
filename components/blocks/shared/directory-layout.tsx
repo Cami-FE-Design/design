@@ -302,7 +302,7 @@ export function DirectoryLayout({
 
       <div className="min-w-0">
         {/* Narrow screens: search and a jump menu pinned above the content. */}
-        <div className="sticky top-0 z-20 -mx-6 mb-6 flex flex-col gap-2 border-b border-border/40 bg-background/95 px-6 py-3 backdrop-blur lg:hidden">
+        <div className="sticky top-0 z-20 -mx-4 mb-6 flex flex-col gap-2 border-b border-border/40 bg-background/95 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
           {search}
           <select
             aria-label="Jump to section"

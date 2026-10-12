@@ -2096,7 +2096,7 @@ function RoutePath({ path }: { path: string }) {
 
 export default function ScreensPage() {
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-10">
+    <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
       <header className="mb-10 flex items-start justify-between gap-6">
         <div>
           <h1 className="text-2xl font-medium text-foreground">Screens</h1>
@@ -2180,7 +2180,7 @@ export default function ScreensPage() {
                             <li
                               key={group.path}
                               data-search={searchText(undefined, group.screens)}
-                              className="grid grid-cols-[minmax(0,16rem)_1fr] gap-6"
+                              className="grid grid-cols-1 gap-1 sm:grid-cols-[minmax(0,16rem)_1fr] sm:gap-6"
                             >
                               <RoutePath path={group.path} />
                               <ul className="flex min-w-0 flex-col">
