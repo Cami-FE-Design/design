@@ -21,6 +21,7 @@ import {
   CirclePercentIcon,
   ClockIcon,
   CopyIcon,
+  GlobeIcon,
   HashIcon,
   type LucideIcon,
   MapPinIcon,
@@ -224,6 +225,9 @@ export function DealDetailView({
                     </button>
                   </InfoRow>
                 ) : null}
+                <InfoRow icon={GlobeIcon} label="Online booking">
+                  {deal.bookingRedeemable ? "Clients can enter the code" : "Team only"}
+                </InfoRow>
                 <InfoRow icon={UserCheckIcon} label="One use per client">
                   {deal.limits.oneUsePerClient ? "Yes" : "No"}
                 </InfoRow>

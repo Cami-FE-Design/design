@@ -31,6 +31,7 @@ const deal = (limits: Partial<DealLimits>): Deal => ({
   discountValue: 20,
   discountCode: "",
   enableAtPointOfSale: true,
+  bookingRedeemable: false,
   status: "active",
   startDate: "2026-04-01",
   endDate: null,

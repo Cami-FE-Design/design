@@ -15,10 +15,12 @@ import {
   PlusIcon,
   ShieldCheckIcon,
   ShoppingBagIcon,
+  TicketPercentIcon,
   XIcon,
 } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useRef, useState } from "react"
+import { formatPromoMoney, PromoCodeField } from "@/components/blocks/booking/promo-code-field"
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import { DayPicker, TimeList } from "@/components/blocks/booking/slot-picker"
 import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
@@ -53,6 +55,7 @@ import {
   type BookingStaff,
   bookingDaysForLocation,
   bookingLines,
+  bookingPromoLines,
   bookingRef,
   bookingStaffForLocation,
   businessHasPets,
@@ -70,10 +73,19 @@ import {
   serviceTotals,
   slotGroupsForLocation,
 } from "@/lib/booking"
+import {
+  type AppliedBookingPromo,
+  type BookingPromoResult,
+  branchTakesCodes,
+  dealsForBranch,
+  evaluateBookingCode,
+} from "@/lib/deals/online"
+import { useDeals } from "@/lib/deals/store"
 import { formatAed } from "@/lib/format"
 import { VAT_RATE, vatOf } from "@/lib/invoice/totals"
 import { slotsForStaff } from "@/lib/locations/cross-branch-availability"
 import type { WeekSchedule } from "@/lib/locations/hours"
+import { TODAY_ISO } from "@/lib/money/mock"
 import { type PetNoteEntry, petNoteLabel, petNotesComplete } from "@/lib/pet-notes"
 import { formatDuration, type PublicBusiness } from "@/lib/public-business"
 import { ROSTER_LEAVES, ROSTER_SHIFTS } from "@/lib/team/shifts-mock"
@@ -886,7 +898,8 @@ function SummaryRow({ label, value }: { label: string; value: React.ReactNode })
   )
 }
 
-function ConfirmStep({
+/** Exported for the playground's promo-code states; the flow is its only real caller. */
+export function ConfirmStep({
   business,
   services,
   whenLabel,
@@ -897,6 +910,8 @@ function ConfirmStep({
   pickupPinned = false,
   petNotes,
   catalog,
+  promo,
+  promoField,
 }: {
   business: PublicBusiness
   services: ReadonlyArray<CatalogService>
@@ -913,6 +928,10 @@ function ConfirmStep({
   pickupPinned?: boolean
   petNotes?: ReadonlyArray<PetNoteEntry>
   catalog: BookingCatalog
+  /** A promo code that applies to this booking right now (DZ-352). */
+  promo?: AppliedBookingPromo | null
+  /** The code field — absent at a branch with no codes to offer. */
+  promoField?: React.ReactNode
 }) {
   const total = services.reduce((n, s) => n + s.priceAed, 0)
   const duration = services.reduce((n, s) => n + s.durationMinutes, 0)
@@ -922,6 +941,10 @@ function ConfirmStep({
   )
   const vat = vatOf(total, VAT_RATE)
   const subtotal = total - vat
+  // With a code the sums run in fils: 15% off AED 35 is AED 5.25, and VAT is
+  // taken from what is left after the discount (DZ-200 §6.2).
+  const discountedMinor = promo ? total * 100 - promo.discountMinor : null
+  const discountedVatMinor = discountedMinor != null ? vatOf(discountedMinor, VAT_RATE) : null
 
   return (
     <div className="flex flex-col gap-5">
@@ -957,6 +980,18 @@ function ConfirmStep({
               <span className="text-xs text-muted-foreground">
                 {formatDuration(line.durationMinutes)}
               </span>
+              {/* Only when the code covers some services and not others — then
+                  the line has to say which. Covering them all, the card and the
+                  promo row already say it, and a third mention is noise. */}
+              {promo && promo.coveredLines < promo.totalLines && promo.lineDiscounts[line.id] ? (
+                <span className="mt-0.5 flex items-center gap-1 text-xs font-medium text-cami-green-11">
+                  <TicketPercentIcon className="size-3" aria-hidden />
+                  {promo.code}
+                  <span className="tabular-nums">
+                    - {formatPromoMoney(promo.lineDiscounts[line.id]!)}
+                  </span>
+                </span>
+              ) : null}
             </div>
             <span className="flex shrink-0 flex-col items-end tabular-nums">
               <span className="text-sm font-medium text-foreground">
@@ -991,14 +1026,30 @@ function ConfirmStep({
           : null}
       </div>
 
+      {promoField}
+
       <div className="flex flex-col gap-1">
+        {promo ? (
+          <div className="flex items-baseline justify-between py-1 text-sm">
+            <span className="text-cami-green-11">Promo code ({promo.code})</span>
+            <span className="tabular-nums text-cami-green-11">
+              - {formatPromoMoney(promo.discountMinor)}
+            </span>
+          </div>
+        ) : null}
         <div className="flex items-baseline justify-between py-1 text-sm">
           <span className="text-muted-foreground">Subtotal</span>
-          <span className="tabular-nums text-muted-foreground">{formatAed(subtotal)}</span>
+          <span className="tabular-nums text-muted-foreground">
+            {discountedMinor != null && discountedVatMinor != null
+              ? formatPromoMoney(discountedMinor - discountedVatMinor)
+              : formatAed(subtotal)}
+          </span>
         </div>
         <div className="flex items-baseline justify-between py-1 text-sm">
           <span className="text-muted-foreground">VAT (5%)</span>
-          <span className="tabular-nums text-muted-foreground">{formatAed(vat)}</span>
+          <span className="tabular-nums text-muted-foreground">
+            {discountedVatMinor != null ? formatPromoMoney(discountedVatMinor) : formatAed(vat)}
+          </span>
         </div>
         <div className="mt-1 flex items-baseline justify-between border-t border-border/60 pt-3">
           <div className="flex flex-col leading-tight">
@@ -1008,14 +1059,29 @@ function ConfirmStep({
               {formatDuration(duration)}
             </span>
           </div>
-          <span className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">
-            {formatAed(total)}
-          </span>
+          {discountedMinor != null ? (
+            <span className="flex flex-col items-end leading-tight">
+              <span className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">
+                {formatPromoMoney(discountedMinor)}
+              </span>
+              <span className="text-xs tabular-nums text-muted-foreground line-through">
+                {formatAed(total)}
+              </span>
+            </span>
+          ) : (
+            <span className="text-2xl font-semibold tracking-tight tabular-nums text-foreground">
+              {formatAed(total)}
+            </span>
+          )}
         </div>
       </div>
 
       <p className="rounded-2xl bg-sand-3 px-4 py-3 text-sm text-sand-11">
-        Nothing to pay now — settle at the salon after your appointment.
+        {discountedMinor === 0
+          ? // A 100% code leaves nothing to settle (DZ-200 §6.5). Saying "pay at
+            // the salon" over an AED 0 total reads as a mistake.
+            `Nothing to pay — ${promo?.code} covers this booking.`
+          : "Nothing to pay now — settle at the salon after your appointment."}
       </p>
     </div>
   )
@@ -1027,10 +1093,13 @@ function DoneState({
   business,
   whenLabel,
   reference,
+  promo,
 }: {
   business: PublicBusiness
   whenLabel: string
   reference: string
+  /** The code the booking was confirmed with, kept with it for the salon. */
+  promo?: AppliedBookingPromo | null
 }) {
   return (
     <div className="flex flex-1 flex-col">
@@ -1057,6 +1126,17 @@ function DoneState({
           <span className="text-muted-foreground">Reference</span>
           <span className="font-medium tabular-nums text-foreground">{reference}</span>
         </div>
+        {promo ? (
+          <div className="flex items-baseline justify-between py-1.5 text-sm">
+            <span className="text-muted-foreground">Promo code</span>
+            <span className="font-medium tabular-nums text-cami-green-11">
+              <span className="inline-flex items-baseline gap-1.5">
+                {promo.code}
+                <span>- {formatPromoMoney(promo.discountMinor)}</span>
+              </span>
+            </span>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-5 flex flex-col gap-2">
@@ -1086,6 +1166,7 @@ function DesktopSummary({
   isLast,
   onCta,
   catalog,
+  promo,
 }: {
   business: PublicBusiness
   services: ReadonlyArray<CatalogService>
@@ -1096,6 +1177,8 @@ function DesktopSummary({
   isLast: boolean
   onCta: () => void
   catalog: BookingCatalog
+  /** Shown once a code applies, so the card's total matches the review step. */
+  promo?: AppliedBookingPromo | null
 }) {
   const lines = bookingLines(
     services.map((s) => s.id),
@@ -1159,17 +1242,32 @@ function DesktopSummary({
       </div>
 
       {totals.count > 0 ? (
-        <div className="flex items-center justify-between border-border/60 border-t pt-4">
-          <div className="flex flex-col leading-tight">
-            <span className="font-medium text-base text-foreground">Total</span>
-            <span className="text-muted-foreground text-xs">
-              {totals.count} {totals.count === 1 ? "service" : "services"} ·{" "}
-              {formatDuration(totals.durationMinutes)}
+        <div className="flex flex-col gap-2 border-border/60 border-t pt-4">
+          {promo ? (
+            <div className="flex items-baseline justify-between text-sm">
+              <span className="flex items-center gap-1.5 text-cami-green-11">
+                <TicketPercentIcon className="size-3.5" aria-hidden />
+                {promo.code}
+              </span>
+              <span className="tabular-nums text-cami-green-11">
+                - {formatPromoMoney(promo.discountMinor)}
+              </span>
+            </div>
+          ) : null}
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col leading-tight">
+              <span className="font-medium text-base text-foreground">Total</span>
+              <span className="text-muted-foreground text-xs">
+                {totals.count} {totals.count === 1 ? "service" : "services"} ·{" "}
+                {formatDuration(totals.durationMinutes)}
+              </span>
+            </div>
+            <span className="font-semibold text-foreground text-lg tabular-nums">
+              {promo
+                ? formatPromoMoney(totals.priceAed * 100 - promo.discountMinor)
+                : formatAed(totals.priceAed)}
             </span>
           </div>
-          <span className="font-semibold text-foreground text-lg tabular-nums">
-            {formatAed(totals.priceAed)}
-          </span>
         </div>
       ) : null}
 
@@ -1257,6 +1355,11 @@ export function BookingFlow({
   })
   const [pet, setPet] = useState<NewPet>({ name: "", species: "dog" })
   const [pickup, setPickup] = useState<PickupDetails>(EMPTY_PICKUP_DETAILS)
+  // The promo code the client applied (DZ-352). Only the code is kept: what it
+  // takes off is worked out again on every render, against the booking and the
+  // promotion as they are now.
+  const [promoCode, setPromoCode] = useState<string | null>(null)
+  const allDeals = useDeals()
 
   const step = steps[stepIndex]!
   const services = serviceIds
@@ -1312,6 +1415,27 @@ export function BookingFlow({
   const pickupPlaceRef = resolvePickupPlace(pickup, profileAddress, profileAddressPlace)
   const customerLabel = [customer.firstName, customer.lastName].filter(Boolean).join(" ").trim()
 
+  // Codes are checked at the branch this page books into. The flow is handed
+  // the branch as the business (its slug is the branch's), so the branch is
+  // read back from the slug rather than threading a new prop through.
+  const promoLocationId = business.branches.find((b) => b.slug === business.slug)?.id
+  const branchDeals = dealsForBranch(allDeals, promoLocationId)
+  const offersCodes =
+    promoLocationId != null && branchTakesCodes(branchDeals, promoLocationId, TODAY_ISO)
+  function checkPromo(code: string): BookingPromoResult {
+    return evaluateBookingCode(code, {
+      deals: branchDeals,
+      locationId: promoLocationId ?? "",
+      locationName: business.displayName,
+      todayIso: TODAY_ISO,
+      lines: bookingPromoLines(serviceIds, catalog),
+      clientHasRedeemed: (dealId) =>
+        findClientByPhone(customer.phone)?.redeemedDealIds?.includes(dealId) ?? false,
+    })
+  }
+  const promoResult = promoCode ? checkPromo(promoCode) : null
+  const appliedPromo: AppliedBookingPromo | null = promoResult?.ok ? promoResult.promo : null
+
   const canContinue =
     step === "service"
       ? serviceIds.length > 0
@@ -1349,7 +1473,12 @@ export function BookingFlow({
       <main className="relative flex min-h-dvh flex-col bg-background">
         <div className="relative mx-auto flex w-full max-w-[460px] flex-1 flex-col px-5 py-6">
           <div className="flex flex-1 flex-col">
-            <DoneState business={business} whenLabel={whenLabel} reference={reference} />
+            <DoneState
+              business={business}
+              whenLabel={whenLabel}
+              reference={reference}
+              promo={appliedPromo}
+            />
           </div>
           <p className="mt-auto pt-6 text-center text-xs text-muted-foreground">Powered by Cami</p>
         </div>
@@ -1404,6 +1533,22 @@ export function BookingFlow({
         pickupAddress={pickupAddressLabel}
         pickupPinned={hasPrecisePoint(pickupPlaceRef)}
         petNotes={pickup.petNotes.filter((n) => n.detail.trim().length > 0)}
+        promo={appliedPromo}
+        promoField={
+          // A code that is already applied keeps its row even if the branch
+          // has since run out of codes, so the client sees what happened.
+          offersCodes || promoCode ? (
+            <PromoCodeField
+              applied={promoCode && promoResult ? { code: promoCode, result: promoResult } : null}
+              onApply={(code) => {
+                const result = checkPromo(code)
+                if (result.ok) setPromoCode(result.promo.code)
+                return result
+              }}
+              onRemove={() => setPromoCode(null)}
+            />
+          ) : null
+        }
       />
     ) : null
 
@@ -1448,6 +1593,7 @@ export function BookingFlow({
               canContinue={canContinue}
               isLast={isLast}
               onCta={next}
+              promo={step === "confirm" ? appliedPromo : null}
             />
           </aside>
         </div>

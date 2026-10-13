@@ -92,9 +92,7 @@ function DealSuccessStep({ deal, onDone }: { deal: Deal; onDone: () => void }) {
           {!deal.endDate ? " onwards" : ""}
         </SummaryRow>
         <SummaryRow label="Locations">{formatLocations(deal.scope, locationName)}</SummaryRow>
-        <SummaryRow label="Redeem at">
-          {deal.enableAtPointOfSale ? "Point of Sale" : "Online only"}
-        </SummaryRow>
+        <SummaryRow label="Redeem at">{redeemAtLabel(deal)}</SummaryRow>
         {deal.discountCode ? (
           <SummaryRow label="Discount code">{deal.discountCode}</SummaryRow>
         ) : null}
@@ -120,6 +118,13 @@ function DealSuccessStep({ deal, onDone }: { deal: Deal; onDone: () => void }) {
       </div>
     </div>
   )
+}
+
+/** Where clients and the team can use this deal — the till, the booking page, or both. */
+function redeemAtLabel(deal: Deal): string {
+  if (deal.enableAtPointOfSale && deal.bookingRedeemable) return "Point of Sale and online booking"
+  if (deal.bookingRedeemable) return "Online booking only"
+  return deal.enableAtPointOfSale ? "Point of Sale" : "Online only"
 }
 
 export function DealWizardDialog({
@@ -269,6 +274,10 @@ export function DealWizardDialog({
                 onDiscountValue={(discountValue) => setDraft((d) => ({ ...d, discountValue }))}
                 discountCode={draft.discountCode}
                 onDiscountCode={(discountCode) => setDraft((d) => ({ ...d, discountCode }))}
+                bookingRedeemable={draft.bookingRedeemable}
+                onBookingRedeemable={(bookingRedeemable) =>
+                  setDraft((d) => ({ ...d, bookingRedeemable }))
+                }
                 startDate={draft.startDate}
                 onStartDate={(startDate) => setDraft((d) => ({ ...d, startDate }))}
                 endDate={draft.endDate}

@@ -46,6 +46,7 @@ export type DealWizardDraft = {
   startDate: string
   endDate: string
   enableAtPointOfSale: boolean
+  bookingRedeemable: boolean
   applicability: DealApplicability
   limits: DealLimits
   scope: PromotionScope
@@ -63,6 +64,8 @@ export function createEmptyDealDraft(todayIso: string): DealWizardDraft {
     startDate: todayIso,
     endDate: "",
     enableAtPointOfSale: true,
+    // Staff-only until somebody decides to hand the code out (D10).
+    bookingRedeemable: false,
     applicability: DEFAULT_DEAL_APPLICABILITY,
     limits: DEFAULT_DEAL_LIMITS,
     // A new deal starts chain-wide, which is the commonest case and the only
@@ -85,11 +88,31 @@ export function dealToWizardDraft(deal: Deal): DealWizardDraft {
     startDate: deal.startDate,
     endDate: deal.endDate ?? "",
     enableAtPointOfSale: deal.enableAtPointOfSale,
+    bookingRedeemable: deal.bookingRedeemable,
     applicability: deal.applicability,
     limits: deal.limits,
     scope: deal.scope,
     teamMemberIds: [...deal.teamMemberIds],
   }
+}
+
+/**
+ * What is wrong with the code, if anything (DZ-200 D10, and the dev repo's
+ * 3–20 character rule).
+ *
+ * Optional for a deal only the team applies; required the moment clients may
+ * enter it online, because a booking-page promotion with no code is one nobody
+ * can reach.
+ */
+export function discountCodeError(code: string, bookingRedeemable: boolean): string | null {
+  const trimmed = code.trim()
+  if (trimmed.length === 0) {
+    return bookingRedeemable ? "Add a code for clients to enter when they book." : null
+  }
+  if (trimmed.length < 3 || trimmed.length > 20) {
+    return "Discount code must be between 3 and 20 characters"
+  }
+  return null
 }
 
 /**
@@ -106,6 +129,8 @@ export function stepBlocker(step: DealWizardStepId, draft: DealWizardDraft): str
     if (draft.discountKind === "percentage" && value > 100) {
       return "A percentage discount can't exceed 100%."
     }
+    const codeError = discountCodeError(draft.discountCode, draft.bookingRedeemable)
+    if (codeError) return codeError
     if (draft.startDate.trim().length === 0) return "Give the deal a start date."
     if (draft.endDate && draft.endDate < draft.startDate) {
       return "End date must be on or after the start date."
@@ -152,6 +177,7 @@ export function draftToDeal(draft: DealWizardDraft, todayIso: string, existing?:
     discountValue: Number.isFinite(value) ? value : 0,
     discountCode: draft.discountCode.trim().toUpperCase(),
     enableAtPointOfSale: draft.enableAtPointOfSale,
+    bookingRedeemable: draft.bookingRedeemable,
     // Derived from the dates, never typed in — a deal whose end has passed
     // would otherwise read Active until somebody edited it. An existing deal
     // keeps a status somebody set by hand (`statusFor` lets a stored

@@ -48,7 +48,8 @@ export function setDealStatus(id: string, status: DealStatus) {
 
 /**
  * `dealsService.duplicate` on the dev repo: the copy is named "(copy)", never
- * carries the code (codes stay unique) and starts inactive, so the merchant
+ * carries the code (codes stay unique), is not redeemable online until it has
+ * one, and starts inactive, so the merchant
  * reviews it before it goes live. It keeps the original's locations.
  */
 export function duplicateDeal(id: string) {
@@ -59,6 +60,8 @@ export function duplicateDeal(id: string) {
     id: `deal-${Date.now()}`,
     name: `${original.name} (copy)`,
     discountCode: "",
+    // Online redemption needs a code, and the copy has none.
+    bookingRedeemable: false,
     status: "inactive",
     redemptions: 0,
     totalSalesMinor: 0,

@@ -281,6 +281,16 @@ const SECTIONS: Section[] = [
         note: "Pick 'Full groom & nails' or 'Spa pamper duo' to see Combo rows in the summary and Review, with the combo's duration and total.",
       },
       {
+        path: "/shampooch-jvc/book",
+        label: "Booking flow · promo code (DZ-352)",
+        note: "On Review, 'Have a promo code?' takes WELCOME15, SPA20, GROOM50 or NAILFREE; the other seeded codes show each refusal.",
+      },
+      {
+        path: "/shell-demo?settings=deals&deal=welcome-online",
+        label: "Deal · redeemable on your booking page (DZ-352)",
+        note: "Details shows the Online booking row; Edit opens the wizard's switch, which makes the code required.",
+      },
+      {
         path: "/shampooch-jvc/booking/CAMI-4821",
         label: "Manage booking (E3-5)",
         note: "Booking detail with Add to calendar, then reschedule or cancel, ending on the updated or cancelled screens.",
@@ -289,6 +299,11 @@ const SECTIONS: Section[] = [
         path: "/shampooch-jvc/booking/CAMI-4821-pickup",
         label: "Manage booking · pickup variant",
         note: "Pickup variant of manage booking, adding Pickup and Notes rows so the parent can check the collection address.",
+      },
+      {
+        path: "/shampooch-jvc/booking/CAMI-3208-promo",
+        label: "Manage booking · promo code (DZ-352)",
+        note: "A booking made with WELCOME15: a Promo code row above Total, and the quoted AED 221 with AED 260 struck through.",
       },
       {
         path: "/account",

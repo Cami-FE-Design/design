@@ -12,6 +12,8 @@ import { MoveToBranchDialog } from "@/components/blocks/appointments/move-to-bra
 import { ServicePickerPanel } from "@/components/blocks/appointments/new-appointment-service-picker"
 import { PeopleGrid } from "@/components/blocks/appointments/people-grid"
 import { PickupFields } from "@/components/blocks/appointments/pickup-fields"
+import { ConfirmStep } from "@/components/blocks/booking/booking-flow"
+import { PromoCodeField } from "@/components/blocks/booking/promo-code-field"
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
 import {
   CategoryAtBranchPreview,
@@ -24,6 +26,7 @@ import { PetNotesFields, PetNotesList } from "@/components/blocks/clients/pet-no
 import { CardJourney } from "@/components/blocks/customer-card/card-journey"
 import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
 import { TwoFaces } from "@/components/blocks/customer-card/two-faces"
+import { DealDetailsStep } from "@/components/blocks/deals/deal-wizard-steps"
 import { DealsPage } from "@/components/blocks/deals/deals-page"
 import { DealsTable } from "@/components/blocks/deals/deals-table"
 import { clientPetOutcome } from "@/components/blocks/imports/clients/client-pet-flow"
@@ -124,7 +127,10 @@ import {
   BOOKING_DAYS,
   BOOKING_STAFF,
   bookingDaysForLocation,
+  bookingPromoLines,
   bookingStaffForLocation,
+  findCatalogService,
+  SERVICE_CATEGORIES,
   slotGroupsForLocation,
 } from "@/lib/booking"
 import { checkGoogleReviewLink } from "@/lib/business-links/links"
@@ -132,6 +138,8 @@ import { openAppointmentsFor } from "@/lib/clients/open-appointments"
 import { getCustomerCard } from "@/lib/customer-card/mock"
 import { CUSTOMER_CARD_THEMES, getCustomerCardTheme } from "@/lib/customer-card/theme"
 import { MOCK_DEALS } from "@/lib/deals/mock"
+import { type BookingPromoContext, evaluateBookingCode } from "@/lib/deals/online"
+import { createEmptyDealDraft } from "@/lib/deals/wizard"
 import { formatAed } from "@/lib/format"
 import { ZERO_RATE } from "@/lib/hq-camipay/store"
 import { type ClientPetScenarioId, getClientPetScenario } from "@/lib/imports/client-pet-mock"
@@ -916,6 +924,233 @@ function BranchStockThresholdsDemo() {
         )
       }
     />
+  )
+}
+
+// DZ-352 — a promo code on the booking review step. Every state is the real
+// rule run against the seeded codes at JVC, so a refusal here reads exactly as
+// it does on /shampooch-jvc/book.
+function promoCheck(serviceIds: string[], overrides: Partial<BookingPromoContext> = {}) {
+  return (code: string) =>
+    evaluateBookingCode(code, {
+      deals: MOCK_DEALS,
+      locationId: "shampooch-jvc",
+      locationName: "Shampooch JVC",
+      todayIso: TODAY_ISO,
+      lines: bookingPromoLines(serviceIds),
+      clientHasRedeemed: () => false,
+      ...overrides,
+    })
+}
+
+function promoApplied(code: string, serviceIds: string[]) {
+  return { code, result: promoCheck(serviceIds)(code) }
+}
+
+function promoRefusal(
+  code: string,
+  serviceIds: string[],
+  overrides?: Partial<BookingPromoContext>,
+) {
+  const result = promoCheck(serviceIds, overrides)(code)
+  return result.ok ? null : result.refusal
+}
+
+const PROMO_REFUSALS: ReadonlyArray<{
+  label: string
+  code: string
+  serviceIds: string[]
+  overrides?: Partial<BookingPromoContext>
+}> = [
+  { label: "Not found (or team-only)", code: "TEACH10", serviceIds: ["full-groom"] },
+  { label: "Expired", code: "JULY10", serviceIds: ["full-groom"] },
+  { label: "Switched off", code: "FRIEND25", serviceIds: ["full-groom"] },
+  { label: "Another branch", code: "ALQUOZ30", serviceIds: ["full-groom"] },
+  { label: "Fully redeemed", code: "FIRST50", serviceIds: ["full-groom"] },
+  {
+    label: "Already used",
+    code: "WELCOME15",
+    serviceIds: ["full-groom"],
+    overrides: { clientHasRedeemed: () => true },
+  },
+  { label: "Minimum spend", code: "GROOM50", serviceIds: ["full-groom", "nail-trim"] },
+  { label: "Combo only", code: "WELCOME15", serviceIds: ["groom-and-nails-combo"] },
+  { label: "Wrong services", code: "SPA20", serviceIds: ["full-groom"] },
+]
+
+function PromoFrame({ children }: { children: React.ReactNode }) {
+  return <div className="w-full max-w-105">{children}</div>
+}
+
+function BookingPromoReview({ code, serviceIds }: { code: string; serviceIds: string[] }) {
+  const business = getPublicBusiness("shampooch-jvc")
+  if (!business) return null
+  const applied = promoApplied(code, serviceIds)
+  return (
+    <div className="w-full max-w-115 rounded-2xl border border-border/60 bg-background p-5">
+      <ConfirmStep
+        business={business}
+        services={serviceIds.map((id) => findCatalogService(id)).filter((s) => s != null)}
+        catalog={SERVICE_CATEGORIES}
+        whenLabel="Tue 25 · 10:00 AM"
+        staffLabel="Any team member"
+        customerLabel="Natalie Grant"
+        promo={applied.result.ok ? applied.result.promo : null}
+        promoField={
+          <PromoCodeField applied={applied} onApply={promoCheck(serviceIds)} onRemove={() => {}} />
+        }
+      />
+    </div>
+  )
+}
+
+function BookingPromoCodeDemo() {
+  const noop = () => {}
+  return (
+    <StatePicker
+      states={[
+        {
+          label: "Review step, code applied",
+          note: "WELCOME15 on a groom and a nail trim: line captions, the promo row, VAT on the discounted total.",
+          content: <BookingPromoReview code="WELCOME15" serviceIds={["full-groom", "nail-trim"]} />,
+        },
+        {
+          label: "AED 0 booking",
+          note: "NAILFREE on a nail trim alone: 100% off, and the pay-at-salon note changes.",
+          content: <BookingPromoReview code="NAILFREE" serviceIds={["nail-trim"]} />,
+        },
+        {
+          label: "Field",
+          note: "Closed, typing, checking, applied, and applied to 1 of 2 services.",
+          content: (
+            <div className="flex flex-col">
+              <Row label="Closed">
+                <PromoFrame>
+                  <PromoCodeField
+                    applied={null}
+                    onApply={promoCheck(["full-groom"])}
+                    onRemove={noop}
+                  />
+                </PromoFrame>
+              </Row>
+              <Row label="Typing">
+                <PromoFrame>
+                  <PromoCodeField
+                    applied={null}
+                    onApply={promoCheck(["full-groom"])}
+                    onRemove={noop}
+                    defaultOpen
+                    defaultCode="WELCOME15"
+                  />
+                </PromoFrame>
+              </Row>
+              <Row label="Checking">
+                <PromoFrame>
+                  <PromoCodeField
+                    applied={null}
+                    onApply={promoCheck(["full-groom"])}
+                    onRemove={noop}
+                    defaultOpen
+                    defaultCode="WELCOME15"
+                    defaultChecking
+                  />
+                </PromoFrame>
+              </Row>
+              <Row label="Applied">
+                <PromoFrame>
+                  <PromoCodeField
+                    applied={promoApplied("WELCOME15", ["full-groom", "nail-trim"])}
+                    onApply={promoCheck(["full-groom", "nail-trim"])}
+                    onRemove={noop}
+                  />
+                </PromoFrame>
+              </Row>
+              <Row label="Applies to 1 of 2">
+                <PromoFrame>
+                  <PromoCodeField
+                    applied={promoApplied("SPA20", ["full-groom", "teeth"])}
+                    onApply={promoCheck(["full-groom", "teeth"])}
+                    onRemove={noop}
+                  />
+                </PromoFrame>
+              </Row>
+            </div>
+          ),
+        },
+        {
+          label: "Refusals",
+          note: "One row per reason a code is turned down, each from the real rule.",
+          content: (
+            <div className="flex flex-col">
+              {PROMO_REFUSALS.map((r) => (
+                <Row key={r.label} label={r.label}>
+                  <PromoFrame>
+                    <PromoCodeField
+                      applied={null}
+                      onApply={promoCheck(r.serviceIds, r.overrides)}
+                      onRemove={noop}
+                      defaultOpen
+                      defaultCode={r.code}
+                      defaultRefusal={promoRefusal(r.code, r.serviceIds, r.overrides)}
+                    />
+                  </PromoFrame>
+                </Row>
+              ))}
+            </div>
+          ),
+        },
+        {
+          label: "No longer applies",
+          note: "WELCOME15 applied, then the groom swapped for a combo: the code stays named, with the reason.",
+          content: (
+            <PromoFrame>
+              <PromoCodeField
+                applied={promoApplied("WELCOME15", ["groom-and-nails-combo"])}
+                onApply={promoCheck(["groom-and-nails-combo"])}
+                onRemove={noop}
+              />
+            </PromoFrame>
+          ),
+        },
+      ]}
+    />
+  )
+}
+
+// DZ-200 D10 — the wizard's details step with the online-booking switch, so the
+// code field's three readings sit side by side.
+function DealOnlineSwitchDemo({ on, code }: { on: boolean; code: string }) {
+  const [draft, setDraft] = useState(() => ({
+    ...createEmptyDealDraft(TODAY_ISO),
+    name: "Welcome offer",
+    discountValue: "15",
+    bookingRedeemable: on,
+    discountCode: code,
+  }))
+  return (
+    <div className="w-full max-w-2xl rounded-2xl border border-border/60 bg-background p-6">
+      <DealDetailsStep
+        type={draft.type}
+        name={draft.name}
+        onName={(name) => setDraft((d) => ({ ...d, name }))}
+        description={draft.description}
+        onDescription={(description) => setDraft((d) => ({ ...d, description }))}
+        discountKind={draft.discountKind}
+        onDiscountKind={(discountKind) => setDraft((d) => ({ ...d, discountKind }))}
+        discountValue={draft.discountValue}
+        onDiscountValue={(discountValue) => setDraft((d) => ({ ...d, discountValue }))}
+        discountCode={draft.discountCode}
+        onDiscountCode={(discountCode) => setDraft((d) => ({ ...d, discountCode }))}
+        bookingRedeemable={draft.bookingRedeemable}
+        onBookingRedeemable={(bookingRedeemable) => setDraft((d) => ({ ...d, bookingRedeemable }))}
+        startDate={draft.startDate}
+        onStartDate={(startDate) => setDraft((d) => ({ ...d, startDate }))}
+        endDate={draft.endDate}
+        onEndDate={(endDate) => setDraft((d) => ({ ...d, endDate }))}
+        applicability={draft.applicability}
+        onApplicability={(applicability) => setDraft((d) => ({ ...d, applicability }))}
+      />
+    </div>
   )
 }
 
@@ -3002,6 +3237,24 @@ export function BusinessLane() {
             onDeleteCategory={() => {}}
           />
         </Row>
+      </Section>
+      <Section
+        title="Online booking — promo code"
+        description="Promo code on the booking review step: applied, AED 0, the field's states, each refusal, and a code that stopped applying."
+      >
+        <BookingPromoCodeDemo />
+      </Section>
+      <Section
+        title="Deals — redeemable on your booking page"
+        description="The deal wizard's online-booking switch: off with an optional code, on without a code, and on with one."
+      >
+        <StatePicker
+          states={[
+            { label: "Team only", content: <DealOnlineSwitchDemo on={false} code="" /> },
+            { label: "Online, no code", content: <DealOnlineSwitchDemo on code="" /> },
+            { label: "Online, with code", content: <DealOnlineSwitchDemo on code="WELCOME15" /> },
+          ]}
+        />
       </Section>
       <Section
         title="Combos across surfaces"

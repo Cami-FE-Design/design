@@ -29,7 +29,7 @@ import type {
   DealType,
   DiscountKind,
 } from "@/lib/deals/mock"
-import type { ScopeKind } from "@/lib/deals/wizard"
+import { discountCodeError, type ScopeKind } from "@/lib/deals/wizard"
 import type { PromotionScope } from "@/lib/locations/promotion-scope"
 import type { Location } from "@/lib/locations/types"
 import { cn } from "@/lib/utils"
@@ -83,6 +83,8 @@ export function DealDetailsStep({
   onDiscountValue,
   discountCode,
   onDiscountCode,
+  bookingRedeemable,
+  onBookingRedeemable,
   startDate,
   onStartDate,
   endDate,
@@ -101,6 +103,8 @@ export function DealDetailsStep({
   onDiscountValue: (v: string) => void
   discountCode: string
   onDiscountCode: (v: string) => void
+  bookingRedeemable: boolean
+  onBookingRedeemable: (v: boolean) => void
   startDate: string
   onStartDate: (v: string) => void
   endDate: string
@@ -126,6 +130,7 @@ export function DealDetailsStep({
     applicability.packages.mode === "none"
       ? "Select at least one service, product or package."
       : null
+  const codeError = discountCodeError(discountCode, bookingRedeemable)
 
   function scopeFor(kind: ScopeKind): DealResourceScope {
     return kind === "services"
@@ -230,18 +235,44 @@ export function DealDetailsStep({
         </div>
 
         <div className="flex max-w-md flex-col gap-3">
+          {/* DZ-200 D10: a promotion is the team's to apply at checkout unless
+              the owner hands its code out. The switch comes first because it
+              decides whether the code below is needed at all. */}
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <Label htmlFor="deal-booking-redeemable">Redeemable on your booking page</Label>
+              <p className="mt-0.5 text-muted-foreground text-sm">
+                Clients can enter the code when they book online. Your team can always apply it at
+                checkout.
+              </p>
+            </div>
+            <Switch
+              id="deal-booking-redeemable"
+              checked={bookingRedeemable}
+              onCheckedChange={onBookingRedeemable}
+            />
+          </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="deal-discount-code">Discount code</Label>
+            <Label htmlFor="deal-discount-code">
+              Discount code{bookingRedeemable ? "" : " (Optional)"}
+            </Label>
             <Input
               id="deal-discount-code"
               value={discountCode}
+              maxLength={20}
               onChange={(e) => onDiscountCode(e.target.value.toUpperCase())}
               placeholder="e.g. SUMMER10"
+              aria-invalid={codeError ? true : undefined}
             />
-            <p className="text-muted-foreground text-xs">
-              Create a catchy code for clients to use when they book an appointment or buy products
-              online
-            </p>
+            {codeError ? (
+              <p className="text-destructive text-xs">{codeError}</p>
+            ) : (
+              <p className="text-muted-foreground text-xs">
+                {bookingRedeemable
+                  ? "Create a catchy code for clients to use when they book an appointment online."
+                  : "Only needed if clients will enter it when they book online."}
+              </p>
+            )}
           </div>
           <Tip title="Discount codes only available for services and products.">
             Clients cannot apply discount codes when buying memberships or gift cards online.

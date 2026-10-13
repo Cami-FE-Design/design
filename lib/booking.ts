@@ -7,6 +7,9 @@
 
 import type { AvatarSpecies } from "@/components/ui/avatar"
 import type { PlaceRef } from "@/lib/address"
+import { dealDiscountMinor } from "@/lib/deals/eligible"
+import { MOCK_DEALS } from "@/lib/deals/mock"
+import { type BookingPromoLine, dealsForBranch } from "@/lib/deals/online"
 import { formatTime12h, type WeekDay, type WeekSchedule } from "@/lib/locations/hours"
 import type { PetNoteEntry } from "@/lib/pet-notes"
 import type { PublicBusiness, PublicService } from "@/lib/public-business"
@@ -158,6 +161,8 @@ export type CatalogService = {
  */
 export type BookingLine = {
   id: string
+  /** The catalogue service this line books — a combo's component, not the combo. */
+  serviceId: string
   name: string
   durationMinutes: number
   priceAed: number
@@ -412,6 +417,7 @@ function comboLines(combo: CatalogService, catalog?: BookingCatalog): BookingLin
     return [
       {
         id: combo.id,
+        serviceId: combo.id,
         name: combo.name,
         durationMinutes: combo.durationMinutes,
         priceAed: combo.priceAed,
@@ -433,6 +439,7 @@ function comboLines(combo: CatalogService, catalog?: BookingCatalog): BookingLin
 
     return {
       id: `${combo.id}-${component.id}`,
+      serviceId: component.id,
       name: `${combo.name} - ${component.name}`,
       durationMinutes: component.durationMinutes,
       priceAed: share,
@@ -451,12 +458,34 @@ export function bookingLines(ids: ReadonlyArray<string>, catalog?: BookingCatalo
     return [
       {
         id: service.id,
+        serviceId: service.id,
         name: service.name,
         durationMinutes: service.durationMinutes,
         priceAed: service.priceAed,
       },
     ]
   })
+}
+
+/**
+ * The booking's lines as a promotion code reads them (DZ-352): what each one
+ * books, what it costs in fils, and whether it is a package or part of a combo
+ * — the three things a deal's scope is checked against.
+ */
+export function bookingPromoLines(
+  ids: ReadonlyArray<string>,
+  catalog: BookingCatalog = SERVICE_CATEGORIES,
+): BookingPromoLine[] {
+  const packageIds = new Set(
+    catalog.filter((c) => c.id === "packages").flatMap((c) => c.services.map((s) => s.id)),
+  )
+  return bookingLines(ids, catalog).map((line) => ({
+    id: line.id,
+    serviceId: line.serviceId,
+    priceMinor: Math.round(line.priceAed * 100),
+    kind: packageIds.has(line.serviceId) ? "package" : "service",
+    comboName: line.comboName,
+  }))
 }
 
 export function serviceTotals(
@@ -606,6 +635,11 @@ export type ReturningClient = {
   /** What the map search knew about it, if it was picked rather than typed. */
   addressPlace?: PlaceRef
   pets: ReadonlyArray<BookingPet>
+  /**
+   * Promotions this client has redeemed before, by deal id — what a
+   * one-use-per-client code is checked against once the phone is verified.
+   */
+  redeemedDealIds?: ReadonlyArray<string>
 }
 
 export const RETURNING_CLIENT: ReturningClient = {
@@ -616,6 +650,8 @@ export const RETURNING_CLIENT: ReturningClient = {
   // Left un-pinned on purpose: the returning demo caller's address is a villa
   // cluster typed by hand, which is the case Navigate has to degrade for.
   pets: RETURNING_PETS,
+  // Booked with the welcome code on her first visit, so it refuses her now.
+  redeemedDealIds: ["welcome-online"],
 }
 
 /**
@@ -727,6 +763,12 @@ export type BookingDetail = {
   pickupPlace?: PlaceRef
   /** Pet notes the parent left at booking time. */
   petNotes?: PetNoteEntry[]
+  /**
+   * The promo code the booking was made with (DZ-352). Kept on the booking so
+   * the total the client was quoted is the total they see when they come back
+   * to manage it — `priceAed` stays the full price.
+   */
+  promo?: { code: string; name: string; discountMinor: number }
 }
 
 export function resolveBooking(business: PublicBusiness, ref: string): BookingDetail {
@@ -736,6 +778,12 @@ export function resolveBooking(business: PublicBusiness, ref: string): BookingDe
   // Demo switch, matching the -confirmed / -cancelled suffix convention: a
   // "-pickup" ref renders the collection variant of the detail and the email.
   const withPickup = ref.endsWith("-pickup")
+  // "-promo" is the booking made with the welcome code — the one that makes
+  // WELCOME15 refuse this client on her next booking.
+  const branchId = business.branches.find((b) => b.slug === business.slug)?.id
+  const promoDeal = ref.endsWith("-promo")
+    ? dealsForBranch(MOCK_DEALS, branchId).find((d) => d.id === "welcome-online")
+    : undefined
   return {
     ref,
     businessSlug: business.slug,
@@ -760,6 +808,13 @@ export function resolveBooking(business: PublicBusiness, ref: string): BookingDe
           { category: "behavior", detail: "Anxious in the van — needs the crate, not a harness." },
           { category: "handling", detail: "Sensitive paws — go slowly with the nails." },
         ]
+      : undefined,
+    promo: promoDeal
+      ? {
+          code: promoDeal.discountCode,
+          name: promoDeal.name,
+          discountMinor: dealDiscountMinor(promoDeal, service.priceAed * 100),
+        }
       : undefined,
   }
 }

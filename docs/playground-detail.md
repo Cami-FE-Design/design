@@ -220,6 +220,14 @@ One dialog, three configs. Search a list, pick one, or add a new one in a second
 
 Presentational building blocks for the catalog screens. Full interactive screens (drag-reorder, add/edit, archive) live at /catalogs/service-menu and /catalogs/categories. Prices render in AED. Combos come back from the same endpoint as single services, so the card marks them with a tinted Combo badge (layers icon) plus a count of the services they bundle — PRD-143.
 
+### Online booking — promo code
+
+DZ-352. The booking Review step's promo code, with every state produced by the real rule (`evaluateBookingCode` in lib/deals/online.ts) running against the seeded JVC codes. The review states show where the code lands: line captions, the Promo code row, VAT on the discounted total, and the AED 0 case. Refusals has one row per reason. "No longer applies" is a code applied before the booking changed under it.
+
+### Deals — redeemable on your booking page
+
+DZ-200 D10. The deal wizard's details step with the online-booking switch. Off, the code is optional. On without a code, the step shows the error and Continue is disabled. On with a code, the helper text speaks to clients.
+
 ### Combos across surfaces
 
 PRD-143 — a combo is a bundle sold as one catalog entry. While it is being CHOSEN the row carries a Combo badge and a bundled-services count; once PICKED it becomes its component services, each named 'Combo - Service' with the standalone price struck through. The cart footer states the saving as a Bundle discount rather than subtracting it twice. docs/specs/catalogs-service-menu-combo.md.
