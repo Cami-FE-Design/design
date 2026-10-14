@@ -12,6 +12,7 @@ import { useState } from "react"
 
 import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
 import { Avatar } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { formatMoney } from "@/lib/money/format"
@@ -241,9 +242,12 @@ function TipSection({
               )}
             >
               {mostCommon ? (
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full bg-foreground px-2 py-0.5 text-[10px] font-medium leading-none text-background">
+                <Badge
+                  size="sm"
+                  className="-translate-x-1/2 absolute -top-2 left-1/2 rounded-full bg-foreground px-2 text-background"
+                >
                   Most common
-                </span>
+                </Badge>
               ) : null}
               <span
                 className={cn(

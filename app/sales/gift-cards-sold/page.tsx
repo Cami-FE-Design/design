@@ -535,7 +535,7 @@ function GiftCardDetailDialog({
                 </div>
               </div>
               <div className="flex flex-col gap-0.5">
-                <DialogTitle className="text-[28px] font-semibold leading-8">Gift card</DialogTitle>
+                <DialogTitle className="font-heading font-semibold text-2xl">Gift card</DialogTitle>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                   <span>{formatDate(card.issuedAt)}</span>
                   <span aria-hidden>·</span>
@@ -601,7 +601,7 @@ function ExtendGiftCardDialog({
               </Button>
             </DialogClose>
           </div>
-          <DialogTitle className="text-[28px] font-semibold leading-8">
+          <DialogTitle className="font-heading font-semibold text-2xl">
             Extend gift card expiry
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -751,7 +751,7 @@ function PrintGiftCardDialog({
               </Button>
             </DialogClose>
           </div>
-          <DialogTitle className="text-[28px] font-semibold leading-8">Print gift card</DialogTitle>
+          <DialogTitle className="font-heading font-semibold text-2xl">Print gift card</DialogTitle>
         </div>
 
         <div className="flex flex-col gap-5 px-8 pb-8 pt-6">

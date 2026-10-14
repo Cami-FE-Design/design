@@ -15,6 +15,7 @@ import { useMemo, useState } from "react"
 import { ComboBadge, comboServicesLabel } from "@/components/blocks/catalog/combo-badge"
 import { SessionsRemainingChip } from "@/components/blocks/sales/sessions-remaining-chip"
 import { EmptyState } from "@/components/blocks/shared/empty-state"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { SearchInput } from "@/components/ui/search-input"
 import { formatDuration } from "@/lib/format"
@@ -559,18 +560,14 @@ function AppointmentCard({
 function StatusBadge({ label }: { label?: string }) {
   if (!label) return null
   return (
-    <span className="shrink-0 rounded-lg bg-blue-4 px-1.5 py-0.5 font-medium text-[11px] text-blue-12">
+    <Badge variant="secondary" className="bg-blue-4 text-blue-12">
       {label}
-    </span>
+    </Badge>
   )
 }
 
 function AddedBadge() {
-  return (
-    <span className="shrink-0 rounded-lg bg-cami-violet-3 px-1.5 py-0.5 font-medium text-[11px] text-cami-violet-11">
-      Added
-    </span>
-  )
+  return <Badge variant="primary-soft">Added</Badge>
 }
 
 // ─── Global search results (aggregate services + products) ────────────────────
