@@ -7,10 +7,15 @@
  * be checked once we know who the client is, and asking for a code before
  * that would mean accepting it and refusing it a step later.
  *
- * The field holds what the client is typing; the flow holds the code that was
- * applied and re-checks it on every render. So if the client goes back and
- * swaps the groom for a combo, they come back to the code still named, with
- * the reason it no longer applies — never a discount that silently vanished.
+ * A booking may carry more than one code, one promotion per line (D6), the
+ * way the calendar takes a different promotion on each item. Each applied code
+ * is its own card; "Add another code" opens the field again.
+ *
+ * The field holds what the client is typing; the flow holds the codes that
+ * were applied and re-checks them on every render. So if the client goes back
+ * and swaps the groom for a combo, they come back to the code still named,
+ * with the reason it no longer applies — never a discount that silently
+ * vanished.
  */
 
 import { Loader2Icon, TicketPercentIcon, XIcon } from "lucide-react"
@@ -21,6 +26,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { formatDiscountValue } from "@/lib/deals/mock"
 import {
+  type BookingCodeCheck,
   type BookingPromoRefusal,
   type BookingPromoResult,
   normalizeCode,
@@ -44,16 +50,23 @@ export function PromoCodeField({
   applied,
   onApply,
   onRemove,
+  canAddAnother = true,
   defaultOpen = false,
   defaultCode = "",
   defaultRefusal = null,
   defaultChecking = false,
 }: {
-  /** The applied code, re-checked against the booking as it stands now. */
-  applied: { code: string; result: BookingPromoResult } | null
+  /** The applied codes, in the order entered, re-checked against the booking as it stands now. */
+  applied: ReadonlyArray<BookingCodeCheck>
   /** Check a code. The flow stores it only when the answer is yes. */
   onApply: (code: string) => BookingPromoResult
-  onRemove: () => void
+  onRemove: (code: string) => void
+  /**
+   * Whether another code could take anything off. False once every line that
+   * can be discounted already is, so the client is not offered a field that
+   * can only answer "already covered".
+   */
+  canAddAnother?: boolean
   /** Playground seams — open on a typed code, an error, or mid-check. */
   defaultOpen?: boolean
   defaultCode?: string
@@ -90,148 +103,177 @@ export function PromoCodeField({
     }, CHECK_MS)
   }
 
-  function remove() {
-    onRemove()
-    setDraft("")
-    setRefusal(null)
-    setOpen(true)
+  function remove(code: string) {
+    onRemove(code)
+    // Taking the only code off leaves the field open and empty, ready for
+    // another; taking one of several leaves the rest as they were.
+    if (applied.length === 1) {
+      setDraft("")
+      setRefusal(null)
+      setOpen(true)
+    }
   }
 
-  if (applied?.result.ok) {
-    const { promo } = applied.result
-    const partial = promo.coveredLines < promo.totalLines
-    return (
-      <div className="flex items-center gap-3 rounded-2xl bg-cami-green-3 px-4 py-3">
-        <TicketPercentIcon className="size-5 shrink-0 text-cami-green-11" aria-hidden />
-        <div className="flex min-w-0 flex-1 flex-col leading-tight">
-          <span className="text-sm font-semibold text-foreground">
-            {promo.code} <span className="font-normal text-cami-green-11">applied</span>
-          </span>
-          <span className="text-xs text-muted-foreground">
-            {[
-              promo.deal.name,
-              // Owners often put the value in the name ("Spa add-ons 20% off");
-              // saying it twice reads as a mistake.
-              promo.deal.name.includes(formatDiscountValue(promo.deal))
-                ? null
-                : `${formatDiscountValue(promo.deal)} off`,
-              partial ? `applies to ${promo.coveredLines} of ${promo.totalLines} services` : null,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </span>
-        </div>
-        <span className="shrink-0 text-sm font-medium tabular-nums text-cami-green-11">
-          - {formatPromoMoney(promo.discountMinor)}
-        </span>
-        <button
-          type="button"
-          onClick={remove}
-          aria-label={`Remove ${promo.code}`}
-          className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-cami-green-4"
-        >
-          <XIcon className="size-4" />
-        </button>
-      </div>
-    )
-  }
-
-  if (applied && !applied.result.ok) {
-    // Applied earlier, no longer good — the booking changed under it, or the
-    // promotion did. Named, with the reason, and the total already shows the
-    // full price.
-    return (
-      <div className="flex items-start gap-3 rounded-2xl bg-muted/50 px-4 py-3">
-        <TicketPercentIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-tight">
-          <span className="text-sm font-semibold text-foreground">
-            {applied.code}{" "}
-            <span className="font-normal text-muted-foreground">no longer applies</span>
-          </span>
-          <span role="alert" className="text-sm text-destructive">
-            {applied.result.refusal.message}
-          </span>
-          {applied.result.refusal.detail ? (
-            <span className="text-sm text-muted-foreground">{applied.result.refusal.detail}</span>
-          ) : null}
-        </div>
-        <button
-          type="button"
-          onClick={remove}
-          aria-label={`Remove ${applied.code}`}
-          className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
-        >
-          <XIcon className="size-4" />
-        </button>
-      </div>
-    )
-  }
-
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 self-start py-1 text-sm font-medium text-foreground hover:opacity-70"
-      >
-        <TicketPercentIcon className="size-4 text-muted-foreground" aria-hidden />
-        Have a promo code?
-      </button>
-    )
-  }
+  const hasCodes = applied.length > 0
 
   return (
-    <form
-      className="flex flex-col gap-1.5"
-      onSubmit={(e) => {
-        e.preventDefault()
-        apply()
-      }}
-    >
-      <Label htmlFor="promo-code">Promo code</Label>
-      <div className="flex gap-2">
-        <Input
-          id="promo-code"
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value.toUpperCase())
-            if (refusal) setRefusal(null)
+    <div className="flex flex-col gap-2">
+      {applied.map((check) =>
+        check.result.ok ? (
+          <AppliedCard key={check.code} check={check} onRemove={() => remove(check.code)} />
+        ) : (
+          <NoLongerAppliesCard
+            key={check.code}
+            code={check.code}
+            refusal={check.result.refusal}
+            onRemove={() => remove(check.code)}
+          />
+        ),
+      )}
+
+      {open ? (
+        <form
+          className="flex flex-col gap-1.5"
+          onSubmit={(e) => {
+            e.preventDefault()
+            apply()
           }}
-          placeholder="Enter code"
-          autoComplete="off"
-          autoCapitalize="characters"
-          spellCheck={false}
-          maxLength={20}
-          disabled={checking}
-          aria-invalid={refusal ? true : undefined}
-          aria-describedby={refusal ? "promo-code-error" : undefined}
-          className="flex-1 font-medium tracking-wide"
-        />
-        <Button
-          type="submit"
-          variant="outline"
-          radius="full"
-          size="lg"
-          disabled={!normalizeCode(draft) || checking}
-          className="min-w-24"
         >
-          {checking ? (
-            <Loader2Icon className="size-4 animate-spin" aria-label="Checking" />
-          ) : (
-            "Apply"
-          )}
-        </Button>
-      </div>
-      {refusal ? (
-        <div id="promo-code-error" className="flex flex-col gap-0.5">
-          <p role="alert" className="text-sm text-destructive">
-            {refusal.message}
-          </p>
-          {refusal.detail ? (
-            <p className="text-sm text-muted-foreground">{refusal.detail}</p>
+          <Label htmlFor="promo-code">Promo code</Label>
+          <div className="flex gap-2">
+            <Input
+              id="promo-code"
+              value={draft}
+              onChange={(e) => {
+                setDraft(e.target.value.toUpperCase())
+                if (refusal) setRefusal(null)
+              }}
+              placeholder="Enter code"
+              autoComplete="off"
+              autoCapitalize="characters"
+              spellCheck={false}
+              maxLength={20}
+              disabled={checking}
+              aria-invalid={refusal ? true : undefined}
+              aria-describedby={refusal ? "promo-code-error" : undefined}
+              className="flex-1 font-medium tracking-wide"
+            />
+            <Button
+              type="submit"
+              variant="outline"
+              radius="full"
+              size="lg"
+              disabled={!normalizeCode(draft) || checking}
+              className="min-w-24"
+            >
+              {checking ? (
+                <Loader2Icon className="size-4 animate-spin" aria-label="Checking" />
+              ) : (
+                "Apply"
+              )}
+            </Button>
+          </div>
+          {refusal ? (
+            <div id="promo-code-error" className="flex flex-col gap-0.5">
+              <p role="alert" className="text-sm text-destructive">
+                {refusal.message}
+              </p>
+              {refusal.detail ? (
+                <p className="text-sm text-muted-foreground">{refusal.detail}</p>
+              ) : null}
+            </div>
           ) : null}
-        </div>
+        </form>
+      ) : !hasCodes || canAddAnother ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex items-center gap-2 self-start py-1 text-sm font-medium text-foreground hover:opacity-70"
+        >
+          <TicketPercentIcon className="size-4 text-muted-foreground" aria-hidden />
+          {hasCodes ? "Add another code" : "Have a promo code?"}
+        </button>
       ) : null}
-    </form>
+    </div>
+  )
+}
+
+function AppliedCard({ check, onRemove }: { check: BookingCodeCheck; onRemove: () => void }) {
+  if (!check.result.ok) return null
+  const { promo } = check.result
+  const partial = promo.coveredLines < promo.totalLines
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-cami-green-3 px-4 py-3">
+      <TicketPercentIcon className="size-5 shrink-0 text-cami-green-11" aria-hidden />
+      <div className="flex min-w-0 flex-1 flex-col leading-tight">
+        <span className="text-sm font-semibold text-foreground">
+          {promo.code} <span className="font-normal text-cami-green-11">applied</span>
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {[
+            promo.deal.name,
+            // Owners often put the value in the name ("Spa add-ons 20% off");
+            // saying it twice reads as a mistake.
+            promo.deal.name.includes(formatDiscountValue(promo.deal))
+              ? null
+              : `${formatDiscountValue(promo.deal)} off`,
+            partial ? `applies to ${promo.coveredLines} of ${promo.totalLines} services` : null,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </span>
+      </div>
+      <span className="shrink-0 text-sm font-medium tabular-nums text-cami-green-11">
+        - {formatPromoMoney(promo.discountMinor)}
+      </span>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${promo.code}`}
+        className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-cami-green-4"
+      >
+        <XIcon className="size-4" />
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Applied earlier, no longer good — the booking changed under it, or the
+ * promotion did. Named, with the reason, and the total already shows the
+ * full price.
+ */
+function NoLongerAppliesCard({
+  code,
+  refusal,
+  onRemove,
+}: {
+  code: string
+  refusal: BookingPromoRefusal
+  onRemove: () => void
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-2xl bg-muted/50 px-4 py-3">
+      <TicketPercentIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-tight">
+        <span className="text-sm font-semibold text-foreground">
+          {code} <span className="font-normal text-muted-foreground">no longer applies</span>
+        </span>
+        <span role="alert" className="text-sm text-destructive">
+          {refusal.message}
+        </span>
+        {refusal.detail ? (
+          <span className="text-sm text-muted-foreground">{refusal.detail}</span>
+        ) : null}
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={`Remove ${code}`}
+        className="-mr-1 flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"
+      >
+        <XIcon className="size-4" />
+      </button>
+    </div>
   )
 }

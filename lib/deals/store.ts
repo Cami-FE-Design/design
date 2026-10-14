@@ -75,8 +75,8 @@ export function setDealStatus(id: string, status: DealStatus) {
 /**
  * `dealsService.duplicate` on the dev repo: the copy is named "(copy)", never
  * carries the code (codes stay unique), is not redeemable online until it has
- * one, and otherwise mirrors the original, status included. It keeps the
- * original's locations.
+ * one, and otherwise mirrors the original, status included (except that a copy
+ * of a deleted deal starts inactive). It keeps the original's locations.
  */
 export function duplicateDeal(id: string) {
   const original = current().find((d) => d.id === id)
@@ -88,6 +88,8 @@ export function duplicateDeal(id: string) {
     discountCode: "",
     // Online redemption needs a code, and the copy has none.
     bookingRedeemable: false,
+    // A copy of a deleted deal is a new deal, not a deleted one.
+    status: original.status === "archived" ? "inactive" : original.status,
     redemptions: 0,
     totalSalesMinor: 0,
     totalClients: 0,

@@ -222,7 +222,7 @@ Presentational building blocks for the catalog screens. Full interactive screens
 
 ### Online booking — promo code
 
-DZ-352. The booking Review step's promo code, with every state produced by the real rule (`evaluateBookingCode` in lib/deals/online.ts) running against the seeded JVC codes. The review states show where the code lands: line captions, the Promo code row, VAT on the discounted total, and the AED 0 case. Refusals has one row per reason. "No longer applies" is a code applied before the booking changed under it.
+DZ-352. The booking Review step's promo code, with every state produced by the real rule (`evaluateBookingCode` in lib/deals/online.ts) running against the seeded JVC codes. The review states show where the code lands: line captions, the Promo code row, VAT on the discounted total, and the AED 0 case. "Two codes" is one promotion per line (D6): SPA20 on the teeth brushing and WELCOME15 on the groom, each line naming its code. Refusals has one row per reason, including a code already applied and one whose services another code already covers. "No longer applies" is a code applied before the booking changed under it.
 
 ### Deals — redeemable on your booking page
 

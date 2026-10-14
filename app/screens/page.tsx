@@ -283,7 +283,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shampooch-jvc/book",
         label: "Booking flow · promo code (DZ-352)",
-        note: "On Review, 'Have a promo code?' takes WELCOME15, SPA20, GROOM50 or NAILFREE; the other seeded codes show each refusal.",
+        note: "On Review, 'Have a promo code?' takes WELCOME15, SPA20, GROOM50 or NAILFREE, and more than one code on different services; the other seeded codes show each refusal.",
       },
       {
         path: "/shell-demo?settings=deals&deal=welcome-online",

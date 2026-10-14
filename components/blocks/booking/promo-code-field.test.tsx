@@ -6,29 +6,37 @@ import { describe, expect, it } from "vitest"
 import { PromoCodeField } from "@/components/blocks/booking/promo-code-field"
 import { bookingPromoLines } from "@/lib/booking"
 import { MOCK_DEALS } from "@/lib/deals/mock"
-import { evaluateBookingCode } from "@/lib/deals/online"
+import {
+  type BookingPromoContext,
+  evaluateAddedCode,
+  evaluateBookingCodes,
+} from "@/lib/deals/online"
 
-/** The flow's half: holds the applied code and re-checks it, as BookingFlow does. */
+/** The flow's half: holds the applied codes and re-checks them, as BookingFlow does. */
 function Harness({ serviceIds }: { serviceIds: string[] }) {
-  const [code, setCode] = useState<string | null>(null)
-  const check = (c: string) =>
-    evaluateBookingCode(c, {
-      deals: MOCK_DEALS,
-      locationId: "shampooch-jvc",
-      locationName: "Shampooch JVC",
-      todayIso: "2026-08-24",
-      lines: bookingPromoLines(serviceIds),
-      clientHasRedeemed: () => false,
-    })
+  const [codes, setCodes] = useState<string[]>([])
+  const ctx: BookingPromoContext = {
+    deals: MOCK_DEALS,
+    locationId: "shampooch-jvc",
+    locationName: "Shampooch JVC",
+    todayIso: "2026-08-24",
+    lines: bookingPromoLines(serviceIds),
+    clientHasRedeemed: () => false,
+  }
+  const checks = evaluateBookingCodes(codes, ctx)
+  const taken = new Set(
+    checks.flatMap((c) => (c.result.ok ? Object.keys(c.result.promo.lineDiscounts) : [])),
+  )
   return (
     <PromoCodeField
-      applied={code ? { code, result: check(code) } : null}
+      applied={checks}
+      canAddAnother={ctx.lines.some((l) => !l.comboName && !taken.has(l.id))}
       onApply={(c) => {
-        const result = check(c)
-        if (result.ok) setCode(result.promo.code)
+        const result = evaluateAddedCode(c, codes, ctx)
+        if (result.ok) setCodes((prev) => [...prev, result.promo.code])
         return result
       }}
-      onRemove={() => setCode(null)}
+      onRemove={(c) => setCodes((prev) => prev.filter((x) => x !== c))}
     />
   )
 }
@@ -52,6 +60,35 @@ describe("PromoCodeField", () => {
     await enter("JULY10")
     expect(await screen.findByRole("alert")).toHaveTextContent("This code expired on 31 Jul 2026.")
     expect(screen.getByLabelText("Promo code")).toHaveAttribute("aria-invalid", "true")
+  })
+
+  it("takes a second code on the lines the first one left, one promotion per line", async () => {
+    render(<Harness serviceIds={["full-groom", "teeth"]} />)
+    await enter("SPA20")
+    await screen.findByText(/SPA20/)
+    await userEvent.click(screen.getByRole("button", { name: "Add another code" }))
+    await userEvent.type(screen.getByLabelText("Promo code"), "WELCOME15")
+    await userEvent.click(screen.getByRole("button", { name: "Apply" }))
+    // SPA20 took the teeth brushing (AED 8); WELCOME15 takes only the groom: 15% of 260.
+    expect(await screen.findByText("- AED 39")).toBeInTheDocument()
+    expect(screen.getByText("- AED 8")).toBeInTheDocument()
+  })
+
+  it("refuses the same code twice, by name", async () => {
+    render(<Harness serviceIds={["full-groom", "teeth"]} />)
+    await enter("SPA20")
+    await screen.findByText(/SPA20/)
+    await userEvent.click(screen.getByRole("button", { name: "Add another code" }))
+    await userEvent.type(screen.getByLabelText("Promo code"), "spa20")
+    await userEvent.click(screen.getByRole("button", { name: "Apply" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("This code is already applied.")
+  })
+
+  it("stops offering another code once every line is discounted", async () => {
+    render(<Harness serviceIds={["full-groom"]} />)
+    await enter("WELCOME15")
+    await screen.findByText(/WELCOME15/)
+    expect(screen.queryByRole("button", { name: "Add another code" })).not.toBeInTheDocument()
   })
 
   it("goes back to an empty field when the code is removed", async () => {

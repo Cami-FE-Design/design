@@ -13,6 +13,10 @@
  *   not advertise a discount the business keeps behind the counter.
  * - Per line, never the total (§5.2). A code that covers grooming leaves the
  *   nail trim in the same booking at full price.
+ * - One promotion per line, different promotions on different lines (D6). A
+ *   client may enter more than one code, as the calendar takes a different
+ *   promotion on each item. Codes are taken in the order they were entered,
+ *   and each takes only the lines no earlier code already discounts.
  * - Combos are never discounted. A combo is already priced as a bundle, and
  *   the promotion catalogue leaves them out for that reason (see
  *   `lib/deals/catalogue.ts`).
@@ -71,6 +75,8 @@ export type BookingPromoRefusal = {
     | "combo-only"
     | "not-applicable"
     | "minimum-spend"
+    | "already-applied"
+    | "already-covered"
   message: string
   detail?: string
 }
@@ -89,6 +95,8 @@ export type BookingPromoContext = {
   lines: ReadonlyArray<BookingPromoLine>
   /** Whether the verified client has redeemed this deal before. */
   clientHasRedeemed: (dealId: string) => boolean
+  /** Lines an earlier code already discounts — one promotion per line (D6). */
+  takenLineIds?: ReadonlySet<string>
 }
 
 export function normalizeCode(code: string): string {
@@ -220,8 +228,8 @@ export function evaluateBookingCode(input: string, ctx: BookingPromoContext): Bo
     return refuse("already-used", "You've already used this code.", "It's one use per client.")
   }
 
-  const covered = ctx.lines.filter((line) => covers(deal, line))
-  if (covered.length === 0) {
+  const coverable = ctx.lines.filter((line) => covers(deal, line))
+  if (coverable.length === 0) {
     // Name the combo when that is the only reason. "Doesn't apply to your
     // services" would send the client looking for a service to swap.
     const wouldCoverWithoutCombo = ctx.lines.some(
@@ -230,6 +238,15 @@ export function evaluateBookingCode(input: string, ctx: BookingPromoContext): Bo
     return wouldCoverWithoutCombo
       ? refuse("combo-only", "Promo codes can't be used on combos.")
       : refuse("not-applicable", "This code doesn't apply to the services you picked.")
+  }
+  // One promotion per line (D6): the lines another code already discounts are
+  // not this one's to take.
+  const covered = coverable.filter((line) => !ctx.takenLineIds?.has(line.id))
+  if (covered.length === 0) {
+    return refuse(
+      "already-covered",
+      "Your other code already covers the services this one applies to.",
+    )
   }
 
   if (deal.limits.minimumPurchaseEnabled && deal.limits.minimumPurchaseAmount != null) {
@@ -256,6 +273,46 @@ export function evaluateBookingCode(input: string, ctx: BookingPromoContext): Bo
       totalLines: ctx.lines.length,
     },
   }
+}
+
+/** One code's answer, in the order the client entered it. */
+export type BookingCodeCheck = { code: string; result: BookingPromoResult }
+
+/**
+ * Check every code on the booking, in the order they were entered.
+ *
+ * Each code takes only the lines no earlier code discounts (D6), so the same
+ * booking always prices the same way. Remove the first code and the second
+ * one is checked again against the lines that frees.
+ */
+export function evaluateBookingCodes(
+  codes: ReadonlyArray<string>,
+  ctx: BookingPromoContext,
+): BookingCodeCheck[] {
+  const taken = new Set<string>()
+  return codes.map((code) => {
+    const result = evaluateBookingCode(code, { ...ctx, takenLineIds: taken })
+    if (result.ok) for (const id of Object.keys(result.promo.lineDiscounts)) taken.add(id)
+    return { code, result }
+  })
+}
+
+/**
+ * Check a code the client is about to add to the ones already on the booking.
+ *
+ * The same code twice is refused by name rather than as "already covered":
+ * the client typed it again, and that is the thing to tell them.
+ */
+export function evaluateAddedCode(
+  input: string,
+  appliedCodes: ReadonlyArray<string>,
+  ctx: BookingPromoContext,
+): BookingPromoResult {
+  const code = normalizeCode(input)
+  if (appliedCodes.some((applied) => normalizeCode(applied) === code)) {
+    return refuse("already-applied", "This code is already applied.")
+  }
+  return evaluateBookingCodes([...appliedCodes, code], ctx).at(-1)!.result
 }
 
 function refuse(

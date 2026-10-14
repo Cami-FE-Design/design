@@ -66,6 +66,10 @@ describe("what a calendar cannot know, it does not decide", () => {
     expect(statusFor("inactive", "2026-04-01", "2026-04-30", TODAY)).toBe("inactive")
   })
 
+  it("reads a switched-off deal past its end as expired, since nothing can restart it", () => {
+    expect(statusFor("inactive", "2026-03-01", "2026-03-31", TODAY)).toBe("expired")
+  })
+
   it("keeps an archived deal archived", () => {
     expect(statusFor("archived", "2026-04-01", "2026-04-30", TODAY)).toBe("archived")
   })

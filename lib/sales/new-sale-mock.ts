@@ -366,12 +366,13 @@ export function dealDiscounts(
 ): Array<{ uid: string; label: string; amountMinor: number }> {
   // One row per promotion, summed across the lines it is on — the built
   // summary's `lineDiscountBreakdown`. Two grooms under one offer are one
-  // redemption, so they read as one row.
+  // redemption, so they read as one row. Keyed by the deal rather than its
+  // name, since two offers can share a name and differ in their rule.
   const byKey = new Map<string, { uid: string; label: string; amountMinor: number }>()
   for (const l of lines) {
     const amount = l.dealDiscountMinor ?? 0
     if (amount <= 0) continue
-    const key = l.dealName ? `promo:${l.dealName}` : "line"
+    const key = l.dealId ? `promo:${l.dealId}` : l.dealName ? `promo:${l.dealName}` : "line"
     const row = byKey.get(key)
     if (row) {
       row.amountMinor += amount

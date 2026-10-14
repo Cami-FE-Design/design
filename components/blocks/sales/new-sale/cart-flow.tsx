@@ -20,7 +20,7 @@ import { WriteTargetLocation } from "@/components/blocks/settings/write-target-l
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
-import { offersAtTill } from "@/lib/deals/eligible"
+import { dealDiscountMinor as dealOffMinor, offersAtTill } from "@/lib/deals/eligible"
 import { useDeals } from "@/lib/deals/store"
 import { locationName } from "@/lib/locations/mock"
 import { useLocations } from "@/lib/locations/store"
@@ -785,7 +785,18 @@ function CartFlowInner({
   }
 
   function setQty(uid: string, qty: number) {
-    setLines((prev) => prev.map((l) => (l.uid === uid ? { ...l, qty: Math.max(1, qty) } : l)))
+    setLines((prev) =>
+      prev.map((l) => {
+        if (l.uid !== uid) return l
+        const next = { ...l, qty: Math.max(1, qty) }
+        // A line's promotion is one amount off the line's gross, so a new
+        // quantity is a new amount: 20% of three bottles, not of one.
+        const deal = l.dealId ? deals.find((d) => d.id === l.dealId) : undefined
+        return deal
+          ? { ...next, dealDiscountMinor: dealOffMinor(deal, next.priceMinor * next.qty) }
+          : next
+      }),
+    )
   }
 
   function applyLineEdit(uid: string, patch: LinePatch) {
@@ -813,11 +824,12 @@ function CartFlowInner({
   }
 
   /**
-   * Re-checks every promotion on the cart before the sale is saved, as the
-   * built checkout does. A line edited after its promotion went on (a groom
-   * removed under a minimum spend, a deal switched off in Settings) can leave
-   * it no longer applying. Those come off with a toast, and the save stops so
-   * the operator sees the new total before taking the money.
+   * Re-checks every promotion on the cart, as the built checkout does. A line
+   * edited after its promotion went on (a groom removed under a minimum spend,
+   * a deal switched off in Settings) can leave it no longer applying. Those
+   * come off with a toast, and the step stops so the operator sees the new
+   * total. It runs on the way to Tip and to Payment, before any money is
+   * taken, and again before the sale is saved.
    */
   function stripStaleDeals(): boolean {
     const ctx = {
@@ -1318,7 +1330,7 @@ function CartFlowInner({
                       lines={lines}
                       discountMinor={discountMinor}
                       blockedReason={blockedReason}
-                      onContinue={() => setStep("tip")}
+                      onContinue={afterDealCheck(() => setStep("tip"))}
                       onAddTip={() => setStep("tip")}
                       onAddCartDiscount={() => setCartDiscountOpen(true)}
                       onAddSaleNote={() => setSaleNoteOpen(true)}
@@ -1356,7 +1368,7 @@ function CartFlowInner({
                     }
                     onCta={
                       step === "tip"
-                        ? () => setStep("payment")
+                        ? afterDealCheck(() => setStep("payment"))
                         : fullyPaid
                           ? afterDealCheck(() => setConfirmed(true))
                           : // A gift card stays inactive until the sale is fully paid —

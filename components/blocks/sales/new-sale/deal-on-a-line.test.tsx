@@ -131,7 +131,7 @@ describe("the summary names each promotion once", () => {
     })
     expect(dealDiscounts([groomed("a"), groomed("b")])).toEqual([
       {
-        uid: "promo:Summer groom offer",
+        uid: "promo:summer-groom",
         label: "Promotion · Summer groom offer - 20%",
         amountMinor: 20000,
       },

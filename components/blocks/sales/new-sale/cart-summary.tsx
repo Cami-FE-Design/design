@@ -837,7 +837,11 @@ function CheckoutBreakdown({
 }) {
   return (
     <>
-      <BreakdownRow label="Total amount (excl. discounts)" value={formatMoney(grossMinor)} muted />
+      <BreakdownRow
+        label={deductions.length > 0 ? "Total amount (excl. discounts)" : "Total"}
+        value={formatMoney(grossMinor)}
+        muted
+      />
       {deductions.map((d) => (
         <BreakdownRow key={d.key} label={d.label} value={`- ${formatMoney(d.amountMinor)}`} muted />
       ))}

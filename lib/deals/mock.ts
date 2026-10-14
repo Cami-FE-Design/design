@@ -631,8 +631,11 @@ export function formatDateRange(startDate: string, endDate: string | null): stri
  *
  * **`inactive` and `archived` are not derivable** — they are things somebody
  * did, not things a date implies, and the built product keeps them as stored
- * state for that reason. So a stored `inactive` or `archived` wins. Otherwise
- * the dates decide: not started is `scheduled`, past its end is `expired`.
+ * state for that reason. A stored `archived` always wins. A deal past its end
+ * date is `expired` even if it was also switched off, because nothing can
+ * bring it back, which is why the list disables Activate on it. Otherwise a
+ * stored `inactive` wins, and the dates decide between `scheduled` and
+ * `active`. The booking page's code check reads the same order.
  */
 export function statusFor(
   stored: DealStatus,
@@ -640,9 +643,10 @@ export function statusFor(
   endDate: string | null,
   todayIso: string,
 ): DealStatus {
-  if (stored === "inactive" || stored === "archived") return stored
-  if (!startDate || startDate > todayIso) return "scheduled"
+  if (stored === "archived") return stored
   if (endDate && endDate < todayIso) return "expired"
+  if (stored === "inactive") return stored
+  if (!startDate || startDate > todayIso) return "scheduled"
   return "active"
 }
 
