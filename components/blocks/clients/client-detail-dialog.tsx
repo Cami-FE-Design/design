@@ -2014,7 +2014,7 @@ function StatValue({ children }: { children: React.ReactNode }) {
 
 function StatLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+    <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
       {children}
     </span>
   )
@@ -2138,7 +2138,7 @@ function VisitRow({
     <div className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
       <div className="flex min-w-0 flex-col gap-0.5">
         <div className="flex min-w-0 items-baseline gap-2">
-          <span className="shrink-0 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+          <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {label}
           </span>
           <span className={cn("truncate text-sm", title ? "font-medium" : "text-muted-foreground")}>

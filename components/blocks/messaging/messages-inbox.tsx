@@ -22,6 +22,7 @@ import { KpiCard, KpiGrid } from "@/components/blocks/shared/kpi-card"
 import { SectionCard } from "@/components/blocks/shared/section-card"
 import { AppShell } from "@/components/blocks/shell/app-shell"
 import { Avatar } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -60,15 +61,10 @@ const FUNNEL_ORDER: FunnelStatus[] = ["new-inquiry", "engaged", "quoted", "sched
 function FunnelPill({ funnel }: { funnel: FunnelStatus }) {
   const meta = FUNNEL_META[funnel]
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-        meta.pill,
-      )}
-    >
+    <Badge className={cn("rounded-full px-2", meta.pill)}>
       <span className={cn("size-1.5 rounded-full", meta.dot)} aria-hidden />
       {meta.label}
-    </span>
+    </Badge>
   )
 }
 
@@ -81,47 +77,40 @@ function SlaChip({ minutes, compact = false }: { minutes: number; compact?: bool
         ? "bg-cami-yellow-3 text-cami-yellow-11"
         : "bg-cami-sage-3 text-cami-sage-11"
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-        toneClass,
-      )}
-    >
+    <Badge className={cn("rounded-full px-2", toneClass)}>
       <ClockIcon className="size-3" aria-hidden />
       {compact ? formatSlaShort(minutes) : formatSla(minutes)}
-    </span>
+    </Badge>
   )
 }
 
 function RoutingChip({ conversation }: { conversation: Conversation }) {
   if (conversation.escalatedTo) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-cami-yellow-3 px-2 py-0.5 text-[11px] font-medium text-cami-yellow-11">
+      <Badge className="rounded-full bg-cami-yellow-3 px-2 text-cami-yellow-11">
         <AlertTriangleIcon className="size-3" aria-hidden />
         Escalated
-      </span>
+      </Badge>
     )
   }
   if (conversation.assignee) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-cami-violet-3 px-1.5 py-0.5 text-[11px] font-medium text-cami-violet-11">
+      <Badge variant="primary-soft" className="rounded-full">
         <Avatar size="xs" fallback="character" name={conversation.assignee} className="size-3.5" />
         {conversation.assignee}
-      </span>
+      </Badge>
     )
   }
   return (
-    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-      Unassigned
-    </span>
+    <Badge className="rounded-full bg-transparent px-2 text-muted-foreground">Unassigned</Badge>
   )
 }
 
 function StatePill({ state }: { state: ConversationState }) {
   return (
-    <span
+    <Badge
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+        "rounded-full px-2",
         state === "open" ? "bg-cami-sage-3 text-cami-sage-11" : "bg-cami-gray-3 text-cami-gray-11",
       )}
     >
@@ -133,7 +122,7 @@ function StatePill({ state }: { state: ConversationState }) {
         aria-hidden
       />
       {state === "open" ? "Open" : "Closed"}
-    </span>
+    </Badge>
   )
 }
 
@@ -248,7 +237,7 @@ function ConversationList({
 function DateSeparator({ label }: { label: string }) {
   return (
     <div className="flex items-center justify-center py-1">
-      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
     </div>
@@ -269,7 +258,7 @@ function MessageBubble({ item }: { item: Extract<ThreadItem, { kind: "message" }
       >
         <p className="whitespace-pre-wrap">{item.body}</p>
       </div>
-      <span className="px-1 text-[11px] text-muted-foreground">
+      <span className="px-1 text-xs text-muted-foreground">
         {item.at}
         {isOut && item.author ? ` · ${item.author}` : ""}
       </span>
@@ -298,7 +287,7 @@ function BookingRequestCard({
         <span className="text-xs font-semibold uppercase tracking-wide text-foreground">
           Booking request
         </span>
-        <span className="ml-auto text-[11px] text-muted-foreground">{item.at}</span>
+        <span className="ml-auto text-xs text-muted-foreground">{item.at}</span>
       </div>
       <dl className="flex flex-col gap-2 py-3 text-sm">
         {hasPets ? (
@@ -361,7 +350,7 @@ function BookingRequestCard({
 function SystemLine({ item }: { item: Extract<ThreadItem, { kind: "system" }> }) {
   return (
     <div className="flex items-center justify-center">
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
         {item.body}
         <span aria-hidden>·</span>
         {item.at}
@@ -436,7 +425,7 @@ function Composer({ onSend }: { onSend: (body: string) => void }) {
             <SparklesIcon className="size-4" aria-hidden />
             AI draft reply
           </Button>
-          <span className="ml-auto hidden text-[11px] text-muted-foreground sm:inline">
+          <span className="ml-auto hidden text-xs text-muted-foreground sm:inline">
             ⌘/Ctrl + Enter
           </span>
           <Button

@@ -4,6 +4,7 @@ import { AlertTriangleIcon, CalendarIcon, MapPinIcon, RotateCwIcon } from "lucid
 import { useEffect, useState } from "react"
 import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -341,15 +342,15 @@ export function ClientSummary({
           {initial.archived || initial.homeLocation ? (
             <span className="mt-1 flex flex-wrap gap-1">
               {initial.archived ? (
-                <span className="rounded-full bg-cami-gray-3 px-2 py-0.5 text-[11px] font-medium text-cami-gray-11">
+                <Badge className="rounded-full bg-cami-gray-3 px-2 text-cami-gray-11">
                   {copy.archived}
-                </span>
+                </Badge>
               ) : null}
               {initial.homeLocation ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-cami-violet-3 px-2 py-0.5 text-[11px] font-medium text-cami-violet-11">
+                <Badge variant="primary-soft" className="rounded-full px-2">
                   <MapPinIcon className="size-3" aria-hidden />
                   {copy.atLocation(initial.homeLocation)}
-                </span>
+                </Badge>
               ) : null}
             </span>
           ) : null}

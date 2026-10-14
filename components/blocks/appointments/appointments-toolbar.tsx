@@ -104,7 +104,7 @@ export function AppointmentsToolbar({
       </div>
       <div className="flex items-center gap-1.5">
         {onHasPetsChange ? (
-          <div className="mr-1 flex items-center gap-1.5 rounded-full border border-border/60 px-2.5 py-1 text-[11px]">
+          <div className="mr-1 flex items-center gap-1.5 rounded-full border border-border/60 px-2.5 py-1 text-sm">
             <span id="pet-mode-label" className="font-medium text-muted-foreground">
               Pets
             </span>
