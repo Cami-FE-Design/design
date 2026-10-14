@@ -91,6 +91,23 @@ describe("PromoCodeField", () => {
     expect(screen.queryByRole("button", { name: "Add another code" })).not.toBeInTheDocument()
   })
 
+  it("shows each code as checking while the booking is re-checked", () => {
+    render(
+      <PromoCodeField
+        applied={[
+          { code: "SPA20", result: { ok: false, refusal: { kind: "not-found", message: "" } } },
+        ]}
+        onApply={() => ({ ok: false, refusal: { kind: "not-found", message: "" } })}
+        onRemove={() => {}}
+        rechecking
+      />,
+    )
+    expect(screen.getByText("checking")).toBeInTheDocument()
+    // No amount, no remove, no field until the answer is back.
+    expect(screen.queryByRole("button", { name: "Remove SPA20" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Add another code" })).not.toBeInTheDocument()
+  })
+
   it("goes back to an empty field when the code is removed", async () => {
     render(<Harness serviceIds={["full-groom"]} />)
     await enter("WELCOME15")

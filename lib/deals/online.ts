@@ -77,6 +77,7 @@ export type BookingPromoRefusal = {
     | "minimum-spend"
     | "already-applied"
     | "already-covered"
+    | "check-failed"
   message: string
   detail?: string
 }
@@ -273,6 +274,16 @@ export function evaluateBookingCode(input: string, ctx: BookingPromoContext): Bo
       totalLines: ctx.lines.length,
     },
   }
+}
+
+/**
+ * The answer when the code could not be checked at all — the request failed or
+ * timed out. Not a verdict on the code, so it says to try again rather than
+ * why, and the code stays in the field for the retry.
+ */
+export const CHECK_FAILED: BookingPromoRefusal = {
+  kind: "check-failed",
+  message: "We couldn't check this code right now. Try again.",
 }
 
 /** One code's answer, in the order the client entered it. */

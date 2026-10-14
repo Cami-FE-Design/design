@@ -51,6 +51,7 @@ export function PromoCodeField({
   onApply,
   onRemove,
   canAddAnother = true,
+  rechecking = false,
   defaultOpen = false,
   defaultCode = "",
   defaultRefusal = null,
@@ -67,6 +68,11 @@ export function PromoCodeField({
    * can only answer "already covered".
    */
   canAddAnother?: boolean
+  /**
+   * The applied codes are being checked again because the booking changed.
+   * Each card says so in place of its amount, until the answer is back.
+   */
+  rechecking?: boolean
   /** Playground seams — open on a typed code, an error, or mid-check. */
   defaultOpen?: boolean
   defaultCode?: string
@@ -119,7 +125,9 @@ export function PromoCodeField({
   return (
     <div className="flex flex-col gap-2">
       {applied.map((check) =>
-        check.result.ok ? (
+        rechecking ? (
+          <CheckingCard key={check.code} code={check.code} />
+        ) : check.result.ok ? (
           <AppliedCard key={check.code} check={check} onRemove={() => remove(check.code)} />
         ) : (
           <NoLongerAppliesCard
@@ -131,7 +139,7 @@ export function PromoCodeField({
         ),
       )}
 
-      {open ? (
+      {rechecking ? null : open ? (
         <form
           className="flex flex-col gap-1.5"
           onSubmit={(e) => {
@@ -234,6 +242,19 @@ function AppliedCard({ check, onRemove }: { check: BookingCodeCheck; onRemove: (
       >
         <XIcon className="size-4" />
       </button>
+    </div>
+  )
+}
+
+/** A code being checked again after the booking changed — no amount until it is back. */
+function CheckingCard({ code }: { code: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl bg-muted/50 px-4 py-3" aria-busy="true">
+      <TicketPercentIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+      <span className="min-w-0 flex-1 text-sm font-semibold text-foreground">
+        {code} <span className="font-normal text-muted-foreground">checking</span>
+      </span>
+      <Loader2Icon className="size-4 shrink-0 animate-spin text-muted-foreground" aria-hidden />
     </div>
   )
 }

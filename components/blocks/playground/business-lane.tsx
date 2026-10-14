@@ -144,6 +144,7 @@ import { CUSTOMER_CARD_THEMES, getCustomerCardTheme } from "@/lib/customer-card/
 import { MOCK_DEALS } from "@/lib/deals/mock"
 import {
   type BookingPromoContext,
+  CHECK_FAILED,
   evaluateAddedCode,
   evaluateBookingCode,
   evaluateBookingCodes,
@@ -1059,7 +1060,7 @@ function BookingPromoCodeDemo() {
         },
         {
           label: "Field",
-          note: "Closed, typing, checking, applied, and applied to 1 of 2 services.",
+          note: "Closed, typing, checking, applied, applied to 1 of 2, re-checking after a change, and a check that failed.",
           content: (
             <div className="flex flex-col">
               <Row label="Closed">
@@ -1109,6 +1110,28 @@ function BookingPromoCodeDemo() {
                     applied={[promoApplied("SPA20", ["full-groom", "teeth"])]}
                     onApply={promoCheck(["full-groom", "teeth"])}
                     onRemove={noop}
+                  />
+                </PromoFrame>
+              </Row>
+              <Row label="Re-checking after a change">
+                <PromoFrame>
+                  <PromoCodeField
+                    applied={promoChecks(["SPA20", "WELCOME15"], ["full-groom", "teeth"])}
+                    onApply={promoCheck(["full-groom", "teeth"])}
+                    onRemove={noop}
+                    rechecking
+                  />
+                </PromoFrame>
+              </Row>
+              <Row label="Couldn't check">
+                <PromoFrame>
+                  <PromoCodeField
+                    applied={[]}
+                    onApply={promoCheck(["full-groom"])}
+                    onRemove={noop}
+                    defaultOpen
+                    defaultCode="WELCOME15"
+                    defaultRefusal={CHECK_FAILED}
                   />
                 </PromoFrame>
               </Row>
