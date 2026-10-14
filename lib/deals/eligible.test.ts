@@ -161,7 +161,10 @@ describe("a deal only discounts what it says it does", () => {
   })
 
   it("is offered on a gift card when the merchant has allowed it", () => {
-    const allowed = deal({ id: "allowed", applicability: DEFAULT_DEAL_APPLICABILITY })
+    const allowed = deal({
+      id: "allowed",
+      applicability: { ...DEFAULT_DEAL_APPLICABILITY, giftCardsInStore: true },
+    })
     expect(dealsAtTill([allowed], "x", TODAY, "gift-card").map((d) => d.id)).toEqual(["allowed"])
   })
 

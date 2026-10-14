@@ -110,6 +110,7 @@ export function DealsPage({
   }
 
   const [query, setQuery] = useState("")
+  const isSearching = query.trim().length > 0
   const [sort, setSort] = useState<SortKey>("created-newest")
   const [wizardOpen, setWizardOpen] = useState(false)
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null)
@@ -173,12 +174,18 @@ export function DealsPage({
           <section className="flex w-full flex-col rounded-2xl border border-border/60 p-5">
             <EmptyState
               icon={CirclePercentIcon}
-              title="No active deals yet"
-              description="Create promotions and discounts to offer deals to your clients."
+              title={isSearching ? "No matching deals" : "No active deals yet"}
+              description={
+                isSearching
+                  ? "No deals match your search. Try a different name."
+                  : "Create promotions and discounts to offer deals to your clients."
+              }
               action={
-                <Button variant="secondary" radius="full" onClick={() => setWizardOpen(true)}>
-                  Add deal
-                </Button>
+                isSearching ? undefined : (
+                  <Button variant="secondary" radius="full" onClick={() => setWizardOpen(true)}>
+                    Add deal
+                  </Button>
+                )
               }
             />
           </section>

@@ -75,7 +75,11 @@ import { TableReport } from "@/components/blocks/reports/table-report"
 import { CamiPayFeeBreakdown } from "@/components/blocks/sales/camipay-fee-breakdown"
 import { EmailInvoiceDialog } from "@/components/blocks/sales/email-invoice-dialog"
 import { InvoiceDocumentView } from "@/components/blocks/sales/invoice-document"
-import { CartContent, CartFooter } from "@/components/blocks/sales/new-sale/cart-summary"
+import {
+  CartContent,
+  CartFooter,
+  CheckoutFooter,
+} from "@/components/blocks/sales/new-sale/cart-summary"
 import {
   GiftCardDialog,
   newGiftCardDraft,
@@ -138,7 +142,12 @@ import { openAppointmentsFor } from "@/lib/clients/open-appointments"
 import { getCustomerCard } from "@/lib/customer-card/mock"
 import { CUSTOMER_CARD_THEMES, getCustomerCardTheme } from "@/lib/customer-card/theme"
 import { MOCK_DEALS } from "@/lib/deals/mock"
-import { type BookingPromoContext, evaluateBookingCode } from "@/lib/deals/online"
+import {
+  type BookingPromoContext,
+  evaluateAddedCode,
+  evaluateBookingCode,
+  evaluateBookingCodes,
+} from "@/lib/deals/online"
 import { createEmptyDealDraft } from "@/lib/deals/wizard"
 import { formatAed } from "@/lib/format"
 import { ZERO_RATE } from "@/lib/hq-camipay/store"
@@ -930,21 +939,32 @@ function BranchStockThresholdsDemo() {
 // DZ-352 — a promo code on the booking review step. Every state is the real
 // rule run against the seeded codes at JVC, so a refusal here reads exactly as
 // it does on /shampooch-jvc/book.
+function promoContext(
+  serviceIds: string[],
+  overrides: Partial<BookingPromoContext> = {},
+): BookingPromoContext {
+  return {
+    deals: MOCK_DEALS,
+    locationId: "shampooch-jvc",
+    locationName: "Shampooch JVC",
+    todayIso: TODAY_ISO,
+    lines: bookingPromoLines(serviceIds),
+    clientHasRedeemed: () => false,
+    ...overrides,
+  }
+}
+
 function promoCheck(serviceIds: string[], overrides: Partial<BookingPromoContext> = {}) {
-  return (code: string) =>
-    evaluateBookingCode(code, {
-      deals: MOCK_DEALS,
-      locationId: "shampooch-jvc",
-      locationName: "Shampooch JVC",
-      todayIso: TODAY_ISO,
-      lines: bookingPromoLines(serviceIds),
-      clientHasRedeemed: () => false,
-      ...overrides,
-    })
+  return (code: string) => evaluateBookingCode(code, promoContext(serviceIds, overrides))
+}
+
+/** Codes in the order entered, each taking only the lines no earlier one has (D6). */
+function promoChecks(codes: string[], serviceIds: string[]) {
+  return evaluateBookingCodes(codes, promoContext(serviceIds))
 }
 
 function promoApplied(code: string, serviceIds: string[]) {
-  return { code, result: promoCheck(serviceIds)(code) }
+  return promoChecks([code], serviceIds)[0]!
 }
 
 function promoRefusal(
@@ -976,16 +996,22 @@ const PROMO_REFUSALS: ReadonlyArray<{
   { label: "Minimum spend", code: "GROOM50", serviceIds: ["full-groom", "nail-trim"] },
   { label: "Combo only", code: "WELCOME15", serviceIds: ["groom-and-nails-combo"] },
   { label: "Wrong services", code: "SPA20", serviceIds: ["full-groom"] },
+  {
+    label: "Already covered by another code",
+    code: "WELCOME15",
+    serviceIds: ["full-groom"],
+    overrides: { takenLineIds: new Set(["full-groom"]) },
+  },
 ]
 
 function PromoFrame({ children }: { children: React.ReactNode }) {
   return <div className="w-full max-w-105">{children}</div>
 }
 
-function BookingPromoReview({ code, serviceIds }: { code: string; serviceIds: string[] }) {
+function BookingPromoReview({ codes, serviceIds }: { codes: string[]; serviceIds: string[] }) {
   const business = getPublicBusiness("shampooch-jvc")
   if (!business) return null
-  const applied = promoApplied(code, serviceIds)
+  const applied = promoChecks(codes, serviceIds)
   return (
     <div className="w-full max-w-115 rounded-2xl border border-border/60 bg-background p-5">
       <ConfirmStep
@@ -995,7 +1021,7 @@ function BookingPromoReview({ code, serviceIds }: { code: string; serviceIds: st
         whenLabel="Tue 25 · 10:00 AM"
         staffLabel="Any team member"
         customerLabel="Natalie Grant"
-        promo={applied.result.ok ? applied.result.promo : null}
+        promos={applied.flatMap((c) => (c.result.ok ? [c.result.promo] : []))}
         promoField={
           <PromoCodeField applied={applied} onApply={promoCheck(serviceIds)} onRemove={() => {}} />
         }
@@ -1012,12 +1038,24 @@ function BookingPromoCodeDemo() {
         {
           label: "Review step, code applied",
           note: "WELCOME15 on a groom and a nail trim: line captions, the promo row, VAT on the discounted total.",
-          content: <BookingPromoReview code="WELCOME15" serviceIds={["full-groom", "nail-trim"]} />,
+          content: (
+            <BookingPromoReview codes={["WELCOME15"]} serviceIds={["full-groom", "nail-trim"]} />
+          ),
+        },
+        {
+          label: "Two codes",
+          note: "SPA20 on the teeth brushing, then WELCOME15 on the groom: one promotion per line, each line names its code.",
+          content: (
+            <BookingPromoReview
+              codes={["SPA20", "WELCOME15"]}
+              serviceIds={["full-groom", "teeth"]}
+            />
+          ),
         },
         {
           label: "AED 0 booking",
           note: "NAILFREE on a nail trim alone: 100% off, and the pay-at-salon note changes.",
-          content: <BookingPromoReview code="NAILFREE" serviceIds={["nail-trim"]} />,
+          content: <BookingPromoReview codes={["NAILFREE"]} serviceIds={["nail-trim"]} />,
         },
         {
           label: "Field",
@@ -1027,7 +1065,7 @@ function BookingPromoCodeDemo() {
               <Row label="Closed">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={null}
+                    applied={[]}
                     onApply={promoCheck(["full-groom"])}
                     onRemove={noop}
                   />
@@ -1036,7 +1074,7 @@ function BookingPromoCodeDemo() {
               <Row label="Typing">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={null}
+                    applied={[]}
                     onApply={promoCheck(["full-groom"])}
                     onRemove={noop}
                     defaultOpen
@@ -1047,7 +1085,7 @@ function BookingPromoCodeDemo() {
               <Row label="Checking">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={null}
+                    applied={[]}
                     onApply={promoCheck(["full-groom"])}
                     onRemove={noop}
                     defaultOpen
@@ -1059,7 +1097,7 @@ function BookingPromoCodeDemo() {
               <Row label="Applied">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={promoApplied("WELCOME15", ["full-groom", "nail-trim"])}
+                    applied={[promoApplied("WELCOME15", ["full-groom", "nail-trim"])]}
                     onApply={promoCheck(["full-groom", "nail-trim"])}
                     onRemove={noop}
                   />
@@ -1068,7 +1106,7 @@ function BookingPromoCodeDemo() {
               <Row label="Applies to 1 of 2">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={promoApplied("SPA20", ["full-groom", "teeth"])}
+                    applied={[promoApplied("SPA20", ["full-groom", "teeth"])]}
                     onApply={promoCheck(["full-groom", "teeth"])}
                     onRemove={noop}
                   />
@@ -1082,11 +1120,30 @@ function BookingPromoCodeDemo() {
           note: "One row per reason a code is turned down, each from the real rule.",
           content: (
             <div className="flex flex-col">
+              <Row label="Already applied">
+                <PromoFrame>
+                  <PromoCodeField
+                    applied={[]}
+                    onApply={promoCheck(["full-groom"])}
+                    onRemove={noop}
+                    defaultOpen
+                    defaultCode="WELCOME15"
+                    defaultRefusal={(() => {
+                      const result = evaluateAddedCode(
+                        "WELCOME15",
+                        ["WELCOME15"],
+                        promoContext(["full-groom"]),
+                      )
+                      return result.ok ? null : result.refusal
+                    })()}
+                  />
+                </PromoFrame>
+              </Row>
               {PROMO_REFUSALS.map((r) => (
                 <Row key={r.label} label={r.label}>
                   <PromoFrame>
                     <PromoCodeField
-                      applied={null}
+                      applied={[]}
                       onApply={promoCheck(r.serviceIds, r.overrides)}
                       onRemove={noop}
                       defaultOpen
@@ -1105,7 +1162,7 @@ function BookingPromoCodeDemo() {
           content: (
             <PromoFrame>
               <PromoCodeField
-                applied={promoApplied("WELCOME15", ["groom-and-nails-combo"])}
+                applied={[promoApplied("WELCOME15", ["groom-and-nails-combo"])]}
                 onApply={promoCheck(["groom-and-nails-combo"])}
                 onRemove={noop}
               />
@@ -1260,6 +1317,47 @@ const PACKAGE_CART_LINES: CartLine[] = [
     durationMin: 90,
     qty: 1,
     sourceId: "deep-tissue",
+  },
+]
+
+/**
+ * Two grooms under one promotion and a product without one — the till's
+ * promotion chip on each discounted line, and one summary row for the offer.
+ */
+const PROMO_CART_LINES: CartLine[] = [
+  {
+    uid: "promo-pg-1",
+    kind: "service",
+    name: "Full groom",
+    priceMinor: 25000,
+    qty: 1,
+    durationMin: 90,
+    sourceId: "full-groom",
+    dealId: "summer-groom",
+    dealName: "Summer groom offer",
+    dealRule: { kind: "percentage", value: 20 },
+    dealDiscountMinor: 5000,
+  },
+  {
+    uid: "promo-pg-2",
+    kind: "service",
+    name: "Puppy groom",
+    priceMinor: 18000,
+    qty: 1,
+    durationMin: 60,
+    sourceId: "puppy-groom",
+    dealId: "summer-groom",
+    dealName: "Summer groom offer",
+    dealRule: { kind: "percentage", value: 20 },
+    dealDiscountMinor: 3600,
+  },
+  {
+    uid: "promo-pg-3",
+    kind: "product",
+    name: "Oatmeal shampoo",
+    priceMinor: 6500,
+    qty: 1,
+    sourceId: "oatmeal-shampoo",
   },
 ]
 
@@ -3240,7 +3338,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Online booking — promo code"
-        description="Promo code on the booking review step: applied, AED 0, the field's states, each refusal, and a code that stopped applying."
+        description="Promo codes on the booking review step: one code, two codes on different lines, AED 0, the field's states, each refusal, and a code that stopped applying."
       >
         <BookingPromoCodeDemo />
       </Section>
@@ -3255,6 +3353,87 @@ export function BusinessLane() {
             { label: "Online, with code", content: <DealOnlineSwitchDemo on code="WELCOME15" /> },
           ]}
         />
+      </Section>
+      <Section
+        title="Deals — list statuses"
+        description="One row per status, as the built list shows them; an expired deal's Activate is disabled."
+      >
+        {(
+          [
+            ["Active", "summer-groom"],
+            ["Inactive — switched off by hand", "referral-bonus"],
+            ["Expired — past its end date", "july-treat"],
+            ["Archived — after Delete", "eid-weekend"],
+          ] as const
+        ).map(([label, id]) => {
+          const deal = MOCK_DEALS.find((d) => d.id === id)
+          return deal ? (
+            <Row key={id} label={label}>
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <div className="w-full max-w-146">
+                  <DealsTable
+                    deals={[deal]}
+                    todayIso={TODAY_ISO}
+                    locationName={estateLocationName}
+                    onSelect={() => {}}
+                    onEdit={() => {}}
+                    onSetStatus={() => {}}
+                    onDuplicate={() => {}}
+                  />
+                </div>
+              </LocationsProvider>
+            </Row>
+          ) : null
+        })}
+      </Section>
+      <Section
+        title="Deals — at the till"
+        description="A promotion on a sale line: the removable chip, one summary row per promotion, and the checkout order."
+      >
+        <Row label="Cart — chip with remove, summary row" align="start">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/60 bg-card">
+            <CartContent
+              lines={PROMO_CART_LINES}
+              hasClient={false}
+              onRemove={() => {}}
+              onSetQty={() => {}}
+              onRemoveDeal={() => toast("Promotion removed")}
+            />
+            <CartFooter
+              lines={PROMO_CART_LINES}
+              discountMinor={2000}
+              onContinue={() => {}}
+              onAddTip={() => {}}
+              onAddCartDiscount={() => {}}
+              onAddSaleNote={() => {}}
+              onSaveDraft={() => {}}
+              onCancelSale={() => {}}
+            />
+          </div>
+        </Row>
+        <Row label="Tip step — discounts before Subtotal and VAT" align="start">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/60 bg-card">
+            <CheckoutFooter
+              baseMinor={38900}
+              tipMinor={2000}
+              ctaLabel="Continue to payment"
+              onCta={() => {}}
+              onAddTip={() => {}}
+              onAddCartDiscount={() => {}}
+              onAddSaleNote={() => {}}
+              onSaveDraft={() => {}}
+              onCancelSale={() => {}}
+              deductions={[
+                {
+                  key: "promo",
+                  label: "Promotion · Summer groom offer - 20%",
+                  amountMinor: 8600,
+                },
+                { key: "cart", label: "Cart discount", amountMinor: 2000 },
+              ]}
+            />
+          </div>
+        </Row>
       </Section>
       <Section
         title="Combos across surfaces"

@@ -75,10 +75,11 @@ import {
 } from "@/lib/booking"
 import {
   type AppliedBookingPromo,
-  type BookingPromoResult,
+  type BookingPromoContext,
   branchTakesCodes,
   dealsForBranch,
-  evaluateBookingCode,
+  evaluateAddedCode,
+  evaluateBookingCodes,
 } from "@/lib/deals/online"
 import { useDeals } from "@/lib/deals/store"
 import { formatAed } from "@/lib/format"
@@ -258,7 +259,7 @@ function StaffChip({
         >
           {label}
         </span>
-        <span className="max-w-full truncate text-[10px] text-muted-foreground">{sub}</span>
+        <span className="max-w-full truncate text-xs text-muted-foreground">{sub}</span>
       </span>
     </button>
   )
@@ -910,7 +911,7 @@ export function ConfirmStep({
   pickupPinned = false,
   petNotes,
   catalog,
-  promo,
+  promos = [],
   promoField,
 }: {
   business: PublicBusiness
@@ -928,8 +929,8 @@ export function ConfirmStep({
   pickupPinned?: boolean
   petNotes?: ReadonlyArray<PetNoteEntry>
   catalog: BookingCatalog
-  /** A promo code that applies to this booking right now (DZ-352). */
-  promo?: AppliedBookingPromo | null
+  /** The promo codes that apply to this booking right now, in the order entered (DZ-352). */
+  promos?: ReadonlyArray<AppliedBookingPromo>
   /** The code field — absent at a branch with no codes to offer. */
   promoField?: React.ReactNode
 }) {
@@ -943,7 +944,8 @@ export function ConfirmStep({
   const subtotal = total - vat
   // With a code the sums run in fils: 15% off AED 35 is AED 5.25, and VAT is
   // taken from what is left after the discount (DZ-200 §6.2).
-  const discountedMinor = promo ? total * 100 - promo.discountMinor : null
+  const promoMinor = promos.reduce((n, p) => n + p.discountMinor, 0)
+  const discountedMinor = promos.length > 0 ? Math.round(total * 100) - promoMinor : null
   const discountedVatMinor = discountedMinor != null ? vatOf(discountedMinor, VAT_RATE) : null
 
   return (
@@ -983,15 +985,21 @@ export function ConfirmStep({
               {/* Only when the code covers some services and not others — then
                   the line has to say which. Covering them all, the card and the
                   promo row already say it, and a third mention is noise. */}
-              {promo && promo.coveredLines < promo.totalLines && promo.lineDiscounts[line.id] ? (
-                <span className="mt-0.5 flex items-center gap-1 text-xs font-medium text-cami-green-11">
-                  <TicketPercentIcon className="size-3" aria-hidden />
-                  {promo.code}
-                  <span className="tabular-nums">
-                    - {formatPromoMoney(promo.lineDiscounts[line.id]!)}
+              {(() => {
+                const linePromo = promos.find((p) => p.lineDiscounts[line.id])
+                // With two codes on the booking, every discounted line says
+                // which one it took.
+                return linePromo &&
+                  (promos.length > 1 || linePromo.coveredLines < linePromo.totalLines) ? (
+                  <span className="mt-0.5 flex items-center gap-1 text-xs font-medium text-cami-green-11">
+                    <TicketPercentIcon className="size-3" aria-hidden />
+                    {linePromo.code}
+                    <span className="tabular-nums">
+                      - {formatPromoMoney(linePromo.lineDiscounts[line.id]!)}
+                    </span>
                   </span>
-                </span>
-              ) : null}
+                ) : null
+              })()}
             </div>
             <span className="flex shrink-0 flex-col items-end tabular-nums">
               <span className="text-sm font-medium text-foreground">
@@ -1029,14 +1037,14 @@ export function ConfirmStep({
       {promoField}
 
       <div className="flex flex-col gap-1">
-        {promo ? (
-          <div className="flex items-baseline justify-between py-1 text-sm">
-            <span className="text-cami-green-11">Promo code ({promo.code})</span>
+        {promos.map((p) => (
+          <div key={p.code} className="flex items-baseline justify-between py-1 text-sm">
+            <span className="text-cami-green-11">Promo code ({p.code})</span>
             <span className="tabular-nums text-cami-green-11">
-              - {formatPromoMoney(promo.discountMinor)}
+              - {formatPromoMoney(p.discountMinor)}
             </span>
           </div>
-        ) : null}
+        ))}
         <div className="flex items-baseline justify-between py-1 text-sm">
           <span className="text-muted-foreground">Subtotal</span>
           <span className="tabular-nums text-muted-foreground">
@@ -1080,7 +1088,9 @@ export function ConfirmStep({
         {discountedMinor === 0
           ? // A 100% code leaves nothing to settle (DZ-200 §6.5). Saying "pay at
             // the salon" over an AED 0 total reads as a mistake.
-            `Nothing to pay — ${promo?.code} covers this booking.`
+            promos.length === 1
+            ? `Nothing to pay — ${promos[0]!.code} covers this booking.`
+            : "Nothing to pay — your codes cover this booking."
           : "Nothing to pay now — settle at the salon after your appointment."}
       </p>
     </div>
@@ -1093,13 +1103,13 @@ function DoneState({
   business,
   whenLabel,
   reference,
-  promo,
+  promos = [],
 }: {
   business: PublicBusiness
   whenLabel: string
   reference: string
-  /** The code the booking was confirmed with, kept with it for the salon. */
-  promo?: AppliedBookingPromo | null
+  /** The codes the booking was confirmed with, kept with it for the salon. */
+  promos?: ReadonlyArray<AppliedBookingPromo>
 }) {
   return (
     <div className="flex flex-1 flex-col">
@@ -1126,17 +1136,17 @@ function DoneState({
           <span className="text-muted-foreground">Reference</span>
           <span className="font-medium tabular-nums text-foreground">{reference}</span>
         </div>
-        {promo ? (
-          <div className="flex items-baseline justify-between py-1.5 text-sm">
+        {promos.map((p) => (
+          <div key={p.code} className="flex items-baseline justify-between py-1.5 text-sm">
             <span className="text-muted-foreground">Promo code</span>
             <span className="font-medium tabular-nums text-cami-green-11">
               <span className="inline-flex items-baseline gap-1.5">
-                {promo.code}
-                <span>- {formatPromoMoney(promo.discountMinor)}</span>
+                {p.code}
+                <span>- {formatPromoMoney(p.discountMinor)}</span>
               </span>
             </span>
           </div>
-        ) : null}
+        ))}
       </div>
 
       <div className="mt-5 flex flex-col gap-2">
@@ -1166,7 +1176,7 @@ function DesktopSummary({
   isLast,
   onCta,
   catalog,
-  promo,
+  promos = [],
 }: {
   business: PublicBusiness
   services: ReadonlyArray<CatalogService>
@@ -1178,7 +1188,7 @@ function DesktopSummary({
   onCta: () => void
   catalog: BookingCatalog
   /** Shown once a code applies, so the card's total matches the review step. */
-  promo?: AppliedBookingPromo | null
+  promos?: ReadonlyArray<AppliedBookingPromo>
 }) {
   const lines = bookingLines(
     services.map((s) => s.id),
@@ -1243,17 +1253,17 @@ function DesktopSummary({
 
       {totals.count > 0 ? (
         <div className="flex flex-col gap-2 border-border/60 border-t pt-4">
-          {promo ? (
-            <div className="flex items-baseline justify-between text-sm">
+          {promos.map((p) => (
+            <div key={p.code} className="flex items-baseline justify-between text-sm">
               <span className="flex items-center gap-1.5 text-cami-green-11">
                 <TicketPercentIcon className="size-3.5" aria-hidden />
-                {promo.code}
+                {p.code}
               </span>
               <span className="tabular-nums text-cami-green-11">
-                - {formatPromoMoney(promo.discountMinor)}
+                - {formatPromoMoney(p.discountMinor)}
               </span>
             </div>
-          ) : null}
+          ))}
           <div className="flex items-center justify-between">
             <div className="flex flex-col leading-tight">
               <span className="font-medium text-base text-foreground">Total</span>
@@ -1263,8 +1273,11 @@ function DesktopSummary({
               </span>
             </div>
             <span className="font-semibold text-foreground text-lg tabular-nums">
-              {promo
-                ? formatPromoMoney(totals.priceAed * 100 - promo.discountMinor)
+              {promos.length > 0
+                ? formatPromoMoney(
+                    Math.round(totals.priceAed * 100) -
+                      promos.reduce((n, p) => n + p.discountMinor, 0),
+                  )
                 : formatAed(totals.priceAed)}
             </span>
           </div>
@@ -1355,10 +1368,10 @@ export function BookingFlow({
   })
   const [pet, setPet] = useState<NewPet>({ name: "", species: "dog" })
   const [pickup, setPickup] = useState<PickupDetails>(EMPTY_PICKUP_DETAILS)
-  // The promo code the client applied (DZ-352). Only the code is kept: what it
-  // takes off is worked out again on every render, against the booking and the
-  // promotion as they are now.
-  const [promoCode, setPromoCode] = useState<string | null>(null)
+  // The promo codes the client applied, in the order entered (DZ-352). Only the
+  // codes are kept: what each takes off is worked out again on every render,
+  // against the booking and the promotions as they are now.
+  const [promoCodes, setPromoCodes] = useState<string[]>([])
   const allDeals = useDeals()
 
   const step = steps[stepIndex]!
@@ -1422,19 +1435,26 @@ export function BookingFlow({
   const branchDeals = dealsForBranch(allDeals, promoLocationId)
   const offersCodes =
     promoLocationId != null && branchTakesCodes(branchDeals, promoLocationId, TODAY_ISO)
-  function checkPromo(code: string): BookingPromoResult {
-    return evaluateBookingCode(code, {
-      deals: branchDeals,
-      locationId: promoLocationId ?? "",
-      locationName: business.displayName,
-      todayIso: TODAY_ISO,
-      lines: bookingPromoLines(serviceIds, catalog),
-      clientHasRedeemed: (dealId) =>
-        findClientByPhone(customer.phone)?.redeemedDealIds?.includes(dealId) ?? false,
-    })
+  const promoContext: BookingPromoContext = {
+    deals: branchDeals,
+    locationId: promoLocationId ?? "",
+    locationName: business.displayName,
+    todayIso: TODAY_ISO,
+    lines: bookingPromoLines(serviceIds, catalog),
+    clientHasRedeemed: (dealId) =>
+      findClientByPhone(customer.phone)?.redeemedDealIds?.includes(dealId) ?? false,
   }
-  const promoResult = promoCode ? checkPromo(promoCode) : null
-  const appliedPromo: AppliedBookingPromo | null = promoResult?.ok ? promoResult.promo : null
+  const promoChecks = evaluateBookingCodes(promoCodes, promoContext)
+  const appliedPromos: AppliedBookingPromo[] = promoChecks.flatMap((c) =>
+    c.result.ok ? [c.result.promo] : [],
+  )
+  const promoOffMinor = appliedPromos.reduce((n, p) => n + p.discountMinor, 0)
+  // Another code is worth offering only while some line is still undiscounted
+  // and could be (a combo never is).
+  const promoTakenLines = new Set(appliedPromos.flatMap((p) => Object.keys(p.lineDiscounts)))
+  const canAddAnotherCode = promoContext.lines.some(
+    (line) => !line.comboName && !promoTakenLines.has(line.id),
+  )
 
   const canContinue =
     step === "service"
@@ -1477,7 +1497,7 @@ export function BookingFlow({
               business={business}
               whenLabel={whenLabel}
               reference={reference}
-              promo={appliedPromo}
+              promos={appliedPromos}
             />
           </div>
           <p className="mt-auto pt-6 text-center text-xs text-muted-foreground">Powered by Cami</p>
@@ -1533,19 +1553,20 @@ export function BookingFlow({
         pickupAddress={pickupAddressLabel}
         pickupPinned={hasPrecisePoint(pickupPlaceRef)}
         petNotes={pickup.petNotes.filter((n) => n.detail.trim().length > 0)}
-        promo={appliedPromo}
+        promos={appliedPromos}
         promoField={
           // A code that is already applied keeps its row even if the branch
           // has since run out of codes, so the client sees what happened.
-          offersCodes || promoCode ? (
+          offersCodes || promoCodes.length > 0 ? (
             <PromoCodeField
-              applied={promoCode && promoResult ? { code: promoCode, result: promoResult } : null}
+              applied={promoChecks}
+              canAddAnother={canAddAnotherCode}
               onApply={(code) => {
-                const result = checkPromo(code)
-                if (result.ok) setPromoCode(result.promo.code)
+                const result = evaluateAddedCode(code, promoCodes, promoContext)
+                if (result.ok) setPromoCodes((prev) => [...prev, result.promo.code])
                 return result
               }}
-              onRemove={() => setPromoCode(null)}
+              onRemove={(code) => setPromoCodes((prev) => prev.filter((c) => c !== code))}
             />
           ) : null
         }
@@ -1593,7 +1614,7 @@ export function BookingFlow({
               canContinue={canContinue}
               isLast={isLast}
               onCta={next}
-              promo={step === "confirm" ? appliedPromo : null}
+              promos={appliedPromos}
             />
           </aside>
         </div>
@@ -1608,7 +1629,9 @@ export function BookingFlow({
               className="flex flex-col items-start leading-tight disabled:opacity-60"
             >
               <span className="font-semibold text-foreground text-lg tabular-nums">
-                {formatAed(totals.priceAed)}
+                {appliedPromos.length > 0
+                  ? formatPromoMoney(Math.round(totals.priceAed * 100) - promoOffMinor)
+                  : formatAed(totals.priceAed)}
               </span>
               <span className="flex items-center gap-1 text-muted-foreground text-xs">
                 <ShoppingBagIcon className="size-3.5" />
@@ -1684,10 +1707,26 @@ export function BookingFlow({
                 </div>
               ))}
             </div>
+            {appliedPromos.map((p) => (
+              <div
+                key={p.code}
+                className="flex items-baseline justify-between border-t border-border/60 py-3 text-sm"
+              >
+                <span className="flex items-center gap-1.5 text-cami-green-11">
+                  <TicketPercentIcon className="size-3.5" aria-hidden />
+                  {p.code}
+                </span>
+                <span className="tabular-nums text-cami-green-11">
+                  - {formatPromoMoney(p.discountMinor)}
+                </span>
+              </div>
+            ))}
             <div className="mt-1 flex items-center justify-between border-t border-border/60 pt-3">
               <span className="text-base font-semibold text-foreground">Total</span>
               <span className="text-base font-semibold tabular-nums text-foreground">
-                {formatAed(totals.priceAed)}
+                {appliedPromos.length > 0
+                  ? formatPromoMoney(Math.round(totals.priceAed * 100) - promoOffMinor)
+                  : formatAed(totals.priceAed)}
               </span>
             </div>
             <Button

@@ -106,6 +106,21 @@ describe("the limits step refuses a switch with no number behind it", () => {
       ),
     ).toBe("Enter an amount greater than 0.")
   })
+
+  it("refuses a minimum spend below a fixed discount, as the built step does", () => {
+    const limits = {
+      ...createEmptyDealDraft(TODAY).limits,
+      minimumPurchaseEnabled: true,
+      minimumPurchaseAmount: 30,
+    }
+    expect(
+      stepBlocker("limits", draft({ discountKind: "fixed", discountValue: "50", limits })),
+    ).toBe("Minimum purchase amount must be at least the discount value.")
+    // A percentage has no amount to compare against.
+    expect(
+      stepBlocker("limits", draft({ discountKind: "percentage", discountValue: "50", limits })),
+    ).toBeNull()
+  })
 })
 
 describe("the locations step is the one this ticket added", () => {

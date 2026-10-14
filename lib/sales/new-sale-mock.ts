@@ -364,15 +364,34 @@ export function grossTotalMinor(lines: CartLine[]): number {
 export function dealDiscounts(
   lines: CartLine[],
 ): Array<{ uid: string; label: string; amountMinor: number }> {
-  return lines
-    .filter((l) => (l.dealDiscountMinor ?? 0) > 0)
-    .map((l) => ({
-      uid: l.uid,
-      // Falls back to the line's own name for a sale saved before the deal was
-      // named on it — better a row that says which line than a bare figure.
-      label: l.dealName ?? `Deal on ${l.name}`,
-      amountMinor: l.dealDiscountMinor ?? 0,
-    }))
+  // One row per promotion, summed across the lines it is on — the built
+  // summary's `lineDiscountBreakdown`. Two grooms under one offer are one
+  // redemption, so they read as one row. Keyed by the deal rather than its
+  // name, since two offers can share a name and differ in their rule.
+  const byKey = new Map<string, { uid: string; label: string; amountMinor: number }>()
+  for (const l of lines) {
+    const amount = l.dealDiscountMinor ?? 0
+    if (amount <= 0) continue
+    const key = l.dealId ? `promo:${l.dealId}` : l.dealName ? `promo:${l.dealName}` : "line"
+    const row = byKey.get(key)
+    if (row) {
+      row.amountMinor += amount
+      continue
+    }
+    const rule = l.dealRule
+      ? l.dealRule.kind === "percentage"
+        ? `${l.dealRule.value}%`
+        : `${l.dealRule.value} AED`
+      : null
+    byKey.set(key, {
+      uid: key,
+      label: l.dealName
+        ? [`Promotion · ${l.dealName}`, rule].filter(Boolean).join(" - ")
+        : "Discount",
+      amountMinor: amount,
+    })
+  }
+  return [...byKey.values()]
 }
 
 /** Σ of the above, for the footers that only need the one number. */

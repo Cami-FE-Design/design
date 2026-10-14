@@ -11,7 +11,7 @@
  * every venue (R24).
  */
 
-import { CoinsIcon, LightbulbIcon, PercentIcon } from "lucide-react"
+import { CoinsIcon, PercentIcon } from "lucide-react"
 import { useState } from "react"
 
 import { DealScopePickerDialog } from "@/components/blocks/deals/deal-scope-picker-dialog"
@@ -29,10 +29,24 @@ import type {
   DealType,
   DiscountKind,
 } from "@/lib/deals/mock"
-import { discountCodeError, type ScopeKind } from "@/lib/deals/wizard"
+import {
+  discountCodeError,
+  minPurchaseBelowFixedDiscount,
+  type ScopeKind,
+} from "@/lib/deals/wizard"
 import type { PromotionScope } from "@/lib/locations/promotion-scope"
 import type { Location } from "@/lib/locations/types"
 import { cn } from "@/lib/utils"
+
+/**
+ * Whole numbers only, capped at 10 digits — the built wizard's inputs.
+ *
+ * Plain text inputs rather than `type="number"`, which still lets "-", "." and
+ * "e" through on some mobile keyboards.
+ */
+function sanitizeDigits(raw: string): string {
+  return raw.replace(/\D/g, "").slice(0, 10)
+}
 
 export function StepHeading({ title, hint }: { title: string; hint?: string }) {
   return (
@@ -41,18 +55,6 @@ export function StepHeading({ title, hint }: { title: string; hint?: string }) {
         {title}
       </h1>
       {hint ? <p className="max-w-2xl text-base text-muted-foreground leading-6">{hint}</p> : null}
-    </div>
-  )
-}
-
-function Tip({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="flex gap-2.5 rounded-2xl bg-cami-violet-2 px-4 py-3.5 text-muted-foreground text-sm">
-      <LightbulbIcon className="mt-0.5 size-4 shrink-0" />
-      <div className="flex flex-col gap-0.5">
-        <p className="font-semibold text-foreground">{title}</p>
-        <p>{children}</p>
-      </div>
     </div>
   )
 }
@@ -68,7 +70,7 @@ const TITLES: Record<DealType, string> = {
 function scopeSummary(scope: DealResourceScope, plural: string) {
   if (scope.mode === "all") return `All ${plural}`
   if (scope.mode === "none") return `No ${plural}`
-  return `${scope.ids.length} ${plural}`
+  return `${scope.ids.length} ${scope.ids.length === 1 ? plural.slice(0, -1) : plural}`
 }
 
 export function DealDetailsStep({
@@ -191,11 +193,13 @@ export function DealDetailsStep({
               </span>
               <input
                 id="deal-discount-value"
-                inputMode="decimal"
+                inputMode="numeric"
                 value={discountValue}
-                onChange={(e) => onDiscountValue(e.target.value.replace(/-/g, ""))}
+                // Whole numbers only, as the built step: every non-digit is
+                // stripped on each keystroke or paste, capped at 10 digits.
+                onChange={(e) => onDiscountValue(sanitizeDigits(e.target.value))}
                 onKeyDown={(e) => {
-                  if (e.key === "-") e.preventDefault()
+                  if (["-", "+", "e", "."].includes(e.key)) e.preventDefault()
                 }}
                 className="h-full min-w-0 flex-1 bg-transparent px-1 font-medium text-foreground text-sm outline-none"
               />
@@ -242,8 +246,7 @@ export function DealDetailsStep({
             <div>
               <Label htmlFor="deal-booking-redeemable">Redeemable on your booking page</Label>
               <p className="mt-0.5 text-muted-foreground text-sm">
-                Clients can enter the code when they book online. Your team can always apply it at
-                checkout.
+                Clients can enter the code when they book services or products online.
               </p>
             </div>
             <Switch
@@ -260,23 +263,19 @@ export function DealDetailsStep({
               id="deal-discount-code"
               value={discountCode}
               maxLength={20}
-              onChange={(e) => onDiscountCode(e.target.value.toUpperCase())}
+              onChange={(e) =>
+                onDiscountCode(
+                  e.target.value
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9]/g, "")
+                    .slice(0, 20),
+                )
+              }
               placeholder="e.g. SUMMER10"
               aria-invalid={codeError ? true : undefined}
             />
-            {codeError ? (
-              <p className="text-destructive text-xs">{codeError}</p>
-            ) : (
-              <p className="text-muted-foreground text-xs">
-                {bookingRedeemable
-                  ? "Create a catchy code for clients to use when they book an appointment online."
-                  : "Only needed if clients will enter it when they book online."}
-              </p>
-            )}
+            {codeError ? <p className="text-destructive text-xs">{codeError}</p> : null}
           </div>
-          <Tip title="Discount codes only available for services and products.">
-            Clients cannot apply discount codes when buying memberships or gift cards online.
-          </Tip>
         </div>
 
         <div className="flex max-w-md flex-col gap-3">
@@ -302,9 +301,6 @@ export function DealDetailsStep({
             </div>
           </div>
           {dateRangeError ? <p className="text-destructive text-xs">{dateRangeError}</p> : null}
-          <Tip title="Valid between the start and end dates only.">
-            This promotion can only be applied to appointments booked within this period.
-          </Tip>
         </div>
 
         <div className="border-border/60 border-t pt-6">
@@ -354,18 +350,15 @@ export function DealDetailsStep({
 
 // ─── Limits ──────────────────────────────────────────────────────────────────
 
-// A number input still lets "-", "e" and "+" through — blocked at the keystroke
-// so a negative limit never renders, as the built step does.
-function blockNegativeKeys(e: React.KeyboardEvent<HTMLInputElement>) {
-  if (e.key === "-" || e.key === "e" || e.key === "+") e.preventDefault()
-}
-
 export function DealLimitsStep({
   value,
   onChange,
+  fixedDiscountValue = null,
 }: {
   value: DealLimits
   onChange: (value: DealLimits) => void
+  /** The deal's fixed-amount discount; the minimum purchase must be at least this. */
+  fixedDiscountValue?: number | null
 }) {
   const totalUsesError =
     value.totalUsesEnabled && (value.totalUses == null || value.totalUses <= 0)
@@ -375,7 +368,9 @@ export function DealLimitsStep({
     value.minimumPurchaseEnabled &&
     (value.minimumPurchaseAmount == null || value.minimumPurchaseAmount <= 0)
       ? "Enter an amount greater than 0."
-      : null
+      : minPurchaseBelowFixedDiscount(value, fixedDiscountValue)
+        ? "Minimum purchase amount must be at least the discount value."
+        : null
 
   return (
     <div className="flex flex-col gap-10">
@@ -416,17 +411,14 @@ export function DealLimitsStep({
           {value.totalUsesEnabled ? (
             <div className="flex flex-col gap-1">
               <Input
-                type="number"
-                min={1}
+                type="text"
                 inputMode="numeric"
                 aria-label="Total uses"
                 placeholder="e.g. 100"
                 value={value.totalUses ?? ""}
-                onKeyDown={blockNegativeKeys}
                 onChange={(e) => {
-                  const next = e.target.value ? Number(e.target.value) : null
-                  if (next != null && next < 0) return
-                  onChange({ ...value, totalUses: next })
+                  const digits = sanitizeDigits(e.target.value)
+                  onChange({ ...value, totalUses: digits ? Number(digits) : null })
                 }}
                 className="max-w-40"
               />
@@ -452,18 +444,14 @@ export function DealLimitsStep({
           {value.minimumPurchaseEnabled ? (
             <div className="flex flex-col gap-1">
               <Input
-                type="number"
-                min={0.01}
-                step="0.01"
-                inputMode="decimal"
+                type="text"
+                inputMode="numeric"
                 aria-label="Minimum purchase amount"
                 placeholder="e.g. 500"
                 value={value.minimumPurchaseAmount ?? ""}
-                onKeyDown={blockNegativeKeys}
                 onChange={(e) => {
-                  const next = e.target.value ? Number(e.target.value) : null
-                  if (next != null && next < 0) return
-                  onChange({ ...value, minimumPurchaseAmount: next })
+                  const digits = sanitizeDigits(e.target.value)
+                  onChange({ ...value, minimumPurchaseAmount: digits ? Number(digits) : null })
                 }}
                 className="max-w-40"
               />

@@ -222,11 +222,19 @@ Presentational building blocks for the catalog screens. Full interactive screens
 
 ### Online booking — promo code
 
-DZ-352. The booking Review step's promo code, with every state produced by the real rule (`evaluateBookingCode` in lib/deals/online.ts) running against the seeded JVC codes. The review states show where the code lands: line captions, the Promo code row, VAT on the discounted total, and the AED 0 case. Refusals has one row per reason. "No longer applies" is a code applied before the booking changed under it.
+DZ-352. The booking Review step's promo code, with every state produced by the real rule (`evaluateBookingCode` in lib/deals/online.ts) running against the seeded JVC codes. The review states show where the code lands: line captions, the Promo code row, VAT on the discounted total, and the AED 0 case. "Two codes" is one promotion per line (D6): SPA20 on the teeth brushing and WELCOME15 on the groom, each line naming its code. Refusals has one row per reason, including a code already applied and one whose services another code already covers. "No longer applies" is a code applied before the booking changed under it.
 
 ### Deals — redeemable on your booking page
 
-DZ-200 D10. The deal wizard's details step with the online-booking switch. Off, the code is optional. On without a code, the step shows the error and Continue is disabled. On with a code, the helper text speaks to clients.
+DZ-200 D10. The deal wizard's details step with the online-booking switch. Off, the code is optional. On without a code, the step shows the error and Continue is disabled. On with a code, the step is ready to continue.
+
+### Deals — list statuses
+
+Synced to the dev repo's `promotion-discount-ui` (12 Oct). Expired is its own status, apart from Inactive: Inactive is a deal switched off by hand, Expired is one past its end date, and its Activate is disabled. The row menu's Delete archives the deal, with a "Deal deleted" toast; activate, deactivate and duplicate toast too.
+
+### Deals — at the till
+
+Synced to the dev repo's checkout. A promotion on a line shows as a green "Promotion · name" chip with a ×. The summary has one row per promotion, summed across its lines and carrying the rule ("- 20%"), then the order-level "Cart discount". On Tip and Payment, the discounts sit before Subtotal and VAT, because VAT is worked out on the discounted total and the tip is not taxed. In the line's edit dialog, one promotion per line: the select locks once one is picked and the × clears it. A limit greys an option, with its reason on hover. Before Pay, Save unpaid or Save draft, any promotion that stopped applying comes off with a toast, and the save stops so the new total is seen first.
 
 ### Combos across surfaces
 

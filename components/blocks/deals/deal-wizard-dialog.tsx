@@ -289,6 +289,9 @@ export function DealWizardDialog({
               <DealLimitsStep
                 value={draft.limits}
                 onChange={(limits) => setDraft((d) => ({ ...d, limits }))}
+                fixedDiscountValue={
+                  draft.discountKind === "fixed" ? Number(draft.discountValue) : null
+                }
               />
             ) : (
               <DealLocationsStep

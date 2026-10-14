@@ -25,13 +25,12 @@ import type { PromotionScope } from "@/lib/locations/promotion-scope"
  * The as-built statuses, read off `src/types/deal.ts` on the dev repo's
  * `promotion-discount-ui`.
  *
- * Not `live | scheduled | ended`, which is what this file invented before
- * anybody read that branch. Two of those three are wrong: the built product
- * says **active**, and it has **inactive** — a deal switched off by hand, which
- * is a different fact from one whose end date has passed — and **archived**,
- * which `ended` silently merged with it.
+ * **inactive** is a deal switched off by hand; **expired** is one whose end
+ * date has passed. The built mapper keeps the two apart so the badge says what
+ * actually happened, and an expired deal cannot be activated again. **archived**
+ * is what the list's Delete leaves behind.
  */
-export type DealStatus = "active" | "scheduled" | "inactive" | "archived"
+export type DealStatus = "active" | "scheduled" | "inactive" | "expired" | "archived"
 
 /**
  * What kind of offer this is (`DealTypeSchema`).
@@ -84,11 +83,10 @@ export type DealApplicability = {
   /**
    * Whether the offer comes off a gift card bought in store.
    *
-   * A flag of its own, because discounting stored value sells AED 100 of credit
-   * for AED 80 and books the loss as a promotion. An earlier pass here made
-   * that decision permanently by never offering a deal on a gift-card line; the
-   * built product leaves it to the merchant and defaults it on, so this does
-   * too. The default is the argument, not the ban.
+   * The built product has no backend field for it yet, so its mapper always
+   * reads false and the summaries leave gift cards out (DZ-200 lists gift cards
+   * as out of scope). Off everywhere here too; the flag stays so the till's
+   * gift-card line has something to ask.
    */
   giftCardsInStore: boolean
 }
@@ -162,7 +160,7 @@ export const DEFAULT_DEAL_APPLICABILITY: DealApplicability = {
   services: { mode: "all", ids: [] },
   products: { mode: "all", ids: [] },
   packages: { mode: "all", ids: [] },
-  giftCardsInStore: true,
+  giftCardsInStore: false,
 }
 
 export const DEFAULT_DEAL_LIMITS: DealLimits = {
@@ -188,13 +186,17 @@ const SERVICES_ONLY: DealApplicability = {
  * so every row resolved to Inactive or Archived and the list had no running
  * deal in it at all. A fixture that cannot show its own main state is not a
  * fixture.
+ *
+ * Every row is a Promotion with no description and the till switched on: the
+ * built product creates only promotions (DZ-200 D1), and its mapper drops the
+ * description and always sets `enableAtPointOfSale` (D2, D7).
  */
 export const MOCK_DEALS: Deal[] = [
   {
     id: "summer-groom",
     type: "promotion",
     name: "Summer groom offer",
-    description: "Seasonal offer on the full grooming menu.",
+    description: "",
     discountKind: "percentage",
     discountValue: 20,
     discountCode: "",
@@ -216,9 +218,9 @@ export const MOCK_DEALS: Deal[] = [
   },
   {
     id: "mirdif-tuesdays",
-    type: "flash-sale",
+    type: "promotion",
     name: "Mirdif Tuesdays",
-    description: "Filling the quietest day of the week.",
+    description: "",
     discountKind: "fixed",
     discountValue: 30,
     discountCode: "",
@@ -244,7 +246,7 @@ export const MOCK_DEALS: Deal[] = [
     id: "referral-bonus",
     type: "promotion",
     name: "Refer a friend",
-    description: "Credit for the client who sent them.",
+    description: "",
     discountKind: "fixed",
     discountValue: 25,
     discountCode: "FRIEND25",
@@ -267,9 +269,9 @@ export const MOCK_DEALS: Deal[] = [
   },
   {
     id: "abu-dhabi-launch",
-    type: "last-minute-offer",
+    type: "promotion",
     name: "Abu Dhabi launch",
-    description: "Opening offer for the three newest branches.",
+    description: "",
     discountKind: "percentage",
     discountValue: 50,
     discountCode: "",
@@ -327,15 +329,13 @@ export const MOCK_DEALS: Deal[] = [
   },
   {
     id: "eid-weekend",
-    type: "flash-sale",
+    type: "promotion",
     name: "Eid weekend",
     description: "",
     discountKind: "percentage",
     discountValue: 100,
     discountCode: "",
-    // Switched off at the till while it ran — the offer was a free add-on the
-    // team applied by hand, not something a client could ask for.
-    enableAtPointOfSale: false,
+    enableAtPointOfSale: true,
     bookingRedeemable: false,
     status: "archived",
     startDate: "2026-04-05",
@@ -556,6 +556,7 @@ export const DEAL_STATUS_LABEL: Record<DealStatus, string> = {
   active: "Active",
   scheduled: "Scheduled",
   inactive: "Inactive",
+  expired: "Expired",
   archived: "Archived",
 }
 
@@ -573,23 +574,23 @@ function scopeLabel(scope: DealResourceScope, singular: string, plural: string):
 }
 
 /**
- * "all services, no products, no gift cards, all packages".
+ * "all services, no products, all packages".
  *
  * `formatApplicabilitySummary` on the dev repo, same order. It states the
  * negatives out loud rather than listing only what is included: "all services"
  * alone does not tell an owner whether the offer also comes off the shampoo
- * they sell on the way out, and that is the question they have.
+ * they sell on the way out, and that is the question they have. Gift cards are
+ * left out, as they are there: no promotion reaches them yet.
  */
 export function formatApplicabilitySummary(a: DealApplicability): string {
   return [
     scopeLabel(a.services, "service", "services"),
     scopeLabel(a.products, "product", "products"),
-    a.giftCardsInStore ? "all gift cards" : "no gift cards",
     scopeLabel(a.packages, "package", "packages"),
   ].join(", ")
 }
 
-/** "20% off all services, no products, no gift cards, no packages". */
+/** "20% off all services, no products, no packages". */
 export function formatDealSummary(deal: Deal): string {
   return `${formatDiscountValue(deal)} off ${formatApplicabilitySummary(deal.applicability)}`
 }
@@ -628,14 +629,13 @@ export function formatDateRange(startDate: string, endDate: string | null): stri
 /**
  * Whether a deal is running today, derived from its dates.
  *
- * Only ever returns `active` or `scheduled`. **`inactive` and `archived` are
- * not derivable** — they are things somebody did, not things a date implies,
- * and the built product keeps them as stored state for that reason. A deal
- * switched off in March and a deal whose season ended in March look identical
- * to a calendar and are different facts to an owner.
- *
- * So a stored `inactive` or `archived` wins, and this only decides between the
- * two that a date can actually settle.
+ * **`inactive` and `archived` are not derivable** — they are things somebody
+ * did, not things a date implies, and the built product keeps them as stored
+ * state for that reason. A stored `archived` always wins. A deal past its end
+ * date is `expired` even if it was also switched off, because nothing can
+ * bring it back, which is why the list disables Activate on it. Otherwise a
+ * stored `inactive` wins, and the dates decide between `scheduled` and
+ * `active`. The booking page's code check reads the same order.
  */
 export function statusFor(
   stored: DealStatus,
@@ -643,9 +643,10 @@ export function statusFor(
   endDate: string | null,
   todayIso: string,
 ): DealStatus {
-  if (stored === "inactive" || stored === "archived") return stored
+  if (stored === "archived") return stored
+  if (endDate && endDate < todayIso) return "expired"
+  if (stored === "inactive") return stored
   if (!startDate || startDate > todayIso) return "scheduled"
-  if (endDate && endDate < todayIso) return "inactive"
   return "active"
 }
 

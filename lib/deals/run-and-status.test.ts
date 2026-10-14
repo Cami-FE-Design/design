@@ -55,7 +55,7 @@ describe("status is derived only where a date can settle it", () => {
 
   it("stops being active the day after it ends, with nobody editing it", () => {
     // The row an owner trusts. Stored alone, it would still read Active.
-    expect(statusFor("active", "2026-03-01", "2026-03-31", TODAY)).toBe("inactive")
+    expect(statusFor("active", "2026-03-01", "2026-03-31", TODAY)).toBe("expired")
   })
 })
 
@@ -64,6 +64,10 @@ describe("what a calendar cannot know, it does not decide", () => {
     // Turned off in April while its dates still cover today. Deriving from the
     // dates would switch it back on, which is the opposite of what was asked.
     expect(statusFor("inactive", "2026-04-01", "2026-04-30", TODAY)).toBe("inactive")
+  })
+
+  it("reads a switched-off deal past its end as expired, since nothing can restart it", () => {
+    expect(statusFor("inactive", "2026-03-01", "2026-03-31", TODAY)).toBe("expired")
   })
 
   it("keeps an archived deal archived", () => {

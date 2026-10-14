@@ -190,7 +190,7 @@ export type CartLine = {
   /** The deal applied to this line, if any (DW3.4). */
   dealId?: string
   /**
-   * What the deal reads as, e.g. "Summer groom offer · 20% off grooming".
+   * The promotion's name, e.g. "Summer groom offer".
    *
    * Carried on the line rather than looked up from the id by each surface that
    * prints it. A saved sale outlives the deal it was taken under — the offer
@@ -200,6 +200,8 @@ export type CartLine = {
    * generic for an ad-hoc cart discount.
    */
   dealName?: string
+  /** The deal's rule, for the summary row: "- 20%" or "- 30 AED". */
+  dealRule?: { kind: "percentage" | "fixed"; value: number }
   /** What that deal takes off this line, in fils. Kept beside the id so the
    *  footer can subtract it without recomputing a percentage. */
   dealDiscountMinor?: number

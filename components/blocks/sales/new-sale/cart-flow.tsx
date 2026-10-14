@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
 import { ExpiredPackageWarning } from "@/components/blocks/sales/expired-package-warning"
 import {
   PackageBranchWarning,
@@ -19,9 +20,12 @@ import { WriteTargetLocation } from "@/components/blocks/settings/write-target-l
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet"
+import { dealDiscountMinor as dealOffMinor, offersAtTill } from "@/lib/deals/eligible"
+import { useDeals } from "@/lib/deals/store"
 import { locationName } from "@/lib/locations/mock"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoney } from "@/lib/money/format"
+import { TODAY_ISO } from "@/lib/money/mock"
 import {
   type AllocatedSession,
   aggregateSessionCoverage,
@@ -207,6 +211,17 @@ function terminalScenario(
 }
 
 const STEPS = ["cart", "tip", "payment"] as const
+/** The line with its promotion taken off. */
+function withoutDeal(line: CartLine): CartLine {
+  return {
+    ...line,
+    dealId: undefined,
+    dealName: undefined,
+    dealRule: undefined,
+    dealDiscountMinor: undefined,
+  }
+}
+
 type Step = (typeof STEPS)[number]
 const STEP_LABEL: Record<Step, string> = { cart: "Cart", tip: "Tip", payment: "Payment" }
 
@@ -287,6 +302,7 @@ function CartFlowInner({
   const [lines, setLines] = useState<CartLine[]>(
     initialLines ?? (seedCheckout ? seedCheckoutLines() : []),
   )
+  const deals = useDeals()
   const [draftModalOpen, setDraftModalOpen] = useState(false)
   const [clientSearching, setClientSearching] = useState(false)
   const [editingUid, setEditingUid] = useState<string | null>(null)
@@ -769,7 +785,18 @@ function CartFlowInner({
   }
 
   function setQty(uid: string, qty: number) {
-    setLines((prev) => prev.map((l) => (l.uid === uid ? { ...l, qty: Math.max(1, qty) } : l)))
+    setLines((prev) =>
+      prev.map((l) => {
+        if (l.uid !== uid) return l
+        const next = { ...l, qty: Math.max(1, qty) }
+        // A line's promotion is one amount off the line's gross, so a new
+        // quantity is a new amount: 20% of three bottles, not of one.
+        const deal = l.dealId ? deals.find((d) => d.id === l.dealId) : undefined
+        return deal
+          ? { ...next, dealDiscountMinor: dealOffMinor(deal, next.priceMinor * next.qty) }
+          : next
+      }),
+    )
   }
 
   function applyLineEdit(uid: string, patch: LinePatch) {
@@ -783,11 +810,59 @@ function CartFlowInner({
               staffName: patch.staffName,
               dealId: patch.dealId,
               dealName: patch.dealName,
+              dealRule: patch.dealRule,
               dealDiscountMinor: patch.dealDiscountMinor,
             }
           : l,
       ),
     )
+  }
+
+  /** Takes a line's promotion off, from the × on its chip. */
+  function removeLineDeal(uid: string) {
+    setLines((prev) => prev.map((l) => (l.uid === uid ? withoutDeal(l) : l)))
+  }
+
+  /**
+   * Re-checks every promotion on the cart, as the built checkout does. A line
+   * edited after its promotion went on (a groom removed under a minimum spend,
+   * a deal switched off in Settings) can leave it no longer applying. Those
+   * come off with a toast, and the step stops so the operator sees the new
+   * total. It runs on the way to Tip and to Payment, before any money is
+   * taken, and again before the sale is saved.
+   */
+  function stripStaleDeals(): boolean {
+    const ctx = {
+      cartTotalMinor: totals(lines).totalMinor,
+      clientRedemptions: attachment.type === "client" ? 0 : null,
+      totalRedemptions: 0,
+    }
+    const stale = new Set(
+      lines
+        .filter(
+          (l) =>
+            l.dealId &&
+            !offersAtTill(deals, saleLocationId, TODAY_ISO, l.kind, ctx).some(
+              (o) => o.deal.id === l.dealId && !o.block,
+            ),
+        )
+        .map((l) => l.uid),
+    )
+    if (stale.size === 0) return true
+    setLines((prev) => prev.map((l) => (stale.has(l.uid) ? withoutDeal(l) : l)))
+    toast.error(
+      stale.size === 1
+        ? "One of the discounts no longer applies, so we removed it. Please check the updated total."
+        : `${stale.size} discounts no longer apply, so we removed them. Please check the updated total.`,
+    )
+    return false
+  }
+
+  /** Runs `action` only once every promotion on the cart still applies. */
+  function afterDealCheck(action: () => void): () => void {
+    return () => {
+      if (stripStaleDeals()) action()
+    }
   }
 
   // ─── Payment ─────────────────────────────────────────────────────────────
@@ -1163,6 +1238,7 @@ function CartFlowInner({
                           onRemove={removeLine}
                           onSetQty={setQty}
                           onEditLine={setEditingUid}
+                          onRemoveDeal={removeLineDeal}
                           coverage={coverage}
                           // SCR-13, on the line the session paid for rather than
                           // in a panel of its own: the fact is about this
@@ -1254,7 +1330,7 @@ function CartFlowInner({
                       lines={lines}
                       discountMinor={discountMinor}
                       blockedReason={blockedReason}
-                      onContinue={() => setStep("tip")}
+                      onContinue={afterDealCheck(() => setStep("tip"))}
                       onAddTip={() => setStep("tip")}
                       onAddCartDiscount={() => setCartDiscountOpen(true)}
                       onAddSaleNote={() => setSaleNoteOpen(true)}
@@ -1292,14 +1368,14 @@ function CartFlowInner({
                     }
                     onCta={
                       step === "tip"
-                        ? () => setStep("payment")
+                        ? afterDealCheck(() => setStep("payment"))
                         : fullyPaid
-                          ? () => setConfirmed(true)
+                          ? afterDealCheck(() => setConfirmed(true))
                           : // A gift card stays inactive until the sale is fully paid —
                             // confirm before saving it unpaid / part-paid.
                             hasGiftCard
-                            ? () => setUnpaidConfirmOpen(true)
-                            : () => leave()
+                            ? afterDealCheck(() => setUnpaidConfirmOpen(true))
+                            : afterDealCheck(() => leave())
                     }
                     onAddTip={() => setStep("tip")}
                     onAddCartDiscount={() => setCartDiscountOpen(true)}
@@ -1342,11 +1418,11 @@ function CartFlowInner({
               size="lg"
               radius="full"
               className="flex-1"
-              onClick={() => {
+              onClick={afterDealCheck(() => {
                 // Saving to Drafts is handled by a sibling ticket; close the flow.
                 setDraftModalOpen(false)
                 leave()
-              }}
+              })}
             >
               Save as draft
             </Button>

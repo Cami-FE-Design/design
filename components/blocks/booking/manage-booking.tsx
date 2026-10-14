@@ -249,7 +249,9 @@ export function ManageBooking({
                 value={
                   booking.promo ? (
                     <span className="flex flex-col items-end tabular-nums leading-tight">
-                      {formatPromoMoney(booking.priceAed * 100 - booking.promo.discountMinor)}
+                      {formatPromoMoney(
+                        Math.round(booking.priceAed * 100) - booking.promo.discountMinor,
+                      )}
                       <span className="text-xs font-normal text-muted-foreground line-through">
                         {formatAed(booking.priceAed)}
                       </span>
