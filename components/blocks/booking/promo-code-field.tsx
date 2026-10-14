@@ -7,12 +7,11 @@
  * be checked once we know who the client is, and asking for a code before
  * that would mean accepting it and refusing it a step later.
  *
- * A booking may carry more than one code, one promotion per line (D6), the
- * way the calendar takes a different promotion on each item. Each applied code
- * is its own card; "Add another code" opens the field again.
+ * One code per booking (PRD-191). Several codes, one per item, are for the
+ * team at the calendar's checkout.
  *
- * The field holds what the client is typing; the flow holds the codes that
- * were applied and re-checks them on every render. So if the client goes back
+ * The field holds what the client is typing; the flow holds the code that was
+ * applied and re-checks it on every render. So if the client goes back
  * and swaps the groom for a combo, they come back to the code still named,
  * with the reason it no longer applies — never a discount that silently
  * vanished.
@@ -50,27 +49,20 @@ export function PromoCodeField({
   applied,
   onApply,
   onRemove,
-  canAddAnother = true,
   rechecking = false,
   defaultOpen = false,
   defaultCode = "",
   defaultRefusal = null,
   defaultChecking = false,
 }: {
-  /** The applied codes, in the order entered, re-checked against the booking as it stands now. */
-  applied: ReadonlyArray<BookingCodeCheck>
+  /** The applied code, re-checked against the booking as it stands now. */
+  applied: BookingCodeCheck | null
   /** Check a code. The flow stores it only when the answer is yes. */
   onApply: (code: string) => BookingPromoResult
-  onRemove: (code: string) => void
+  onRemove: () => void
   /**
-   * Whether another code could take anything off. False once every line that
-   * can be discounted already is, so the client is not offered a field that
-   * can only answer "already covered".
-   */
-  canAddAnother?: boolean
-  /**
-   * The applied codes are being checked again because the booking changed.
-   * Each card says so in place of its amount, until the answer is back.
+   * The applied code is being checked again because the booking changed. The
+   * card says so in place of its amount, until the answer is back.
    */
   rechecking?: boolean
   /** Playground seams — open on a typed code, an error, or mid-check. */
@@ -109,37 +101,25 @@ export function PromoCodeField({
     }, CHECK_MS)
   }
 
-  function remove(code: string) {
-    onRemove(code)
-    // Taking the only code off leaves the field open and empty, ready for
-    // another; taking one of several leaves the rest as they were.
-    if (applied.length === 1) {
-      setDraft("")
-      setRefusal(null)
-      setOpen(true)
-    }
+  function remove() {
+    onRemove()
+    setDraft("")
+    setRefusal(null)
+    setOpen(true)
   }
 
-  const hasCodes = applied.length > 0
+  if (applied) {
+    if (rechecking) return <CheckingCard code={applied.code} />
+    return applied.result.ok ? (
+      <AppliedCard check={applied} onRemove={remove} />
+    ) : (
+      <NoLongerAppliesCard code={applied.code} refusal={applied.result.refusal} onRemove={remove} />
+    )
+  }
 
   return (
     <div className="flex flex-col gap-2">
-      {applied.map((check) =>
-        rechecking ? (
-          <CheckingCard key={check.code} code={check.code} />
-        ) : check.result.ok ? (
-          <AppliedCard key={check.code} check={check} onRemove={() => remove(check.code)} />
-        ) : (
-          <NoLongerAppliesCard
-            key={check.code}
-            code={check.code}
-            refusal={check.result.refusal}
-            onRemove={() => remove(check.code)}
-          />
-        ),
-      )}
-
-      {rechecking ? null : open ? (
+      {open ? (
         <form
           className="flex flex-col gap-1.5"
           onSubmit={(e) => {
@@ -192,16 +172,16 @@ export function PromoCodeField({
             </div>
           ) : null}
         </form>
-      ) : !hasCodes || canAddAnother ? (
+      ) : (
         <button
           type="button"
           onClick={() => setOpen(true)}
           className="flex items-center gap-2 self-start py-1 text-sm font-medium text-foreground hover:opacity-70"
         >
           <TicketPercentIcon className="size-4 text-muted-foreground" aria-hidden />
-          {hasCodes ? "Add another code" : "Have a promo code?"}
+          Have a promo code?
         </button>
-      ) : null}
+      )}
     </div>
   )
 }

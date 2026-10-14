@@ -161,7 +161,7 @@ Codes that apply:
 - **GROOM50** — AED 50 off grooming, with a AED 300 minimum counted on grooming lines only (D5). Full groom alone is AED 40 short, and adding a nail trim does not help. Full groom + Breed-standard cut applies, with the AED 50 shared across both lines.
 - **NAILFREE** — 100% off a nail trim. Booked alone, the total is AED 0 and the pay-at-salon note changes to "Nothing to pay".
 
-More than one code, one promotion per line (D6), as the calendar does. Book Full groom + Teeth brushing, apply **SPA20**, then "Add another code" and **WELCOME15**: SPA20 keeps the teeth brushing, WELCOME15 takes the groom, each line names its code and the totals carry a row per code. Codes are taken in the order entered, so WELCOME15 first leaves SPA20 nothing and it reads "Your other code already covers the services this one applies to." Entering the same code twice says it is already applied. Once every line carries a code, "Add another code" goes away.
+One code per online booking (Michelle on PRD-191). Once a code applies, the field becomes its card; several codes, one per item, are for the team at the calendar's checkout.
 
 Go back from Review with a code applied, change the services, and come back: each code reads "checking" for a moment and Confirm booking waits, the way a server re-check would, before the answer shows.
 

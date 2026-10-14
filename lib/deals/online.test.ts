@@ -6,9 +6,7 @@ import {
   type BookingPromoContext,
   branchTakesCodes,
   dealsForBranch,
-  evaluateAddedCode,
   evaluateBookingCode,
-  evaluateBookingCodes,
 } from "@/lib/deals/online"
 import { getPublicBusiness } from "@/lib/public-business"
 
@@ -135,42 +133,5 @@ describe("a booking made with a code", () => {
     expect(
       resolveBooking(getPublicBusiness("purr-palace")!, "CAMI-3208-promo").promo,
     ).toBeUndefined()
-  })
-})
-
-describe("more than one code on a booking (D6)", () => {
-  it("gives each line to one promotion, in the order the codes were entered", () => {
-    const [spa, welcome] = evaluateBookingCodes(
-      ["SPA20", "WELCOME15"],
-      ctx(["full-groom", "teeth"]),
-    )
-    expect(spa!.result.ok && spa!.result.promo.lineDiscounts).toEqual({ teeth: 800 })
-    // WELCOME15 covers every service, but the teeth brushing is SPA20's.
-    expect(welcome!.result.ok && welcome!.result.promo.lineDiscounts).toEqual({
-      "full-groom": 3900,
-    })
-  })
-
-  it("refuses a code whose services another code already discounts", () => {
-    const [, spa] = evaluateBookingCodes(["WELCOME15", "SPA20"], ctx(["full-groom", "teeth"]))
-    expect(!spa!.result.ok && spa!.result.refusal.kind).toBe("already-covered")
-  })
-
-  it("frees the lines again when the first code comes off", () => {
-    const [spa] = evaluateBookingCodes(["SPA20"], ctx(["full-groom", "teeth"]))
-    expect(spa!.result.ok).toBe(true)
-  })
-
-  it("refuses the same code twice, whatever the case", () => {
-    const result = evaluateAddedCode("spa20", ["SPA20"], ctx(["full-groom", "teeth"]))
-    expect(!result.ok && result.refusal.kind).toBe("already-applied")
-  })
-
-  it("counts a minimum spend only on the lines this code is left with (D5)", () => {
-    // GROOM50 needs AED 300 of grooming. Two grooms reach it, until another
-    // code takes one of them.
-    expect(evaluateBookingCode("GROOM50", ctx(["full-groom", "breed-cut"])).ok).toBe(true)
-    const taken = ctx(["full-groom", "breed-cut"], { takenLineIds: new Set(["breed-cut"]) })
-    expect(evaluateBookingCode("GROOM50", taken).ok).toBe(false)
   })
 })
