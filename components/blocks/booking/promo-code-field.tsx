@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { formatDiscountValue } from "@/lib/deals/mock"
 import {
   type BookingPromoRefusal,
@@ -147,11 +148,11 @@ export function PromoCodeField({
             {applied.code}{" "}
             <span className="font-normal text-muted-foreground">no longer applies</span>
           </span>
-          <span role="alert" className="text-xs text-destructive">
+          <span role="alert" className="text-sm text-destructive">
             {applied.result.refusal.message}
           </span>
           {applied.result.refusal.detail ? (
-            <span className="text-xs text-muted-foreground">{applied.result.refusal.detail}</span>
+            <span className="text-sm text-muted-foreground">{applied.result.refusal.detail}</span>
           ) : null}
         </div>
         <button
@@ -187,9 +188,7 @@ export function PromoCodeField({
         apply()
       }}
     >
-      <label htmlFor="promo-code" className="text-sm font-medium text-foreground">
-        Promo code
-      </label>
+      <Label htmlFor="promo-code">Promo code</Label>
       <div className="flex gap-2">
         <Input
           id="promo-code"
@@ -229,7 +228,7 @@ export function PromoCodeField({
             {refusal.message}
           </p>
           {refusal.detail ? (
-            <p className="text-xs text-muted-foreground">{refusal.detail}</p>
+            <p className="text-sm text-muted-foreground">{refusal.detail}</p>
           ) : null}
         </div>
       ) : null}

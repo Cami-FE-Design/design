@@ -55,7 +55,7 @@ describe("status is derived only where a date can settle it", () => {
 
   it("stops being active the day after it ends, with nobody editing it", () => {
     // The row an owner trusts. Stored alone, it would still read Active.
-    expect(statusFor("active", "2026-03-01", "2026-03-31", TODAY)).toBe("inactive")
+    expect(statusFor("active", "2026-03-01", "2026-03-31", TODAY)).toBe("expired")
   })
 })
 

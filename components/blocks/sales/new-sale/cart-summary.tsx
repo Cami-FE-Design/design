@@ -10,12 +10,12 @@ import {
   ShoppingCartIcon,
   TagIcon,
   Trash2Icon,
+  XIcon,
 } from "lucide-react"
 import { Fragment, useState } from "react"
 import { ComboLineIcon } from "@/components/blocks/catalog/combo-badge"
 import { SessionsRemainingChip } from "@/components/blocks/sales/sessions-remaining-chip"
 import { EmptyState } from "@/components/blocks/shared/empty-state"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -74,6 +74,8 @@ type CartContentProps = {
   coverage?: ReadonlyMap<string, AllocatedSession>
   /** Rendered directly under a line — the branch-mismatch warning (SCR-13). */
   renderLineNotice?: (line: CartLine) => React.ReactNode
+  /** Takes a line's promotion off from its chip. Omit where the cart is read-only. */
+  onRemoveDeal?: (uid: string) => void
 }
 
 export function CartContent({
@@ -85,6 +87,7 @@ export function CartContent({
   readOnly = false,
   coverage,
   renderLineNotice,
+  onRemoveDeal,
 }: CartContentProps) {
   if (lines.length === 0) {
     return (
@@ -122,6 +125,7 @@ export function CartContent({
                 onEdit={onEditLine ? () => onEditLine(line.uid) : undefined}
                 // Read-only summaries (Tip / Payment) are editable but not deletable.
                 onRemove={readOnly ? undefined : () => onRemove(line.uid)}
+                onRemoveDeal={readOnly || !onRemoveDeal ? undefined : () => onRemoveDeal(line.uid)}
                 session={coverage?.get(line.uid)}
               />
               {renderLineNotice?.(line)}
@@ -133,6 +137,7 @@ export function CartContent({
               showStepper={!readOnly}
               onEdit={onEditLine ? () => onEditLine(line.uid) : undefined}
               onRemove={readOnly ? undefined : () => onRemove(line.uid)}
+              onRemoveDeal={readOnly || !onRemoveDeal ? undefined : () => onRemoveDeal(line.uid)}
               onSetQty={(qty) => onSetQty(line.uid, qty)}
             />
           ),
@@ -160,21 +165,33 @@ function dealPricing(line: CartLine): { netMinor: number; grossMinor: number } |
 }
 
 /**
- * The marker on a discounted line, naming the offer.
+ * "Promotion · {name}" on a discounted line — the built `PromotionChip`.
  *
  * A struck-through figure says a number changed; it does not say why, and "why"
- * is the question asked out loud at the counter. Same shape as the package
- * chip a line over — one glance tells an operator which of the two moved this
- * line's price, and they are settled very differently (a package is a tender, a
- * deal is a discount).
+ * is the question asked out loud at the counter. `onRemove` adds the × that
+ * takes the promotion off; it is left out wherever the line is read-only.
  */
-function DealChip({ line }: { line: CartLine }) {
+function DealChip({ line, onRemove }: { line: CartLine; onRemove?: () => void }) {
   if (!line.dealDiscountMinor || !line.dealName) return null
   return (
-    <Badge variant="secondary" size="sm" className="mt-1 w-fit gap-1">
-      <TagIcon className="size-3" />
-      {line.dealName}
-    </Badge>
+    <span className="mt-1 inline-flex w-fit items-center gap-1 rounded-full border border-cami-green-11 bg-cami-green-11/15 px-2.5 py-0.5 font-medium text-cami-green-11 text-xs">
+      Promotion · {line.dealName}
+      {onRemove ? (
+        <button
+          type="button"
+          aria-label="Remove discount"
+          title="Remove discount"
+          // The chip sits inside a row that opens the editor on click.
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}
+          className="-mr-1 inline-flex size-4 items-center justify-center rounded-full hover:bg-cami-green-11/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cami-green-11"
+        >
+          <XIcon className="size-3" aria-hidden />
+        </button>
+      ) : null}
+    </span>
   )
 }
 
@@ -186,12 +203,14 @@ function ServiceLineRow({
   subject,
   onEdit,
   onRemove,
+  onRemoveDeal,
   session,
 }: {
   line: CartLine
   subject?: string
   onEdit?: () => void
   onRemove?: () => void
+  onRemoveDeal?: () => void
   /** The package session that paid for this line, if one did. */
   session?: AllocatedSession
 }) {
@@ -230,7 +249,7 @@ function ServiceLineRow({
                 sessionsTotal={session.sessionsTotal}
               />
             ) : null}
-            <DealChip line={line} />
+            <DealChip line={line} onRemove={onRemoveDeal} />
           </div>
           {/* A covered line reads 0 with its real price struck beneath it. The
               zero is on the line itself, not applied here — the built cart's
@@ -270,12 +289,14 @@ function ProductLineRow({
   showStepper,
   onEdit,
   onRemove,
+  onRemoveDeal,
   onSetQty,
 }: {
   line: CartLine
   showStepper?: boolean
   onEdit?: () => void
   onRemove?: () => void
+  onRemoveDeal?: () => void
   onSetQty: (qty: number) => void
 }) {
   return (
@@ -295,7 +316,7 @@ function ProductLineRow({
             ) : line.qty > 1 ? (
               <span className="text-muted-foreground text-sm">Qty {line.qty}</span>
             ) : null}
-            <DealChip line={line} />
+            <DealChip line={line} onRemove={onRemoveDeal} />
           </div>
           <RowActions
             value={formatMoneyWhole(dealPricing(line)?.netMinor ?? line.priceMinor * line.qty)}
@@ -534,7 +555,7 @@ export function CartFooter({
           />
         ))}
         {discountMinor > 0 ? (
-          <BreakdownRow label="Discount" value={`- ${formatMoney(discountMinor)}`} muted />
+          <BreakdownRow label="Cart discount" value={`- ${formatMoney(discountMinor)}`} muted />
         ) : null}
         <BreakdownRow label="To pay" value={formatMoney(discountedMinor)} strong />
         {/* `blockedReason` keeps Continue shut below and is no longer printed
@@ -666,8 +687,10 @@ export function CheckoutFooter({
   const paid = payments.reduce((sum, p) => sum + p.amountMinor, 0) + packagePaidMinor
   const left = Math.max(0, toPay - paid)
   const change = Math.max(0, paid - toPay)
-  const subtotalMinor = Math.round(toPay / (1 + VAT_RATE))
-  const taxMinor = toPay - subtotalMinor
+  // VAT on what the services and products came to, after discounts. A tip is
+  // not taxed, so it is added after (as built).
+  const subtotalMinor = Math.round(baseMinor / (1 + VAT_RATE))
+  const taxMinor = baseMinor - subtotalMinor
 
   return (
     <footer className="relative border-border border-t bg-card px-6 py-4">
@@ -688,31 +711,16 @@ export function CheckoutFooter({
           <div className="mb-3 flex flex-col gap-1">
             {expanded ? (
               <>
-                <BreakdownRow label="Subtotal" value={formatMoney(subtotalMinor)} muted />
-                <BreakdownRow
-                  label={`Tax (VAT ${Math.round(VAT_RATE * 100)}%)`}
-                  value={formatMoney(taxMinor)}
-                  muted
-                />
                 {/* Named on the Payment step too. A part-paid sale is the one
                     reopened days later, by somebody who was not at the counter
                     — the offer that reduced it has to still be on the screen. */}
-                {deductions.map((d) => (
-                  <BreakdownRow
-                    key={d.key}
-                    label={d.label}
-                    value={`- ${formatMoney(d.amountMinor)}`}
-                    muted
-                  />
-                ))}
-                {tipMinor > 0 ? (
-                  <div className="flex items-center justify-between gap-3 text-sm">
-                    <span className="text-cami-violet-11">Tips</span>
-                    <span className="text-muted-foreground tabular-nums">
-                      {formatMoney(tipMinor)}
-                    </span>
-                  </div>
-                ) : null}
+                <CheckoutBreakdown
+                  grossMinor={grossMinor}
+                  deductions={deductions}
+                  subtotalMinor={subtotalMinor}
+                  taxMinor={taxMinor}
+                  tipMinor={tipMinor}
+                />
                 <div className="border-border/60 border-t pt-1">
                   <BreakdownRow label="Total" value={formatMoney(toPay)} strong />
                 </div>
@@ -762,25 +770,13 @@ export function CheckoutFooter({
         </>
       ) : (
         <div className="mb-3 flex flex-col gap-1">
-          <BreakdownRow
-            label={deductions.length > 0 ? "Total amount (excl. discounts)" : "Total"}
-            value={formatMoney(grossMinor)}
-            muted
+          <CheckoutBreakdown
+            grossMinor={grossMinor}
+            deductions={deductions}
+            subtotalMinor={subtotalMinor}
+            taxMinor={taxMinor}
+            tipMinor={tipMinor}
           />
-          {deductions.map((d) => (
-            <BreakdownRow
-              key={d.key}
-              label={d.label}
-              value={`- ${formatMoney(d.amountMinor)}`}
-              muted
-            />
-          ))}
-          {tipMinor > 0 ? (
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="text-cami-violet-11">Tips</span>
-              <span className="text-muted-foreground tabular-nums">{formatMoney(tipMinor)}</span>
-            </div>
-          ) : null}
           <BreakdownRow label="To pay" value={formatMoney(toPay)} strong />
         </div>
       )}
@@ -817,6 +813,47 @@ export function CheckoutFooter({
         </Button>
       </div>
     </footer>
+  )
+}
+
+/**
+ * The Tip and Payment steps' breakdown, in the built order: what the lines came
+ * to, each discount off it, then the Subtotal and VAT of what is left, then
+ * the tip. Discounts come before tax because VAT is worked out on the
+ * discounted total (DZ-200 §6.2).
+ */
+function CheckoutBreakdown({
+  grossMinor,
+  deductions,
+  subtotalMinor,
+  taxMinor,
+  tipMinor,
+}: {
+  grossMinor: number
+  deductions: ReadonlyArray<{ key: string; label: string; amountMinor: number }>
+  subtotalMinor: number
+  taxMinor: number
+  tipMinor: number
+}) {
+  return (
+    <>
+      <BreakdownRow label="Total amount (excl. discounts)" value={formatMoney(grossMinor)} muted />
+      {deductions.map((d) => (
+        <BreakdownRow key={d.key} label={d.label} value={`- ${formatMoney(d.amountMinor)}`} muted />
+      ))}
+      <BreakdownRow label="Subtotal" value={formatMoney(subtotalMinor)} muted />
+      <BreakdownRow
+        label={`Tax (VAT ${Math.round(VAT_RATE * 100)}%)`}
+        value={formatMoney(taxMinor)}
+        muted
+      />
+      {tipMinor > 0 ? (
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="text-cami-violet-11">Tips</span>
+          <span className="text-muted-foreground tabular-nums">{formatMoney(tipMinor)}</span>
+        </div>
+      ) : null}
+    </>
   )
 }
 

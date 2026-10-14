@@ -1,21 +1,25 @@
 /**
  * The catalogue the scope picker chooses from (DW3.4).
  *
- * Built off the POS catalogue the cart already sells from, rather than a second
- * list written for this screen. A promotion that names a service the till has
- * never heard of is the kind of thing nobody notices until a client is standing
- * there, and two lists drift apart the moment one is edited.
+ * Services come from the business's service menu, the one the booking page,
+ * appointments and packages book from, so a promotion narrowed to "Full groom"
+ * names the same `full-groom` a client books online (DZ-352). It used to read
+ * the till's demo catalogue, a nail salon's, whose ids no booking line could
+ * match, so every code narrowed in the wizard was refused online. The till
+ * offers a `selected` deal without matching ids (`appliesToLine`), so it is
+ * unaffected. Packages come from the same menu's Packages category, for the
+ * same reason.
  *
  * Combos are left out on purpose, which is the convention the built product
  * draws too: a combo is priced as a whole and discounted as a whole, never as a
  * promotion target of its own.
  */
 
+import { SERVICE_CATEGORIES } from "@/lib/booking"
 import type { ScopeKind } from "@/lib/deals/wizard"
+import { formatAed, formatDuration } from "@/lib/format"
 import { formatMoney } from "@/lib/money/format"
-import { priceLabel, sessionsLabel } from "@/lib/packages/catalog"
-import { PACKAGES } from "@/lib/packages/mock"
-import { PRODUCTS, SERVICE_CATEGORIES, SERVICES } from "@/lib/sales/new-sale-mock"
+import { PRODUCTS } from "@/lib/sales/new-sale-mock"
 
 export type ScopePickerItem = {
   id: string
@@ -32,16 +36,21 @@ export type ScopePickerGroup = {
 }
 
 function serviceGroups(): ScopePickerGroup[] {
-  return SERVICE_CATEGORIES.map((cat) => ({
-    id: cat.id,
-    name: cat.label,
-    items: SERVICES.filter((s) => s.categoryId === cat.id && !s.isCombo).map((s) => ({
-      id: s.id,
-      name: s.name,
-      subtitle: s.durationMin ? `${s.durationMin} min` : undefined,
-      priceLabel: formatMoney(s.priceMinor),
-    })),
-  })).filter((g) => g.items.length > 0)
+  // Packages are their own picker; the menu's "Packages" category is not services.
+  return SERVICE_CATEGORIES.filter((cat) => cat.id !== "packages")
+    .map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      items: cat.services
+        .filter((s) => !s.isCombo)
+        .map((s) => ({
+          id: s.id,
+          name: s.name,
+          subtitle: formatDuration(s.durationMinutes),
+          priceLabel: formatAed(s.priceAed),
+        })),
+    }))
+    .filter((g) => g.items.length > 0)
 }
 
 function productGroups(): ScopePickerGroup[] {
@@ -59,16 +68,18 @@ function productGroups(): ScopePickerGroup[] {
   ]
 }
 
+/** The packages the booking page sells, so a package narrowed here is the one booked online. */
 function packageGroups(): ScopePickerGroup[] {
+  const menu = SERVICE_CATEGORIES.find((cat) => cat.id === "packages")
   return [
     {
       id: "packages",
       name: "",
-      items: PACKAGES.map((pkg) => ({
+      items: (menu?.services ?? []).map((pkg) => ({
         id: pkg.id,
         name: pkg.name,
-        subtitle: sessionsLabel(pkg),
-        priceLabel: formatMoney(priceLabel(pkg).amountMinor),
+        subtitle: pkg.description,
+        priceLabel: formatAed(pkg.priceAed),
       })),
     },
   ]

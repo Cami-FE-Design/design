@@ -6,6 +6,7 @@ import { EditLineDialog } from "@/components/blocks/sales/new-sale/edit-line-dia
 import { NINE_BRANCH_ESTATE } from "@/lib/locations/mock"
 import { LocationsProvider } from "@/lib/locations/store"
 import type { CartLine } from "@/lib/sales/cart-types"
+import { dealDiscounts } from "@/lib/sales/new-sale-mock"
 
 /**
  * A deal attaches to a line, and only if it runs at this sale's branch
@@ -57,7 +58,7 @@ function open(locationId: string | null) {
 }
 
 async function openDiscounts() {
-  await userEvent.click(screen.getByRole("combobox", { name: "Discounts" }))
+  await userEvent.click(screen.getByRole("combobox", { name: "Discount" }))
   return screen.findByRole("listbox")
 }
 
@@ -103,5 +104,37 @@ describe("what it takes off", () => {
       "l1",
       expect.objectContaining({ dealId: "summer-groom", dealDiscountMinor: 10000 }),
     )
+  })
+})
+
+describe("one promotion per line, as the built till does", () => {
+  it("locks the select once one is picked, and the x takes it off", async () => {
+    open("shampooch-jvc")
+    const list = await openDiscounts()
+    await userEvent.click(within(list).getByText(/Summer groom offer — 20% off/))
+    expect(screen.getByRole("combobox", { name: "Discount" })).toBeDisabled()
+    await userEvent.click(screen.getByRole("button", { name: "Remove discount" }))
+    expect(screen.getByRole("combobox", { name: "Discount" })).toBeEnabled()
+    expect(screen.queryByText(/AED 100 off/)).not.toBeInTheDocument()
+  })
+})
+
+describe("the summary names each promotion once", () => {
+  it("sums one promotion across its lines, and keeps the rule beside the name", () => {
+    const groomed = (uid: string): CartLine => ({
+      ...LINE,
+      uid,
+      dealId: "summer-groom",
+      dealName: "Summer groom offer",
+      dealRule: { kind: "percentage", value: 20 },
+      dealDiscountMinor: 10000,
+    })
+    expect(dealDiscounts([groomed("a"), groomed("b")])).toEqual([
+      {
+        uid: "promo:Summer groom offer",
+        label: "Promotion · Summer groom offer - 20%",
+        amountMinor: 20000,
+      },
+    ])
   })
 })

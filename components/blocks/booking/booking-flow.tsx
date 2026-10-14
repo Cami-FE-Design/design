@@ -258,7 +258,7 @@ function StaffChip({
         >
           {label}
         </span>
-        <span className="max-w-full truncate text-[10px] text-muted-foreground">{sub}</span>
+        <span className="max-w-full truncate text-xs text-muted-foreground">{sub}</span>
       </span>
     </button>
   )
@@ -1593,7 +1593,7 @@ export function BookingFlow({
               canContinue={canContinue}
               isLast={isLast}
               onCta={next}
-              promo={step === "confirm" ? appliedPromo : null}
+              promo={appliedPromo}
             />
           </aside>
         </div>
@@ -1608,7 +1608,9 @@ export function BookingFlow({
               className="flex flex-col items-start leading-tight disabled:opacity-60"
             >
               <span className="font-semibold text-foreground text-lg tabular-nums">
-                {formatAed(totals.priceAed)}
+                {appliedPromo
+                  ? formatPromoMoney(totals.priceAed * 100 - appliedPromo.discountMinor)
+                  : formatAed(totals.priceAed)}
               </span>
               <span className="flex items-center gap-1 text-muted-foreground text-xs">
                 <ShoppingBagIcon className="size-3.5" />
@@ -1684,10 +1686,23 @@ export function BookingFlow({
                 </div>
               ))}
             </div>
+            {appliedPromo ? (
+              <div className="flex items-baseline justify-between border-t border-border/60 py-3 text-sm">
+                <span className="flex items-center gap-1.5 text-cami-green-11">
+                  <TicketPercentIcon className="size-3.5" aria-hidden />
+                  {appliedPromo.code}
+                </span>
+                <span className="tabular-nums text-cami-green-11">
+                  - {formatPromoMoney(appliedPromo.discountMinor)}
+                </span>
+              </div>
+            ) : null}
             <div className="mt-1 flex items-center justify-between border-t border-border/60 pt-3">
               <span className="text-base font-semibold text-foreground">Total</span>
               <span className="text-base font-semibold tabular-nums text-foreground">
-                {formatAed(totals.priceAed)}
+                {appliedPromo
+                  ? formatPromoMoney(totals.priceAed * 100 - appliedPromo.discountMinor)
+                  : formatAed(totals.priceAed)}
               </span>
             </div>
             <Button

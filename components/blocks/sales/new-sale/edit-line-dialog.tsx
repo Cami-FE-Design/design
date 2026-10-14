@@ -14,8 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { dealDiscountMinor, offersAtTill } from "@/lib/deals/eligible"
-import { formatDiscountValue, MOCK_DEALS } from "@/lib/deals/mock"
+import type { Deal } from "@/lib/deals/mock"
+import { useDeals } from "@/lib/deals/store"
 import { useLocations } from "@/lib/locations/store"
 import { formatMoneyWhole } from "@/lib/money/format"
 import { TODAY_ISO } from "@/lib/money/mock"
@@ -28,8 +30,10 @@ export type LinePatch = {
   staffName?: string
   /** The deal on this line, or undefined for none (DW3.4). */
   dealId?: string
-  /** What it reads as on the line, the footer and the receipt. */
+  /** The promotion's name, as the line's chip and the summary print it. */
   dealName?: string
+  /** Its rule, for the summary row ("- 20%", "- 30 AED"). */
+  dealRule?: CartLine["dealRule"]
   /** What that deal takes off this line, in fils. */
   dealDiscountMinor?: number
 }
@@ -64,6 +68,15 @@ type EditLineDialogProps = {
 /** The select's "nothing chosen" value. Radix refuses an empty string. */
 const NO_DEAL = "none"
 
+/** "Summer groom offer — 20% off" / "Mirdif Tuesdays — AED 30.00 off", as the built select reads. */
+function dealOptionLabel(deal: Deal): string {
+  const amount =
+    deal.discountKind === "percentage"
+      ? `${deal.discountValue}% off`
+      : `AED ${deal.discountValue.toFixed(2)} off`
+  return `${deal.name} — ${amount}`
+}
+
 export function EditLineDialog({
   line,
   open,
@@ -97,7 +110,8 @@ export function EditLineDialog({
   // once-per-client offer this client has had. Those rows stay visible and
   // disabled: "spend AED 40 more" is something the person at the counter can
   // act on, and hiding it makes the offer look as though it never existed.
-  const offers = offersAtTill(MOCK_DEALS, locationId, TODAY_ISO, line.kind, {
+  const deals = useDeals()
+  const offers = offersAtTill(deals, locationId, TODAY_ISO, line.kind, {
     cartTotalMinor,
     clientRedemptions,
     totalRedemptions: 0,
@@ -106,6 +120,9 @@ export function EditLineDialog({
   const priceMinor = Math.round((Number.parseFloat(price) || 0) * 100)
   const grossMinor = priceMinor * qty
   const deal = offers.find((o) => o.deal.id === dealId && !o.block)?.deal
+  // One promotion per line, changed on purpose: while one is applied the
+  // select is locked, and it comes off with the × before another is picked.
+  const dealApplied = deal !== undefined
   // Computed against this line's gross, the way the built product does it — a
   // line discount is one flat amount for the whole line, not a per-unit one.
   const discountMinor = deal ? dealDiscountMinor(deal, grossMinor) : 0
@@ -121,7 +138,8 @@ export function EditLineDialog({
       // The line is what the cart, the footer and the receipt all read from,
       // and the deal it was taken under may not exist by the time one of them
       // is reprinted.
-      dealName: deal ? `${deal.name} · ${formatDiscountValue(deal)} off` : undefined,
+      dealName: deal?.name,
+      dealRule: deal ? { kind: deal.discountKind, value: deal.discountValue } : undefined,
       dealDiscountMinor: discountMinor,
     })
     onOpenChange(false)
@@ -216,36 +234,62 @@ export function EditLineDialog({
             A deal scoped elsewhere is not shown, and there is no override: it
             is another branch's decision about its own diary, unlike a client's
             package, which is theirs and only warns (KC1.5). */}
-        <Field label="Discounts">
-          <Select value={dealId} onValueChange={setDealId}>
-            <SelectTrigger
-              className="h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium text-sm data-[size=default]:h-12"
-              aria-label="Discounts"
+        <Field label="Discount">
+          <div className="relative">
+            <Select
+              value={dealApplied ? dealId : NO_DEAL}
+              onValueChange={setDealId}
+              disabled={dealApplied}
             >
-              <SelectValue placeholder="None selected" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NO_DEAL}>No discount</SelectItem>
-              {offers.map(({ deal, block }) => (
-                <SelectItem key={deal.id} value={deal.id} disabled={Boolean(block)}>
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate">
-                      {deal.name} · {formatDiscountValue(deal)} off
-                    </span>
-                    {/* The reason, on the row it belongs to. A greyed line with
-                        no explanation is a control the reader has to guess at,
-                        and this one has an answer they can act on. */}
-                    {block ? (
-                      <span className="text-muted-foreground text-xs">
-                        {block.reason}
-                        {block.detail ? ` · ${block.detail}` : ""}
-                      </span>
-                    ) : null}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                className="h-12 w-full rounded-2xl border-0 bg-input px-4 font-medium text-sm data-[size=default]:h-12"
+                aria-label="Discount"
+              >
+                <SelectValue placeholder="None selected" />
+              </SelectTrigger>
+              <SelectContent>
+                <TooltipProvider delayDuration={150}>
+                  <SelectItem value={NO_DEAL}>No discount</SelectItem>
+                  {offers.map(({ deal, block }) =>
+                    // A limit greys the option and its reason shows on hover,
+                    // as the built select does. A disabled item takes no
+                    // pointer events, so the tooltip hangs off a wrapper.
+                    block ? (
+                      <Tooltip key={deal.id}>
+                        <TooltipTrigger asChild>
+                          <span className="block">
+                            <SelectItem value={deal.id} disabled>
+                              {dealOptionLabel(deal)}
+                            </SelectItem>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {block.reason}
+                          {block.detail ? ` · ${block.detail}` : ""}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <SelectItem key={deal.id} value={deal.id}>
+                        {dealOptionLabel(deal)}
+                      </SelectItem>
+                    ),
+                  )}
+                </TooltipProvider>
+              </SelectContent>
+            </Select>
+            {dealApplied ? (
+              // Over the locked trigger, just left of its chevron.
+              <button
+                type="button"
+                aria-label="Remove discount"
+                title="Remove discount"
+                onClick={() => setDealId(NO_DEAL)}
+                className="-translate-y-1/2 absolute top-1/2 right-9 inline-flex size-6 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <XIcon className="size-4" aria-hidden />
+              </button>
+            ) : null}
+          </div>
           {offers.length === 0 && locationId ? (
             <span className="text-muted-foreground text-xs">
               {line.kind === "gift-card"

@@ -7,8 +7,8 @@
  * list, the deal's name and status, and three ghost tabs. Row-level actions
  * live on the list.
  *
- * The built Availability tab can only print "All locations", and its Edit says
- * editing is coming soon: every deal it creates has `locationIds: []`. Here
+ * The built Availability tab can only print "All locations" (every deal it
+ * creates has `locationIds: []`), and its Edit reopens the whole wizard. Here
  * that row names the deal's real reach and Edit opens the location picker.
  */
 

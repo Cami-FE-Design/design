@@ -110,9 +110,27 @@ export function discountCodeError(code: string, bookingRedeemable: boolean): str
     return bookingRedeemable ? "Add a code for clients to enter when they book." : null
   }
   if (trimmed.length < 3 || trimmed.length > 20) {
-    return "Discount code must be between 3 and 20 characters"
+    return "Discount code must be between 3 and 20 characters."
   }
   return null
+}
+
+/**
+ * Whether the minimum purchase is below a fixed discount
+ * (`minPurchaseBelowFixedDiscount` on the dev repo). A AED 50 discount on a
+ * AED 30 minimum would take more off than the client has to spend.
+ */
+export function minPurchaseBelowFixedDiscount(
+  limits: DealLimits,
+  fixedDiscountValue: number | null | undefined,
+): boolean {
+  return (
+    limits.minimumPurchaseEnabled &&
+    limits.minimumPurchaseAmount != null &&
+    fixedDiscountValue != null &&
+    fixedDiscountValue > 0 &&
+    limits.minimumPurchaseAmount < fixedDiscountValue
+  )
 }
 
 /**
@@ -150,6 +168,14 @@ export function stepBlocker(step: DealWizardStepId, draft: DealWizardDraft): str
       !(draft.limits.minimumPurchaseAmount && draft.limits.minimumPurchaseAmount > 0)
     ) {
       return "Enter an amount greater than 0."
+    }
+    if (
+      minPurchaseBelowFixedDiscount(
+        draft.limits,
+        draft.discountKind === "fixed" ? Number(draft.discountValue) : null,
+      )
+    ) {
+      return "Minimum purchase amount must be at least the discount value."
     }
     return null
   }

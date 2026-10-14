@@ -75,7 +75,11 @@ import { TableReport } from "@/components/blocks/reports/table-report"
 import { CamiPayFeeBreakdown } from "@/components/blocks/sales/camipay-fee-breakdown"
 import { EmailInvoiceDialog } from "@/components/blocks/sales/email-invoice-dialog"
 import { InvoiceDocumentView } from "@/components/blocks/sales/invoice-document"
-import { CartContent, CartFooter } from "@/components/blocks/sales/new-sale/cart-summary"
+import {
+  CartContent,
+  CartFooter,
+  CheckoutFooter,
+} from "@/components/blocks/sales/new-sale/cart-summary"
 import {
   GiftCardDialog,
   newGiftCardDraft,
@@ -1260,6 +1264,47 @@ const PACKAGE_CART_LINES: CartLine[] = [
     durationMin: 90,
     qty: 1,
     sourceId: "deep-tissue",
+  },
+]
+
+/**
+ * Two grooms under one promotion and a product without one — the till's
+ * promotion chip on each discounted line, and one summary row for the offer.
+ */
+const PROMO_CART_LINES: CartLine[] = [
+  {
+    uid: "promo-pg-1",
+    kind: "service",
+    name: "Full groom",
+    priceMinor: 25000,
+    qty: 1,
+    durationMin: 90,
+    sourceId: "full-groom",
+    dealId: "summer-groom",
+    dealName: "Summer groom offer",
+    dealRule: { kind: "percentage", value: 20 },
+    dealDiscountMinor: 5000,
+  },
+  {
+    uid: "promo-pg-2",
+    kind: "service",
+    name: "Puppy groom",
+    priceMinor: 18000,
+    qty: 1,
+    durationMin: 60,
+    sourceId: "puppy-groom",
+    dealId: "summer-groom",
+    dealName: "Summer groom offer",
+    dealRule: { kind: "percentage", value: 20 },
+    dealDiscountMinor: 3600,
+  },
+  {
+    uid: "promo-pg-3",
+    kind: "product",
+    name: "Oatmeal shampoo",
+    priceMinor: 6500,
+    qty: 1,
+    sourceId: "oatmeal-shampoo",
   },
 ]
 
@@ -3255,6 +3300,87 @@ export function BusinessLane() {
             { label: "Online, with code", content: <DealOnlineSwitchDemo on code="WELCOME15" /> },
           ]}
         />
+      </Section>
+      <Section
+        title="Deals — list statuses"
+        description="One row per status, as the built list shows them; an expired deal's Activate is disabled."
+      >
+        {(
+          [
+            ["Active", "summer-groom"],
+            ["Inactive — switched off by hand", "referral-bonus"],
+            ["Expired — past its end date", "july-treat"],
+            ["Archived — after Delete", "eid-weekend"],
+          ] as const
+        ).map(([label, id]) => {
+          const deal = MOCK_DEALS.find((d) => d.id === id)
+          return deal ? (
+            <Row key={id} label={label}>
+              <LocationsProvider persist={false} initialLocations={NINE_BRANCH_ESTATE}>
+                <div className="w-full max-w-146">
+                  <DealsTable
+                    deals={[deal]}
+                    todayIso={TODAY_ISO}
+                    locationName={estateLocationName}
+                    onSelect={() => {}}
+                    onEdit={() => {}}
+                    onSetStatus={() => {}}
+                    onDuplicate={() => {}}
+                  />
+                </div>
+              </LocationsProvider>
+            </Row>
+          ) : null
+        })}
+      </Section>
+      <Section
+        title="Deals — at the till"
+        description="A promotion on a sale line: the removable chip, one summary row per promotion, and the checkout order."
+      >
+        <Row label="Cart — chip with remove, summary row" align="start">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/60 bg-card">
+            <CartContent
+              lines={PROMO_CART_LINES}
+              hasClient={false}
+              onRemove={() => {}}
+              onSetQty={() => {}}
+              onRemoveDeal={() => toast("Promotion removed")}
+            />
+            <CartFooter
+              lines={PROMO_CART_LINES}
+              discountMinor={2000}
+              onContinue={() => {}}
+              onAddTip={() => {}}
+              onAddCartDiscount={() => {}}
+              onAddSaleNote={() => {}}
+              onSaveDraft={() => {}}
+              onCancelSale={() => {}}
+            />
+          </div>
+        </Row>
+        <Row label="Tip step — discounts before Subtotal and VAT" align="start">
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-border/60 bg-card">
+            <CheckoutFooter
+              baseMinor={38900}
+              tipMinor={2000}
+              ctaLabel="Continue to payment"
+              onCta={() => {}}
+              onAddTip={() => {}}
+              onAddCartDiscount={() => {}}
+              onAddSaleNote={() => {}}
+              onSaveDraft={() => {}}
+              onCancelSale={() => {}}
+              deductions={[
+                {
+                  key: "promo",
+                  label: "Promotion · Summer groom offer - 20%",
+                  amountMinor: 8600,
+                },
+                { key: "cart", label: "Cart discount", amountMinor: 2000 },
+              ]}
+            />
+          </div>
+        </Row>
       </Section>
       <Section
         title="Combos across surfaces"

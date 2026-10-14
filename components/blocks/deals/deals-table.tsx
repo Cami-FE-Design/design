@@ -11,7 +11,7 @@
  * than passing as chain-wide (R24).
  */
 
-import { ArchiveIcon, ChevronDownIcon, CirclePercentIcon, CopyIcon, PencilIcon } from "lucide-react"
+import { ChevronDownIcon, CirclePercentIcon, CopyIcon, PencilIcon, Trash2Icon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -43,6 +43,7 @@ export const STATUS_BADGE: Record<
   active: { label: "Active", variant: "primary-soft" },
   scheduled: { label: "Scheduled", variant: "muted" },
   inactive: { label: "Inactive", variant: "muted" },
+  expired: { label: "Expired", variant: "muted" },
   archived: { label: "Archived", variant: "destructive" },
 }
 
@@ -130,26 +131,46 @@ export function DealsTable({
                   <PencilIcon className="size-4" />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => onDuplicate(deal.id)}>
+                <DropdownMenuItem
+                  onSelect={() => {
+                    onDuplicate(deal.id)
+                    toast.success("Deal duplicated")
+                  }}
+                >
                   <CopyIcon className="size-4" />
                   Duplicate
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  variant="destructive"
-                  onSelect={() => onSetStatus(deal.id, "archived")}
-                >
-                  <ArchiveIcon className="size-4" />
-                  Archive
-                </DropdownMenuItem>
+                {/* Delete archives the deal, as the built list's does. A deal
+                    already deleted has nothing left to delete. */}
+                {deal.status !== "archived" ? (
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => {
+                      onSetStatus(deal.id, "archived")
+                      toast.success("Deal deleted")
+                    }}
+                  >
+                    <Trash2Icon className="size-4" />
+                    Delete
+                  </DropdownMenuItem>
+                ) : null}
                 {deal.status !== "archived" ? (
                   <>
                     <DropdownMenuSeparator />
                     {status === "active" ? (
-                      <DropdownMenuItem onSelect={() => onSetStatus(deal.id, "inactive")}>
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          onSetStatus(deal.id, "inactive")
+                          toast.success("Deal deactivated")
+                        }}
+                      >
                         Deactivate
                       </DropdownMenuItem>
                     ) : (
+                      // An expired deal's dates are behind it; activating it
+                      // would change nothing, so the built list disables it.
                       <DropdownMenuItem
+                        disabled={status === "expired"}
                         onSelect={() => {
                           // Activating a deal that reaches nobody would store a
                           // row reading Active that no till will ever offer.
@@ -158,6 +179,7 @@ export function DealsTable({
                             return
                           }
                           onSetStatus(deal.id, "active")
+                          toast.success("Deal activated")
                         }}
                       >
                         Activate
