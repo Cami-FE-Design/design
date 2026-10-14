@@ -448,6 +448,8 @@ function PickupAndNotesFields({
 // Sentinel picker value for "not one of my saved pets — add a new one".
 const ADD_PET = "__new__"
 
+type AuthPhase = "phone" | "code" | "details"
+
 function IdentifyStep({
   hasPets,
   customer,
@@ -456,6 +458,7 @@ function IdentifyStep({
   onPet,
   pickup,
   onPickup,
+  onAuthPhase,
 }: {
   hasPets: boolean
   customer: Customer
@@ -464,10 +467,15 @@ function IdentifyStep({
   onPet: (p: NewPet) => void
   pickup: PickupDetails
   onPickup: (p: PickupDetails) => void
+  /** Which part of the step is showing, so the flow can hide Continue until the client is verified. */
+  onAuthPhase?: (phase: AuthPhase) => void
 }) {
   // Linear sub-flow: phone → code → details. No first-visit fork; phone + OTP is
   // the single entry, and we resolve who the caller is on verify.
-  const [authPhase, setAuthPhase] = useState<"phone" | "code" | "details">("phone")
+  const [authPhase, setAuthPhase] = useState<AuthPhase>("phone")
+  useEffect(() => {
+    onAuthPhase?.(authPhase)
+  }, [authPhase, onAuthPhase])
   const [code, setCode] = useState("")
   const [verifyState, setVerifyState] = useState<VerifyState>("idle")
   const [seconds, setSeconds] = useState(RESEND_SECONDS)
@@ -608,7 +616,10 @@ function IdentifyStep({
           title={`Enter the code we sent to ${formatCustomerPhone(customer)}`}
           hint="This helps us keep your account secure."
         />
-        <div className="flex flex-col items-start gap-3">
+        {/* The code boxes set the width, so the two links sit under either end
+            of them: resend under the first box, a different number under the
+            last. */}
+        <div className="flex w-fit max-w-full flex-col gap-3">
           <OtpInput
             value={code}
             onValueChange={(v) => {
@@ -637,36 +648,38 @@ function IdentifyStep({
               </span>
             ) : null}
           </div>
-        </div>
-        <div
-          className={cn("flex items-center justify-center gap-4 text-sm", isLocked && "invisible")}
-        >
-          {seconds > 0 ? (
-            <span className="text-muted-foreground">
-              Request a new code in{" "}
-              <strong className="font-medium tabular-nums">{formatCountdown(seconds)}</strong>
-            </span>
-          ) : (
+          <div
+            className={cn(
+              "flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm",
+              isLocked && "invisible",
+            )}
+          >
+            {seconds > 0 ? (
+              <span className="text-muted-foreground">
+                Request a new code in{" "}
+                <strong className="font-medium tabular-nums">{formatCountdown(seconds)}</strong>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={requestCode}
+                className="link font-medium text-muted-foreground"
+              >
+                Request a new code
+              </button>
+            )}
             <button
               type="button"
-              onClick={requestCode}
+              onClick={() => {
+                setAuthPhase("phone")
+                setCode("")
+                setVerifyState("idle")
+              }}
               className="link font-medium text-muted-foreground"
             >
-              Request a new code
+              Use a different number
             </button>
-          )}
-          <span className="text-border">·</span>
-          <button
-            type="button"
-            onClick={() => {
-              setAuthPhase("phone")
-              setCode("")
-              setVerifyState("idle")
-            }}
-            className="link font-medium text-muted-foreground"
-          >
-            Use a different number
-          </button>
+          </div>
         </div>
       </div>
     )
@@ -1177,6 +1190,7 @@ function DesktopSummary({
   onCta,
   catalog,
   promos = [],
+  hideCta = false,
 }: {
   business: PublicBusiness
   services: ReadonlyArray<CatalogService>
@@ -1189,6 +1203,8 @@ function DesktopSummary({
   catalog: BookingCatalog
   /** Shown once a code applies, so the card's total matches the review step. */
   promos?: ReadonlyArray<AppliedBookingPromo>
+  /** Hides Continue while the client is still entering their phone or code. */
+  hideCta?: boolean
 }) {
   const lines = bookingLines(
     services.map((s) => s.id),
@@ -1284,28 +1300,33 @@ function DesktopSummary({
         </div>
       ) : null}
 
-      <div className="mt-auto flex flex-col gap-3 pt-6">
-        <Button
-          radius="full"
-          size="lg"
-          className="w-full gap-2"
-          disabled={!canContinue}
-          onClick={onCta}
-        >
-          {isLast ? "Confirm booking" : "Continue"}
-          {!isLast ? <ArrowRightIcon className="size-4" /> : null}
-        </Button>
+      {hideCta ? null : (
+        <div className="mt-auto flex flex-col gap-3 pt-6">
+          <Button
+            radius="full"
+            size="lg"
+            className="w-full gap-2"
+            disabled={!canContinue}
+            onClick={onCta}
+          >
+            {isLast ? "Confirm booking" : "Continue"}
+            {!isLast ? <ArrowRightIcon className="size-4" /> : null}
+          </Button>
 
-        {isLast ? (
-          <p className="flex items-center justify-center gap-1.5 text-muted-foreground text-xs">
-            <ShieldCheckIcon className="size-3.5" />
-            Free cancellation up to 24 hours before.
-          </p>
-        ) : null}
-      </div>
+          {isLast ? (
+            <p className="flex items-center justify-center gap-1.5 text-muted-foreground text-xs">
+              <ShieldCheckIcon className="size-3.5" />
+              Free cancellation up to 24 hours before.
+            </p>
+          ) : null}
+        </div>
+      )}
     </div>
   )
 }
+
+/** How long a re-check of the applied codes reads as "checking" — the field's own check time. */
+const PROMO_RECHECK_MS = 600
 
 export function BookingFlow({
   business,
@@ -1372,6 +1393,9 @@ export function BookingFlow({
   // codes are kept: what each takes off is worked out again on every render,
   // against the booking and the promotions as they are now.
   const [promoCodes, setPromoCodes] = useState<string[]>([])
+  // Continue stays hidden on the identify step until the client is verified,
+  // as built: the step's own phone and code screens move it on.
+  const [identifyPhase, setIdentifyPhase] = useState<AuthPhase>("phone")
   const allDeals = useDeals()
 
   const step = steps[stepIndex]!
@@ -1445,6 +1469,18 @@ export function BookingFlow({
       findClientByPhone(customer.phone)?.redeemedDealIds?.includes(dealId) ?? false,
   }
   const promoChecks = evaluateBookingCodes(promoCodes, promoContext)
+  // What the codes were last checked against. Coming back to Review with a
+  // different booking re-checks them, as the server would: each card reads
+  // "checking" for a moment and Confirm waits for the answer.
+  const promoBookingKey = `${serviceIds.join(",")}|${customer.phoneCode}${customer.phone}`
+  const [promoCheckedFor, setPromoCheckedFor] = useState(promoBookingKey)
+  const promoRechecking =
+    step === "confirm" && promoCodes.length > 0 && promoCheckedFor !== promoBookingKey
+  useEffect(() => {
+    if (!promoRechecking) return
+    const t = setTimeout(() => setPromoCheckedFor(promoBookingKey), PROMO_RECHECK_MS)
+    return () => clearTimeout(t)
+  }, [promoRechecking, promoBookingKey])
   const appliedPromos: AppliedBookingPromo[] = promoChecks.flatMap((c) =>
     c.result.ok ? [c.result.promo] : [],
   )
@@ -1466,9 +1502,10 @@ export function BookingFlow({
             customer.phone.trim().length > 0 &&
             (!hasPets || pet.name.trim().length > 0) &&
             petNotesComplete(pickup.petNotes)
-          : true
+          : !promoRechecking
 
   const isLast = stepIndex === steps.length - 1
+  const hideContinue = step === "identify" && identifyPhase !== "details"
 
   function back() {
     if (stepIndex === 0) {
@@ -1540,6 +1577,7 @@ export function BookingFlow({
         onPet={setPet}
         pickup={pickup}
         onPickup={setPickup}
+        onAuthPhase={setIdentifyPhase}
       />
     ) : services.length > 0 ? (
       <ConfirmStep
@@ -1561,9 +1599,14 @@ export function BookingFlow({
             <PromoCodeField
               applied={promoChecks}
               canAddAnother={canAddAnotherCode}
+              rechecking={promoRechecking}
               onApply={(code) => {
                 const result = evaluateAddedCode(code, promoCodes, promoContext)
-                if (result.ok) setPromoCodes((prev) => [...prev, result.promo.code])
+                if (result.ok) {
+                  setPromoCodes((prev) => [...prev, result.promo.code])
+                  // Just checked against this booking, so nothing to re-check.
+                  setPromoCheckedFor(promoBookingKey)
+                }
                 return result
               }}
               onRemove={(code) => setPromoCodes((prev) => prev.filter((c) => c !== code))}
@@ -1615,12 +1658,13 @@ export function BookingFlow({
               isLast={isLast}
               onCta={next}
               promos={appliedPromos}
+              hideCta={hideContinue}
             />
           </aside>
         </div>
 
         {/* Mobile footer — hidden on desktop (the summary panel carries the CTA) */}
-        {step === "service" ? (
+        {hideContinue ? null : step === "service" ? (
           <div className="sticky bottom-0 mt-6 flex items-center justify-between gap-3 border-border/60 border-t bg-background/90 py-3 backdrop-blur lg:hidden">
             <button
               type="button"
