@@ -469,11 +469,9 @@ export function ClientDetailDialog({
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5 overflow-hidden">
             {embedded ? (
-              <h2 className="font-heading text-[22px] leading-7 font-semibold text-foreground">
-                {client.name}
-              </h2>
+              <h2 className="font-heading font-semibold text-2xl text-foreground">{client.name}</h2>
             ) : (
-              <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
+              <DialogTitle className="truncate font-heading font-semibold text-2xl">
                 {client.name}
               </DialogTitle>
             )}
@@ -1041,7 +1039,9 @@ export function ClientDetailDialog({
       <Dialog open={noShowDialogOpen} onOpenChange={setNoShowDialogOpen}>
         <DialogContent className="max-w-140 gap-0 p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader className="flex flex-row items-center justify-between gap-3 px-6 py-5">
-            <DialogTitle className="text-base font-semibold">No-show appointments</DialogTitle>
+            <DialogTitle className="font-heading font-semibold text-2xl">
+              No-show appointments
+            </DialogTitle>
             <DialogClose asChild>
               <Button type="button" variant="ghost" size="icon-sm" radius="full" aria-label="Close">
                 <XIcon className="size-4" />

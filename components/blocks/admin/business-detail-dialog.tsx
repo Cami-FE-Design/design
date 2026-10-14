@@ -266,7 +266,7 @@ export function BusinessDetailDialog({
               <DialogHeader className="flex flex-row items-start gap-3 px-9 pt-[34px] pb-5">
                 <BusinessAvatar business={business} />
                 <div className="flex min-w-0 flex-1 flex-col gap-1">
-                  <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
+                  <DialogTitle className="truncate font-heading font-semibold text-2xl">
                     {business.name}
                   </DialogTitle>
                   {/* Two identifiers, two jobs: the code is what support says

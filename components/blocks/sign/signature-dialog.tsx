@@ -143,7 +143,7 @@ export function SignatureDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 px-0 pt-0 pb-0 sm:max-w-[640px]">
         <div className="flex items-start justify-between gap-4 px-8 pt-8">
-          <DialogTitle className="text-[26px] leading-8 font-semibold">Add a signature</DialogTitle>
+          <DialogTitle className="font-heading font-semibold text-2xl">Add a signature</DialogTitle>
           <DialogClose asChild>
             <Button
               type="button"

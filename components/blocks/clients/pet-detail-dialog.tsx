@@ -260,7 +260,7 @@ export function PetDetailDialog({
               <DialogHeader className="flex flex-row items-center gap-3 px-9 pt-[34px] pb-5">
                 <Avatar size="lg" fallback="species" species={pet.species} hashSeed={pet.id} />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
+                  <DialogTitle className="truncate font-heading font-semibold text-2xl">
                     {pet.name}
                   </DialogTitle>
                   <DialogDescription asChild>

@@ -75,7 +75,7 @@ export function PayoutDetailDialog({
         <DialogHeader className="flex flex-col gap-3 bg-muted/40 px-7 pt-7 pb-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-1">
-              <DialogTitle className="font-heading text-[28px] leading-8 font-semibold">
+              <DialogTitle className="font-heading font-semibold text-3xl">
                 {formatMoney(payout.amountMinor)}
               </DialogTitle>
               <span className="text-sm text-muted-foreground">

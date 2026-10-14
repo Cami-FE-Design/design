@@ -36,7 +36,7 @@ function NoteBody({
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <DialogTitle className="font-heading font-semibold text-xl">Add sale note</DialogTitle>
+        <DialogTitle className="font-heading font-semibold text-2xl">Add sale note</DialogTitle>
         <DialogClose asChild>
           <Button
             type="button"

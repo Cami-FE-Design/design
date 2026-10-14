@@ -589,7 +589,7 @@ function RenameFileDialog({
               </Button>
             </DialogClose>
           </div>
-          <DialogTitle className="text-[28px] font-semibold leading-8">
+          <DialogTitle className="font-heading font-semibold text-2xl">
             Choose a name for the file
           </DialogTitle>
         </div>
@@ -706,7 +706,7 @@ function ConsentFormDialog({
               </Button>
             </DialogClose>
           </div>
-          <DialogTitle className="text-[28px] font-semibold leading-8">
+          <DialogTitle className="font-heading font-semibold text-2xl">
             {isEdit ? "Edit consent form" : "Add consent form"}
           </DialogTitle>
           {!isEdit && recipientName ? (

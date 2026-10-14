@@ -124,9 +124,7 @@ export function NewBoardingSheet({ open, onOpenChange, date }: NewBoardingSheetP
         <header className="flex items-center gap-3 bg-sand-2 px-6 py-7 text-foreground">
           <DateAvatarCard date={headerDate} />
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="truncate text-[22px] font-semibold leading-7 tracking-tight">
-              New boarding stay
-            </span>
+            <span className="truncate font-heading font-semibold text-2xl">New boarding stay</span>
             <span className="inline-flex items-center gap-1 text-xs leading-4 text-muted-foreground">
               <MoonIcon className="size-3.5" />
               {nights > 0 ? `${nights} ${nights === 1 ? "night" : "nights"}` : "Overnight stay"}

@@ -106,7 +106,7 @@ export function ChangeBankAccountDialog({
 
         <div className="flex items-start justify-between gap-3 border-b border-border/60 px-7 pt-7 pb-5">
           <div className="flex flex-col gap-1">
-            <DialogTitle className="font-heading text-xl leading-7 font-semibold">
+            <DialogTitle className="font-heading font-semibold text-2xl">
               {step === "result" && result?.ok === false
                 ? "Nothing was changed"
                 : step === "result"

@@ -80,7 +80,7 @@ export function TransactionDetailDialog({ tx, txs, payouts, onOpenChange, onOpen
                   to read a minus sign to know which way money went (T5-2). */}
               <DialogTitle
                 className={cn(
-                  "font-heading text-[28px] leading-8 font-semibold",
+                  "font-heading font-semibold text-3xl",
                   isOut ? "text-foreground" : "text-cami-green-11",
                 )}
               >

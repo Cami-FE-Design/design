@@ -159,7 +159,7 @@ export function PackageDetailDialog({
               </span>
 
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
+                <DialogTitle className="truncate font-heading font-semibold text-2xl">
                   {pkg.name}
                 </DialogTitle>
                 <DialogDescription className="sr-only">

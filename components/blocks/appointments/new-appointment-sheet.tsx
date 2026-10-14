@@ -860,7 +860,7 @@ export function NewAppointmentSheet({
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <button
                   type="button"
-                  className="self-start truncate text-[22px] font-semibold leading-7 tracking-tight hover:opacity-90"
+                  className="self-start truncate font-heading font-semibold text-2xl hover:opacity-90"
                   aria-label="Change date"
                 >
                   {dateLabel}

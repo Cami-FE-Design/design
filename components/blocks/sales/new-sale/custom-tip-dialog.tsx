@@ -85,7 +85,7 @@ function TipBody({
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <DialogTitle className="font-heading font-semibold text-xl">Add a tip</DialogTitle>
+        <DialogTitle className="font-heading font-semibold text-2xl">Add a tip</DialogTitle>
         <DialogClose asChild>
           <Button
             type="button"

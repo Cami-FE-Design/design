@@ -1090,7 +1090,7 @@ export function AppointmentDetailSheet({
               >
                 <DateAvatarCard date={iso} />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="self-start truncate text-[22px] leading-7 font-semibold tracking-tight">
+                  <span className="self-start truncate font-heading font-semibold text-2xl">
                     {dateLabel}
                   </span>
                   <div className={cn("text-xs leading-4", theme.subText)}>

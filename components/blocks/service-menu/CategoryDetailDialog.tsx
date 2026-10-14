@@ -120,7 +120,7 @@ export function CategoryDetailDialog({
         </button>
 
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
+          <DialogTitle className="font-heading font-semibold text-2xl">
             {mode === "view" ? "Category details" : "Edit category"}
           </DialogTitle>
         </DialogHeader>

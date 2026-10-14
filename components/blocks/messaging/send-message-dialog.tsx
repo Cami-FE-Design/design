@@ -76,7 +76,9 @@ export function SendMessageDialog({
                 <CheckIcon className="size-7" aria-hidden />
               </span>
               <div className="flex flex-col gap-1">
-                <DialogTitle className="text-xl">Message sent</DialogTitle>
+                <DialogTitle className="font-heading font-semibold text-2xl">
+                  Message sent
+                </DialogTitle>
                 <DialogDescription>Delivered to {recipientName} on WhatsApp</DialogDescription>
               </div>
             </div>

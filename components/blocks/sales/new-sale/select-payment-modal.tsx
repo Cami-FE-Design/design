@@ -31,7 +31,7 @@ export function SelectPaymentModal({ open, onOpenChange, onSelect }: SelectPayme
             <XIcon className="size-5" />
           </Button>
         </DialogClose>
-        <DialogTitle className="font-heading font-semibold text-xl">Select payment</DialogTitle>
+        <DialogTitle className="font-heading font-semibold text-2xl">Select payment</DialogTitle>
 
         <div className="grid grid-cols-2 gap-3">
           {METHODS.map((method) => (

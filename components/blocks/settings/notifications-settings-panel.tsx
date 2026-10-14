@@ -317,7 +317,7 @@ function SenderIdDialog({
       <DialogContent className="max-w-md gap-0 p-0">
         <div className="flex items-start justify-between gap-3 p-6 pb-4">
           <div className="flex flex-col gap-1">
-            <DialogTitle className="font-heading text-lg font-semibold leading-7">
+            <DialogTitle className="font-heading font-semibold text-2xl">
               {senderId.value ? "Change Sender ID" : "Add Sender ID"}
             </DialogTitle>
             <DialogDescription className="text-sm leading-5 text-muted-foreground">

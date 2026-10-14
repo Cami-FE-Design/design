@@ -1724,7 +1724,7 @@ export function BookingFlow({
           className="max-h-[80dvh] overflow-y-auto"
         >
           <SheetHeader className="flex-row items-center justify-between">
-            <SheetTitle className="font-semibold text-lg">Price breakdown</SheetTitle>
+            <SheetTitle className="font-heading font-semibold text-2xl">Price breakdown</SheetTitle>
             <SheetClose asChild>
               <button
                 type="button"

@@ -46,7 +46,7 @@ function CardBody({
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <DialogTitle className="font-heading font-semibold text-xl">Add Card payment</DialogTitle>
+        <DialogTitle className="font-heading font-semibold text-2xl">Add Card payment</DialogTitle>
         <DialogClose asChild>
           <Button
             type="button"
