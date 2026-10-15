@@ -29,7 +29,7 @@ export default function ReportPage() {
                 Back
               </Link>
             </Button>
-            <h1 className="text-2xl leading-8 font-medium text-foreground">Report unavailable</h1>
+            <h1 className="text-2xl leading-8 font-semibold text-foreground">Report unavailable</h1>
           </div>
         }
       >

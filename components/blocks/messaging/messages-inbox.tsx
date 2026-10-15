@@ -884,7 +884,7 @@ export function MessagesInboxScreen() {
       header={
         <div className="flex w-full items-center justify-between gap-3">
           <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Inbox</h1>
+            <h1 className="text-2xl font-semibold leading-8 text-foreground">Inbox</h1>
             <p className="text-sm text-muted-foreground">
               {MOCK_CONVERSATIONS.length} conversations
             </p>

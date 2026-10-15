@@ -165,7 +165,7 @@ export function ProductImportWizard({ scenarioId, startAtReview }: WizardProps) 
           <ArrowLeftIcon className="size-4" />
           Back to {config.plural}
         </Link>
-        <h1 className="text-2xl font-medium leading-8">Import {config.plural}</h1>
+        <h1 className="text-2xl font-semibold leading-8">Import {config.plural}</h1>
         <Stepper current={step} />
       </div>
 

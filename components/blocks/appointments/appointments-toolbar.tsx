@@ -79,7 +79,9 @@ export function AppointmentsToolbar({
       className={cn("flex w-full items-center justify-between gap-3", className)}
     >
       <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-medium leading-8 text-foreground">{formatHeaderDate(date)}</h1>
+        <h1 className="text-2xl font-semibold leading-8 text-foreground">
+          {formatHeaderDate(date)}
+        </h1>
         <div className="flex h-9 items-center divide-x divide-border overflow-hidden rounded-full border border-border bg-background">
           <button
             type="button"

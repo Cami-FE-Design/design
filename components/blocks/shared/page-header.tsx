@@ -26,7 +26,7 @@ export function PageHeader({ title, badge, description, actions, className }: Pa
     >
       <div className="flex flex-col">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-medium leading-8 text-foreground">{title}</h1>
+          <h1 className="text-2xl font-semibold leading-8 text-foreground">{title}</h1>
           {badge}
         </div>
         {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}

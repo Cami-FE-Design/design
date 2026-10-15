@@ -118,7 +118,7 @@ export function CategoriesPage({ initialCategories, initialAddOpen = false }: Ca
           <header className="flex w-full items-center justify-center px-6 py-6">
             <div className="flex w-full max-w-5xl items-center justify-between gap-3">
               <div className="flex flex-col">
-                <h1 className="text-2xl font-medium leading-8 text-foreground">Categories</h1>
+                <h1 className="text-2xl font-semibold leading-8 text-foreground">Categories</h1>
                 <p className="text-sm text-muted-foreground">
                   Manage the service categories for your business.
                 </p>
