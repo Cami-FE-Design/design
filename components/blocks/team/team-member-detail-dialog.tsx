@@ -439,7 +439,7 @@ function Subsection({ title, children }: { title: string; children: React.ReactN
   return (
     <section className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
       <header className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold">{title}</h3>
+        <h3 className="font-heading text-base font-semibold leading-6 text-foreground">{title}</h3>
       </header>
       {children}
     </section>

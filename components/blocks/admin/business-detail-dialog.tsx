@@ -646,7 +646,9 @@ function ManageSection({
   const isArchived = business.state === "archived"
   return (
     <section className="flex flex-col gap-1 pt-2">
-      <h3 className="mb-2 text-sm font-semibold text-foreground">Manage Partner Account</h3>
+      <h3 className="mb-2 font-heading text-base font-semibold leading-6 text-foreground">
+        Manage Partner Account
+      </h3>
 
       <PermissionGate permission="merchants.impersonate">
         <ManageRow
