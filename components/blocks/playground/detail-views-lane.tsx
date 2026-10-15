@@ -12,6 +12,14 @@ import { PetEditSheet } from "@/components/blocks/clients/pet-edit-sheet"
 import { DaycareDetailSheet } from "@/components/blocks/daycare/booking-detail-sheet"
 import { Lane, Row, Section } from "@/components/blocks/playground/kit"
 import { MyProfilePanel } from "@/components/blocks/settings/my-profile-panel"
+import {
+  formatNoteMeta,
+  type NoteRequestMode,
+  ProfileNoteBody,
+  simulateNoteRequest,
+  useProfileNoteEditor,
+} from "@/components/blocks/shared/profile-note"
+import { SectionCard } from "@/components/blocks/shared/section-card"
 import { GlobalSearchDialog } from "@/components/blocks/shell/global-search-dialog"
 import { AddTeamMemberDialog } from "@/components/blocks/team/add-team-member-dialog"
 import {
@@ -40,6 +48,94 @@ const TEAM_DEMO_MEMBERS: Record<"active" | "pending", TeamMemberDetailMember> = 
     roleId: "receptionist",
     status: "pending",
   },
+}
+
+const DEMO_PROFILE_NOTES = [
+  {
+    id: "pg-note-1",
+    content: "Always asks for Aya. Do not rebook with anyone else without calling her first.",
+    authorName: "Maz Khan",
+    createdAt: "2026-09-07T17:49:00+04:00",
+  },
+  {
+    id: "pg-note-2",
+    content:
+      "History from the old system:\n2 unused vouchers, expiring 31 Dec 2026.\nPrefers WhatsApp.",
+    authorName: "Aya Hassan",
+    createdAt: "2026-10-13T10:15:00+04:00",
+  },
+  {
+    id: "pg-note-3",
+    content: "Parks in the loading bay — takes the side entrance, buzz her in.",
+    createdAt: "2026-09-07T18:20:00+04:00",
+  },
+]
+
+/**
+ * The note list the client and pet profiles share, on its own, with the
+ * request outcome switchable so the saving and failure states can be reached.
+ */
+function ProfileNotesDemo() {
+  const [mode, setMode] = useState<NoteRequestMode>("succeed")
+  const [notes, setNotes] = useState(DEMO_PROFILE_NOTES)
+  const editor = useProfileNoteEditor({
+    onUpdate: async (id, content) => {
+      await simulateNoteRequest(mode)
+      setNotes((current) => current.map((n) => (n.id === id ? { ...n, content } : n)))
+    },
+    onDelete: async (id) => {
+      await simulateNoteRequest(mode)
+      setNotes((current) => current.filter((n) => n.id !== id))
+    },
+  })
+  return (
+    <>
+      <Row label="Requests">
+        <SegmentedToggle
+          value={mode}
+          onValueChange={(v) => setMode(v as NoteRequestMode)}
+          options={[
+            { value: "succeed", label: "Succeed" },
+            { value: "slow", label: "Slow" },
+            { value: "fail", label: "Fail" },
+          ]}
+          ariaLabel="How note requests behave"
+        />
+      </Row>
+      <Row label="Notes" align="start">
+        <div className="flex max-w-xl flex-col gap-2">
+          <SectionCard title="Client notes">
+            {notes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No notes yet.</p>
+            ) : (
+              <ul className="divide-y divide-border/60">
+                {notes.map((note) => (
+                  <li key={note.id} className="py-1.5 first:pt-0 last:pb-0">
+                    <ProfileNoteBody
+                      content={note.content}
+                      meta={formatNoteMeta(note.createdAt, note.authorName)}
+                      onEdit={() => editor.edit(note)}
+                      onDelete={() => editor.remove(note.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </SectionCard>
+          <Button
+            variant="outline"
+            radius="full"
+            size="sm"
+            className="self-start"
+            onClick={() => setNotes(DEMO_PROFILE_NOTES)}
+          >
+            Reset notes
+          </Button>
+        </div>
+      </Row>
+      {editor.dialogs}
+    </>
+  )
 }
 
 export function DetailViewsLane() {
@@ -115,6 +211,12 @@ export function DetailViewsLane() {
           ]}
           isOwner
         />
+      </Section>
+      <Section
+        title="Profile note edit and delete"
+        description="Edit and Delete on each client and pet profile note, with a confirmation before delete and the saving and failure states (PRD-196)."
+      >
+        <ProfileNotesDemo />
       </Section>
       <Section
         title="Team member detail dialog"

@@ -25,6 +25,12 @@ import { LocationStatusBadge } from "@/components/blocks/settings/location-statu
 import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { KpiCard, KpiGrid } from "@/components/blocks/shared/kpi-card"
 import { NoteDialog } from "@/components/blocks/shared/note-dialog"
+import {
+  formatNoteMeta,
+  ProfileNoteBody,
+  simulateNoteRequest,
+  useProfileNoteEditor,
+} from "@/components/blocks/shared/profile-note"
 import { SectionCard } from "@/components/blocks/shared/section-card"
 import { TimelineDate, TimelineRow } from "@/components/blocks/shared/timeline-row"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
@@ -337,7 +343,23 @@ export function ClientDetailDialog({
   // Documents show the same list the moment one is saved. Newest first, which
   // is the order `clientNotesFor` already guarantees for the seeded ones.
   const [addedNotes, setAddedNotes] = useState<ClientNote[]>([])
+  // Edits and deletions sit over the seeded notes the same way, keyed by id,
+  // so an edited note keeps its place, author and time (PILOT-60 AC-02, AC-07).
+  const [noteEdits, setNoteEdits] = useState<Record<string, string>>({})
+  const [deletedNoteIds, setDeletedNoteIds] = useState<string[]>([])
   const notes = [...addedNotes, ...clientNotesFor(client.id)]
+    .filter((note) => !deletedNoteIds.includes(note.id))
+    .map((note) => (note.id in noteEdits ? { ...note, content: noteEdits[note.id] } : note))
+  const noteEditor = useProfileNoteEditor({
+    onUpdate: async (id, content) => {
+      await simulateNoteRequest()
+      setNoteEdits((current) => ({ ...current, [id]: content }))
+    },
+    onDelete: async (id) => {
+      await simulateNoteRequest()
+      setDeletedNoteIds((current) => [...current, id])
+    },
+  })
   const appointments = profile.appointments
   const noShowAppointments = appointments.filter((a) => a.status === "no-show")
   // Branch chrome appears because *this client* has been to more than one, not
@@ -582,6 +604,8 @@ export function ClientDetailDialog({
             clientId={client.id}
             notes={notes}
             onAddNote={() => setAddNoteOpen(true)}
+            onEditNote={noteEditor.edit}
+            onDeleteNote={noteEditor.remove}
             profile={profile}
             hasPets={hasPets}
             appts={appointments.length}
@@ -884,7 +908,12 @@ export function ClientDetailDialog({
           )}
         </TabsContent>
         <TabsContent value="documents" className="flex flex-col gap-3">
-          <ClientNotesCard notes={notes} onAdd={() => setAddNoteOpen(true)} />
+          <ClientNotesCard
+            notes={notes}
+            onAdd={() => setAddNoteOpen(true)}
+            onEdit={noteEditor.edit}
+            onDelete={noteEditor.remove}
+          />
           {/* Forms and files above the two clinical records, because they
                     are what reception opens before an appointment; allergies
                     and a patch test are read when something is being booked
@@ -976,8 +1005,8 @@ export function ClientDetailDialog({
         open={addNoteOpen}
         onOpenChange={setAddNoteOpen}
         initialValue={null}
+        requireText
         onSave={(value) => {
-          if (!value) return
           setAddedNotes((current) => [
             {
               id: `cn-local-${Date.now()}`,
@@ -990,6 +1019,7 @@ export function ClientDetailDialog({
           ])
         }}
       />
+      {noteEditor.dialogs}
 
       <PetEditSheet
         open={addPetOpen}
@@ -1617,24 +1647,6 @@ function PetsOverviewCard({
  * comparison view in /playground. There is no second copy to drift.
  */
 /**
- * "Created: 09/15/2026 11:09 am by Maz Khan" — the as-built profile line.
- *
- * Deliberately not the calendar preview's "Maz Khan · 7 Sep, 5:49pm". That
- * one is short because it sits under a clamped note on a surface read in a
- * second; this is the record, where a full date is what someone asking "when
- * was this written" actually wants. Author is optional — it arrives only when
- * the backend enriches the row.
- */
-function formatClientNoteMeta(note: ClientNote): string {
-  const date = new Date(note.createdAt)
-  if (Number.isNaN(date.getTime())) return ""
-  const pad = (n: number) => String(n).padStart(2, "0")
-  const hour = date.getHours() % 12 || 12
-  const stamp = `${pad(date.getMonth() + 1)}/${pad(date.getDate())}/${date.getFullYear()} ${hour}:${pad(date.getMinutes())} ${date.getHours() >= 12 ? "pm" : "am"}`
-  return note.authorName ? `Created: ${stamp} by ${note.authorName}` : `Created: ${stamp}`
-}
-
-/**
  * Client notes, in full.
  *
  * The calendar and the appointment sheet carry a *preview* of these — two notes
@@ -1656,10 +1668,15 @@ function formatClientNoteMeta(note: ClientNote): string {
 function ClientNotesCard({
   notes,
   onAdd,
+  onEdit,
+  onDelete,
   limit,
 }: {
   notes: ClientNote[]
   onAdd?: () => void
+  /** Both or neither: a note row carries Edit and Delete as a pair (PILOT-60). */
+  onEdit?: (note: ClientNote) => void
+  onDelete?: (noteId: string) => void
   /** Overview's budget. Omitted on Documents, which is the archive. */
   limit?: number
 }) {
@@ -1687,18 +1704,19 @@ function ClientNotesCard({
           <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
           <div className="min-w-0 flex-1">
             <ul className="divide-y divide-border/60">
-              {visible.map((note) => {
-                const meta = formatClientNoteMeta(note)
-                return (
-                  <li key={note.id} className="flex flex-col gap-0.5 py-1.5 first:pt-0 last:pb-0">
-                    {/* Not clamped. The glance surfaces clamp because they are
-                        previews; here the budget is a note count, so the notes
-                        that do show are whole. */}
-                    <p className="text-sm leading-snug text-foreground">{note.content}</p>
-                    {meta ? <p className="text-xs text-muted-foreground">{meta}</p> : null}
-                  </li>
-                )
-              })}
+              {visible.map((note) => (
+                // Not clamped. The glance surfaces clamp because they are
+                // previews; here the budget is a note count, so the notes that
+                // do show are whole.
+                <li key={note.id} className="py-1.5 first:pt-0 last:pb-0">
+                  <ProfileNoteBody
+                    content={note.content}
+                    meta={formatNoteMeta(note.createdAt, note.authorName)}
+                    onEdit={onEdit ? () => onEdit(note) : undefined}
+                    onDelete={onDelete ? () => onDelete(note.id) : undefined}
+                  />
+                </li>
+              ))}
             </ul>
             {remaining > 0 ? (
               // Not a control, for the same reason the calendar preview's line
@@ -1754,6 +1772,8 @@ export function ClientOverview({
   clientId,
   notes,
   onAddNote,
+  onEditNote,
+  onDeleteNote,
   profile,
   hasPets,
   appts,
@@ -1774,6 +1794,8 @@ export function ClientOverview({
       to the seeded notes for a standalone render (the playground's two faces). */
   notes?: ClientNote[]
   onAddNote?: () => void
+  onEditNote?: (note: ClientNote) => void
+  onDeleteNote?: (noteId: string) => void
   profile: OverviewProfile
   hasPets: boolean
   appts: number
@@ -1836,7 +1858,13 @@ export function ClientOverview({
         upcoming={upcoming}
         onNoShowsClick={onNoShowsClick}
       />
-      <ClientNotesCard notes={notes ?? clientNotesFor(clientId)} onAdd={onAddNote} limit={2} />
+      <ClientNotesCard
+        notes={notes ?? clientNotesFor(clientId)}
+        onAdd={onAddNote}
+        onEdit={onEditNote}
+        onDelete={onDeleteNote}
+        limit={2}
+      />
       <VisitsCard
         last={lastVisit}
         next={nextAppointment}

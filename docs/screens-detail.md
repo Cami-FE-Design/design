@@ -409,6 +409,18 @@ The rebuilt Overview (Client Card brief, task 1). One block carries identity chi
 
 The case that sets the budget on Overview. Karen has four notes, one of them three lines, so the card shows two and sends the rest to Documents — uncapped it pushes Rebook off the first screen, and rebooking is the most repeated thing reception does. Open Documents on the same client for the archive, where every note renders whole.
 
+### Client notes · edit and delete (PRD-196)
+
+`/clients?client=karen-dougall&tab=documents`
+
+PILOT-60: Deme saves a client's history before it is finished and has to redo the whole note. Hover any note for the outlined Edit and Delete pair the appointment note already uses; on a touch screen they stay visible. Edit opens the same note dialog prefilled — Update is locked while the text is blank, and the note keeps its place, author and time. Delete asks first, from the row and from the Delete button inside the editor; Cancel goes back with nothing changed. This confirmation is new: the appointment note still deletes straight away, and PILOT-60 leaves it that way. Overview shows the same controls on its two notes. The failure states are easiest to reach in /playground under "Profile note edit and delete", where requests can be set to fail.
+
+### Pet notes · edit and delete (PRD-196)
+
+`/clients?client=millie-cassidy&tab=pets`
+
+Open Bobo. Pet notes on Overview and on Documents carry the same controls, dialogs and confirmation as client notes, and Add note now works too. Medical notes, under Pet details, are a different record and are not part of this.
+
 ### Client detail · booked, never yet seen
 
 `/clients?client=kirsty-dingomal`

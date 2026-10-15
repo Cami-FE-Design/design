@@ -342,6 +342,10 @@ Centered Dialog modelled on <BusinessDetailDialog>, ~630px, sticky header with B
 
 Same shell as Client detail. Stacks over the client dialog when opened from inside it. Tabs: Overview · Family · Visit history · Pet details · Documents. Multi-owner aware — chip row in the header. Actions menu has Edit pet details + Delete pet.
 
+### Profile note edit and delete
+
+PRD-196, for PILOT-60. The note list client and pet profiles share, on its own. Each note carries the appointment note's outlined Edit and Delete pair, shown on hover or focus and always on touch. Edit opens the note dialog prefilled; Update is locked while the text is blank. Delete asks first, from the row and from inside the editor — new for profile notes; the appointment note still deletes without asking. Set Requests to Slow to see the buttons lock while a change is saving, or Fail to see the errors: a failed update keeps the typed text in the editor, and a failed delete keeps the confirmation open with the note untouched. Reset notes puts the three back.
+
 ### Team member detail dialog
 
 The Client / Pet detail shell for a team member. Sticky header (avatar, permission access, email, phone, Edit, Actions) over two tabs: Overview (KPIs, Works at, Services, Notes) and Details (profile, role, addresses, emergency contacts). Owner rows lock profile and role edits; a pending invite shows an empty Overview. Add uses the full-screen takeover instead.

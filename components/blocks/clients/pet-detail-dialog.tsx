@@ -15,6 +15,13 @@ import { PetEditSheet } from "@/components/blocks/clients/pet-edit-sheet"
 import { AvatarStack } from "@/components/blocks/shared/avatar-stack"
 import { KpiCard, KpiGrid } from "@/components/blocks/shared/kpi-card"
 import { LinkedEntityChip } from "@/components/blocks/shared/linked-entity-chip"
+import { NoteDialog } from "@/components/blocks/shared/note-dialog"
+import {
+  formatNoteMeta,
+  ProfileNoteBody,
+  simulateNoteRequest,
+  useProfileNoteEditor,
+} from "@/components/blocks/shared/profile-note"
 import { SectionCard } from "@/components/blocks/shared/section-card"
 import { TimelineDate, TimelineRow } from "@/components/blocks/shared/timeline-row"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
@@ -36,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useCurrentUser } from "@/lib/current-user"
 import { useDemoBusiness } from "@/lib/demo-business"
 import { formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -172,9 +180,10 @@ const MOCK_PET_VISITS: MockPetVisit[] = [
 
 type MockPetNote = {
   id: string
-  text: string
+  content: string
+  /** ISO timestamp, shown through the same line as client notes. */
   createdAt: string
-  author: string
+  authorName: string
 }
 
 type MockVaccine = {
@@ -193,11 +202,57 @@ const MOCK_VACCINES: MockVaccine[] = [
 const MOCK_PET_NOTES: MockPetNote[] = [
   {
     id: "n1",
-    text: "Anxious during baths — use a gentle voice and the lavender shampoo.",
-    createdAt: "04/09/2026 11:51 am",
-    author: "Priya Nair",
+    content: "Anxious during baths — use a gentle voice and the lavender shampoo.",
+    createdAt: "2026-04-09T11:51:00+04:00",
+    authorName: "Priya Nair",
   },
 ]
+
+/**
+ * Pet notes, on Overview and on Documents alike. Every note carries Edit and
+ * Delete (PILOT-60) — the same controls, dialogs and confirmation as client
+ * notes. Medical notes, in Pet details, are a different record and stay out.
+ */
+function PetNotesCard({
+  notes,
+  onAdd,
+  onEdit,
+  onDelete,
+}: {
+  notes: MockPetNote[]
+  onAdd: () => void
+  onEdit: (note: MockPetNote) => void
+  onDelete: (noteId: string) => void
+}) {
+  return (
+    <SectionCard
+      title="Pet notes"
+      action={
+        <Button variant="secondary" size="sm" radius="full" onClick={onAdd}>
+          <PlusIcon />
+          Add note
+        </Button>
+      }
+    >
+      {notes.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No pet notes yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {notes.map((note) => (
+            <li key={note.id}>
+              <ProfileNoteBody
+                content={note.content}
+                meta={formatNoteMeta(note.createdAt, note.authorName)}
+                onEdit={() => onEdit(note)}
+                onDelete={() => onDelete(note.id)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </SectionCard>
+  )
+}
 
 /**
  * Pet detail dialog — stacks over `<ClientDetailDialog>` (Dialog-on-Dialog).
@@ -226,6 +281,19 @@ export function PetDetailDialog({
     setEditOpen(true)
   }
   const [addVaccineOpen, setAddVaccineOpen] = useState(false)
+  const { actor } = useCurrentUser()
+  const [petNotes, setPetNotes] = useState<MockPetNote[]>(MOCK_PET_NOTES)
+  const [addNoteOpen, setAddNoteOpen] = useState(false)
+  const noteEditor = useProfileNoteEditor({
+    onUpdate: async (id, content) => {
+      await simulateNoteRequest()
+      setPetNotes((current) => current.map((n) => (n.id === id ? { ...n, content } : n)))
+    },
+    onDelete: async (id) => {
+      await simulateNoteRequest()
+      setPetNotes((current) => current.filter((n) => n.id !== id))
+    },
+  })
   const mobileMoreTabs = PET_TABS.filter((t) => !t.mobileVisible)
   const activeMobileMoreTab = mobileMoreTabs.find((t) => t.id === tab)
   const isVisitStatusInMore = VISIT_STATUS_MORE.some((s) => s.value === visitStatus)
@@ -397,30 +465,12 @@ export function PetDetailDialog({
                 <SectionCard title="Upcoming appointment">
                   <p className="text-sm text-muted-foreground">No upcoming appointment yet.</p>
                 </SectionCard>
-                <SectionCard
-                  title="Pet notes"
-                  action={
-                    <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
-                      Add note
-                    </Button>
-                  }
-                >
-                  {MOCK_PET_NOTES.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No pet notes yet.</p>
-                  ) : (
-                    <ul className="flex flex-col gap-3">
-                      {MOCK_PET_NOTES.map((note) => (
-                        <li key={note.id} className="flex flex-col gap-0.5">
-                          <p className="text-sm">{note.text}</p>
-                          <span className="text-xs text-muted-foreground">
-                            Created: {note.createdAt} by {note.author}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </SectionCard>
+                <PetNotesCard
+                  notes={petNotes}
+                  onAdd={() => setAddNoteOpen(true)}
+                  onEdit={noteEditor.edit}
+                  onDelete={noteEditor.remove}
+                />
               </TabsContent>
               <TabsContent value="family" className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
@@ -569,30 +619,12 @@ export function PetDetailDialog({
                 </div>
               </TabsContent>
               <TabsContent value="documents" className="flex flex-col gap-3">
-                <SectionCard
-                  title="Pet notes"
-                  action={
-                    <Button variant="secondary" size="sm" radius="full">
-                      <PlusIcon />
-                      Add note
-                    </Button>
-                  }
-                >
-                  {MOCK_PET_NOTES.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No pet notes yet.</p>
-                  ) : (
-                    <ul className="flex flex-col gap-3">
-                      {MOCK_PET_NOTES.map((note) => (
-                        <li key={note.id} className="flex flex-col gap-0.5">
-                          <p className="text-sm">{note.text}</p>
-                          <span className="text-xs text-muted-foreground">
-                            Created: {note.createdAt} by {note.author}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </SectionCard>
+                <PetNotesCard
+                  notes={petNotes}
+                  onAdd={() => setAddNoteOpen(true)}
+                  onEdit={noteEditor.edit}
+                  onDelete={noteEditor.remove}
+                />
 
                 <SectionCard
                   title="Vaccinations"
@@ -644,6 +676,24 @@ export function PetDetailDialog({
       />
 
       <AddVaccineDialog open={addVaccineOpen} onOpenChange={setAddVaccineOpen} />
+      <NoteDialog
+        open={addNoteOpen}
+        onOpenChange={setAddNoteOpen}
+        initialValue={null}
+        requireText
+        onSave={(value) => {
+          setPetNotes((current) => [
+            {
+              id: `pn-local-${Date.now()}`,
+              content: value,
+              authorName: actor.name,
+              createdAt: new Date().toISOString(),
+            },
+            ...current,
+          ])
+        }}
+      />
+      {noteEditor.dialogs}
     </>
   )
 }
