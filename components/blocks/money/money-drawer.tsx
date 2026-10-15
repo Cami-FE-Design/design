@@ -245,7 +245,9 @@ function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props
 
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-medium text-foreground">Recent activity</h3>
+                  <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+                    Recent activity
+                  </h3>
                   <Button variant="ghost" radius="full" size="sm" onClick={() => show("activity")}>
                     See all
                     <ArrowUpRightIcon className="size-3.5" />
