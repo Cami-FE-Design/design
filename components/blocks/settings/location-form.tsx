@@ -824,7 +824,7 @@ function AddressTab({ location }: { location: Location }) {
 
         <hr className="border-border/40" />
 
-        <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+        <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
           Map location
         </h3>
         <button
@@ -1213,7 +1213,9 @@ function ManageTab({ location }: { location: Location }) {
         </div>
       )}
       <section className="flex flex-col gap-1 pt-2">
-        <h3 className="mb-2 text-sm font-semibold text-foreground">Manage Location</h3>
+        <h3 className="mb-2 font-heading text-base font-semibold leading-6 text-foreground">
+          Manage Location
+        </h3>
 
         <ManageRow
           title={isSuspended ? "Unsuspend Location" : "Suspend Location"}
@@ -2639,7 +2641,7 @@ function DepositEditDialog({
       </section>
 
       <section className="flex flex-col gap-4">
-        <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+        <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
           What this location takes
         </h3>
         <Field label="Taken upfront">
@@ -2768,7 +2770,7 @@ function TippingEditDialog({
       </section>
 
       <section className="flex flex-col gap-4">
-        <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+        <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
           Tipping options
         </h3>
         <TippingToggleRow
@@ -2794,7 +2796,7 @@ function TippingEditDialog({
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
             Default tip values
           </h3>
           <p className="text-sm leading-5 text-muted-foreground">
@@ -2841,7 +2843,7 @@ function TippingEditDialog({
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
             Tip calculation
           </h3>
           <p className="text-sm leading-5 text-muted-foreground">

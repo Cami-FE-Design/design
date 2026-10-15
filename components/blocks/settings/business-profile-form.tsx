@@ -147,7 +147,7 @@ export function BusinessProfileForm() {
 
           <hr className="border-border/40" />
 
-          <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+          <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
             External links
           </h3>
           <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-[16rem_16rem]">
