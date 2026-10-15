@@ -91,11 +91,7 @@ function StayBar({
       <span className="flex min-w-0 flex-col leading-tight">
         <span className={cn("truncate text-xs font-semibold", c.text)}>{stay.petName}</span>
         <span
-          className={cn(
-            "inline-flex items-center gap-1 truncate text-[11px]",
-            c.text,
-            "opacity-80",
-          )}
+          className={cn("inline-flex items-center gap-1 truncate text-xs", c.text, "opacity-80")}
         >
           <MoonIcon className="size-3" />
           {nights} {nights === 1 ? "Night" : "Nights"}
@@ -307,7 +303,7 @@ export default function BoardingCalendarPage() {
                       key={d.iso}
                       className="flex flex-col items-center gap-1 border-r border-border/40 py-2"
                     >
-                      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                      <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         {d.weekday}
                       </span>
                       <span

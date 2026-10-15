@@ -9,7 +9,7 @@ import {
   ShieldAlertIcon,
   UsersIcon,
 } from "lucide-react"
-
+import { Badge } from "@/components/ui/badge"
 import {
   clientIdOf,
   formatTimeRange,
@@ -123,7 +123,24 @@ export function AppointmentBlock({
   const subtitleText = hasPets && booking.petName ? booking.clientName : undefined
 
   const tight = height <= 28
-  const compact = height <= 56
+  // The time range comes first at every size and is never cut; everything else
+  // gives way to it. A 15-minute block is one row, time then name, with its
+  // price and icons in the hover card. A 30-minute block adds the name row with
+  // its icons. From 45 minutes the price sits at the end of the name row and
+  // the icons drop to the bottom; the service line starts at an hour.
+  const short = height <= 48
+  const compact = height <= 72
+  const time = (
+    <span
+      className={cn(
+        "shrink-0 whitespace-nowrap font-mono text-xs tabular-nums",
+        tight ? "leading-none" : "leading-tight",
+        style.subtle,
+      )}
+    >
+      {formatTimeRange(booking.start, booking.durationMin)}
+    </span>
+  )
 
   return (
     <button
@@ -145,66 +162,53 @@ export function AppointmentBlock({
       )}
       style={{ top, height }}
     >
-      <div
-        className={cn(
-          "flex h-full flex-col gap-0.5",
-          tight ? "px-1.5 py-0.5" : compact ? "px-2 py-1" : "px-2 py-1.5",
-        )}
-      >
-        <div className="flex items-start justify-between gap-1">
-          <div className="flex min-w-0 flex-1 items-baseline gap-1">
-            <span
-              className={cn(
-                "shrink-0 font-mono text-[10px] tabular-nums leading-none",
-                style.subtle,
-              )}
-            >
-              {tight ? booking.start : formatTimeRange(booking.start, booking.durationMin)}
-            </span>
-            {tight ? (
-              <span
-                className={cn(
-                  "min-w-0 truncate text-[11px] font-semibold leading-none",
-                  style.title,
-                  status.decoration,
-                )}
-              >
-                {titleText}
-              </span>
-            ) : null}
-          </div>
-          {booking.priceMinor > 0 ? (
-            <span
-              className={cn(
-                "shrink-0 rounded-sm px-1 text-[9px] font-semibold leading-tight",
-                style.chip,
-              )}
-            >
-              {formatMoneyWhole(booking.priceMinor)}
-            </span>
-          ) : null}
-        </div>
-        {!tight ? (
-          <div
+      {tight ? (
+        <div className="flex h-full min-w-0 items-center gap-1 px-1.5">
+          {time}
+          <span
             className={cn(
-              "min-w-0 truncate text-[12px] font-semibold leading-tight",
+              "min-w-0 truncate text-xs font-semibold leading-none",
               style.title,
               status.decoration,
             )}
           >
             {titleText}
-            {subtitleText ? (
-              <span className={cn("ml-1 font-normal", style.subtle)}>· {subtitleText}</span>
+          </span>
+        </div>
+      ) : (
+        <div className={cn("flex h-full flex-col gap-0.5", compact ? "px-2 py-1" : "px-2 py-1.5")}>
+          {time}
+          <div className="flex min-w-0 items-center gap-1">
+            <div
+              className={cn(
+                "min-w-0 flex-1 truncate text-xs font-semibold leading-tight",
+                style.title,
+                status.decoration,
+              )}
+            >
+              {titleText}
+              {subtitleText ? (
+                <span className={cn("ml-1 font-normal", style.subtle)}>· {subtitleText}</span>
+              ) : null}
+            </div>
+            {short ? (
+              <BlockIconRow booking={booking} subtleClass={style.subtle} />
+            ) : booking.priceMinor > 0 ? (
+              <Badge size="sm" className={cn("shrink-0", style.chip)}>
+                {formatMoneyWhole(booking.priceMinor)}
+              </Badge>
             ) : null}
           </div>
-        ) : null}
-        {!compact ? (
-          <div className={cn("min-w-0 flex-1 truncate text-[11px] leading-tight", style.subtle)}>
-            {booking.serviceName}
-          </div>
-        ) : null}
-        <BlockIconRow booking={booking} subtleClass={style.subtle} tight={tight} />
-      </div>
+          {!compact ? (
+            <div className={cn("min-w-0 truncate text-xs leading-tight", style.subtle)}>
+              {booking.serviceName}
+            </div>
+          ) : null}
+          {!short ? (
+            <BlockIconRow booking={booking} subtleClass={style.subtle} className="mt-auto" />
+          ) : null}
+        </div>
+      )}
     </button>
   )
 }
@@ -212,10 +216,10 @@ export function AppointmentBlock({
 type BlockIconRowProps = {
   booking: MockBooking
   subtleClass: string
-  tight: boolean
+  className?: string
 }
 
-function BlockIconRow({ booking, subtleClass, tight }: BlockIconRowProps) {
+function BlockIconRow({ booking, subtleClass, className }: BlockIconRowProps) {
   const icons: { key: string; Icon: LucideIcon }[] = []
   if (booking.hasDeposit) icons.push({ key: "deposit", Icon: CreditCardIcon })
   if (booking.isRecurring) icons.push({ key: "recurring", Icon: RotateCwIcon })
@@ -229,13 +233,7 @@ function BlockIconRow({ booking, subtleClass, tight }: BlockIconRowProps) {
   if (hasNote) icons.push({ key: "note", Icon: FileTextIcon })
   if (icons.length === 0 && !booking.needsPickup) return null
   return (
-    <div
-      className={cn(
-        "mt-auto flex items-center gap-1",
-        subtleClass,
-        tight ? "absolute right-1 top-0.5" : "",
-      )}
-    >
+    <div className={cn("flex shrink-0 items-center gap-1", subtleClass, className)}>
       {/* Pickup leads the row as a filled chip, not another hairline glyph: it's
           the one flag staff must act on before the appointment, and a muted
           10px icon disappears among the passive deposit / recurring marks. */}

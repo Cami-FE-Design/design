@@ -4,6 +4,7 @@ import { useState } from "react"
 import { AppointmentDetailSheet } from "@/components/blocks/appointments/appointment-detail-sheet"
 import { AppointmentBlockPopover } from "@/components/blocks/appointments/appointment-popover"
 import { Avatar } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import {
   COLUMN_HEADER_HEIGHT,
   DAY_END_HOUR,
@@ -107,8 +108,8 @@ function PeopleGridHeader({ staff }: { staff: MockStaff[] }) {
         >
           <Avatar name={member.name} src={member.photoUrl} fallback="character" size="lg" />
           <div className="min-w-0 text-center">
-            <div className="truncate text-[12px] font-semibold leading-tight">{member.name}</div>
-            <div className="truncate text-[10px] leading-tight text-muted-foreground">
+            <div className="truncate text-xs font-semibold leading-tight">{member.name}</div>
+            <div className="truncate text-xs leading-tight text-muted-foreground">
               {member.role}
             </div>
           </div>
@@ -128,7 +129,7 @@ function TimeAxis({ hours }: { hours: number[] }) {
       {hours.slice(0, -1).map((hour, i) => (
         <div
           key={hour}
-          className="absolute right-0 left-0 -translate-y-1/2 px-1 text-right text-[10px] font-medium tabular-nums text-muted-foreground"
+          className="absolute right-0 left-0 -translate-y-1/2 px-1 text-right text-xs font-medium tabular-nums text-muted-foreground"
           style={{ top: i * 60 * PX_PER_MIN }}
         >
           {formatHourLabel(hour)}
@@ -194,12 +195,13 @@ function NowLine({ minutes, columns }: { minutes: number; columns: number }) {
         gridColumn: `1 / span ${columns + 1}`,
       }}
     >
-      <span
-        className="-translate-y-1/2 inline-flex items-center rounded-sm bg-cami-pink-9 px-1 font-mono text-[10px] font-semibold tabular-nums text-cami-pink-1 leading-none"
+      <Badge
+        size="sm"
+        className="-translate-y-1/2 bg-cami-pink-9 font-mono tabular-nums text-cami-pink-1"
         style={{ width: TIME_AXIS_WIDTH - 4, marginLeft: 2 }}
       >
         {formatNow(minutes)}
-      </span>
+      </Badge>
       <div className="h-px flex-1 bg-cami-pink-9" />
     </div>
   )

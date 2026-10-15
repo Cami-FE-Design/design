@@ -124,7 +124,7 @@ export default function ResourceCalendarPage() {
                       }}
                     >
                       <p className={`truncate text-xs font-medium ${c.text}`}>{b.title}</p>
-                      <p className="truncate text-[11px] text-muted-foreground">{b.sub}</p>
+                      <p className="truncate text-xs text-muted-foreground">{b.sub}</p>
                     </div>
                   )
                 })}

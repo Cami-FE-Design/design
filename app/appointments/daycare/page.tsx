@@ -88,9 +88,9 @@ function SessionBlock({
       <span aria-hidden className={cn("w-1 shrink-0 self-stretch rounded-full", accent.rail)} />
       <span className="flex min-w-0 flex-col leading-tight">
         <span className={cn("truncate text-xs font-semibold", accent.text)}>{session.petName}</span>
-        <span className="truncate text-[11px] text-muted-foreground">{session.clientName}</span>
-        <span className="truncate text-[11px] text-muted-foreground">{session.serviceName}</span>
-        <span className="truncate text-[11px] text-muted-foreground">
+        <span className="truncate text-xs text-muted-foreground">{session.clientName}</span>
+        <span className="truncate text-xs text-muted-foreground">{session.serviceName}</span>
+        <span className="truncate text-xs text-muted-foreground">
           {formatTimeRange(session.start, session.durationMin)}
         </span>
       </span>
@@ -150,7 +150,7 @@ function DayView({
             {hours.map((h) => (
               <div
                 key={h.min}
-                className="absolute right-2 -translate-y-1/2 text-[11px] text-muted-foreground"
+                className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground"
                 style={{ top: h.min * PX_PER_MIN }}
               >
                 {h.label}
