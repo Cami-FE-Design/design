@@ -102,7 +102,7 @@ export function EmailInvoiceDialog({
             autoFocus
           />
           {showError ? (
-            <p className="text-sm text-destructive">
+            <p className="text-sm font-medium text-destructive">
               {!email.trim() ? "Email address is required" : "Enter a valid email address"}
             </p>
           ) : null}

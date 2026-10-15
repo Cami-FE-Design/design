@@ -308,7 +308,7 @@ function BusinessDetailsEditDialog({
             {/* R19's first half. Said only to a chain: a single-site
                       business has nothing that inherits it. */}
             {isMultiLocation ? (
-              <p className="text-muted-foreground text-xs leading-5">
+              <p className="text-sm text-muted-foreground">
                 Every location follows this unless it sets its own.{" "}
                 {ownZone === 0
                   ? "None do yet."

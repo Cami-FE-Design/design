@@ -761,7 +761,7 @@ function ConsentFormDialog({
               </SelectContent>
             </Select>
             {noFiles ? (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 Add a form template in Settings → Forms first, then it can be sent for signature.
               </span>
             ) : null}

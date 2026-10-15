@@ -232,9 +232,11 @@ export function DealDetailsStep({
             />
           </div>
           {discountValueError ? (
-            <p className="text-destructive text-xs">{discountValueError}</p>
+            <p className="text-sm font-medium text-destructive">{discountValueError}</p>
           ) : discountKind === "percentage" && discountValueNumber > 100 ? (
-            <p className="text-destructive text-xs">A percentage discount can't exceed 100%.</p>
+            <p className="text-sm font-medium text-destructive">
+              A percentage discount can't exceed 100%.
+            </p>
           ) : null}
         </div>
 
@@ -274,7 +276,7 @@ export function DealDetailsStep({
               placeholder="e.g. SUMMER10"
               aria-invalid={codeError ? true : undefined}
             />
-            {codeError ? <p className="text-destructive text-xs">{codeError}</p> : null}
+            {codeError ? <p className="text-sm font-medium text-destructive">{codeError}</p> : null}
           </div>
         </div>
 
@@ -300,7 +302,9 @@ export function DealDetailsStep({
               />
             </div>
           </div>
-          {dateRangeError ? <p className="text-destructive text-xs">{dateRangeError}</p> : null}
+          {dateRangeError ? (
+            <p className="text-sm font-medium text-destructive">{dateRangeError}</p>
+          ) : null}
         </div>
 
         <div className="border-border/60 border-t pt-6">
@@ -324,7 +328,9 @@ export function DealDetailsStep({
               </div>
             ))}
           </div>
-          {scopeError ? <p className="mt-2 text-destructive text-xs">{scopeError}</p> : null}
+          {scopeError ? (
+            <p className="mt-2 text-sm font-medium text-destructive">{scopeError}</p>
+          ) : null}
         </div>
       </div>
 
@@ -422,7 +428,9 @@ export function DealLimitsStep({
                 }}
                 className="max-w-40"
               />
-              {totalUsesError ? <p className="text-destructive text-xs">{totalUsesError}</p> : null}
+              {totalUsesError ? (
+                <p className="text-sm font-medium text-destructive">{totalUsesError}</p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -456,7 +464,7 @@ export function DealLimitsStep({
                 className="max-w-40"
               />
               {minPurchaseError ? (
-                <p className="text-destructive text-xs">{minPurchaseError}</p>
+                <p className="text-sm font-medium text-destructive">{minPurchaseError}</p>
               ) : null}
             </div>
           ) : null}
@@ -601,7 +609,7 @@ export function DealLocationsStep({
         </div>
 
         {picked.length === 0 ? (
-          <p className="mt-2 text-destructive text-xs">Select at least one location.</p>
+          <p className="mt-2 text-sm font-medium text-destructive">Select at least one location.</p>
         ) : value.kind === "estate" ? (
           <p className="mt-4 text-muted-foreground text-sm">
             All locations, including any you open while this promotion runs.

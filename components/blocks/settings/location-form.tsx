@@ -475,7 +475,7 @@ export function AddLocationsTakeover({
               </div>
 
               {errors[i] ? (
-                <p role="alert" className="text-sm text-destructive">
+                <p role="alert" className="text-sm font-medium text-destructive">
                   {errors[i]}
                 </p>
               ) : null}
@@ -1372,7 +1372,7 @@ function LocationStateDialog({
             </Select>
           </Field>
           {showError ? (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-sm font-medium text-destructive">
               Pick a reason before continuing.
             </p>
           ) : null}
@@ -1532,7 +1532,7 @@ function BasicInfoEditDialog({
               defaultValue={location.publicName ?? ""}
               placeholder={location.location.district}
             />
-            <p className="text-xs leading-5 text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               What clients see, after the business name. Leave it empty to use the district &mdash;{" "}
               {location.location.district || "the area"}.
             </p>
@@ -1865,7 +1865,7 @@ function InvoicingDetailsEditDialog({
             and the one control that unlocks them is off the top of the eye's
             path by the time you reach City. */}
         {sameAsLocation ? (
-          <p className="-mt-2 text-xs leading-5 text-muted-foreground">
+          <p className="-mt-2 text-sm text-muted-foreground">
             Untick to use different invoicing details for this location.
           </p>
         ) : null}
@@ -2258,7 +2258,7 @@ function HoursEditDialog({
           </Select>
         </Field>
         {timezone === undefined ? null : (
-          <p className="text-muted-foreground text-xs leading-5">
+          <p className="text-sm text-muted-foreground">
             Business time zone: {timezoneLabel(businessTimezone)}.
           </p>
         )}
@@ -2421,7 +2421,7 @@ function InheritedSelect({
           ))}
         </SelectContent>
       </Select>
-      <p className="text-xs leading-5 text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         {overridden ? "Set for this location" : `Business default. ${hint}`}
       </p>
     </div>
@@ -2518,7 +2518,7 @@ function ReceiptSequencingEditDialog({
             onChange={(e) => setPrefix(e.target.value)}
             aria-label="Receipt number prefix"
           />
-          <p className="text-xs leading-5 text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {prefix !== undefined ? "Set for this location" : "Business default"}
           </p>
         </div>
@@ -2631,7 +2631,7 @@ function DepositEditDialog({
             </SelectContent>
           </Select>
         </Field>
-        <p className="text-xs leading-5 text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {custom
             ? "Set for this location. Business changes won't apply."
             : "Follows the business default, shown below."}
@@ -2760,7 +2760,7 @@ function TippingEditDialog({
             </SelectContent>
           </Select>
         </Field>
-        <p className="text-xs leading-5 text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {custom
             ? "Set for this location. Business changes won't apply."
             : "Follows the business defaults, shown below."}
@@ -2885,7 +2885,7 @@ function TippingEditDialog({
               </SelectContent>
             </Select>
           </Field>
-          <p className="text-xs leading-5 text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Service charges will be included in the base amount when calculating tips
           </p>
         </div>
@@ -2905,7 +2905,7 @@ function TippingEditDialog({
               </SelectContent>
             </Select>
           </Field>
-          <p className="text-xs leading-5 text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Discounts will be included in the base amount when calculating tips
           </p>
         </div>
@@ -2921,7 +2921,7 @@ function TippingEditDialog({
               </SelectContent>
             </Select>
           </Field>
-          <p className="text-xs leading-5 text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Taxes will be included in the base amount when calculating tips
           </p>
         </div>

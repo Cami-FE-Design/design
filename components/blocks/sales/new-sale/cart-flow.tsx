@@ -1175,7 +1175,7 @@ function CartFlowInner({
                           search is open — the operator is already doing the
                           thing it would be asking for. */}
                       {needsClient && !clientSearching ? (
-                        <p className="text-xs leading-5 text-destructive">
+                        <p className="text-sm font-medium text-destructive">
                           Attach a client to continue
                         </p>
                       ) : null}

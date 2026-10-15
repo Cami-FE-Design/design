@@ -440,7 +440,10 @@ export function EditServicePanel({
             </Tooltip>
           </div>
           {staffRefusal ? (
-            <p role="alert" className="flex items-start gap-1.5 text-xs text-destructive">
+            <p
+              role="alert"
+              className="flex items-start gap-1.5 text-sm font-medium text-destructive"
+            >
               <CircleAlertIcon className="mt-px size-3.5 shrink-0" aria-hidden />
               <span>{staffRefusal.full}</span>
             </p>

@@ -48,7 +48,7 @@ function SubSection({
 }
 
 function FieldRow({ children }: { children: React.ReactNode }) {
-  return <div className="grid gap-2">{children}</div>
+  return <div className="grid content-start gap-2">{children}</div>
 }
 
 function PriceInput({
@@ -295,7 +295,7 @@ export function PackageForm({
                   value={sessionCount}
                   onChange={(e) => setSessionCount(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   For recurring packages, the number of sessions renews at the beginning of each
                   payment cycle.
                 </p>

@@ -46,6 +46,7 @@ import {
 import { toast } from "sonner"
 import { ServiceLocationsSection } from "@/components/blocks/service-menu/ServiceLocationsSection"
 import { FullScreenEditDialog } from "@/components/blocks/shared/full-screen-edit-dialog"
+import { InlineNotice } from "@/components/blocks/shared/inline-notice"
 import {
   Checkbox,
   DropdownMenu,
@@ -777,7 +778,7 @@ function BasicDetailsSection({
                       ))}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     The category displayed to you, and to clients online
                   </p>
                   <FormMessage />
@@ -849,7 +850,7 @@ function BasicDetailsSection({
                         </SelectContent>
                       </Select>
                       <div className="relative h-5">
-                        <FormMessage className="absolute inset-x-0 top-0 text-xs leading-tight" />
+                        <FormMessage className="absolute inset-x-0 top-0 leading-tight" />
                       </div>
                     </FormItem>
                   )}
@@ -895,7 +896,7 @@ function BasicDetailsSection({
                         </div>
                       </FormControl>
                       <div className="relative h-5">
-                        <FormMessage className="absolute inset-x-0 top-0 text-xs leading-tight" />
+                        <FormMessage className="absolute inset-x-0 top-0 leading-tight" />
                       </div>
                     </FormItem>
                   )}
@@ -938,7 +939,7 @@ function BasicDetailsSection({
                         </SelectContent>
                       </Select>
                       <div className="relative h-5">
-                        <FormMessage className="absolute inset-x-0 top-0 text-xs leading-tight" />
+                        <FormMessage className="absolute inset-x-0 top-0 leading-tight" />
                       </div>
                     </FormItem>
                   )}
@@ -1571,9 +1572,9 @@ function OnlineBookingSection() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+      <InlineNotice tone="warning">
         Online booking settings are not yet saved — backend support coming soon.
-      </div>
+      </InlineNotice>
       <header className="flex min-w-0 items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h3 className="font-heading text-2xl font-semibold leading-9 text-foreground">
@@ -1627,14 +1628,14 @@ function SettingsSection({ form }: { form: UseFormReturn<AddServiceInput> }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h4 className="mb-4 font-heading text-2xl font-semibold leading-9 text-foreground">
+      <div className="flex flex-col gap-4">
+        <h4 className="font-heading text-2xl font-semibold leading-9 text-foreground">
           General settings
         </h4>
         {/* TODO: wire requireDeposit/requireNoShowFee to form fields when backend ships these fields */}
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+        <InlineNotice tone="warning">
           Deposit and no-show fee settings are not yet saved — backend support coming soon.
-        </div>
+        </InlineNotice>
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-3">
             {/* biome-ignore lint/a11y/noLabelWithoutControl: Radix Checkbox renders a button; wrapping label is the correct pattern */}
@@ -1763,8 +1764,8 @@ function SettingsSection({ form }: { form: UseFormReturn<AddServiceInput> }) {
           Advanced settings
         </h4>
         <div className="flex flex-col gap-4">
-          <div>
-            <p className="mb-1.5 text-sm font-medium text-foreground">
+          <div className="grid gap-2">
+            <p className="text-sm font-medium text-foreground">
               Sales tax{" "}
               <span className="font-normal text-muted-foreground">(Included in price)</span>
             </p>
@@ -1774,7 +1775,7 @@ function SettingsSection({ form }: { form: UseFormReturn<AddServiceInput> }) {
                 Edit
               </button>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Configure sales tax settings for each of your locations
             </p>
           </div>
@@ -1818,7 +1819,7 @@ function SettingsSection({ form }: { form: UseFormReturn<AddServiceInput> }) {
                     />
                   </div>
                 </FormControl>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Set the cost to your business for delivering this service
                 </p>
                 <FormMessage />
@@ -1845,7 +1846,7 @@ function SettingsSection({ form }: { form: UseFormReturn<AddServiceInput> }) {
                     value={field.value ?? ""}
                   />
                 </FormControl>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Assign a SKU to help identify this service in reports and exports
                 </p>
                 <FormMessage />

@@ -836,7 +836,7 @@ function IdentifyStep({
           onNumberChange={() => undefined}
           disabled
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Verified. We send your confirmation and reminders here on Email / SMS / WhatsApp.
         </p>
       </div>

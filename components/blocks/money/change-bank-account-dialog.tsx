@@ -189,7 +189,7 @@ export function ChangeBankAccountDialog({
                   placeholder="AE00 0000 0000 0000 0000 000"
                   onChange={(e) => setDraft((d) => ({ ...d, iban: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Only the last 4 digits are shown anywhere in Cami after this.
                 </p>
               </div>

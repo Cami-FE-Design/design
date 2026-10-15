@@ -183,7 +183,7 @@ export function PromoCodeField({
           </div>
           {refusal ? (
             <div id="promo-code-error" className="flex flex-col gap-0.5">
-              <p role="alert" className="text-sm text-destructive">
+              <p role="alert" className="text-sm font-medium text-destructive">
                 {refusal.message}
               </p>
               {refusal.detail ? (
@@ -280,7 +280,7 @@ function NoLongerAppliesCard({
         <span className="text-sm font-semibold text-foreground">
           {code} <span className="font-normal text-muted-foreground">no longer applies</span>
         </span>
-        <span role="alert" className="text-sm text-destructive">
+        <span role="alert" className="text-sm font-medium text-destructive">
           {refusal.message}
         </span>
         {refusal.detail ? (
