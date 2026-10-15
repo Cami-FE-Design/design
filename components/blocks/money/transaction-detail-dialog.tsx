@@ -181,7 +181,7 @@ export function TransactionDetailDialog({ tx, txs, payouts, onOpenChange, onOpen
 
           {related.length > 0 ? (
             <section className="flex flex-col gap-2">
-              <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+              <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
                 Part of the same payment
               </h3>
               <div className="flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card">

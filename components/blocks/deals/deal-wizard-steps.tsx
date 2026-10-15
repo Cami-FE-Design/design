@@ -308,7 +308,9 @@ export function DealDetailsStep({
         </div>
 
         <div className="border-border/60 border-t pt-6">
-          <h3 className="mb-4 font-semibold text-foreground text-sm">Apply promotion to</h3>
+          <h3 className="mb-4 font-heading text-base font-semibold leading-6 text-foreground">
+            Apply promotion to
+          </h3>
           <div className="flex max-w-md flex-col gap-3">
             {(["services", "products", "packages"] as const).map((kind) => (
               <div

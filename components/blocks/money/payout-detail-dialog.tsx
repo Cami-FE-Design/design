@@ -140,7 +140,7 @@ export function PayoutDetailDialog({
 
           {contents.txs.length > 0 ? (
             <section className="flex flex-col gap-2">
-              <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+              <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
                 What was in it
                 {payout.carriesPayoutId ? " (the same money the returned payout carried)" : ""}
               </h3>
@@ -206,7 +206,7 @@ export function PayoutDetailDialog({
 
           {contents.laterRefunds.length > 0 ? (
             <section className="flex flex-col gap-2">
-              <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+              <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
                 Refunded after this payout
               </h3>
               <p className="text-sm text-muted-foreground">
