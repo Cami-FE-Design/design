@@ -11,6 +11,7 @@ import {
 } from "@/components/blocks/settings/settings-dialog-frame"
 import { SettingsPanel } from "@/components/blocks/settings/settings-panel"
 import { InlineNotice } from "@/components/blocks/shared/inline-notice"
+import { Avatar } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useAuth } from "@/lib/auth-mock"
@@ -81,13 +82,6 @@ export function AdminSettingsDialog({
   defaultCategoryId = "roles",
 }: AdminSettingsDialogProps) {
   const auth = useAuth()
-  const initials = auth.user.name
-    .split(" ")
-    .map((n) => n.charAt(0))
-    .join("")
-    .slice(0, 2)
-    .toUpperCase()
-
   return (
     <SettingsDialogFrame
       open={open}
@@ -100,9 +94,11 @@ export function AdminSettingsDialog({
         item.id === "profile"
           ? {
               leading: (
-                <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-cami-violet-9 text-[9px] font-medium leading-none text-white">
-                  {initials}
-                </span>
+                <Avatar
+                  size="xs"
+                  name={auth.user.name}
+                  className="border-[0.75px] border-cami-violet-7 bg-cami-violet-8 text-white"
+                />
               ),
               label: auth.user.name,
             }

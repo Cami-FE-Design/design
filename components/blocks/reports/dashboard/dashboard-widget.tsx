@@ -20,12 +20,12 @@ import {
   DashCard,
   DeltaChip,
   HeroValue,
-  Initials,
   InlineStat,
   MiniTable,
   TileRow,
 } from "@/components/blocks/reports/dashboard/dashboard-primitives"
 import { WidgetEmpty, WidgetSkeleton } from "@/components/blocks/reports/dashboard/dashboard-states"
+import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatAed, formatNumber } from "@/lib/format"
@@ -209,13 +209,11 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
               {data.TEAM_LEADERBOARD.map((row, i) => (
                 <tr key={row.name}>
                   <td className="border-b border-border/50 py-2.5 pr-4">
-                    <span className="flex size-5 items-center justify-center rounded-md bg-muted text-[11px] font-semibold text-muted-foreground">
-                      {i + 1}
-                    </span>
+                    <Badge variant="muted">{i + 1}</Badge>
                   </td>
                   <td className="whitespace-nowrap border-b border-border/50 py-2.5 pr-4">
                     <span className="flex items-center gap-2 text-foreground">
-                      <Initials initials={row.initials} />
+                      <Avatar size="sm" name={row.name} />
                       {row.name}
                     </span>
                   </td>

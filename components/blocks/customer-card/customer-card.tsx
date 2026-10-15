@@ -121,7 +121,7 @@ function Loyalty({ loyalty }: { loyalty: NonNullable<CustomerCardData["loyalty"]
       <span className="font-heading text-5xl leading-none font-semibold text-[var(--cc-accent)]">
         {loyalty.points.toLocaleString()}
       </span>
-      <span className="text-[11px] font-medium tracking-[0.18em] text-[var(--cc-muted)] uppercase">
+      <span className="text-xs font-medium tracking-[0.18em] text-[var(--cc-muted)] uppercase">
         Loyalty points
       </span>
       <span className="mt-1 text-xs text-[var(--cc-muted)]">
@@ -159,7 +159,7 @@ function Wallet({ card }: { card: CustomerCardData }) {
           key={tile.id}
           className="flex min-w-[30%] flex-1 flex-col items-center gap-1.5 rounded-2xl border border-[var(--cc-border)] bg-[var(--cc-surface-muted)] px-3 py-3.5 text-center"
         >
-          <span className="text-[10px] font-medium tracking-[0.12em] text-[var(--cc-muted)] uppercase">
+          <span className="text-xs font-medium tracking-[0.12em] text-[var(--cc-muted)] uppercase">
             {tile.label}
           </span>
           <span className="text-sm font-semibold">{tile.value}</span>
@@ -185,9 +185,7 @@ function Upcoming({ card }: { card: CustomerCardData }) {
   const { service, staff, dateLabel, timeLabel } = card.upcoming
   return (
     <section className="flex flex-col gap-1.5 rounded-2xl bg-[var(--cc-band)] px-4 py-4 text-[var(--cc-band-fg)]">
-      <span className="text-[10px] font-medium tracking-[0.16em] uppercase opacity-70">
-        Upcoming
-      </span>
+      <span className="text-xs font-medium tracking-[0.16em] uppercase opacity-70">Upcoming</span>
       <p className="text-sm font-medium">
         {service} — {dateLabel}, {timeLabel}
       </p>
@@ -204,20 +202,22 @@ function Upcoming({ card }: { card: CustomerCardData }) {
 function Preferences({ card, business }: { card: CustomerCardData; business: PublicBusiness }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="text-[11px] font-medium tracking-[0.16em] text-[var(--cc-muted)] uppercase">
+      <h2 className="text-xs font-medium tracking-[0.16em] text-[var(--cc-muted)] uppercase">
         Your preferences
       </h2>
-      <dl className="flex flex-col">
+      {/* One label column sized to the longest label, so every value starts on
+          the same line whatever its length. */}
+      <dl className="grid grid-cols-[max-content_1fr] gap-x-4">
         {card.preferences.map((pref, index) => (
           <div
             key={pref.id}
             className={cn(
-              "flex items-baseline justify-between gap-4 py-2.5 text-sm",
+              "col-span-2 grid grid-cols-subgrid items-baseline py-2.5 text-sm",
               index > 0 && "border-t border-dashed border-[var(--cc-border)]",
             )}
           >
             <dt className="text-[var(--cc-muted)]">{pref.label}</dt>
-            <dd className="text-right font-medium">{pref.value}</dd>
+            <dd className="font-medium">{pref.value}</dd>
           </div>
         ))}
       </dl>

@@ -242,18 +242,6 @@ export function TileRow({ tiles, columns = 4 }: { tiles: StatTile[]; columns?: 1
   )
 }
 
-/** Initials bubble used by the leaderboard, matching the app's avatar chips. */
-export function Initials({ initials }: { initials: string }) {
-  return (
-    <span
-      aria-hidden
-      className="flex size-6 shrink-0 items-center justify-center rounded-full bg-cami-violet-3 text-[10px] font-semibold text-cami-violet-11"
-    >
-      {initials}
-    </span>
-  )
-}
-
 export function DashCard({
   title,
   viewReportId,
