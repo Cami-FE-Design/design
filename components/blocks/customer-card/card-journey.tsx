@@ -23,6 +23,7 @@
 
 import { CustomerCard } from "@/components/blocks/customer-card/customer-card"
 import { Avatar } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { MOCK_CLIENTS } from "@/lib/clients/mock"
 import { buildCustomerCard } from "@/lib/customer-card/mock"
 import { getCustomerCardTheme, themeVars } from "@/lib/customer-card/theme"
@@ -70,7 +71,7 @@ export function CardJourney({ slug, clientId }: { slug: string; clientId: string
             />
             <div className="flex min-w-0 flex-col leading-tight">
               <span className="truncate text-xs font-semibold">{business.displayName}</span>
-              <span className="text-[10px] text-muted-foreground">Business account</span>
+              <span className="text-xs text-muted-foreground">Business account</span>
             </div>
           </div>
           <div className="w-fit max-w-full rounded-2xl rounded-tl-sm border border-border/60 bg-card px-3 py-2.5 shadow-sm">
@@ -108,12 +109,10 @@ export function CardJourney({ slug, clientId }: { slug: string; clientId: string
           <span className="w-full truncate rounded-lg border border-[var(--cc-border)] bg-[var(--cc-surface)] px-3 py-2 text-xs text-[var(--cc-text)]">
             {client.email ?? "you@example.com"}
           </span>
-          <span className="flex h-9 w-full items-center justify-center rounded-full bg-[var(--cc-accent)] text-[11px] font-semibold tracking-[0.12em] text-[var(--cc-accent-fg)] uppercase">
+          <span className="flex h-9 w-full items-center justify-center rounded-full bg-[var(--cc-accent)] text-xs font-semibold tracking-[0.12em] text-[var(--cc-accent-fg)] uppercase">
             Continue
           </span>
-          <span className="text-[10px] text-[var(--cc-muted)]">
-            No password — the link is personal
-          </span>
+          <span className="text-xs text-[var(--cc-muted)]">No password — the link is personal</span>
         </div>
       </Step>
 
@@ -132,9 +131,7 @@ function Step({ n, label, children }: { n: number; label: string; children: Reac
   return (
     <div className="flex min-w-0 flex-col gap-2">
       <div className="flex items-center gap-2">
-        <span className="flex size-5 items-center justify-center rounded-full bg-foreground text-[10px] font-semibold text-background">
-          {n}
-        </span>
+        <Badge className="rounded-full bg-foreground text-background">{n}</Badge>
         <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
           {label}
         </span>

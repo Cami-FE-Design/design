@@ -74,6 +74,7 @@ import { AddTimeOffDialog } from "@/components/blocks/shifts/add-time-off-dialog
 import { SetRepeatingShiftsDialog } from "@/components/blocks/shifts/set-repeating-shifts-dialog"
 import { TeamMemberFilterDialog } from "@/components/blocks/shifts/team-member-filter-dialog"
 import { Avatar } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -321,9 +322,9 @@ export function ScheduledShifts({
                           {day.short}, {longDate(date)}
                         </span>
                         {isToday ? (
-                          <span className="rounded-full bg-gold-9 px-1.5 py-0.5 font-semibold text-[10px] text-white leading-none">
+                          <Badge size="sm" className="rounded-full bg-gold-9 px-1.5 text-white">
                             Today
-                          </span>
+                          </Badge>
                         ) : null}
                       </span>
                       {/* Who makes up the day's hours, not just how many. A
@@ -343,7 +344,7 @@ export function ScheduledShifts({
                                   />
                                 ))}
                                 {working.length > 3 ? (
-                                  <span className="ml-1 font-medium text-[10px]">
+                                  <span className="ml-1 font-medium text-xs">
                                     +{working.length - 3}
                                   </span>
                                 ) : null}

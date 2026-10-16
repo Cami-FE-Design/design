@@ -107,7 +107,7 @@ function ReportHeader({ report }: { report: ReportDef }) {
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl leading-8 font-medium text-foreground">{report.name}</h1>
+            <h1 className="text-2xl leading-8 font-semibold text-foreground">{report.name}</h1>
             <FavouriteStar id={report.id} />
           </div>
           <p className="text-sm text-muted-foreground">

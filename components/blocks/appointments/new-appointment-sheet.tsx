@@ -860,7 +860,7 @@ export function NewAppointmentSheet({
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <button
                   type="button"
-                  className="self-start truncate text-[22px] font-semibold leading-7 tracking-tight hover:opacity-90"
+                  className="self-start truncate font-heading font-semibold text-2xl hover:opacity-90"
                   aria-label="Change date"
                 >
                   {dateLabel}
@@ -1797,7 +1797,7 @@ function DateAvatarCard({ date }: { date: string }) {
       aria-hidden
       className="flex h-12 w-[3rem] shrink-0 flex-col overflow-hidden rounded-[9px] bg-background text-foreground shadow-[0_0_0_2px_var(--background)]"
     >
-      <div className="bg-black/10 py-[3px] text-center font-bold text-[9px] tracking-tight text-foreground/50 leading-none">
+      <div className="bg-black/10 py-[3px] text-center font-bold text-xs tracking-tight text-foreground/50 leading-none">
         {month}
       </div>
       <div className="flex flex-1 items-center justify-center font-bold text-2xl leading-none text-foreground/70">

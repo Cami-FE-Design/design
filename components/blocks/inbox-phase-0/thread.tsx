@@ -178,7 +178,7 @@ function ThreadHeader({
  *  a weekday); uppercase is the style, not a different label. */
 function DayChip({ label }: { label: string }) {
   return (
-    <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+    <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
       {label}
     </span>
   )
@@ -187,7 +187,7 @@ function DayChip({ label }: { label: string }) {
 function ThreadNote({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex justify-center py-1">
-      <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
+      <span className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">
         {children}
       </span>
     </div>
@@ -222,7 +222,7 @@ function IdentityLine({
     // Centered, no fill and no radius. Day labels use DateSeparator's
     // uppercase treatment; this sentence stays sentence case.
     <div className="mt-3 flex items-center justify-center">
-      <span className="inline-flex max-w-[85%] items-center gap-1.5 text-center text-[11px] font-medium text-muted-foreground">
+      <span className="inline-flex max-w-[85%] items-center gap-1.5 text-center text-xs font-medium text-muted-foreground">
         <Icon className="size-3 shrink-0" aria-hidden />
         <span className="truncate">{text}</span>
         <span aria-hidden>·</span>
@@ -266,7 +266,7 @@ function Meta({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 whitespace-nowrap text-[11px] leading-none",
+        "inline-flex items-center gap-1 whitespace-nowrap text-xs leading-none",
         onMedia ? "rounded-full bg-black/45 px-1.5 py-1 text-white" : "text-muted-foreground",
       )}
     >
@@ -339,9 +339,7 @@ function MediaTile({
           <span className="text-xs font-medium text-foreground">
             {mediaLabel(media.kind, copy)} · {copy.phoneOnlyTitle}
           </span>
-          <span className="text-[11px] leading-snug text-muted-foreground">
-            {copy.phoneOnlyBody}
-          </span>
+          <span className="text-xs leading-snug text-muted-foreground">{copy.phoneOnlyBody}</span>
         </span>
       </div>
     )
@@ -360,7 +358,7 @@ function MediaTile({
           <span className="truncate text-sm font-medium text-foreground">
             {media.fileName ?? copy.file}
           </span>
-          <span className="text-[11px] text-muted-foreground">{fileMeta(media)}</span>
+          <span className="text-xs text-muted-foreground">{fileMeta(media)}</span>
         </span>
         <DownloadIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
       </button>
@@ -523,7 +521,7 @@ function MessageBubble({
         {template ? (
           <span
             className={cn(
-              "flex items-center gap-1 pb-0.5 text-[11px] font-medium opacity-80",
+              "flex items-center gap-1 pb-0.5 text-xs font-medium opacity-80",
               hasMedia && "px-2 pt-1",
             )}
           >

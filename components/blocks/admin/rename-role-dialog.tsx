@@ -107,7 +107,7 @@ export function RenameRoleDialog({
               aria-describedby={error ? "rename-role-name-err" : undefined}
             />
             {error ? (
-              <p id="rename-role-name-err" className="text-xs text-destructive">
+              <p id="rename-role-name-err" className="text-sm font-medium text-destructive">
                 {error}
               </p>
             ) : null}

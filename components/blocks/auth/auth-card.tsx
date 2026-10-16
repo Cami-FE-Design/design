@@ -71,7 +71,7 @@ export function AuthCard({
           <div className="flex flex-col gap-6">
             {icon}
             <div className="flex flex-col gap-2">
-              <h1 className="text-3xl leading-9 font-medium text-foreground">{title}</h1>
+              <h1 className="text-3xl leading-9 font-semibold text-foreground">{title}</h1>
               {description ? (
                 <div className="text-sm text-muted-foreground">{description}</div>
               ) : null}
@@ -79,7 +79,7 @@ export function AuthCard({
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <h1 className="text-3xl leading-9 font-medium text-foreground">{title}</h1>
+            <h1 className="text-3xl leading-9 font-semibold text-foreground">{title}</h1>
             {description ? (
               <div className="text-sm text-muted-foreground">{description}</div>
             ) : null}

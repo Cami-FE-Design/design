@@ -3151,10 +3151,10 @@ export function BusinessLane() {
             {/* Neighbours included on purpose: the whole point of the compact
               rendering is that its label row matches theirs. */}
             <div className="flex flex-col gap-1">
-              <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Your Pet Address
               </div>
-              <div className="rounded-md bg-cami-sage-2 px-2 py-1.5 text-[11px] text-cami-sage-12">
+              <div className="rounded-md bg-cami-sage-2 px-2 py-1.5 text-xs text-cami-sage-12">
                 Apt 1804, Marina Heights Tower, Dubai Marina
               </div>
             </div>

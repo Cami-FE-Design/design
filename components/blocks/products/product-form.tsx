@@ -56,7 +56,7 @@ function FormSection({
 }
 
 function FieldRow({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("grid gap-2", className)}>{children}</div>
+  return <div className={cn("grid content-start gap-2", className)}>{children}</div>
 }
 
 function PrefixInput({ prefix, ...props }: React.ComponentProps<"input"> & { prefix: string }) {
@@ -330,7 +330,7 @@ export function ProductForm({
               onChange={(e) => setBarcode(e.target.value)}
             />
             {barcode.trim().length > 0 && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 This product barcode may be invalid, please make sure you've typed the barcode
                 correctly
               </p>
@@ -645,7 +645,7 @@ export function ProductForm({
                     onChange={(e) => setCurrentStock(e.target.value)}
                   />
                   {isMultiLocation ? (
-                    <p className="text-xs text-muted-foreground">Other locations start at 0.</p>
+                    <p className="text-sm text-muted-foreground">Other locations start at 0.</p>
                   ) : null}
                 </FieldRow>
               </>
@@ -687,7 +687,7 @@ export function ProductForm({
                         value={lowStockLevel}
                         onChange={(e) => setLowStockLevel(e.target.value)}
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         The level to get notified to reorder
                       </p>
                     </FieldRow>
@@ -702,7 +702,7 @@ export function ProductForm({
                         value={reorderQty}
                         onChange={(e) => setReorderQty(e.target.value)}
                       />
-                      <p className="text-xs text-muted-foreground">The default amount to order</p>
+                      <p className="text-sm text-muted-foreground">The default amount to order</p>
                     </FieldRow>
                   </div>
                 )}

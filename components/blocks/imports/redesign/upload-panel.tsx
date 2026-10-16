@@ -200,7 +200,7 @@ export function UploadPanel({ uploadConfig, serverError, busy, onSubmit }: Props
             onChange={(e) => selectFile(e.target.files?.[0] ?? null)}
           />
 
-          {fileError && <p className="text-sm text-destructive">{fileError}</p>}
+          {fileError && <p className="text-sm font-medium text-destructive">{fileError}</p>}
           {serverError && !fileError && (
             <div className="flex flex-col gap-1 rounded-xl bg-cami-yellow-2 p-3">
               <p className="text-sm font-medium text-foreground">We couldn&apos;t read that file</p>
@@ -285,7 +285,7 @@ export function UploadPanel({ uploadConfig, serverError, busy, onSubmit }: Props
                 </span>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">{UPLOAD_COPY.thresholdHint}</p>
+            <p className="text-sm text-muted-foreground">{UPLOAD_COPY.thresholdHint}</p>
           </div>
         </div>
       </div>

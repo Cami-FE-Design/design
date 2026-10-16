@@ -14,6 +14,7 @@ import { ClientDetailDialog } from "@/components/blocks/clients/client-detail-di
 import { ClientEditSheet } from "@/components/blocks/clients/client-edit-sheet"
 import { ClientSummary } from "@/components/blocks/clients/client-summary"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
@@ -43,21 +44,6 @@ export type NewClient = {
   pet: { name: string; species: AvatarSpecies } | null
 }
 
-function Badge({ children, tone }: { children: React.ReactNode; tone: "gray" | "violet" }) {
-  return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
-        tone === "gray"
-          ? "bg-cami-gray-3 text-cami-gray-11"
-          : "bg-cami-violet-3 text-cami-violet-11",
-      )}
-    >
-      {children}
-    </span>
-  )
-}
-
 // ─── Match (IX-C3) ────────────────────────────────────────────────────────────
 
 function ResultRow({
@@ -83,14 +69,18 @@ function ResultRow({
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="flex flex-wrap items-center gap-1.5">
             <span className="truncate text-sm font-medium text-foreground">{name}</span>
-            {client.archived ? <Badge tone="gray">{copy.archived}</Badge> : null}
+            {client.archived ? (
+              <Badge className="rounded-full bg-cami-gray-3 px-2 text-cami-gray-11">
+                {copy.archived}
+              </Badge>
+            ) : null}
           </span>
           <span className="truncate text-xs text-muted-foreground">
             {client.phoneE164 ? <Phone e164={client.phoneE164} /> : (client.email ?? "—")}
             {hasPets && client.pets.length ? ` · ${client.pets.map((p) => p.name).join(", ")}` : ""}
           </span>
           {client.homeLocation ? (
-            <span className="inline-flex items-center gap-1 text-[11px] text-cami-violet-11">
+            <span className="inline-flex items-center gap-1 text-xs text-cami-violet-11">
               <MapPinIcon className="size-3" aria-hidden />
               {copy.atLocation(client.homeLocation)}
             </span>
@@ -268,7 +258,11 @@ function MatchConfirm({
           <span className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="flex flex-wrap items-center gap-1.5">
               <span className="truncate text-sm font-medium text-foreground">{name}</span>
-              {client.archived ? <Badge tone="gray">{copy.archived}</Badge> : null}
+              {client.archived ? (
+                <Badge className="rounded-full bg-cami-gray-3 px-2 text-cami-gray-11">
+                  {copy.archived}
+                </Badge>
+              ) : null}
             </span>
             <span className="truncate text-xs text-muted-foreground">
               {client.phoneE164 ? <Phone e164={client.phoneE164} /> : (client.email ?? "—")}

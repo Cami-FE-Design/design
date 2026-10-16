@@ -224,7 +224,7 @@ export function PreviewStep({ preview, onConfirm, onCancel }: Props) {
       {/* Row table — inner scroll inside a scrolling page (defect D16). */}
       <div className="overflow-hidden rounded-xl border border-border/60">
         <div
-          className="grid gap-3 border-b border-border/60 bg-muted/40 px-3 py-2 text-[11px] font-medium text-muted-foreground"
+          className="grid gap-3 border-b border-border/60 bg-muted/40 px-3 py-2 text-xs font-medium text-muted-foreground"
           style={{ gridTemplateColumns: PREVIEW_GRID_TEMPLATE }}
         >
           <span>#</span>

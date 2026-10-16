@@ -209,9 +209,7 @@ function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props
         {/* SheetTitle defaults to body weight, which is why this read as a
             paragraph rather than a heading. */}
         <SheetHeader className="gap-2">
-          <SheetTitle className="font-heading text-xl font-semibold leading-7">
-            Your money
-          </SheetTitle>
+          <SheetTitle className="font-heading font-semibold text-2xl">Your money</SheetTitle>
           <SheetDescription className="text-sm leading-5">
             What is held for you right now, and what has moved in the last few days.
           </SheetDescription>
@@ -247,7 +245,9 @@ function MoneyDrawerInner({ trigger, txs: txsProp, payouts: payoutsProp }: Props
 
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-sm font-medium text-foreground">Recent activity</h3>
+                  <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+                    Recent activity
+                  </h3>
                   <Button variant="ghost" radius="full" size="sm" onClick={() => show("activity")}>
                     See all
                     <ArrowUpRightIcon className="size-3.5" />

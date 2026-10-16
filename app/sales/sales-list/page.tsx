@@ -1143,7 +1143,7 @@ export function SaleDetailDialog({ sale, onOpenChange, onViewProfile }: SaleDeta
                 </div>
               </div>
               <div className="flex flex-col gap-0.5">
-                <DialogTitle className="text-[28px] leading-8 font-semibold">Sale</DialogTitle>
+                <DialogTitle className="font-heading font-semibold text-2xl">Sale</DialogTitle>
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                   <span>{formatDate(data.saleAt)}</span>
                   <span aria-hidden>·</span>
@@ -1723,7 +1723,7 @@ function DraftDetailDialog({
                   </div>
                 </div>
                 <div className="flex flex-col gap-0.5">
-                  <DialogTitle className="text-[28px] leading-8 font-semibold">
+                  <DialogTitle className="font-heading font-semibold text-2xl">
                     Draft sale
                   </DialogTitle>
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">

@@ -499,7 +499,7 @@ function PaymentPolicySubScreen({
       {hasPolicy ? (
         <SettingsCard className="flex-row items-start justify-between">
           <div className="flex flex-col gap-1">
-            <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+            <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
               Allow clients the option to prepay in full before their appointment
             </h3>
             <p className="text-sm leading-5 text-muted-foreground">

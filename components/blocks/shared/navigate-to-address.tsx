@@ -55,7 +55,7 @@ export function NavigateToAddress({
       className={cn(
         "inline-flex w-fit items-center gap-1.5 font-medium text-cami-sage-12 underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         size === "compact"
-          ? "gap-1 text-[10px]"
+          ? "gap-1 text-xs"
           : "rounded-xl bg-cami-sage-2 px-3 py-2 text-sm no-underline hover:bg-cami-sage-3 hover:no-underline",
         className,
       )}

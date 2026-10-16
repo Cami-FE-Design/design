@@ -47,7 +47,7 @@ export function ThemePreviewStrip({
   return (
     <div className="fixed top-4 right-4 z-40">
       <div className="flex items-center gap-2 rounded-full border border-border/60 bg-background/95 px-3 py-1.5 shadow-sm backdrop-blur">
-        <span className="hidden text-[11px] whitespace-nowrap text-muted-foreground sm:inline">
+        <span className="hidden text-xs whitespace-nowrap text-muted-foreground sm:inline">
           Theme{active ? ` · ${active.label}` : ""}
         </span>
         <div className="flex items-center gap-1">

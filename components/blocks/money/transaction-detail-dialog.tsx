@@ -80,7 +80,7 @@ export function TransactionDetailDialog({ tx, txs, payouts, onOpenChange, onOpen
                   to read a minus sign to know which way money went (T5-2). */}
               <DialogTitle
                 className={cn(
-                  "font-heading text-[28px] leading-8 font-semibold",
+                  "font-heading font-semibold text-3xl",
                   isOut ? "text-foreground" : "text-cami-green-11",
                 )}
               >
@@ -131,7 +131,9 @@ export function TransactionDetailDialog({ tx, txs, payouts, onOpenChange, onOpen
 
           {/* T5-5. Who held it and who pays it out — stated, never implied. */}
           <section className="flex flex-col gap-2 rounded-2xl border border-border/60 bg-card p-4">
-            <h3 className="text-sm font-medium text-foreground">Custody</h3>
+            <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+              Custody
+            </h3>
             <dl className="flex flex-col">
               <Field term="From" value={from} />
               <Field term="To" value={to} />
@@ -179,7 +181,9 @@ export function TransactionDetailDialog({ tx, txs, payouts, onOpenChange, onOpen
 
           {related.length > 0 ? (
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium text-foreground">Part of the same payment</h3>
+              <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+                Part of the same payment
+              </h3>
               <div className="flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-card">
                 {related.map((r, i) => (
                   <div

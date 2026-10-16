@@ -312,7 +312,7 @@ function EventDetailSheet({
                 <StatusBadge status={event.status} />
                 <span className="font-mono text-xs text-muted-foreground">{event.id}</span>
               </div>
-              <SheetTitle className="text-xl">
+              <SheetTitle className="font-heading font-semibold text-2xl">
                 {event.hqUser.name} signed in as {event.business.ownerName}
               </SheetTitle>
               <p className="text-sm text-muted-foreground">{event.business.name}</p>

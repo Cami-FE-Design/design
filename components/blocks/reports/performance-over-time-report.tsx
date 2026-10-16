@@ -214,10 +214,7 @@ export function PerformanceOverTimeReport({ report }: { report: ReportDef }) {
             </TableHead>
             <TableHead className="whitespace-nowrap text-right">Total</TableHead>
             {buckets.map((b) => (
-              <TableHead
-                key={b.key}
-                className="whitespace-nowrap text-right font-medium text-foreground"
-              >
+              <TableHead key={b.key} className="whitespace-nowrap text-right">
                 {b.label}
               </TableHead>
             ))}

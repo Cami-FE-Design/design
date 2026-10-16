@@ -228,7 +228,7 @@ export function BankAccountPanel({
           <hr className="border-border/60" />
 
           <div className="flex flex-col gap-2">
-            <h4 className="text-sm font-medium text-foreground">
+            <h4 className="font-heading text-base font-semibold leading-6 text-foreground">
               {activeRails.length > 1 ? "Two senders pay into this account" : "Who pays into it"}
             </h4>
             {/* Sentences, not a two-column list. The pair only means something

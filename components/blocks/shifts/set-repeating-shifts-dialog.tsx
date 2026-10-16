@@ -205,7 +205,7 @@ export function SetRepeatingShiftsDialog({
 
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-0.5">
-            <h3 className="font-heading font-semibold text-foreground text-xl">
+            <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
               {INTERVALS.find((i) => i.value === interval)?.label}
             </h3>
             <p className="text-muted-foreground text-sm">

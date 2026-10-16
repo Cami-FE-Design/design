@@ -503,7 +503,7 @@ function Breakdown({ summary, custodianName }: { summary: MoneySummary; custodia
 function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium text-foreground">{title}</h3>
+      <h3 className="font-heading text-base font-semibold leading-6 text-foreground">{title}</h3>
       <div className="flex flex-col">{children}</div>
     </div>
   )

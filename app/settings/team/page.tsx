@@ -617,7 +617,7 @@ function TeamSettingsFallback() {
       header={
         <div className="flex w-full max-w-6xl items-center justify-between gap-3">
           <div className="flex flex-col">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Team members</h1>
+            <h1 className="text-2xl font-semibold leading-8 text-foreground">Team members</h1>
             <p className="text-sm text-muted-foreground">Manage who has access to {businessName}</p>
           </div>
         </div>

@@ -76,7 +76,7 @@ function SubSection({
 }
 
 function FieldRow({ children }: { children: React.ReactNode }) {
-  return <div className="grid gap-2">{children}</div>
+  return <div className="grid content-start gap-2">{children}</div>
 }
 
 /** Category swatch colors are stored as palette keys ("purple"), not hex. */

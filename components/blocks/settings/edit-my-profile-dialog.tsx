@@ -163,7 +163,7 @@ export function EditMyProfileDialog({ open, onOpenChange }: EditMyProfileDialogP
                 }}
               />
               {emailError ? (
-                <span role="alert" className="text-sm leading-5 text-destructive">
+                <span role="alert" className="text-sm font-medium text-destructive">
                   {emailError}
                 </span>
               ) : pending.email ? (
@@ -201,7 +201,7 @@ export function EditMyProfileDialog({ open, onOpenChange }: EditMyProfileDialogP
                 />
               </div>
               {phoneError ? (
-                <span role="alert" className="text-sm leading-5 text-destructive">
+                <span role="alert" className="text-sm font-medium text-destructive">
                   {phoneError}
                 </span>
               ) : pending.phone ? (

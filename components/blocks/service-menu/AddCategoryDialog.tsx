@@ -97,7 +97,7 @@ export function AddCategoryDialog({
         </button>
 
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">
+          <DialogTitle className="font-heading font-semibold text-2xl">
             {isEdit ? "Edit category" : "Add category"}
           </DialogTitle>
         </DialogHeader>

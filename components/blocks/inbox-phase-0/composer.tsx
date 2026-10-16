@@ -22,6 +22,7 @@ import {
   type MediaCheck,
   type TemplateBlank,
 } from "@/app/messages/inbox/phase-0/mock"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
@@ -141,9 +142,9 @@ export function TemplatePicker({
                   >
                     <span className="flex items-center gap-2">
                       <span className="text-sm font-medium text-foreground">{t.name}</span>
-                      <span className="rounded bg-muted px-1 text-[10px] font-medium uppercase text-muted-foreground">
+                      <Badge size="sm" variant="muted" className="uppercase">
                         {t.language}
-                      </span>
+                      </Badge>
                     </span>
                     <span className="line-clamp-2 text-xs text-muted-foreground" dir="ltr">
                       {segments.map((s) =>
@@ -318,7 +319,7 @@ function AttachmentChip({
       </span>
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-xs font-medium text-foreground">{file.name}</span>
-        <span className={cn("text-[11px]", check.ok ? "text-muted-foreground" : "text-tomato-11")}>
+        <span className={cn("text-xs", check.ok ? "text-muted-foreground" : "text-tomato-11")}>
           {check.ok
             ? formatBytes(file.size)
             : check.reason === "type"

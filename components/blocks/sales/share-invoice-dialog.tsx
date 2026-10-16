@@ -131,7 +131,7 @@ export function ShareInvoiceDialog({
         <DialogDescription className="sr-only">
           Copy the invoice link or share it with the client.
         </DialogDescription>
-        <DialogTitle className="text-xl font-semibold">Share invoice</DialogTitle>
+        <DialogTitle className="font-heading font-semibold text-2xl">Share invoice</DialogTitle>
 
         <div className="flex flex-col gap-2">
           <p className="text-sm font-medium text-muted-foreground">Copy link</p>

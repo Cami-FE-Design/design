@@ -75,7 +75,7 @@ export function EmailInvoiceDialog({
         <DialogDescription className="sr-only">
           Send this invoice as a PDF attachment.
         </DialogDescription>
-        <DialogTitle className="text-xl font-semibold">Email invoice</DialogTitle>
+        <DialogTitle className="font-heading font-semibold text-2xl">Email invoice</DialogTitle>
 
         <div className="flex flex-col gap-2">
           <Label htmlFor="email-invoice-email" className="font-medium">
@@ -102,7 +102,7 @@ export function EmailInvoiceDialog({
             autoFocus
           />
           {showError ? (
-            <p className="text-sm text-destructive">
+            <p className="text-sm font-medium text-destructive">
               {!email.trim() ? "Email address is required" : "Enter a valid email address"}
             </p>
           ) : null}

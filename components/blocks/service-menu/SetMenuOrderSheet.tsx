@@ -203,7 +203,7 @@ export function SetMenuOrderSheet({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto max-w-2xl px-6 py-10">
-          <h1 className="text-3xl font-bold text-foreground">Set menu order</h1>
+          <h1 className="font-heading font-semibold text-2xl text-foreground">Set menu order</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Define the order that services will appear to clients when booking online.
           </p>

@@ -1005,7 +1005,7 @@ function TerminalSessionsDialog({
           <>
             <div className="flex items-start justify-between gap-4 border-b border-border/60 p-6">
               <div className="flex flex-col gap-1">
-                <DialogTitle className="font-heading text-xl font-semibold text-foreground">
+                <DialogTitle className="font-heading font-semibold text-2xl">
                   {terminal.name}
                 </DialogTitle>
                 <p className="text-sm leading-5 text-muted-foreground">

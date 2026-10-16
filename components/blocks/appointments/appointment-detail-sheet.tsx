@@ -180,7 +180,7 @@ function DateAvatarCard({ date }: { date: string }) {
       aria-hidden
       className="flex h-12 w-[3rem] shrink-0 flex-col overflow-hidden rounded-[9px] bg-background text-foreground shadow-[0_0_0_2px_var(--background)]"
     >
-      <div className="bg-black/10 py-[3px] text-center text-[9px] leading-none font-bold tracking-tight text-foreground/50">
+      <div className="bg-black/10 py-[3px] text-center text-xs leading-none font-bold tracking-tight text-foreground/50">
         {month}
       </div>
       <div className="flex flex-1 items-center justify-center text-2xl leading-none font-bold text-foreground/70">
@@ -1090,7 +1090,7 @@ export function AppointmentDetailSheet({
               >
                 <DateAvatarCard date={iso} />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span className="self-start truncate text-[22px] leading-7 font-semibold tracking-tight">
+                  <span className="self-start truncate font-heading font-semibold text-2xl">
                     {dateLabel}
                   </span>
                   <div className={cn("text-xs leading-4", theme.subText)}>

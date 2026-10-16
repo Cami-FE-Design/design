@@ -111,7 +111,7 @@ export function AddRoleDialog({ open, onOpenChange }: AddRoleDialogProps) {
             aria-describedby={nameError ? "add-role-name-err" : undefined}
           />
           {nameError ? (
-            <p id="add-role-name-err" className="text-xs text-destructive">
+            <p id="add-role-name-err" className="text-sm font-medium text-destructive">
               {nameError}
             </p>
           ) : null}

@@ -469,11 +469,9 @@ export function ClientDetailDialog({
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5 overflow-hidden">
             {embedded ? (
-              <h2 className="font-heading text-[22px] leading-7 font-semibold text-foreground">
-                {client.name}
-              </h2>
+              <h2 className="font-heading font-semibold text-2xl text-foreground">{client.name}</h2>
             ) : (
-              <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
+              <DialogTitle className="truncate font-heading font-semibold text-2xl">
                 {client.name}
               </DialogTitle>
             )}
@@ -1041,7 +1039,9 @@ export function ClientDetailDialog({
       <Dialog open={noShowDialogOpen} onOpenChange={setNoShowDialogOpen}>
         <DialogContent className="max-w-140 gap-0 p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
           <DialogHeader className="flex flex-row items-center justify-between gap-3 px-6 py-5">
-            <DialogTitle className="text-base font-semibold">No-show appointments</DialogTitle>
+            <DialogTitle className="font-heading font-semibold text-2xl">
+              No-show appointments
+            </DialogTitle>
             <DialogClose asChild>
               <Button type="button" variant="ghost" size="icon-sm" radius="full" aria-label="Close">
                 <XIcon className="size-4" />
@@ -1084,7 +1084,7 @@ function Subsection({
   return (
     <section className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
       <header className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold">{title}</h3>
+        <h3 className="font-heading text-base font-semibold leading-6 text-foreground">{title}</h3>
         {action}
       </header>
       {children}
@@ -2014,7 +2014,7 @@ function StatValue({ children }: { children: React.ReactNode }) {
 
 function StatLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+    <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
       {children}
     </span>
   )
@@ -2138,7 +2138,7 @@ function VisitRow({
     <div className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
       <div className="flex min-w-0 flex-col gap-0.5">
         <div className="flex min-w-0 items-baseline gap-2">
-          <span className="shrink-0 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+          <span className="shrink-0 text-xs font-medium tracking-wide text-muted-foreground uppercase">
             {label}
           </span>
           <span className={cn("truncate text-sm", title ? "font-medium" : "text-muted-foreground")}>

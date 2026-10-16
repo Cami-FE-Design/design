@@ -50,7 +50,7 @@ export function DoneStep({ summary, onImportAnother }: Props) {
         <CheckCircle2Icon className="size-7 text-emerald-600" />
       </div>
       <div className="flex flex-col gap-1">
-        <h2 className="text-xl font-medium">Import complete</h2>
+        <h2 className="text-xl font-semibold">Import complete</h2>
         <p className="text-sm text-muted-foreground">
           Your products import finished. Download the per-row outcome report for the full breakdown.
         </p>

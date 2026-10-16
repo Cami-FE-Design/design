@@ -112,7 +112,9 @@ export function RedeemGiftCardDialog({
               <ChevronLeftIcon className="size-5" />
             </Button>
           ) : null}
-          <DialogTitle className="font-heading font-semibold text-xl">Redeem gift card</DialogTitle>
+          <DialogTitle className="font-heading font-semibold text-2xl">
+            Redeem gift card
+          </DialogTitle>
           <DialogClose asChild>
             <Button
               type="button"
