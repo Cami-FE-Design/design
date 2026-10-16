@@ -78,8 +78,7 @@ import {
   type BookingPromoContext,
   branchTakesCodes,
   dealsForBranch,
-  evaluateAddedCode,
-  evaluateBookingCodes,
+  evaluateBookingCode,
 } from "@/lib/deals/online"
 import { useDeals } from "@/lib/deals/store"
 import { formatAed } from "@/lib/format"
@@ -1000,10 +999,7 @@ export function ConfirmStep({
                   promo row already say it, and a third mention is noise. */}
               {(() => {
                 const linePromo = promos.find((p) => p.lineDiscounts[line.id])
-                // With two codes on the booking, every discounted line says
-                // which one it took.
-                return linePromo &&
-                  (promos.length > 1 || linePromo.coveredLines < linePromo.totalLines) ? (
+                return linePromo && linePromo.coveredLines < linePromo.totalLines ? (
                   <span className="mt-0.5 flex items-center gap-1 text-xs font-medium text-cami-green-11">
                     <TicketPercentIcon className="size-3" aria-hidden />
                     {linePromo.code}
@@ -1101,9 +1097,7 @@ export function ConfirmStep({
         {discountedMinor === 0
           ? // A 100% code leaves nothing to settle (DZ-200 §6.5). Saying "pay at
             // the salon" over an AED 0 total reads as a mistake.
-            promos.length === 1
-            ? `Nothing to pay — ${promos[0]!.code} covers this booking.`
-            : "Nothing to pay — your codes cover this booking."
+            `Nothing to pay — ${promos[0]?.code} covers this booking.`
           : "Nothing to pay now — settle at the salon after your appointment."}
       </p>
     </div>
@@ -1389,10 +1383,10 @@ export function BookingFlow({
   })
   const [pet, setPet] = useState<NewPet>({ name: "", species: "dog" })
   const [pickup, setPickup] = useState<PickupDetails>(EMPTY_PICKUP_DETAILS)
-  // The promo codes the client applied, in the order entered (DZ-352). Only the
-  // codes are kept: what each takes off is worked out again on every render,
-  // against the booking and the promotions as they are now.
-  const [promoCodes, setPromoCodes] = useState<string[]>([])
+  // The promo code the client applied (DZ-352), one per online booking. Only
+  // the code is kept: what it takes off is worked out again on every render,
+  // against the booking and the promotion as they are now.
+  const [promoCode, setPromoCode] = useState<string | null>(null)
   // Continue stays hidden on the identify step until the client is verified,
   // as built: the step's own phone and code screens move it on.
   const [identifyPhase, setIdentifyPhase] = useState<AuthPhase>("phone")
@@ -1468,29 +1462,25 @@ export function BookingFlow({
     clientHasRedeemed: (dealId) =>
       findClientByPhone(customer.phone)?.redeemedDealIds?.includes(dealId) ?? false,
   }
-  const promoChecks = evaluateBookingCodes(promoCodes, promoContext)
-  // What the codes were last checked against. Coming back to Review with a
-  // different booking re-checks them, as the server would: each card reads
+  const promoCheck = promoCode
+    ? { code: promoCode, result: evaluateBookingCode(promoCode, promoContext) }
+    : null
+  // What the code was last checked against. Coming back to Review with a
+  // different booking re-checks it, as the server would: the card reads
   // "checking" for a moment and Confirm waits for the answer.
   const promoBookingKey = `${serviceIds.join(",")}|${customer.phoneCode}${customer.phone}`
   const [promoCheckedFor, setPromoCheckedFor] = useState(promoBookingKey)
   const promoRechecking =
-    step === "confirm" && promoCodes.length > 0 && promoCheckedFor !== promoBookingKey
+    step === "confirm" && promoCode !== null && promoCheckedFor !== promoBookingKey
   useEffect(() => {
     if (!promoRechecking) return
     const t = setTimeout(() => setPromoCheckedFor(promoBookingKey), PROMO_RECHECK_MS)
     return () => clearTimeout(t)
   }, [promoRechecking, promoBookingKey])
-  const appliedPromos: AppliedBookingPromo[] = promoChecks.flatMap((c) =>
-    c.result.ok ? [c.result.promo] : [],
-  )
+  const appliedPromos: AppliedBookingPromo[] = promoCheck?.result.ok
+    ? [promoCheck.result.promo]
+    : []
   const promoOffMinor = appliedPromos.reduce((n, p) => n + p.discountMinor, 0)
-  // Another code is worth offering only while some line is still undiscounted
-  // and could be (a combo never is).
-  const promoTakenLines = new Set(appliedPromos.flatMap((p) => Object.keys(p.lineDiscounts)))
-  const canAddAnotherCode = promoContext.lines.some(
-    (line) => !line.comboName && !promoTakenLines.has(line.id),
-  )
 
   const canContinue =
     step === "service"
@@ -1595,21 +1585,20 @@ export function BookingFlow({
         promoField={
           // A code that is already applied keeps its row even if the branch
           // has since run out of codes, so the client sees what happened.
-          offersCodes || promoCodes.length > 0 ? (
+          offersCodes || promoCode ? (
             <PromoCodeField
-              applied={promoChecks}
-              canAddAnother={canAddAnotherCode}
+              applied={promoCheck}
               rechecking={promoRechecking}
               onApply={(code) => {
-                const result = evaluateAddedCode(code, promoCodes, promoContext)
+                const result = evaluateBookingCode(code, promoContext)
                 if (result.ok) {
-                  setPromoCodes((prev) => [...prev, result.promo.code])
+                  setPromoCode(result.promo.code)
                   // Just checked against this booking, so nothing to re-check.
                   setPromoCheckedFor(promoBookingKey)
                 }
                 return result
               }}
-              onRemove={(code) => setPromoCodes((prev) => prev.filter((c) => c !== code))}
+              onRemove={() => setPromoCode(null)}
             />
           ) : null
         }

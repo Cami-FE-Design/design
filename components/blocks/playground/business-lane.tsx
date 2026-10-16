@@ -142,13 +142,7 @@ import { openAppointmentsFor } from "@/lib/clients/open-appointments"
 import { getCustomerCard } from "@/lib/customer-card/mock"
 import { CUSTOMER_CARD_THEMES, getCustomerCardTheme } from "@/lib/customer-card/theme"
 import { MOCK_DEALS } from "@/lib/deals/mock"
-import {
-  type BookingPromoContext,
-  CHECK_FAILED,
-  evaluateAddedCode,
-  evaluateBookingCode,
-  evaluateBookingCodes,
-} from "@/lib/deals/online"
+import { type BookingPromoContext, CHECK_FAILED, evaluateBookingCode } from "@/lib/deals/online"
 import { createEmptyDealDraft } from "@/lib/deals/wizard"
 import { formatAed } from "@/lib/format"
 import { ZERO_RATE } from "@/lib/hq-camipay/store"
@@ -959,13 +953,8 @@ function promoCheck(serviceIds: string[], overrides: Partial<BookingPromoContext
   return (code: string) => evaluateBookingCode(code, promoContext(serviceIds, overrides))
 }
 
-/** Codes in the order entered, each taking only the lines no earlier one has (D6). */
-function promoChecks(codes: string[], serviceIds: string[]) {
-  return evaluateBookingCodes(codes, promoContext(serviceIds))
-}
-
 function promoApplied(code: string, serviceIds: string[]) {
-  return promoChecks([code], serviceIds)[0]!
+  return { code, result: promoCheck(serviceIds)(code) }
 }
 
 function promoRefusal(
@@ -997,22 +986,16 @@ const PROMO_REFUSALS: ReadonlyArray<{
   { label: "Minimum spend", code: "GROOM50", serviceIds: ["full-groom", "nail-trim"] },
   { label: "Combo only", code: "WELCOME15", serviceIds: ["groom-and-nails-combo"] },
   { label: "Wrong services", code: "SPA20", serviceIds: ["full-groom"] },
-  {
-    label: "Already covered by another code",
-    code: "WELCOME15",
-    serviceIds: ["full-groom"],
-    overrides: { takenLineIds: new Set(["full-groom"]) },
-  },
 ]
 
 function PromoFrame({ children }: { children: React.ReactNode }) {
   return <div className="w-full max-w-105">{children}</div>
 }
 
-function BookingPromoReview({ codes, serviceIds }: { codes: string[]; serviceIds: string[] }) {
+function BookingPromoReview({ code, serviceIds }: { code: string; serviceIds: string[] }) {
   const business = getPublicBusiness("shampooch-jvc")
   if (!business) return null
-  const applied = promoChecks(codes, serviceIds)
+  const applied = promoApplied(code, serviceIds)
   return (
     <div className="w-full max-w-115 rounded-2xl border border-border/60 bg-background p-5">
       <ConfirmStep
@@ -1022,7 +1005,7 @@ function BookingPromoReview({ codes, serviceIds }: { codes: string[]; serviceIds
         whenLabel="Tue 25 · 10:00 AM"
         staffLabel="Any team member"
         customerLabel="Natalie Grant"
-        promos={applied.flatMap((c) => (c.result.ok ? [c.result.promo] : []))}
+        promos={applied.result.ok ? [applied.result.promo] : []}
         promoField={
           <PromoCodeField applied={applied} onApply={promoCheck(serviceIds)} onRemove={() => {}} />
         }
@@ -1039,24 +1022,12 @@ function BookingPromoCodeDemo() {
         {
           label: "Review step, code applied",
           note: "WELCOME15 on a groom and a nail trim: line captions, the promo row, VAT on the discounted total.",
-          content: (
-            <BookingPromoReview codes={["WELCOME15"]} serviceIds={["full-groom", "nail-trim"]} />
-          ),
-        },
-        {
-          label: "Two codes",
-          note: "SPA20 on the teeth brushing, then WELCOME15 on the groom: one promotion per line, each line names its code.",
-          content: (
-            <BookingPromoReview
-              codes={["SPA20", "WELCOME15"]}
-              serviceIds={["full-groom", "teeth"]}
-            />
-          ),
+          content: <BookingPromoReview code="WELCOME15" serviceIds={["full-groom", "nail-trim"]} />,
         },
         {
           label: "AED 0 booking",
           note: "NAILFREE on a nail trim alone: 100% off, and the pay-at-salon note changes.",
-          content: <BookingPromoReview codes={["NAILFREE"]} serviceIds={["nail-trim"]} />,
+          content: <BookingPromoReview code="NAILFREE" serviceIds={["nail-trim"]} />,
         },
         {
           label: "Field",
@@ -1066,7 +1037,7 @@ function BookingPromoCodeDemo() {
               <Row label="Closed">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={[]}
+                    applied={null}
                     onApply={promoCheck(["full-groom"])}
                     onRemove={noop}
                   />
@@ -1075,7 +1046,7 @@ function BookingPromoCodeDemo() {
               <Row label="Typing">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={[]}
+                    applied={null}
                     onApply={promoCheck(["full-groom"])}
                     onRemove={noop}
                     defaultOpen
@@ -1086,7 +1057,7 @@ function BookingPromoCodeDemo() {
               <Row label="Checking">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={[]}
+                    applied={null}
                     onApply={promoCheck(["full-groom"])}
                     onRemove={noop}
                     defaultOpen
@@ -1098,7 +1069,7 @@ function BookingPromoCodeDemo() {
               <Row label="Applied">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={[promoApplied("WELCOME15", ["full-groom", "nail-trim"])]}
+                    applied={promoApplied("WELCOME15", ["full-groom", "nail-trim"])}
                     onApply={promoCheck(["full-groom", "nail-trim"])}
                     onRemove={noop}
                   />
@@ -1107,7 +1078,7 @@ function BookingPromoCodeDemo() {
               <Row label="Applies to 1 of 2">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={[promoApplied("SPA20", ["full-groom", "teeth"])]}
+                    applied={promoApplied("SPA20", ["full-groom", "teeth"])}
                     onApply={promoCheck(["full-groom", "teeth"])}
                     onRemove={noop}
                   />
@@ -1116,7 +1087,7 @@ function BookingPromoCodeDemo() {
               <Row label="Re-checking after a change">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={promoChecks(["SPA20", "WELCOME15"], ["full-groom", "teeth"])}
+                    applied={promoApplied("SPA20", ["full-groom", "teeth"])}
                     onApply={promoCheck(["full-groom", "teeth"])}
                     onRemove={noop}
                     rechecking
@@ -1126,7 +1097,7 @@ function BookingPromoCodeDemo() {
               <Row label="Couldn't check">
                 <PromoFrame>
                   <PromoCodeField
-                    applied={[]}
+                    applied={null}
                     onApply={promoCheck(["full-groom"])}
                     onRemove={noop}
                     defaultOpen
@@ -1143,30 +1114,11 @@ function BookingPromoCodeDemo() {
           note: "One row per reason a code is turned down, each from the real rule.",
           content: (
             <div className="flex flex-col">
-              <Row label="Already applied">
-                <PromoFrame>
-                  <PromoCodeField
-                    applied={[]}
-                    onApply={promoCheck(["full-groom"])}
-                    onRemove={noop}
-                    defaultOpen
-                    defaultCode="WELCOME15"
-                    defaultRefusal={(() => {
-                      const result = evaluateAddedCode(
-                        "WELCOME15",
-                        ["WELCOME15"],
-                        promoContext(["full-groom"]),
-                      )
-                      return result.ok ? null : result.refusal
-                    })()}
-                  />
-                </PromoFrame>
-              </Row>
               {PROMO_REFUSALS.map((r) => (
                 <Row key={r.label} label={r.label}>
                   <PromoFrame>
                     <PromoCodeField
-                      applied={[]}
+                      applied={null}
                       onApply={promoCheck(r.serviceIds, r.overrides)}
                       onRemove={noop}
                       defaultOpen
@@ -1185,7 +1137,7 @@ function BookingPromoCodeDemo() {
           content: (
             <PromoFrame>
               <PromoCodeField
-                applied={[promoApplied("WELCOME15", ["groom-and-nails-combo"])]}
+                applied={promoApplied("WELCOME15", ["groom-and-nails-combo"])}
                 onApply={promoCheck(["groom-and-nails-combo"])}
                 onRemove={noop}
               />
@@ -3361,7 +3313,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Online booking — promo code"
-        description="Promo codes on the booking review step: one code, two codes on different lines, AED 0, the field's states, each refusal, and a code that stopped applying."
+        description="Promo code on the booking review step: applied, AED 0, the field's states, each refusal, and a code that stopped applying."
       >
         <BookingPromoCodeDemo />
       </Section>
