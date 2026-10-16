@@ -103,7 +103,7 @@ export function GoogleReviewLinkField({
       ) : null}
 
       {check.kind === "invalid" ? (
-        <p role="alert" className="text-sm leading-5 text-destructive">
+        <p role="alert" className="text-sm font-medium text-destructive">
           {check.message}
         </p>
       ) : null}

@@ -90,7 +90,7 @@ export function DonutChart({
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-0.5 px-7 text-center">
           {hovered ? (
             <>
-              <span className="line-clamp-2 text-[11px] leading-tight text-muted-foreground">
+              <span className="line-clamp-2 text-xs leading-tight text-muted-foreground">
                 {hovered.label}
               </span>
               <span className="font-heading text-base font-semibold leading-none text-foreground">

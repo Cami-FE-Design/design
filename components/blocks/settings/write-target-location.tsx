@@ -249,7 +249,7 @@ export function WriteTargetLocation({
            a merchant who has just picked a paused branch has been told what is
            wrong with that branch, and "choose a location" underneath it would
            be the same instruction in weaker words. */
-        <p className="text-xs leading-5 text-destructive">{requiredNote}</p>
+        <p className="text-sm font-medium text-destructive">{requiredNote}</p>
       ) : null}
     </div>
   )

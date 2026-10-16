@@ -176,9 +176,7 @@ export function GiftCardDialog({
                 placeholder="Enter custom gift card code"
                 aria-label="Gift card code"
               />
-              <span className="text-xs leading-4 text-muted-foreground">
-                For use on physical gift cards
-              </span>
+              <span className="text-sm text-muted-foreground">For use on physical gift cards</span>
             </div>
           ) : null}
           <CheckRow
@@ -306,7 +304,7 @@ function CheckRow({
       <Checkbox checked={checked} onCheckedChange={onChange} className="mt-0.5" />
       <span className="flex flex-col gap-0.5">
         <span className="text-sm font-medium leading-5 text-foreground">{label}</span>
-        {hint ? <span className="text-xs leading-4 text-muted-foreground">{hint}</span> : null}
+        {hint ? <span className="text-sm text-muted-foreground">{hint}</span> : null}
       </span>
     </label>
   )

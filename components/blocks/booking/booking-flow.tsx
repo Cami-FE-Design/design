@@ -835,7 +835,7 @@ function IdentifyStep({
           onNumberChange={() => undefined}
           disabled
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Verified. We send your confirmation and reminders here on Email / SMS / WhatsApp.
         </p>
       </div>
@@ -1713,7 +1713,7 @@ export function BookingFlow({
           className="max-h-[80dvh] overflow-y-auto"
         >
           <SheetHeader className="flex-row items-center justify-between">
-            <SheetTitle className="font-semibold text-lg">Price breakdown</SheetTitle>
+            <SheetTitle className="font-heading font-semibold text-2xl">Price breakdown</SheetTitle>
             <SheetClose asChild>
               <button
                 type="button"

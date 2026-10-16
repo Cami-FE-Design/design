@@ -225,7 +225,7 @@ function WhatsAppPreview({ businessName, body }: { businessName: string; body: s
           />
           <div className="flex min-w-0 flex-col leading-tight">
             <span className="truncate text-xs font-semibold text-foreground">{businessName}</span>
-            <span className="text-[10px] text-muted-foreground">Business account</span>
+            <span className="text-xs text-muted-foreground">Business account</span>
           </div>
         </div>
         <div className="w-fit max-w-[90%] rounded-2xl rounded-tl-sm border border-border/60 bg-card px-4 py-3 shadow-sm">

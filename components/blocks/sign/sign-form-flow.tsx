@@ -354,7 +354,7 @@ function ReviewStep({
                     disabled
                     aria-label="Email the form was sent to"
                   />
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm text-muted-foreground">
                     The form was sent to this email and can’t be changed.
                   </span>
                 </label>

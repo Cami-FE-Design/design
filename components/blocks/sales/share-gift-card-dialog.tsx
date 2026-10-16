@@ -42,7 +42,7 @@ export function ShareGiftCardDialog({
               </Button>
             </DialogClose>
           </div>
-          <DialogTitle className="text-[28px] font-semibold leading-8">Share gift card</DialogTitle>
+          <DialogTitle className="font-heading font-semibold text-2xl">Share gift card</DialogTitle>
         </div>
 
         <div className="flex flex-col gap-5 px-8 pb-8 pt-6">

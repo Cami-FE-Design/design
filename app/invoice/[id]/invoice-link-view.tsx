@@ -26,7 +26,7 @@ export function InvoiceLinkView({ id }: { id: string }) {
     return (
       <main className="flex min-h-dvh items-center justify-center bg-sand-2 px-6">
         <div className="flex max-w-md flex-col gap-2 text-center">
-          <h1 className="text-xl font-semibold text-foreground">Invoice not found</h1>
+          <h1 className="text-2xl font-semibold text-foreground">Invoice not found</h1>
           <p className="text-sm text-muted-foreground">
             This link may have expired, or the invoice was removed. Ask the business for a new link.
           </p>

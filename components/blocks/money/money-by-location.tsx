@@ -66,7 +66,9 @@ export function MoneyByLocationView({
 
   return (
     <section className={cn("flex flex-col gap-3", className)}>
-      <h2 className="text-base font-semibold text-foreground">Money by location</h2>
+      <h2 className="font-heading text-lg font-semibold leading-7 text-foreground">
+        Money by location
+      </h2>
 
       {loading ? <RowsSkeleton count={allowed.length} /> : <Rows data={data} />}
     </section>

@@ -96,7 +96,7 @@ function InvoiceDocumentDemo() {
           {sale ? (
             <>
               <div className="flex flex-col">
-                <h1 className="text-2xl font-medium leading-8 text-foreground">
+                <h1 className="text-2xl font-semibold leading-8 text-foreground">
                   {documentTitle(doc)} #{doc.number}
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -122,7 +122,9 @@ function InvoiceDocumentDemo() {
           ) : (
             <>
               <div className="flex flex-col">
-                <h1 className="text-2xl font-medium leading-8 text-foreground">Invoice document</h1>
+                <h1 className="text-2xl font-semibold leading-8 text-foreground">
+                  Invoice document
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   A4 tax invoice, credit note and every state from the DSG-72 spec. One component
                   renders the PDF, the email attachment and the invoice link.

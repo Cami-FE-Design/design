@@ -98,7 +98,7 @@ function ScheduledShiftsScreen() {
       header={
         <div className="flex w-full items-center justify-between gap-3">
           <div className="flex flex-col">
-            <h1 className="font-medium text-2xl text-foreground leading-8">Scheduled shifts</h1>
+            <h1 className="font-semibold text-2xl text-foreground leading-8">Scheduled shifts</h1>
             <p className="text-muted-foreground text-sm">
               {isMultiLocation
                 ? "Manage weekly shifts for each location"

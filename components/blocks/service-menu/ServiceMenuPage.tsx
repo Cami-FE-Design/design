@@ -440,7 +440,7 @@ export function ServiceMenuPage({
       <header className="flex w-full items-center justify-center px-6 py-6">
         <div className="flex w-full max-w-6xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-medium leading-8 text-foreground">Service menu</h1>
+            <h1 className="text-2xl font-semibold leading-8 text-foreground">Service menu</h1>
             <p className="text-sm text-muted-foreground">
               View and manage the services offered by your business.{" "}
               <span className="cursor-pointer text-primary hover:underline">Learn more</span>

@@ -97,7 +97,7 @@ export function UploadStep({ serverError, onSubmit }: Props) {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">{modeHint}</p>
+          <p className="text-sm text-muted-foreground">{modeHint}</p>
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -110,7 +110,7 @@ export function UploadStep({ serverError, onSubmit }: Props) {
             value={threshold}
             onChange={(e) => setThreshold(e.target.value)}
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Retail-price jumps above this flag the row for your approval.
           </p>
         </div>
@@ -165,8 +165,10 @@ export function UploadStep({ serverError, onSubmit }: Props) {
         </div>
       )}
 
-      {fileError && <p className="text-xs text-destructive">{fileError}</p>}
-      {serverError && !fileError && <p className="text-xs text-destructive">{serverError}</p>}
+      {fileError && <p className="text-sm font-medium text-destructive">{fileError}</p>}
+      {serverError && !fileError && (
+        <p className="text-sm font-medium text-destructive">{serverError}</p>
+      )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-4">
         <div className="flex items-center gap-2">

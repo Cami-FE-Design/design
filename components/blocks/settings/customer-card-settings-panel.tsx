@@ -85,7 +85,7 @@ export function CustomerCardSettingsPanel() {
           first. Side by side, the choice and its consequence are one glance. */}
       <SettingsCard className="gap-5 sm:max-w-none">
         <div className="flex flex-col gap-1">
-          <h3 className="font-heading text-base font-semibold text-foreground">Theme</h3>
+          <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">Theme</h3>
           <p className="text-sm text-muted-foreground">
             Type stays the same across Cami, so the colour is what makes a page yours.
           </p>

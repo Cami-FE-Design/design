@@ -328,7 +328,7 @@ export function PetDetailDialog({
               <DialogHeader className="flex flex-row items-center gap-3 px-9 pt-[34px] pb-5">
                 <Avatar size="lg" fallback="species" species={pet.species} hashSeed={pet.id} />
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <DialogTitle className="truncate text-[22px] leading-7 font-semibold">
+                  <DialogTitle className="truncate font-heading font-semibold text-2xl">
                     {pet.name}
                   </DialogTitle>
                   <DialogDescription asChild>
@@ -710,7 +710,7 @@ function Subsection({
   return (
     <section className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
       <header className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold">{title}</h3>
+        <h3 className="font-heading text-base font-semibold leading-6 text-foreground">{title}</h3>
         {action}
       </header>
       {children}

@@ -168,7 +168,7 @@ export function TeamAccessDialog({
             ) : null}
             {status === "ready" && missingLocation ? (
               // The form's error style (FormMessage), under the control.
-              <p role="alert" className="font-medium text-destructive text-sm">
+              <p role="alert" className="text-sm font-medium text-destructive">
                 Pick at least one location.
               </p>
             ) : null}

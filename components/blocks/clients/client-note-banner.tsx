@@ -90,7 +90,7 @@ export function ClientNoteBanner({
           below it, with the DZ-209 marker at its end. */}
       {compact && !hideLabel ? (
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Client notes
           </span>
           <AlertTriangleIcon className="size-3 shrink-0 text-muted-foreground" aria-hidden />
@@ -129,7 +129,7 @@ export function ClientNoteBanner({
                   <p
                     className={cn(
                       "leading-snug text-foreground",
-                      compact ? "line-clamp-1 text-[11px]" : "line-clamp-2 text-sm",
+                      compact ? "line-clamp-1 text-xs" : "line-clamp-2 text-sm",
                     )}
                   >
                     {note.content}
@@ -149,7 +149,7 @@ export function ClientNoteBanner({
             // on the "View profile" action in the same client row, and wiring a
             // second route to it would mean a new callback through every call
             // site for a line nobody has asked to be clickable.
-            <p className={cn("text-muted-foreground", compact ? "text-[10px]" : "mt-1.5 text-xs")}>
+            <p className={cn("text-muted-foreground", compact ? "text-xs" : "mt-1.5 text-xs")}>
               {`+${remaining} more on the client profile`}
             </p>
           ) : null}

@@ -20,12 +20,12 @@ import {
   DashCard,
   DeltaChip,
   HeroValue,
-  Initials,
   InlineStat,
   MiniTable,
   TileRow,
 } from "@/components/blocks/reports/dashboard/dashboard-primitives"
 import { WidgetEmpty, WidgetSkeleton } from "@/components/blocks/reports/dashboard/dashboard-states"
+import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { formatAed, formatNumber } from "@/lib/format"
@@ -196,7 +196,7 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
                     key={label || "rank"}
                     scope="col"
                     className={cn(
-                      "whitespace-nowrap border-b border-border pb-2 pr-4 text-xs font-medium text-muted-foreground last:pr-0",
+                      "whitespace-nowrap border-b border-border px-3 pb-2 text-sm font-normal text-muted-foreground",
                       i >= 2 ? "text-right" : "text-left",
                     )}
                   >
@@ -208,36 +208,34 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
             <tbody>
               {data.TEAM_LEADERBOARD.map((row, i) => (
                 <tr key={row.name}>
-                  <td className="border-b border-border/50 py-2.5 pr-4">
-                    <span className="flex size-5 items-center justify-center rounded-md bg-muted text-[11px] font-semibold text-muted-foreground">
-                      {i + 1}
-                    </span>
+                  <td className="border-b border-border/50 px-3 py-2.5">
+                    <Badge variant="muted">{i + 1}</Badge>
                   </td>
-                  <td className="whitespace-nowrap border-b border-border/50 py-2.5 pr-4">
+                  <td className="whitespace-nowrap border-b border-border/50 px-3 py-2.5">
                     <span className="flex items-center gap-2 text-foreground">
-                      <Initials initials={row.initials} />
+                      <Avatar size="sm" name={row.name} />
                       {row.name}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap border-b border-border/50 py-2.5 pr-4 text-right">
+                  <td className="whitespace-nowrap border-b border-border/50 px-3 py-2.5 text-right">
                     <span className="inline-flex items-center gap-2">
                       <span className="tabular-nums text-foreground">{row.sales}</span>
                       <DeltaChip pct={row.salesDelta} caption={null} tone="progress" />
                     </span>
                   </td>
-                  <td className="whitespace-nowrap border-b border-border/50 py-2.5 pr-4 text-right">
+                  <td className="whitespace-nowrap border-b border-border/50 px-3 py-2.5 text-right">
                     <span className="inline-flex items-center gap-2">
                       <span className="tabular-nums text-foreground">{row.occupancy}</span>
                       <DeltaChip pct={row.occupancyDelta} caption={null} tone="progress" />
                     </span>
                   </td>
-                  <td className="whitespace-nowrap border-b border-border/50 py-2.5 pr-4 text-right">
+                  <td className="whitespace-nowrap border-b border-border/50 px-3 py-2.5 text-right">
                     <span className="inline-flex items-center gap-2">
                       <span className="tabular-nums text-foreground">{row.returning}</span>
                       <DeltaChip pct={row.returningDelta} caption={null} tone="progress" />
                     </span>
                   </td>
-                  <td className="whitespace-nowrap border-b border-border/50 py-2.5 text-right tabular-nums text-foreground">
+                  <td className="whitespace-nowrap border-b border-border/50 px-3 py-2.5 text-right tabular-nums text-foreground">
                     {row.served}
                   </td>
                 </tr>
@@ -288,7 +286,7 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
                       key={label}
                       scope="col"
                       className={cn(
-                        "whitespace-nowrap border-b border-border pb-2 pr-4 text-xs font-medium text-muted-foreground last:pr-0",
+                        "whitespace-nowrap border-b border-border px-3 pb-2 text-sm font-normal text-muted-foreground",
                         // First column is the product name, last is a status
                         // badge — both read left. The numbers between them right.
                         i === 0 || i === 6 ? "text-left" : "text-right",
@@ -304,7 +302,7 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
                   const badge = STOCK_BADGE[row.status]
                   return (
                     <tr key={row.product}>
-                      <td className="whitespace-nowrap border-b border-border/50 py-2.5 pr-4 text-foreground">
+                      <td className="whitespace-nowrap border-b border-border/50 px-3 py-2.5 text-foreground">
                         {row.product}
                       </td>
                       {[row.onHand, row.onOrder, row.reorderPoint, row.recommended, row.value].map(
@@ -312,13 +310,13 @@ function WidgetBody({ widget }: { widget: DashboardWidget }) {
                           <td
                             // biome-ignore lint/suspicious/noArrayIndexKey: fixed positional columns.
                             key={i}
-                            className="whitespace-nowrap border-b border-border/50 py-2.5 pr-4 text-right tabular-nums text-foreground"
+                            className="whitespace-nowrap border-b border-border/50 px-3 py-2.5 text-right tabular-nums text-foreground"
                           >
                             {cell}
                           </td>
                         ),
                       )}
-                      <td className="whitespace-nowrap border-b border-border/50 py-2.5 text-left">
+                      <td className="whitespace-nowrap border-b border-border/50 px-3 py-2.5 text-left">
                         <Badge variant={badge.variant} size="md">
                           {badge.label}
                         </Badge>

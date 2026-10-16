@@ -270,7 +270,7 @@ export function AddVariantDialog({
                               </SelectContent>
                             </Select>
                             <div className="relative h-5">
-                              <FormMessage className="absolute inset-x-0 top-0 text-xs leading-tight" />
+                              <FormMessage className="absolute inset-x-0 top-0 leading-tight" />
                             </div>
                           </FormItem>
                         )}
@@ -314,7 +314,7 @@ export function AddVariantDialog({
                               </div>
                             </FormControl>
                             <div className="relative h-5">
-                              <FormMessage className="absolute inset-x-0 top-0 text-xs leading-tight" />
+                              <FormMessage className="absolute inset-x-0 top-0 leading-tight" />
                             </div>
                           </FormItem>
                         )}
@@ -355,7 +355,7 @@ export function AddVariantDialog({
                               </SelectContent>
                             </Select>
                             <div className="relative h-5">
-                              <FormMessage className="absolute inset-x-0 top-0 text-xs leading-tight" />
+                              <FormMessage className="absolute inset-x-0 top-0 leading-tight" />
                             </div>
                           </FormItem>
                         )}

@@ -2,6 +2,7 @@
 
 import { CirclePlusIcon, CircleXIcon, EllipsisIcon, SettingsIcon, UsersIcon } from "lucide-react"
 import type * as React from "react"
+import { Avatar } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +13,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { initialOf } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 export type Workspace = {
@@ -72,7 +72,6 @@ export function WorkspaceSwitcher({
   onNewWorkspace,
   onSignOut,
 }: WorkspaceSwitcherProps) {
-  const userInitials = `${initialOf(user.firstName)}${initialOf(user.lastName)}`
   const userLabel = `${user.firstName} ${user.lastName}`.trim()
 
   return (
@@ -107,12 +106,11 @@ export function WorkspaceSwitcher({
 
         <DropdownMenuGroup>
           <div className="relative flex items-center gap-2.5 rounded-md py-2 pr-8 pl-3 text-sm font-medium text-muted-foreground">
-            <span
-              aria-hidden
-              className="flex size-5 shrink-0 items-center justify-center rounded-full border-[0.75px] border-cami-violet-7 bg-cami-violet-8 text-[8px] font-medium text-white"
-            >
-              {userInitials}
-            </span>
+            <Avatar
+              size="xs"
+              name={userLabel}
+              className="border-[0.75px] border-cami-violet-7 bg-cami-violet-8 text-white"
+            />
             <span className="min-w-0 flex-1 truncate">{userLabel}</span>
             <DropdownMenuItem
               onSelect={onAccountMenu}

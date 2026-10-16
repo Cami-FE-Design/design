@@ -73,27 +73,50 @@ function SessionBlock({
   onOpen: (s: DaycareSession) => void
 }) {
   const top = (minutesOf(session.start) - DAY_START_MIN) * PX_PER_MIN
-  const height = session.durationMin * PX_PER_MIN
+  const height = Math.max(session.durationMin * PX_PER_MIN, 28)
   const accent = STATUS_ACCENT[session.status]
+  // Same order as the booking block: time, then pet · client, then service.
+  // Lines go in as the block has room for them, and the time is never cut. A short block trims its padding rather than squeezing its lines;
+  // whatever is left out is in the sheet the block opens.
+  const roomy = height >= 72
+  const lines = Math.max(1, Math.floor((height - (roomy ? 18 : 10)) / 15))
+  const time = (
+    <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+      {formatTimeRange(session.start, session.durationMin)}
+    </span>
+  )
+  const name = (
+    <span className={cn("truncate text-xs font-semibold", accent.text)}>
+      {session.petName}
+      <span className="ml-1 font-normal text-muted-foreground">· {session.clientName}</span>
+    </span>
+  )
   return (
     <button
       type="button"
       onClick={() => onOpen(session)}
       className={cn(
-        "absolute inset-x-1 flex gap-2 overflow-hidden rounded-lg border p-2 text-left transition-shadow hover:shadow-sm focus-visible:outline-2 focus-visible:outline-ring",
+        "absolute inset-x-1 flex gap-2 overflow-hidden rounded-lg border px-2 text-left transition-shadow hover:shadow-sm focus-visible:outline-2 focus-visible:outline-ring",
+        roomy ? "py-2" : "py-1",
         accent.bar,
       )}
-      style={{ top, height: Math.max(height, 28) }}
+      style={{ top, height }}
     >
       <span aria-hidden className={cn("w-1 shrink-0 self-stretch rounded-full", accent.rail)} />
-      <span className="flex min-w-0 flex-col leading-tight">
-        <span className={cn("truncate text-xs font-semibold", accent.text)}>{session.petName}</span>
-        <span className="truncate text-[11px] text-muted-foreground">{session.clientName}</span>
-        <span className="truncate text-[11px] text-muted-foreground">{session.serviceName}</span>
-        <span className="truncate text-[11px] text-muted-foreground">
-          {formatTimeRange(session.start, session.durationMin)}
+      {lines === 1 ? (
+        <span className="flex min-w-0 items-baseline gap-1.5 leading-tight">
+          {time}
+          {name}
         </span>
-      </span>
+      ) : (
+        <span className="flex min-w-0 flex-col leading-tight">
+          {time}
+          {name}
+          {lines >= 3 ? (
+            <span className="truncate text-xs text-muted-foreground">{session.serviceName}</span>
+          ) : null}
+        </span>
+      )}
     </button>
   )
 }
@@ -150,7 +173,7 @@ function DayView({
             {hours.map((h) => (
               <div
                 key={h.min}
-                className="absolute right-2 -translate-y-1/2 text-[11px] text-muted-foreground"
+                className="absolute right-2 -translate-y-1/2 text-xs text-muted-foreground"
                 style={{ top: h.min * PX_PER_MIN }}
               >
                 {h.label}

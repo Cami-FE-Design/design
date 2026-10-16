@@ -58,7 +58,7 @@ export function ProgressPanel({ title, body, progress, error, onRetry }: Props) 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-6 text-center">
       <div className="flex flex-col gap-1">
-        <h2 className="font-heading text-lg font-semibold text-foreground">{title}</h2>
+        <h2 className="font-heading text-xl font-semibold text-foreground">{title}</h2>
         <p className="text-sm text-muted-foreground">{body}</p>
       </div>
       <div

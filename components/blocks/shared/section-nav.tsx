@@ -1,6 +1,7 @@
 "use client"
 
 import type { LucideIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 export type SectionItem<TId extends string> = {
@@ -48,9 +49,12 @@ export function SectionNav<TId extends string>({
                 ) : null}
                 <span className="flex-1 truncate font-medium">{item.label}</span>
                 {item.badge ? (
-                  <span className="shrink-0 rounded-full bg-cami-yellow-3 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cami-yellow-11">
+                  <Badge
+                    size="sm"
+                    className="rounded-full bg-cami-yellow-3 px-1.5 uppercase tracking-wide text-cami-yellow-11"
+                  >
                     {item.badge}
-                  </span>
+                  </Badge>
                 ) : null}
               </button>
             </li>

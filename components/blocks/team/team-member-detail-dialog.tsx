@@ -218,7 +218,7 @@ export function TeamMemberDetailDialog({
             <DialogHeader className="flex flex-row items-center gap-3 px-9 pt-[34px] pb-5">
               <Avatar size="lg" fallback="character" name={displayName} hashSeed={member.id} />
               <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                <DialogTitle className="flex min-w-0 items-center gap-2 text-[22px] leading-7 font-semibold">
+                <DialogTitle className="flex min-w-0 items-center gap-2 font-heading font-semibold text-2xl">
                   <span className="truncate">{displayName}</span>
                   {isPending ? <Badge variant="secondary">Pending</Badge> : null}
                 </DialogTitle>
@@ -439,7 +439,7 @@ function Subsection({ title, children }: { title: string; children: React.ReactN
   return (
     <section className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0">
       <header className="flex items-center justify-between gap-2">
-        <h3 className="font-semibold">{title}</h3>
+        <h3 className="font-heading text-base font-semibold leading-6 text-foreground">{title}</h3>
       </header>
       {children}
     </section>

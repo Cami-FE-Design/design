@@ -41,7 +41,7 @@ export function FiltersDialogShell({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md gap-0 overflow-hidden px-6 pt-6 pb-0">
         <div className="mb-5 flex items-center justify-between">
-          <DialogTitle className="text-xl font-bold text-foreground">Filters</DialogTitle>
+          <DialogTitle className="font-heading font-semibold text-2xl">Filters</DialogTitle>
           <Button
             variant="ghost"
             size="icon-sm"

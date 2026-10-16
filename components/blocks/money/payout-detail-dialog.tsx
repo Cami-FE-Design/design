@@ -75,7 +75,7 @@ export function PayoutDetailDialog({
         <DialogHeader className="flex flex-col gap-3 bg-muted/40 px-7 pt-7 pb-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex flex-col gap-1">
-              <DialogTitle className="font-heading text-[28px] leading-8 font-semibold">
+              <DialogTitle className="font-heading font-semibold text-3xl">
                 {formatMoney(payout.amountMinor)}
               </DialogTitle>
               <span className="text-sm text-muted-foreground">
@@ -140,7 +140,7 @@ export function PayoutDetailDialog({
 
           {contents.txs.length > 0 ? (
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium text-foreground">
+              <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
                 What was in it
                 {payout.carriesPayoutId ? " (the same money the returned payout carried)" : ""}
               </h3>
@@ -206,7 +206,9 @@ export function PayoutDetailDialog({
 
           {contents.laterRefunds.length > 0 ? (
             <section className="flex flex-col gap-2">
-              <h3 className="text-sm font-medium text-foreground">Refunded after this payout</h3>
+              <h3 className="font-heading text-lg font-semibold leading-7 text-foreground">
+                Refunded after this payout
+              </h3>
               <p className="text-sm text-muted-foreground">
                 This payout sent the full amount above. These refunds came later and went out
                 against a different payout, so nothing here changes what arrived.

@@ -4,6 +4,7 @@ import { CheckIcon, ListIcon, PlusIcon } from "lucide-react"
 import { useState } from "react"
 
 import { ComboBadge, comboServicesLabel } from "@/components/blocks/catalog/combo-badge"
+import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -125,14 +126,15 @@ export function ServicePicker({
               >
                 {cat.name}
                 {n > 0 ? (
-                  <span
+                  <Badge
+                    size="sm"
                     className={cn(
-                      "flex size-4 items-center justify-center rounded-full text-[10px]",
+                      "rounded-full",
                       on ? "bg-background/25 text-background" : "bg-cami-violet-9 text-white",
                     )}
                   >
                     {n}
-                  </span>
+                  </Badge>
                 ) : null}
               </button>
             )
@@ -162,9 +164,9 @@ export function ServicePicker({
                 >
                   <span>{cat.name}</span>
                   {n > 0 ? (
-                    <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-cami-violet-9 text-[10px] text-white">
+                    <Badge size="sm" className="rounded-full bg-cami-violet-9 text-white">
                       {n}
-                    </span>
+                    </Badge>
                   ) : null}
                 </DropdownMenuItem>
               )

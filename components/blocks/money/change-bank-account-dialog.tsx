@@ -106,7 +106,7 @@ export function ChangeBankAccountDialog({
 
         <div className="flex items-start justify-between gap-3 border-b border-border/60 px-7 pt-7 pb-5">
           <div className="flex flex-col gap-1">
-            <DialogTitle className="font-heading text-xl leading-7 font-semibold">
+            <DialogTitle className="font-heading font-semibold text-2xl">
               {step === "result" && result?.ok === false
                 ? "Nothing was changed"
                 : step === "result"
@@ -189,7 +189,7 @@ export function ChangeBankAccountDialog({
                   placeholder="AE00 0000 0000 0000 0000 000"
                   onChange={(e) => setDraft((d) => ({ ...d, iban: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Only the last 4 digits are shown anywhere in Cami after this.
                 </p>
               </div>

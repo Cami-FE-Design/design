@@ -239,7 +239,9 @@ export function SelectServicesDialog({
           ) : (
             grouped.map(([category, services]) => (
               <div key={category} className="flex flex-col gap-2">
-                <h3 className="text-sm font-semibold text-foreground">{category}</h3>
+                <h3 className="font-heading text-base font-semibold leading-6 text-foreground">
+                  {category}
+                </h3>
                 <div className="flex flex-col gap-2">
                   {services.map((service) => {
                     const selected = selectedIds.includes(service.id)

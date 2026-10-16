@@ -130,7 +130,7 @@ export function MiniTable({ table, minWidth }: { table: SimpleTable; minWidth?: 
                 key={col.key}
                 scope="col"
                 className={cn(
-                  "whitespace-nowrap border-b border-border pb-2 pr-4 text-xs font-medium text-muted-foreground last:pr-0",
+                  "whitespace-nowrap border-b border-border px-3 pb-2 text-sm font-normal text-muted-foreground",
                   col.align === "right" ? "text-right" : "text-left",
                 )}
               >
@@ -151,7 +151,7 @@ export function MiniTable({ table, minWidth }: { table: SimpleTable; minWidth?: 
                 <td
                   key={col.key}
                   className={cn(
-                    "whitespace-nowrap border-b border-border/50 py-2.5 pr-4 tabular-nums text-foreground last:pr-0",
+                    "whitespace-nowrap border-b border-border/50 px-3 py-2.5 tabular-nums text-foreground ",
                     col.align === "right" ? "text-right" : "text-left",
                   )}
                 >
@@ -239,18 +239,6 @@ export function TileRow({ tiles, columns = 4 }: { tiles: StatTile[]; columns?: 1
         </div>
       ))}
     </div>
-  )
-}
-
-/** Initials bubble used by the leaderboard, matching the app's avatar chips. */
-export function Initials({ initials }: { initials: string }) {
-  return (
-    <span
-      aria-hidden
-      className="flex size-6 shrink-0 items-center justify-center rounded-full bg-cami-violet-3 text-[10px] font-semibold text-cami-violet-11"
-    >
-      {initials}
-    </span>
   )
 }
 

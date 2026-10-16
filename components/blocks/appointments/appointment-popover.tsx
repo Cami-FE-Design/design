@@ -140,12 +140,10 @@ function StatusHeaderBar({
         className,
       )}
     >
-      <span className="font-mono text-[11px] tabular-nums">
-        {formatTimeRange(start, durationMin)}
-      </span>
+      <span className="font-mono text-xs tabular-nums">{formatTimeRange(start, durationMin)}</span>
       <span
         className={cn(
-          "inline-flex items-center gap-1 text-[11px] font-medium",
+          "inline-flex items-center gap-1 text-xs font-medium",
           interactive && "cursor-pointer rounded-full px-1.5 py-0.5 hover:bg-black/5",
         )}
       >
@@ -187,7 +185,7 @@ function BranchLine({ booking }: { booking: MockBooking }) {
   return (
     <div
       data-slot="appointment-branch"
-      className="flex shrink-0 items-center gap-1.5 border-b bg-muted/30 px-3 py-1.5 text-[11px] font-medium text-foreground"
+      className="flex shrink-0 items-center gap-1.5 border-b bg-muted/30 px-3 py-1.5 text-xs font-medium text-foreground"
     >
       <BuildingIcon className="size-3 shrink-0 text-muted-foreground" aria-hidden />
       <span className="min-w-0 truncate">{locationName(booking.locationId)}</span>
@@ -231,18 +229,18 @@ function IdentityBlock({ booking, hasPets, compact = false }: IdentityBlockProps
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold leading-tight">{primaryName}</div>
         {secondaryLine ? (
-          <div className="truncate text-[11px] text-muted-foreground leading-tight">
+          <div className="truncate text-xs text-muted-foreground leading-tight">
             {secondaryLine}
           </div>
         ) : null}
         {!compact && booking.clientPhone && showsPet ? (
-          <div className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+          <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
             <PhoneIcon className="size-2.5" aria-hidden />
             {booking.clientPhone}
           </div>
         ) : null}
         {!compact && petFacts ? (
-          <div className="truncate text-[10px] leading-tight text-muted-foreground">{petFacts}</div>
+          <div className="truncate text-xs leading-tight text-muted-foreground">{petFacts}</div>
         ) : null}
       </div>
       {!compact && booking.intakeFormSubmitted ? (
@@ -297,7 +295,7 @@ function StaffAlertBlock({ message, note }: StaffAlertBlockProps) {
       className="flex gap-2 rounded-md border-l-2 border-cami-yellow-8 bg-cami-yellow-2 p-2"
     >
       <AlertTriangleIcon className="mt-0.5 size-3.5 shrink-0 text-cami-yellow-11" aria-hidden />
-      <div className="min-w-0 flex-1 text-[11px]">
+      <div className="min-w-0 flex-1 text-xs">
         <div className="font-semibold uppercase tracking-wide text-cami-yellow-12">{message}</div>
         {note ? (
           <div className="mt-1 rounded bg-cami-yellow-3 px-1.5 py-0.5 text-cami-yellow-12">
@@ -326,22 +324,22 @@ function ServiceItemRow({ item }: { item: MockServiceItem }) {
     <div data-slot="appointment-service-item" className="flex flex-col gap-1">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-1 text-[12px] font-medium">
+          <div className="flex min-w-0 items-center gap-1 text-xs font-medium">
             {item.comboName ? <ComboLineIcon className="size-3" /> : null}
             <span className="truncate">{serviceItemLabel(item)}</span>
           </div>
-          {meta ? <div className="truncate text-[10px] text-muted-foreground">{meta}</div> : null}
+          {meta ? <div className="truncate text-xs text-muted-foreground">{meta}</div> : null}
         </div>
         <div className="flex shrink-0 flex-col items-end leading-tight tabular-nums">
-          <span className="text-[11px] font-medium">
+          <span className="text-xs font-medium">
             {formatMoneyWhole(covered ? 0 : item.priceMinor)}
           </span>
           {item.membership ? (
-            <span className="text-[10px] text-muted-foreground line-through">
+            <span className="text-xs text-muted-foreground line-through">
               {formatMoneyWhole(item.membership.grossPriceMinor)}
             </span>
           ) : item.comboGrossPriceMinor ? (
-            <span className="text-[10px] text-muted-foreground line-through">
+            <span className="text-xs text-muted-foreground line-through">
               {formatMoneyWhole(item.comboGrossPriceMinor)}
             </span>
           ) : null}
@@ -424,10 +422,10 @@ export function AppointmentQuickPanel({
             day should not have to open the sheet to get a route. */}
         {booking.needsPickup ? (
           <section data-slot="pickup-section" className="flex flex-col gap-1">
-            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Your Pet Address
             </div>
-            <div className="flex flex-col gap-1 rounded-md bg-cami-sage-2 px-2 py-1.5 text-[11px] text-cami-sage-12">
+            <div className="flex flex-col gap-1 rounded-md bg-cami-sage-2 px-2 py-1.5 text-xs text-cami-sage-12">
               <div className="flex items-start gap-1.5">
                 <MapPinIcon className="mt-px size-3 shrink-0" aria-hidden />
                 <span className="min-w-0 flex-1">
@@ -450,10 +448,10 @@ export function AppointmentQuickPanel({
             `formatPetNotes` already writes the category into the text. */}
         {booking.petNotes?.length ? (
           <section data-slot="pet-notes-section" className="flex flex-col gap-1">
-            <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Pet notes
             </div>
-            <p className="line-clamp-1 text-[11px] leading-snug text-foreground">
+            <p className="line-clamp-1 text-xs leading-snug text-foreground">
               {formatPetNotes(booking.petNotes)}
             </p>
           </section>
@@ -464,7 +462,7 @@ export function AppointmentQuickPanel({
         <section data-slot="services-section" className="flex flex-col gap-2">
           {/* The label stays outside the scroller — a heading that scrolls away
               leaves an unlabelled list of prices. */}
-          <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Services
           </div>
           {/* 7.5rem holds two rows comfortably and scrolls from the third, which
@@ -481,10 +479,10 @@ export function AppointmentQuickPanel({
         data-slot="appointment-quick-footer"
         className="flex shrink-0 items-center justify-between gap-2 border-t border-border/60 bg-card px-3 py-2"
       >
-        <span className="text-[12px] font-semibold text-foreground">
+        <span className="text-xs font-semibold text-foreground">
           {serviceItems.length} {serviceItems.length === 1 ? "service" : "services"}
         </span>
-        <span className="text-[11px] font-medium tabular-nums text-muted-foreground">
+        <span className="text-xs font-medium tabular-nums text-muted-foreground">
           {formatMoneyWhole(total)}
         </span>
       </footer>
@@ -499,7 +497,7 @@ export function AppointmentQuickPanel({
           data-slot="notes-section"
           className="flex shrink-0 items-start gap-1.5 border-t border-border/60 bg-cami-violet-2 px-3 py-2"
         >
-          <p className="line-clamp-2 min-w-0 flex-1 text-[11px] leading-snug text-foreground">
+          <p className="line-clamp-2 min-w-0 flex-1 text-xs leading-snug text-foreground">
             <span className="font-semibold">Note: </span>
             {booking.notes}
           </p>

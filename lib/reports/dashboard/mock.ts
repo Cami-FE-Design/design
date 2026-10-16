@@ -267,7 +267,6 @@ export const AVERAGE_SALE_TREND = series(
 
 // 8. Top team members leaderboard
 export type LeaderboardRow = {
-  initials: string
   name: string
   sales: string
   salesDelta: number
@@ -282,7 +281,6 @@ export type LeaderboardRow = {
 // reports already name. This was a cast of its own that no other screen knew.
 export const TEAM_LEADERBOARD: LeaderboardRow[] = [
   {
-    initials: "AR",
     name: "Aziz Rahman",
     sales: "AED 2,860",
     salesDelta: 14,
@@ -293,7 +291,6 @@ export const TEAM_LEADERBOARD: LeaderboardRow[] = [
     served: "34",
   },
   {
-    initials: "SP",
     name: "Sara Park",
     sales: "AED 2,140",
     salesDelta: 6,
@@ -304,7 +301,6 @@ export const TEAM_LEADERBOARD: LeaderboardRow[] = [
     served: "27",
   },
   {
-    initials: "BC",
     name: "Beth Carter",
     sales: "AED 1,780",
     salesDelta: 11,
@@ -315,7 +311,6 @@ export const TEAM_LEADERBOARD: LeaderboardRow[] = [
     served: "24",
   },
   {
-    initials: "AH",
     name: "Aya Hassan",
     sales: "AED 1,410",
     salesDelta: -3,
@@ -326,7 +321,6 @@ export const TEAM_LEADERBOARD: LeaderboardRow[] = [
     served: "19",
   },
   {
-    initials: "LP",
     name: "Lena Petrov",
     sales: "AED 880",
     salesDelta: 9,

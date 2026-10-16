@@ -190,9 +190,9 @@ function PIIInvoiceField({ label, children }: { label: string; children: React.R
     <div className="flex flex-col gap-1">
       <span className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
-        <span className="rounded-sm bg-cami-yellow-3 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-cami-yellow-11">
+        <Badge size="sm" className="bg-cami-yellow-3 uppercase tracking-wide text-cami-yellow-11">
           PII
-        </span>
+        </Badge>
       </span>
       {children}
     </div>

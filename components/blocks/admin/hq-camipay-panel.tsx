@@ -634,7 +634,7 @@ function ChangeRateDialog({
                     <FormItem className="flex items-start justify-between gap-4">
                       <div className="flex min-w-0 flex-col gap-0.5">
                         <FormLabel>Drop the fixed fee on larger sales</FormLabel>
-                        <span className="text-xs leading-4 text-muted-foreground">
+                        <span className="text-sm text-muted-foreground">
                           Above the amount you set, the Partner pays the percentage alone.
                         </span>
                       </div>

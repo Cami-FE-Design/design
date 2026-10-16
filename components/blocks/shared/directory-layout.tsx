@@ -217,7 +217,7 @@ export function DirectoryLayout({
           <XIcon className="size-3.5" />
         </button>
       ) : (
-        <kbd className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-border/60 px-1.5 text-[11px] text-muted-foreground">
+        <kbd className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-border/60 px-1.5 text-xs text-muted-foreground">
           /
         </kbd>
       )}
@@ -280,7 +280,7 @@ export function DirectoryLayout({
                               title={s.title}
                               aria-current={active ? "location" : undefined}
                               className={cn(
-                                "-ml-px block truncate border-l py-1 pl-3 text-[13px] leading-5 transition-colors",
+                                "-ml-px block truncate border-l py-1 pl-3 text-sm transition-colors",
                                 active
                                   ? "border-foreground font-medium text-foreground"
                                   : "border-transparent text-muted-foreground hover:text-foreground",

@@ -104,7 +104,7 @@ function CashBody({
             >
               <ArrowLeftIcon className="size-5" />
             </Button>
-            <DialogTitle className="font-heading font-semibold text-xl">Team member</DialogTitle>
+            <DialogTitle className="font-heading font-semibold text-2xl">Team member</DialogTitle>
           </div>
           <DialogClose asChild>
             <Button
@@ -148,7 +148,7 @@ function CashBody({
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <DialogTitle className="font-heading font-semibold text-xl">Add cash amount</DialogTitle>
+        <DialogTitle className="font-heading font-semibold text-2xl">Add cash amount</DialogTitle>
         <DialogClose asChild>
           <Button
             type="button"

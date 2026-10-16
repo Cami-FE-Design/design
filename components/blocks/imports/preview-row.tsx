@@ -130,7 +130,7 @@ export function PreviewRow({ row, expanded, onToggleExpand, override, onOverride
       {/* Duplicate rescue — import the row without the colliding barcode. */}
       {isRescuableReject && (
         <div className="flex flex-col gap-2 border-t border-destructive/20 bg-destructive/5 px-3 py-2.5">
-          <p className="text-[11px] font-medium text-destructive">
+          <p className="text-xs font-medium text-destructive">
             This row&apos;s {dupList} duplicates another record in your file. Import it without the{" "}
             {dupList}, or leave it skipped.
           </p>
@@ -179,7 +179,7 @@ export function PreviewRow({ row, expanded, onToggleExpand, override, onOverride
           )}
           {hasErrors && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground">
                 {isReject ? "Why this row was rejected" : "Errors"}
               </span>
               <ul className="flex flex-col gap-1">
@@ -194,7 +194,7 @@ export function PreviewRow({ row, expanded, onToggleExpand, override, onOverride
           )}
           {hasWarnings && (
             <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-medium text-muted-foreground">Warnings</span>
+              <span className="text-xs font-medium text-muted-foreground">Warnings</span>
               <ul className="flex flex-col gap-1">
                 {warnings.map((w) => (
                   <li key={w} className="flex items-start gap-1.5 text-xs text-amber-700">
@@ -207,7 +207,7 @@ export function PreviewRow({ row, expanded, onToggleExpand, override, onOverride
           )}
           {autoChanges && Object.keys(autoChanges).length > 0 && (
             <div className="flex flex-col gap-1">
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground">
                 Will apply automatically
               </span>
               <RowDiffTable changes={autoChanges} />
@@ -215,7 +215,7 @@ export function PreviewRow({ row, expanded, onToggleExpand, override, onOverride
           )}
           {flaggedChanges && Object.keys(flaggedChanges).length > 0 && (
             <div className="flex flex-col gap-1">
-              <span className="text-[11px] font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground">
                 Needs your approval (toggle above to apply)
               </span>
               <RowDiffTable changes={flaggedChanges} />
