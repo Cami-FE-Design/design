@@ -92,7 +92,7 @@ export function ConfirmDialog({
           <p className="text-base leading-6 text-muted-foreground">{description}</p>
         ) : null}
         {failed ? (
-          <p role="alert" className="text-sm text-destructive">
+          <p role="alert" className="text-sm font-medium text-destructive">
             {errorMessage}
           </p>
         ) : null}

@@ -98,7 +98,7 @@ export function NoteDialog({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="flex flex-col gap-4 sm:max-w-xl">
           <div className="flex items-start justify-between gap-3">
-            <DialogTitle className="text-2xl">{isEdit ? "Edit note" : "Add a note"}</DialogTitle>
+            <DialogTitle>{isEdit ? "Edit note" : "Add a note"}</DialogTitle>
             <DialogClose asChild>
               <button
                 type="button"
@@ -122,7 +122,7 @@ export function NoteDialog({
               This note will be visible only to your team members
             </DialogDescription>
             {failed ? (
-              <p role="alert" className="text-sm text-destructive">
+              <p role="alert" className="text-sm font-medium text-destructive">
                 {isEdit
                   ? "Couldn't update this note. Try again."
                   : "Couldn't save this note. Try again."}
