@@ -531,6 +531,16 @@ const SECTIONS: Section[] = [
         note: "Karen's four notes: the Overview card shows two and sends the rest to Documents so Rebook stays in view.",
       },
       {
+        path: "/clients?client=karen-dougall&tab=documents",
+        label: "Client notes · edit and delete (PRD-196)",
+        note: "Hover a note for Edit and Delete; Delete asks first, from the row and from inside the editor.",
+      },
+      {
+        path: "/clients?client=millie-cassidy&tab=pets",
+        label: "Pet notes · edit and delete (PRD-196)",
+        note: "Open Bobo: Pet notes on Overview and Documents carry the same Edit, Delete and confirmation.",
+      },
+      {
         path: "/clients?client=kirsty-dingomal",
         label: "Client detail · booked, never yet seen",
         note: "A client booked but never seen: Visits leads with the booking, and address, tags, spend and packages show empty states.",

@@ -44,6 +44,7 @@ import { ConfirmDialog } from "@/components/blocks/shared/confirm-dialog"
 import { DatePicker } from "@/components/blocks/shared/date-picker"
 import { EmptyState } from "@/components/blocks/shared/empty-state"
 import { NoteDialog } from "@/components/blocks/shared/note-dialog"
+import { NoteRowActions } from "@/components/blocks/shared/profile-note"
 import { Avatar, type AvatarSpecies } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -1129,38 +1130,11 @@ export function NewAppointmentSheet({
                     >
                       {note || "Empty note — click to edit"}
                     </button>
-                    <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon-sm"
-                            radius="full"
-                            onClick={() => setNoteDialogOpen(true)}
-                            aria-label="Edit note"
-                          >
-                            <PencilIcon className="size-4" aria-hidden />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Edit</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon-sm"
-                            radius="full"
-                            onClick={() => setNote(null)}
-                            aria-label="Delete note"
-                          >
-                            <Trash2Icon className="size-4" aria-hidden />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete</TooltipContent>
-                      </Tooltip>
-                    </div>
+                    <NoteRowActions
+                      onEdit={() => setNoteDialogOpen(true)}
+                      onDelete={() => setNote(null)}
+                      className="absolute top-3 right-3 opacity-0 transition-opacity group-hover/note:opacity-100 group-focus-within/note:opacity-100"
+                    />
                   </div>
                 </section>
               ) : null}
