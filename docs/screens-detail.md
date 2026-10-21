@@ -323,6 +323,12 @@ Bays, rooms and vans as columns instead of staff — the same day grid read by w
 
 Header toolbar (date, Day/Week, filters, New booking) over a demo body. The calendar grid is not mounted here — the booking blocks and their hover card live in /playground under 'Appointments — toolbar and people grid', where clicking a block opens the detail sheet. A booked combo reads as one line per component service, glyph + 'Combo - Service' with the pre-discount price struck through: see Luke Tan / Rocky (b-004). See docs/specs/PRO-68-appointment-foundations.md.
 
+### Team picker · Scheduled team (BUG-21)
+
+`/appointments?team-open=1`
+
+The team picker as built (search, All team, All team members, a checkbox per person, Done) with Scheduled team added above All team, and the calendar now opens on it: the people in today are who the front desk books. ?team=all opens on All team instead. It shows the people the rota has working at this branch on the day in view; somebody on a full-day leave is out, somebody with a part-day leave stays in. It is a mode, not a saved list: page from Wednesday to Tuesday or Thursday and the team changes with the rota, and the button keeps reading Scheduled team. People it leaves out say Not working in the list. Ticking anyone turns it into a hand-picked set, as today. On a day with nobody scheduled the option is off and the calendar falls back to All team, rather than drawing an empty day. The grid isn't mounted on this route, so the faint bar under the page names the columns it would draw. The column width and sideways scroll the ticket also asks for are already live (PILOT-20).
+
 ### New booking sheet · Pet Address + Pet notes
 
 `/appointments`

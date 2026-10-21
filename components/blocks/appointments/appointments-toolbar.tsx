@@ -47,6 +47,8 @@ type AppointmentsToolbarProps = {
   /** Demo toggle: true = pet-business mode, false = generic appointments. Production app sets this per partner. */
   hasPets?: boolean
   onHasPetsChange?: (next: boolean) => void
+  /** The team picker, beside Filters as in the built toolbar. */
+  teamControl?: React.ReactNode
   className?: string
 }
 
@@ -71,6 +73,7 @@ export function AppointmentsToolbar({
   onAddQuickPayment,
   hasPets,
   onHasPetsChange,
+  teamControl,
   className,
 }: AppointmentsToolbarProps) {
   return (
@@ -117,6 +120,7 @@ export function AppointmentsToolbar({
             />
           </div>
         ) : null}
+        {teamControl}
         <Button
           variant="outline"
           size="icon-sm"
