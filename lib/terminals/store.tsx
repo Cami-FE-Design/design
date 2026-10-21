@@ -52,6 +52,17 @@ export type Terminal = {
   /** Demo-formatted countdown while locked out, null otherwise. */
   lockedFor: string | null
   lastSeenAt: string | null
+  /**
+   * The hardware serial printed on the device, typed in by the merchant at
+   * registration and required, as in the built product. Not editable after:
+   * a different serial is a different machine.
+   */
+  serial: string
+  /**
+   * False while the merchant has disabled the terminal. Temporary, unlike
+   * Remove: it stays listed, can't be signed into, and can be enabled again.
+   */
+  isActive: boolean
 }
 
 /**
@@ -79,11 +90,13 @@ export type TerminalSession = {
 /**
  * One value per row, first match wins. There is no "needs PIN": a terminal is
  * issued its code and PIN together at registration, so the only setup step
- * that can be outstanding is whether the device has connected yet.
+ * that can be outstanding is whether the device has connected yet. Disabled
+ * comes first: the merchant switched it off, whatever the device is doing.
  */
-export type TerminalStatus = "locked" | "not-paired" | "active" | "no-sessions"
+export type TerminalStatus = "disabled" | "locked" | "not-paired" | "active" | "no-sessions"
 
 export function terminalStatus(terminal: Terminal, sessions: TerminalSession[]): TerminalStatus {
+  if (!terminal.isActive) return "disabled"
   if (terminal.lockedFor) return "locked"
   if (!terminal.pairedAt) return "not-paired"
   return liveSessions(sessions, terminal.id).length > 0 ? "active" : "no-sessions"
@@ -118,6 +131,8 @@ export const DEMO_TERMINALS: Terminal[] = [
     pin: "482915",
     lockedFor: null,
     lastSeenAt: "3 min ago",
+    serial: "NP-2201938",
+    isActive: true,
   },
   // Paired and ready, but nobody is signed in right now.
   {
@@ -128,6 +143,8 @@ export const DEMO_TERMINALS: Terminal[] = [
     pin: "730164",
     lockedFor: null,
     lastSeenAt: "1 hr ago",
+    serial: "NP-2201944",
+    isActive: true,
   },
   // Registered in the dashboard, never connected. The code exists; nobody has
   // walked over to the device and typed it in yet.
@@ -139,6 +156,8 @@ export const DEMO_TERMINALS: Terminal[] = [
     pin: "915302",
     lockedFor: null,
     lastSeenAt: null,
+    serial: "NP-2207115",
+    isActive: true,
   },
   // Locked out by repeated failed PIN entries on the device itself. Scoped to
   // this terminal — under the old shared-PIN model this blocked every device
@@ -151,6 +170,8 @@ export const DEMO_TERMINALS: Terminal[] = [
     pin: "268471",
     lockedFor: "12 min",
     lastSeenAt: "26 min ago",
+    serial: "NP-2198306",
+    isActive: true,
   },
   // The rest of the estate, in the ordinary state.
   //
@@ -168,6 +189,8 @@ export const DEMO_TERMINALS: Terminal[] = [
     pin: "374018",
     lockedFor: null,
     lastSeenAt: "12 min ago",
+    serial: "NP-2203572",
+    isActive: true,
   },
   {
     id: "TRM-8J6R3Y",
@@ -177,6 +200,8 @@ export const DEMO_TERMINALS: Terminal[] = [
     pin: "590627",
     lockedFor: null,
     lastSeenAt: "41 min ago",
+    serial: "NP-2203589",
+    isActive: true,
   },
   {
     id: "TRM-4C2L7Z",
@@ -186,6 +211,8 @@ export const DEMO_TERMINALS: Terminal[] = [
     pin: "618943",
     lockedFor: null,
     lastSeenAt: "2 hr ago",
+    serial: "NP-2205461",
+    isActive: true,
   },
   {
     id: "TRM-6N9V1B",
@@ -195,6 +222,8 @@ export const DEMO_TERMINALS: Terminal[] = [
     pin: "205871",
     lockedFor: null,
     lastSeenAt: "8 min ago",
+    serial: "NP-2206017",
+    isActive: true,
   },
   {
     id: "TRM-1P3G8W",
@@ -204,6 +233,8 @@ export const DEMO_TERMINALS: Terminal[] = [
     pin: "463290",
     lockedFor: null,
     lastSeenAt: "55 min ago",
+    serial: "NP-2206233",
+    isActive: true,
   },
 ]
 
@@ -259,6 +290,25 @@ export const UNASSIGNED_DEMO_TERMINAL: Terminal = {
   pin: "152846",
   lockedFor: null,
   lastSeenAt: "4 days ago",
+  serial: "NP-2190774",
+  isActive: true,
+}
+
+/**
+ * A machine the merchant has switched off for now. Kept out of DEMO_TERMINALS
+ * for the same reason as the one above; the panel's "all statuses" demo lists
+ * it, reading Disabled.
+ */
+export const DISABLED_DEMO_TERMINAL: Terminal = {
+  id: "TRM-5R8T2K",
+  name: "Back Office Tablet",
+  locationId: "shampooch-jumeirah",
+  pairedAt: "Aug 02",
+  pin: "807352",
+  lockedFor: null,
+  lastSeenAt: "6 days ago",
+  serial: "NP-2199840",
+  isActive: false,
 }
 
 /** Two terminals at one location, one running and one mid-setup. */
@@ -306,7 +356,13 @@ type TerminalsValue = TerminalsState & {
    * issued once and never changing, and a first PIN. Both are readable
    * afterwards from the row.
    */
-  registerTerminal: (input: { id: string; name: string; locationId: string; pin: string }) => void
+  registerTerminal: (input: {
+    id: string
+    name: string
+    locationId: string
+    pin: string
+    serial: string
+  }) => void
   /**
    * Issue a new PIN for one device and end its live sessions. The code is
    * untouched — the device stays paired, staff just sign in with new digits.
@@ -320,6 +376,11 @@ type TerminalsValue = TerminalsState & {
   updateTerminal: (terminalId: string, patch: { name: string; locationId: string }) => void
   /** Clear a lockout early. */
   unlockTerminal: (terminalId: string) => void
+  /**
+   * Switch a terminal off or back on. Off ends its live sessions, since a
+   * disabled device can't stay signed in; on leaves staff to sign in again.
+   */
+  setTerminalActive: (terminalId: string, isActive: boolean) => void
   /** Drop the terminal and end its sessions. */
   removeTerminal: (terminalId: string) => void
   /** End one session without touching the PIN or the device's other sessions. */
@@ -354,6 +415,8 @@ function readSaved(): TerminalsState | null {
         pin: t.pin ?? generatePin(),
         lockedFor: t.lockedFor ?? null,
         lastSeenAt: t.lastSeenAt ?? null,
+        serial: t.serial ?? "",
+        isActive: t.isActive ?? true,
       })),
       sessions: (saved.sessions ?? DEFAULT_TERMINALS_STATE.sessions).map((s) => ({
         ...s,
@@ -396,7 +459,7 @@ export function TerminalsProvider({ children }: { children: React.ReactNode }) {
 
     return {
       ...state,
-      registerTerminal: ({ id, name, locationId, pin }) => {
+      registerTerminal: ({ id, name, locationId, pin, serial }) => {
         persist({
           ...state,
           terminals: [
@@ -409,6 +472,8 @@ export function TerminalsProvider({ children }: { children: React.ReactNode }) {
               pin,
               lockedFor: null,
               lastSeenAt: null,
+              serial,
+              isActive: true,
             },
           ],
         })
@@ -437,6 +502,11 @@ export function TerminalsProvider({ children }: { children: React.ReactNode }) {
           terminals: state.terminals.map((t) =>
             t.id === terminalId ? { ...t, lockedFor: null } : t,
           ),
+        }),
+      setTerminalActive: (terminalId, isActive) =>
+        persist({
+          terminals: state.terminals.map((t) => (t.id === terminalId ? { ...t, isActive } : t)),
+          sessions: isActive ? state.sessions : endSessionsFor(terminalId),
         }),
       removeTerminal: (terminalId) =>
         persist({
@@ -502,6 +572,7 @@ export function useTerminals(): TerminalsValue {
     regeneratePin: () => ({ pin: generatePin(), signedOut: 0 }),
     updateTerminal: () => {},
     unlockTerminal: () => {},
+    setTerminalActive: () => {},
     removeTerminal: () => {},
     revokeSession: () => {},
     pairDevice: () => {},

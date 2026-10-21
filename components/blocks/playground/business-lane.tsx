@@ -3497,7 +3497,7 @@ export function BusinessLane() {
         </Row>
       </Section>
       <Section
-        title="New sale — POS Terminal (card present)"
+        title="New sale — CamiPay Terminal (card present)"
         description="A sale sent to a terminal locks the drawer: Mark as paid stands in for the callback, Collect another way is the only exit."
       >
         <Row label="Payment step — two machines, one tile each">
@@ -3517,7 +3517,7 @@ export function BusinessLane() {
           </div>
         </Row>
         {/* One row, not two: past the cap and nothing-signed-in produce the
-          same grid — a single POS Terminal tile. What separates them is what
+          same grid — a single CamiPay Terminal tile. What separates them is what
           the picker says when it opens, which is the pair of rows below. */}
         <Row label="Payment step — two machines, one of them signed out">
           <div className="w-full max-w-xl">
@@ -3562,7 +3562,7 @@ export function BusinessLane() {
             />
           </div>
         </Row>
-        <Row label="Payment step — past the tile cap, one POS Terminal tile">
+        <Row label="Payment step — past the tile cap, one CamiPay Terminal tile">
           <div className="w-full max-w-xl">
             <PaymentView onSelect={(id) => toast(`Selected ${id}`)} />
           </div>
@@ -3625,7 +3625,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Terminals (DSG-62)"
-        description="Per-device terminal rows with session state, and demo controls for Not paired, Signed out and Ready."
+        description="Per-device terminal rows with session state, and demo controls for Not paired, Signed out and Ready; the all-statuses list adds Disabled."
       >
         <Row label="Empty (nothing added yet)">
           <div className="w-full rounded-2xl border border-border/60 bg-card p-6">

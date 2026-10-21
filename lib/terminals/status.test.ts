@@ -31,6 +31,10 @@ describe("terminal fixes", () => {
     expect(terminalFix("active")).toBeNull()
   })
 
+  it("tells a disabled machine where to switch it back on", () => {
+    expect(terminalFixes(["disabled"])).toEqual(["Disabled: enable it in Settings."])
+  })
+
   it("gives one machine its fix as a sentence of its own", () => {
     expect(terminalFix("no-sessions")).toBe("Enter the PIN on the device to sign back in.")
   })

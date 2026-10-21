@@ -10,6 +10,7 @@
 import type { TerminalStatus } from "@/lib/terminals/store"
 
 export const TERMINAL_STATUS_LABEL: Record<TerminalStatus, string> = {
+  disabled: "Disabled",
   locked: "Locked",
   "not-paired": "Not paired",
   active: "Ready",
@@ -30,6 +31,7 @@ export function terminalStatusText(status: TerminalStatus, lockedFor: string | n
 const FIXES: [Exclude<TerminalStatus, "active">, string][] = [
   ["no-sessions", "Enter the PIN on the device to sign back in."],
   ["locked", "Too many wrong PINs. Wait, or unlock it in Settings."],
+  ["disabled", "Enable it in Settings."],
   ["not-paired", "Enter the pairing code on the device."],
 ]
 

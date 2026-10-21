@@ -129,7 +129,7 @@ function seedCheckoutLines(): CartLine[] {
 
 /**
  * Fixed terminal setups behind ?terminals=, so a review link is the same on
- * every machine: `none` hides the POS Terminal tile, `idle` keeps it (the
+ * every machine: `none` hides the CamiPay Terminal tile, `idle` keeps it (the
  * machines exist, nobody has signed in yet), `mixed` is one Ready, one Signed
  * out and one Locked, `one` and `two` put the machines
  * in the grid as their own tiles, `many` is past the tile cap and falls back
@@ -173,7 +173,7 @@ function terminalScenario(
       sessions: TYPICAL_SESSIONS.filter((s) => s.terminalId === TYPICAL_TERMINALS[0].id),
     }
   // Past MAX_TERMINAL_TILES, so the grid stops naming machines and the picker
-  // takes over — six of them, two signed out, which is what the picker's
+  // takes over — six of them, two signed out and one disabled, which is what the picker's
   // ordering and its scroll are for.
   if (key === "many") {
     const extra = Array.from({ length: 4 }, (_, i) => ({
@@ -181,6 +181,8 @@ function terminalScenario(
       id: `TRM-DEMO-${i + 1}`,
       name: ["Reception iPad", "Grooming Room 2", "Boarding Desk", "Mobile Van"][i],
       locationId: i === 3 ? "field-team" : TYPICAL_TERMINALS[0].locationId,
+      // One switched off in Settings, so the picker shows Disabled too.
+      isActive: i !== 0,
     }))
     const all = [...TYPICAL_TERMINALS, ...extra]
     return {
@@ -941,7 +943,7 @@ function CartFlowInner({
     setConfirmed(true)
   }
 
-  // ─── POS Terminal ────────────────────────────────────────────────────────
+  // ─── CamiPay Terminal ────────────────────────────────────────────────────────
 
   // Routing a sale to the card machine locks the cart for the same reason a
   // live payment link does: the machine is about to charge a figure, and the

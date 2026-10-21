@@ -655,37 +655,37 @@ Seeds a demo cart and opens on the Payment step — method grid, Split, and the 
 
 Seeds a demo cart on the Payment step with the Send-payment-link dialog open. Operator confirms client name + mobile (prefilled from the attached client), reads the 3-step 'How it works', sends. Sending creates a draft sale and locks the cart: the drawer body is replaced by the Payment-link-sent screen showing recipient, amount and a 12-hour expiry. No progress beats — the operator can't act on them. Cancel payment link invalidates the link (never edits it), closes the cart, and hands off to the draft sale it created — Checkout there resumes at the Tip step; Mark as paid settles to the Payment complete screen. The client's half of this is /[slug]/pay/[token].
 
-### New sale · POS Terminal — one machine
+### New sale · CamiPay Terminal — one machine
 
 `/sales/new-sale?terminals=one`
 
-Payment step with exactly one signed-in card machine, which appears in the grid under its own name rather than as a generic POS Terminal tile. Tapping it sends the sale straight there and the drawer locks: no step nav, no Save unpaid, no second tap for the backend to refuse. Collect another way is the only exit; its confirm warns about a card that already went through and returns to the payment methods with the cart intact. Mark as paid stands in for the terminal's settlement callback and lands on the usual Payment complete screen.
+Payment step with exactly one signed-in card machine, which appears in the grid under its own name rather than as a generic CamiPay Terminal tile. Tapping it sends the sale straight there and the drawer locks: no step nav, no Save unpaid, no second tap for the backend to refuse. Collect another way is the only exit; its confirm warns about a card that already went through and returns to the payment methods with the cart intact. Mark as paid stands in for the terminal's settlement callback and lands on the usual Payment complete screen.
 
-### New sale · POS Terminal — two machines
+### New sale · CamiPay Terminal — two machines
 
 `/sales/new-sale?terminals=two`
 
 Two machines, so the grid carries both by name under a Card terminals heading — the register in front of the receptionist is one tap, not a tile plus a picker (Michelle's note on the review). The heading is there because a tile reading 'Front Desk Register' next to 'Cash' says nothing about what it is, and 'Card' already means keying a card in by hand. Up to three REGISTERED machines get tiles — counted on registration, never on who is signed in, or a four-machine business would see named tiles in the morning and one generic tile by noon. Past three, see ?terminals=many.
 
-### New sale · POS Terminal — registered, nobody signed in
+### New sale · CamiPay Terminal — registered, nobody signed in
 
 `/sales/new-sale?terminals=idle`
 
 The state a merchant is in every morning, and again whenever a 24-hour sign-in runs out: the card machines are registered, but nobody is signed in. Their tiles hold their places, greyed, each reading Signed out, and one line under the grid says the fix: enter the PIN on the device (BUG-65). The live build does the opposite today. Its checkout list only carries machines with a live session, so the tile disappears when the session ends and comes back after someone signs in. Sophia's front desk read that as "sometimes shows, sometimes not" and called support. Greyed with a status and a fix reads as a sign-in that hasn't happened, not broken hardware. The same words appear in Settings > Payments > Terminals, where the row used to say No sessions.
 
-### New sale · POS Terminal — Ready, Signed out, Locked (BUG-65)
+### New sale · CamiPay Terminal — Ready, Signed out, Locked (BUG-65)
 
 `/sales/new-sale?terminals=mixed`
 
 One machine in each state a counter meets. Front Desk Register is Ready and takes the sale. Grooming Counter reads Signed out, and Reception iPad reads Locked · 12 min after wrong PINs on the device. Under the grid there is one fix line per state, not one per machine, so two signed-out registers still get a single line. Offline isn't shown: the backend has no connection signal for a terminal yet, only last seen, so there is nothing to base it on.
 
-### New sale · POS Terminal — past the tile cap
+### New sale · CamiPay Terminal — past the tile cap
 
 `/sales/new-sale?terminals=many`
 
-Six registered machines, four of them signed in. Past three the grid stops naming them: a row of merchant-typed device names ('Till 2', 'Boarding Desk') where Cash and Card sit reads as an inventory of hardware rather than a list of ways to pay, so one POS Terminal tile opens the Send-to-terminal picker instead. In the picker the usable machines sort to the top and the list scrolls inside the dialog, so the Send button stays put however many machines a business runs.
+Six registered machines, four of them signed in. Past three the grid stops naming them: a row of merchant-typed device names ('Till 2', 'Boarding Desk') where Cash and Card sit reads as an inventory of hardware rather than a list of ways to pay, so one CamiPay Terminal tile opens the Send-to-terminal picker instead. In the picker the usable machines sort to the top and the list scrolls inside the dialog, so the Send button stays put however many machines a business runs.
 
-### New sale · POS Terminal (card present)
+### New sale · CamiPay Terminal (card present)
 
 `/sales/new-sale?dialog=terminal`
 
@@ -1647,7 +1647,7 @@ What a real merchant has. List rows rather than a data table: name at full weigh
 
 `/shell-demo?settings=payments&pp=terminal&tp=full`
 
-Four rows covering the status precedence, first match wins: Locked · 12 min (failed PIN entries, scoped to that device — under the old shared-PIN model this blocked every terminal at every location), Not paired (code issued, device never connected), Ready (live sessions), Signed out (paired, nobody signed in; this read No sessions before BUG-65). The middle two are states the source mockup had no room for.
+Rows covering the status precedence, first match wins: Disabled (the merchant switched it off from the row menu; the row mutes and Enable brings it back, as built), Locked · 12 min (failed PIN entries, scoped to that device — under the old shared-PIN model this blocked every terminal at every location), Not paired (code issued, device never connected), Ready (live sessions), Signed out (paired, nobody signed in; this read No sessions before BUG-65). The middle two are states the source mockup had no room for.
 
 ### Terminals, credentials dialog
 

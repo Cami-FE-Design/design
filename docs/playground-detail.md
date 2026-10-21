@@ -248,7 +248,7 @@ Selling a gift card from the POS drawer (/sales/new-sale → Gift cards). The Ad
 
 The operator half of CamiPay (PRO-396, reworked in PRO-909). 'Payment link' texts the client a link they pay on their own phone. Sending it creates a draft sale and locks the cart — amount and method frozen so the link and the sale cannot drift apart — so the drawer body becomes the lock screen rather than narrating progress the operator cannot act on. Links live 12 hours. Cancel invalidates the link and hands off to the draft it created; Mark as paid is the manual settle path.
 
-### New sale — POS Terminal (card present)
+### New sale — CamiPay Terminal (card present)
 
 The card-present adoption of PRO-909's locked cart: once a sale is sent to a machine the drawer body is replaced, so the operator cannot re-charge it or discard a sale that already took the money. Mark as paid stands in for the terminal callback; Collect another way is the only exit and keeps the cart. Only a signed-in machine can be picked, and every other state carries its status: Signed out, Locked · 12 min, Not paired. Under the tiles, one line per state says how to bring it back; in the picker the fix sits on the row itself (BUG-65). The status words match Settings > Payments > Terminals. Sessions end after 24 hours by design, so Signed out is the one every merchant meets once a day.
 

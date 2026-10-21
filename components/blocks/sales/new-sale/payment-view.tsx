@@ -23,7 +23,7 @@ const METHODS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "card", label: "Card", icon: WalletIcon },
   { id: "gift-card", label: "Gift card", icon: GiftIcon },
   { id: "split", label: "Split payment", icon: SplitIcon },
-  { id: "terminal", label: "POS Terminal", icon: CreditCardIcon },
+  { id: "terminal", label: "CamiPay Terminal", icon: CreditCardIcon },
 ]
 
 /**
@@ -31,12 +31,12 @@ const METHODS: { id: string; label: string; icon: LucideIcon }[] = [
  * counter — one or two registers — is a single tap. Past it the grid stops
  * reading as a list of payment methods and starts reading as an inventory of
  * hardware, with the merchant's own device names ("Till 2") sitting where Cash
- * and Card are; so beyond the cap they collapse to one POS Terminal tile that
+ * and Card are; so beyond the cap they collapse to one CamiPay Terminal tile that
  * opens the picker.
  *
  * Counted on REGISTERED machines, never on how many are signed in right now.
  * Otherwise a four-machine business would see two named tiles in the morning
- * and a single POS Terminal tile by noon as staff signed in — the same screen
+ * and a single CamiPay Terminal tile by noon as staff signed in — the same screen
  * changing shape through the day, for the same person. How many registers a
  * counter has is a fact about the business; who is signed into them is not.
  */
