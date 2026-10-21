@@ -19,7 +19,7 @@ walk-in, AED 150):
 - The card clears on the machine. The sales list behind the drawer refreshes to
   **Completed** — the drawer stays on "Select payment", "To pay 150.00", with
   **Save unpaid** still live. A paid sale reading as unpaid.
-- Tapping **POS Terminal** again is refused by the backend: `Sale cannot be
+- Tapping **CamiPay Terminal** again is refused by the backend: `Sale cannot be
   routed to a collection method in status 'completed'`. The UI offered an
   action the sale could not take.
 - Closing the drawer opens **"Discard draft sale?"** — on a sale that has taken
@@ -39,14 +39,14 @@ unpaid, no second tap to refuse. Settlement lands on the existing
 
 | Topic | Decision |
 | --- | --- |
-| Trigger | A **machine's own tile** in the payment grid, for a merchant with up to three registered machines. Beyond three, one **POS Terminal** tile opens the picker. |
+| Trigger | A **machine's own tile** in the payment grid, for a merchant with up to three registered machines. Beyond three, one **CamiPay Terminal** tile opens the picker. |
 | Target | One chosen device. The operator picks it; the locked screen names it. |
 | Amount | The whole remaining balance. The terminal settles against the backend's outstanding figure; the amount shown is what the operator was told the client owes at the moment of sending. |
 | Cart while routed | **Locked** — same rule as a live link. |
 | Only action while routed | **Collect another way** (cancel), with a confirm. |
 | Cancel semantics | Sale comes off the machine, cart intact, back to the payment methods. |
 | After settlement | Existing `ConfirmationScreen` ("Payment complete"). |
-| Method label | `POS Terminal` on the payment row — already how a settled terminal sale reads on the sale detail. |
+| Method label | `CamiPay Terminal` on the payment row — already how a settled terminal sale reads on the sale detail. |
 | Tile visibility | Hidden when the merchant has no registered terminal. Sign-in state is not part of that — a signed-out device is still a terminal, and the picker is where the operator learns it needs signing in. |
 
 ### Why machines are payment methods, not a picker
@@ -64,8 +64,9 @@ hand — the two are one bad guess apart. The heading answers it once for all of
 them, and the tiles carry the same icon the terminal rows use in Payment
 settings, so the same object looks the same in both places.
 
-A machine nobody is signed into keeps its tile, greyed, carrying its reason
-("Nobody signed in", "Locked · 12 min"). A register that quietly vanished from
+A machine nobody is signed into keeps its tile, greyed, carrying its status
+("Signed out", "Locked · 12 min"), with one line per state under the grid
+saying how to bring it back (BUG-65). A register that quietly vanished from
 the grid reads as broken hardware; greyed with a reason reads as a sign-in that
 has not happened yet.
 
@@ -107,12 +108,12 @@ on its own. An "are you sure" would carry none of that.
 ## Flow
 
 1. Payment step → the machine's tile, one tap. With nothing signed in (or more
-   than three machines) → **POS Terminal** tile → **Send to terminal** dialog,
+   than three machines) → **CamiPay Terminal** tile → **Send to terminal** dialog,
    stating the amount and listing the merchant's machines.
 2. In the picker, only a signed-in terminal can be picked. The other three
    DSG-62 states are
-   listed rather than filtered out, each with its reason on the row — "Nobody
-   signed in", "Not set up on the device yet", "Locked · 12 min". A receptionist
+   listed rather than filtered out, each with its status on the row — "Signed
+   out", "Not paired", "Locked · 12 min" — followed by its fix on the same row. A receptionist
    whose usual register is missing needs to know it is the sign-in that is
    missing, not the hardware. With none signed in, the dialog leads with a
    notice saying so.

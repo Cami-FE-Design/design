@@ -3497,7 +3497,7 @@ export function BusinessLane() {
         </Row>
       </Section>
       <Section
-        title="New sale — POS Terminal (card present)"
+        title="New sale — CamiPay Terminal (card present)"
         description="A sale sent to a terminal locks the drawer: Mark as paid stands in for the callback, Collect another way is the only exit."
       >
         <Row label="Payment step — two machines, one tile each">
@@ -3505,31 +3505,64 @@ export function BusinessLane() {
             <PaymentView
               onSelect={(id) => toast(`Selected ${id}`)}
               machines={[
-                { id: "TRM-7Q4K2M", name: "Front Desk Register", blockedReason: null },
-                { id: "TRM-3H8N5P", name: "Grooming Counter", blockedReason: null },
+                {
+                  id: "TRM-7Q4K2M",
+                  name: "Front Desk Register",
+                  status: "active",
+                  lockedFor: null,
+                },
+                { id: "TRM-3H8N5P", name: "Grooming Counter", status: "active", lockedFor: null },
               ]}
             />
           </div>
         </Row>
         {/* One row, not two: past the cap and nothing-signed-in produce the
-          same grid — a single POS Terminal tile. What separates them is what
+          same grid — a single CamiPay Terminal tile. What separates them is what
           the picker says when it opens, which is the pair of rows below. */}
         <Row label="Payment step — two machines, one of them signed out">
           <div className="w-full max-w-xl">
             <PaymentView
               onSelect={(id) => toast(`Selected ${id}`)}
               machines={[
-                { id: "TRM-7Q4K2M", name: "Front Desk Register", blockedReason: null },
+                {
+                  id: "TRM-7Q4K2M",
+                  name: "Front Desk Register",
+                  status: "active",
+                  lockedFor: null,
+                },
                 {
                   id: "TRM-3H8N5P",
                   name: "Grooming Counter",
-                  blockedReason: "Nobody signed in",
+                  status: "no-sessions",
+                  lockedFor: null,
                 },
               ]}
             />
           </div>
         </Row>
-        <Row label="Payment step — past the tile cap, one POS Terminal tile">
+        <Row label="Payment step — Ready, Signed out and Locked, a fix line for each">
+          <div className="w-full max-w-xl">
+            <PaymentView
+              onSelect={(id) => toast(`Selected ${id}`)}
+              machines={[
+                {
+                  id: "TRM-7Q4K2M",
+                  name: "Front Desk Register",
+                  status: "active",
+                  lockedFor: null,
+                },
+                {
+                  id: "TRM-3H8N5P",
+                  name: "Grooming Counter",
+                  status: "no-sessions",
+                  lockedFor: null,
+                },
+                { id: "TRM-2B7X4V", name: "Reception iPad", status: "locked", lockedFor: "12 min" },
+              ]}
+            />
+          </div>
+        </Row>
+        <Row label="Payment step — past the tile cap, one CamiPay Terminal tile">
           <div className="w-full max-w-xl">
             <PaymentView onSelect={(id) => toast(`Selected ${id}`)} />
           </div>
@@ -3592,7 +3625,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Terminals (DSG-62)"
-        description="Per-device terminal rows with session state, and demo controls for Not paired, No sessions and Active."
+        description="Per-device terminal rows with session state, and demo controls for Not paired, Signed out and Ready; the all-statuses list adds Disabled."
       >
         <Row label="Empty (nothing added yet)">
           <div className="w-full rounded-2xl border border-border/60 bg-card p-6">

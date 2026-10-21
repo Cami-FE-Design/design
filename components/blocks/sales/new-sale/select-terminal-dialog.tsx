@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { locationName } from "@/lib/locations/mock"
 import { formatMoney } from "@/lib/money/format"
+import { terminalFix, terminalStatusText } from "@/lib/terminals/status"
 import { type Terminal, type TerminalSession, terminalStatus } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
 
@@ -16,23 +17,13 @@ import { cn } from "@/lib/utils"
 //
 // Only a terminal someone is signed into can take the sale. The other three
 // states from DSG-62 (never paired, paired but nobody signed in, locked out on
-// failed PINs) are listed rather than filtered out, with the reason on the row:
-// a receptionist whose usual register is missing needs to know it's the sign-in
-// that's missing, not the terminal.
+// failed PINs) are listed rather than filtered out, with the status and its fix
+// on the row (BUG-65): a receptionist whose usual register is
+// missing needs to know it's the sign-in that's missing, not the terminal.
 
 /** A terminal can only pick up a sale while someone is signed into it. */
 export function canTakeSale(terminal: Terminal, sessions: TerminalSession[]): boolean {
   return terminalStatus(terminal, sessions) === "active"
-}
-
-/** Why this machine can't take the sale, or null when it can. */
-export function blockedReason(terminal: Terminal, sessions: TerminalSession[]): string | null {
-  const status = terminalStatus(terminal, sessions)
-  if (status === "active") return null
-  if (status === "locked")
-    return terminal.lockedFor ? `Locked · ${terminal.lockedFor}` : "Locked out"
-  if (status === "not-paired") return "Not set up on the device yet"
-  return "Nobody signed in"
 }
 
 type SelectTerminalDialogProps = {
@@ -85,8 +76,8 @@ export function SelectTerminalDialog({
         {available.length === 0 ? (
           <div className="rounded-xl bg-cami-yellow-2 p-3">
             <p className="text-sm text-foreground leading-5">
-              No terminal is signed in right now. Sign in on the device with its PIN, then send this
-              sale — or take the payment another way.
+              No terminal is ready right now. Take the payment another way, or fix one below and
+              send this sale again.
             </p>
           </div>
         ) : null}
@@ -96,8 +87,8 @@ export function SelectTerminalDialog({
             otherwise lose the rows AND the Send button off the bottom. */}
         <div className="-mx-1 flex max-h-72 flex-col gap-2 overflow-y-auto px-1">
           {ordered.map((terminal) => {
-            const reason = blockedReason(terminal, sessions)
-            const disabled = reason !== null
+            const status = terminalStatus(terminal, sessions)
+            const disabled = status !== "active"
             const isSelected = terminal.id === selectedId
             return (
               <button
@@ -108,8 +99,10 @@ export function SelectTerminalDialog({
                 aria-pressed={isSelected}
                 className={cn(
                   "flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors",
+                  // No fade on a blocked row: its status and fix are the
+                  // reason it's listed at all, so they stay readable (BUG-65).
                   disabled
-                    ? "cursor-not-allowed border-border/60 opacity-60"
+                    ? "cursor-not-allowed border-border/60 bg-muted/30"
                     : isSelected
                       ? "cursor-pointer border-cami-violet-8 bg-cami-violet-2"
                       : "cursor-pointer border-border/60 hover:bg-muted/40",
@@ -126,12 +119,31 @@ export function SelectTerminalDialog({
                   <MonitorSmartphoneIcon className="size-5" />
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-medium text-foreground text-sm leading-5">
+                  <span
+                    className={cn(
+                      "truncate font-medium text-sm leading-5",
+                      disabled ? "text-muted-foreground" : "text-foreground",
+                    )}
+                  >
                     {terminal.name}
                   </span>
-                  <span className="truncate text-muted-foreground text-sm leading-5">
-                    {reason ?? (locationName(terminal.locationId) || "No location")}
-                  </span>
+                  {disabled ? (
+                    // The fix sits on its own row, not in a footnote under the
+                    // list: past the cap the blocked rows sort to the bottom,
+                    // out of view, and a note about them read as being about
+                    // the rows on screen.
+                    <span className="text-muted-foreground text-sm leading-5">
+                      <span className="font-medium text-foreground">
+                        {terminalStatusText(status, terminal.lockedFor)}
+                      </span>
+                      {" · "}
+                      {terminalFix(status)}
+                    </span>
+                  ) : (
+                    <span className="truncate text-muted-foreground text-sm leading-5">
+                      {locationName(terminal.locationId) || "No location"}
+                    </span>
+                  )}
                 </span>
               </button>
             )

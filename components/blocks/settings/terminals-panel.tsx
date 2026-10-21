@@ -7,7 +7,7 @@
 // here, each gets its own code and PIN, and staff sign in with both to open a
 // 24-hour session. Sessions are not listed separately: at a ceiling of four
 // terminals the history was mostly dead rows, so what remains is the live
-// count feeding a row's Active status and a Sign out action in its menu.
+// count feeding a row's Ready status and a Sign out action in its menu.
 //
 // Both credentials stay readable. The code is issued once and never changes;
 // the PIN can be re-read whenever staff need to sign a device in, and
@@ -55,9 +55,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { locationName } from "@/lib/locations/mock"
 import { useLocations } from "@/lib/locations/store"
 import { isUnassigned } from "@/lib/terminals/at-checkout"
+import { terminalStatusText } from "@/lib/terminals/status"
 import {
   DEMO_SESSIONS,
   DEMO_TERMINALS,
+  DISABLED_DEMO_TERMINAL,
   generatePin,
   generateTerminalCode,
   liveSessions,
@@ -97,16 +99,11 @@ export type TerminalsDemoState = "typical" | "full" | "empty" | null
  */
 export type TerminalsDemoDialog = "credentials" | "sessions" | "add" | null
 
-// The two setup states are amber because they are waiting on someone; the two
-// running states are green or neutral because nothing is owed.
-const STATUS_LABEL: Record<TerminalStatus, string> = {
-  locked: "Locked",
-  "not-paired": "Not paired",
-  active: "Active",
-  "no-sessions": "No sessions",
-}
-
+// Labels come from lib/terminals/status, the words checkout uses too (BUG-65).
+// Locked is red and Not paired amber because they are waiting on someone;
+// Ready is green and Signed out neutral because nothing is owed.
 const STATUS_DOT: Record<TerminalStatus, string> = {
+  disabled: "bg-sand-8",
   locked: "bg-tomato-9",
   "not-paired": "bg-cami-yellow-9",
   active: "bg-cami-green-9",
@@ -141,11 +138,23 @@ export function TerminalsPanel({
   const { granted } = useLocations()
   const [regenerating, setRegenerating] = useState<Terminal | null>(null)
   const [removing, setRemoving] = useState<Terminal | null>(null)
-  // Name and location changes made while a demo list is on screen. Patched
-  // here rather than in the store, which does not hold the demo machines.
-  const [demoEdits, setDemoEdits] = useState<Record<string, { name: string; locationId: string }>>(
-    {},
-  )
+  const [disabling, setDisabling] = useState<Terminal | null>(null)
+  // Name, location and on/off changes made while a demo list is on screen.
+  // Patched here rather than in the store, which does not hold the demo
+  // machines.
+  const [demoEdits, setDemoEdits] = useState<
+    Record<string, Partial<Pick<Terminal, "name" | "locationId" | "isActive">>>
+  >({})
+
+  /** Switch a terminal off or on, in the demo list or the store. */
+  function setActive(terminal: Terminal, isActive: boolean) {
+    if (demoState !== null) {
+      setDemoEdits((edits) => ({ ...edits, [terminal.id]: { ...edits[terminal.id], isActive } }))
+    } else {
+      store.setTerminalActive(terminal.id, isActive)
+    }
+    toast.success(`${terminal.name} ${isActive ? "enabled" : "disabled"}`)
+  }
 
   // Bounded by the grant, like every other branch-scoped read (R18). Terminals
   // are seeded against Shampooch's branches, so signing into another business
@@ -156,7 +165,7 @@ export function TerminalsPanel({
     demoState === "empty"
       ? []
       : demoState === "full"
-        ? [...DEMO_TERMINALS, UNASSIGNED_DEMO_TERMINAL]
+        ? [...DEMO_TERMINALS, UNASSIGNED_DEMO_TERMINAL, DISABLED_DEMO_TERMINAL]
         : demoState === "typical"
           ? TYPICAL_TERMINALS
           : store.terminals
@@ -226,6 +235,8 @@ export function TerminalsPanel({
           onChangeLocation={(terminal) => setEditing({ terminal, field: "location" })}
           onRegenerate={setRegenerating}
           onRemove={setRemoving}
+          onDisable={setDisabling}
+          onEnable={(terminal) => setActive(terminal, true)}
           onUnlock={(terminal) =>
             withRealState(() => {
               store.unlockTerminal(terminal.id)
@@ -301,6 +312,7 @@ export function TerminalsPanel({
               pairedAt: null,
               lockedFor: null,
               lastSeenAt: null,
+              isActive: true,
             }
             store.registerTerminal(terminal)
             // Step 2: both credentials, which is everything the merchant walks
@@ -343,7 +355,10 @@ export function TerminalsPanel({
           // A demo list patches itself, so the machine visibly moves into
           // place; the store only holds the live list's machines.
           if (demoState !== null) {
-            setDemoEdits((edits) => ({ ...edits, [editing.terminal.id]: patch }))
+            setDemoEdits((edits) => ({
+              ...edits,
+              [editing.terminal.id]: { ...edits[editing.terminal.id], ...patch },
+            }))
           } else {
             store.updateTerminal(editing.terminal.id, patch)
           }
@@ -375,6 +390,22 @@ export function TerminalsPanel({
             setRegenerating(null)
           })
         }
+      />
+
+      {/* Copy as the built product has it. Temporary, unlike Remove: the row
+          stays and Enable brings it back. */}
+      <ConfirmDialog
+        open={disabling !== null}
+        onOpenChange={(open) => !open && setDisabling(null)}
+        title={disabling ? `Disable ${disabling.name}?` : ""}
+        description="The terminal won't be able to sign in while disabled, and this may sign out its active sessions. You can re-enable it at any time."
+        confirmLabel="Disable terminal"
+        destructive
+        onConfirm={() => {
+          if (!disabling) return
+          setActive(disabling, false)
+          setDisabling(null)
+        }}
       />
 
       <ConfirmDialog
@@ -428,6 +459,8 @@ function RegisteredTerminalsCard({
   onChangeLocation,
   onRegenerate,
   onRemove,
+  onDisable,
+  onEnable,
   onUnlock,
 }: {
   terminals: Terminal[]
@@ -439,6 +472,8 @@ function RegisteredTerminalsCard({
   onChangeLocation: (terminal: Terminal) => void
   onRegenerate: (terminal: Terminal) => void
   onRemove: (terminal: Terminal) => void
+  onDisable: (terminal: Terminal) => void
+  onEnable: (terminal: Terminal) => void
   onUnlock: (terminal: Terminal) => void
 }) {
   return (
@@ -497,6 +532,8 @@ function RegisteredTerminalsCard({
               onChangeLocation={onChangeLocation}
               onRegenerate={onRegenerate}
               onRemove={onRemove}
+              onDisable={onDisable}
+              onEnable={onEnable}
               onUnlock={onUnlock}
             />
           ))}
@@ -515,6 +552,8 @@ function TerminalRow({
   onChangeLocation,
   onRegenerate,
   onRemove,
+  onDisable,
+  onEnable,
   onUnlock,
 }: {
   terminal: Terminal
@@ -525,11 +564,13 @@ function TerminalRow({
   onChangeLocation: (terminal: Terminal) => void
   onRegenerate: (terminal: Terminal) => void
   onRemove: (terminal: Terminal) => void
+  onDisable: (terminal: Terminal) => void
+  onEnable: (terminal: Terminal) => void
   onUnlock: (terminal: Terminal) => void
 }) {
   const { granted } = useLocations()
   const status = terminalStatus(terminal, sessions)
-  const liveCount = liveSessions(sessions, terminal.id).length
+  const disabled = status === "disabled"
   const unassigned = isUnassigned(terminal)
   const location = terminalLocation(terminal)
   // Somewhere else this person holds to move it to. Without one the action is
@@ -548,7 +589,9 @@ function TerminalRow({
 
   return (
     <li className="flex items-center justify-between gap-4 py-3">
-      <div className="flex min-w-0 items-center gap-3">
+      {/* A disabled terminal mutes what it shows, never its menu: it has to
+          stay manageable to be enabled again. As built. */}
+      <div className={cn("flex min-w-0 items-center gap-3", disabled && "opacity-60")}>
         <div
           aria-hidden
           className={cn(
@@ -585,13 +628,17 @@ function TerminalRow({
             Set location
           </Button>
         ) : null}
-        <span className="flex w-[7.5rem] shrink-0 items-center gap-1.5 text-sm leading-5 text-muted-foreground">
-          <span aria-hidden className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])} />
-          <span className="truncate">
-            {STATUS_LABEL[status]}
-            {status === "locked" && terminal.lockedFor ? ` · ${terminal.lockedFor}` : ""}
+        {disabled ? (
+          <span className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
+            {terminalStatusText(status, null)}
           </span>
-        </span>
+        ) : (
+          <span className="flex w-[7.5rem] shrink-0 items-center gap-1.5 text-sm leading-5 text-muted-foreground">
+            <span aria-hidden className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])} />
+            <span className="truncate">{terminalStatusText(status, terminal.lockedFor)}</span>
+          </span>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -625,7 +672,7 @@ function TerminalRow({
                 Only offered once the terminal has actually been paired. */}
             {terminal.pairedAt ? (
               <DropdownMenuItem onSelect={() => onViewSessions(terminal)}>
-                {liveCount === 1 ? "1 device signed in" : `${liveCount} devices signed in`}
+                View sessions
               </DropdownMenuItem>
             ) : null}
             <DropdownMenuItem onSelect={() => onRegenerate(terminal)}>
@@ -634,6 +681,15 @@ function TerminalRow({
             {terminal.lockedFor ? (
               <DropdownMenuItem onSelect={() => onUnlock(terminal)}>Unlock now</DropdownMenuItem>
             ) : null}
+            {terminal.isActive ? (
+              <DropdownMenuItem onSelect={() => onDisable(terminal)}>
+                Disable terminal
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onSelect={() => onEnable(terminal)}>
+                Enable terminal
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onSelect={() => onRemove(terminal)}>
               Remove terminal
@@ -663,18 +719,22 @@ function RegisterTerminalDialog({
 }: {
   open: boolean
   onClose: () => void
-  onCreate: (input: { id: string; name: string; locationId: string }) => void
+  onCreate: (input: { id: string; name: string; locationId: string; serial: string }) => void
 }) {
   const { granted } = useLocations()
   const nameId = useId()
+  const serialId = useId()
   const [name, setName] = useState("")
+  const [serial, setSerial] = useState("")
   const [locationId, setLocationId] = useState<string>("")
 
   const trimmed = name.trim()
+  const trimmedSerial = serial.trim()
 
   function close() {
     onClose()
     setName("")
+    setSerial("")
     setLocationId("")
   }
 
@@ -685,8 +745,8 @@ function RegisterTerminalDialog({
           Add a terminal
         </DialogTitle>
         <p className="mt-2 text-sm leading-5 text-muted-foreground">
-          Give the device a name your staff will recognise. We&rsquo;ll generate a pairing code to
-          enter on the hardware.
+          Give the device a name your staff will recognise, and enter the hardware serial printed on
+          the terminal. We&rsquo;ll generate a pairing code and PIN.
         </p>
 
         <div className="mt-6 flex flex-col gap-5">
@@ -698,6 +758,19 @@ function RegisterTerminalDialog({
               onChange={(e) => setName(e.target.value)}
               placeholder="Front Desk Register"
               autoFocus
+            />
+          </div>
+
+          {/* Required, as built: the serial is how a registered row is tied
+              to one physical machine. */}
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={serialId}>Hardware serial</Label>
+            <Input
+              id={serialId}
+              value={serial}
+              onChange={(e) => setSerial(e.target.value)}
+              placeholder="NP-2201938"
+              maxLength={64}
             />
           </div>
 
@@ -730,12 +803,13 @@ function RegisterTerminalDialog({
             type="button"
             size="lg"
             radius="full"
-            disabled={trimmed.length === 0 || locationId === ""}
+            disabled={trimmed.length === 0 || trimmedSerial.length === 0 || locationId === ""}
             onClick={() => {
               onCreate({
                 id: generateTerminalCode(),
                 name: trimmed,
                 locationId,
+                serial: trimmedSerial,
               })
               close()
             }}

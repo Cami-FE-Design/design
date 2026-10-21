@@ -625,7 +625,7 @@ const METHOD_LABEL: Record<Payment["method"], string> = {
   card: "Card",
   "gift-card": "Gift card",
   link: "Payment link",
-  terminal: "POS Terminal",
+  terminal: "CamiPay Terminal",
 }
 
 type CheckoutFooterProps = {

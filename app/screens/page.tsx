@@ -751,27 +751,32 @@ const SECTIONS: Section[] = [
       },
       {
         path: "/sales/new-sale?terminals=one",
-        label: "New sale · POS Terminal — one machine",
+        label: "New sale · CamiPay Terminal — one machine",
         note: "Payment step with one card machine shown by name: tapping it sends the sale there and locks the drawer.",
       },
       {
         path: "/sales/new-sale?terminals=two",
-        label: "New sale · POS Terminal — two machines",
+        label: "New sale · CamiPay Terminal — two machines",
         note: "Two registered card terminals show as named tiles under a Card terminals heading in the payment grid.",
       },
       {
         path: "/sales/new-sale?terminals=idle",
-        label: "New sale · POS Terminal — registered, nobody signed in",
-        note: "Registered card machines with nobody signed in stay as greyed tiles with a reason, and the picker shows every row blocked.",
+        label: "New sale · CamiPay Terminal — registered, nobody signed in",
+        note: "Both machines read Signed out on greyed tiles, with the fix under them: enter the PIN on the device (BUG-65).",
+      },
+      {
+        path: "/sales/new-sale?terminals=mixed",
+        label: "New sale · CamiPay Terminal — Ready, Signed out, Locked (BUG-65)",
+        note: "Three machines in three states: each blocked tile names its status, and one fix line per state sits under the grid.",
       },
       {
         path: "/sales/new-sale?terminals=many",
-        label: "New sale · POS Terminal — past the tile cap",
-        note: "Six terminals collapse into one POS Terminal tile that opens the Send-to-terminal picker, usable machines on top.",
+        label: "New sale · CamiPay Terminal — past the tile cap",
+        note: "Six terminals collapse into one CamiPay Terminal tile that opens the Send-to-terminal picker, usable machines on top.",
       },
       {
         path: "/sales/new-sale?dialog=terminal",
-        label: "New sale · POS Terminal (card present)",
+        label: "New sale · CamiPay Terminal (card present)",
         note: "The locked cart while a sale waits on the card machine: Mark as paid or Collect another way are the only exits.",
       },
       {
@@ -1688,12 +1693,12 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=payments&pp=terminal",
         label: "Terminals, empty (default)",
-        note: "Empty terminals list: walk add, code and PIN, demo pair and demo sign-in as the row goes Not paired, No sessions, Active.",
+        note: "Empty terminals list: walk add, code and PIN, demo pair and demo sign-in as the row goes Not paired, Signed out, Ready.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&td=add",
         label: "Terminals, add a terminal",
-        note: "Add a terminal with a name and required location. Submit generates the pairing code and opens the credentials dialog.",
+        note: "Add a terminal with a name, hardware serial and required location. Submit generates the pairing code and opens the credentials dialog.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=typical",
@@ -1703,7 +1708,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=full",
         label: "Terminals, all statuses",
-        note: "Four terminal rows showing status precedence: Locked, Not paired, Active and No sessions.",
+        note: "Terminal rows showing status precedence: Disabled, Locked, Not paired, Ready and Signed out. Disable and Enable sit in the row menu.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=typical&td=credentials",
@@ -1953,7 +1958,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/businesses?business=shampooch&section=settings",
         label: "Partner card, three units assigned",
-        note: "Partner card with three units: Active, No sessions and Not set up. Assign picks a unit from stock.",
+        note: "Partner card with three units: Ready, Signed out and Not set up. Assign picks a unit from stock.",
       },
       {
         path: "/admin/businesses?business=pawhaus&section=settings",

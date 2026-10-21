@@ -12,7 +12,10 @@ import {
   TriangleAlertIcon,
   WalletIcon,
 } from "lucide-react"
+import { terminalStatusText } from "@/lib/terminals/status"
+import type { TerminalStatus } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
+import { TerminalFixes } from "./terminal-fixes"
 
 const METHODS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "link", label: "Payment link", icon: SmartphoneIcon },
@@ -20,7 +23,7 @@ const METHODS: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "card", label: "Card", icon: WalletIcon },
   { id: "gift-card", label: "Gift card", icon: GiftIcon },
   { id: "split", label: "Split payment", icon: SplitIcon },
-  { id: "terminal", label: "POS Terminal", icon: CreditCardIcon },
+  { id: "terminal", label: "CamiPay Terminal", icon: CreditCardIcon },
 ]
 
 /**
@@ -28,12 +31,12 @@ const METHODS: { id: string; label: string; icon: LucideIcon }[] = [
  * counter — one or two registers — is a single tap. Past it the grid stops
  * reading as a list of payment methods and starts reading as an inventory of
  * hardware, with the merchant's own device names ("Till 2") sitting where Cash
- * and Card are; so beyond the cap they collapse to one POS Terminal tile that
+ * and Card are; so beyond the cap they collapse to one CamiPay Terminal tile that
  * opens the picker.
  *
  * Counted on REGISTERED machines, never on how many are signed in right now.
  * Otherwise a four-machine business would see two named tiles in the morning
- * and a single POS Terminal tile by noon as staff signed in — the same screen
+ * and a single CamiPay Terminal tile by noon as staff signed in — the same screen
  * changing shape through the day, for the same person. How many registers a
  * counter has is a fact about the business; who is signed into them is not.
  */
@@ -58,12 +61,12 @@ type PaymentViewProps = {
    * The merchant's registered machines. Few enough and each becomes its own
    * tile — the counter's registers ARE the payment method, and picking one
    * shouldn't cost a second click. A machine that can't take the sale is still
-   * shown, greyed, carrying the reason: the grid stays the same shape all day,
-   * and "Grooming Counter · Nobody signed in" is more use to a receptionist
-   * than a tile that quietly isn't there. Selecting one calls back with
+   * shown, greyed, carrying its status: the grid stays the same shape all day,
+   * and "Grooming Counter · Signed out" is more use to a receptionist than a
+   * tile that quietly isn't there. Selecting one calls back with
    * `terminal:<id>`.
    */
-  machines?: { id: string; name: string; blockedReason: string | null }[]
+  machines?: { id: string; name: string; status: TerminalStatus; lockedFor: string | null }[]
   /**
    * A charge this screen refused, held until it is answered.
    *
@@ -137,13 +140,18 @@ export function PaymentView({
               <MethodTile
                 key={machine.id}
                 label={machine.name}
-                caption={machine.blockedReason ?? undefined}
+                caption={
+                  machine.status === "active"
+                    ? undefined
+                    : terminalStatusText(machine.status, machine.lockedFor)
+                }
                 icon={MonitorSmartphoneIcon}
-                disabled={machine.blockedReason !== null}
+                disabled={machine.status !== "active"}
                 onClick={() => onSelect(`terminal:${machine.id}`)}
               />
             ))}
           </div>
+          <TerminalFixes statuses={machines.map((m) => m.status)} />
         </div>
       ) : null}
     </div>
@@ -171,7 +179,14 @@ function MethodTile({
       onClick={onClick}
       className={cn(
         "flex flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card px-4 py-8 text-center transition-colors",
-        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:bg-muted/40",
+        // A machine's status is why its tile is still on screen, so a tile
+        // carrying one isn't faded with the rest of it (BUG-65). Only the
+        // name and icon grey out.
+        disabled
+          ? caption
+            ? "cursor-not-allowed bg-muted/30"
+            : "cursor-not-allowed opacity-50"
+          : "cursor-pointer hover:bg-muted/40",
       )}
     >
       <Icon
@@ -191,7 +206,7 @@ function MethodTile({
         {label}
       </span>
       {caption ? (
-        <span className="-mt-2 text-muted-foreground text-xs leading-4">{caption}</span>
+        <span className="-mt-2 font-medium text-foreground text-xs leading-4">{caption}</span>
       ) : null}
     </button>
   )
