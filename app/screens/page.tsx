@@ -435,7 +435,12 @@ const SECTIONS: Section[] = [
       {
         path: "/appointments",
         label: "Toolbar + sheets",
-        note: "Header toolbar with date, Day/Week, filters and New booking over a demo body, without the calendar grid.",
+        note: "Header toolbar with date, Day/Week, team, filters and New booking over a demo body, without the calendar grid.",
+      },
+      {
+        path: "/appointments?team-open=1",
+        label: "Team picker · Scheduled team (BUG-21)",
+        note: "The calendar opens on Scheduled team: only who the rota has working at JVC that day, following the date as you page.",
       },
       {
         path: "/appointments",

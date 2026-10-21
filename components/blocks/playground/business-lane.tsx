@@ -12,6 +12,7 @@ import { MoveToBranchDialog } from "@/components/blocks/appointments/move-to-bra
 import { ServicePickerPanel } from "@/components/blocks/appointments/new-appointment-service-picker"
 import { PeopleGrid } from "@/components/blocks/appointments/people-grid"
 import { PickupFields } from "@/components/blocks/appointments/pickup-fields"
+import { TeamDropdown } from "@/components/blocks/appointments/team-dropdown"
 import { ConfirmStep } from "@/components/blocks/booking/booking-flow"
 import { PromoCodeField } from "@/components/blocks/booking/promo-code-field"
 import { ServicePicker } from "@/components/blocks/booking/service-picker"
@@ -118,6 +119,7 @@ import { ScheduledShifts } from "@/components/blocks/team/scheduled-shifts"
 import { TeamAccessDialog } from "@/components/blocks/team/team-access-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { SegmentedToggle } from "@/components/ui/segmented-toggle"
 import type { PlaceRef } from "@/lib/address"
 import {
   MOCK_BOOKINGS,
@@ -196,9 +198,19 @@ import {
   type BranchServiceTerms,
   checkPackageAtBranch,
 } from "@/lib/service-catalog/package-branch-check"
+import { scheduledMemberIds, type TeamSelection, visibleMemberIds } from "@/lib/team/calendar-team"
 import { TEAM_MEMBERS } from "@/lib/team/mock"
 import { roleById } from "@/lib/team/roles"
-import { NINE_BRANCH_LEAVES, NINE_BRANCH_MEMBERS, NINE_BRANCH_SHIFTS } from "@/lib/team/shifts-mock"
+import { membersAt } from "@/lib/team/shifts"
+import {
+  NINE_BRANCH_LEAVES,
+  NINE_BRANCH_MEMBERS,
+  NINE_BRANCH_SHIFTS,
+  ROSTER_BLOCKS,
+  ROSTER_LEAVES,
+  ROSTER_MEMBERS,
+  ROSTER_SHIFTS,
+} from "@/lib/team/shifts-mock"
 import { DEMO_SESSIONS, DEMO_TERMINALS } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
 
@@ -402,6 +414,42 @@ function TeamMemberAtThisLocationDemo({
         locationId="shampooch-jvc"
         date="2026-10-06"
       />
+    </div>
+  )
+}
+
+/**
+ * The calendar's team picker over the JVC rota (BUG-21). The day switch stands
+ * in for paging the calendar, so Scheduled team can be seen following the day.
+ */
+function TeamPickerDemo() {
+  const [day, setDay] = useState<"tue" | "wed" | "thu">("wed")
+  const [team, setTeam] = useState<TeamSelection>({ mode: "scheduled" })
+  const rota = { shifts: ROSTER_SHIFTS, leaves: ROSTER_LEAVES, blocks: ROSTER_BLOCKS }
+  const members = membersAt(ROSTER_MEMBERS, "shampooch-jvc")
+  const scheduled = scheduledMemberIds(members, rota, "shampooch-jvc", day)
+  const shown = members.filter((m) => visibleMemberIds(team, members, scheduled).has(m.id))
+  return (
+    <div className="flex flex-wrap items-center gap-4">
+      <SegmentedToggle
+        value={day}
+        onValueChange={setDay}
+        ariaLabel="Day in view"
+        options={[
+          { value: "tue", label: "Tue" },
+          { value: "wed", label: "Wed" },
+          { value: "thu", label: "Thu" },
+        ]}
+      />
+      <TeamDropdown
+        members={members}
+        scheduledIds={scheduled}
+        selection={team}
+        onSelectionChange={setTeam}
+      />
+      <span className="text-muted-foreground text-sm">
+        Columns: {shown.map((m) => m.name).join(", ") || "none"}
+      </span>
     </div>
   )
 }
@@ -3085,12 +3133,15 @@ export function BusinessLane() {
       <Section
         lazy
         title="Appointments — toolbar and people grid"
-        description="Calendar toolbar (Today, date, view mode, filters, new) above an 11-column staff by time grid."
+        description="Calendar toolbar (Today, date, view mode, team, filters, new) above an 11-column staff by time grid."
       >
         <Row label="Toolbar">
           <div className="w-full max-w-5xl rounded-2xl border border-border/60 bg-card">
             <AppointmentsToolbar date="2026-05-11" viewMode="day" />
           </div>
+        </Row>
+        <Row label="Team picker — Scheduled team follows the day (BUG-21)">
+          <TeamPickerDemo />
         </Row>
         <Row label="People grid (clipped to 600px)">
           <div className="h-150 w-full min-w-0">
