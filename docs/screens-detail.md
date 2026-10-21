@@ -671,7 +671,13 @@ Two machines, so the grid carries both by name under a Card terminals heading �
 
 `/sales/new-sale?terminals=idle`
 
-The state a merchant is in every morning: the card machines are registered, but nobody has typed a PIN into one yet. Their tiles hold their places, greyed, each carrying its reason — 'Nobody signed in', or 'Locked · 12 min' after failed PINs on the device. A signed-out register that quietly vanished from the grid would read as broken hardware; greyed with a reason reads as a sign-in that hasn't happened. The tiles stay — hiding it would make the option vanish overnight and reappear at lunch, and the receptionist would read that as the feature breaking. Tapping it opens the picker with every row blocked and its reason on it, led by a notice saying nothing is signed in. Depends on what the backend's terminal-status boolean means: registered hardware (this design) or a live session (tile would be hidden instead).
+The state a merchant is in every morning, and again whenever a 24-hour sign-in runs out: the card machines are registered, but nobody is signed in. Their tiles hold their places, greyed, each reading Signed out, and one line under the grid says the fix: enter the PIN on the device (BUG-65). The live build does the opposite today. Its checkout list only carries machines with a live session, so the tile disappears when the session ends and comes back after someone signs in. Sophia's front desk read that as "sometimes shows, sometimes not" and called support. Greyed with a status and a fix reads as a sign-in that hasn't happened, not broken hardware. The same words appear in Settings > Payments > Terminals, where the row used to say No sessions.
+
+### New sale · POS Terminal — Ready, Signed out, Locked (BUG-65)
+
+`/sales/new-sale?terminals=mixed`
+
+One machine in each state a counter meets. Front Desk Register is Ready and takes the sale. Grooming Counter reads Signed out, and Reception iPad reads Locked · 12 min after wrong PINs on the device. Under the grid there is one fix line per state, not one per machine, so two signed-out registers still get a single line. Offline isn't shown: the backend has no connection signal for a terminal yet, only last seen, so there is nothing to base it on.
 
 ### New sale · POS Terminal — past the tile cap
 
@@ -1623,7 +1629,7 @@ Add card machines, issue their credentials, and manage sign-in sessions — Paym
 
 `/shell-demo?settings=payments&pp=terminal`
 
-No terminals yet, with the only Add terminal button in the empty state (the header one is suppressed while the list is empty). Walk the whole arc from here: add → get the code and PIN → 'Demo: pair a device' stands in for typing the code into the hardware → 'Demo: sign in on a terminal' stands in for staff entering the PIN → the row goes Not paired → No sessions → Active.
+No terminals yet, with the only Add terminal button in the empty state (the header one is suppressed while the list is empty). Walk the whole arc from here: add → get the code and PIN → 'Demo: pair a device' stands in for typing the code into the hardware → 'Demo: sign in on a terminal' stands in for staff entering the PIN → the row goes Not paired → Signed out → Ready.
 
 ### Terminals, add a terminal
 
@@ -1641,7 +1647,7 @@ What a real merchant has. List rows rather than a data table: name at full weigh
 
 `/shell-demo?settings=payments&pp=terminal&tp=full`
 
-Four rows covering the status precedence, first match wins: Locked · 12 min (failed PIN entries, scoped to that device — under the old shared-PIN model this blocked every terminal at every location), Not paired (code issued, device never connected), Active (live sessions), No sessions (paired, nobody signed in). The middle two are states the source mockup had no room for.
+Four rows covering the status precedence, first match wins: Locked · 12 min (failed PIN entries, scoped to that device — under the old shared-PIN model this blocked every terminal at every location), Not paired (code issued, device never connected), Ready (live sessions), Signed out (paired, nobody signed in; this read No sessions before BUG-65). The middle two are states the source mockup had no room for.
 
 ### Terminals, credentials dialog
 
@@ -1901,7 +1907,7 @@ Written-off unit, never offered for assignment again and not deleted — leased 
 
 `/admin/businesses?business=shampooch&section=settings`
 
-Active (2 signed in), No sessions, and Not set up — shipped and signed for, nobody has switched it on. Assign picks a unit from stock; the fleet listing picks a Partner for a unit. Same write, opposite starting point.
+Ready (2 signed in), Signed out, and Not set up — shipped and signed for, nobody has switched it on. Assign picks a unit from stock; the fleet listing picks a Partner for a unit. Same write, opposite starting point.
 
 ### Partner card, one blocked by HQ
 

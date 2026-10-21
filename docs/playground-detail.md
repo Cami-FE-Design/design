@@ -250,7 +250,7 @@ The operator half of CamiPay (PRO-396, reworked in PRO-909). 'Payment link' text
 
 ### New sale — POS Terminal (card present)
 
-The card-present adoption of PRO-909's locked cart: once a sale is sent to a machine the drawer body is replaced, so the operator cannot re-charge it or discard a sale that already took the money. Mark as paid stands in for the terminal callback; Collect another way is the only exit and keeps the cart. Only a signed-in machine can be picked, and every other state carries its reason.
+The card-present adoption of PRO-909's locked cart: once a sale is sent to a machine the drawer body is replaced, so the operator cannot re-charge it or discard a sale that already took the money. Mark as paid stands in for the terminal callback; Collect another way is the only exit and keeps the cart. Only a signed-in machine can be picked, and every other state carries its status: Signed out, Locked · 12 min, Not paired. Under the tiles, one line per state says how to bring it back; in the picker the fix sits on the row itself (BUG-65). The status words match Settings > Payments > Terminals. Sessions end after 24 hours by design, so Signed out is the one every merchant meets once a day.
 
 ### Payment policy — deposit & no-show config
 
@@ -258,7 +258,7 @@ Payment policy (DSG-51) inside the Settings dialog (?settings=payments). Summary
 
 ### Terminals (DSG-62)
 
-Per-device terminals: each unit registers with its own code and PIN, and a session is time-boxed. The superseded model shared one merchant PIN, so removing a terminal signed out every location. Rows lead with the device name, carry the session state, and the menu offers only what that state allows. The faint demo controls walk one unit through Not paired → No sessions → Active.
+Per-device terminals: each unit registers with its own code and PIN, and a session is time-boxed. The superseded model shared one merchant PIN, so removing a terminal signed out every location. Rows lead with the device name, carry the session state, and the menu offers only what that state allows. The faint demo controls walk one unit through Not paired → Signed out → Ready.
 
 ### Notifications settings
 
@@ -378,7 +378,7 @@ DSG-82 — Cami owns the machines and leases them, so a terminal is an asset HQ 
 
 ### Terminal status — one vocabulary, two surfaces
 
-DSG-82. The fleet table and the Partner card both read components/blocks/admin/hq-terminal-status.tsx, so they cannot drift. The first three are fleet states only HQ sees; Not set up, Locked, Active and No sessions are the merchant's own words from DSG-62. Order is first-match-wins: where the unit physically is, then whether HQ stopped it, then what the device is doing.
+DSG-82. The fleet table and the Partner card both read components/blocks/admin/hq-terminal-status.tsx, so they cannot drift. The first three are fleet states only HQ sees; Not set up, Locked, Ready and Signed out are the merchant's own words (DSG-62, renamed in BUG-65). Order is first-match-wins: where the unit physically is, then whether HQ stopped it, then what the device is doing.
 
 ### Partner code — CM-####
 

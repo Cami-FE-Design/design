@@ -762,7 +762,12 @@ const SECTIONS: Section[] = [
       {
         path: "/sales/new-sale?terminals=idle",
         label: "New sale · POS Terminal — registered, nobody signed in",
-        note: "Registered card machines with nobody signed in stay as greyed tiles with a reason, and the picker shows every row blocked.",
+        note: "Both machines read Signed out on greyed tiles, with the fix under them: enter the PIN on the device (BUG-65).",
+      },
+      {
+        path: "/sales/new-sale?terminals=mixed",
+        label: "New sale · POS Terminal — Ready, Signed out, Locked (BUG-65)",
+        note: "Three machines in three states: each blocked tile names its status, and one fix line per state sits under the grid.",
       },
       {
         path: "/sales/new-sale?terminals=many",
@@ -1688,7 +1693,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=payments&pp=terminal",
         label: "Terminals, empty (default)",
-        note: "Empty terminals list: walk add, code and PIN, demo pair and demo sign-in as the row goes Not paired, No sessions, Active.",
+        note: "Empty terminals list: walk add, code and PIN, demo pair and demo sign-in as the row goes Not paired, Signed out, Ready.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&td=add",
@@ -1703,7 +1708,7 @@ const SECTIONS: Section[] = [
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=full",
         label: "Terminals, all statuses",
-        note: "Four terminal rows showing status precedence: Locked, Not paired, Active and No sessions.",
+        note: "Four terminal rows showing status precedence: Locked, Not paired, Ready and Signed out.",
       },
       {
         path: "/shell-demo?settings=payments&pp=terminal&tp=typical&td=credentials",
@@ -1953,7 +1958,7 @@ const SECTIONS: Section[] = [
       {
         path: "/admin/businesses?business=shampooch&section=settings",
         label: "Partner card, three units assigned",
-        note: "Partner card with three units: Active, No sessions and Not set up. Assign picks a unit from stock.",
+        note: "Partner card with three units: Ready, Signed out and Not set up. Assign picks a unit from stock.",
       },
       {
         path: "/admin/businesses?business=pawhaus&section=settings",

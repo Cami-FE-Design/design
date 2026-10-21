@@ -6,9 +6,9 @@
 import type { HqTerminalStatus } from "@/lib/hq-terminals/store"
 import { cn } from "@/lib/utils"
 
-// "Not paired", "Locked" and "Active" are the merchant's own words from DSG-62 —
-// HQ and the merchant looking at one device should read the same status. The
-// three above them are fleet states the merchant never sees.
+// "Locked", "Ready" and "Signed out" are the merchant's own words (DSG-62, renamed
+// in BUG-65) — HQ and the merchant looking at one device should read the same
+// status. The four above them are fleet states the merchant never sees.
 export const TERMINAL_STATUS_LABEL: Record<HqTerminalStatus, string> = {
   faulty: "Faulty",
   returned: "Returned",
@@ -16,8 +16,8 @@ export const TERMINAL_STATUS_LABEL: Record<HqTerminalStatus, string> = {
   blocked: "Blocked",
   locked: "Locked",
   "not-paired": "Not set up",
-  active: "Active",
-  "no-sessions": "No sessions",
+  active: "Ready",
+  "no-sessions": "Signed out",
 }
 
 export const TERMINAL_STATUS_DOT: Record<HqTerminalStatus, string> = {
@@ -45,7 +45,7 @@ export const TERMINAL_STATUS_TILE: Record<HqTerminalStatus, string> = {
 
 /**
  * Dot + label. Fixed width so a column of these scans as a column: the labels
- * run from "Active" to "No sessions" and left the dots ragged without it.
+ * run from "Ready" to "Signed out" and left the dots ragged without it.
  */
 export function TerminalStatus({
   status,

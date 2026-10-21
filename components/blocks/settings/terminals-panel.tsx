@@ -55,6 +55,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { locationName } from "@/lib/locations/mock"
 import { useLocations } from "@/lib/locations/store"
 import { isUnassigned } from "@/lib/terminals/at-checkout"
+import { terminalStatusText } from "@/lib/terminals/status"
 import {
   DEMO_SESSIONS,
   DEMO_TERMINALS,
@@ -97,15 +98,9 @@ export type TerminalsDemoState = "typical" | "full" | "empty" | null
  */
 export type TerminalsDemoDialog = "credentials" | "sessions" | "add" | null
 
-// The two setup states are amber because they are waiting on someone; the two
-// running states are green or neutral because nothing is owed.
-const STATUS_LABEL: Record<TerminalStatus, string> = {
-  locked: "Locked",
-  "not-paired": "Not paired",
-  active: "Active",
-  "no-sessions": "No sessions",
-}
-
+// Labels come from lib/terminals/status, the words checkout uses too (BUG-65).
+// Locked is red and Not paired amber because they are waiting on someone;
+// Ready is green and Signed out neutral because nothing is owed.
 const STATUS_DOT: Record<TerminalStatus, string> = {
   locked: "bg-tomato-9",
   "not-paired": "bg-cami-yellow-9",
@@ -587,10 +582,7 @@ function TerminalRow({
         ) : null}
         <span className="flex w-[7.5rem] shrink-0 items-center gap-1.5 text-sm leading-5 text-muted-foreground">
           <span aria-hidden className={cn("size-2 shrink-0 rounded-full", STATUS_DOT[status])} />
-          <span className="truncate">
-            {STATUS_LABEL[status]}
-            {status === "locked" && terminal.lockedFor ? ` · ${terminal.lockedFor}` : ""}
-          </span>
+          <span className="truncate">{terminalStatusText(status, terminal.lockedFor)}</span>
         </span>
 
         <DropdownMenu>

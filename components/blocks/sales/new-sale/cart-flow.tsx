@@ -65,6 +65,7 @@ import {
   type TerminalSession,
   TYPICAL_SESSIONS,
   TYPICAL_TERMINALS,
+  terminalStatus,
   useTerminals,
 } from "@/lib/terminals/store"
 import { cn } from "@/lib/utils"
@@ -83,11 +84,7 @@ import { PaymentView } from "./payment-view"
 import { RedeemGiftCardDialog } from "./redeem-gift-card-dialog"
 import { SaleNoteDialog } from "./sale-note-dialog"
 import { SelectPaymentModal } from "./select-payment-modal"
-import {
-  canTakeSale,
-  SelectTerminalDialog,
-  blockedReason as terminalBlockedReason,
-} from "./select-terminal-dialog"
+import { canTakeSale, SelectTerminalDialog } from "./select-terminal-dialog"
 import { type PaymentLinkDetails, SelfCheckoutDialog } from "./self-checkout-dialog"
 import { SplitPaymentView } from "./split-payment-view"
 import { type ActiveTerminalCharge, TerminalLockScreen } from "./terminal-lock"
@@ -133,7 +130,8 @@ function seedCheckoutLines(): CartLine[] {
 /**
  * Fixed terminal setups behind ?terminals=, so a review link is the same on
  * every machine: `none` hides the POS Terminal tile, `idle` keeps it (the
- * machines exist, nobody has signed in yet), `one` and `two` put the machines
+ * machines exist, nobody has signed in yet), `mixed` is one Ready, one Signed
+ * out and one Locked, `one` and `two` put the machines
  * in the grid as their own tiles, `many` is past the tile cap and falls back
  * to one tile plus the picker. Anything else — including no param — falls
  * through to the store.
@@ -147,6 +145,11 @@ function terminalScenario(
   // make the option vanish overnight and come back at lunch, so the picker
   // explains instead.
   if (key === "idle") return { terminals: TYPICAL_TERMINALS, sessions: [] }
+  // One machine in each state a counter meets (BUG-65): Ready, Signed out, and
+  // locked after wrong PINs, so the tiles and the fix lines under them can be
+  // read together. All three sit at JVC, so the branch scoping keeps them.
+  if (key === "mixed")
+    return { terminals: [...TYPICAL_TERMINALS, DEMO_TERMINALS[3]], sessions: TYPICAL_SESSIONS }
   /**
    * The machine that was moved after it was chosen (GNK §15).
    *
@@ -410,14 +413,15 @@ function CartFlowInner({
   // tile. Sign-in state is not part of it — a merchant whose device is simply
   // signed out still has a terminal, and the picker is where they learn that.
   const terminalAvailable = terminals.length > 0
-  // Every machine at this branch, each carrying why it can't be used if it
-  // can't. The grid lists them one by one instead of a generic tile, so the
-  // receptionist taps the register in front of them once (Michelle, DSG
-  // review) — and a signed-out one still holds its place, greyed.
+  // Every machine at this branch, each carrying its status. The grid lists
+  // them one by one instead of a generic tile, so the receptionist taps the
+  // register in front of them once (Michelle, DSG review) — and a signed-out
+  // one still holds its place, greyed, with the fix under the grid (BUG-65).
   const machines = terminals.map((t) => ({
     id: t.id,
     name: t.name,
-    blockedReason: terminalBlockedReason(t, terminalSessions),
+    status: terminalStatus(t, terminalSessions),
+    lockedFor: t.lockedFor,
   }))
 
   const hasClient = attachment.type !== "none"

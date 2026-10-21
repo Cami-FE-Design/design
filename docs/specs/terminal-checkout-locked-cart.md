@@ -64,8 +64,9 @@ hand — the two are one bad guess apart. The heading answers it once for all of
 them, and the tiles carry the same icon the terminal rows use in Payment
 settings, so the same object looks the same in both places.
 
-A machine nobody is signed into keeps its tile, greyed, carrying its reason
-("Nobody signed in", "Locked · 12 min"). A register that quietly vanished from
+A machine nobody is signed into keeps its tile, greyed, carrying its status
+("Signed out", "Locked · 12 min"), with one line per state under the grid
+saying how to bring it back (BUG-65). A register that quietly vanished from
 the grid reads as broken hardware; greyed with a reason reads as a sign-in that
 has not happened yet.
 
@@ -111,8 +112,8 @@ on its own. An "are you sure" would carry none of that.
    stating the amount and listing the merchant's machines.
 2. In the picker, only a signed-in terminal can be picked. The other three
    DSG-62 states are
-   listed rather than filtered out, each with its reason on the row — "Nobody
-   signed in", "Not set up on the device yet", "Locked · 12 min". A receptionist
+   listed rather than filtered out, each with its status on the row — "Signed
+   out", "Not paired", "Locked · 12 min" — followed by its fix on the same row. A receptionist
    whose usual register is missing needs to know it is the sign-in that is
    missing, not the hardware. With none signed in, the dialog leads with a
    notice saying so.

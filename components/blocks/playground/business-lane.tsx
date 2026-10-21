@@ -3505,8 +3505,13 @@ export function BusinessLane() {
             <PaymentView
               onSelect={(id) => toast(`Selected ${id}`)}
               machines={[
-                { id: "TRM-7Q4K2M", name: "Front Desk Register", blockedReason: null },
-                { id: "TRM-3H8N5P", name: "Grooming Counter", blockedReason: null },
+                {
+                  id: "TRM-7Q4K2M",
+                  name: "Front Desk Register",
+                  status: "active",
+                  lockedFor: null,
+                },
+                { id: "TRM-3H8N5P", name: "Grooming Counter", status: "active", lockedFor: null },
               ]}
             />
           </div>
@@ -3519,12 +3524,40 @@ export function BusinessLane() {
             <PaymentView
               onSelect={(id) => toast(`Selected ${id}`)}
               machines={[
-                { id: "TRM-7Q4K2M", name: "Front Desk Register", blockedReason: null },
+                {
+                  id: "TRM-7Q4K2M",
+                  name: "Front Desk Register",
+                  status: "active",
+                  lockedFor: null,
+                },
                 {
                   id: "TRM-3H8N5P",
                   name: "Grooming Counter",
-                  blockedReason: "Nobody signed in",
+                  status: "no-sessions",
+                  lockedFor: null,
                 },
+              ]}
+            />
+          </div>
+        </Row>
+        <Row label="Payment step — Ready, Signed out and Locked, a fix line for each">
+          <div className="w-full max-w-xl">
+            <PaymentView
+              onSelect={(id) => toast(`Selected ${id}`)}
+              machines={[
+                {
+                  id: "TRM-7Q4K2M",
+                  name: "Front Desk Register",
+                  status: "active",
+                  lockedFor: null,
+                },
+                {
+                  id: "TRM-3H8N5P",
+                  name: "Grooming Counter",
+                  status: "no-sessions",
+                  lockedFor: null,
+                },
+                { id: "TRM-2B7X4V", name: "Reception iPad", status: "locked", lockedFor: "12 min" },
               ]}
             />
           </div>
@@ -3592,7 +3625,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Terminals (DSG-62)"
-        description="Per-device terminal rows with session state, and demo controls for Not paired, No sessions and Active."
+        description="Per-device terminal rows with session state, and demo controls for Not paired, Signed out and Ready."
       >
         <Row label="Empty (nothing added yet)">
           <div className="w-full rounded-2xl border border-border/60 bg-card p-6">

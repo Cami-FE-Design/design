@@ -154,7 +154,7 @@ the device.
 
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
-│ [▣]  Front Desk Register                          ● Active        ⋯   │
+│ [▣]  Front Desk Register                          ● Ready         ⋯   │
 │      TRM-7Q4K2M · Downtown Clinic · Last seen 3 min ago               │
 │                                                                       │
 │ [▣]  Mobile Grooming Van                          ● Not paired    ⋯   │
@@ -177,10 +177,14 @@ One value per row, first match wins:
 | --- | --- | --- |
 | `Locked · 12 min` | Failed PIN entries on the device | Red |
 | `Not paired` | Code issued, device has never connected | Amber |
-| `Active` | One or more live sessions | Green |
-| `No sessions` | Paired, nothing signed in | Muted |
+| `Ready` | One or more live sessions | Green |
+| `Signed out` | Paired, nothing signed in | Muted |
 
-`Not paired` and `No sessions` are states the source mockup had no room for —
+BUG-65 renamed `Active` to `Ready` and `No sessions` to `Signed out`, the words
+checkout uses for the same machine. Support had read "No sessions" as the
+machine being switched off.
+
+`Not paired` and `Signed out` are states the source mockup had no room for —
 it showed only Active and Locked. Between them they cover most of a working
 morning, when devices are added but nobody has signed in yet.
 

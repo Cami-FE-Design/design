@@ -80,10 +80,11 @@ is doing:
 | `blocked` | HQ has blocked this unit (this spec) |
 | `locked` | Device locked itself out on failed PINs (DSG-62) |
 | `not-paired` | Shipped, never switched on. Shown as "Not set up" |
-| `active` | Paired, at least one live session |
-| `no-sessions` | Paired, nobody signed in right now |
+| `active` | Paired, at least one live session. Shown as "Ready" |
+| `no-sessions` | Paired, nobody signed in right now. Shown as "Signed out" |
 
-"Not set up", "Locked" and "Active" are the merchant's own words from DSG-62 —
+"Not set up", "Locked", "Ready" and "Signed out" are the merchant's own words
+from DSG-62 (the last two renamed in BUG-65) —
 HQ and the merchant looking at one device should read the same status. The three
 fleet states above them are ours alone. The vocabulary lives once, in
 `components/blocks/admin/hq-terminal-status.tsx`, so the card and the fleet table
