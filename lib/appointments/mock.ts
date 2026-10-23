@@ -60,6 +60,14 @@ export type MockBooking = {
   linkCount?: number
   hasDeposit?: boolean
   hasSafetyFlag?: boolean
+  /** Set once checkout opens a sale for the appointment. Replaces the deposit icon on the card. */
+  saleStatus?: "draft" | "partially_paid" | "paid"
+  /** The client booked it through the public booking page. */
+  bookedOnline?: boolean
+  /** The client asked for this team member. */
+  requestedStaff?: boolean
+  /** A package session is redeemed on this appointment. */
+  packageRedeemed?: boolean
   // Popover-context fields. Optional so existing data stays valid.
   bookingRef?: string
   clientPhone?: string
@@ -181,6 +189,7 @@ const SEEDED_BOOKINGS: Omit<MockBooking, "locationId">[] = [
   // Aya Hassan — column 1
   {
     id: "b-001",
+    saleStatus: "paid",
     staffId: "aya-hassan",
     start: "9:00",
     durationMin: 60,
@@ -230,6 +239,8 @@ const SEEDED_BOOKINGS: Omit<MockBooking, "locationId">[] = [
   },
   {
     id: "b-003",
+    bookedOnline: true,
+    requestedStaff: true,
     staffId: "aya-hassan",
     start: "11:30",
     durationMin: 60,
@@ -327,6 +338,7 @@ const SEEDED_BOOKINGS: Omit<MockBooking, "locationId">[] = [
   // Lena Petrov — column 2
   {
     id: "b-005",
+    saleStatus: "partially_paid",
     staffId: "lena-petrov",
     start: "9:30",
     durationMin: 60,
@@ -341,6 +353,7 @@ const SEEDED_BOOKINGS: Omit<MockBooking, "locationId">[] = [
   },
   {
     id: "b-006",
+    packageRedeemed: true,
     staffId: "lena-petrov",
     start: "10:45",
     durationMin: 15,
@@ -442,6 +455,7 @@ const SEEDED_BOOKINGS: Omit<MockBooking, "locationId">[] = [
   },
   {
     id: "b-013",
+    bookedOnline: true,
     staffId: "marco-rossi",
     start: "10:45",
     durationMin: 60,
