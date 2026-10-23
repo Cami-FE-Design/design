@@ -1,100 +1,73 @@
 "use client"
 
+import { useLayoutEffect, useRef, useState } from "react"
+import { CARD_ICON } from "@/components/blocks/appointments/calendar-icons"
 import {
-  CarFrontIcon,
-  CreditCardIcon,
-  FileTextIcon,
-  type LucideIcon,
-  RotateCwIcon,
-  ShieldAlertIcon,
-  UsersIcon,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+  CARD_ICON_LABEL,
+  type CardIconKey,
+  cardIconsFor,
+  fitCardIcons,
+} from "@/lib/appointments/card-icons"
 import {
   clientIdOf,
   formatTimeRange,
   type MockBooking,
   type MockBookingStatus,
-  type MockServiceCategory,
 } from "@/lib/appointments/mock"
 import { clientNotesFor } from "@/lib/client-notes"
-import { formatMoneyWhole } from "@/lib/money/format"
 import { cn } from "@/lib/utils"
 
-type CategoryStyle = {
+type CardStyle = {
   fill: string
-  border: string
   title: string
   subtle: string
-  chip: string
-}
-
-const CATEGORY_STYLES: Record<MockServiceCategory, CategoryStyle> = {
-  grooming: {
-    fill: "bg-cami-violet-3",
-    border: "border-cami-violet-6",
-    title: "text-cami-violet-12",
-    subtle: "text-cami-violet-11",
-    chip: "bg-cami-violet-4 text-cami-violet-12",
-  },
-  vet: {
-    fill: "bg-cami-green-3",
-    border: "border-cami-green-6",
-    title: "text-cami-green-12",
-    subtle: "text-cami-green-11",
-    chip: "bg-cami-green-4 text-cami-green-12",
-  },
-  daycare: {
-    fill: "bg-cami-sage-3",
-    border: "border-cami-sage-6",
-    title: "text-cami-sage-12",
-    subtle: "text-cami-sage-11",
-    chip: "bg-cami-sage-4 text-cami-sage-12",
-  },
-  boarding: {
-    fill: "bg-cami-yellow-3",
-    border: "border-cami-yellow-6",
-    title: "text-cami-yellow-12",
-    subtle: "text-cami-yellow-11",
-    chip: "bg-cami-yellow-4 text-cami-yellow-12",
-  },
-  details: {
-    fill: "bg-cami-pink-3",
-    border: "border-cami-pink-6",
-    title: "text-cami-pink-12",
-    subtle: "text-cami-pink-11",
-    chip: "bg-cami-pink-4 text-cami-pink-12",
-  },
-  welcome: {
-    fill: "bg-cami-gray-3",
-    border: "border-cami-gray-6",
-    title: "text-cami-gray-12",
-    subtle: "text-cami-gray-11",
-    chip: "bg-cami-gray-4 text-cami-gray-12",
-  },
-}
-
-type StatusModifier = {
-  border?: string
-  fill?: string
-  title?: string
-  subtle?: string
   ring?: string
   opacity?: string
   decoration?: string
 }
 
-// Status ring/border colors reference cami yellow + pink as fallbacks for amber + tomato
-// until those scales land in globals.css. Per status palette spec: ready-for-pickup → amber,
-// no-show → tomato.
-const STATUS_MODIFIERS: Record<MockBookingStatus, StatusModifier> = {
-  booked: { border: "border-dashed" },
-  confirmed: {},
-  "checked-in": { fill: "saturate-150" },
-  "ready-for-pickup": { fill: "saturate-150", ring: "ring-2 ring-cami-yellow-7/40" },
-  completed: { opacity: "opacity-60" },
-  cancelled: { opacity: "opacity-50", decoration: "line-through" },
-  "no-show": { ring: "ring-2 ring-cami-pink-9/60" },
+// Colour is the status, as in the built product: the same tones as the status
+// badges in lists and sheets, a step louder for Started and No-show.
+const STATUS_CARD: Record<MockBookingStatus, CardStyle> = {
+  booked: {
+    fill: "bg-blue-5",
+    title: "text-blue-12",
+    subtle: "text-blue-12",
+  },
+  confirmed: {
+    fill: "bg-lime-5",
+    title: "text-lime-12",
+    subtle: "text-lime-12",
+  },
+  "checked-in": {
+    fill: "bg-lime-3",
+    title: "text-lime-12",
+    subtle: "text-lime-12",
+  },
+  "ready-for-pickup": {
+    fill: "bg-lime-9",
+    title: "text-lime-12",
+    subtle: "text-lime-12",
+    ring: "ring-2 ring-lime-11/20",
+  },
+  completed: {
+    fill: "bg-sand-6",
+    title: "text-sand-12",
+    subtle: "text-sand-12",
+  },
+  cancelled: {
+    fill: "bg-olive-5",
+    title: "text-olive-12",
+    subtle: "text-olive-12",
+    opacity: "opacity-50",
+    decoration: "line-through",
+  },
+  "no-show": {
+    fill: "bg-tomato-8",
+    title: "text-tomato-12",
+    subtle: "text-tomato-12",
+    ring: "ring-2 ring-tomato-9/30",
+  },
 }
 
 type AppointmentBlockProps = {
@@ -116,31 +89,22 @@ export function AppointmentBlock({
   onClick,
   className,
 }: AppointmentBlockProps) {
-  const style = CATEGORY_STYLES[booking.serviceCategory]
-  const status = STATUS_MODIFIERS[booking.status]
+  const card = STATUS_CARD[booking.status]
 
   const titleText = hasPets && booking.petName ? booking.petName : booking.clientName
   const subtitleText = hasPets && booking.petName ? booking.clientName : undefined
 
+  // DZ-209: the note marker. One glyph for either note kind; the popover it
+  // opens says which.
+  const hasNote = Boolean(booking.notes) || clientNotesFor(clientIdOf(booking)).length > 0
+  const icons = cardIconsFor(booking, { hasNote })
+
+  // As on the built card: the time and its icons on top, then pet · client,
+  // then the service. A 15-minute block has room for the top row only, so its
+  // name lives in the hover card. The service line starts at an hour. No
+  // price: the built card has none, and the hover card lists it.
   const tight = height <= 28
-  // The time range comes first at every size and is never cut; everything else
-  // gives way to it. A 15-minute block is one row, time then name, with its
-  // price and icons in the hover card. A 30-minute block adds the name row with
-  // its icons. From 45 minutes the price sits at the end of the name row and
-  // the icons drop to the bottom; the service line starts at an hour.
-  const short = height <= 48
   const compact = height <= 72
-  const time = (
-    <span
-      className={cn(
-        "shrink-0 whitespace-nowrap font-mono text-xs tabular-nums",
-        tight ? "leading-none" : "leading-tight",
-        style.subtle,
-      )}
-    >
-      {formatTimeRange(booking.start, booking.durationMin)}
-    </span>
-  )
 
   return (
     <button
@@ -150,105 +114,111 @@ export function AppointmentBlock({
       data-category={booking.serviceCategory}
       onClick={() => onClick?.(booking)}
       className={cn(
-        "absolute left-px right-px overflow-hidden rounded-md border text-left",
+        "absolute left-px right-px overflow-hidden rounded-sm text-left",
         "transition-shadow hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        style.fill,
-        style.border,
-        status.border,
-        status.fill,
-        status.ring,
-        status.opacity,
+        card.fill,
+        card.ring,
+        card.opacity,
         className,
       )}
       style={{ top, height }}
     >
-      {tight ? (
-        <div className="flex h-full min-w-0 items-center gap-1 px-1.5">
-          {time}
-          <span
-            className={cn(
-              "min-w-0 truncate text-xs font-semibold leading-none",
-              style.title,
-              status.decoration,
-            )}
-          >
-            {titleText}
-          </span>
-        </div>
-      ) : (
-        <div className={cn("flex h-full flex-col gap-0.5", compact ? "px-2 py-1" : "px-2 py-1.5")}>
-          {time}
-          <div className="flex min-w-0 items-center gap-1">
+      <div className="flex h-full min-w-0 pt-1 pr-1 pb-0.5 pl-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <TimeRow
+            time={formatTimeRange(booking.start, booking.durationMin)}
+            icons={icons}
+            subtleClass={card.subtle}
+          />
+          {!tight ? (
             <div
-              className={cn(
-                "min-w-0 flex-1 truncate text-xs font-semibold leading-tight",
-                style.title,
-                status.decoration,
-              )}
+              className={cn("min-w-0 truncate text-xs font-semibold", card.title, card.decoration)}
             >
               {titleText}
-              {subtitleText ? (
-                <span className={cn("ml-1 font-normal", style.subtle)}>· {subtitleText}</span>
-              ) : null}
-            </div>
-            {short ? (
-              <BlockIconRow booking={booking} subtleClass={style.subtle} />
-            ) : booking.priceMinor > 0 ? (
-              <Badge size="sm" className={cn("shrink-0", style.chip)}>
-                {formatMoneyWhole(booking.priceMinor)}
-              </Badge>
-            ) : null}
-          </div>
-          {!compact ? (
-            <div className={cn("min-w-0 truncate text-xs leading-tight", style.subtle)}>
-              {booking.serviceName}
+              {subtitleText ? <span className="ml-1">· {subtitleText}</span> : null}
             </div>
           ) : null}
-          {!short ? (
-            <BlockIconRow booking={booking} subtleClass={style.subtle} className="mt-auto" />
+          {!compact ? (
+            <div className={cn("min-w-0 truncate text-xs", card.subtle)}>{booking.serviceName}</div>
           ) : null}
         </div>
-      )}
+      </div>
     </button>
   )
 }
 
-type BlockIconRowProps = {
-  booking: MockBooking
+const ICON_PX = 16
+const ICON_GAP_PX = 2
+const ROW_GAP_PX = 4
+
+type TimeRowProps = {
+  time: string
+  icons: CardIconKey[]
   subtleClass: string
-  className?: string
 }
 
-function BlockIconRow({ booking, subtleClass, className }: BlockIconRowProps) {
-  const icons: { key: string; Icon: LucideIcon }[] = []
-  if (booking.hasDeposit) icons.push({ key: "deposit", Icon: CreditCardIcon })
-  if (booking.isRecurring) icons.push({ key: "recurring", Icon: RotateCwIcon })
-  if (booking.linkCount && booking.linkCount > 0) icons.push({ key: "links", Icon: UsersIcon })
-  if (booking.hasSafetyFlag) icons.push({ key: "safety", Icon: ShieldAlertIcon })
-  // DZ-209: the card marker. Reception scans the grid and has to see which
-  // appointments carry a note without hovering every one of them — that is the
-  // whole ask on the ticket. One glyph for either note kind: the card has room
-  // for a marker, not for a taxonomy, and the popover it opens says which.
-  const hasNote = Boolean(booking.notes) || clientNotesFor(clientIdOf(booking)).length > 0
-  if (hasNote) icons.push({ key: "note", Icon: FileTextIcon })
-  if (icons.length === 0 && !booking.needsPickup) return null
+/**
+ * The time, then as many icons as the row has room for (DZ-425). Icons keep
+ * the order `cardIconsFor` gives them; whatever doesn't fit folds into "+N".
+ */
+function TimeRow({ time, icons, subtleClass }: TimeRowProps) {
+  const rowRef = useRef<HTMLDivElement>(null)
+  const timeRef = useRef<HTMLSpanElement>(null)
+  const [slots, setSlots] = useState(0)
+
+  useLayoutEffect(() => {
+    const row = rowRef.current
+    const timeEl = timeRef.current
+    if (!row || !timeEl) return
+    const measure = () => {
+      const free = row.clientWidth - timeEl.offsetWidth - ROW_GAP_PX
+      setSlots(Math.max(0, Math.floor((free + ICON_GAP_PX) / (ICON_PX + ICON_GAP_PX))))
+    }
+    measure()
+    // The time is watched too: it narrows when the web font lands after the
+    // first measure, while the row's own width stays put.
+    const observer = new ResizeObserver(measure)
+    observer.observe(row)
+    observer.observe(timeEl)
+    return () => observer.disconnect()
+  }, [])
+
+  const { shown, more } = fitCardIcons(icons.length, slots)
+  const hidden = icons.slice(shown)
+
   return (
-    <div className={cn("flex shrink-0 items-center gap-1", subtleClass, className)}>
-      {/* Pickup leads the row as a filled chip, not another hairline glyph: it's
-          the one flag staff must act on before the appointment, and a muted
-          10px icon disappears among the passive deposit / recurring marks. */}
-      {booking.needsPickup ? (
-        <span
-          title="Pet Address"
-          className="flex size-3.5 shrink-0 items-center justify-center rounded-full bg-cami-sage-9 text-white"
-        >
-          <CarFrontIcon className="size-2.5" aria-hidden />
-          <span className="sr-only">Pet Address</span>
+    <div
+      ref={rowRef}
+      className={cn("flex min-w-0 items-center justify-between gap-1 text-xs", subtleClass)}
+    >
+      <span ref={timeRef} className="shrink-0 whitespace-nowrap tabular-nums">
+        {time}
+      </span>
+      {shown > 0 || more > 0 ? (
+        <span data-slot="card-icons" className="flex shrink-0 items-center gap-0.5">
+          {icons.slice(0, shown).map((key) => {
+            const Icon = CARD_ICON[key]
+            return (
+              <Icon
+                key={key}
+                className={cn("size-4 shrink-0", key === "requested" && "text-tomato-9")}
+              />
+            )
+          })}
+          {more > 0 ? (
+            <span
+              data-slot="card-icons-more"
+              title={hidden.map((key) => CARD_ICON_LABEL[key]).join(", ")}
+              className="tabular-nums"
+            >
+              +{more}
+            </span>
+          ) : null}
         </span>
       ) : null}
-      {icons.map(({ key, Icon }) => (
-        <Icon key={key} className="size-2.5" aria-hidden />
-      ))}
+      {icons.length > 0 ? (
+        <span className="sr-only">{icons.map((key) => CARD_ICON_LABEL[key]).join(", ")}</span>
+      ) : null}
     </div>
   )
 }

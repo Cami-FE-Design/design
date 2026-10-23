@@ -190,7 +190,9 @@ SCR-13 (R08, KC1.5), corrected 2026-09-03 off Chaps & Co's real Fresha account �
 
 ### Appointments — booking block
 
-Booking card rendered on the People grid. Color carries service category, fill saturation and border style overlay status. All content elements (time, price, name, service, icons) render at every size; truncation handles the squeeze.
+Booking card rendered on the People grid, matched to the built product: the fill is the status. The time row comes first at every size and carries the icons.
+
+Icons follow the DZ-425 rule. One icon per kind of state: payment, how the booking came in, the requested team member, and the status. Inside payment the later state wins, so once checkout opens a sale its icon replaces the deposit card. When the row runs out of room, icons keep the order payment, online, requested, pickup, safety, note, package, recurring, linked, status, and the rest fold into "+N". Status goes first because the colour already says it. The ticket's own example, an online booking that is partially paid, shows both icons where there is room; on the smallest slot only partially paid fits, because "is it paid" is the front desk's first question. As on the built card, the top row is only the time and its icons; pet · client sits on the row below, so a 15 minute card shows no name and the hover card has it. The 15 and 30 minute rows use the built day view's widths. 96px is the narrowest member column, and bookings at the same time sit side by side and split it: two get about 47px each, three about 31px, and from two on even the time is cut.
 
 ### Appointments — toolbar and people grid
 

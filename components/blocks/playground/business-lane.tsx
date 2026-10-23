@@ -127,7 +127,6 @@ import {
   MOCK_STAFF,
   type MockBooking,
   type MockBookingStatus,
-  type MockServiceCategory,
 } from "@/lib/appointments/mock"
 import {
   BOOKING_DAYS,
@@ -1523,6 +1522,105 @@ const PICKUP_FIELD_STATES: Array<{
     clientName: "Aaliyah Hazari",
   },
 ]
+
+// DZ-425: the calendar card's icons, one card per state.
+type IconDemo = { key: string; label: string; flags: Partial<MockBooking> }
+
+const ICON_DEMO_FIGMA: IconDemo[] = [
+  { key: "requested", label: "Requested", flags: { requestedStaff: true, status: "booked" } },
+  { key: "confirmed", label: "Confirmed", flags: { status: "confirmed" } },
+  { key: "cancelled", label: "Cancelled", flags: { status: "cancelled" } },
+  { key: "no-show", label: "No-show", flags: { status: "no-show" } },
+  { key: "draft", label: "Draft", flags: { status: "completed", saleStatus: "draft" } },
+  {
+    key: "partial",
+    label: "Partially paid",
+    flags: { status: "completed", saleStatus: "partially_paid" },
+  },
+  { key: "paid", label: "Fully paid", flags: { status: "completed", saleStatus: "paid" } },
+  { key: "package", label: "Package", flags: { packageRedeemed: true, status: "booked" } },
+  { key: "online", label: "Online booking", flags: { bookedOnline: true, status: "booked" } },
+  { key: "deposit", label: "Deposit paid", flags: { hasDeposit: true, status: "booked" } },
+]
+
+const ICON_DEMO_PAYMENT: IconDemo[] = [
+  { key: "deposit", label: "Deposit", flags: { hasDeposit: true } },
+  { key: "draft", label: "Deposit, sale opened", flags: { hasDeposit: true, saleStatus: "draft" } },
+  {
+    key: "partial",
+    label: "Deposit, part paid",
+    flags: { hasDeposit: true, saleStatus: "partially_paid" },
+  },
+  { key: "paid", label: "Paid in full", flags: { hasDeposit: true, saleStatus: "paid" } },
+]
+
+/** Every state at once: partially paid online booking, requested, with pickup, a note and a package. */
+const ICON_DEMO_BUSY: Partial<MockBooking> = {
+  saleStatus: "partially_paid",
+  bookedOnline: true,
+  requestedStaff: true,
+  needsPickup: true,
+  notes: "Nervous around dryers",
+  packageRedeemed: true,
+}
+
+// The built day view never draws a member column under 96px
+// (DAY_COLUMN_MIN_WIDTH in cami-business), and bookings at the same time sit
+// side by side (slotEventOverlap off), splitting that column between them.
+const ICON_DEMO_WIDTHS = [
+  { width: 224, label: "224px" },
+  { width: 148, label: "148px" },
+  { width: 96, label: "96px column, one booking" },
+  { width: 47, label: "Two at the same time" },
+  { width: 31, label: "Three at the same time" },
+]
+
+function IconDemoCard({
+  id,
+  label,
+  flags,
+  width = 148,
+  durationMin = 60,
+}: {
+  id: string
+  label: string
+  flags: Partial<MockBooking>
+  width?: number
+  durationMin?: number
+}) {
+  const height = Math.max(24, durationMin * (95 / 60))
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div
+        className="relative box-content border border-border/40 bg-muted/20"
+        style={{ width, height: Math.max(28, height) }}
+      >
+        <AppointmentBlock
+          booking={{
+            id: `demo-icons-${id}`,
+            staffId: "demo",
+            locationId: "shampooch-jvc",
+            // One-digit hours at every length (8:45, 9:00, 9:30), so the label is as wide as the built card's "3:30 – 3:45".
+            start: "8:30",
+            durationMin,
+            status: "confirmed",
+            serviceCategory: "grooming",
+            serviceName: "Full Grooming SM",
+            // A client with no notes on file, so the note icon shows only where a demo sets one.
+            clientName: "Frances",
+            petName: "Willow",
+            petSpecies: "dog",
+            priceMinor: 21000,
+            ...flags,
+          }}
+          top={0}
+          height={height}
+        />
+      </div>
+      <span className="text-xs text-muted-foreground">{label}</span>
+    </div>
+  )
+}
 
 function PickupFieldsDemo({ state }: { state: (typeof PICKUP_FIELD_STATES)[number] }) {
   const [needsPickup, setNeedsPickup] = useState(state.needsPickup)
@@ -2977,7 +3075,7 @@ export function BusinessLane() {
       </Section>
       <Section
         title="Appointments — booking block"
-        description="Booking block for the People grid: colour for category, fill and border for status, all content at every size."
+        description="Booking block for the People grid, matched to the built card: colour for status, and the DZ-425 icon rule at every size and width."
       >
         <Row label="Sizes (15/30/60/180 min)">
           {[15, 30, 60, 180].map((min) => (
@@ -2996,7 +3094,7 @@ export function BusinessLane() {
                   status: "confirmed",
                   serviceCategory: "grooming",
                   serviceName: min < 30 ? "Nails Clip" : "Wash & Blow Dry SM",
-                  clientName: "Tom Cassidy",
+                  clientName: "Frances",
                   petName: "Luna",
                   petSpecies: "cat",
                   priceMinor: min < 30 ? 3000 : 14000,
@@ -3034,7 +3132,7 @@ export function BusinessLane() {
                   status,
                   serviceCategory: "grooming",
                   serviceName: "Full Grooming SM",
-                  clientName: "Karen Dougall",
+                  clientName: "Frances",
                   petName: "Willow",
                   petSpecies: "dog",
                   priceMinor: 21000,
@@ -3045,90 +3143,46 @@ export function BusinessLane() {
             </div>
           ))}
         </Row>
-        <Row label="Service categories">
-          {(
-            [
-              { cat: "grooming", svc: "Wash & Blow Dry" },
-              { cat: "vet", svc: "Vaccination" },
-              { cat: "daycare", svc: "Day Care · 12 pets" },
-              { cat: "boarding", svc: "Boarding Stay" },
-              { cat: "details", svc: "Nails Clip" },
-              { cat: "welcome", svc: "Meet & Greet" },
-            ] as Array<{ cat: MockServiceCategory; svc: string }>
-          ).map(({ cat, svc }) => (
-            <div
-              key={cat}
-              className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20"
-            >
-              <AppointmentBlock
-                booking={{
-                  id: `demo-${cat}`,
-                  staffId: "demo",
-                  locationId: "shampooch-jvc",
-                  start: "10:00",
-                  durationMin: 60,
-                  status: "confirmed",
-                  serviceCategory: cat,
-                  serviceName: svc,
-                  clientName: "Frances",
-                  petName: "Duke",
-                  petSpecies: "dog",
-                  priceMinor: 14000,
-                }}
-                top={0}
-                height={95}
+        <Row label="Figma icons" align="start">
+          {ICON_DEMO_FIGMA.map(({ key, label, flags }) => (
+            <IconDemoCard key={key} id={`figma-${key}`} label={label} flags={flags} />
+          ))}
+        </Row>
+        <Row label="Payment: the sale replaces the deposit" align="start">
+          {ICON_DEMO_PAYMENT.map(({ key, label, flags }) => (
+            <IconDemoCard key={key} id={`pay-${key}`} label={label} flags={flags} />
+          ))}
+        </Row>
+        <Row label="Online booking + partially paid (15 min)" align="start">
+          {ICON_DEMO_WIDTHS.slice(0, 3).map(({ width, label }) => (
+            <IconDemoCard
+              key={width}
+              id={`online-partial-${width}`}
+              label={label}
+              width={width}
+              durationMin={15}
+              flags={{ bookedOnline: true, saleStatus: "partially_paid", status: "booked" }}
+            />
+          ))}
+        </Row>
+        {[15, 30].map((durationMin) => (
+          <Row
+            key={durationMin}
+            label={durationMin === 15 ? "Smallest slot (15 min)" : "30 min"}
+            align="start"
+          >
+            {ICON_DEMO_WIDTHS.map(({ width, label }) => (
+              <IconDemoCard
+                key={width}
+                id={`narrow-${durationMin}-${width}`}
+                label={label}
+                width={width}
+                durationMin={durationMin}
+                flags={ICON_DEMO_BUSY}
               />
-            </div>
-          ))}
-        </Row>
-        <Row label="Flag icons (pickup leads the row)">
-          {(
-            [
-              { key: "pickup", label: "Pet address only", flags: { needsPickup: true } },
-              { key: "deposit", label: "Deposit only", flags: { hasDeposit: true } },
-              {
-                key: "pickup-safety",
-                label: "Pet address + safety flag",
-                flags: { needsPickup: true, hasSafetyFlag: true },
-              },
-              {
-                key: "all",
-                label: "All four",
-                flags: {
-                  needsPickup: true,
-                  hasDeposit: true,
-                  isRecurring: true,
-                  hasSafetyFlag: true,
-                },
-              },
-            ] as Array<{ key: string; label: string; flags: Partial<MockBooking> }>
-          ).map(({ key, label, flags }) => (
-            <div key={key} className="flex flex-col gap-1.5">
-              <div className="relative h-[95px] w-[148px] border border-border/40 bg-muted/20">
-                <AppointmentBlock
-                  booking={{
-                    id: `demo-flags-${key}`,
-                    staffId: "demo",
-                    locationId: "shampooch-jvc",
-                    start: "10:00",
-                    durationMin: 60,
-                    status: "confirmed",
-                    serviceCategory: "grooming",
-                    serviceName: "Full Grooming SM",
-                    clientName: "Karen Dougall",
-                    petName: "Willow",
-                    petSpecies: "dog",
-                    priceMinor: 21000,
-                    ...flags,
-                  }}
-                  top={0}
-                  height={95}
-                />
-              </div>
-              <span className="text-xs text-muted-foreground">{label}</span>
-            </div>
-          ))}
-        </Row>
+            ))}
+          </Row>
+        ))}
       </Section>
       <Section
         lazy
